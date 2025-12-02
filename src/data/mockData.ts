@@ -159,6 +159,98 @@ export const eventosAdicionalesText = "Torneo de Putt, Torneo de Aproach, Torneo
 
 export const inscripcionesText = "En Coordinación Deportiva a partir del 1 de mayo de 2025. Cierre de inscripciones el 24 de septiembre de 2025 a las 2 pm o al completarse el cupo de jugadores por categoría.";
 
+export interface PricingTier {
+  categoria: string;
+  costo: string;
+  mayo6: string;
+  junio5: string;
+  julio4: string;
+  agosto3: string;
+  sept2: string;
+}
+
+export interface PricingTable {
+  title: string;
+  subtitle?: string;
+  tiers: PricingTier[];
+}
+
+export const sociosPricing: PricingTable[] = [
+  {
+    title: 'Socios que jugaron anual 2024 y 2023',
+    tiers: [
+      { categoria: 'CABALLEROS', costo: '$13,500.00', mayo6: '$2,250.00', junio5: '$2,700.00', julio4: '$3,375.00', agosto3: '$4,500.00', sept2: '$6,750.00' },
+      { categoria: 'DAMAS/SENIORS', costo: '$12,500.00', mayo6: '$2,083.33', junio5: '$2,500.00', julio4: '$3,125.00', agosto3: '$4,166.66', sept2: '$6,250.00' },
+    ],
+  },
+  {
+    title: 'Socios que jugaron anual 2024 o 2023',
+    tiers: [
+      { categoria: 'CABALLEROS', costo: '$14,500.00', mayo6: '$2,416.66', junio5: '$2,900.00', julio4: '$3,625.00', agosto3: '$4,833.33', sept2: '$7,250.00' },
+      { categoria: 'DAMAS/SENIORS', costo: '$13,500.00', mayo6: '$2,250.00', junio5: '$2,700.00', julio4: '$3,375.00', agosto3: '$4,500.00', sept2: '$6,750.00' },
+    ],
+  },
+  {
+    title: 'Socios que no jugaron anual 2024 y 2023',
+    tiers: [
+      { categoria: 'CABALLEROS', costo: '$16,500.00', mayo6: '$2,833.33', junio5: '$3,400.00', julio4: '$4,250.00', agosto3: '$5,666.66', sept2: '$8,500.00' },
+      { categoria: 'DAMAS/SENIORS', costo: '$15,500.00', mayo6: '$2,666.66', junio5: '$3,200.00', julio4: '$4,000.00', agosto3: '$5,333.33', sept2: '$8,000.00' },
+    ],
+  },
+];
+
+export interface ForaneosPricing {
+  title: string;
+  caballeros: string;
+  damasSeniors: string;
+}
+
+export const foraneosPricing: ForaneosPricing[] = [
+  { title: 'Jugaron 2023 y 2024', caballeros: '$14,500.00', damasSeniors: '$13,500.00' },
+  { title: 'Jugaron 2023 o 2024', caballeros: '$15,500.00', damasSeniors: '$14,500.00' },
+  { title: 'No jugaron 2022 ni 2023', caballeros: '$17,000.00', damasSeniors: '$16,000.00' },
+];
+
+export const pricingNote = "Estas cantidades se podrán pagar en 6, 5, 4, 3 ó 2 mensualidades, dejando forzosamente un pago inicial y los documentos correspondientes a los pagos futuros.";
+
+export interface ContactInfo {
+  bankName: string;
+  clabe: string;
+  cuenta: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  telefonoDirecto: string;
+}
+
+export const contactInfo: ContactInfo = {
+  bankName: 'BANREGIO',
+  clabe: '058080800000090114',
+  cuenta: '800-000-90011',
+  nombre: 'CAMPESTRE TORREÓN, S.A. DE C.V.',
+  email: 'coordinaciondeportiva@campestretorreon.com.mx',
+  telefono: '(871) 7-21-23-23 Ext. 119 y 155',
+  telefonoDirecto: '(871) 7-21-05-41',
+};
+
+export const contactWarning = "Cheque devuelto o cargo de tarjeta no autorizado por el banco, causará baja automática del jugador al Torneo. A partir del 4 de septiembre por ningún motivo se reembolsará el costo de la inscripción por cancelaciones.";
+
+export const diaDePracticaText = "Los jugadores inscritos no socios tendrán derecho a un día de práctica que son 20, 21, 27 y 28 de septiembre del 2025. El lunes 29 de septiembre será la práctica para jugadores foráneos y Campeonato, de clubes fuera de la Laguna.";
+
+export const informacionGeneralText = "El Comité Organizador se reserva el derecho de hacer los cambios que juzgue necesarios para el mejor desarrollo del Torneo. Cualquier punto no considerado en la presente convocatoria será resuelto por el Comité de Golf y su decisión será final e inapelable.";
+
+export const convocatoriaSections = [
+  { id: 'elegibilidad', label: 'Elegibilidad' },
+  { id: 'categorias', label: 'Categorías' },
+  { id: 'horarios', label: 'Horarios' },
+  { id: 'salidas', label: 'Salidas y Hándicap' },
+  { id: 'desempates', label: 'Desempates y Premios' },
+  { id: 'eventos', label: 'Eventos e Inscripciones' },
+  { id: 'costos', label: 'Costos' },
+  { id: 'contacto', label: 'Contacto' },
+  { id: 'info', label: 'Información General' },
+];
+
 // API simulation functions - replace with actual fetch calls
 export const fetchMenuConfig = async (): Promise<MenuItem[]> => {
   // Simulate API delay
