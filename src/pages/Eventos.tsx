@@ -1,48 +1,111 @@
+import { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, MapPin } from 'lucide-react';
-
-const mockEvents = [
-  { id: 1, title: 'Registro de Jugadores', date: '30 Sep 2025', time: '8:00 AM - 5:00 PM', location: 'Casa Club' },
-  { id: 2, title: 'Cóctel de Bienvenida', date: '30 Sep 2025', time: '7:00 PM', location: 'Terraza Principal' },
-  { id: 3, title: 'Ronda 1', date: '1 Oct 2025', time: '7:00 AM', location: 'Campo de Golf' },
-  { id: 4, title: 'Ronda 2', date: '2 Oct 2025', time: '7:00 AM', location: 'Campo de Golf' },
-  { id: 5, title: 'Ronda 3', date: '3 Oct 2025', time: '7:00 AM', location: 'Campo de Golf' },
-  { id: 6, title: 'Ceremonia de Premiación', date: '4 Oct 2025', time: '6:00 PM', location: 'Salón Principal' },
-];
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Clock, Gift } from 'lucide-react';
+import { fetchEventos, EventDay } from '@/data/mockData';
 
 const Eventos = () => {
+  const [eventos, setEventos] = useState<EventDay[]>([]);
+
+  useEffect(() => {
+    const loadEventos = async () => {
+      const data = await fetchEventos();
+      setEventos(data);
+    };
+    loadEventos();
+  }, []);
+
   return (
     <Layout>
       <PageHero 
-        title="Eventos"
-        subtitle="Calendario de actividades y eventos del torneo"
+        title="Calendario de Eventos"
+        subtitle="Del 30 de septiembre al 4 de octubre de 2025"
+        backgroundImage="https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=1920&q=80"
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockEvents.map((event) => (
-              <Card key={event.id} className="card-hover border-border/50">
-                <CardHeader>
-                  <CardTitle className="font-display text-lg">{event.title}</CardTitle>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
+              Programa de Actividades
+            </h2>
+            <p className="text-muted-foreground">
+              Todos los eventos y sorteos del 51° Torneo Anual de Golf
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {eventos.map((day, idx) => (
+              <Card key={idx} className="shadow-card border-border/50 overflow-hidden">
+                <CardHeader className="bg-primary/5 border-b border-border/50">
+                  <CardTitle className="flex items-center gap-3 font-display">
+                    <div className="w-12 h-12 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground">
+                      <Calendar className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-primary text-xl">{day.dayName}</span>
+                      <span className="text-muted-foreground text-base font-normal ml-2">
+                        {day.date}
+                      </span>
+                    </div>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span>{event.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <span>{event.time}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span>{event.location}</span>
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-1 lg:grid-cols-4">
+                    {/* Events Column */}
+                    <div className="lg:col-span-3 p-6">
+                      <div className="space-y-3">
+                        {day.events.map((event, eventIdx) => (
+                          <div 
+                            key={eventIdx} 
+                            className="flex items-start gap-4 py-2 border-b border-border/30 last:border-0"
+                          >
+                            <div className="w-32 flex-shrink-0">
+                              {event.time && (
+                                <div className="flex items-center gap-2 text-sm text-accent font-medium">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{event.time}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-foreground font-medium">{event.event}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sorteos Column */}
+                    <div className="lg:col-span-1 bg-accent/10 p-6 border-t lg:border-t-0 lg:border-l border-border/50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Gift className="h-5 w-5 text-accent" />
+                        <span className="font-display font-semibold text-foreground">Sorteos</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {day.sorteos.map((sorteo, sorteoIdx) => (
+                          <Badge 
+                            key={sorteoIdx} 
+                            variant="secondary"
+                            className="bg-accent/20 text-accent-foreground hover:bg-accent/30"
+                          >
+                            {sorteo}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              * Los horarios están sujetos a cambios. Consulta con la coordinación deportiva para confirmaciones.
+            </p>
           </div>
         </div>
       </section>

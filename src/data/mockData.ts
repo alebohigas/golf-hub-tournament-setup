@@ -274,3 +274,80 @@ export const fetchTournamentStats = async (): Promise<TournamentStats> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   return tournamentStats;
 };
+
+// Events data
+export interface EventItem {
+  time: string;
+  event: string;
+}
+
+export interface EventDay {
+  date: string;
+  dayName: string;
+  events: EventItem[];
+  sorteos: string[];
+}
+
+export const eventosData: EventDay[] = [
+  {
+    date: '30 de Septiembre',
+    dayName: 'Martes',
+    events: [
+      { time: '6:40 y 11:20 HRS', event: 'INICIO DE SALIDAS - DÍA 1' },
+      { time: '20:00 HRS', event: 'INAUGURACIÓN' },
+      { time: '20:30 HRS', event: 'INAUGURACIÓN GALERÍA DE ARTE' },
+      { time: '21:00 HRS', event: 'TORNEO DE APPROACH' },
+      { time: '21:00 HRS', event: 'SHOOTOUT' },
+      { time: '', event: 'PREMIACIÓN SCORE DIARIO Y RIFAS' },
+    ],
+    sorteos: ['CARRITO DE GOLF', 'REGALOS PATROCINADORES'],
+  },
+  {
+    date: '1 de Octubre',
+    dayName: 'Miércoles',
+    events: [
+      { time: '6:40 y 11:20 HRS', event: 'INICIO DE SALIDAS - DÍA 2' },
+      { time: '19:00 HRS', event: 'TORNEO DE APPROACH' },
+      { time: '19:00 HRS', event: 'SHOOTOUT' },
+      { time: '19:30 HRS', event: 'DESFILE CIMACO' },
+      { time: '', event: 'PREMIACIÓN SCORE DIARIO Y RIFAS' },
+    ],
+    sorteos: ['CARRITO DE GOLF', 'REGALOS PATROCINADORES'],
+  },
+  {
+    date: '2 de Octubre',
+    dayName: 'Jueves',
+    events: [
+      { time: '6:40 y 11:20 HRS', event: 'INICIO DE SALIDAS - DÍA 3' },
+      { time: '19:00 HRS', event: 'TORNEO DE PUTT' },
+      { time: '21:00 HRS', event: 'TORNEO DE DRIVER - FINAL' },
+      { time: '', event: 'PREMIACIÓN SCORE DIARIO Y RIFAS' },
+    ],
+    sorteos: ['REGALOS PATROCINADORES'],
+  },
+  {
+    date: '3 de Octubre',
+    dayName: 'Viernes',
+    events: [
+      { time: '6:40 y 11:20 HRS', event: 'INICIO DE SALIDAS - DÍA 4' },
+      { time: '20:00 HRS', event: 'FINAL SHOOTOUT' },
+      { time: '', event: 'PREMIACIÓN SCORE DIARIO Y RIFAS' },
+    ],
+    sorteos: ['CARRITO DE GOLF', 'REGALOS PATROCINADORES'],
+  },
+  {
+    date: '4 de Octubre',
+    dayName: 'Sábado',
+    events: [
+      { time: '6:40 y 11:20 HRS', event: 'INICIO DE SALIDAS - DÍA 5' },
+      { time: '21:30 HRS', event: 'CEREMONIA DE PREMIACIÓN' },
+      { time: '23:00 HRS', event: 'SHOW DE CLAUSURA: MARÍA JOSÉ' },
+    ],
+    sorteos: ['AUTOMÓVIL', 'CARRITO DE GOLF'],
+  },
+];
+
+export const fetchEventos = async (): Promise<EventDay[]> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return eventosData;
+};
