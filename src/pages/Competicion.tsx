@@ -70,6 +70,8 @@ const Competicion = () => {
 
     const searchTerm = searchQuery.trim().toLowerCase();
     
+    // When searching, filter to only show category groups that have matching players
+    // but keep the full winners list so we can show their actual position
     return filtered.map(comp => ({
       ...comp,
       categoryGroups: comp.categoryGroups.filter(group =>
