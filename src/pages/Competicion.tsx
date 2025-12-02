@@ -8,6 +8,7 @@ import CompetitionSubmenu from '@/components/competicion/CompetitionSubmenu';
 import CategoryGroupCard from '@/components/competicion/CompetitionCard';
 import CategoryDetailModal from '@/components/competicion/CategoryDetailModal';
 import { Target, Trophy, Flag, Zap, Star, Award, Medal, ChevronDown, Search, X } from 'lucide-react';
+import competicionHero from '@/assets/competicion-hero.jpg';
 
 const iconMap = {
   target: Target,
@@ -93,6 +94,7 @@ const Competicion = () => {
       <PageHero 
         title="Competición"
         subtitle="Ganadores de las competencias especiales del torneo"
+        backgroundImage={competicionHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
