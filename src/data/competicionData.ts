@@ -13,7 +13,7 @@ export interface Competition {
   description: string;
   icon: 'target' | 'trophy' | 'flag' | 'zap' | 'star' | 'award' | 'medal';
   winners: CompetitionWinner[];
-  maxWinners: number; // How many winners to display
+  maxWinners: number; // How many winners to display (1-15)
 }
 
 export type CompetitionType = 
@@ -25,6 +25,41 @@ export type CompetitionType =
   | 'approach'
   | 'wager';
 
+// Helper to generate mock winners
+const generateWinners = (prefix: string, count: number, resultFn?: (i: number) => string): CompetitionWinner[] => {
+  const clubs = [
+    'Club Campestre Monterrey',
+    'Club de Golf Santa Anita',
+    'Club Campestre de Querétaro',
+    'Club de Golf Vallescondido',
+    'Club Campestre de León',
+    'Club de Golf La Hacienda',
+    'Club Campestre El Campanario',
+    'Club de Golf Bosques',
+    'Club Atlas Colomos',
+    'Club Campestre de Celaya',
+    'Club de Golf Pulgas Pandas',
+    'Club Campestre Tampico',
+    'Club de Golf Malanquín',
+    'Club de Golf El Cielo',
+    'Club Campestre Chihuahua',
+  ];
+  const names = [
+    'Carlos Rodríguez', 'Miguel Ángel Torres', 'Fernando Vega', 'Roberto Sánchez',
+    'Alejandro Mendoza', 'Luis Hernández', 'Jorge Martínez', 'Eduardo Castro',
+    'Ricardo Flores', 'Pablo Guzmán', 'Antonio López', 'Daniel Ramírez',
+    'Sergio Navarro', 'Raúl Jiménez', 'Óscar Pérez'
+  ];
+  
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${prefix}-${i + 1}`,
+    playerId: `p${prefix}-${i + 1}`,
+    playerName: names[i % names.length],
+    club: clubs[i % clubs.length],
+    result: resultFn ? resultFn(i) : undefined,
+  }));
+};
+
 // Mock data - will be replaced with database fetch
 export const mockCompetitions: Competition[] = [
   {
@@ -32,76 +67,56 @@ export const mockCompetitions: Competition[] = [
     name: 'Closest to the Pin',
     description: 'Tiro más cercano al hoyo',
     icon: 'target',
-    maxWinners: 3,
-    winners: [
-      { id: '1', playerId: 'p1', playerName: 'Carlos Rodríguez', club: 'Club Campestre Monterrey', result: '0.8m' },
-      { id: '2', playerId: 'p2', playerName: 'Miguel Ángel Torres', club: 'Club de Golf Santa Anita', result: '1.2m' },
-      { id: '3', playerId: 'p3', playerName: 'Fernando Vega', club: 'Club Campestre de Querétaro', result: '1.5m' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('cp', 10, (i) => `${(0.5 + i * 0.3).toFixed(1)}m`),
   },
   {
     id: 'longest_drive',
     name: 'Longest Drive',
     description: 'Drive más largo',
     icon: 'zap',
-    maxWinners: 2,
-    winners: [
-      { id: '4', playerId: 'p4', playerName: 'Roberto Sánchez', club: 'Club de Golf Vallescondido', result: '312 yds' },
-      { id: '5', playerId: 'p5', playerName: 'Alejandro Mendoza', club: 'Club Campestre de León', result: '298 yds' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('ld', 10, (i) => `${315 - i * 5} yds`),
   },
   {
     id: 'straightest_drive',
     name: 'Straightest Drive',
     description: 'Drive más recto',
     icon: 'flag',
-    maxWinners: 1,
-    winners: [
-      { id: '6', playerId: 'p6', playerName: 'Luis Hernández', club: 'Club de Golf La Hacienda', result: 'Fairway center' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('sd', 10),
   },
   {
     id: 'oyea',
     name: "O'Yea",
     description: 'Premio especial O\'Yea',
     icon: 'star',
-    maxWinners: 1,
-    winners: [
-      { id: '7', playerId: 'p7', playerName: 'Jorge Martínez', club: 'Club Campestre El Campanario' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('oy', 10),
   },
   {
     id: 'daily_score',
     name: 'Daily Score',
     description: 'Mejor puntuación del día',
     icon: 'trophy',
-    maxWinners: 3,
-    winners: [
-      { id: '8', playerId: 'p8', playerName: 'Eduardo Castro', club: 'Club de Golf Bosques', result: '68' },
-      { id: '9', playerId: 'p9', playerName: 'Ricardo Flores', club: 'Club Atlas Colomos', result: '69' },
-      { id: '10', playerId: 'p10', playerName: 'Pablo Guzmán', club: 'Club Campestre de Celaya', result: '70' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('ds', 10, (i) => `${67 + i}`),
   },
   {
     id: 'approach',
     name: 'Best Approach',
     description: 'Mejor approach',
     icon: 'award',
-    maxWinners: 2,
-    winners: [
-      { id: '11', playerId: 'p11', playerName: 'Antonio López', club: 'Club de Golf Pulgas Pandas', result: '0.5m' },
-      { id: '12', playerId: 'p12', playerName: 'Daniel Ramírez', club: 'Club Campestre Tampico', result: '0.9m' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('ap', 10, (i) => `${(0.3 + i * 0.2).toFixed(1)}m`),
   },
   {
     id: 'wager',
     name: 'WAGER',
     description: 'Premio WAGER',
     icon: 'medal',
-    maxWinners: 1,
-    winners: [
-      { id: '13', playerId: 'p13', playerName: 'Sergio Navarro', club: 'Club de Golf Malanquín' },
-    ]
+    maxWinners: 10,
+    winners: generateWinners('wg', 10),
   },
 ];
 
