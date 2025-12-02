@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { CategoryGroup } from '@/data/competicionData';
+import { CategoryGroup, CompetitionWinner } from '@/data/competicionData';
 import { Medal, ChevronRight } from 'lucide-react';
 
 interface CategoryGroupCardProps {
@@ -26,7 +26,72 @@ const HighlightedName = ({ name, highlight }: { name: string; highlight?: string
   );
 };
 
+const WinnerRow = ({ 
+  winner, 
+  position, 
+  searchQuery,
+  isSearchMatch 
+}: { 
+  winner: CompetitionWinner; 
+  position: number; 
+  searchQuery?: string;
+  isSearchMatch?: boolean;
+}) => (
+  <div 
+    className={`px-4 py-3 flex items-center gap-3 ${
+      isSearchMatch 
+        ? 'bg-primary/10 border-l-4 border-primary' 
+        : position % 2 === 0 
+          ? 'bg-background' 
+          : 'bg-muted/30'
+    }`}
+  >
+    {/* Position Badge */}
+    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+      position === 0 
+        ? 'bg-yellow-500 text-yellow-950' 
+        : position === 1 
+          ? 'bg-gray-400 text-gray-900' 
+          : position === 2 
+            ? 'bg-amber-600 text-amber-950' 
+            : 'bg-muted text-muted-foreground'
+    }`}>
+      {position === 0 ? <Medal className="h-4 w-4" /> : position + 1}
+    </div>
+    
+    {/* Player Info */}
+    <div className="flex-1 min-w-0">
+      <p className="font-medium text-foreground truncate">
+        <HighlightedName name={winner.playerName} highlight={searchQuery} />
+      </p>
+      <p className="text-xs text-muted-foreground truncate">{winner.club}</p>
+    </div>
+    
+    {/* Result */}
+    {winner.result && (
+      <span className="font-bold text-primary text-lg flex-shrink-0">
+        {winner.result}
+      </span>
+    )}
+  </div>
+);
+
 const CategoryGroupCard = ({ group, maxWinners, searchQuery, onClick }: CategoryGroupCardProps) => {
+  const searchTerm = searchQuery?.trim().toLowerCase() || '';
+  const isSearching = searchTerm.length > 0;
+  
+  // Find matched players with their positions
+  const matchedPlayers = isSearching 
+    ? group.winners
+        .map((winner, idx) => ({ winner, position: idx }))
+        .filter(({ winner }) => winner.playerName.toLowerCase().includes(searchTerm))
+    : [];
+
+  // Determine what to display
+  const displayWinners = isSearching 
+    ? matchedPlayers 
+    : group.winners.slice(0, maxWinners).map((winner, idx) => ({ winner, position: idx }));
+
   return (
     <Card 
       className="border-border/50 overflow-hidden hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
@@ -39,58 +104,38 @@ const CategoryGroupCard = ({ group, maxWinners, searchQuery, onClick }: Category
         </span>
         <div className="flex items-center gap-2">
           <span className="text-primary-foreground/80 text-sm">
-            {group.winners.length} total
+            {isSearching 
+              ? `${matchedPlayers.length} encontrado${matchedPlayers.length !== 1 ? 's' : ''}`
+              : `${group.winners.length} total`
+            }
           </span>
           <ChevronRight className="h-4 w-4 text-primary-foreground/80" />
         </div>
       </div>
       
-      {/* Winners Preview */}
+      {/* Winners */}
       <CardContent className="p-0">
-        {group.winners.slice(0, maxWinners).map((winner, idx) => (
+        {displayWinners.map(({ winner, position }, idx) => (
           <div 
-            key={winner.id} 
-            className={`px-4 py-3 flex items-center gap-3 ${
-              idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
-            } ${idx < Math.min(group.winners.length, maxWinners) - 1 ? 'border-b border-border/30' : ''}`}
+            key={winner.id}
+            className={idx < displayWinners.length - 1 ? 'border-b border-border/30' : ''}
           >
-            {/* Position Badge */}
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-              idx === 0 
-                ? 'bg-yellow-500 text-yellow-950' 
-                : idx === 1 
-                  ? 'bg-gray-400 text-gray-900' 
-                  : idx === 2 
-                    ? 'bg-amber-600 text-amber-950' 
-                    : 'bg-muted text-muted-foreground'
-            }`}>
-              {idx === 0 ? <Medal className="h-4 w-4" /> : idx + 1}
-            </div>
-            
-            {/* Player Info */}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-foreground truncate">
-                <HighlightedName name={winner.playerName} highlight={searchQuery} />
-              </p>
-              <p className="text-xs text-muted-foreground truncate">{winner.club}</p>
-            </div>
-            
-            {/* Result */}
-            {winner.result && (
-              <span className="font-bold text-primary text-lg flex-shrink-0">
-                {winner.result}
-              </span>
-            )}
+            <WinnerRow 
+              winner={winner} 
+              position={position} 
+              searchQuery={searchQuery}
+              isSearchMatch={isSearching}
+            />
           </div>
         ))}
         
-        {group.winners.length === 0 && (
+        {displayWinners.length === 0 && (
           <div className="px-4 py-6 text-center text-muted-foreground text-sm">
-            Sin ganadores registrados
+            {isSearching ? 'No hay coincidencias' : 'Sin ganadores registrados'}
           </div>
         )}
 
-        {group.winners.length > maxWinners && (
+        {!isSearching && group.winners.length > maxWinners && (
           <div className="px-4 py-2 text-center text-primary text-sm bg-primary/5 border-t border-border/30">
             Ver {group.winners.length - maxWinners} más →
           </div>
