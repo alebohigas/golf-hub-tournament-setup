@@ -1,9 +1,22 @@
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import CategoryTable from '@/components/convocatoria/CategoryTable';
-import { eligibilityText, notesText, tournamentInfo } from '@/data/mockData';
+import ScheduleTable from '@/components/convocatoria/ScheduleTable';
+import InfoSection from '@/components/convocatoria/InfoSection';
+import { 
+  eligibilityText, 
+  notesText, 
+  tournamentInfo, 
+  scheduleData,
+  salidasText,
+  handicapText,
+  desempatesText,
+  premiosText,
+  eventosAdicionalesText,
+  inscripcionesText
+} from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, AlertCircle, Calendar } from 'lucide-react';
+import { CheckCircle, AlertCircle, Calendar, Clock, Trophy, Gift, CalendarPlus, FileEdit } from 'lucide-react';
 
 const Convocatoria = () => {
   const formatDate = (start: string, end: string) => {
@@ -84,7 +97,7 @@ const Convocatoria = () => {
           </div>
 
           {/* Categories Section */}
-          <div>
+          <div className="mb-16">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
                 Categorías
@@ -94,6 +107,68 @@ const Convocatoria = () => {
               </p>
             </div>
             <CategoryTable />
+          </div>
+
+          {/* Schedule Section */}
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
+                Días y horarios de juego por categoría
+              </h2>
+              <p className="text-muted-foreground">
+                Consulta los horarios de salida según tu categoría
+              </p>
+            </div>
+            <Card className="shadow-card border-border/50 overflow-hidden">
+              <CardContent className="p-0 md:p-6">
+                <ScheduleTable scheduleData={scheduleData} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Salidas & Handicap */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            <InfoSection 
+              title="Salidas" 
+              content={salidasText}
+              icon={Clock}
+            />
+            <InfoSection 
+              title="Hándicap" 
+              content={handicapText}
+              icon={FileEdit}
+              variant="highlight"
+            />
+          </div>
+
+          {/* Desempates & Premios */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            <InfoSection 
+              title="Desempates para ganador de trofeo" 
+              content={desempatesText}
+              icon={Trophy}
+              variant="highlight"
+            />
+            <InfoSection 
+              title="Premios" 
+              content={premiosText}
+              icon={Gift}
+            />
+          </div>
+
+          {/* Eventos adicionales & Inscripciones */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <InfoSection 
+              title="Eventos adicionales" 
+              content={eventosAdicionalesText}
+              icon={CalendarPlus}
+            />
+            <InfoSection 
+              title="Inscripciones" 
+              content={inscripcionesText}
+              icon={Calendar}
+              variant="highlight"
+            />
           </div>
         </div>
       </section>

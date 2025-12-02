@@ -116,6 +116,49 @@ export const notesText = [
   "El cupo máximo del Torneo será de 344 jugadores.",
 ];
 
+export interface ScheduleSlot {
+  turno: string;
+  horario: string;
+  martes: string[];
+  miercoles: string[];
+  jueves: string[];
+  viernes: string[];
+  sabado: string[];
+}
+
+export const scheduleData: ScheduleSlot[] = [
+  {
+    turno: 'MATUTINO',
+    horario: 'A PARTIR DE 6:40 AM',
+    martes: ['Damas 2da.', 'Damas 1ra.', 'Seniors Camp.', 'Seniors A', 'Seniors B', 'Super Seniors'],
+    miercoles: ['Damas 1ra.', 'Damas 2da.', 'Seniors Camp.', 'Seniors A', 'Seniors B', 'Super Seniors'],
+    jueves: ['E', 'C', 'B', '', '', ''],
+    viernes: ['Damas 1ra.', 'Damas 2da.', 'Seniors Camp.', 'Seniors A', 'Seniors B', 'Super Seniors'],
+    sabado: ['D', 'C', 'B', '', '', ''],
+  },
+  {
+    turno: 'VESPERTINO',
+    horario: 'A PARTIR DE 11:30 AM',
+    martes: ['E', 'D', 'C'],
+    miercoles: ['E', 'D', 'B'],
+    jueves: ['A', 'AA', 'CAMPEONATO'],
+    viernes: ['A', 'AA', 'CAMPEONATO'],
+    sabado: ['A', 'AA', 'CAMPEONATO'],
+  },
+];
+
+export const salidasText = "Por horario en el turno correspondiente.";
+
+export const handicapText = "La competencia se jugará con los hándicaps del 1 de septiembre de 2025, de la Federación Mexicana de Golf como primer referente. Como segunda opción, será una carta de su Club. El Comité se reserva el derecho de aceptar la validez del hándicap. Jugadores que no comprueben debidamente su handicap no podrán pelear por los trofeos de los primeros lugares.";
+
+export const desempatesText = "Para el primer lugar de todas las categorías será \"muerte súbita\" en los hoyos asignados por el Comité. Las categorías Damas, Seniors y E que juegan con hándicap, las ventajas serán en los hoyos correspondientes. Para las demás posiciones el desempate será determinado por comparación de tarjetas.";
+
+export const premiosText = "Trofeo al primero, segundo y tercer lugar de cada categoría. En la categoría Seniors Campeonato y 1ra. Damas habrá 1er. Lugar Gross por stroke play y stableford, respectivamente. Copa Challenger en la categoría Campeonato. El jugador que la gane 3 veces la tendrá definitivamente.";
+
+export const eventosAdicionalesText = "Torneo de Putt, Torneo de Aproach, Torneo de Drive, Shootout y rifas.";
+
+export const inscripcionesText = "En Coordinación Deportiva a partir del 1 de mayo de 2025. Cierre de inscripciones el 24 de septiembre de 2025 a las 2 pm o al completarse el cupo de jugadores por categoría.";
+
 // API simulation functions - replace with actual fetch calls
 export const fetchMenuConfig = async (): Promise<MenuItem[]> => {
   // Simulate API delay
