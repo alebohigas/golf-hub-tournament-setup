@@ -2,17 +2,35 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { ArrowLeft, Calendar, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Calendar, Users, Search, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { DaySalidas, PlayerInFoursome, fetchAllDays, fetchSalidasByDay } from '@/data/salidasData';
 
-const PlayerName = ({ player }: { player: PlayerInFoursome }) => {
+const PlayerName = ({ player, highlight }: { player: PlayerInFoursome; highlight?: string }) => {
+  const renderName = () => {
+    if (!highlight) return player.name;
+    
+    const index = player.name.toLowerCase().indexOf(highlight.toLowerCase());
+    if (index === -1) return player.name;
+    
+    return (
+      <>
+        {player.name.slice(0, index)}
+        <span className="bg-primary/30 text-primary font-bold">
+          {player.name.slice(index, index + highlight.length)}
+        </span>
+        {player.name.slice(index + highlight.length)}
+      </>
+    );
+  };
+
   return (
     <HoverCard openDelay={200} closeDelay={100}>
       <HoverCardTrigger asChild>
         <span className="cursor-pointer hover:text-primary transition-colors font-medium">
-          {player.name}
+          {renderName()}
         </span>
       </HoverCardTrigger>
       <HoverCardContent className="w-72 bg-card border-border" side="top">
@@ -45,6 +63,8 @@ type DaySummary = Pick<DaySalidas, 'dayId' | 'dayName' | 'date' | 'foursomeCount
 const Salidas = () => {
   const [days, setDays] = useState<DaySummary[]>([]);
   const [selectedDay, setSelectedDay] = useState<DaySalidas | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,13 +81,44 @@ const Salidas = () => {
     const dayData = await fetchSalidasByDay(dayId);
     if (dayData) {
       setSelectedDay(dayData);
+      setSelectedCategories(dayData.categories.map(c => c.categoryId));
     }
+    setSearchQuery('');
     setLoading(false);
   };
 
   const handleBack = () => {
     setSelectedDay(null);
+    setSelectedCategories([]);
+    setSearchQuery('');
   };
+
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const filteredCategories = useMemo(() => {
+    if (!selectedDay) return [];
+    
+    return selectedDay.categories
+      .filter(cat => selectedCategories.includes(cat.categoryId))
+      .map(category => {
+        if (!searchQuery.trim()) return category;
+        
+        const filteredFoursomes = category.foursomes.filter(foursome =>
+          foursome.players.some(player =>
+            player.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        );
+        
+        return { ...category, foursomes: filteredFoursomes };
+      })
+      .filter(cat => cat.foursomes.length > 0);
+  }, [selectedDay, selectedCategories, searchQuery]);
 
   const totalFoursomes = days.reduce((sum, d) => sum + d.foursomeCount, 0);
 
@@ -134,21 +185,73 @@ const Salidas = () => {
               </Button>
 
               {/* Day Info Header */}
-              <div className="mb-8 text-center">
+              <div className="mb-6 text-center">
                 <h2 className="text-3xl font-bold text-foreground mb-2">
                   {selectedDay.dayName}
                 </h2>
                 <p className="text-muted-foreground text-lg">{selectedDay.date}</p>
               </div>
 
-              {selectedDay.categories.length === 0 ? (
+              {/* Filters Section */}
+              <div className="mb-8 space-y-4">
+                {/* Category Filters */}
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {selectedDay.categories.map((category) => {
+                    const isSelected = selectedCategories.includes(category.categoryId);
+                    return (
+                      <Button
+                        key={category.categoryId}
+                        variant={isSelected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCategory(category.categoryId)}
+                        className={`transition-all ${
+                          isSelected 
+                            ? '' 
+                            : 'bg-background hover:bg-primary/10'
+                        }`}
+                      >
+                        {category.categoryName}
+                        {isSelected && (
+                          <X className="h-3 w-3 ml-1.5" />
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                {/* Search Bar */}
+                <div className="max-w-md mx-auto relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar jugador por nombre..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-10"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {filteredCategories.length === 0 ? (
                 <div className="text-center py-16">
                   <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground text-lg">No hay salidas programadas para este día</p>
+                  <p className="text-muted-foreground text-lg">
+                    {searchQuery 
+                      ? 'No se encontraron jugadores con ese nombre' 
+                      : 'No hay salidas para las categorías seleccionadas'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-12">
-                  {selectedDay.categories.map((category) => (
+                  {filteredCategories.map((category) => (
                     <div key={category.categoryId}>
                       <div className="flex items-center gap-3 mb-6">
                         <div className="h-1 flex-1 bg-gradient-to-r from-primary/50 to-transparent rounded" />
@@ -184,7 +287,7 @@ const Salidas = () => {
                                   } ${idx < foursome.players.length - 1 ? 'border-b border-border/30' : ''}`}
                                 >
                                   <div className="flex-1 min-w-0">
-                                    <PlayerName player={player} />
+                                    <PlayerName player={player} highlight={searchQuery} />
                                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                       {player.club}
                                     </p>
