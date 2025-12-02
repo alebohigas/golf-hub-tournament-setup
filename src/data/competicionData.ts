@@ -4,26 +4,24 @@ export interface CompetitionWinner {
   playerId: string;
   playerName: string;
   club: string;
-  result?: string; // e.g., "1.2m" for closest putt, "285 yds" for longest drive
+  result?: string;
+}
+
+export interface CategoryGroup {
+  id: string;
+  name: string; // e.g., "A + AA", "B + C", "Campeonato"
+  winners: CompetitionWinner[];
 }
 
 export interface Competition {
   id: string;
   name: string;
+  shortName: string;
   description: string;
   icon: 'target' | 'trophy' | 'flag' | 'zap' | 'star' | 'award' | 'medal';
-  winners: CompetitionWinner[];
-  maxWinners: number; // How many winners to display (1-15)
+  categoryGroups: CategoryGroup[];
+  maxWinnersPerGroup: number;
 }
-
-export type CompetitionType = 
-  | 'closest_putt'
-  | 'longest_drive'
-  | 'straightest_drive'
-  | 'oyea'
-  | 'daily_score'
-  | 'approach'
-  | 'wager';
 
 // Helper to generate mock winners
 const generateWinners = (prefix: string, count: number, resultFn?: (i: number) => string): CompetitionWinner[] => {
@@ -38,17 +36,11 @@ const generateWinners = (prefix: string, count: number, resultFn?: (i: number) =
     'Club de Golf Bosques',
     'Club Atlas Colomos',
     'Club Campestre de Celaya',
-    'Club de Golf Pulgas Pandas',
-    'Club Campestre Tampico',
-    'Club de Golf Malanquín',
-    'Club de Golf El Cielo',
-    'Club Campestre Chihuahua',
   ];
   const names = [
     'Carlos Rodríguez', 'Miguel Ángel Torres', 'Fernando Vega', 'Roberto Sánchez',
     'Alejandro Mendoza', 'Luis Hernández', 'Jorge Martínez', 'Eduardo Castro',
-    'Ricardo Flores', 'Pablo Guzmán', 'Antonio López', 'Daniel Ramírez',
-    'Sergio Navarro', 'Raúl Jiménez', 'Óscar Pérez'
+    'Ricardo Flores', 'Pablo Guzmán',
   ];
   
   return Array.from({ length: count }, (_, i) => ({
@@ -60,69 +52,92 @@ const generateWinners = (prefix: string, count: number, resultFn?: (i: number) =
   }));
 };
 
+// Category group templates
+const standardCategoryGroups = (prefix: string, resultFn?: (i: number) => string): CategoryGroup[] => [
+  { id: `${prefix}-camp`, name: 'Campeonato', winners: generateWinners(`${prefix}-camp`, 3, resultFn) },
+  { id: `${prefix}-aa-a`, name: 'AA + A', winners: generateWinners(`${prefix}-aa-a`, 3, resultFn) },
+  { id: `${prefix}-b-c`, name: 'B + C', winners: generateWinners(`${prefix}-b-c`, 3, resultFn) },
+  { id: `${prefix}-d-e`, name: 'D + E', winners: generateWinners(`${prefix}-d-e`, 3, resultFn) },
+  { id: `${prefix}-sen`, name: 'Seniors', winners: generateWinners(`${prefix}-sen`, 3, resultFn) },
+];
+
 // Mock data - will be replaced with database fetch
 export const mockCompetitions: Competition[] = [
   {
     id: 'closest_putt',
     name: 'Closest to the Pin',
+    shortName: 'Closest Pin',
     description: 'Tiro más cercano al hoyo',
     icon: 'target',
-    maxWinners: 10,
-    winners: generateWinners('cp', 10, (i) => `${(0.5 + i * 0.3).toFixed(1)}m`),
+    maxWinnersPerGroup: 3,
+    categoryGroups: standardCategoryGroups('cp', (i) => `${(0.5 + i * 0.4).toFixed(1)}m`),
   },
   {
     id: 'longest_drive',
     name: 'Longest Drive',
+    shortName: 'Longest Drive',
     description: 'Drive más largo',
     icon: 'zap',
-    maxWinners: 10,
-    winners: generateWinners('ld', 10, (i) => `${315 - i * 5} yds`),
+    maxWinnersPerGroup: 3,
+    categoryGroups: standardCategoryGroups('ld', (i) => `${315 - i * 8} yds`),
   },
   {
     id: 'straightest_drive',
     name: 'Straightest Drive',
+    shortName: 'Straightest',
     description: 'Drive más recto',
     icon: 'flag',
-    maxWinners: 10,
-    winners: generateWinners('sd', 10),
+    maxWinnersPerGroup: 1,
+    categoryGroups: [
+      { id: 'sd-all', name: 'General', winners: generateWinners('sd', 1) },
+    ],
   },
   {
     id: 'oyea',
     name: "O'Yea",
-    description: 'Premio especial O\'Yea',
+    shortName: "O'Yea",
+    description: "Premio especial O'Yea",
     icon: 'star',
-    maxWinners: 10,
-    winners: generateWinners('oy', 10),
+    maxWinnersPerGroup: 3,
+    categoryGroups: standardCategoryGroups('oy'),
   },
   {
     id: 'daily_score',
     name: 'Daily Score',
+    shortName: 'Daily Score',
     description: 'Mejor puntuación del día',
     icon: 'trophy',
-    maxWinners: 10,
-    winners: generateWinners('ds', 10, (i) => `${67 + i}`),
+    maxWinnersPerGroup: 3,
+    categoryGroups: standardCategoryGroups('ds', (i) => `${67 + i}`),
   },
   {
     id: 'approach',
     name: 'Best Approach',
+    shortName: 'Approach',
     description: 'Mejor approach',
     icon: 'award',
-    maxWinners: 10,
-    winners: generateWinners('ap', 10, (i) => `${(0.3 + i * 0.2).toFixed(1)}m`),
+    maxWinnersPerGroup: 3,
+    categoryGroups: [
+      { id: 'ap-camp-aa', name: 'Campeonato + AA', winners: generateWinners('ap-camp', 3, (i) => `${(0.3 + i * 0.2).toFixed(1)}m`) },
+      { id: 'ap-a-b', name: 'A + B', winners: generateWinners('ap-ab', 3, (i) => `${(0.4 + i * 0.3).toFixed(1)}m`) },
+      { id: 'ap-c-d-e', name: 'C + D + E', winners: generateWinners('ap-cde', 3, (i) => `${(0.5 + i * 0.25).toFixed(1)}m`) },
+    ],
   },
   {
     id: 'wager',
     name: 'WAGER',
+    shortName: 'WAGER',
     description: 'Premio WAGER',
     icon: 'medal',
-    maxWinners: 10,
-    winners: generateWinners('wg', 10),
+    maxWinnersPerGroup: 5,
+    categoryGroups: [
+      { id: 'wg-all', name: 'General', winners: generateWinners('wg', 5) },
+    ],
   },
 ];
 
 // Simulated API functions - will be replaced with Supabase calls
 export const fetchAllCompetitions = async (): Promise<Competition[]> => {
-  // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 300));
   return mockCompetitions;
 };
