@@ -1,8 +1,12 @@
+import { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import CategoryTable from '@/components/convocatoria/CategoryTable';
 import ScheduleTable from '@/components/convocatoria/ScheduleTable';
 import InfoSection from '@/components/convocatoria/InfoSection';
+import PricingSection from '@/components/convocatoria/PricingSection';
+import ContactSection from '@/components/convocatoria/ContactSection';
+import PageSubmenu from '@/components/convocatoria/PageSubmenu';
 import { 
   eligibilityText, 
   notesText, 
@@ -13,18 +17,51 @@ import {
   desempatesText,
   premiosText,
   eventosAdicionalesText,
-  inscripcionesText
+  inscripcionesText,
+  sociosPricing,
+  foraneosPricing,
+  pricingNote,
+  contactInfo,
+  contactWarning,
+  diaDePracticaText,
+  informacionGeneralText,
+  convocatoriaSections
 } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, AlertCircle, Calendar, Clock, Trophy, Gift, CalendarPlus, FileEdit } from 'lucide-react';
+import { CheckCircle, AlertCircle, Calendar, Clock, Trophy, Gift, CalendarPlus, FileEdit, Info, GraduationCap } from 'lucide-react';
 
 const Convocatoria = () => {
+  const [activeSection, setActiveSection] = useState('elegibilidad');
+
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
     return `Del ${startDate.toLocaleDateString('es-MX', options)} al ${endDate.toLocaleDateString('es-MX', { ...options, year: 'numeric' })}`;
   };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = convocatoriaSections.map(s => ({
+        id: s.id,
+        element: document.getElementById(s.id)
+      }));
+      
+      const offset = 150;
+      for (const section of sections.reverse()) {
+        if (section.element) {
+          const rect = section.element.getBoundingClientRect();
+          if (rect.top <= offset) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <Layout>
@@ -33,6 +70,8 @@ const Convocatoria = () => {
         subtitle="Información completa sobre inscripciones, categorías y requisitos"
         backgroundImage="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1920&q=80"
       />
+
+      <PageSubmenu sections={convocatoriaSections} activeSection={activeSection} />
 
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
@@ -59,8 +98,8 @@ const Convocatoria = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-            {/* Eligibility */}
+          {/* Elegibilidad Section */}
+          <div id="elegibilidad" className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 scroll-mt-32">
             <Card className="lg:col-span-1 shadow-card border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display">
@@ -75,7 +114,6 @@ const Convocatoria = () => {
               </CardContent>
             </Card>
 
-            {/* Notes */}
             <Card className="lg:col-span-2 shadow-card border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display">
@@ -97,7 +135,7 @@ const Convocatoria = () => {
           </div>
 
           {/* Categories Section */}
-          <div className="mb-16">
+          <div id="categorias" className="mb-16 scroll-mt-32">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
                 Categorías
@@ -110,7 +148,7 @@ const Convocatoria = () => {
           </div>
 
           {/* Schedule Section */}
-          <div className="mb-16">
+          <div id="horarios" className="mb-16 scroll-mt-32">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
                 Días y horarios de juego por categoría
@@ -127,7 +165,7 @@ const Convocatoria = () => {
           </div>
 
           {/* Salidas & Handicap */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div id="salidas" className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 scroll-mt-32">
             <InfoSection 
               title="Salidas" 
               content={salidasText}
@@ -142,7 +180,7 @@ const Convocatoria = () => {
           </div>
 
           {/* Desempates & Premios */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div id="desempates" className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 scroll-mt-32">
             <InfoSection 
               title="Desempates para ganador de trofeo" 
               content={desempatesText}
@@ -157,7 +195,7 @@ const Convocatoria = () => {
           </div>
 
           {/* Eventos adicionales & Inscripciones */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div id="eventos" className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 scroll-mt-32">
             <InfoSection 
               title="Eventos adicionales" 
               content={eventosAdicionalesText}
@@ -167,6 +205,38 @@ const Convocatoria = () => {
               title="Inscripciones" 
               content={inscripcionesText}
               icon={Calendar}
+              variant="highlight"
+            />
+          </div>
+
+          {/* Pricing Section */}
+          <div id="costos" className="mb-16 scroll-mt-32">
+            <PricingSection 
+              sociosPricing={sociosPricing}
+              foraneosPricing={foraneosPricing}
+              pricingNote={pricingNote}
+            />
+          </div>
+
+          {/* Contact Section */}
+          <div id="contacto" className="mb-16 scroll-mt-32">
+            <ContactSection 
+              contactInfo={contactInfo}
+              contactWarning={contactWarning}
+            />
+          </div>
+
+          {/* Día de Práctica & Información General */}
+          <div id="info" className="grid grid-cols-1 md:grid-cols-2 gap-8 scroll-mt-32">
+            <InfoSection 
+              title="Día de práctica" 
+              content={diaDePracticaText}
+              icon={GraduationCap}
+            />
+            <InfoSection 
+              title="Información general" 
+              content={informacionGeneralText}
+              icon={Info}
               variant="highlight"
             />
           </div>
