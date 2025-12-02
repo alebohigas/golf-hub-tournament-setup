@@ -98,40 +98,45 @@ const Convocatoria = () => {
             </div>
           </div>
 
-          {/* Elegibilidad Section */}
-          <div id="elegibilidad" className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 scroll-mt-32">
-            <Card className="lg:col-span-1 shadow-card border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-display">
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                  Elegibilidad
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  {eligibilityText}
-                </p>
-              </CardContent>
-            </Card>
+          {/* Elegibilidad Section (includes Elegibilidad + Notas) */}
+          <div id="elegibilidad" className="mb-16 scroll-mt-32">
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-8 text-center">
+              Elegibilidad
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <Card className="lg:col-span-1 shadow-card border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-display">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    Requisitos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {eligibilityText}
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="lg:col-span-2 shadow-card border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-display">
-                  <AlertCircle className="h-5 w-5 text-accent" />
-                  Notas Importantes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {notesText.map((note, index) => (
-                    <li key={index} className="flex items-start gap-3 text-muted-foreground">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
-                      <span className="leading-relaxed">{note}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+              <Card className="lg:col-span-2 shadow-card border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-display">
+                    <AlertCircle className="h-5 w-5 text-accent" />
+                    Notas Importantes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {notesText.map((note, index) => (
+                      <li key={index} className="flex items-start gap-3 text-muted-foreground">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
+                        <span className="leading-relaxed">{note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Categories Section */}
@@ -164,49 +169,71 @@ const Convocatoria = () => {
             </Card>
           </div>
 
-          {/* Salidas & Handicap */}
-          <div id="salidas" className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 scroll-mt-32">
-            <InfoSection 
-              title="Salidas" 
-              content={salidasText}
-              icon={Clock}
-            />
-            <InfoSection 
-              title="Hándicap" 
-              content={handicapText}
-              icon={FileEdit}
-              variant="highlight"
-            />
-          </div>
+          {/* Información Importante Section */}
+          <div id="info-importante" className="mb-16 scroll-mt-32">
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-8 text-center">
+              Información Importante
+            </h2>
+            
+            {/* Salidas & Handicap */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <InfoSection 
+                title="Salidas" 
+                content={salidasText}
+                icon={Clock}
+              />
+              <InfoSection 
+                title="Hándicap" 
+                content={handicapText}
+                icon={FileEdit}
+                variant="highlight"
+              />
+            </div>
 
-          {/* Desempates & Premios */}
-          <div id="desempates" className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 scroll-mt-32">
-            <InfoSection 
-              title="Desempates para ganador de trofeo" 
-              content={desempatesText}
-              icon={Trophy}
-              variant="highlight"
-            />
-            <InfoSection 
-              title="Premios" 
-              content={premiosText}
-              icon={Gift}
-            />
-          </div>
+            {/* Desempates & Premios */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <InfoSection 
+                title="Desempates para ganador de trofeo" 
+                content={desempatesText}
+                icon={Trophy}
+                variant="highlight"
+              />
+              <InfoSection 
+                title="Premios" 
+                content={premiosText}
+                icon={Gift}
+              />
+            </div>
 
-          {/* Eventos adicionales & Inscripciones */}
-          <div id="eventos" className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 scroll-mt-32">
-            <InfoSection 
-              title="Eventos adicionales" 
-              content={eventosAdicionalesText}
-              icon={CalendarPlus}
-            />
-            <InfoSection 
-              title="Inscripciones" 
-              content={inscripcionesText}
-              icon={Calendar}
-              variant="highlight"
-            />
+            {/* Eventos adicionales & Inscripciones */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <InfoSection 
+                title="Eventos adicionales" 
+                content={eventosAdicionalesText}
+                icon={CalendarPlus}
+              />
+              <InfoSection 
+                title="Inscripciones" 
+                content={inscripcionesText}
+                icon={Calendar}
+                variant="highlight"
+              />
+            </div>
+
+            {/* Día de Práctica & Información General */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <InfoSection 
+                title="Día de práctica" 
+                content={diaDePracticaText}
+                icon={GraduationCap}
+              />
+              <InfoSection 
+                title="Información general" 
+                content={informacionGeneralText}
+                icon={Info}
+                variant="highlight"
+              />
+            </div>
           </div>
 
           {/* Pricing Section */}
@@ -219,25 +246,10 @@ const Convocatoria = () => {
           </div>
 
           {/* Contact Section */}
-          <div id="contacto" className="mb-16 scroll-mt-32">
+          <div id="contacto" className="scroll-mt-32">
             <ContactSection 
               contactInfo={contactInfo}
               contactWarning={contactWarning}
-            />
-          </div>
-
-          {/* Día de Práctica & Información General */}
-          <div id="info" className="grid grid-cols-1 md:grid-cols-2 gap-8 scroll-mt-32">
-            <InfoSection 
-              title="Día de práctica" 
-              content={diaDePracticaText}
-              icon={GraduationCap}
-            />
-            <InfoSection 
-              title="Información general" 
-              content={informacionGeneralText}
-              icon={Info}
-              variant="highlight"
             />
           </div>
         </div>
