@@ -1,0 +1,105 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { fetchMenuConfig, MenuItem } from '@/data/mockData';
+import { 
+  FileText, Calendar, Users, Clock, Radio, Trophy, 
+  CalendarDays, Bell, Award, Handshake, BookOpen 
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+
+const iconMap: Record<string, React.ElementType> = {
+  convocatoria: FileText,
+  eventos: Calendar,
+  jugadores: Users,
+  salidas: Clock,
+  'live-scoring': Radio,
+  resultados: Trophy,
+  competicion: Award,
+  calendario: CalendarDays,
+  avisos: Bell,
+  premios: Award,
+  patrocinadores: Handshake,
+  reglas: BookOpen,
+};
+
+const descriptionMap: Record<string, string> = {
+  convocatoria: 'Información sobre inscripciones, fechas y requisitos',
+  eventos: 'Calendario de actividades y eventos del torneo',
+  jugadores: 'Lista completa de participantes inscritos',
+  salidas: 'Horarios de salida y grupos de juego',
+  'live-scoring': 'Resultados en tiempo real durante el torneo',
+  resultados: 'Consulta los resultados de cada ronda',
+  competicion: 'Formato y modalidades de competencia',
+  calendario: 'Fechas importantes del torneo',
+  avisos: 'Comunicados y noticias importantes',
+  premios: 'Reconocimientos y premiación',
+  patrocinadores: 'Empresas que apoyan el torneo',
+  reglas: 'Reglamento del torneo y código de conducta',
+};
+
+const NavigationCards = () => {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+
+  useEffect(() => {
+    const loadMenu = async () => {
+      const items = await fetchMenuConfig();
+      // Filter out home page
+      setMenuItems(items.filter(item => item.id !== 'home'));
+    };
+    loadMenu();
+  }, []);
+
+  return (
+    <section className="py-16 md:py-24 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            Explora el Torneo
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Todo lo que necesitas saber sobre el torneo de golf más prestigioso de la región
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {menuItems.map((item, index) => {
+            const Icon = iconMap[item.id] || FileText;
+            return (
+              <Link key={item.id} to={item.path}>
+                <Card 
+                  className={cn(
+                    "card-hover border-border/50 bg-card h-full",
+                    "animate-fade-in-up opacity-0"
+                  )}
+                  style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-6 w-6 text-primary-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground mb-1">
+                          {item.label}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {descriptionMap[item.id] || 'Información del torneo'}
+                        </p>
+                        <span className="inline-flex items-center text-sm font-medium text-primary mt-3 group-hover:text-accent transition-colors">
+                          Ver más →
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default NavigationCards;
