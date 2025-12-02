@@ -185,14 +185,16 @@ const Resultados = () => {
             </>
           ) : (
             <>
-              {/* Results Detail View */}
+            {/* Results Detail View */}
               <Button 
                 variant="ghost" 
                 onClick={handleBack}
                 className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Volver a {selectedCategory.shortName}
+                {selectedCategory.scoringTypes.length === 1 
+                  ? 'Volver a categorías' 
+                  : `Volver a ${selectedCategory.shortName}`}
               </Button>
 
               {/* Category Header */}
