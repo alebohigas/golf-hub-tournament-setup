@@ -9,7 +9,7 @@ export interface CompetitionWinner {
 
 export interface CategoryGroup {
   id: string;
-  name: string; // e.g., "A + AA", "B + C", "Campeonato"
+  name: string;
   winners: CompetitionWinner[];
 }
 
@@ -23,24 +23,23 @@ export interface Competition {
   maxWinnersPerGroup: number;
 }
 
-// Helper to generate mock winners
+// Helper to generate mock winners (up to 20 for detail view)
 const generateWinners = (prefix: string, count: number, resultFn?: (i: number) => string): CompetitionWinner[] => {
   const clubs = [
-    'Club Campestre Monterrey',
-    'Club de Golf Santa Anita',
-    'Club Campestre de Querétaro',
-    'Club de Golf Vallescondido',
-    'Club Campestre de León',
-    'Club de Golf La Hacienda',
-    'Club Campestre El Campanario',
-    'Club de Golf Bosques',
-    'Club Atlas Colomos',
-    'Club Campestre de Celaya',
+    'Club Campestre Monterrey', 'Club de Golf Santa Anita', 'Club Campestre de Querétaro',
+    'Club de Golf Vallescondido', 'Club Campestre de León', 'Club de Golf La Hacienda',
+    'Club Campestre El Campanario', 'Club de Golf Bosques', 'Club Atlas Colomos',
+    'Club Campestre de Celaya', 'Club de Golf Pulgas Pandas', 'Club Campestre Tampico',
+    'Club de Golf Malanquín', 'Club de Golf El Cielo', 'Club Campestre Chihuahua',
+    'Club de Golf Las Misiones', 'Club Campestre de Saltillo', 'Club de Golf Guadalajara',
+    'Club Campestre Torreón', 'Club de Golf San Gil',
   ];
   const names = [
     'Carlos Rodríguez', 'Miguel Ángel Torres', 'Fernando Vega', 'Roberto Sánchez',
     'Alejandro Mendoza', 'Luis Hernández', 'Jorge Martínez', 'Eduardo Castro',
-    'Ricardo Flores', 'Pablo Guzmán',
+    'Ricardo Flores', 'Pablo Guzmán', 'Antonio López', 'Daniel Ramírez',
+    'Sergio Navarro', 'Raúl Jiménez', 'Óscar Pérez', 'Andrés García',
+    'Manuel Ortiz', 'Francisco Díaz', 'Javier Morales', 'Arturo Reyes',
   ];
   
   return Array.from({ length: count }, (_, i) => ({
@@ -52,16 +51,16 @@ const generateWinners = (prefix: string, count: number, resultFn?: (i: number) =
   }));
 };
 
-// Category group templates
+// Category group templates with 20 winners each
 const standardCategoryGroups = (prefix: string, resultFn?: (i: number) => string): CategoryGroup[] => [
-  { id: `${prefix}-camp`, name: 'Campeonato', winners: generateWinners(`${prefix}-camp`, 3, resultFn) },
-  { id: `${prefix}-aa-a`, name: 'AA + A', winners: generateWinners(`${prefix}-aa-a`, 3, resultFn) },
-  { id: `${prefix}-b-c`, name: 'B + C', winners: generateWinners(`${prefix}-b-c`, 3, resultFn) },
-  { id: `${prefix}-d-e`, name: 'D + E', winners: generateWinners(`${prefix}-d-e`, 3, resultFn) },
-  { id: `${prefix}-sen`, name: 'Seniors', winners: generateWinners(`${prefix}-sen`, 3, resultFn) },
+  { id: `${prefix}-camp`, name: 'Campeonato', winners: generateWinners(`${prefix}-camp`, 20, resultFn) },
+  { id: `${prefix}-aa-a`, name: 'AA + A', winners: generateWinners(`${prefix}-aa-a`, 20, resultFn) },
+  { id: `${prefix}-b-c`, name: 'B + C', winners: generateWinners(`${prefix}-b-c`, 20, resultFn) },
+  { id: `${prefix}-d-e`, name: 'D + E', winners: generateWinners(`${prefix}-d-e`, 20, resultFn) },
+  { id: `${prefix}-sen`, name: 'Seniors', winners: generateWinners(`${prefix}-sen`, 20, resultFn) },
 ];
 
-// Mock data - will be replaced with database fetch
+// Mock data
 export const mockCompetitions: Competition[] = [
   {
     id: 'closest_putt',
@@ -79,7 +78,7 @@ export const mockCompetitions: Competition[] = [
     description: 'Drive más largo',
     icon: 'zap',
     maxWinnersPerGroup: 3,
-    categoryGroups: standardCategoryGroups('ld', (i) => `${315 - i * 8} yds`),
+    categoryGroups: standardCategoryGroups('ld', (i) => `${315 - i * 5} yds`),
   },
   {
     id: 'straightest_drive',
@@ -89,7 +88,7 @@ export const mockCompetitions: Competition[] = [
     icon: 'flag',
     maxWinnersPerGroup: 1,
     categoryGroups: [
-      { id: 'sd-all', name: 'General', winners: generateWinners('sd', 1) },
+      { id: 'sd-all', name: 'General', winners: generateWinners('sd', 20) },
     ],
   },
   {
@@ -118,9 +117,9 @@ export const mockCompetitions: Competition[] = [
     icon: 'award',
     maxWinnersPerGroup: 3,
     categoryGroups: [
-      { id: 'ap-camp-aa', name: 'Campeonato + AA', winners: generateWinners('ap-camp', 3, (i) => `${(0.3 + i * 0.2).toFixed(1)}m`) },
-      { id: 'ap-a-b', name: 'A + B', winners: generateWinners('ap-ab', 3, (i) => `${(0.4 + i * 0.3).toFixed(1)}m`) },
-      { id: 'ap-c-d-e', name: 'C + D + E', winners: generateWinners('ap-cde', 3, (i) => `${(0.5 + i * 0.25).toFixed(1)}m`) },
+      { id: 'ap-camp-aa', name: 'Campeonato + AA', winners: generateWinners('ap-camp', 20, (i) => `${(0.3 + i * 0.15).toFixed(1)}m`) },
+      { id: 'ap-a-b', name: 'A + B', winners: generateWinners('ap-ab', 20, (i) => `${(0.4 + i * 0.2).toFixed(1)}m`) },
+      { id: 'ap-c-d-e', name: 'C + D + E', winners: generateWinners('ap-cde', 20, (i) => `${(0.5 + i * 0.18).toFixed(1)}m`) },
     ],
   },
   {
@@ -131,12 +130,12 @@ export const mockCompetitions: Competition[] = [
     icon: 'medal',
     maxWinnersPerGroup: 5,
     categoryGroups: [
-      { id: 'wg-all', name: 'General', winners: generateWinners('wg', 5) },
+      { id: 'wg-all', name: 'General', winners: generateWinners('wg', 20) },
     ],
   },
 ];
 
-// Simulated API functions - will be replaced with Supabase calls
+// API functions
 export const fetchAllCompetitions = async (): Promise<Competition[]> => {
   await new Promise(resolve => setTimeout(resolve, 300));
   return mockCompetitions;
