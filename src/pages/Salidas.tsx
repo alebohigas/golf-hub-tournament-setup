@@ -81,7 +81,7 @@ const Salidas = () => {
     const dayData = await fetchSalidasByDay(dayId);
     if (dayData) {
       setSelectedDay(dayData);
-      setSelectedCategories(dayData.categories.map(c => c.categoryId));
+      setSelectedCategories([]); // Default: show all (empty = all)
     }
     setSearchQuery('');
     setLoading(false);
@@ -104,18 +104,29 @@ const Salidas = () => {
   const filteredCategories = useMemo(() => {
     if (!selectedDay) return [];
     
+    const searchTerm = searchQuery.trim().toLowerCase();
+    const allCategoryIds = selectedDay.categories.map(c => c.categoryId);
+    const showAllCategories = selectedCategories.length === 0 || 
+      selectedCategories.length === allCategoryIds.length;
+    
     return selectedDay.categories
-      .filter(cat => selectedCategories.includes(cat.categoryId))
       .map(category => {
-        if (!searchQuery.trim()) return category;
+        // If searching, always search ALL categories
+        if (searchTerm) {
+          const filteredFoursomes = category.foursomes.filter(foursome =>
+            foursome.players.some(player =>
+              player.name.toLowerCase().includes(searchTerm)
+            )
+          );
+          return { ...category, foursomes: filteredFoursomes };
+        }
         
-        const filteredFoursomes = category.foursomes.filter(foursome =>
-          foursome.players.some(player =>
-            player.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        );
+        // If not searching, apply category filter
+        if (!showAllCategories && !selectedCategories.includes(category.categoryId)) {
+          return { ...category, foursomes: [] };
+        }
         
-        return { ...category, foursomes: filteredFoursomes };
+        return category;
       })
       .filter(cat => cat.foursomes.length > 0);
   }, [selectedDay, selectedCategories, searchQuery]);
@@ -194,26 +205,29 @@ const Salidas = () => {
 
               {/* Filters Section */}
               <div className="mb-8 space-y-4">
-                {/* Category Filters */}
+              {/* Category Filters */}
                 <div className="flex flex-wrap items-center justify-center gap-2">
+                  <span className="text-sm text-muted-foreground mr-2">Filtrar:</span>
                   {selectedDay.categories.map((category) => {
+                    const allCategoryIds = selectedDay.categories.map(c => c.categoryId);
+                    const showingAll = selectedCategories.length === 0 || 
+                      selectedCategories.length === allCategoryIds.length;
                     const isSelected = selectedCategories.includes(category.categoryId);
+                    const isHighlighted = showingAll || isSelected;
+                    
                     return (
                       <Button
                         key={category.categoryId}
-                        variant={isSelected ? "default" : "outline"}
+                        variant={isHighlighted ? "default" : "outline"}
                         size="sm"
                         onClick={() => toggleCategory(category.categoryId)}
                         className={`transition-all ${
-                          isSelected 
+                          isHighlighted 
                             ? '' 
                             : 'bg-background hover:bg-primary/10'
                         }`}
                       >
                         {category.categoryName}
-                        {isSelected && (
-                          <X className="h-3 w-3 ml-1.5" />
-                        )}
                       </Button>
                     );
                   })}
