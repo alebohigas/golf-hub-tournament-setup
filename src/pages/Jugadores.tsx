@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Users } from 'lucide-react';
+import jugadoresHero from '@/assets/jugadores-hero.jpg';
 import { useState, useEffect } from 'react';
 import { 
   CategoryDetail, 
@@ -51,6 +52,7 @@ const Jugadores = () => {
       <PageHero 
         title="Jugadores"
         subtitle="Lista completa de participantes inscritos en el torneo"
+        backgroundImage={jugadoresHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
@@ -88,7 +90,7 @@ const Jugadores = () => {
               <Button 
                 variant="ghost" 
                 onClick={handleBack}
-                className="mb-6 gap-2"
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Volver a categorías
