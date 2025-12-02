@@ -29,21 +29,30 @@ const Resultados = () => {
     loadCategories();
   }, []);
 
-  const handleScoringClick = async (category: ResultCategory, scoringType: ScoringType) => {
+  const handleCategoryClick = (category: ResultCategory) => {
+    setSelectedCategory(category);
+    setSelectedScoringType(null);
+    setPlayers([]);
+  };
+
+  const handleScoringClick = async (scoringType: ScoringType) => {
+    if (!selectedCategory) return;
     setLoading(true);
-    const results = await fetchCategoryResults(category.categoryId, scoringType);
+    const results = await fetchCategoryResults(selectedCategory.categoryId, scoringType);
     if (results) {
       setPlayers(results);
-      setSelectedCategory(category);
       setSelectedScoringType(scoringType);
     }
     setLoading(false);
   };
 
   const handleBack = () => {
-    setSelectedCategory(null);
-    setSelectedScoringType(null);
-    setPlayers([]);
+    if (selectedScoringType) {
+      setSelectedScoringType(null);
+      setPlayers([]);
+    } else {
+      setSelectedCategory(null);
+    }
   };
 
   const getPositionStyle = (position: number) => {
@@ -60,6 +69,8 @@ const Resultados = () => {
     return null;
   };
 
+  const totalCategories = categories.length;
+
   return (
     <Layout>
       <PageHero 
@@ -72,38 +83,82 @@ const Resultados = () => {
             <>
               {/* Header */}
               <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
-                  <Trophy className="h-8 w-8 text-primary" />
-                  RESULTADOS
+                <h2 className="text-3xl font-bold text-foreground">
+                  CATEGORÍAS: <span className="text-primary">{totalCategories}</span>
                 </h2>
               </div>
 
               {/* Categories Grid */}
-              <div className="overflow-x-auto">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 min-w-fit">
-                  {categories.map((category) => (
-                    <div key={category.categoryId} className="text-center">
-                      <h3 className="font-bold text-foreground mb-3 text-lg">
-                        {category.shortName}
-                      </h3>
-                      <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
+                {categories.map((category) => (
+                  <Card 
+                    key={category.categoryId} 
+                    className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
+                    onClick={() => handleCategoryClick(category)}
+                  >
+                    <CardContent className="p-5 text-center">
+                      <Trophy className="h-6 w-6 mx-auto mb-2 text-primary" />
+                      <h3 className="font-bold text-foreground text-lg mb-2">{category.shortName}</h3>
+                      <div className="flex justify-center gap-1 flex-wrap">
                         {category.scoringTypes.map((scoring) => (
-                          <Button
+                          <span
                             key={scoring.scoringType}
-                            onClick={() => handleScoringClick(category, scoring.scoringType)}
-                            className={`w-full ${
+                            className={`text-xs px-2 py-0.5 rounded text-white ${
                               scoring.scoringType === 'NETO' 
-                                ? 'bg-sky-500 hover:bg-sky-600' 
-                                : 'bg-green-600 hover:bg-green-700'
-                            } text-white font-semibold`}
+                                ? 'bg-sky-500' 
+                                : 'bg-green-600'
+                            }`}
                           >
                             {scoring.scoringType}
-                          </Button>
+                          </span>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : !selectedScoringType ? (
+            <>
+              {/* Category Selected - Choose Scoring Type */}
+              <Button 
+                variant="ghost" 
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a categorías
+              </Button>
+
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-bold text-foreground mb-2">
+                  {selectedCategory.categoryName}
+                </h2>
+                <p className="text-muted-foreground">Selecciona el tipo de puntuación</p>
+              </div>
+
+              <div className="flex justify-center gap-4 flex-wrap max-w-md mx-auto">
+                {selectedCategory.scoringTypes.map((scoring) => (
+                  <Card 
+                    key={scoring.scoringType}
+                    className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer flex-1 min-w-[140px]"
+                    onClick={() => handleScoringClick(scoring.scoringType)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className={`w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center ${
+                        scoring.scoringType === 'NETO' 
+                          ? 'bg-sky-500' 
+                          : 'bg-green-600'
+                      }`}>
+                        <Trophy className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="font-bold text-foreground text-xl mb-1">{scoring.scoringType}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {scoring.players.length} jugadores
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </>
           ) : (
@@ -115,7 +170,7 @@ const Resultados = () => {
                 className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Volver a categorías
+                Volver a {selectedCategory.shortName}
               </Button>
 
               {/* Category Header */}
