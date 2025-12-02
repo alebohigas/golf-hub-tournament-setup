@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trophy, ArrowLeft, Medal } from 'lucide-react';
+import resultadosHero from '@/assets/resultados-hero.jpg';
 import { useState, useEffect } from 'react';
 import { 
   ResultCategory, 
@@ -76,6 +77,7 @@ const Resultados = () => {
       <PageHero 
         title="Resultados"
         subtitle="Consulta los resultados de cada ronda y clasificación general"
+        backgroundImage={resultadosHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
