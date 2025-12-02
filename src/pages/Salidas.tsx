@@ -7,6 +7,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { ArrowLeft, Calendar, Users, Search, X } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { DaySalidas, PlayerInFoursome, fetchAllDays, fetchSalidasByDay } from '@/data/salidasData';
+import salidasHero from '@/assets/salidas-hero.jpg';
 
 const PlayerName = ({ player, highlight }: { player: PlayerInFoursome; highlight?: string }) => {
   const renderName = () => {
@@ -138,6 +139,7 @@ const Salidas = () => {
       <PageHero 
         title="Salidas"
         subtitle="Horarios de salida y grupos de juego"
+        backgroundImage={salidasHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
