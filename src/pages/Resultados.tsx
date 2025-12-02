@@ -62,8 +62,15 @@ const Resultados = () => {
 
   const handleBack = () => {
     if (selectedScoringType) {
-      setSelectedScoringType(null);
-      setPlayers([]);
+      // If category has only one scoring type, go back to all categories
+      if (selectedCategory && selectedCategory.scoringTypes.length === 1) {
+        setSelectedCategory(null);
+        setSelectedScoringType(null);
+        setPlayers([]);
+      } else {
+        setSelectedScoringType(null);
+        setPlayers([]);
+      }
     } else {
       setSelectedCategory(null);
     }
