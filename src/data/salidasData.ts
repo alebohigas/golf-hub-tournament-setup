@@ -19,7 +19,6 @@ export interface Foursome {
 export interface CategorySalidas {
   categoryId: string;
   categoryName: string;
-  day: string;
   foursomes: Foursome[];
 }
 
@@ -27,20 +26,23 @@ export interface DaySalidas {
   dayId: string;
   dayName: string;
   date: string;
+  foursomeCount: number;
+  playerCount: number;
   categories: CategorySalidas[];
 }
 
-// Mock data - replace with API calls
+// Mock data - replace with API calls to Supabase
 export const mockSalidasData: DaySalidas[] = [
   {
     dayId: '1',
     dayName: 'Día 1',
     date: '30 de Septiembre',
+    foursomeCount: 4,
+    playerCount: 16,
     categories: [
       {
         categoryId: '1',
         categoryName: 'CAMPEONATO',
-        day: 'Día 1',
         foursomes: [
           {
             id: 'f1',
@@ -80,7 +82,6 @@ export const mockSalidasData: DaySalidas[] = [
       {
         categoryId: '2',
         categoryName: 'AA',
-        day: 'Día 1',
         foursomes: [
           {
             id: 'f4',
@@ -101,11 +102,12 @@ export const mockSalidasData: DaySalidas[] = [
     dayId: '2',
     dayName: 'Día 2',
     date: '1 de Octubre',
+    foursomeCount: 2,
+    playerCount: 8,
     categories: [
       {
         categoryId: '1',
         categoryName: 'CAMPEONATO',
-        day: 'Día 2',
         foursomes: [
           {
             id: 'f5',
@@ -120,17 +122,43 @@ export const mockSalidasData: DaySalidas[] = [
           },
         ],
       },
+      {
+        categoryId: '2',
+        categoryName: 'AA',
+        foursomes: [
+          {
+            id: 'f6',
+            hole: 10,
+            time: '12:30',
+            players: [
+              { id: 'p13', name: 'Carlos Rodriguez Vega', club: 'CCT', score: 245, handicapIndex: 3.2 },
+              { id: 'p14', name: 'Miguel Hernández Luna', club: 'CCL', score: 248, handicapIndex: 4.1 },
+              { id: 'p15', name: 'Roberto Sanchez Mora', club: 'CCS', score: 251, handicapIndex: 3.8 },
+              { id: 'p16', name: 'Fernando Ruiz Garza', club: 'CCT', score: 254, handicapIndex: 4.5 },
+            ],
+          },
+        ],
+      },
     ],
   },
   {
     dayId: '3',
     dayName: 'Día 3',
     date: '2 de Octubre',
+    foursomeCount: 0,
+    playerCount: 0,
     categories: [],
   },
 ];
 
-// API simulation functions
+// API simulation functions - ready for Supabase integration
+export const fetchAllDays = async (): Promise<Pick<DaySalidas, 'dayId' | 'dayName' | 'date' | 'foursomeCount' | 'playerCount'>[]> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return mockSalidasData.map(({ dayId, dayName, date, foursomeCount, playerCount }) => ({
+    dayId, dayName, date, foursomeCount, playerCount
+  }));
+};
+
 export const fetchSalidasByDay = async (dayId: string): Promise<DaySalidas | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   return mockSalidasData.find(d => d.dayId === dayId);
