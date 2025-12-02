@@ -6,14 +6,14 @@ interface PageHeroProps {
 
 const PageHero = ({ title, subtitle, backgroundImage }: PageHeroProps) => {
   return (
-    <section className="relative py-20 md:py-28 overflow-hidden">
+    <section className="relative py-28 md:py-36 lg:py-40 overflow-hidden">
       {/* Background */}
       {backgroundImage ? (
         <div 
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-[center_40%]"
           style={{ backgroundImage: `url('${backgroundImage}')` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-golf-dark/80 to-golf-dark/90" />
+          <div className="absolute inset-0 bg-gradient-to-b from-golf-dark/70 via-golf-dark/60 to-golf-dark/90" />
         </div>
       ) : (
         <div className="absolute inset-0 gradient-hero" />
