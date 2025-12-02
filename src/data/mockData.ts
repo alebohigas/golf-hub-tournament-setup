@@ -243,12 +243,9 @@ export const convocatoriaSections = [
   { id: 'elegibilidad', label: 'Elegibilidad' },
   { id: 'categorias', label: 'Categorías' },
   { id: 'horarios', label: 'Horarios' },
-  { id: 'salidas', label: 'Salidas y Hándicap' },
-  { id: 'desempates', label: 'Desempates y Premios' },
-  { id: 'eventos', label: 'Eventos e Inscripciones' },
+  { id: 'info-importante', label: 'Información Importante' },
   { id: 'costos', label: 'Costos' },
   { id: 'contacto', label: 'Contacto' },
-  { id: 'info', label: 'Información General' },
 ];
 
 // API simulation functions - replace with actual fetch calls
