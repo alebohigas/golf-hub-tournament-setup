@@ -1,0 +1,246 @@
+// Resultados data - prepared for API/database integration
+
+export type ScoringType = 'NETO' | 'GROS';
+
+export interface PlayerResult {
+  id: string;
+  position: number;
+  name: string;
+  club: string;
+  r1?: number;
+  r2?: number;
+  r3?: number;
+  total: number;
+  handicapIndex?: number;
+}
+
+export interface CategoryScoring {
+  scoringType: ScoringType;
+  players: PlayerResult[];
+}
+
+export interface ResultCategory {
+  categoryId: string;
+  categoryName: string;
+  shortName: string;
+  scoringTypes: CategoryScoring[];
+}
+
+// Mock data - replace with API calls to Supabase
+export const mockResultsData: ResultCategory[] = [
+  {
+    categoryId: 'camp',
+    categoryName: 'Campeonato',
+    shortName: 'Camp',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p1', position: 1, name: 'Juan García López', club: 'Herradura', r1: 68, r2: 70, r3: 69, total: 207, handicapIndex: 1.2 },
+          { id: 'p2', position: 2, name: 'Pedro Martínez', club: 'SCGA', r1: 70, r2: 69, r3: 70, total: 209, handicapIndex: 0.8 },
+          { id: 'p3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', r1: 71, r2: 70, r3: 69, total: 210, handicapIndex: 1.5 },
+          { id: 'p4', position: 4, name: 'Miguel Hernández', club: 'CCT', r1: 72, r2: 71, r3: 70, total: 213, handicapIndex: 1.1 },
+          { id: 'p5', position: 5, name: 'Roberto Sánchez', club: 'WAGR', r1: 73, r2: 72, r3: 71, total: 216, handicapIndex: 0.9 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'aa',
+    categoryName: 'AA',
+    shortName: 'AA',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p6', position: 1, name: 'Luis Fernández', club: 'CCL', r1: 70, r2: 71, r3: 70, total: 211, handicapIndex: 3.2 },
+          { id: 'p7', position: 2, name: 'Antonio Gómez', club: 'CCS', r1: 72, r2: 70, r3: 71, total: 213, handicapIndex: 4.1 },
+          { id: 'p8', position: 3, name: 'Francisco López', club: 'CCT', r1: 71, r2: 73, r3: 72, total: 216, handicapIndex: 3.8 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'a',
+    categoryName: 'A',
+    shortName: 'A',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p9', position: 1, name: 'José Ramírez', club: 'Herradura', r1: 71, r2: 72, r3: 70, total: 213, handicapIndex: 6.5 },
+          { id: 'p10', position: 2, name: 'Manuel Torres', club: 'SCGA', r1: 73, r2: 71, r3: 72, total: 216, handicapIndex: 7.2 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'b',
+    categoryName: 'B',
+    shortName: 'B',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p11', position: 1, name: 'David Morales', club: 'Tigres', r1: 72, r2: 73, r3: 71, total: 216, handicapIndex: 10.5 },
+          { id: 'p12', position: 2, name: 'Sergio Díaz', club: 'CCT', r1: 74, r2: 72, r3: 73, total: 219, handicapIndex: 11.2 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'c',
+    categoryName: 'C',
+    shortName: 'C',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p13', position: 1, name: 'Andrés Vargas', club: 'CCL', r1: 73, r2: 74, r3: 72, total: 219, handicapIndex: 15.0 },
+          { id: 'p14', position: 2, name: 'Pablo Ruiz', club: 'CCS', r1: 75, r2: 73, r3: 74, total: 222, handicapIndex: 16.3 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'd',
+    categoryName: 'D',
+    shortName: 'D',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p15', position: 1, name: 'Jorge Castro', club: 'Herradura', r1: 74, r2: 75, r3: 73, total: 222, handicapIndex: 20.0 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'e',
+    categoryName: 'E',
+    shortName: 'E',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p16', position: 1, name: 'Ricardo Méndez', club: 'SCGA', r1: 76, r2: 77, r3: 75, total: 228, handicapIndex: 25.0 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'sr-cam',
+    categoryName: 'Senior Campeonato',
+    shortName: 'Sr Cam',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p17', position: 1, name: 'Alberto Pérez', club: 'Tigres', r1: 70, r2: 71, r3: 69, total: 210, handicapIndex: 2.0 },
+          { id: 'p18', position: 2, name: 'Fernando Reyes', club: 'CCT', r1: 72, r2: 70, r3: 71, total: 213, handicapIndex: 2.5 },
+        ],
+      },
+      {
+        scoringType: 'GROS',
+        players: [
+          { id: 'p17', position: 1, name: 'Alberto Pérez', club: 'Tigres', r1: 72, r2: 73, r3: 71, total: 216, handicapIndex: 2.0 },
+          { id: 'p18', position: 2, name: 'Fernando Reyes', club: 'CCT', r1: 74, r2: 72, r3: 73, total: 219, handicapIndex: 2.5 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'sen-a',
+    categoryName: 'Senior A',
+    shortName: 'Sen A',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p19', position: 1, name: 'Eduardo Silva', club: 'CCL', r1: 72, r2: 73, r3: 71, total: 216, handicapIndex: 8.0 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'sen-b',
+    categoryName: 'Senior B',
+    shortName: 'Sen B',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p20', position: 1, name: 'Guillermo Flores', club: 'CCS', r1: 74, r2: 75, r3: 73, total: 222, handicapIndex: 14.0 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'sup-sr',
+    categoryName: 'Super Senior',
+    shortName: 'Sup Sr',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p21', position: 1, name: 'Héctor Navarro', club: 'Herradura', r1: 73, r2: 74, r3: 72, total: 219, handicapIndex: 10.0 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'dam-a',
+    categoryName: 'Damas A',
+    shortName: 'Dam A',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p22', position: 1, name: 'María González', club: 'SCGA', r1: 71, r2: 72, r3: 70, total: 213, handicapIndex: 5.0 },
+          { id: 'p23', position: 2, name: 'Laura Martínez', club: 'Tigres', r1: 73, r2: 71, r3: 72, total: 216, handicapIndex: 6.2 },
+        ],
+      },
+      {
+        scoringType: 'GROS',
+        players: [
+          { id: 'p22', position: 1, name: 'María González', club: 'SCGA', r1: 76, r2: 77, r3: 75, total: 228, handicapIndex: 5.0 },
+          { id: 'p23', position: 2, name: 'Laura Martínez', club: 'Tigres', r1: 78, r2: 76, r3: 77, total: 231, handicapIndex: 6.2 },
+        ],
+      },
+    ],
+  },
+  {
+    categoryId: 'dam-b',
+    categoryName: 'Damas B',
+    shortName: 'Dam B',
+    scoringTypes: [
+      {
+        scoringType: 'NETO',
+        players: [
+          { id: 'p24', position: 1, name: 'Ana Rodríguez', club: 'CCT', r1: 74, r2: 75, r3: 73, total: 222, handicapIndex: 15.0 },
+        ],
+      },
+    ],
+  },
+];
+
+// API simulation functions - ready for Supabase integration
+export const fetchAllCategories = async (): Promise<ResultCategory[]> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return mockResultsData;
+};
+
+export const fetchCategoryResults = async (
+  categoryId: string, 
+  scoringType: ScoringType
+): Promise<PlayerResult[] | undefined> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const category = mockResultsData.find(c => c.categoryId === categoryId);
+  const scoring = category?.scoringTypes.find(s => s.scoringType === scoringType);
+  return scoring?.players;
+};
+
+export const fetchCategoryById = async (categoryId: string): Promise<ResultCategory | undefined> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return mockResultsData.find(c => c.categoryId === categoryId);
+};
