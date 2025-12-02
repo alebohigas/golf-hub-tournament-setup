@@ -102,6 +102,26 @@ const Salidas = () => {
     );
   };
 
+  // Auto-select categories with search matches
+  useEffect(() => {
+    if (!selectedDay || !searchQuery.trim()) return;
+    
+    const searchTerm = searchQuery.trim().toLowerCase();
+    const matchingCategoryIds = selectedDay.categories
+      .filter(category => 
+        category.foursomes.some(foursome =>
+          foursome.players.some(player =>
+            player.name.toLowerCase().includes(searchTerm)
+          )
+        )
+      )
+      .map(c => c.categoryId);
+    
+    if (matchingCategoryIds.length > 0) {
+      setSelectedCategories(matchingCategoryIds);
+    }
+  }, [selectedDay, searchQuery]);
+
   const filteredCategories = useMemo(() => {
     if (!selectedDay) return [];
     
