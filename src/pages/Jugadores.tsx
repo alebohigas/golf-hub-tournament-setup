@@ -1,29 +1,50 @@
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, User } from 'lucide-react';
-import { useState } from 'react';
-
-const mockPlayers = [
-  { id: 1, name: 'Juan García López', category: 'CAMPEONATO', handicap: 1.2 },
-  { id: 2, name: 'Pedro Martínez', category: 'AA', handicap: 3.5 },
-  { id: 3, name: 'Carlos Rodríguez', category: 'A', handicap: 7.2 },
-  { id: 4, name: 'Miguel Hernández', category: 'B', handicap: 11.5 },
-  { id: 5, name: 'Roberto Sánchez', category: 'C', handicap: 16.0 },
-  { id: 6, name: 'Luis González', category: 'SENIORS A', handicap: 12.3 },
-];
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ArrowLeft, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  CategoryDetail, 
+  Player, 
+  fetchCategories, 
+  fetchPlayersByCategory, 
+  fetchTotalPlayers 
+} from '@/data/playersData';
 
 const Jugadores = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categories, setCategories] = useState<CategoryDetail[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryDetail | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [totalPlayers, setTotalPlayers] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const filteredPlayers = mockPlayers.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || player.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    const loadData = async () => {
+      const [cats, total] = await Promise.all([
+        fetchCategories(),
+        fetchTotalPlayers()
+      ]);
+      setCategories(cats);
+      setTotalPlayers(total);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
+
+  const handleCategoryClick = async (category: CategoryDetail) => {
+    setLoading(true);
+    const categoryPlayers = await fetchPlayersByCategory(category.id);
+    setPlayers(categoryPlayers);
+    setSelectedCategory(category);
+    setLoading(false);
+  };
+
+  const handleBack = () => {
+    setSelectedCategory(null);
+    setPlayers([]);
+  };
 
   return (
     <Layout>
@@ -33,51 +54,99 @@ const Jugadores = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar jugador..." 
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                <SelectItem value="CAMPEONATO">Campeonato</SelectItem>
-                <SelectItem value="AA">AA</SelectItem>
-                <SelectItem value="A">A</SelectItem>
-                <SelectItem value="B">B</SelectItem>
-                <SelectItem value="C">C</SelectItem>
-                <SelectItem value="SENIORS A">Seniors A</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {!selectedCategory ? (
+            <>
+              {/* Total Players Header */}
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-bold text-foreground">
+                  JUGADORES: <span className="text-primary">{totalPlayers}</span>
+                </h2>
+              </div>
 
-          {/* Players Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPlayers.map((player) => (
-              <Card key={player.id} className="card-hover border-border/50">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground">{player.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {player.category} • HI: {player.handicap}
-                    </p>
-                  </div>
-                </CardContent>
+              {/* Categories Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {categories.map((category) => (
+                  <Card key={category.id} className="border-border/50 hover:border-primary/50 transition-colors">
+                    <CardContent className="p-4 text-center">
+                      <h3 className="font-bold text-foreground">{category.shortName}</h3>
+                      <p className="text-2xl font-bold text-primary my-2">{category.playerCount}</p>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleCategoryClick(category)}
+                        className="w-full"
+                      >
+                        Ver
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Category Detail View */}
+              <Button 
+                variant="ghost" 
+                onClick={handleBack}
+                className="mb-6 gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a categorías
+              </Button>
+
+              {/* Category Info Header */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-light text-foreground mb-2">
+                  Categoría: <span className="font-bold">{selectedCategory.name}</span>
+                </h2>
+                <div className="text-muted-foreground space-y-1">
+                  <p>Tee Salida {selectedCategory.teeSalida} / Rating {selectedCategory.rating} Slope {selectedCategory.slope} par {selectedCategory.par}</p>
+                  <p>Sistema {selectedCategory.format} / Rango Handicaps {selectedCategory.handicapMin} - {selectedCategory.handicapMax}</p>
+                  <p>
+                    Porcentaje Handicap {selectedCategory.handicapPercentage} / Total jugadores{' '}
+                    <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Players Table */}
+              <Card className="border-border/50">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-primary hover:bg-primary">
+                        <TableHead className="text-primary-foreground font-bold">Club</TableHead>
+                        <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                        <TableHead className="text-primary-foreground font-bold text-right">HI</TableHead>
+                        <TableHead className="text-primary-foreground font-bold text-right">HJ</TableHead>
+                        <TableHead className="text-primary-foreground font-bold text-right">HN</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {players.length > 0 ? (
+                        players.map((player) => (
+                          <TableRow key={player.id}>
+                            <TableCell className="font-medium">{player.club}</TableCell>
+                            <TableCell>{player.name}</TableCell>
+                            <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
+                            <TableCell className="text-right">{player.handicapJuego}</TableCell>
+                            <TableCell className="text-right">{player.handicapNeto}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            No hay jugadores registrados en esta categoría
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </Card>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </section>
     </Layout>
