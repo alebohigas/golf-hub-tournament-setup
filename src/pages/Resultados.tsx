@@ -30,10 +30,23 @@ const Resultados = () => {
     loadCategories();
   }, []);
 
-  const handleCategoryClick = (category: ResultCategory) => {
+  const handleCategoryClick = async (category: ResultCategory) => {
     setSelectedCategory(category);
-    setSelectedScoringType(null);
-    setPlayers([]);
+    
+    // If only one scoring type, skip selection and load results directly
+    if (category.scoringTypes.length === 1) {
+      setLoading(true);
+      const scoringType = category.scoringTypes[0].scoringType;
+      const results = await fetchCategoryResults(category.categoryId, scoringType);
+      if (results) {
+        setPlayers(results);
+        setSelectedScoringType(scoringType);
+      }
+      setLoading(false);
+    } else {
+      setSelectedScoringType(null);
+      setPlayers([]);
+    }
   };
 
   const handleScoringClick = async (scoringType: ScoringType) => {
