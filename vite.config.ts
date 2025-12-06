@@ -4,7 +4,9 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// Base URL configuration for deployment in subdirectory
 export default defineConfig(({ mode }) => ({
+  base: "/torreon/",
   server: {
     host: "::",
     port: 8080,
