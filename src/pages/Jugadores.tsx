@@ -128,7 +128,18 @@ const Jugadores = () => {
                       {players.length > 0 ? (
                         players.map((player) => (
                           <TableRow key={player.id}>
-                            <TableCell className="font-medium">{player.club}</TableCell>
+                            {/* Club Logo Image */}
+                            <TableCell className="w-16">
+                              <img 
+                                src={player.clubLogo} 
+                                alt="Club logo" 
+                                className="w-10 h-10 object-contain rounded"
+                                onError={(e) => {
+                                  // Fallback if image fails to load
+                                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40x40?text=Club';
+                                }}
+                              />
+                            </TableCell>
                             <TableCell>{player.name}</TableCell>
                             <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
                             <TableCell className="text-right">{player.handicapJuego}</TableCell>
