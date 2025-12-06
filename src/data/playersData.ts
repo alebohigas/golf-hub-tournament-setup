@@ -30,8 +30,11 @@ export interface Player {
   categoryId: string;    // Category ID reference
 }
 
+// ============= Category Interface =============
+// Represents a tournament category with API mapping
 export interface CategoryDetail {
-  id: string;
+  id: string;              // Internal ID
+  apiCatId: string;        // Webservice category ID (catid parameter)
   name: string;
   shortName: string;
   teeSalida: string;
@@ -45,21 +48,23 @@ export interface CategoryDetail {
   playerCount: number;
 }
 
-// Mock categories with player counts
+// ============= Categories with API ID Mapping =============
+// apiCatId maps to the webservice catid parameter
+// TODO: Update these apiCatId values to match your webservice category IDs
 export const categoriesWithPlayers: CategoryDetail[] = [
-  { id: '1', name: 'CAMPEONATO', shortName: 'Camp', teeSalida: 'AZULES', rating: 72.4, slope: 130, par: 71, format: 'STROKE PLAY', handicapMin: -5, handicapMax: 1.8, handicapPercentage: '0%', playerCount: 32 },
-  { id: '2', name: 'AA', shortName: 'AA', teeSalida: 'AZULES', rating: 72.4, slope: 130, par: 71, format: 'STROKE PLAY', handicapMin: 1.9, handicapMax: 5.3, handicapPercentage: '0%', playerCount: 28 },
-  { id: '3', name: 'A', shortName: 'A', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 5.4, handicapMax: 9.5, handicapPercentage: '0%', playerCount: 48 },
-  { id: '4', name: 'B', shortName: 'B', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 9.6, handicapMax: 13.9, handicapPercentage: '0%', playerCount: 40 },
-  { id: '5', name: 'C', shortName: 'C', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 14.0, handicapMax: 18.3, handicapPercentage: '0%', playerCount: 40 },
-  { id: '6', name: 'D', shortName: 'D', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 18.4, handicapMax: 22.7, handicapPercentage: '0%', playerCount: 29 },
-  { id: '7', name: 'E', shortName: 'E', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 22.8, handicapMax: 32.4, handicapPercentage: '70%', playerCount: 27 },
-  { id: '8', name: 'SENIORS CAMPEONATO', shortName: 'Sr Cam', teeSalida: 'DORADAS', rating: 68.5, slope: 120, par: 71, format: 'STROKE PLAY', handicapMin: 0.1, handicapMax: 9.4, handicapPercentage: '80%', playerCount: 12 },
-  { id: '9', name: 'SENIORS A', shortName: 'Sen A', teeSalida: 'DORADAS', rating: 68.5, slope: 120, par: 71, format: 'STABLEFORD', handicapMin: 9.5, handicapMax: 18.0, handicapPercentage: '70%', playerCount: 26 },
-  { id: '10', name: 'SENIORS B', shortName: 'Sen B', teeSalida: 'DORADAS', rating: 68.5, slope: 120, par: 71, format: 'STABLEFORD', handicapMin: 18.1, handicapMax: 37.9, handicapPercentage: '70%', playerCount: 13 },
-  { id: '11', name: 'SUPER SENIORS', shortName: 'Sup Sr', teeSalida: 'AMARILLAS', rating: 66.8, slope: 115, par: 71, format: 'STABLEFORD', handicapMin: 3.5, handicapMax: 33, handicapPercentage: '70%', playerCount: 16 },
-  { id: '12', name: 'DAMAS 1ra', shortName: 'Dam A', teeSalida: 'ROJAS', rating: 71.5, slope: 128, par: 72, format: 'STABLEFORD', handicapMin: 3.5, handicapMax: 18.0, handicapPercentage: '80%', playerCount: 13 },
-  { id: '13', name: 'DAMAS 2da', shortName: 'Dam B', teeSalida: 'ROJAS', rating: 71.5, slope: 128, par: 72, format: 'STABLEFORD', handicapMin: 18.1, handicapMax: 33.0, handicapPercentage: '80%', playerCount: 14 },
+  { id: '1', apiCatId: '6107', name: 'CAMPEONATO', shortName: 'Camp', teeSalida: 'AZULES', rating: 72.4, slope: 130, par: 71, format: 'STROKE PLAY', handicapMin: -5, handicapMax: 1.8, handicapPercentage: '0%', playerCount: 32 },
+  { id: '2', apiCatId: '6108', name: 'AA', shortName: 'AA', teeSalida: 'AZULES', rating: 72.4, slope: 130, par: 71, format: 'STROKE PLAY', handicapMin: 1.9, handicapMax: 5.3, handicapPercentage: '0%', playerCount: 28 },
+  { id: '3', apiCatId: '6109', name: 'A', shortName: 'A', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 5.4, handicapMax: 9.5, handicapPercentage: '0%', playerCount: 48 },
+  { id: '4', apiCatId: '6110', name: 'B', shortName: 'B', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 9.6, handicapMax: 13.9, handicapPercentage: '0%', playerCount: 40 },
+  { id: '5', apiCatId: '6111', name: 'C', shortName: 'C', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 14.0, handicapMax: 18.3, handicapPercentage: '0%', playerCount: 40 },
+  { id: '6', apiCatId: '6112', name: 'D', shortName: 'D', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 18.4, handicapMax: 22.7, handicapPercentage: '0%', playerCount: 29 },
+  { id: '7', apiCatId: '6113', name: 'E', shortName: 'E', teeSalida: 'BLANCAS', rating: 70.2, slope: 125, par: 71, format: 'STABLEFORD', handicapMin: 22.8, handicapMax: 32.4, handicapPercentage: '70%', playerCount: 27 },
+  { id: '8', apiCatId: '6114', name: 'SENIORS CAMPEONATO', shortName: 'Sr Cam', teeSalida: 'DORADAS', rating: 68.5, slope: 120, par: 71, format: 'STROKE PLAY', handicapMin: 0.1, handicapMax: 9.4, handicapPercentage: '80%', playerCount: 12 },
+  { id: '9', apiCatId: '6115', name: 'SENIORS A', shortName: 'Sen A', teeSalida: 'DORADAS', rating: 68.5, slope: 120, par: 71, format: 'STABLEFORD', handicapMin: 9.5, handicapMax: 18.0, handicapPercentage: '70%', playerCount: 26 },
+  { id: '10', apiCatId: '6116', name: 'SENIORS B', shortName: 'Sen B', teeSalida: 'DORADAS', rating: 68.5, slope: 120, par: 71, format: 'STABLEFORD', handicapMin: 18.1, handicapMax: 37.9, handicapPercentage: '70%', playerCount: 13 },
+  { id: '11', apiCatId: '6117', name: 'SUPER SENIORS', shortName: 'Sup Sr', teeSalida: 'AMARILLAS', rating: 66.8, slope: 115, par: 71, format: 'STABLEFORD', handicapMin: 3.5, handicapMax: 33, handicapPercentage: '70%', playerCount: 16 },
+  { id: '12', apiCatId: '6118', name: 'DAMAS 1ra', shortName: 'Dam A', teeSalida: 'ROJAS', rating: 71.5, slope: 128, par: 72, format: 'STABLEFORD', handicapMin: 3.5, handicapMax: 18.0, handicapPercentage: '80%', playerCount: 13 },
+  { id: '13', apiCatId: '6119', name: 'DAMAS 2da', shortName: 'Dam B', teeSalida: 'ROJAS', rating: 71.5, slope: 128, par: 72, format: 'STABLEFORD', handicapMin: 18.1, handicapMax: 33.0, handicapPercentage: '80%', playerCount: 14 },
 ];
 
 // ============= Mock Players Data (Fallback) =============
@@ -114,10 +119,15 @@ const transformApiPlayer = (apiPlayer: ApiPlayer, categoryId: string): Player =>
  * Falls back to mock data if API fails
  * @param categoryId - The category ID to filter players (maps to catid in API)
  */
-export const fetchPlayersByCategory = async (categoryId: string): Promise<Player[]> => {
+/**
+ * Fetch players by category from webservice
+ * Uses the apiCatId to call the webservice
+ * @param category - The category object with apiCatId for API calls
+ */
+export const fetchPlayersByCategory = async (category: CategoryDetail): Promise<Player[]> => {
   try {
-    // Attempt to fetch from webservice using category ID
-    const response = await fetch(getPlayersApiUrl(categoryId));
+    // Use apiCatId for webservice call
+    const response = await fetch(getPlayersApiUrl(category.apiCatId));
     
     if (!response.ok) {
       throw new Error('API response not ok');
@@ -127,19 +137,19 @@ export const fetchPlayersByCategory = async (categoryId: string): Promise<Player
     
     // Expected format: { players: ApiPlayer[] }
     if (data.players && Array.isArray(data.players)) {
-      return data.players.map((p: ApiPlayer) => transformApiPlayer(p, categoryId));
+      return data.players.map((p: ApiPlayer) => transformApiPlayer(p, category.id));
     }
     
     // If response is array directly
     if (Array.isArray(data)) {
-      return data.map((p: ApiPlayer) => transformApiPlayer(p, categoryId));
+      return data.map((p: ApiPlayer) => transformApiPlayer(p, category.id));
     }
     
     throw new Error('Invalid data format');
   } catch (error) {
     // Fallback to mock data if API fails
     console.warn('Failed to fetch from API, using mock data:', error);
-    return mockPlayers.filter(p => p.categoryId === categoryId);
+    return mockPlayers.filter(p => p.categoryId === category.id);
   }
 };
 

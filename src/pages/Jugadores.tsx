@@ -34,9 +34,10 @@ const Jugadores = () => {
     loadData();
   }, []);
 
+  // Handle category selection - fetches players using the full category object
   const handleCategoryClick = async (category: CategoryDetail) => {
     setLoading(true);
-    const categoryPlayers = await fetchPlayersByCategory(category.id);
+    const categoryPlayers = await fetchPlayersByCategory(category);
     setPlayers(categoryPlayers);
     setSelectedCategory(category);
     setLoading(false);
