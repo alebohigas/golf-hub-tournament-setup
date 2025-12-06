@@ -4,13 +4,25 @@
  * Prepared for API/database integration
  */
 
-import { PLAYERS_API_URL } from '@/config/api';
+import { getPlayersApiUrl, getLogoUrl } from '@/config/api';
+
+// ============= API Response Interface =============
+// Represents the raw player data from the webservice
+interface ApiPlayer {
+  id: string;
+  numjugador: string;
+  jugador: string;       // Player name
+  logo: string;          // Logo filename
+  hi: string;            // Handicap Index (string from API)
+  hc: string;            // Handicap de Juego (string from API)
+  hn: string;            // Handicap Neto (string from API)
+}
 
 // ============= Player Interface =============
 // Represents a player with club logo URL instead of text
 export interface Player {
   id: string;
-  clubLogo: string;      // URL of the club logo image
+  clubLogo: string;      // Full URL of the club logo image
   name: string;          // Player full name
   handicapIndex: number; // HI - Handicap Index
   handicapJuego: number; // HJ - Handicap de Juego
@@ -83,14 +95,29 @@ export const fetchCategories = async (): Promise<CategoryDetail[]> => {
 };
 
 /**
+ * Transform API player data to internal Player format
+ * @param apiPlayer - Raw player data from API
+ * @param categoryId - Category ID to assign
+ */
+const transformApiPlayer = (apiPlayer: ApiPlayer, categoryId: string): Player => ({
+  id: apiPlayer.id,
+  clubLogo: getLogoUrl(apiPlayer.logo),
+  name: apiPlayer.jugador,
+  handicapIndex: parseFloat(apiPlayer.hi) || 0,
+  handicapJuego: parseFloat(apiPlayer.hc) || 0,
+  handicapNeto: parseFloat(apiPlayer.hn) || 0,
+  categoryId: categoryId,
+});
+
+/**
  * Fetch players by category from webservice
  * Falls back to mock data if API fails
- * @param categoryId - The category ID to filter players
+ * @param categoryId - The category ID to filter players (maps to catid in API)
  */
 export const fetchPlayersByCategory = async (categoryId: string): Promise<Player[]> => {
   try {
-    // Attempt to fetch from webservice
-    const response = await fetch(`${PLAYERS_API_URL}?categoryId=${categoryId}`);
+    // Attempt to fetch from webservice using category ID
+    const response = await fetch(getPlayersApiUrl(categoryId));
     
     if (!response.ok) {
       throw new Error('API response not ok');
@@ -98,14 +125,14 @@ export const fetchPlayersByCategory = async (categoryId: string): Promise<Player
     
     const data = await response.json();
     
-    // Expected format: { players: Player[] }
+    // Expected format: { players: ApiPlayer[] }
     if (data.players && Array.isArray(data.players)) {
-      return data.players;
+      return data.players.map((p: ApiPlayer) => transformApiPlayer(p, categoryId));
     }
     
     // If response is array directly
     if (Array.isArray(data)) {
-      return data;
+      return data.map((p: ApiPlayer) => transformApiPlayer(p, categoryId));
     }
     
     throw new Error('Invalid data format');
