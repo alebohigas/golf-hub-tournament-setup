@@ -1,25 +1,49 @@
 /**
  * API Configuration
  * Global configuration for webservice endpoints
- * Update PLAYERS_API_URL with the actual webservice URL when available
+ * Contains base URLs and endpoint builders for all APIs
  */
 
-// ============= API URL Configuration =============
-// Change this URL to point to your webservice endpoint
-export const PLAYERS_API_URL = 'https://api.example.com/players';
+// ============= Base URL Configuration =============
+// Base URL for the webservice - change this to point to your server
+export const API_BASE_URL = 'https://alien2019.speitour.mx/app';
+
+// ============= Logos Base URL =============
+// Base URL for club logo images
+export const LOGOS_BASE_URL = 'https://alien2019.speitour.mx/logos';
+
+// ============= Endpoint Builders =============
+
+/**
+ * Get players list URL by category ID
+ * @param catId - Category ID from the database
+ * @returns Full URL for the players API endpoint
+ */
+export const getPlayersApiUrl = (catId: string): string => {
+  return `${API_BASE_URL}/lista_jug.php?catid=${catId}`;
+};
+
+/**
+ * Get full logo URL from logo filename
+ * @param logoFilename - Logo filename from API response
+ * @returns Full URL for the logo image
+ */
+export const getLogoUrl = (logoFilename: string): string => {
+  return `${LOGOS_BASE_URL}/${logoFilename}`;
+};
 
 /**
  * Expected JSON response format from the webservice:
  * {
  *   "players": [
  *     {
- *       "id": "1",
- *       "clubLogo": "https://example.com/logo.png",  // URL of the club logo image
- *       "name": "Juan García López",                  // Player name
- *       "handicapIndex": 1.2,                         // HI value
- *       "handicapJuego": 1,                           // HJ value
- *       "handicapNeto": 0,                            // HN value
- *       "categoryId": "1"                             // Category ID
+ *       "id": "262184",
+ *       "numjugador": "",
+ *       "jugador": "Player Name",      // Player name
+ *       "logo": "logo_club.png",       // Logo filename
+ *       "hi": "0",                      // Handicap Index
+ *       "hc": "1",                      // Handicap de Juego (HC)
+ *       "hn": "0"                       // Handicap Neto
  *     }
  *   ]
  * }
