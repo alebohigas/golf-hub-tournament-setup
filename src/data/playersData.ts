@@ -1,13 +1,21 @@
-// Players data - prepared for API/database integration
+/**
+ * Players data module
+ * Handles fetching player data from webservice API
+ * Prepared for API/database integration
+ */
 
+import { PLAYERS_API_URL } from '@/config/api';
+
+// ============= Player Interface =============
+// Represents a player with club logo URL instead of text
 export interface Player {
   id: string;
-  club: string;
-  name: string;
-  handicapIndex: number;
-  handicapJuego: number;
-  handicapNeto: number;
-  categoryId: string;
+  clubLogo: string;      // URL of the club logo image
+  name: string;          // Player full name
+  handicapIndex: number; // HI - Handicap Index
+  handicapJuego: number; // HJ - Handicap de Juego
+  handicapNeto: number;  // HN - Handicap Neto
+  categoryId: string;    // Category ID reference
 }
 
 export interface CategoryDetail {
@@ -42,37 +50,76 @@ export const categoriesWithPlayers: CategoryDetail[] = [
   { id: '13', name: 'DAMAS 2da', shortName: 'Dam B', teeSalida: 'ROJAS', rating: 71.5, slope: 128, par: 72, format: 'STABLEFORD', handicapMin: 18.1, handicapMax: 33.0, handicapPercentage: '80%', playerCount: 14 },
 ];
 
-// Mock players data - replace with API call
-export const mockPlayers: Player[] = [
-  // CAMPEONATO
-  { id: '1', club: 'CCT', name: 'Juan García López', handicapIndex: 1.2, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
-  { id: '2', club: 'CCT', name: 'Pedro Martínez Silva', handicapIndex: 0.8, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
-  { id: '3', club: 'CCL', name: 'Carlos Rodríguez Vega', handicapIndex: 1.5, handicapJuego: 2, handicapNeto: 0, categoryId: '1' },
+// ============= Mock Players Data (Fallback) =============
+// Used when API is unavailable - includes clubLogo URLs
+const mockPlayers: Player[] = [
+  // CAMPEONATO - Example with placeholder logos
+  { id: '1', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Juan García López', handicapIndex: 1.2, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
+  { id: '2', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Pedro Martínez Silva', handicapIndex: 0.8, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
+  { id: '3', clubLogo: 'https://via.placeholder.com/40x40?text=CCL', name: 'Carlos Rodríguez Vega', handicapIndex: 1.5, handicapJuego: 2, handicapNeto: 0, categoryId: '1' },
   // AA
-  { id: '4', club: 'CCT', name: 'Miguel Hernández', handicapIndex: 3.5, handicapJuego: 4, handicapNeto: 3, categoryId: '2' },
-  { id: '5', club: 'CCS', name: 'Roberto Sánchez', handicapIndex: 4.2, handicapJuego: 5, handicapNeto: 4, categoryId: '2' },
+  { id: '4', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Miguel Hernández', handicapIndex: 3.5, handicapJuego: 4, handicapNeto: 3, categoryId: '2' },
+  { id: '5', clubLogo: 'https://via.placeholder.com/40x40?text=CCS', name: 'Roberto Sánchez', handicapIndex: 4.2, handicapJuego: 5, handicapNeto: 4, categoryId: '2' },
   // A
-  { id: '6', club: 'CCT', name: 'Luis González', handicapIndex: 7.2, handicapJuego: 8, handicapNeto: 6, categoryId: '3' },
-  { id: '7', club: 'CCL', name: 'Fernando Ruiz', handicapIndex: 8.5, handicapJuego: 9, handicapNeto: 7, categoryId: '3' },
+  { id: '6', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Luis González', handicapIndex: 7.2, handicapJuego: 8, handicapNeto: 6, categoryId: '3' },
+  { id: '7', clubLogo: 'https://via.placeholder.com/40x40?text=CCL', name: 'Fernando Ruiz', handicapIndex: 8.5, handicapJuego: 9, handicapNeto: 7, categoryId: '3' },
   // B
-  { id: '8', club: 'CCT', name: 'Antonio López', handicapIndex: 11.5, handicapJuego: 13, handicapNeto: 10, categoryId: '4' },
+  { id: '8', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Antonio López', handicapIndex: 11.5, handicapJuego: 13, handicapNeto: 10, categoryId: '4' },
   // C
-  { id: '9', club: 'CCT', name: 'José Ramírez', handicapIndex: 16.0, handicapJuego: 18, handicapNeto: 14, categoryId: '5' },
+  { id: '9', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'José Ramírez', handicapIndex: 16.0, handicapJuego: 18, handicapNeto: 14, categoryId: '5' },
   // SENIORS A
-  { id: '10', club: 'CCT', name: 'Ricardo Moreno', handicapIndex: 12.3, handicapJuego: 14, handicapNeto: 10, categoryId: '9' },
+  { id: '10', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Ricardo Moreno', handicapIndex: 12.3, handicapJuego: 14, handicapNeto: 10, categoryId: '9' },
 ];
 
-// API simulation functions
+// ============= API Functions =============
+
+/**
+ * Fetch all categories
+ * Returns mock data (can be extended to fetch from API)
+ */
 export const fetchCategories = async (): Promise<CategoryDetail[]> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   return categoriesWithPlayers;
 };
 
+/**
+ * Fetch players by category from webservice
+ * Falls back to mock data if API fails
+ * @param categoryId - The category ID to filter players
+ */
 export const fetchPlayersByCategory = async (categoryId: string): Promise<Player[]> => {
-  await new Promise(resolve => setTimeout(resolve, 100));
-  return mockPlayers.filter(p => p.categoryId === categoryId);
+  try {
+    // Attempt to fetch from webservice
+    const response = await fetch(`${PLAYERS_API_URL}?categoryId=${categoryId}`);
+    
+    if (!response.ok) {
+      throw new Error('API response not ok');
+    }
+    
+    const data = await response.json();
+    
+    // Expected format: { players: Player[] }
+    if (data.players && Array.isArray(data.players)) {
+      return data.players;
+    }
+    
+    // If response is array directly
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    throw new Error('Invalid data format');
+  } catch (error) {
+    // Fallback to mock data if API fails
+    console.warn('Failed to fetch from API, using mock data:', error);
+    return mockPlayers.filter(p => p.categoryId === categoryId);
+  }
 };
 
+/**
+ * Fetch total player count
+ * Returns sum from categories
+ */
 export const fetchTotalPlayers = async (): Promise<number> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   return categoriesWithPlayers.reduce((sum, cat) => sum + cat.playerCount, 0);
