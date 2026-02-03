@@ -89,6 +89,14 @@ const precisionColumns: ColumnConfig[] = [
   { key: 'precision', label: 'Precisión', align: 'center', width: '100px', format: 'percentage' },
 ];
 
+/** Columns for bracket/elimination competitions */
+const bracketColumns: ColumnConfig[] = [
+  { key: 'position', label: 'Pos', align: 'center', width: '60px' },
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '60px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'result', label: 'Resultado', align: 'center', width: '100px' },
+];
+
 // ============= Mock Data =============
 
 /** 
@@ -230,6 +238,99 @@ export const competenciasConfig: CompetenciaTipo[] = [
           { id: 'p2', position: 2, name: 'Roberto Sánchez', club: 'WAGR', precision: 95 },
         ],
         lastUpdated: '2025-10-02 15:30',
+      },
+    ],
+  },
+  {
+    id: 'driver-300',
+    name: 'Driver 300',
+    shortName: 'Driver 300',
+    description: 'Competencia de drive especial 300 yardas',
+    icon: 'ruler',
+    columns: distanceColumns,
+    order: 4,
+    enabled: true,
+    groups: [
+      {
+        id: 'driver300-camp',
+        name: 'Campeonato + AA',
+        shortName: 'Camp+AA',
+        hoyo: 10,
+        maxPlayers: 5,
+        players: [
+          { id: 'd300-1', position: 1, name: 'Juan García López', club: 'Herradura', distance: 312 },
+          { id: 'd300-2', position: 2, name: 'Pedro Martínez', club: 'SCGA', distance: 305 },
+          { id: 'd300-3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', distance: 298 },
+        ],
+        lastUpdated: '2025-10-02 16:00',
+      },
+    ],
+  },
+  {
+    id: 'elimin-directa-16',
+    name: 'Eliminación Directa 16',
+    shortName: 'Elim. 16',
+    description: 'Bracket de eliminación directa con 16 jugadores',
+    icon: 'trophy',
+    columns: bracketColumns,
+    order: 5,
+    enabled: true,
+    groups: [
+      {
+        id: 'elim16-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 16,
+        players: [],
+        lastUpdated: '2025-10-02 16:30',
+      },
+      {
+        id: 'elim16-seniors',
+        name: 'Seniors',
+        shortName: 'Seniors',
+        maxPlayers: 16,
+        players: [],
+        lastUpdated: '2025-10-02 16:30',
+      },
+    ],
+  },
+  {
+    id: 'elimin-directa-16-sf',
+    name: 'Eliminación Directa Semifinal',
+    shortName: 'Elim. SF',
+    description: 'Bracket de eliminación con semifinales',
+    icon: 'trophy',
+    columns: bracketColumns,
+    order: 6,
+    enabled: true,
+    groups: [
+      {
+        id: 'elimsf-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 8,
+        players: [],
+        lastUpdated: '2025-10-02 17:00',
+      },
+    ],
+  },
+  {
+    id: 'elimin-directa-pe',
+    name: 'Eliminación Play-off Extra',
+    shortName: 'Elim. PE',
+    description: 'Bracket de eliminación con play-off extra',
+    icon: 'award',
+    columns: bracketColumns,
+    order: 7,
+    enabled: true,
+    groups: [
+      {
+        id: 'elimpe-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 16,
+        players: [],
+        lastUpdated: '2025-10-02 17:30',
       },
     ],
   },
