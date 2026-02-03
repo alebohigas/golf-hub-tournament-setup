@@ -64,12 +64,12 @@ export const menuConfig: MenuItem[] = [
 ];
 
 export const sponsors: Sponsor[] = [
-  { id: '1', name: 'BMW', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/200px-BMW.svg.png' },
-  { id: '2', name: 'Rolex', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/95/Rolex_logo.svg/200px-Rolex_logo.svg.png' },
-  { id: '3', name: 'Titleist', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Titleist_wordmark.svg/200px-Titleist_wordmark.svg.png' },
-  { id: '4', name: 'Callaway', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Callaway_Golf_Company_logo.svg/200px-Callaway_Golf_Company_logo.svg.png' },
-  { id: '5', name: 'TaylorMade', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/TaylorMade_logo.svg/200px-TaylorMade_logo.svg.png' },
-  { id: '6', name: 'Ping', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Ping_logo.svg/200px-Ping_logo.svg.png' },
+  { id: '1', name: 'BMW', logoUrl: 'https://www.carlogos.org/car-logos/bmw-logo-2020-grey.png' },
+  { id: '2', name: 'Rolex', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/09/Rolex-Logo.png' },
+  { id: '3', name: 'Titleist', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/Titleist-Logo.png' },
+  { id: '4', name: 'Callaway', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/Callaway-Logo.png' },
+  { id: '5', name: 'TaylorMade', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/TaylorMade-Logo.png' },
+  { id: '6', name: 'Ping', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/Ping-Logo.png' },
 ];
 
 export const tournamentInfo: TournamentInfo = {
