@@ -171,16 +171,33 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
   );
 };
 
+// ============= Default Context Value =============
+
+/** Default values when context is not available (fallback for safety) */
+const defaultContextValue: PageVisibilityContextType = {
+  visibilitySettings: {},
+  setPageVisibility: () => {},
+  isPageVisible: () => true,
+  isAdmin: false,
+  loginAsAdmin: () => false,
+  logoutAdmin: () => {},
+  getAllMenuItems: () => [],
+  getVisibleMenuItems: () => [],
+};
+
 // ============= Hook =============
 
 /**
  * usePageVisibility hook
  * Access page visibility context from any component
+ * Returns default values if used outside provider (for resilience)
  */
 export const usePageVisibility = (): PageVisibilityContextType => {
   const context = useContext(PageVisibilityContext);
+  // Return default values if context is not available (safety fallback)
   if (context === undefined) {
-    throw new Error('usePageVisibility must be used within a PageVisibilityProvider');
+    console.warn('usePageVisibility: Context not available, using defaults');
+    return defaultContextValue;
   }
   return context;
 };
