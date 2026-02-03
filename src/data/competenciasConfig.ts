@@ -97,6 +97,24 @@ const bracketColumns: ColumnConfig[] = [
   { key: 'result', label: 'Resultado', align: 'center', width: '100px' },
 ];
 
+/** Columns for player listings (field, parejas, skin) */
+const playerListColumns: ColumnConfig[] = [
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '60px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'hi', label: 'HI', align: 'center', width: '60px', format: 'number' },
+  { key: 'hc', label: 'HC', align: 'center', width: '60px', format: 'number' },
+  { key: 'hn', label: 'HN', align: 'center', width: '60px', format: 'number' },
+];
+
+/** Columns for pairs/couples competitions */
+const parejasColumns: ColumnConfig[] = [
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '60px' },
+  { key: 'name', label: 'Pareja', align: 'left' },
+  { key: 'hi', label: 'HI Prom', align: 'center', width: '70px', format: 'number' },
+  { key: 'hc', label: 'HC', align: 'center', width: '60px', format: 'number' },
+  { key: 'hn', label: 'HN', align: 'center', width: '60px', format: 'number' },
+];
+
 // ============= Mock Data =============
 
 /** 
@@ -331,6 +349,92 @@ export const competenciasConfig: CompetenciaTipo[] = [
         maxPlayers: 16,
         players: [],
         lastUpdated: '2025-10-02 17:30',
+      },
+    ],
+  },
+  {
+    id: 'jugadores-field',
+    name: 'Jugadores Field',
+    shortName: 'Field',
+    description: 'Lista de jugadores inscritos por categoría',
+    icon: 'flag',
+    columns: playerListColumns,
+    order: 8,
+    enabled: true,
+    groups: [
+      {
+        id: 'field-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [
+          { id: 'jf1', position: 1, name: 'Juan García López', club: 'Herradura', score: 12.5 },
+          { id: 'jf2', position: 2, name: 'Pedro Martínez', club: 'SCGA', score: 8.2 },
+          { id: 'jf3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', score: 15.1 },
+        ],
+        lastUpdated: '2025-10-02 18:00',
+      },
+      {
+        id: 'field-aa',
+        name: 'AA',
+        shortName: 'AA',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-02 18:00',
+      },
+    ],
+  },
+  {
+    id: 'jugadores-parejas',
+    name: 'Jugadores Parejas',
+    shortName: 'Parejas',
+    description: 'Lista de parejas inscritas',
+    icon: 'star',
+    columns: parejasColumns,
+    order: 9,
+    enabled: true,
+    groups: [
+      {
+        id: 'parejas-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 25,
+        players: [
+          { id: 'jp1', position: 1, name: 'García / Martínez', club: 'Herradura', score: 10.3 },
+          { id: 'jp2', position: 2, name: 'Rodríguez / López', club: 'SCGA', score: 11.8 },
+        ],
+        lastUpdated: '2025-10-02 18:30',
+      },
+    ],
+  },
+  {
+    id: 'jugadores-skin',
+    name: 'Skin Game',
+    shortName: 'Skin',
+    description: 'Jugadores inscritos en Skin Game',
+    icon: 'zap',
+    columns: playerListColumns,
+    order: 10,
+    enabled: true,
+    groups: [
+      {
+        id: 'skin-grupo1',
+        name: 'Grupo 1',
+        shortName: 'G1',
+        maxPlayers: 20,
+        players: [
+          { id: 'js1', position: 1, name: 'Miguel Hernández', club: 'CCT', score: 14.2 },
+          { id: 'js2', position: 2, name: 'Roberto Sánchez', club: 'WAGR', score: 9.5 },
+        ],
+        lastUpdated: '2025-10-02 19:00',
+      },
+      {
+        id: 'skin-grupo2',
+        name: 'Grupo 2',
+        shortName: 'G2',
+        maxPlayers: 20,
+        players: [],
+        lastUpdated: '2025-10-02 19:00',
       },
     ],
   },
