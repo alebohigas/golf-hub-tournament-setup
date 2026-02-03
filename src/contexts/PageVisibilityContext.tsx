@@ -2,16 +2,35 @@
  * PageVisibilityContext
  * Manages page visibility state for admin-controlled menu items
  * Uses localStorage for persistence without backend dependency
+ * Includes support for page notes and menu groups
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { menuConfig, MenuItem } from '@/data/mockData';
+import { LayoutMode, ColumnCount } from '@/components/admin/AdminLayoutSettings';
+import { MenuGroup } from '@/components/admin/AdminMenuGroups';
 
 // ============= Types =============
 
 /** Visibility settings for each page by ID */
 export interface PageVisibilitySettings {
   [pageId: string]: boolean;
+}
+
+/** Notes for each page by ID */
+export interface PageNotes {
+  [pageId: string]: string;
+}
+
+/** Page to group assignments */
+export interface PageGroupAssignments {
+  [pageId: string]: string;
+}
+
+/** Admin layout preferences */
+export interface AdminLayoutPreferences {
+  layout: LayoutMode;
+  columns: ColumnCount;
 }
 
 /** Context value interface */
@@ -32,6 +51,22 @@ interface PageVisibilityContextType {
   getAllMenuItems: () => MenuItem[];
   /** Get visible menu items (for user view) */
   getVisibleMenuItems: () => MenuItem[];
+  /** Page notes */
+  pageNotes: PageNotes;
+  /** Update note for a page */
+  setPageNote: (pageId: string, note: string) => void;
+  /** Menu groups */
+  menuGroups: MenuGroup[];
+  /** Update menu groups */
+  setMenuGroups: (groups: MenuGroup[]) => void;
+  /** Page group assignments */
+  pageGroupAssignments: PageGroupAssignments;
+  /** Assign page to group */
+  setPageGroupAssignment: (pageId: string, groupId: string | null) => void;
+  /** Admin layout preferences */
+  layoutPreferences: AdminLayoutPreferences;
+  /** Update layout preferences */
+  setLayoutPreferences: (prefs: AdminLayoutPreferences) => void;
 }
 
 // ============= Constants =============
@@ -41,6 +76,18 @@ const STORAGE_KEY = 'tournament_page_visibility';
 
 /** LocalStorage key for admin session */
 const ADMIN_SESSION_KEY = 'tournament_admin_session';
+
+/** LocalStorage key for page notes */
+const NOTES_STORAGE_KEY = 'tournament_page_notes';
+
+/** LocalStorage key for menu groups */
+const GROUPS_STORAGE_KEY = 'tournament_menu_groups';
+
+/** LocalStorage key for page group assignments */
+const PAGE_GROUPS_STORAGE_KEY = 'tournament_page_group_assignments';
+
+/** LocalStorage key for admin layout preferences */
+const LAYOUT_PREFS_STORAGE_KEY = 'tournament_admin_layout_prefs';
 
 /** Admin password - in production, this should be more secure */
 const ADMIN_PASSWORD = 'admin2025';
@@ -83,6 +130,58 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
   });
 
+  // Page notes state
+  const [pageNotes, setPageNotes] = useState<PageNotes>(() => {
+    const stored = localStorage.getItem(NOTES_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // If parse fails, use empty object
+      }
+    }
+    return {};
+  });
+
+  // Menu groups state
+  const [menuGroups, setMenuGroupsState] = useState<MenuGroup[]>(() => {
+    const stored = localStorage.getItem(GROUPS_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // If parse fails, use empty array
+      }
+    }
+    return [];
+  });
+
+  // Page group assignments state
+  const [pageGroupAssignments, setPageGroupAssignmentsState] = useState<PageGroupAssignments>(() => {
+    const stored = localStorage.getItem(PAGE_GROUPS_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // If parse fails, use empty object
+      }
+    }
+    return {};
+  });
+
+  // Admin layout preferences
+  const [layoutPreferences, setLayoutPreferencesState] = useState<AdminLayoutPreferences>(() => {
+    const stored = localStorage.getItem(LAYOUT_PREFS_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // If parse fails, use defaults
+      }
+    }
+    return { layout: 'grid' as LayoutMode, columns: 3 as ColumnCount };
+  });
+
   // Persist visibility settings to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(visibilitySettings));
@@ -93,10 +192,28 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     localStorage.setItem(ADMIN_SESSION_KEY, isAdmin ? 'true' : 'false');
   }, [isAdmin]);
 
+  // Persist page notes to localStorage
+  useEffect(() => {
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(pageNotes));
+  }, [pageNotes]);
+
+  // Persist menu groups to localStorage
+  useEffect(() => {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(menuGroups));
+  }, [menuGroups]);
+
+  // Persist page group assignments to localStorage
+  useEffect(() => {
+    localStorage.setItem(PAGE_GROUPS_STORAGE_KEY, JSON.stringify(pageGroupAssignments));
+  }, [pageGroupAssignments]);
+
+  // Persist layout preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem(LAYOUT_PREFS_STORAGE_KEY, JSON.stringify(layoutPreferences));
+  }, [layoutPreferences]);
+
   /**
    * Set visibility for a specific page
-   * @param pageId - The page ID to update
-   * @param visible - Whether the page should be visible
    */
   const setPageVisibility = (pageId: string, visible: boolean) => {
     setVisibilitySettings(prev => ({
@@ -107,8 +224,6 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
 
   /**
    * Check if a page is visible
-   * @param pageId - The page ID to check
-   * @returns Whether the page is visible (admins always see all pages)
    */
   const isPageVisible = (pageId: string): boolean => {
     if (isAdmin) return true; // Admins see all pages
@@ -117,8 +232,6 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
 
   /**
    * Login as admin with password
-   * @param password - The admin password
-   * @returns Whether login was successful
    */
   const loginAsAdmin = (password: string): boolean => {
     if (password === ADMIN_PASSWORD) {
@@ -137,7 +250,6 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
 
   /**
    * Get all menu items (for admin dashboard)
-   * @returns All menu items from config
    */
   const getAllMenuItems = (): MenuItem[] => {
     return menuConfig.sort((a, b) => a.order - b.order);
@@ -145,12 +257,48 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
 
   /**
    * Get visible menu items (for regular navigation)
-   * @returns Only visible menu items
    */
   const getVisibleMenuItems = (): MenuItem[] => {
     return menuConfig
       .filter(item => isPageVisible(item.id))
       .sort((a, b) => a.order - b.order);
+  };
+
+  /**
+   * Set note for a specific page
+   */
+  const setPageNote = (pageId: string, note: string) => {
+    setPageNotes(prev => ({
+      ...prev,
+      [pageId]: note,
+    }));
+  };
+
+  /**
+   * Update menu groups
+   */
+  const setMenuGroups = (groups: MenuGroup[]) => {
+    setMenuGroupsState(groups);
+  };
+
+  /**
+   * Assign page to group
+   */
+  const setPageGroupAssignment = (pageId: string, groupId: string | null) => {
+    setPageGroupAssignmentsState(prev => {
+      if (groupId === null) {
+        const { [pageId]: removed, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [pageId]: groupId };
+    });
+  };
+
+  /**
+   * Update layout preferences
+   */
+  const setLayoutPreferences = (prefs: AdminLayoutPreferences) => {
+    setLayoutPreferencesState(prefs);
   };
 
   const value: PageVisibilityContextType = {
@@ -162,6 +310,14 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     logoutAdmin,
     getAllMenuItems,
     getVisibleMenuItems,
+    pageNotes,
+    setPageNote,
+    menuGroups,
+    setMenuGroups,
+    pageGroupAssignments,
+    setPageGroupAssignment,
+    layoutPreferences,
+    setLayoutPreferences,
   };
 
   return (
@@ -183,6 +339,14 @@ const defaultContextValue: PageVisibilityContextType = {
   logoutAdmin: () => {},
   getAllMenuItems: () => [],
   getVisibleMenuItems: () => [],
+  pageNotes: {},
+  setPageNote: () => {},
+  menuGroups: [],
+  setMenuGroups: () => {},
+  pageGroupAssignments: {},
+  setPageGroupAssignment: () => {},
+  layoutPreferences: { layout: 'grid', columns: 3 },
+  setLayoutPreferences: () => {},
 };
 
 // ============= Hook =============

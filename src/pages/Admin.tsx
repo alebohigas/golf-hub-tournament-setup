@@ -1,6 +1,6 @@
 /**
  * Admin Page
- * Dashboard for managing page visibility settings
+ * Dashboard for managing page visibility settings, notes, and menu groups
  * Protected by password authentication
  */
 
@@ -9,20 +9,24 @@ import { useNavigate } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AdminPageCard from '@/components/admin/AdminPageCard';
+import AdminLayoutSettings from '@/components/admin/AdminLayoutSettings';
+import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
 import { 
   Shield, 
-  Eye, 
-  EyeOff, 
   LogOut, 
   Lock,
   Settings,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Eye,
+  EyeOff,
+  FolderTree
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -99,72 +103,26 @@ const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
   );
 };
 
-// ============= Page Toggle Card Component =============
-
-interface PageToggleCardProps {
-  pageId: string;
-  label: string;
-  path: string;
-  isVisible: boolean;
-  onToggle: (visible: boolean) => void;
-}
-
-/**
- * PageToggleCard
- * Individual card for toggling page visibility
- */
-const PageToggleCard = ({ pageId, label, path, isVisible, onToggle }: PageToggleCardProps) => {
-  return (
-    <div 
-      className={cn(
-        "flex items-center justify-between p-4 rounded-lg border transition-colors",
-        isVisible 
-          ? "bg-card border-border" 
-          : "bg-muted/50 border-muted"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        {isVisible ? (
-          <Eye className="h-5 w-5 text-primary" />
-        ) : (
-          <EyeOff className="h-5 w-5 text-muted-foreground" />
-        )}
-        <div>
-          <p className={cn(
-            "font-medium",
-            !isVisible && "text-muted-foreground"
-          )}>
-            {label}
-          </p>
-          <p className="text-sm text-muted-foreground">{path}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <Badge variant={isVisible ? "default" : "secondary"}>
-          {isVisible ? "Visible" : "Oculto"}
-        </Badge>
-        <Switch
-          checked={isVisible}
-          onCheckedChange={onToggle}
-          aria-label={`Toggle visibility for ${label}`}
-        />
-      </div>
-    </div>
-  );
-};
-
 // ============= Admin Dashboard Component =============
 
 /**
  * AdminDashboard
- * Main admin interface for managing page visibility
+ * Main admin interface with tabs for visibility, notes, and menu groups
  */
 const AdminDashboard = () => {
   const { 
     visibilitySettings, 
     setPageVisibility, 
     logoutAdmin,
-    getAllMenuItems 
+    getAllMenuItems,
+    pageNotes,
+    setPageNote,
+    menuGroups,
+    setMenuGroups,
+    pageGroupAssignments,
+    setPageGroupAssignment,
+    layoutPreferences,
+    setLayoutPreferences,
   } = usePageVisibility();
   const navigate = useNavigate();
   
@@ -177,17 +135,41 @@ const AdminDashboard = () => {
     navigate('/');
   };
 
+  /**
+   * Get group name for a page
+   */
+  const getGroupName = (pageId: string): string | undefined => {
+    const groupId = pageGroupAssignments[pageId];
+    if (!groupId) return undefined;
+    const group = menuGroups.find(g => g.id === groupId);
+    return group?.name;
+  };
+
+  /**
+   * Get grid column class based on column count
+   */
+  const getGridClass = () => {
+    switch (layoutPreferences.columns) {
+      case 2:
+        return 'grid-cols-1 sm:grid-cols-2';
+      case 4:
+        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+      default: // 3
+        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Settings className="w-6 h-6 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">Panel de Administración</h1>
-            <p className="text-muted-foreground">Controla la visibilidad de las páginas del torneo</p>
+            <p className="text-muted-foreground">Gestiona páginas, grupos y configuración del menú</p>
           </div>
         </div>
         <Button variant="outline" onClick={handleLogout} className="gap-2">
@@ -197,79 +179,127 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-primary" />
-              </div>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{visibleCount}</p>
-                <p className="text-sm text-muted-foreground">Páginas Visibles</p>
+                <p className="text-xl font-bold">{visibleCount}</p>
+                <p className="text-xs text-muted-foreground">Visibles</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                <EyeOff className="w-5 h-5 text-muted-foreground" />
-              </div>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <EyeOff className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="text-2xl font-bold">{hiddenCount}</p>
-                <p className="text-sm text-muted-foreground">Páginas Ocultas</p>
+                <p className="text-xl font-bold">{hiddenCount}</p>
+                <p className="text-xs text-muted-foreground">Ocultas</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="sm:col-span-2 lg:col-span-1">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-accent-foreground" />
-              </div>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <FolderTree className="w-5 h-5 text-accent-foreground" />
               <div>
-                <p className="text-2xl font-bold">{menuItems.length}</p>
-                <p className="text-sm text-muted-foreground">Total de Páginas</p>
+                <p className="text-xl font-bold">{menuGroups.length}</p>
+                <p className="text-xs text-muted-foreground">Grupos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              <div>
+                <p className="text-xl font-bold">{menuItems.length}</p>
+                <p className="text-xs text-muted-foreground">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Page Visibility Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Control de Visibilidad</CardTitle>
-          <CardDescription>
-            Activa o desactiva las páginas que deseas mostrar en el menú de navegación.
-            Los usuarios no podrán acceder a las páginas ocultas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {menuItems.map((item) => (
-              <PageToggleCard
-                key={item.id}
-                pageId={item.id}
-                label={item.label}
-                path={item.path}
-                isVisible={visibilitySettings[item.id] ?? true}
-                onToggle={(visible) => setPageVisibility(item.id, visible)}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs for different admin sections */}
+      <Tabs defaultValue="visibility" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="visibility" className="gap-2">
+            <Eye className="h-4 w-4" />
+            <span className="hidden sm:inline">Visibilidad</span>
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="gap-2">
+            <FolderTree className="h-4 w-4" />
+            <span className="hidden sm:inline">Grupos de Menú</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Visibility Tab */}
+        <TabsContent value="visibility" className="space-y-4">
+          {/* Layout Settings */}
+          <AdminLayoutSettings
+            layout={layoutPreferences.layout}
+            onLayoutChange={(layout) => setLayoutPreferences({ ...layoutPreferences, layout })}
+            columns={layoutPreferences.columns}
+            onColumnsChange={(columns) => setLayoutPreferences({ ...layoutPreferences, columns })}
+          />
+
+          {/* Page Cards */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Control de Visibilidad</CardTitle>
+              <CardDescription>
+                Activa/desactiva páginas y añade notas para cada una. Las páginas ocultas no aparecen en el menú.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className={cn(
+                layoutPreferences.layout === 'grid' 
+                  ? `grid ${getGridClass()} gap-4` 
+                  : 'space-y-3'
+              )}>
+                {menuItems.map((item) => (
+                  <AdminPageCard
+                    key={item.id}
+                    pageId={item.id}
+                    label={item.label}
+                    path={item.path}
+                    isVisible={visibilitySettings[item.id] ?? true}
+                    onToggle={(visible) => setPageVisibility(item.id, visible)}
+                    note={pageNotes[item.id] || ''}
+                    onNoteChange={(note) => setPageNote(item.id, note)}
+                    layout={layoutPreferences.layout}
+                    groupName={getGroupName(item.id)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Menu Groups Tab */}
+        <TabsContent value="groups">
+          <AdminMenuGroups
+            menuItems={menuItems}
+            groups={menuGroups}
+            onGroupsChange={setMenuGroups}
+            pageGroupAssignments={pageGroupAssignments}
+            onPageGroupChange={setPageGroupAssignment}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Info Note */}
       <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
         <p className="text-sm text-muted-foreground">
           <strong>Nota:</strong> Como administrador, siempre podrás ver todas las páginas. 
           Los cambios se aplican inmediatamente para los usuarios normales.
-          Las páginas ocultas mostrarán un error 404 para usuarios no administradores.
+          Las notas son solo para referencia interna del administrador.
         </p>
       </div>
     </div>
