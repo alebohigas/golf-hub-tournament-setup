@@ -134,6 +134,14 @@ const stablefordColumns: ColumnConfig[] = [
   { key: 'points', label: 'Puntos', align: 'center', width: '70px', format: 'number' },
 ];
 
+/** Columns for O'YES (Closest to Pin) competitions */
+const oyesColumns: ColumnConfig[] = [
+  { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'distance', label: 'Distancia', align: 'center', width: '80px', format: 'distance' },
+];
+
 // ============= Mock Data =============
 
 /** 
@@ -549,6 +557,108 @@ export const competenciasConfig: CompetenciaTipo[] = [
         maxPlayers: 50,
         players: [],
         lastUpdated: '2025-10-02 21:00',
+      },
+    ],
+  },
+  {
+    id: 'oyes',
+    name: "O'YES",
+    shortName: "O'YES",
+    description: 'Competencia Closest to the Pin',
+    icon: 'target',
+    columns: oyesColumns,
+    order: 15,
+    enabled: true,
+    groups: [
+      {
+        id: 'oyes-grupo1',
+        name: 'Grupo 1',
+        shortName: 'G1',
+        hoyo: 3,
+        maxPlayers: 10,
+        players: [
+          { id: 'oy1', position: 1, name: 'Juan García López', club: 'Herradura', distance: 0.45 },
+          { id: 'oy2', position: 2, name: 'Pedro Martínez', club: 'SCGA', distance: 1.20 },
+          { id: 'oy3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', distance: 2.15 },
+        ],
+        lastUpdated: '2025-10-02 21:30',
+      },
+      {
+        id: 'oyes-grupo2',
+        name: 'Grupo 2',
+        shortName: 'G2',
+        hoyo: 7,
+        maxPlayers: 10,
+        players: [],
+        lastUpdated: '2025-10-02 21:30',
+      },
+      {
+        id: 'oyes-grupo3',
+        name: 'Grupo 3',
+        shortName: 'G3',
+        hoyo: 12,
+        maxPlayers: 10,
+        players: [],
+        lastUpdated: '2025-10-02 21:30',
+      },
+    ],
+  },
+  {
+    id: 'oyes-por-hoyo',
+    name: "O'YES por Hoyo",
+    shortName: "O'YES Hoyo",
+    description: 'Closest to the Pin por hoyo específico',
+    icon: 'target',
+    columns: oyesColumns,
+    order: 16,
+    enabled: true,
+    groups: [
+      {
+        id: 'oyesh-hoyo3',
+        name: 'Hoyo 3',
+        shortName: 'H3',
+        hoyo: 3,
+        maxPlayers: 5,
+        players: [],
+        lastUpdated: '2025-10-02 22:00',
+      },
+      {
+        id: 'oyesh-hoyo7',
+        name: 'Hoyo 7',
+        shortName: 'H7',
+        hoyo: 7,
+        maxPlayers: 5,
+        players: [],
+        lastUpdated: '2025-10-02 22:00',
+      },
+      {
+        id: 'oyesh-hoyo12',
+        name: 'Hoyo 12',
+        shortName: 'H12',
+        hoyo: 12,
+        maxPlayers: 5,
+        players: [],
+        lastUpdated: '2025-10-02 22:00',
+      },
+    ],
+  },
+  {
+    id: 'livescoring-golfista-oro',
+    name: 'Live Scoring Golfista de Oro',
+    shortName: 'Live GO',
+    description: 'Resultados en vivo - Golfista de Oro',
+    icon: 'award',
+    columns: liveScoringColumns,
+    order: 17,
+    enabled: true,
+    groups: [
+      {
+        id: 'live-go-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-02 22:30',
       },
     ],
   },
