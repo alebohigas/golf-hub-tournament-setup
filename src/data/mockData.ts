@@ -1,6 +1,13 @@
 // Mock data service - Replace with actual API calls
 // All data structures are ready for database integration
 
+// Import local sponsor logos
+import bmwLogo from '@/assets/sponsors/bmw.svg';
+import rolexLogo from '@/assets/sponsors/rolex.png';
+import titleistLogo from '@/assets/sponsors/titleist.svg';
+import callawayLogo from '@/assets/sponsors/callaway.svg';
+import taylormadeLogo from '@/assets/sponsors/taylormade.png';
+import pingLogo from '@/assets/sponsors/ping.png';
 export interface MenuItem {
   id: string;
   label: string;
@@ -64,12 +71,12 @@ export const menuConfig: MenuItem[] = [
 ];
 
 export const sponsors: Sponsor[] = [
-  { id: '1', name: 'BMW', logoUrl: 'https://www.carlogos.org/car-logos/bmw-logo-2020-grey.png' },
-  { id: '2', name: 'Rolex', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/09/Rolex-Logo.png' },
-  { id: '3', name: 'Titleist', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/Titleist-Logo.png' },
-  { id: '4', name: 'Callaway', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/Callaway-Logo.png' },
-  { id: '5', name: 'TaylorMade', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/TaylorMade-Logo.png' },
-  { id: '6', name: 'Ping', logoUrl: 'https://logos-world.net/wp-content/uploads/2020/11/Ping-Logo.png' },
+  { id: '1', name: 'BMW', logoUrl: bmwLogo },
+  { id: '2', name: 'Rolex', logoUrl: rolexLogo },
+  { id: '3', name: 'Titleist', logoUrl: titleistLogo },
+  { id: '4', name: 'Callaway', logoUrl: callawayLogo },
+  { id: '5', name: 'TaylorMade', logoUrl: taylormadeLogo },
+  { id: '6', name: 'Ping', logoUrl: pingLogo },
 ];
 
 export const tournamentInfo: TournamentInfo = {
