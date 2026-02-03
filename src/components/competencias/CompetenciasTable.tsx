@@ -2,10 +2,13 @@
  * CompetenciasTable Component
  * Displays results table for a competition group
  * Supports dynamic columns based on competition type
+ * Includes search functionality to find players by name
  */
 
+import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Medal } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Medal, Search, X } from 'lucide-react';
 import { CompetenciaPlayer, ColumnConfig } from '@/data/competenciasConfig';
 
 // ============= Types =============
@@ -51,85 +54,148 @@ const getCellValue = (player: CompetenciaPlayer, key: string): unknown => {
   return player[key as keyof CompetenciaPlayer];
 };
 
+/** Normalize text for search (removes accents and lowercases) */
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+};
+
 // ============= Component =============
 
 /**
  * CompetenciasTable
- * Renders a results table with dynamic columns
+ * Renders a results table with dynamic columns and name search
  */
 const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter players based on search query
+  const filteredPlayers = useMemo(() => {
+    if (!searchQuery.trim()) return players;
+    
+    const normalizedQuery = normalizeText(searchQuery);
+    return players.filter(player => 
+      normalizeText(player.name).includes(normalizedQuery)
+    );
+  }, [players, searchQuery]);
+
+  // Clear search handler
+  const handleClearSearch = () => setSearchQuery('');
+
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        {/* Table Header */}
-        <TableHeader>
-          <TableRow className="bg-primary hover:bg-primary">
-            {columns.map((col) => (
-              <TableHead 
-                key={col.key}
-                className={`text-primary-foreground font-bold ${
-                  col.align === 'center' ? 'text-center' : 
-                  col.align === 'right' ? 'text-right' : 'text-left'
-                }`}
-                style={{ width: col.width }}
-              >
-                {col.label}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        
-        {/* Table Body */}
-        <TableBody>
-          {players.length > 0 ? (
-            players.map((player, idx) => (
-              <TableRow 
-                key={player.id}
-                className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'}
-              >
-                {columns.map((col) => (
-                  <TableCell 
-                    key={col.key}
-                    className={`${
-                      col.align === 'center' ? 'text-center' : 
-                      col.align === 'right' ? 'text-right' : 'text-left'
-                    }`}
-                  >
-                    {/* Special handling for position column with medal */}
-                    {col.key === 'position' && col.format === 'medal' ? (
-                      <div className="flex items-center justify-center gap-1">
-                        {player.position <= 3 && (
-                          <Medal className={`h-5 w-5 ${getPositionStyle(player.position)}`} />
-                        )}
-                        <span className={getPositionStyle(player.position)}>
-                          {player.position}
-                        </span>
-                      </div>
-                    ) : col.key === 'clubLogo' ? (
-                      /* Club logo display - for now just text, will be image when API ready */
-                      <span className="text-xs text-muted-foreground">
-                        {player.club}
-                      </span>
-                    ) : (
-                      /* Standard cell rendering */
-                      formatValue(getCellValue(player, col.key), col.format)
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell 
-                colSpan={columns.length} 
-                className="text-center text-muted-foreground py-8"
-              >
-                No hay resultados disponibles
-              </TableCell>
-            </TableRow>
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="px-4 pt-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Buscar por nombre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <button
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
-        </TableBody>
-      </Table>
+        </div>
+        {/* Search results count */}
+        {searchQuery && (
+          <p className="text-sm text-muted-foreground mt-2">
+            {filteredPlayers.length} resultado{filteredPlayers.length !== 1 ? 's' : ''} encontrado{filteredPlayers.length !== 1 ? 's' : ''}
+          </p>
+        )}
+      </div>
+
+      {/* Results Table */}
+      <div className="overflow-x-auto">
+        <Table>
+          {/* Table Header */}
+          <TableHeader>
+            <TableRow className="bg-primary hover:bg-primary">
+              {columns.map((col) => (
+                <TableHead 
+                  key={col.key}
+                  className={`text-primary-foreground font-bold ${
+                    col.align === 'center' ? 'text-center' : 
+                    col.align === 'right' ? 'text-right' : 'text-left'
+                  }`}
+                  style={{ width: col.width }}
+                >
+                  {col.label}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          
+          {/* Table Body */}
+          <TableBody>
+            {filteredPlayers.length > 0 ? (
+              filteredPlayers.map((player, idx) => (
+                <TableRow 
+                  key={player.id}
+                  className={`${idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'} ${
+                    searchQuery && normalizeText(player.name).includes(normalizeText(searchQuery))
+                      ? 'ring-2 ring-primary/50 ring-inset'
+                      : ''
+                  }`}
+                >
+                  {columns.map((col) => (
+                    <TableCell 
+                      key={col.key}
+                      className={`${
+                        col.align === 'center' ? 'text-center' : 
+                        col.align === 'right' ? 'text-right' : 'text-left'
+                      }`}
+                    >
+                      {/* Special handling for position column with medal */}
+                      {col.key === 'position' && col.format === 'medal' ? (
+                        <div className="flex items-center justify-center gap-1">
+                          {player.position <= 3 && (
+                            <Medal className={`h-5 w-5 ${getPositionStyle(player.position)}`} />
+                          )}
+                          <span className={getPositionStyle(player.position)}>
+                            {player.position}
+                          </span>
+                        </div>
+                      ) : col.key === 'clubLogo' ? (
+                        /* Club logo display - for now just text, will be image when API ready */
+                        <span className="text-xs text-muted-foreground">
+                          {player.club}
+                        </span>
+                      ) : (
+                        /* Standard cell rendering */
+                        formatValue(getCellValue(player, col.key), col.format)
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell 
+                  colSpan={columns.length} 
+                  className="text-center text-muted-foreground py-8"
+                >
+                  {searchQuery 
+                    ? `No se encontró "${searchQuery}"`
+                    : 'No hay resultados disponibles'
+                  }
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };
