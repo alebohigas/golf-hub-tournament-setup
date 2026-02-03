@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react';
+/**
+ * NavigationCards Component
+ * Grid of navigation cards for exploring tournament sections
+ * Respects page visibility settings from admin context
+ */
+
 import { Link } from 'react-router-dom';
-import { fetchMenuConfig, MenuItem } from '@/data/mockData';
+import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import { MenuItem } from '@/data/mockData';
 import { 
   FileText, Calendar, Users, Clock, Radio, Trophy, 
   CalendarDays, Bell, Award, Handshake, BookOpen 
@@ -8,6 +14,9 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+// ============= Icon Mapping =============
+
+/** Maps page IDs to their corresponding icons */
 const iconMap: Record<string, React.ElementType> = {
   convocatoria: FileText,
   eventos: Calendar,
@@ -23,6 +32,9 @@ const iconMap: Record<string, React.ElementType> = {
   reglas: BookOpen,
 };
 
+// ============= Description Mapping =============
+
+/** Maps page IDs to their descriptions */
 const descriptionMap: Record<string, string> = {
   convocatoria: 'Información sobre inscripciones, fechas y requisitos',
   eventos: 'Calendario de actividades y eventos del torneo',
@@ -38,21 +50,17 @@ const descriptionMap: Record<string, string> = {
   reglas: 'Reglamento del torneo y código de conducta',
 };
 
-const NavigationCards = () => {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+// ============= Component =============
 
-  useEffect(() => {
-    const loadMenu = async () => {
-      const items = await fetchMenuConfig();
-      // Filter out home page
-      setMenuItems(items.filter(item => item.id !== 'home'));
-    };
-    loadMenu();
-  }, []);
+const NavigationCards = () => {
+  // Get visible menu items from context (already filtered by visibility)
+  const { getVisibleMenuItems } = usePageVisibility();
+  const menuItems = getVisibleMenuItems().filter(item => item.id !== 'home');
 
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
+        {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
             Explora el Torneo
@@ -62,8 +70,9 @@ const NavigationCards = () => {
           </p>
         </div>
 
+        {/* Navigation Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuItems.map((item, index) => {
+          {menuItems.map((item: MenuItem, index: number) => {
             const Icon = iconMap[item.id] || FileText;
             return (
               <Link key={item.id} to={item.path}>
@@ -76,9 +85,11 @@ const NavigationCards = () => {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
+                      {/* Icon Container */}
                       <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center flex-shrink-0">
                         <Icon className="h-6 w-6 text-primary-foreground" />
                       </div>
+                      {/* Text Content */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-foreground mb-1">
                           {item.label}

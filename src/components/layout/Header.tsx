@@ -1,23 +1,32 @@
+/**
+ * Header Component
+ * Main navigation header with responsive mobile menu
+ * Respects page visibility settings from admin context
+ */
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
-import { fetchMenuConfig, fetchTournamentInfo, MenuItem, TournamentInfo } from '@/data/mockData';
+import { Menu, X, Shield } from 'lucide-react';
+import { fetchTournamentInfo, TournamentInfo } from '@/data/mockData';
+import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+// ============= Component =============
 
 const Header = () => {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [tournamentInfo, setTournamentInfo] = useState<TournamentInfo | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  
+  // Get visible menu items from context
+  const { getVisibleMenuItems, isAdmin } = usePageVisibility();
+  const menuItems = getVisibleMenuItems();
 
   useEffect(() => {
     const loadData = async () => {
-      const [items, info] = await Promise.all([
-        fetchMenuConfig(),
-        fetchTournamentInfo()
-      ]);
-      setMenuItems(items);
+      const info = await fetchTournamentInfo();
       setTournamentInfo(info);
     };
     loadData();
@@ -62,17 +71,39 @@ const Header = () => {
                 {item.label}
               </Link>
             ))}
+            {/* Admin indicator and link */}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={cn(
+                  "nav-link flex items-center gap-1",
+                  location.pathname === '/admin' 
+                    ? "text-primary" 
+                    : "text-foreground/80 hover:text-primary"
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                <span>Admin</span>
+              </Link>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </Button>
+          <div className="flex items-center gap-2 lg:hidden">
+            {isAdmin && (
+              <Badge variant="outline" className="gap-1">
+                <Shield className="h-3 w-3" />
+                Admin
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
@@ -94,6 +125,22 @@ const Header = () => {
                   {item.label}
                 </Link>
               ))}
+              {/* Admin link in mobile menu */}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    "px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-2",
+                    location.pathname === '/admin'
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground/80 hover:bg-muted"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  Panel de Admin
+                </Link>
+              )}
             </div>
           </nav>
         )}
