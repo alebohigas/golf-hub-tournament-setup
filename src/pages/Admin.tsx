@@ -290,6 +290,7 @@ const AdminDashboard = () => {
             onGroupsChange={setMenuGroups}
             pageGroupAssignments={pageGroupAssignments}
             onPageGroupChange={setPageGroupAssignment}
+            pageVisibility={visibilitySettings}
           />
         </TabsContent>
       </Tabs>

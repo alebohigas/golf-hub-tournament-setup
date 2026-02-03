@@ -1,13 +1,13 @@
 /**
  * AdminMenuGroups Component
  * Manage menu groups and assign pages to groups
+ * Includes visibility toggle for each group
  */
 
 import { useState } from 'react';
-import { Plus, Trash2, GripVertical, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, GripVertical, FolderOpen, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,11 +17,14 @@ import { MenuItem } from '@/data/mockData';
 
 // ============= Types =============
 
+/** Menu group configuration with visibility state */
 export interface MenuGroup {
   id: string;
   name: string;
   order: number;
   pageIds: string[];
+  /** Whether this group is visible in the navigation (default: true) */
+  visible: boolean;
 }
 
 interface AdminMenuGroupsProps {
@@ -33,6 +36,8 @@ interface AdminMenuGroupsProps {
   onGroupsChange: (groups: MenuGroup[]) => void;
   /** Page assignments to groups */
   pageGroupAssignments: Record<string, string>;
+  /** Page visibility settings */
+  pageVisibility: Record<string, boolean>;
   /** Callback when page assignment changes */
   onPageGroupChange: (pageId: string, groupId: string | null) => void;
 }
@@ -49,6 +54,7 @@ const AdminMenuGroups = ({
   onGroupsChange,
   pageGroupAssignments,
   onPageGroupChange,
+  pageVisibility,
 }: AdminMenuGroupsProps) => {
   const [newGroupName, setNewGroupName] = useState('');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -64,6 +70,7 @@ const AdminMenuGroups = ({
       name: newGroupName.trim(),
       order: groups.length + 1,
       pageIds: [],
+      visible: true,
     };
 
     onGroupsChange([...groups, newGroup]);
@@ -97,10 +104,27 @@ const AdminMenuGroups = ({
   };
 
   /**
+   * Toggle group visibility
+   */
+  const handleToggleGroupVisibility = (groupId: string) => {
+    const updatedGroups = groups.map(g =>
+      g.id === groupId ? { ...g, visible: !g.visible } : g
+    );
+    onGroupsChange(updatedGroups);
+  };
+
+  /**
    * Get pages in a specific group
    */
   const getPagesInGroup = (groupId: string) => {
     return menuItems.filter(item => pageGroupAssignments[item.id] === groupId);
+  };
+
+  /**
+   * Get visible pages count in a group
+   */
+  const getVisiblePagesCount = (groupId: string) => {
+    return getPagesInGroup(groupId).filter(item => pageVisibility[item.id] !== false).length;
   };
 
   /**
@@ -158,15 +182,34 @@ const AdminMenuGroups = ({
                 >
                   <div className="rounded-lg border border-border overflow-hidden">
                     {/* Group header */}
-                    <div className="flex items-center gap-2 p-3 bg-muted/50">
+                    <div className={cn(
+                      "flex items-center gap-2 p-3 bg-muted/50",
+                      group.visible === false && "opacity-60"
+                    )}>
                       <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                      {/* Visibility toggle */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleToggleGroupVisibility(group.id)}
+                        title={group.visible !== false ? "Ocultar grupo del menú" : "Mostrar grupo en menú"}
+                      >
+                        {group.visible !== false ? (
+                          <Eye className="h-4 w-4 text-primary" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
                       <FolderOpen className="h-4 w-4 text-primary" />
                       <Input
                         value={group.name}
                         onChange={(e) => handleRenameGroup(group.id, e.target.value)}
                         className="h-8 flex-1 bg-background"
                       />
-                      <Badge variant="secondary">{pagesInGroup.length} páginas</Badge>
+                      <Badge variant="secondary">
+                        {getVisiblePagesCount(group.id)}/{pagesInGroup.length} páginas
+                      </Badge>
                       <CollapsibleTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           {isExpanded ? (
