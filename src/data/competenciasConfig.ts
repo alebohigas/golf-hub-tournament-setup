@@ -142,6 +142,25 @@ const oyesColumns: ColumnConfig[] = [
   { key: 'distance', label: 'Distancia', align: 'center', width: '80px', format: 'distance' },
 ];
 
+/** Columns for Putt competitions */
+const puttColumns: ColumnConfig[] = [
+  { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'distance', label: 'Distancia', align: 'center', width: '80px', format: 'distance' },
+];
+
+/** Columns for final results */
+const resultadosColumns: ColumnConfig[] = [
+  { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'r1', label: 'R1', align: 'center', width: '50px', format: 'number' },
+  { key: 'r2', label: 'R2', align: 'center', width: '50px', format: 'number' },
+  { key: 'r3', label: 'R3', align: 'center', width: '50px', format: 'number' },
+  { key: 'total', label: 'Total', align: 'center', width: '60px', format: 'number' },
+];
+
 // ============= Mock Data =============
 
 /** 
@@ -659,6 +678,112 @@ export const competenciasConfig: CompetenciaTipo[] = [
         maxPlayers: 50,
         players: [],
         lastUpdated: '2025-10-02 22:30',
+      },
+    ],
+  },
+  {
+    id: 'putt',
+    name: 'Putt',
+    shortName: 'Putt',
+    description: 'Competencia de Putt largo',
+    icon: 'target',
+    columns: puttColumns,
+    order: 18,
+    enabled: true,
+    groups: [
+      {
+        id: 'putt-grupo1',
+        name: 'Grupo 1',
+        shortName: 'G1',
+        hoyo: 9,
+        maxPlayers: 10,
+        players: [
+          { id: 'pt1', position: 1, name: 'Juan García López', club: 'Herradura', distance: 0.15 },
+          { id: 'pt2', position: 2, name: 'Pedro Martínez', club: 'SCGA', distance: 0.45 },
+          { id: 'pt3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', distance: 0.82 },
+        ],
+        lastUpdated: '2025-10-02 23:00',
+      },
+      {
+        id: 'putt-grupo2',
+        name: 'Grupo 2',
+        shortName: 'G2',
+        hoyo: 18,
+        maxPlayers: 10,
+        players: [],
+        lastUpdated: '2025-10-02 23:00',
+      },
+    ],
+  },
+  {
+    id: 'resultados-stroke',
+    name: 'Resultados Stroke Play',
+    shortName: 'Res. Stroke',
+    description: 'Resultados finales Stroke Play',
+    icon: 'trophy',
+    columns: resultadosColumns,
+    order: 19,
+    enabled: true,
+    groups: [
+      {
+        id: 'res-stroke-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [
+          { id: 'rs1', position: 1, name: 'Juan García López', club: 'Herradura', score: 210 },
+          { id: 'rs2', position: 2, name: 'Pedro Martínez', club: 'SCGA', score: 215 },
+          { id: 'rs3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', score: 218 },
+        ],
+        lastUpdated: '2025-10-02 23:30',
+      },
+      {
+        id: 'res-stroke-aa',
+        name: 'AA',
+        shortName: 'AA',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-02 23:30',
+      },
+    ],
+  },
+  {
+    id: 'resultados-match',
+    name: 'Resultados Match Play',
+    shortName: 'Res. Match',
+    description: 'Resultados finales Match Play (Eliminación Directa)',
+    icon: 'trophy',
+    columns: bracketColumns,
+    order: 20,
+    enabled: true,
+    groups: [
+      {
+        id: 'res-match-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 32,
+        players: [],
+        lastUpdated: '2025-10-03 00:00',
+      },
+    ],
+  },
+  {
+    id: 'resultados-gross',
+    name: 'Resultados Gross',
+    shortName: 'Res. Gross',
+    description: 'Resultados finales categoría Gross',
+    icon: 'medal',
+    columns: resultadosColumns,
+    order: 21,
+    enabled: true,
+    groups: [
+      {
+        id: 'res-gross-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-03 00:30',
       },
     ],
   },
