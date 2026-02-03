@@ -36,6 +36,8 @@ interface NavItem {
   label: string;
   path?: string;
   children?: MenuItem[];
+  /** Whether to wrap text (display words stacked) */
+  wrapText?: boolean;
 }
 
 // ============= Component =============
@@ -98,6 +100,7 @@ const Header = () => {
               id: groupId,
               label: group.name,
               children: groupPages,
+              wrapText: group.wrapText,
             });
             
             // Mark all pages in this group as processed
@@ -177,10 +180,19 @@ const Header = () => {
                         className={cn(
                           "bg-transparent hover:bg-transparent data-[state=open]:bg-transparent",
                           "text-foreground/80 hover:text-primary data-[state=open]:text-primary",
-                          isGroupActive(item.children!) && "text-primary"
+                          isGroupActive(item.children!) && "text-primary",
+                          item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]"
                         )}
                       >
-                        {item.label}
+                        {item.wrapText ? (
+                          <span className="flex flex-col items-center text-xs">
+                            {item.label.split(' ').map((word, i) => (
+                              <span key={i}>{word}</span>
+                            ))}
+                          </span>
+                        ) : (
+                          item.label
+                        )}
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
                         <ul className="grid w-[200px] gap-1 p-2">
@@ -280,7 +292,7 @@ const Header = () => {
                             : "text-foreground/80 hover:bg-muted"
                         )}
                       >
-                        <span>{item.label}</span>
+                        <span>{item.wrapText ? item.label.split(' ').join('\n') : item.label}</span>
                         <ChevronDown className={cn(
                           "h-4 w-4 transition-transform",
                           openMobileGroup === item.id && "rotate-180"

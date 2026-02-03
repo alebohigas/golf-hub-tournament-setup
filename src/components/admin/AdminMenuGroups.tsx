@@ -1,17 +1,19 @@
 /**
  * AdminMenuGroups Component
  * Manage menu groups and assign pages to groups
- * Includes visibility toggle for each group
+ * Includes visibility toggle and text wrap option for each group
  */
 
 import { useState } from 'react';
-import { Plus, Trash2, GripVertical, FolderOpen, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, GripVertical, FolderOpen, ChevronDown, ChevronUp, Eye, EyeOff, WrapText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { MenuItem } from '@/data/mockData';
 
@@ -25,6 +27,8 @@ export interface MenuGroup {
   pageIds: string[];
   /** Whether this group is visible in the navigation (default: true) */
   visible: boolean;
+  /** Whether to wrap text in the menu (display words stacked vertically) */
+  wrapText?: boolean;
 }
 
 interface AdminMenuGroupsProps {
@@ -59,6 +63,9 @@ const AdminMenuGroups = ({
   const [newGroupName, setNewGroupName] = useState('');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
+  // State for wrap text option when creating new group
+  const [newGroupWrapText, setNewGroupWrapText] = useState(false);
+
   /**
    * Add a new group
    */
@@ -71,9 +78,11 @@ const AdminMenuGroups = ({
       order: groups.length + 1,
       pageIds: [],
       visible: true,
+      wrapText: newGroupWrapText,
     };
 
     onGroupsChange([...groups, newGroup]);
+    setNewGroupWrapText(false);
     setNewGroupName('');
   };
 
@@ -114,6 +123,16 @@ const AdminMenuGroups = ({
   };
 
   /**
+   * Toggle group text wrap
+   */
+  const handleToggleGroupWrapText = (groupId: string) => {
+    const updatedGroups = groups.map(g =>
+      g.id === groupId ? { ...g, wrapText: !g.wrapText } : g
+    );
+    onGroupsChange(updatedGroups);
+  };
+
+  /**
    * Get pages in a specific group
    */
   const getPagesInGroup = (groupId: string) => {
@@ -145,17 +164,30 @@ const AdminMenuGroups = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nombre del grupo (ej: Información, Resultados)"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddGroup()}
-            />
-            <Button onClick={handleAddGroup} disabled={!newGroupName.trim()}>
-              <Plus className="h-4 w-4 mr-1" />
-              Crear
-            </Button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nombre del grupo (ej: Información, Resultados)"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddGroup()}
+              />
+              <Button onClick={handleAddGroup} disabled={!newGroupName.trim()}>
+                <Plus className="h-4 w-4 mr-1" />
+                Crear
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="new-group-wrap"
+                checked={newGroupWrapText}
+                onCheckedChange={(checked) => setNewGroupWrapText(checked === true)}
+              />
+              <Label htmlFor="new-group-wrap" className="text-sm text-muted-foreground cursor-pointer">
+                <WrapText className="h-4 w-4 inline mr-1" />
+                Dividir texto en líneas (para nombres largos)
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -188,6 +220,7 @@ const AdminMenuGroups = ({
                     )}>
                       <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                       {/* Visibility toggle */}
+                      {/* Visibility toggle */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -200,6 +233,19 @@ const AdminMenuGroups = ({
                         ) : (
                           <EyeOff className="h-4 w-4 text-muted-foreground" />
                         )}
+                      </Button>
+                      {/* Wrap text toggle */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleToggleGroupWrapText(group.id)}
+                        title={group.wrapText ? "Mostrar texto en una línea" : "Dividir texto en líneas"}
+                      >
+                        <WrapText className={cn(
+                          "h-4 w-4",
+                          group.wrapText ? "text-primary" : "text-muted-foreground"
+                        )} />
                       </Button>
                       <FolderOpen className="h-4 w-4 text-primary" />
                       <Input
