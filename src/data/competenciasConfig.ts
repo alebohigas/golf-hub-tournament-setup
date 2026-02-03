@@ -115,6 +115,25 @@ const parejasColumns: ColumnConfig[] = [
   { key: 'hn', label: 'HN', align: 'center', width: '60px', format: 'number' },
 ];
 
+/** Columns for live scoring competitions */
+const liveScoringColumns: ColumnConfig[] = [
+  { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'thru', label: 'Thru', align: 'center', width: '50px' },
+  { key: 'today', label: 'Hoy', align: 'center', width: '60px', format: 'number' },
+  { key: 'total', label: 'Total', align: 'center', width: '60px', format: 'number' },
+];
+
+/** Columns for stableford scoring */
+const stablefordColumns: ColumnConfig[] = [
+  { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
+  { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
+  { key: 'name', label: 'Jugador', align: 'left' },
+  { key: 'thru', label: 'Thru', align: 'center', width: '50px' },
+  { key: 'points', label: 'Puntos', align: 'center', width: '70px', format: 'number' },
+];
+
 // ============= Mock Data =============
 
 /** 
@@ -435,6 +454,101 @@ export const competenciasConfig: CompetenciaTipo[] = [
         maxPlayers: 20,
         players: [],
         lastUpdated: '2025-10-02 19:00',
+      },
+    ],
+  },
+  {
+    id: 'livescoring-stroke',
+    name: 'Live Scoring Stroke Play',
+    shortName: 'Live Stroke',
+    description: 'Resultados en vivo - Sistema Stroke Play',
+    icon: 'zap',
+    columns: liveScoringColumns,
+    order: 11,
+    enabled: true,
+    groups: [
+      {
+        id: 'live-stroke-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [
+          { id: 'ls1', position: 1, name: 'Juan García López', club: 'Herradura', score: -3 },
+          { id: 'ls2', position: 2, name: 'Pedro Martínez', club: 'SCGA', score: -1 },
+          { id: 'ls3', position: 3, name: 'Carlos Rodríguez', club: 'Tigres', score: 2 },
+        ],
+        lastUpdated: '2025-10-02 19:30',
+      },
+      {
+        id: 'live-stroke-aa',
+        name: 'AA',
+        shortName: 'AA',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-02 19:30',
+      },
+    ],
+  },
+  {
+    id: 'livescoring-stableford',
+    name: 'Live Scoring Stableford',
+    shortName: 'Live Stable',
+    description: 'Resultados en vivo - Sistema Stableford',
+    icon: 'zap',
+    columns: stablefordColumns,
+    order: 12,
+    enabled: true,
+    groups: [
+      {
+        id: 'live-stableford-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [
+          { id: 'lstb1', position: 1, name: 'Miguel Hernández', club: 'CCT', score: 38 },
+          { id: 'lstb2', position: 2, name: 'Roberto Sánchez', club: 'WAGR', score: 36 },
+        ],
+        lastUpdated: '2025-10-02 20:00',
+      },
+    ],
+  },
+  {
+    id: 'livescoring-neto',
+    name: 'Live Scoring Neto',
+    shortName: 'Live Neto',
+    description: 'Resultados en vivo - Puntaje Neto',
+    icon: 'zap',
+    columns: liveScoringColumns,
+    order: 13,
+    enabled: true,
+    groups: [
+      {
+        id: 'live-neto-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-02 20:30',
+      },
+    ],
+  },
+  {
+    id: 'livescoring-gross',
+    name: 'Live Scoring Gross',
+    shortName: 'Live Gross',
+    description: 'Resultados en vivo - Puntaje Gross',
+    icon: 'zap',
+    columns: liveScoringColumns,
+    order: 14,
+    enabled: true,
+    groups: [
+      {
+        id: 'live-gross-campeonato',
+        name: 'Campeonato',
+        shortName: 'Camp',
+        maxPlayers: 50,
+        players: [],
+        lastUpdated: '2025-10-02 21:00',
       },
     ],
   },
