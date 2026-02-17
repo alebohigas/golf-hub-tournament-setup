@@ -7,9 +7,10 @@ import { Competition, CategoryGroup, fetchAllCompetitions } from '@/data/competi
 import CompetitionSubmenu from '@/components/competicion/CompetitionSubmenu';
 import CategoryGroupCard from '@/components/competicion/CompetitionCard';
 import CategoryDetailModal from '@/components/competicion/CategoryDetailModal';
-import { Target, Trophy, Flag, Zap, Star, Award, Medal, ChevronDown, Search, X } from 'lucide-react';
+import { Target, Trophy, Flag, Zap, Star, Award, Medal, Ruler, Crosshair, ChevronDown, Search, X } from 'lucide-react';
 import competicionHero from '@/assets/competicion-hero.jpg';
 
+/** Icon map for competition type icons */
 const iconMap = {
   target: Target,
   trophy: Trophy,
@@ -18,6 +19,8 @@ const iconMap = {
   star: Star,
   award: Award,
   medal: Medal,
+  ruler: Ruler,
+  crosshair: Crosshair,
 };
 
 const Competicion = () => {
