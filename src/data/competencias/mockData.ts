@@ -460,37 +460,6 @@ export const competenciasConfig: CompetenciaTipo[] = [
     ],
   },
 
-  // ---------- Salidas ----------
-  {
-    id: 'salidas',
-    name: 'Salidas',
-    shortName: 'Salidas',
-    description: 'Horarios de salida por día y categoría',
-    icon: 'flag',
-    columns: salidasColumns,
-    order: 28,
-    enabled: true,
-    groups: [
-      { id: 'salidas-dia1', name: 'Día 1 - Viernes', shortName: 'Día 1', maxPlayers: 100, players: [], lastUpdated: '2025-10-03 17:00' },
-      { id: 'salidas-dia2', name: 'Día 2 - Sábado', shortName: 'Día 2', maxPlayers: 100, players: [], lastUpdated: '2025-10-03 17:00' },
-      { id: 'salidas-dia3', name: 'Día 3 - Domingo', shortName: 'Día 3', maxPlayers: 100, players: [], lastUpdated: '2025-10-03 17:00' },
-    ],
-  },
-
-  // ---------- Salidas Parejas ----------
-  {
-    id: 'salidas-parejas',
-    name: 'Salidas Parejas',
-    shortName: 'Sal. Parejas',
-    description: 'Horarios de salida para competencia de parejas',
-    icon: 'flag',
-    columns: salidasParejasColumns,
-    order: 29,
-    enabled: true,
-    groups: [
-      { id: 'salidas-parejas-dia1', name: 'Día 1 - Viernes', shortName: 'Día 1', maxPlayers: 50, players: [], lastUpdated: '2025-10-03 17:30' },
-    ],
-  },
 
 
 
