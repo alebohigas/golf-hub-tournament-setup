@@ -15,6 +15,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { 
   ResultCategory, 
   ScoringType, 
+  ScorecardType,
   PlayerResult,
   RoundScorecard,
   fetchAllCategories, 
@@ -120,6 +121,17 @@ const Resultados = () => {
     }
   };
 
+  /** Determine which scorecard type to use based on category/scoring context */
+  const getActiveScorecardType = (): ScorecardType => {
+    if (!selectedCategory || !selectedScoringType) return 'hcp';
+    // Check scoring-level override first, then category default
+    const scoring = selectedCategory.scoringTypes.find(s => s.scoringType === selectedScoringType);
+    if (scoring?.scorecardType) return scoring.scorecardType;
+    if (selectedCategory.defaultScorecardType) return selectedCategory.defaultScorecardType;
+    // Fallback: GROS → scratch, NETO → hcp
+    return selectedScoringType === 'GROS' ? 'scratch' : 'hcp';
+  };
+
   /** Handle round score click - toggle scorecard expansion */
   const handleRoundClick = async (player: PlayerResult, round: number) => {
     const key = `${player.id}-${round}`;
@@ -135,10 +147,11 @@ const Resultados = () => {
       return;
     }
 
-    // Fetch scorecard data
+    // Fetch scorecard data with the appropriate type
+    const scorecardType = getActiveScorecardType();
     setScorecardLoading(true);
     setExpandedScorecard(key);
-    const data = await fetchPlayerScorecard(player.id, round, roundScore);
+    const data = await fetchPlayerScorecard(player.id, round, scorecardType, roundScore);
     setScorecardData(data);
     setScorecardLoading(false);
   };
