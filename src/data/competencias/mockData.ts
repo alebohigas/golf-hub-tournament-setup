@@ -442,35 +442,8 @@ export const competenciasConfig: CompetenciaTipo[] = [
     ],
   },
 
-  // ---------- Tarjeta de Jugador ----------
-  {
-    id: 'tarjeta-jugador',
-    name: 'Tarjeta de Jugador',
-    shortName: 'Tarjeta',
-    description: 'Tarjeta individual de jugador con detalle hoyo por hoyo',
-    icon: 'crosshair',
-    columns: tarjetaHcpColumns,
-    order: 25,
-    enabled: true,
-    groups: [
-      { id: 'tarjeta-ejemplo', name: 'Juan García López', shortName: 'J. García', maxPlayers: 1, players: [], lastUpdated: '2025-10-03 15:00' },
-    ],
-  },
 
-  // ---------- Tarjeta Stableford ----------
-  {
-    id: 'tarjeta-stableford',
-    name: 'Tarjeta Stableford',
-    shortName: 'Tarjeta Stb',
-    description: 'Tarjeta individual de jugador con puntos Stableford',
-    icon: 'crosshair',
-    columns: tarjetaStablefordColumns,
-    order: 26,
-    enabled: true,
-    groups: [
-      { id: 'tarjeta-stb-ejemplo', name: 'Pedro Martínez', shortName: 'P. Martínez', maxPlayers: 1, players: [], lastUpdated: '2025-10-03 15:30' },
-    ],
-  },
+
 
   // ---------- Resultados en Vivo (autoload) ----------
   {
@@ -519,50 +492,7 @@ export const competenciasConfig: CompetenciaTipo[] = [
     ],
   },
 
-  // ---------- Tarjeta Stroke Play ----------
-  {
-    id: 'tarjeta-stroke',
-    name: 'Tarjeta Stroke Play',
-    shortName: 'Tarjeta Stroke',
-    description: 'Tarjeta individual Stroke Play con handicap',
-    icon: 'crosshair',
-    columns: tarjetaHcpColumns,
-    order: 30,
-    enabled: true,
-    groups: [
-      { id: 'tarjeta-stroke-ejemplo', name: 'Carlos Rodríguez', shortName: 'C. Rodríguez', maxPlayers: 1, players: [], lastUpdated: '2025-10-03 18:00' },
-    ],
-  },
 
-  // ---------- Tarjeta Stroke Parejas ----------
-  {
-    id: 'tarjeta-stroke-parejas',
-    name: 'Tarjeta Stroke Parejas',
-    shortName: 'Tarj. Str. Par.',
-    description: 'Tarjeta de pareja en formato Stroke Play',
-    icon: 'crosshair',
-    columns: tarjetaHcpColumns,
-    order: 31,
-    enabled: true,
-    groups: [
-      { id: 'tarjeta-stroke-parejas-ejemplo', name: 'García / Martínez', shortName: 'G/M', maxPlayers: 1, players: [], lastUpdated: '2025-10-03 18:30' },
-    ],
-  },
-
-  // ---------- Tarjeta Stroke Scratch ----------
-  {
-    id: 'tarjeta-stroke-scratch',
-    name: 'Tarjeta Stroke Scratch',
-    shortName: 'Tarj. Scratch',
-    description: 'Tarjeta Stroke Play sin handicap (gross)',
-    icon: 'crosshair',
-    columns: tarjetaScratchColumns,
-    order: 32,
-    enabled: true,
-    groups: [
-      { id: 'tarjeta-scratch-ejemplo', name: 'Miguel Torres', shortName: 'M. Torres', maxPlayers: 1, players: [], lastUpdated: '2025-10-03 19:00' },
-    ],
-  },
 
   // ---------- Score en Vivo (XML) ----------
   {
