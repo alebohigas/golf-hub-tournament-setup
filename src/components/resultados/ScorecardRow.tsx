@@ -1,11 +1,15 @@
 /**
  * ScorecardRow Component
  * Renders an expandable scorecard (hole-by-hole) below a player row
- * when a round score (R1, R2, R3) is clicked in the Resultados table
+ * Adapts layout based on scorecardType: 'hcp', 'stableford', or 'scratch'
+ * 
+ * - hcp: Hoyo, Par, HCP, Golpes, Neto
+ * - stableford: Hoyo, Par, HCP, Golpes, Puntos
+ * - scratch: Hoyo, Par, Golpes, +/-
  */
 
 import { TableRow, TableCell } from '@/components/ui/table';
-import { RoundScorecard, HoleScore } from '@/data/resultadosData';
+import { RoundScorecard, HoleScore, ScorecardType } from '@/data/resultadosData';
 import { X } from 'lucide-react';
 
 interface ScorecardRowProps {
@@ -31,16 +35,24 @@ const getScoreColor = (golpes: number, par: number): string => {
   return 'bg-blue-700/20 text-blue-900';                             // Double+
 };
 
+/** Label mapping for scorecard types */
+const scorecardTypeLabels: Record<ScorecardType, string> = {
+  hcp: 'Stroke Play (Neto)',
+  stableford: 'Stableford',
+  scratch: 'Scratch (Gross)',
+};
+
 const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: ScorecardRowProps) => {
   const front9 = scorecard.holes.slice(0, 9);
   const back9 = scorecard.holes.slice(9, 18);
+  const type = scorecard.scorecardType;
 
-  /** Render a 9-hole section */
+  /** Render a 9-hole section adapted to scorecard type */
   const renderSection = (holes: HoleScore[], label: string) => (
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse">
         <thead>
-          {/* Hole numbers */}
+          {/* Hole numbers header */}
           <tr className="bg-primary">
             <th className="px-2 py-1 text-primary-foreground font-bold text-center w-14">{label}</th>
             {holes.map(h => (
@@ -52,7 +64,7 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
           </tr>
         </thead>
         <tbody>
-          {/* Par row */}
+          {/* Par row - always shown */}
           <tr className="bg-muted/50">
             <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Par</td>
             {holes.map(h => (
@@ -62,15 +74,19 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               {holes.reduce((s, h) => s + h.par, 0)}
             </td>
           </tr>
-          {/* HCP row */}
-          <tr className="bg-muted/30">
-            <td className="px-2 py-1 font-semibold text-center text-muted-foreground">HCP</td>
-            {holes.map(h => (
-              <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground text-[11px]">{h.hcp}</td>
-            ))}
-            <td className="px-2 py-1 text-center"></td>
-          </tr>
-          {/* Golpes row */}
+
+          {/* HCP row - shown for 'hcp' and 'stableford' types */}
+          {(type === 'hcp' || type === 'stableford') && (
+            <tr className="bg-muted/30">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">HCP</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground text-[11px]">{h.hcp}</td>
+              ))}
+              <td className="px-2 py-1 text-center"></td>
+            </tr>
+          )}
+
+          {/* Golpes row - always shown */}
           <tr>
             <td className="px-2 py-1 font-semibold text-center">Golpes</td>
             {holes.map(h => (
@@ -82,16 +98,61 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               {holes.reduce((s, h) => s + h.golpes, 0)}
             </td>
           </tr>
-          {/* Neto row */}
-          <tr className="bg-muted/20">
-            <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Neto</td>
-            {holes.map(h => (
-              <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.neto}</td>
-            ))}
-            <td className="px-2 py-1 text-center font-semibold text-muted-foreground">
-              {holes.reduce((s, h) => s + h.neto, 0)}
-            </td>
-          </tr>
+
+          {/* Type-specific bottom row */}
+          {type === 'hcp' && (
+            /* Neto row for HCP type */
+            <tr className="bg-muted/20">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Neto</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.neto}</td>
+              ))}
+              <td className="px-2 py-1 text-center font-semibold text-muted-foreground">
+                {holes.reduce((s, h) => s + h.neto, 0)}
+              </td>
+            </tr>
+          )}
+
+          {type === 'stableford' && (
+            /* Puntos row for Stableford type */
+            <tr className="bg-amber-500/10">
+              <td className="px-2 py-1 font-semibold text-center text-amber-700">Puntos</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className={`px-2 py-1 text-center font-bold ${
+                  (h.puntos || 0) >= 3 ? 'text-primary' : 
+                  (h.puntos || 0) === 0 ? 'text-muted-foreground' : 'text-foreground'
+                }`}>
+                  {h.puntos ?? 0}
+                </td>
+              ))}
+              <td className="px-2 py-1 text-center font-bold text-amber-700">
+                {holes.reduce((s, h) => s + (h.puntos || 0), 0)}
+              </td>
+            </tr>
+          )}
+
+          {type === 'scratch' && (
+            /* +/- row for Scratch type */
+            <tr className="bg-muted/20">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">+/-</td>
+              {holes.map(h => {
+                const diff = h.golpes - h.par;
+                return (
+                  <td key={h.hoyo} className={`px-2 py-1 text-center font-medium ${
+                    diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : 'text-muted-foreground'
+                  }`}>
+                    {h.resultado}
+                  </td>
+                );
+              })}
+              <td className="px-2 py-1 text-center font-semibold">
+                {(() => {
+                  const total = holes.reduce((s, h) => s + h.golpes, 0) - holes.reduce((s, h) => s + h.par, 0);
+                  return total === 0 ? 'E' : total > 0 ? `+${total}` : `${total}`;
+                })()}
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -103,10 +164,14 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
         <div className="p-4 border-t border-b border-primary/20">
           {/* Header */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-foreground">{playerName}</span>
               <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
                 {roundLabel}
+              </span>
+              {/* Scorecard type badge */}
+              <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
+                {scorecardTypeLabels[type]}
               </span>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -120,8 +185,8 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             {renderSection(back9, 'IN')}
           </div>
 
-          {/* Totals */}
-          <div className="flex justify-end gap-6 mt-3 text-sm">
+          {/* Totals - adapted to type */}
+          <div className="flex justify-end gap-6 mt-3 text-sm flex-wrap">
             <span className="text-muted-foreground">
               OUT: <strong className="text-foreground">{scorecard.out}</strong>
             </span>
@@ -131,6 +196,29 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             <span className="text-muted-foreground">
               Total: <strong className="text-primary text-base">{scorecard.totalGolpes}</strong>
             </span>
+            {type === 'hcp' && (
+              <span className="text-muted-foreground">
+                Neto: <strong className="text-foreground">{scorecard.totalNeto}</strong>
+              </span>
+            )}
+            {type === 'stableford' && (
+              <span className="text-muted-foreground">
+                Puntos: <strong className="text-amber-700 text-base">{scorecard.totalPuntos}</strong>
+              </span>
+            )}
+            {type === 'scratch' && (
+              <span className="text-muted-foreground">
+                +/-: <strong className={`text-base ${
+                  (scorecard.totalGolpes - 72) < 0 ? 'text-red-600' : 
+                  (scorecard.totalGolpes - 72) > 0 ? 'text-blue-600' : ''
+                }`}>
+                  {(() => {
+                    const d = scorecard.totalGolpes - 72;
+                    return d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
+                  })()}
+                </strong>
+              </span>
+            )}
           </div>
         </div>
       </TableCell>

@@ -2,6 +2,9 @@
 
 export type ScoringType = 'NETO' | 'GROS';
 
+/** Scorecard display format - determines which columns the tarjeta shows */
+export type ScorecardType = 'hcp' | 'stableford' | 'scratch';
+
 /** Individual hole score for a scorecard */
 export interface HoleScore {
   hoyo: number;
@@ -9,14 +12,22 @@ export interface HoleScore {
   hcp: number;
   golpes: number;
   neto: number;
+  /** Stableford points for this hole (only for stableford type) */
+  puntos?: number;
+  /** +/- result string for scratch type */
+  resultado?: string;
 }
 
 /** Scorecard for a single round */
 export interface RoundScorecard {
   round: number;
+  /** Which tarjeta format to render */
+  scorecardType: ScorecardType;
   holes: HoleScore[];
   totalGolpes: number;
   totalNeto: number;
+  /** Total stableford points (only for stableford) */
+  totalPuntos?: number;
   out: number;
   in: number;
 }
@@ -35,6 +46,8 @@ export interface PlayerResult {
 
 export interface CategoryScoring {
   scoringType: ScoringType;
+  /** Which scorecard format to use when expanding rounds */
+  scorecardType?: ScorecardType;
   players: PlayerResult[];
 }
 
@@ -42,6 +55,8 @@ export interface ResultCategory {
   categoryId: string;
   categoryName: string;
   shortName: string;
+  /** Default scorecard type for this category (can be overridden per scoring) */
+  defaultScorecardType?: ScorecardType;
   scoringTypes: CategoryScoring[];
 }
 
@@ -266,28 +281,43 @@ export const fetchCategoryById = async (categoryId: string): Promise<ResultCateg
 
 /**
  * Generate mock scorecard data for a player's round
- * In production, this will fetch from the API
+ * Generates different data fields based on the scorecard type
  */
-const generateMockScorecard = (playerId: string, round: number, roundScore?: number): RoundScorecard => {
+const generateMockScorecard = (
+  playerId: string,
+  round: number,
+  scorecardType: ScorecardType,
+  roundScore?: number
+): RoundScorecard => {
   const coursePars = [4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5, 4];
   const courseHcps = [7, 3, 15, 1, 9, 17, 5, 11, 13, 8, 16, 2, 6, 10, 18, 4, 12, 14];
   
-  // Generate realistic scores around the round total
-  const totalPar = coursePars.reduce((s, p) => s + p, 0); // 72
+  const totalPar = coursePars.reduce((s, p) => s + p, 0);
   const target = roundScore || (totalPar + Math.floor(Math.random() * 8) - 2);
   const diff = target - totalPar;
   
   const holes: HoleScore[] = coursePars.map((par, i) => {
-    // Distribute score adjustments across holes
     const adjustment = i < Math.abs(diff) ? (diff > 0 ? 1 : -1) : 0;
     const golpes = par + adjustment;
-    const hcpValue = courseHcps[i] <= 10 ? 1 : 0; // simplified HCP strokes
+    const hcpValue = courseHcps[i] <= 10 ? 1 : 0;
+    const neto = golpes - hcpValue;
+    
+    // Stableford points calculation
+    const netDiff = neto - par;
+    const puntos = Math.max(0, 2 - netDiff); // 0=double+, 1=bogey, 2=par, 3=birdie, 4=eagle
+    
+    // +/- resultado for scratch
+    const golpesDiff = golpes - par;
+    const resultado = golpesDiff === 0 ? 'E' : golpesDiff > 0 ? `+${golpesDiff}` : `${golpesDiff}`;
+
     return {
       hoyo: i + 1,
       par,
       hcp: courseHcps[i],
       golpes,
-      neto: golpes - hcpValue,
+      neto,
+      puntos,
+      resultado,
     };
   });
 
@@ -296,9 +326,11 @@ const generateMockScorecard = (playerId: string, round: number, roundScore?: num
 
   return {
     round,
+    scorecardType,
     holes,
     totalGolpes: holes.reduce((s, h) => s + h.golpes, 0),
     totalNeto: holes.reduce((s, h) => s + h.neto, 0),
+    totalPuntos: holes.reduce((s, h) => s + (h.puntos || 0), 0),
     out: front9.reduce((s, h) => s + h.golpes, 0),
     in: back9.reduce((s, h) => s + h.golpes, 0),
   };
@@ -308,8 +340,9 @@ const generateMockScorecard = (playerId: string, round: number, roundScore?: num
 export const fetchPlayerScorecard = async (
   playerId: string,
   round: number,
+  scorecardType: ScorecardType = 'hcp',
   roundScore?: number
 ): Promise<RoundScorecard> => {
   await new Promise(resolve => setTimeout(resolve, 150));
-  return generateMockScorecard(playerId, round, roundScore);
+  return generateMockScorecard(playerId, round, scorecardType, roundScore);
 };
