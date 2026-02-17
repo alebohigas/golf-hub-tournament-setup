@@ -18,7 +18,7 @@ export interface Competition {
   name: string;
   shortName: string;
   description: string;
-  icon: 'target' | 'trophy' | 'flag' | 'zap' | 'star' | 'award' | 'medal';
+  icon: 'target' | 'trophy' | 'flag' | 'zap' | 'star' | 'award' | 'medal' | 'ruler' | 'crosshair';
   categoryGroups: CategoryGroup[];
   maxWinnersPerGroup: number;
 }
@@ -132,6 +132,26 @@ export const mockCompetitions: Competition[] = [
     categoryGroups: [
       { id: 'wg-all', name: 'General', winners: generateWinners('wg', 20) },
     ],
+  },
+  // ---------- Driver 300 ----------
+  {
+    id: 'driver_300',
+    name: 'Driver 300',
+    shortName: 'Driver 300',
+    description: 'Drive especial 300 yardas',
+    icon: 'ruler',
+    maxWinnersPerGroup: 3,
+    categoryGroups: standardCategoryGroups('d300', (i) => `${315 - i * 4} yds`),
+  },
+  // ---------- Putt ----------
+  {
+    id: 'putt',
+    name: 'Putt',
+    shortName: 'Putt',
+    description: 'Competencia de Putt largo',
+    icon: 'target',
+    maxWinnersPerGroup: 3,
+    categoryGroups: standardCategoryGroups('putt', (i) => `${(0.15 + i * 0.3).toFixed(2)}m`),
   },
 ];
 
