@@ -1,3 +1,9 @@
+/**
+ * Resultados Page
+ * Displays tournament results by category and scoring type
+ * Supports expandable scorecards when clicking on round scores (R1, R2, R3)
+ */
+
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
@@ -5,14 +11,37 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trophy, ArrowLeft, Medal } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { 
   ResultCategory, 
   ScoringType, 
-  PlayerResult, 
+  PlayerResult,
+  RoundScorecard,
   fetchAllCategories, 
-  fetchCategoryResults 
+  fetchCategoryResults,
+  fetchPlayerScorecard,
 } from '@/data/resultadosData';
+import ScorecardRow from '@/components/resultados/ScorecardRow';
+
+// ============= Helper Functions =============
+
+/** Returns medal color class based on position */
+const getPositionStyle = (position: number) => {
+  if (position === 1) return 'text-yellow-500';
+  if (position === 2) return 'text-gray-400';
+  if (position === 3) return 'text-amber-600';
+  return '';
+};
+
+/** Returns medal icon for top 3 positions */
+const getPositionIcon = (position: number) => {
+  if (position <= 3) {
+    return <Medal className={`h-5 w-5 ${getPositionStyle(position)}`} />;
+  }
+  return null;
+};
+
+// ============= Component =============
 
 const Resultados = () => {
   const [categories, setCategories] = useState<ResultCategory[]>([]);
@@ -21,6 +50,14 @@ const Resultados = () => {
   const [players, setPlayers] = useState<PlayerResult[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /** Track which scorecard is expanded: "playerId-round" */
+  const [expandedScorecard, setExpandedScorecard] = useState<string | null>(null);
+  /** Cached scorecard data */
+  const [scorecardData, setScorecardData] = useState<RoundScorecard | null>(null);
+  /** Loading state for scorecard fetch */
+  const [scorecardLoading, setScorecardLoading] = useState(false);
+
+  // Load categories on mount
   useEffect(() => {
     const loadCategories = async () => {
       const data = await fetchAllCategories();
@@ -30,10 +67,12 @@ const Resultados = () => {
     loadCategories();
   }, []);
 
+  /** Handle category card click */
   const handleCategoryClick = async (category: ResultCategory) => {
     setSelectedCategory(category);
+    setExpandedScorecard(null);
+    setScorecardData(null);
     
-    // If only one scoring type, skip selection and load results directly
     if (category.scoringTypes.length === 1) {
       setLoading(true);
       const scoringType = category.scoringTypes[0].scoringType;
@@ -49,9 +88,12 @@ const Resultados = () => {
     }
   };
 
+  /** Handle scoring type selection */
   const handleScoringClick = async (scoringType: ScoringType) => {
     if (!selectedCategory) return;
     setLoading(true);
+    setExpandedScorecard(null);
+    setScorecardData(null);
     const results = await fetchCategoryResults(selectedCategory.categoryId, scoringType);
     if (results) {
       setPlayers(results);
@@ -60,9 +102,11 @@ const Resultados = () => {
     setLoading(false);
   };
 
+  /** Handle back navigation */
   const handleBack = () => {
+    setExpandedScorecard(null);
+    setScorecardData(null);
     if (selectedScoringType) {
-      // If category has only one scoring type, go back to all categories
       if (selectedCategory && selectedCategory.scoringTypes.length === 1) {
         setSelectedCategory(null);
         setSelectedScoringType(null);
@@ -76,18 +120,27 @@ const Resultados = () => {
     }
   };
 
-  const getPositionStyle = (position: number) => {
-    if (position === 1) return 'text-yellow-500';
-    if (position === 2) return 'text-gray-400';
-    if (position === 3) return 'text-amber-600';
-    return '';
-  };
+  /** Handle round score click - toggle scorecard expansion */
+  const handleRoundClick = async (player: PlayerResult, round: number) => {
+    const key = `${player.id}-${round}`;
+    const roundScore = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+    
+    // If no score, don't expand
+    if (roundScore === undefined || roundScore === null) return;
 
-  const getPositionIcon = (position: number) => {
-    if (position <= 3) {
-      return <Medal className={`h-5 w-5 ${getPositionStyle(position)}`} />;
+    // Toggle: close if same scorecard is open
+    if (expandedScorecard === key) {
+      setExpandedScorecard(null);
+      setScorecardData(null);
+      return;
     }
-    return null;
+
+    // Fetch scorecard data
+    setScorecardLoading(true);
+    setExpandedScorecard(key);
+    const data = await fetchPlayerScorecard(player.id, round, roundScore);
+    setScorecardData(data);
+    setScorecardLoading(false);
   };
 
   const totalCategories = categories.length;
@@ -185,7 +238,7 @@ const Resultados = () => {
             </>
           ) : (
             <>
-            {/* Results Detail View */}
+              {/* Results Detail View */}
               <Button 
                 variant="ghost" 
                 onClick={handleBack}
@@ -209,10 +262,13 @@ const Resultados = () => {
                 }`}>
                   {selectedScoringType}
                 </span>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Haz clic en un resultado de ronda para ver la tarjeta hoyo por hoyo
+                </p>
               </div>
 
               {/* Results Table */}
-              <Card className="border-border/50">
+              <Card className="border-border/50 max-w-5xl mx-auto">
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <Table>
@@ -230,27 +286,67 @@ const Resultados = () => {
                       <TableBody>
                         {players.length > 0 ? (
                           players.map((player, idx) => (
-                            <TableRow 
-                              key={player.id}
-                              className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'}
-                            >
-                              <TableCell className="font-semibold">
-                                <div className="flex items-center gap-2">
-                                  {getPositionIcon(player.position)}
-                                  <span className={getPositionStyle(player.position)}>
-                                    {player.position}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-medium">{player.name}</TableCell>
-                              <TableCell className="text-muted-foreground">{player.club}</TableCell>
-                              <TableCell className="text-center">{player.r1 ?? '-'}</TableCell>
-                              <TableCell className="text-center">{player.r2 ?? '-'}</TableCell>
-                              <TableCell className="text-center">{player.r3 ?? '-'}</TableCell>
-                              <TableCell className="text-center font-bold text-primary text-lg">
-                                {player.total}
-                              </TableCell>
-                            </TableRow>
+                            <Fragment key={player.id}>
+                              {/* Player row */}
+                              <TableRow className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
+                                <TableCell className="font-semibold">
+                                  <div className="flex items-center gap-2">
+                                    {getPositionIcon(player.position)}
+                                    <span className={getPositionStyle(player.position)}>
+                                      {player.position}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-medium">{player.name}</TableCell>
+                                <TableCell className="text-muted-foreground">{player.club}</TableCell>
+                                {/* Clickable round cells */}
+                                {[1, 2, 3].map(round => {
+                                  const score = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+                                  const isExpanded = expandedScorecard === `${player.id}-${round}`;
+                                  return (
+                                    <TableCell key={round} className="text-center p-0">
+                                      {score !== undefined && score !== null ? (
+                                        <button
+                                          onClick={() => handleRoundClick(player, round)}
+                                          className={`w-full py-3 px-2 font-medium transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
+                                            isExpanded 
+                                              ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' 
+                                              : ''
+                                          }`}
+                                          title={`Ver tarjeta R${round}`}
+                                        >
+                                          {score}
+                                        </button>
+                                      ) : (
+                                        <span className="py-3 px-2 inline-block">-</span>
+                                      )}
+                                    </TableCell>
+                                  );
+                                })}
+                                <TableCell className="text-center font-bold text-primary text-lg">
+                                  {player.total}
+                                </TableCell>
+                              </TableRow>
+
+                              {/* Expanded scorecard row */}
+                              {expandedScorecard?.startsWith(`${player.id}-`) && (
+                                scorecardLoading ? (
+                                  <TableRow className="bg-muted/10 hover:bg-muted/10">
+                                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                                      Cargando tarjeta...
+                                    </TableCell>
+                                  </TableRow>
+                                ) : scorecardData ? (
+                                  <ScorecardRow
+                                    scorecard={scorecardData}
+                                    playerName={player.name}
+                                    roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
+                                    onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
+                                    colSpan={7}
+                                  />
+                                ) : null
+                              )}
+                            </Fragment>
                           ))
                         ) : (
                           <TableRow>

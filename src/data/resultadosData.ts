@@ -2,6 +2,25 @@
 
 export type ScoringType = 'NETO' | 'GROS';
 
+/** Individual hole score for a scorecard */
+export interface HoleScore {
+  hoyo: number;
+  par: number;
+  hcp: number;
+  golpes: number;
+  neto: number;
+}
+
+/** Scorecard for a single round */
+export interface RoundScorecard {
+  round: number;
+  holes: HoleScore[];
+  totalGolpes: number;
+  totalNeto: number;
+  out: number;
+  in: number;
+}
+
 export interface PlayerResult {
   id: string;
   position: number;
@@ -243,4 +262,54 @@ export const fetchCategoryResults = async (
 export const fetchCategoryById = async (categoryId: string): Promise<ResultCategory | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 100));
   return mockResultsData.find(c => c.categoryId === categoryId);
+};
+
+/**
+ * Generate mock scorecard data for a player's round
+ * In production, this will fetch from the API
+ */
+const generateMockScorecard = (playerId: string, round: number, roundScore?: number): RoundScorecard => {
+  const coursePars = [4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5, 4];
+  const courseHcps = [7, 3, 15, 1, 9, 17, 5, 11, 13, 8, 16, 2, 6, 10, 18, 4, 12, 14];
+  
+  // Generate realistic scores around the round total
+  const totalPar = coursePars.reduce((s, p) => s + p, 0); // 72
+  const target = roundScore || (totalPar + Math.floor(Math.random() * 8) - 2);
+  const diff = target - totalPar;
+  
+  const holes: HoleScore[] = coursePars.map((par, i) => {
+    // Distribute score adjustments across holes
+    const adjustment = i < Math.abs(diff) ? (diff > 0 ? 1 : -1) : 0;
+    const golpes = par + adjustment;
+    const hcpValue = courseHcps[i] <= 10 ? 1 : 0; // simplified HCP strokes
+    return {
+      hoyo: i + 1,
+      par,
+      hcp: courseHcps[i],
+      golpes,
+      neto: golpes - hcpValue,
+    };
+  });
+
+  const front9 = holes.slice(0, 9);
+  const back9 = holes.slice(9, 18);
+
+  return {
+    round,
+    holes,
+    totalGolpes: holes.reduce((s, h) => s + h.golpes, 0),
+    totalNeto: holes.reduce((s, h) => s + h.neto, 0),
+    out: front9.reduce((s, h) => s + h.golpes, 0),
+    in: back9.reduce((s, h) => s + h.golpes, 0),
+  };
+};
+
+/** Fetch a player's scorecard for a specific round */
+export const fetchPlayerScorecard = async (
+  playerId: string,
+  round: number,
+  roundScore?: number
+): Promise<RoundScorecard> => {
+  await new Promise(resolve => setTimeout(resolve, 150));
+  return generateMockScorecard(playerId, round, roundScore);
 };
