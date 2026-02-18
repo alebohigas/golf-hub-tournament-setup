@@ -69,23 +69,27 @@ export const categoriesWithPlayers: CategoryDetail[] = [
 
 // ============= Mock Players Data (Fallback) =============
 // Used when API is unavailable - includes clubLogo URLs
+/** SVG placeholder for mock club logos */
+const mockLogoSvg = (text: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-family="sans-serif">${text}</text></svg>`)}`;
+
 const mockPlayers: Player[] = [
-  // CAMPEONATO - Example with placeholder logos
-  { id: '1', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Juan García López', handicapIndex: 1.2, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
-  { id: '2', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Pedro Martínez Silva', handicapIndex: 0.8, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
-  { id: '3', clubLogo: 'https://via.placeholder.com/40x40?text=CCL', name: 'Carlos Rodríguez Vega', handicapIndex: 1.5, handicapJuego: 2, handicapNeto: 0, categoryId: '1' },
+  // CAMPEONATO
+  { id: '1', clubLogo: mockLogoSvg('CCT'), name: 'Juan García López', handicapIndex: 1.2, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
+  { id: '2', clubLogo: mockLogoSvg('CCT'), name: 'Pedro Martínez Silva', handicapIndex: 0.8, handicapJuego: 1, handicapNeto: 0, categoryId: '1' },
+  { id: '3', clubLogo: mockLogoSvg('CCL'), name: 'Carlos Rodríguez Vega', handicapIndex: 1.5, handicapJuego: 2, handicapNeto: 0, categoryId: '1' },
   // AA
-  { id: '4', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Miguel Hernández', handicapIndex: 3.5, handicapJuego: 4, handicapNeto: 3, categoryId: '2' },
-  { id: '5', clubLogo: 'https://via.placeholder.com/40x40?text=CCS', name: 'Roberto Sánchez', handicapIndex: 4.2, handicapJuego: 5, handicapNeto: 4, categoryId: '2' },
+  { id: '4', clubLogo: mockLogoSvg('CCT'), name: 'Miguel Hernández', handicapIndex: 3.5, handicapJuego: 4, handicapNeto: 3, categoryId: '2' },
+  { id: '5', clubLogo: mockLogoSvg('CCS'), name: 'Roberto Sánchez', handicapIndex: 4.2, handicapJuego: 5, handicapNeto: 4, categoryId: '2' },
   // A
-  { id: '6', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Luis González', handicapIndex: 7.2, handicapJuego: 8, handicapNeto: 6, categoryId: '3' },
-  { id: '7', clubLogo: 'https://via.placeholder.com/40x40?text=CCL', name: 'Fernando Ruiz', handicapIndex: 8.5, handicapJuego: 9, handicapNeto: 7, categoryId: '3' },
+  { id: '6', clubLogo: mockLogoSvg('CCT'), name: 'Luis González', handicapIndex: 7.2, handicapJuego: 8, handicapNeto: 6, categoryId: '3' },
+  { id: '7', clubLogo: mockLogoSvg('CCL'), name: 'Fernando Ruiz', handicapIndex: 8.5, handicapJuego: 9, handicapNeto: 7, categoryId: '3' },
   // B
-  { id: '8', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Antonio López', handicapIndex: 11.5, handicapJuego: 13, handicapNeto: 10, categoryId: '4' },
+  { id: '8', clubLogo: mockLogoSvg('CCT'), name: 'Antonio López', handicapIndex: 11.5, handicapJuego: 13, handicapNeto: 10, categoryId: '4' },
   // C
-  { id: '9', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'José Ramírez', handicapIndex: 16.0, handicapJuego: 18, handicapNeto: 14, categoryId: '5' },
+  { id: '9', clubLogo: mockLogoSvg('CCT'), name: 'José Ramírez', handicapIndex: 16.0, handicapJuego: 18, handicapNeto: 14, categoryId: '5' },
   // SENIORS A
-  { id: '10', clubLogo: 'https://via.placeholder.com/40x40?text=CCT', name: 'Ricardo Moreno', handicapIndex: 12.3, handicapJuego: 14, handicapNeto: 10, categoryId: '9' },
+  { id: '10', clubLogo: mockLogoSvg('CCT'), name: 'Ricardo Moreno', handicapIndex: 12.3, handicapJuego: 14, handicapNeto: 10, categoryId: '9' },
 ];
 
 // ============= API Functions =============
