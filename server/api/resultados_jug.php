@@ -1,0 +1,195 @@
+<?php
+/**
+ * Resultados Jugadores (Detail) Endpoint
+ * GET /api/resultados_jug.php?catid=XXX&torneoid=XXX&gross=0|1
+ * Returns tournament results for a category
+ * Supports: Stroke Play (Neto/Gross), Stableford (Neto/Gross)
+ */
+require_once 'config.php';
+
+$catid    = require_param('catid');
+$torneoid = require_param('torneoid');
+$gross    = optional_param('gross', '0');
+
+$cid = esc($conn, $catid);
+$tid = esc($conn, $torneoid);
+
+// ============= Get category info =============
+$sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
+               a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
+               COUNT(b.id) as playerCount
+        FROM categorias a
+        JOIN jugadores b ON (a.categoria_id = b.categoriaid)
+        WHERE a.categoria_id = $cid
+        GROUP BY a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
+                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar";
+
+$catInfo = query_one($conn, $sql);
+if (!$catInfo) {
+    json_error('Category not found', 404);
+}
+
+$sistema = strtoupper($catInfo['sistema']);
+$formato = strtoupper($catInfo['formato']);
+
+// ============= Get play dates =============
+$sql = "SELECT fecha FROM caljuego
+        WHERE categoriaid = $cid AND campo > 0 AND estatus > 1
+        ORDER BY fecha";
+$dateRows = query_all($conn, $sql);
+
+$dias = [];
+foreach ($dateRows as $i => $dr) {
+    $dias[$i + 1] = $dr['fecha'];
+}
+
+// ============= Get course info =============
+$sql = "SELECT b.campoid, b.salidaid, rating, slope, tee, parcampo
+        FROM caljuego a
+        JOIN campo_tee b ON (a.campo = b.campoid AND categoriaid = $cid AND salidaid = " . esc($conn, $catInfo['salida']) . ")
+        JOIN salidas s ON (b.salidaid = s.id)
+        LIMIT 1";
+$courseInfo = query_one($conn, $sql);
+
+// ============= Build main results query =============
+$players = [];
+
+if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
+
+    if ($gross == '1') {
+        // GROSS results
+        $sql = "SELECT a.jugadorid, j.numjugador,
+                       CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
+                       f_torneosox(a.jugadorid, a.torneoid) as so,
+                       f_torneosax(a.jugadorid, a.torneoid) as sa";
+
+        // Add per-day scores
+        foreach ($dias as $i => $fecha) {
+            $sql .= ", f_score_dia_sox(a.jugadorid, '$fecha') as d{$i}";
+        }
+
+        $sql .= ", b.abr, b.logo
+                 FROM v_jugadores a
+                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
+                 JOIN jugadores j ON (a.jugadorid = j.id)
+                 JOIN clubs b ON (j.clubid = b.id)
+                 WHERE j.categoriaid = $cid
+                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.estatus = 'NORMAL'
+                 ORDER BY f_torneosox(a.jugadorid, a.torneoid) ASC,
+                          u.cd1 ASC, u.cd2 ASC, u.cd3 ASC";
+
+    } else {
+        // NETO results
+        $sql = "SELECT a.jugadorid, j.numjugador,
+                       CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
+                       f_torneosax(a.jugadorid, a.torneoid) as sa,
+                       f_torneosox(a.jugadorid, a.torneoid) as so";
+
+        foreach ($dias as $i => $fecha) {
+            $sql .= ", f_score_dia_sax(a.jugadorid, '$fecha') as d{$i}";
+        }
+
+        $sql .= ", b.abr, b.logo
+                 FROM v_jugadores a
+                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
+                 JOIN jugadores j ON (a.jugadorid = j.id)
+                 JOIN clubs b ON (j.clubid = b.id)
+                 WHERE j.categoriaid = $cid
+                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.estatus = 'NORMAL'
+                   AND j.campgross = 0
+                 ORDER BY f_torneosax(a.jugadorid, a.torneoid) ASC,
+                          u.cd1 ASC, u.cd2 ASC, u.cd3 ASC";
+    }
+
+} elseif ($sistema === 'STABLEFORD') {
+
+    if ($gross == '1') {
+        // Stableford GROSS
+        $sql = "SELECT a.jugadorid, j.numjugador,
+                       CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
+                       f_stl_gross(a.jugadorid, a.torneoid) as sa,
+                       f_torneosox(a.jugadorid, a.torneoid) as so";
+
+        foreach ($dias as $i => $fecha) {
+            $sql .= ", f_score_dia_sox(a.jugadorid, '$fecha') as d{$i}";
+        }
+
+        $sql .= ", b.abr, b.logo
+                 FROM v_jugadores a
+                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
+                 JOIN jugadores j ON (a.jugadorid = j.id)
+                 JOIN clubs b ON (j.clubid = b.id)
+                 WHERE j.categoriaid = $cid
+                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.estatus = 'NORMAL'
+                 ORDER BY f_stl_gross(a.jugadorid, a.torneoid) DESC,
+                          u.cd1 DESC, u.cd2 DESC, u.cd3 DESC";
+    } else {
+        // Stableford NETO
+        $sql = "SELECT a.jugadorid, j.numjugador,
+                       CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
+                       f_torneosa(a.jugadorid, a.torneoid) as sa,
+                       f_torneosox(a.jugadorid, a.torneoid) as so";
+
+        foreach ($dias as $i => $fecha) {
+            $sql .= ", f_score_dia_sax(a.jugadorid, '$fecha') as d{$i}";
+        }
+
+        $sql .= ", b.abr, b.logo
+                 FROM v_jugadores a
+                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
+                 JOIN jugadores j ON (a.jugadorid = j.id)
+                 JOIN clubs b ON (j.clubid = b.id)
+                 WHERE j.categoriaid = $cid
+                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.estatus = 'NORMAL'
+                   AND j.campgross = 0
+                 ORDER BY f_torneosa(a.jugadorid, a.torneoid) DESC,
+                          u.cd1 DESC, u.cd2 DESC, u.cd3 DESC";
+    }
+}
+
+$rows = query_all($conn, $sql);
+
+$position = 0;
+foreach ($rows as $row) {
+    $position++;
+    $player = [
+        'position'  => $position,
+        'playerId'  => $row['jugadorid'],
+        'number'    => $row['numjugador'],
+        'name'      => $row['jugador'],
+        'club'      => $row['abr'],
+        'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . '/' . $row['logo'] : '',
+        'total'     => $gross == '1' ? (int)$row['so'] : (int)$row['sa'],
+        'totalSO'   => (int)($row['so'] ?? 0),
+        'totalSA'   => (int)($row['sa'] ?? 0)
+    ];
+
+    // Add per-day scores
+    foreach ($dias as $i => $fecha) {
+        $val = $row["d{$i}"] ?? null;
+        $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
+    }
+
+    $players[] = $player;
+}
+
+json_response([
+    'categoryId'   => $catInfo['categoria_id'],
+    'categoryName' => $catInfo['categoria'],
+    'shortName'    => $catInfo['abreviatura'],
+    'system'       => $catInfo['sistema'],
+    'format'       => $catInfo['formato'],
+    'gross'        => (int)$gross,
+    'course'       => $courseInfo ? [
+        'rating'   => (float)($courseInfo['rating'] ?? 0),
+        'slope'    => (int)($courseInfo['slope'] ?? 0),
+        'tee'      => $courseInfo['tee'] ?? '',
+        'par'      => (int)($courseInfo['parcampo'] ?? 72)
+    ] : null,
+    'days'         => array_values($dias),
+    'players'      => $players
+]);
