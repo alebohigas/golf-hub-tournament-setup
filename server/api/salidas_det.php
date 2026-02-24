@@ -1,0 +1,138 @@
+<?php
+/**
+ * Salidas Detail Endpoint
+ * GET /api/salidas_det.php?caljgoid=XXX&formato=individual|parejas
+ * Returns tee time groups with players for a specific calendar game
+ */
+require_once 'config.php';
+
+$caljgoid = require_param('caljgoid');
+$formato  = optional_param('formato', 'individual');
+
+$cgid = esc($conn, $caljgoid);
+
+// ============= Calendar game + category info =============
+$sql = "SELECT a.id, a.torneoid, a.fecha, a.campo, a.categoriaid,
+               b.abreviatura, b.categoria, b.sistema, b.gross, b.grossstb,
+               s.tee, c.campo as campo_nombre
+        FROM caljuego a
+        JOIN categorias b ON (a.categoriaid = b.categoria_id)
+        JOIN salidas s ON (b.salida = s.id)
+        JOIN campos c ON (a.campo = c.id)
+        WHERE a.id = $cgid";
+
+$calInfo = query_one($conn, $sql);
+if (!$calInfo) { json_error('Calendar game not found', 404); }
+
+$sistema  = strtoupper($calInfo['sistema']);
+$gross    = (int)$calInfo['gross'];
+$grossstb = (int)($calInfo['grossstb'] ?? 0);
+
+// ============= Get tee time groups =============
+$sql = "SELECT a.id, LEFT(RIGHT(horainicio1a, 8), 5) as hora,
+               c.tee, teesal, b.gross
+        FROM salidagrupo a
+        JOIN categorias b ON (a.categoriaid = b.categoria_id AND caljuegoid = $cgid)
+        JOIN salidas c ON (c.id = b.salida)
+        ORDER BY a.id";
+
+$groupRows = query_all($conn, $sql);
+
+// ============= Build groups with players =============
+$groups = [];
+$isParejas = ($formato === 'parejas');
+
+// Determine view name based on format
+$viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
+
+foreach ($groupRows as $group) {
+    $salid = esc($conn, $group['id']);
+
+    // Build player query based on system and gross
+    if ($sistema === 'STABLEFORD') {
+        if ($gross == 1 || $grossstb == 1) {
+            // Stableford Gross
+            if ($isParejas) {
+                $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
+                               acumstbgross as sa, sistema
+                        FROM $viewName
+                        WHERE salidagrupoid = $salid
+                        ORDER BY acumstbgross DESC";
+            } else {
+                $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
+                               acumstbgross as sa, sistema, grupoid
+                        FROM $viewName
+                        WHERE salidagrupoid = $salid
+                        ORDER BY acumstbgross DESC";
+            }
+        } else {
+            // Stableford Neto
+            if ($isParejas) {
+                $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
+                               acumstb as sa, sistema
+                        FROM $viewName
+                        WHERE salidagrupoid = $salid
+                        ORDER BY acumstb DESC";
+            } else {
+                $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
+                               acumstb as sa, sistema, grupoid
+                        FROM $viewName
+                        WHERE salidagrupoid = $salid
+                        ORDER BY acumstb DESC";
+            }
+        }
+    } else {
+        // Stroke Play
+        if ($isParejas) {
+            $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
+                           acumso as sa, sistema
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY acumso ASC";
+        } else {
+            $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
+                           acumso as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY acumso ASC";
+        }
+    }
+
+    $playerRows = query_all($conn, $sql);
+
+    $players = [];
+    foreach ($playerRows as $pr) {
+        $player = [
+            'name'     => trim($pr['jugador']),
+            'clubLogo' => $pr['logo'] ? $LOGOS_BASE_URL . '/' . $pr['logo'] : '',
+            'score'    => (int)($pr['sa'] ?? 0),
+            'system'   => $pr['sistema'] ?? ''
+        ];
+        if ($isParejas && isset($pr['logo2'])) {
+            $player['clubLogo2'] = $pr['logo2'] ? $LOGOS_BASE_URL . '/' . $pr['logo2'] : '';
+        }
+        if (isset($pr['grupoid'])) {
+            $player['groupId'] = $pr['grupoid'];
+        }
+        $players[] = $player;
+    }
+
+    $groups[] = [
+        'id'      => $group['id'],
+        'tee'     => $group['teesal'] ?? $group['tee'] ?? '',
+        'time'    => $group['hora'] ?? '',
+        'players' => $players
+    ];
+}
+
+json_response([
+    'caljgoid'     => $caljgoid,
+    'date'         => $calInfo['fecha'],
+    'course'       => $calInfo['campo_nombre'],
+    'categoryId'   => $calInfo['categoriaid'],
+    'categoryName' => $calInfo['categoria'],
+    'shortName'    => $calInfo['abreviatura'],
+    'system'       => $calInfo['sistema'],
+    'tee'          => $calInfo['tee'],
+    'groups'       => $groups
+]);
