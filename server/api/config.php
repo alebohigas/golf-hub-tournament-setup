@@ -18,11 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ============= Database Configuration =============
-$DB_HOST = 'localhost';
-$DB_USER = 'your_user';       // UPDATE with your IONOS MySQL user
-$DB_PASS = 'your_password';   // UPDATE with your IONOS MySQL password
-$DB_NAME = 'your_database';   // UPDATE with your database name
-$DB_PORT = 3306;
+// Credentials loaded from separate file (not tracked in git)
+$credentialsFile = __DIR__ . '/credentials.php';
+if (!file_exists($credentialsFile)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Missing credentials.php - copy credentials.example.php and fill in your values']);
+    exit;
+}
+require_once $credentialsFile;
 
 // ============= Logos Base URL =============
 $LOGOS_BASE_URL = 'https://alien2019.speitour.mx/logos';
