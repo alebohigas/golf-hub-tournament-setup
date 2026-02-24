@@ -11,7 +11,7 @@
  * Development: http://localhost:3001
  * Production: Update to your server's domain
  */
-export const API_BASE_URL = 'http://localhost:3001/api';
+export const API_BASE_URL = '/api';
 
 // ============= Logos Base URL =============
 /** Base URL for club logo images */
