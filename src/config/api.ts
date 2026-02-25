@@ -14,8 +14,8 @@
 export const API_BASE_URL = '/api';
 
 // ============= Logos Base URL =============
-/** Base URL for club logo images */
-export const LOGOS_BASE_URL = 'https://alien2019.speitour.mx/logos';
+/** Base URL for club logo images - proxied through our own domain to avoid ad-blocker issues */
+export const LOGOS_BASE_URL = '/api/logo.php?file=';
 
 // ============= Polling Intervals (ms) =============
 /** Polling for live scoring data - fast refresh */
@@ -100,4 +100,4 @@ export const getEventosUrl = (): string => `${API_BASE_URL}/eventos`;
  * @param logoFilename - Logo filename from API response
  */
 export const getLogoUrl = (logoFilename: string): string =>
-  `${LOGOS_BASE_URL}/${logoFilename}`;
+  `${LOGOS_BASE_URL}${logoFilename}`;
