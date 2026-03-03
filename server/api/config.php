@@ -28,7 +28,8 @@ if (!file_exists($credentialsFile)) {
 require_once $credentialsFile;
 
 // ============= Logos Base URL =============
-$LOGOS_BASE_URL = 'https://alien2019.speitour.mx/logos';
+// Proxied through logo.php to avoid cross-origin/ad-blocker issues
+$LOGOS_BASE_URL = '/api/logo.php?file=';
 
 // ============= Database Connection =============
 $conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, $DB_PORT);

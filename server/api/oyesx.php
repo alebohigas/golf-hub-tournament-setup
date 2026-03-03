@@ -74,7 +74,7 @@ foreach ($prizeRows as $prize) {
             'distance'  => (float)$w['distancia'],
             'hole'      => (int)$w['hoyo'],
             'club'      => $w['club'],
-            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . '/' . $w['logo'] : '',
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
     }
 

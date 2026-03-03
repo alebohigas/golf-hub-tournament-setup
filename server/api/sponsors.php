@@ -21,7 +21,7 @@ $sponsors = array_map(function($row) {
     return [
         'id'   => $row['id'],
         'name' => $row['nombre'],
-        'logo' => $row['logo'] ? $LOGOS_BASE_URL . '/' . $row['logo'] : null,
+        'logo' => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : null,
         'url'  => $row['url'],
         'type' => $row['tipo'],
         'order'=> (int)$row['orden']

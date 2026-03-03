@@ -75,7 +75,7 @@ foreach ($rows as $row) {
         'number'    => $row['numjugador'],
         'name'      => $row['jugador'],
         'club'      => $row['abr'],
-        'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . '/' . $row['logo'] : '',
+        'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'total'     => (int)$row['sa'],
         'totalSO'   => (int)($row['so'] ?? 0)
     ];

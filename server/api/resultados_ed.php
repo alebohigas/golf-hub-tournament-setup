@@ -54,13 +54,13 @@ while ($row = $result->fetch_assoc()) {
         'player1'    => [
             'id'       => $row['jugadorid1'],
             'name'     => $row['jugador1'],
-            'clubLogo' => $row['logo1'] ? $LOGOS_BASE_URL . '/' . $row['logo1'] : '',
+            'clubLogo' => $row['logo1'] ? $LOGOS_BASE_URL . $row['logo1'] : '',
             'club'     => $row['club1'] ?? ''
         ],
         'player2'    => [
             'id'       => $row['jugadorid2'],
             'name'     => $row['jugador2'],
-            'clubLogo' => $row['logo2'] ? $LOGOS_BASE_URL . '/' . $row['logo2'] : '',
+            'clubLogo' => $row['logo2'] ? $LOGOS_BASE_URL . $row['logo2'] : '',
             'club'     => $row['club2'] ?? ''
         ],
         'winner'     => $row['gano'],
