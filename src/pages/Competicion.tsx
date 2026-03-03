@@ -1,13 +1,20 @@
+/**
+ * Competición Page
+ * Displays competition winners (closest pin, longest drive, etc.)
+ * Data fetched from competicion.php via React Query hooks
+ */
+
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState, useEffect, useMemo } from 'react';
-import { Competition, CategoryGroup, fetchAllCompetitions } from '@/data/competicionData';
+import { useCompetitions } from '@/hooks/useCompeticionData';
+import type { Competition, CategoryGroup } from '@/data/competicionData';
 import CompetitionSubmenu from '@/components/competicion/CompetitionSubmenu';
 import CategoryGroupCard from '@/components/competicion/CompetitionCard';
 import CategoryDetailModal from '@/components/competicion/CategoryDetailModal';
-import { Target, Trophy, Flag, Zap, Star, Award, Medal, Ruler, Crosshair, ChevronDown, Search, X } from 'lucide-react';
+import { Target, Trophy, Flag, Zap, Star, Award, Medal, Ruler, Crosshair, ChevronDown, Search, X, Loader2 } from 'lucide-react';
 import competicionHero from '@/assets/competicion-hero.jpg';
 
 /** Icon map for competition type icons */
@@ -24,36 +31,30 @@ const iconMap = {
 };
 
 const Competicion = () => {
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   
   // Modal state
   const [selectedGroup, setSelectedGroup] = useState<CategoryGroup | null>(null);
   const [selectedCompetitionName, setSelectedCompetitionName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Fetch competitions from API
+  const { data: competitions = [], isLoading } = useCompetitions();
+
+  // Expand all sections when data loads
   useEffect(() => {
-    const loadCompetitions = async () => {
-      const data = await fetchAllCompetitions();
-      setCompetitions(data);
-      // Expand all sections by default
-      setExpandedSections(new Set(data.map(c => c.id)));
-      setLoading(false);
-    };
-    loadCompetitions();
-  }, []);
+    if (competitions.length > 0) {
+      setExpandedSections(new Set(competitions.map(c => c.id)));
+    }
+  }, [competitions]);
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
       return newSet;
     });
   };
@@ -64,7 +65,7 @@ const Competicion = () => {
     setIsModalOpen(true);
   };
 
-  // Filter competitions and category groups based on search
+  // Filter competitions based on search and selection
   const filteredCompetitions = useMemo(() => {
     let filtered = selectedCompetitionId 
       ? competitions.filter(c => c.id === selectedCompetitionId)
@@ -73,9 +74,6 @@ const Competicion = () => {
     if (!searchQuery.trim()) return filtered;
 
     const searchTerm = searchQuery.trim().toLowerCase();
-    
-    // When searching, filter to only show category groups that have matching players
-    // but keep the full winners list so we can show their actual position
     return filtered.map(comp => ({
       ...comp,
       categoryGroups: comp.categoryGroups.filter(group =>
@@ -87,8 +85,7 @@ const Competicion = () => {
   // Auto-expand sections with search matches
   useEffect(() => {
     if (searchQuery.trim()) {
-      const matchingIds = filteredCompetitions.map(c => c.id);
-      setExpandedSections(new Set(matchingIds));
+      setExpandedSections(new Set(filteredCompetitions.map(c => c.id)));
     }
   }, [searchQuery, filteredCompetitions]);
 
@@ -101,18 +98,15 @@ const Competicion = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          {/* Header */}
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-foreground">
-              COMPETENCIAS ESPECIALES
-            </h2>
+            <h2 className="text-3xl font-bold text-foreground">COMPETENCIAS ESPECIALES</h2>
             <p className="text-muted-foreground mt-2">
               {competitions.length} tipos de competencia disponibles
             </p>
           </div>
 
           {/* Submenu */}
-          {!loading && (
+          {!isLoading && (
             <CompetitionSubmenu 
               competitions={competitions}
               selectedId={selectedCompetitionId}
@@ -120,7 +114,7 @@ const Competicion = () => {
             />
           )}
 
-          {/* Search Bar */}
+          {/* Search */}
           <div className="max-w-md mx-auto mb-8 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -131,48 +125,38 @@ const Competicion = () => {
               className="pl-10 pr-10"
             />
             {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
 
-          {loading ? (
-            <div className="text-center text-muted-foreground">Cargando competencias...</div>
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
           ) : filteredCompetitions.length === 0 ? (
             <div className="text-center py-16">
               <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-muted-foreground text-lg">
-                {searchQuery 
-                  ? 'No se encontraron ganadores con ese nombre' 
-                  : 'No hay competencias disponibles'}
+                {searchQuery ? 'No se encontraron ganadores con ese nombre' : 'No hay competencias disponibles'}
               </p>
             </div>
           ) : (
             <div className="space-y-4 max-w-6xl mx-auto">
               {filteredCompetitions.map((competition) => {
-                const IconComponent = iconMap[competition.icon];
+                const IconComponent = iconMap[competition.icon] || Trophy;
                 const isExpanded = expandedSections.has(competition.id);
                 
                 return (
-                  <Collapsible 
-                    key={competition.id} 
-                    open={isExpanded}
-                    onOpenChange={() => toggleSection(competition.id)}
-                  >
-                    {/* Collapsible Header */}
+                  <Collapsible key={competition.id} open={isExpanded} onOpenChange={() => toggleSection(competition.id)}>
                     <CollapsibleTrigger className="w-full">
                       <div className="flex items-center gap-3 p-4 bg-card border border-border/50 rounded-lg hover:border-primary/50 transition-all cursor-pointer">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <IconComponent className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex-1 text-left">
-                          <h3 className="text-xl font-bold text-foreground">
-                            {competition.name}
-                          </h3>
+                          <h3 className="text-xl font-bold text-foreground">{competition.name}</h3>
                           <p className="text-sm text-muted-foreground">{competition.description}</p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -183,8 +167,6 @@ const Competicion = () => {
                         </div>
                       </div>
                     </CollapsibleTrigger>
-                    
-                    {/* Collapsible Content */}
                     <CollapsibleContent className="animate-accordion-down">
                       <div className="pt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {competition.categoryGroups.map((group) => (
@@ -206,7 +188,6 @@ const Competicion = () => {
         </div>
       </section>
 
-      {/* Detail Modal */}
       <CategoryDetailModal
         group={selectedGroup}
         competitionName={selectedCompetitionName}

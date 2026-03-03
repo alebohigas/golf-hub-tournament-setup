@@ -1,19 +1,17 @@
-import { useEffect, useState } from 'react';
-import { fetchTournamentStats, TournamentStats } from '@/data/mockData';
+/**
+ * StatsSection Component
+ * Displays tournament statistics (participants, holes, categories, years)
+ * Data fetched from tournament.php via useTournamentStats hook
+ */
+
+import { useTournamentStats } from '@/hooks/useTournamentData';
 
 const StatsSection = () => {
-  const [stats, setStats] = useState<TournamentStats | null>(null);
-
-  useEffect(() => {
-    const loadStats = async () => {
-      const data = await fetchTournamentStats();
-      setStats(data);
-    };
-    loadStats();
-  }, []);
+  const { data: stats } = useTournamentStats();
 
   if (!stats) return null;
 
+  /** Stats display configuration */
   const statsData = [
     { value: `${stats.totalParticipants}+`, label: 'Participantes' },
     { value: stats.holes.toString(), label: 'Hoyos' },

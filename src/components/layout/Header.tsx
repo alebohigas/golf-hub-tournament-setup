@@ -3,16 +3,18 @@
  * Main navigation header with responsive mobile menu
  * Supports grouped navigation with dropdown menus
  * Respects page visibility settings from admin context
+ * Tournament info fetched from API via useTournamentInfo hook
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Shield, ChevronDown } from 'lucide-react';
-import { fetchTournamentInfo, TournamentInfo, MenuItem } from '@/data/mockData';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import type { MenuItem } from '@/data/mockData';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -43,7 +45,7 @@ interface NavItem {
 // ============= Component =============
 
 const Header = () => {
-  const [tournamentInfo, setTournamentInfo] = useState<TournamentInfo | null>(null);
+  const { data: tournamentInfo } = useTournamentInfo();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openMobileGroup, setOpenMobileGroup] = useState<string | null>(null);
   const location = useLocation();
@@ -57,14 +59,6 @@ const Header = () => {
     isPageVisible,
   } = usePageVisibility();
   const allVisibleItems = getVisibleMenuItems();
-
-  useEffect(() => {
-    const loadData = async () => {
-      const info = await fetchTournamentInfo();
-      setTournamentInfo(info);
-    };
-    loadData();
-  }, []);
 
   /**
    * Build navigation structure with groups and standalone items
@@ -84,12 +78,9 @@ const Header = () => {
       const groupId = pageGroupAssignments[item.id];
       
       if (groupId && !processedGroups.has(groupId)) {
-        // Find the group configuration
         const group = menuGroups.find(g => g.id === groupId);
         
-        // Only show group if it's visible
         if (group && group.visible !== false) {
-          // Get all visible pages in this group
           const groupPages = sortedItems.filter(
             p => pageGroupAssignments[p.id] === groupId && isPageVisible(p.id)
           );
@@ -102,14 +93,11 @@ const Header = () => {
               children: groupPages,
               wrapText: group.wrapText,
             });
-            
-            // Mark all pages in this group as processed
             groupPages.forEach(p => processedPages.add(p.id));
           }
         }
         processedGroups.add(groupId);
       } else if (!groupId) {
-        // Standalone item (not in any group)
         navItems.push({
           type: 'link',
           id: item.id,
@@ -125,9 +113,7 @@ const Header = () => {
 
   const navItems = buildNavItems();
 
-  /**
-   * Check if any child route in a group is active
-   */
+  /** Check if any child route in a group is active */
   const isGroupActive = (children: MenuItem[]): boolean => {
     return children.some(child => location.pathname === child.path);
   };
@@ -163,7 +149,6 @@ const Header = () => {
               {navItems.map((item) => (
                 <NavigationMenuItem key={item.id}>
                   {item.type === 'link' ? (
-                    // Single link item
                     <Link
                       to={item.path!}
                       className={cn(
@@ -174,7 +159,6 @@ const Header = () => {
                       {item.label}
                     </Link>
                   ) : (
-                    // Group with dropdown
                     <>
                       <NavigationMenuTrigger
                         className={cn(
@@ -262,7 +246,6 @@ const Header = () => {
             <div className="flex flex-col gap-1">
               {navItems.map((item) => (
                 item.type === 'link' ? (
-                  // Single link item
                   <Link
                     key={item.id}
                     to={item.path!}
@@ -277,7 +260,6 @@ const Header = () => {
                     {item.label}
                   </Link>
                 ) : (
-                  // Group with collapsible submenu
                   <Collapsible
                     key={item.id}
                     open={openMobileGroup === item.id}

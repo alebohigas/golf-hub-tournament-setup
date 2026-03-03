@@ -6,7 +6,7 @@
 
 import { Link } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
-import { MenuItem } from '@/data/mockData';
+import type { MenuItem } from '@/data/mockData';
 import { 
   FileText, Calendar, Users, Clock, Radio, Trophy, 
   CalendarDays, Bell, Award, Handshake, BookOpen 
@@ -55,7 +55,6 @@ const descriptionMap: Record<string, string> = {
 // ============= Component =============
 
 const NavigationCards = () => {
-  // Get visible menu items from context (already filtered by visibility)
   const { getVisibleMenuItems } = usePageVisibility();
   const menuItems = getVisibleMenuItems().filter(item => item.id !== 'home');
 
@@ -87,11 +86,9 @@ const NavigationCards = () => {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      {/* Icon Container */}
                       <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center flex-shrink-0">
                         <Icon className="h-6 w-6 text-primary-foreground" />
                       </div>
-                      {/* Text Content */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-foreground mb-1">
                           {item.label}

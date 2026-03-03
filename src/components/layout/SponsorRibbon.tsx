@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react';
-import { fetchSponsors, Sponsor } from '@/data/mockData';
+/**
+ * SponsorRibbon Component
+ * Infinite scrolling ribbon of sponsor logos
+ * Data fetched from sponsors.php via useSponsors hook
+ */
+
+import { useSponsors } from '@/hooks/useTournamentData';
 
 const SponsorRibbon = () => {
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-
-  useEffect(() => {
-    const loadSponsors = async () => {
-      const data = await fetchSponsors();
-      setSponsors(data);
-    };
-    loadSponsors();
-  }, []);
+  const { data: sponsors = [] } = useSponsors();
 
   if (sponsors.length === 0) return null;
 

@@ -1,9 +1,18 @@
-import { tournamentInfo } from '@/data/mockData';
+/**
+ * Hero Section
+ * Displays tournament name, dates, and venue
+ * Data fetched from tournament.php via useTournamentInfo hook
+ */
+
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Hero = () => {
+  const { data: tournamentInfo } = useTournamentInfo();
+
+  /** Format date range for display */
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -17,7 +26,9 @@ const Hero = () => {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=1920&q=80')`,
+          backgroundImage: tournamentInfo?.heroImageUrl 
+            ? `url('${tournamentInfo.heroImageUrl}')` 
+            : `url('https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=1920&q=80')`,
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-golf-dark/70 via-golf-dark/50 to-golf-dark/80" />
@@ -29,7 +40,7 @@ const Hero = () => {
           {/* Tournament Logo/Number */}
           <div className="mb-6 animate-fade-in-up">
             <span className="inline-block text-8xl md:text-9xl font-display font-bold text-secondary drop-shadow-lg">
-              51°
+              {tournamentInfo?.id || '51'}°
             </span>
           </div>
 
@@ -38,19 +49,25 @@ const Hero = () => {
           </h1>
 
           <p className="text-xl md:text-2xl font-display italic text-secondary mb-8 animate-fade-in-up animation-delay-200">
-            Club Campestre Torreón
+            {tournamentInfo?.venue || 'Club Campestre Torreón'}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 animate-fade-in-up animation-delay-300">
-            <div className="flex items-center gap-2 text-primary-foreground/90">
-              <Calendar className="h-5 w-5 text-secondary" />
-              <span className="text-lg">{formatDate(tournamentInfo.startDate, tournamentInfo.endDate)}</span>
-            </div>
-            <span className="hidden sm:block text-primary-foreground/50">|</span>
-            <div className="flex items-center gap-2 text-primary-foreground/90">
-              <MapPin className="h-5 w-5 text-secondary" />
-              <span className="text-lg">{tournamentInfo.venue}</span>
-            </div>
+            {tournamentInfo?.startDate && tournamentInfo?.endDate && (
+              <div className="flex items-center gap-2 text-primary-foreground/90">
+                <Calendar className="h-5 w-5 text-secondary" />
+                <span className="text-lg">{formatDate(tournamentInfo.startDate, tournamentInfo.endDate)}</span>
+              </div>
+            )}
+            {tournamentInfo?.venue && (
+              <>
+                <span className="hidden sm:block text-primary-foreground/50">|</span>
+                <div className="flex items-center gap-2 text-primary-foreground/90">
+                  <MapPin className="h-5 w-5 text-secondary" />
+                  <span className="text-lg">{tournamentInfo.venue}</span>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-400">
