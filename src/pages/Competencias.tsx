@@ -1,32 +1,27 @@
 /**
  * Competencias Page
- * Dynamic page for all competition types (approach, driver, etc.)
- * Follows card-based navigation pattern: Types → Groups → Results → Back
- * 
- * Admin can control visibility of individual competition types
+ * Dynamic page for all competition types (approach, driver, putt, skin)
+ * Fetches real data from PHP API endpoints
+ * Navigation pattern: Types → Groups → Results → Back
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Trophy, Target, Ruler, Crosshair, Flag, Zap, Star, Award, Medal } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Ruler, Crosshair, Flag, Zap, Star, Award, Medal, Loader2 } from 'lucide-react';
 import competenciasHero from '@/assets/competencias-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
-import { 
-  CompetenciaTipo, 
-  CompetenciaGroup,
-  fetchCompetencias,
-  fetchCompetenciaGroups,
-  fetchGroupPlayers,
-} from '@/data/competenciasConfig';
+import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
+import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
 // ============= Icon Mapping =============
 
+/** Map icon string names to Lucide icon components */
 const iconMap = {
   target: Target,
   trophy: Trophy,
@@ -42,72 +37,70 @@ const iconMap = {
 // ============= Component =============
 
 const Competencias = () => {
-  // State
-  const [competencias, setCompetencias] = useState<CompetenciaTipo[]>([]);
-  const [selectedCompetencia, setSelectedCompetencia] = useState<CompetenciaTipo | null>(null);
+  // Navigation state
+  const [selectedCompetenciaId, setSelectedCompetenciaId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
-  const [groups, setGroups] = useState<CompetenciaGroup[]>([]);
-  const [loading, setLoading] = useState(true);
   
   // Context for admin visibility control
   const { isPageVisible } = usePageVisibility();
 
-  // Load competition types on mount
-  useEffect(() => {
-    const loadCompetencias = async () => {
-      const data = await fetchCompetencias();
-      // Filter by visibility settings
-      const visibleCompetencias = data.filter(c => isPageVisible(`competencias-${c.id}`));
-      setCompetencias(visibleCompetencias);
-      setLoading(false);
-    };
-    loadCompetencias();
-  }, [isPageVisible]);
+  // Fetch all competition types (master list)
+  const { data: allCompetencias = [], isLoading: loadingList } = useCompetencias();
+
+  // Fetch detail data when a competition is selected (includes players)
+  const { data: detailData, isLoading: loadingDetail } = useCompetenciaDetail(
+    selectedCompetenciaId ? selectedCompetenciaId.split('-')[0] : null, // Extract base type (oyes, oyesx, putt, skin)
+    !!selectedCompetenciaId
+  );
+
+  // Filter by visibility settings
+  const competencias = useMemo(() => {
+    return allCompetencias.filter(c => isPageVisible(`competencias-${c.id}`));
+  }, [allCompetencias, isPageVisible]);
+
+  // Get the selected competition object (from detail or list)
+  const selectedCompetencia = useMemo(() => {
+    if (!selectedCompetenciaId) return null;
+    // Try detail data first (has player data)
+    const fromDetail = detailData?.find(c => c.id === selectedCompetenciaId);
+    if (fromDetail) return fromDetail;
+    // Fallback to list data
+    return competencias.find(c => c.id === selectedCompetenciaId) || null;
+  }, [selectedCompetenciaId, detailData, competencias]);
+
+  // Get groups for the selected competition
+  const groups = useMemo(() => {
+    return selectedCompetencia?.groups || [];
+  }, [selectedCompetencia]);
 
   // Handle competition type selection
-  const handleCompetenciaSelect = async (id: string | null) => {
-    if (id === null) {
-      setSelectedCompetencia(null);
-      setSelectedGroup(null);
-      setGroups([]);
-      return;
-    }
-    
-    const comp = competencias.find(c => c.id === id);
-    if (comp) {
-      setSelectedCompetencia(comp);
-      setLoading(true);
-      const groupData = await fetchCompetenciaGroups(id);
-      setGroups(groupData);
-      setLoading(false);
-    }
+  const handleCompetenciaSelect = (id: string | null) => {
+    setSelectedCompetenciaId(id);
+    setSelectedGroup(null);
   };
 
   // Handle group selection
-  const handleGroupSelect = async (group: CompetenciaGroup) => {
-    if (!selectedCompetencia) return;
-    
-    setLoading(true);
-    const players = await fetchGroupPlayers(selectedCompetencia.id, group.id);
-    setSelectedGroup({ ...group, players });
-    setLoading(false);
+  const handleGroupSelect = (group: CompetenciaGroup) => {
+    setSelectedGroup(group);
   };
 
   // Handle back navigation
   const handleBack = () => {
     if (selectedGroup) {
       setSelectedGroup(null);
-    } else if (selectedCompetencia) {
-      setSelectedCompetencia(null);
-      setGroups([]);
+    } else if (selectedCompetenciaId) {
+      setSelectedCompetenciaId(null);
     }
   };
 
   // Get icon component for a competition
-  const getIcon = (iconName: keyof typeof iconMap) => {
-    const IconComponent = iconMap[iconName];
+  const getIcon = (iconName: string) => {
+    const IconComponent = iconMap[iconName as keyof typeof iconMap];
     return IconComponent ? <IconComponent className="h-6 w-6" /> : <Trophy className="h-6 w-6" />;
   };
+
+  // Loading state
+  const isLoading = loadingList || (selectedCompetenciaId && loadingDetail);
 
   return (
     <Layout>
@@ -120,8 +113,16 @@ const Competencias = () => {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           
+          {/* Loading indicator */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Cargando...</span>
+            </div>
+          )}
+
           {/* View: Competition Types (no selection) */}
-          {!selectedCompetencia ? (
+          {!isLoading && !selectedCompetenciaId && (
             <>
               {/* Submenu for filtering */}
               <CompetenciasSubmenu 
@@ -153,15 +154,27 @@ const Competencias = () => {
                         {comp.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {comp.groups.length} grupos
+                        {comp.groups?.length || 0} grupos
                       </p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
+
+              {/* Empty state */}
+              {competencias.length === 0 && (
+                <div className="text-center py-12">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    No hay competencias disponibles en este momento
+                  </p>
+                </div>
+              )}
             </>
-          ) : !selectedGroup ? (
-            /* View: Groups within a competition */
+          )}
+
+          {/* View: Groups within a competition */}
+          {!isLoading && selectedCompetenciaId && !selectedGroup && selectedCompetencia && (
             <>
               {/* Back button */}
               <Button 
@@ -206,8 +219,10 @@ const Competencias = () => {
                 ))}
               </div>
             </>
-          ) : (
-            /* View: Results detail */
+          )}
+
+          {/* View: Results detail */}
+          {!isLoading && selectedGroup && selectedCompetencia && (
             <>
               {/* Back button */}
               <Button 
@@ -238,7 +253,7 @@ const Competencias = () => {
               <Card className="border-border/50 max-w-4xl mx-auto">
                 <CardContent className="p-0">
                   <CompetenciasTable 
-                    players={selectedGroup.players}
+                    players={selectedGroup.players || []}
                     columns={selectedCompetencia.columns}
                   />
                 </CardContent>
