@@ -1,56 +1,42 @@
+/**
+ * Jugadores Page
+ * Shows tournament categories as cards, then players table on category click
+ * Data fetched from categories.php and players.php via React Query hooks
+ */
+
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeft, Users, Loader2 } from 'lucide-react';
 import jugadoresHero from '@/assets/jugadores-hero.jpg';
-import { useState, useEffect } from 'react';
-import { 
-  CategoryDetail, 
-  Player, 
-  fetchCategories, 
-  fetchPlayersByCategory, 
-  fetchTotalPlayers 
-} from '@/data/playersData';
+import { useState } from 'react';
+import { useCategories, usePlayers } from '@/hooks/usePlayersData';
+import type { CategoryDetail } from '@/data/playersData';
 
 const Jugadores = () => {
-  const [categories, setCategories] = useState<CategoryDetail[]>([]);
+  /** Currently selected category (null = show grid) */
   const [selectedCategory, setSelectedCategory] = useState<CategoryDetail | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [totalPlayers, setTotalPlayers] = useState(0);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      const [cats, total] = await Promise.all([
-        fetchCategories(),
-        fetchTotalPlayers()
-      ]);
-      setCategories(cats);
-      setTotalPlayers(total);
-      setLoading(false);
-    };
-    loadData();
-  }, []);
+  // Fetch categories from API
+  const { data: categories = [], isLoading: loadingCats } = useCategories();
 
-  // Handle category selection - fetches players using the full category object
-  const handleCategoryClick = async (category: CategoryDetail) => {
-    setLoading(true);
-    const categoryPlayers = await fetchPlayersByCategory(category);
-    setPlayers(categoryPlayers);
-    setSelectedCategory(category);
-    setLoading(false);
-  };
+  // Fetch players only when a category is selected
+  const { data: players = [], isLoading: loadingPlayers } = usePlayers(
+    selectedCategory?.id ?? null,
+    !!selectedCategory
+  );
 
-  const handleBack = () => {
-    setSelectedCategory(null);
-    setPlayers([]);
-  };
+  /** Total players across all categories */
+  const totalPlayers = categories.reduce((sum, cat) => sum + cat.playerCount, 0);
+
+  /** Navigate back to category grid */
+  const handleBack = () => setSelectedCategory(null);
 
   return (
     <Layout>
-      <PageHero 
+      <PageHero
         title="Jugadores"
         subtitle="Lista completa de participantes inscritos en el torneo"
         backgroundImage={jugadoresHero}
@@ -62,34 +48,41 @@ const Jugadores = () => {
               {/* Total Players Header */}
               <div className="text-center mb-10">
                 <h2 className="text-3xl font-bold text-foreground">
-                  JUGADORES: <span className="text-primary">{totalPlayers}</span>
+                  JUGADORES: <span className="text-primary">{loadingCats ? '…' : totalPlayers}</span>
                 </h2>
               </div>
 
-              {/* Categories Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {categories.map((category) => (
-                  <Card key={category.id} className="border-border/50 hover:border-primary/50 transition-colors">
-                    <CardContent className="p-4 text-center">
-                      <h3 className="font-bold text-foreground">{category.shortName}</h3>
-                      <p className="text-2xl font-bold text-primary my-2">{category.playerCount}</p>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleCategoryClick(category)}
-                        className="w-full"
-                      >
-                        Ver
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {/* Loading State */}
+              {loadingCats ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                /* Categories Grid */
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {categories.map((category) => (
+                    <Card key={category.id} className="border-border/50 hover:border-primary/50 transition-colors">
+                      <CardContent className="p-4 text-center">
+                        <h3 className="font-bold text-foreground">{category.shortName}</h3>
+                        <p className="text-2xl font-bold text-primary my-2">{category.playerCount}</p>
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedCategory(category)}
+                          className="w-full"
+                        >
+                          Ver
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <>
               {/* Category Detail View */}
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={handleBack}
                 className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
@@ -103,10 +96,10 @@ const Jugadores = () => {
                   Categoría: <span className="font-bold">{selectedCategory.name}</span>
                 </h2>
                 <div className="text-muted-foreground space-y-1">
-                  <p>Tee Salida {selectedCategory.teeSalida} / Rating {selectedCategory.rating} Slope {selectedCategory.slope} par {selectedCategory.par}</p>
-                  <p>Sistema {selectedCategory.format} / Rango Handicaps {selectedCategory.handicapMin} - {selectedCategory.handicapMax}</p>
+                  <p>Tee {selectedCategory.teeColor} / Formato {selectedCategory.format}</p>
+                  <p>Sistema {selectedCategory.system} / Rango Handicaps {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
                   <p>
-                    Porcentaje Handicap {selectedCategory.handicapPercentage} / Total jugadores{' '}
+                    Porcentaje Handicap {selectedCategory.percentage}% / Total jugadores{' '}
                     <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
                   </p>
                 </div>
@@ -115,48 +108,54 @@ const Jugadores = () => {
               {/* Players Table */}
               <Card className="border-border/50">
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-primary hover:bg-primary">
-                        <TableHead className="text-primary-foreground font-bold">Club</TableHead>
-                        <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                        <TableHead className="text-primary-foreground font-bold text-right">HI</TableHead>
-                        <TableHead className="text-primary-foreground font-bold text-right">HJ</TableHead>
-                        <TableHead className="text-primary-foreground font-bold text-right">HN</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {players.length > 0 ? (
-                        players.map((player) => (
-                          <TableRow key={player.id}>
-                            {/* Club Logo Image */}
-                            <TableCell className="w-16">
-                              <img 
-                                src={player.clubLogo} 
-                                alt="Club logo" 
-                                className="w-10 h-10 object-contain rounded"
-                                onError={(e) => {
-                                  // Fallback: inline SVG data URI if image fails
-                                  (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>{player.name}</TableCell>
-                            <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
-                            <TableCell className="text-right">{player.handicapJuego}</TableCell>
-                            <TableCell className="text-right">{player.handicapNeto}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            No hay jugadores registrados en esta categoría
-                          </TableCell>
+                  {loadingPlayers ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-primary hover:bg-primary">
+                          <TableHead className="text-primary-foreground font-bold">Club</TableHead>
+                          <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-right">HI</TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-right">HJ</TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-right">HN</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {players.length > 0 ? (
+                          players.map((player) => (
+                            <TableRow key={player.id}>
+                              {/* Club Logo Image */}
+                              <TableCell className="w-16">
+                                <img
+                                  src={player.clubLogo}
+                                  alt="Club logo"
+                                  className="w-10 h-10 object-contain rounded"
+                                  onError={(e) => {
+                                    /* Fallback SVG if logo fails to load */
+                                    (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>{player.name}</TableCell>
+                              <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
+                              <TableCell className="text-right">{player.handicapJuego}</TableCell>
+                              <TableCell className="text-right">{player.handicapNeto}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              No hay jugadores registrados en esta categoría
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
                 </div>
               </Card>
             </>

@@ -26,7 +26,7 @@ interface PlayersApiResponse {
 
 // ============= Categories =============
 
-/** Fetch all tournament categories */
+/** Fetch all tournament categories from categories.php */
 export const useCategories = () => {
   return useQuery<CategoryDetail[]>({
     queryKey: ['categories'],
@@ -40,8 +40,8 @@ export const useCategories = () => {
 
 /**
  * Fetch players for a specific category
- * @param catId - Category API ID
- * @param enabled - Whether to enable the query (for conditional fetching)
+ * @param catId - Category ID (categoria_id from DB)
+ * @param enabled - Whether to enable the query
  */
 export const usePlayers = (catId: string | null, enabled = true) => {
   return useQuery<Player[]>({
@@ -49,19 +49,17 @@ export const usePlayers = (catId: string | null, enabled = true) => {
     queryFn: async () => {
       if (!catId) return [];
       const data = await apiFetch<PlayersApiResponse>(getPlayersApiUrl(catId));
-      
+
       // Transform API response to Player format
-      const players = (data.players || []).map(p => ({
+      return (data.players || []).map(p => ({
         id: p.id,
-        clubLogo: p.logo, // Already full URL from server
+        clubLogo: p.logo,       // Already full URL from server (proxied via logo.php)
         name: p.jugador,
         handicapIndex: parseFloat(p.hi) || 0,
         handicapJuego: parseFloat(p.hc) || 0,
         handicapNeto: parseFloat(p.hn) || 0,
         categoryId: catId,
       }));
-
-      return players;
     },
     enabled: enabled && !!catId,
     staleTime: POLL_SLOW,
