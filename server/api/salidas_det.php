@@ -104,12 +104,12 @@ foreach ($groupRows as $group) {
     foreach ($playerRows as $pr) {
         $player = [
             'name'     => trim($pr['jugador']),
-            'clubLogo' => $pr['logo'] ? $LOGOS_BASE_URL . '/' . $pr['logo'] : '',
+            'clubLogo' => $pr['logo'] ? $LOGOS_BASE_URL . $pr['logo'] : '',
             'score'    => (int)($pr['sa'] ?? 0),
             'system'   => $pr['sistema'] ?? ''
         ];
         if ($isParejas && isset($pr['logo2'])) {
-            $player['clubLogo2'] = $pr['logo2'] ? $LOGOS_BASE_URL . '/' . $pr['logo2'] : '';
+            $player['clubLogo2'] = $pr['logo2'] ? $LOGOS_BASE_URL . $pr['logo2'] : '';
         }
         if (isset($pr['grupoid'])) {
             $player['groupId'] = $pr['grupoid'];

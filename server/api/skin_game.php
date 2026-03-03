@@ -123,7 +123,7 @@ for ($hoyo = 1; $hoyo <= 18; $hoyo++) {
             $skin['winner'] = [
                 'name'     => trim($winner['nombre'] . ' ' . $winner['apellido']),
                 'club'     => $winner['club'],
-                'clubLogo' => $winner['logo'] ? $LOGOS_BASE_URL . '/' . $winner['logo'] : '',
+                'clubLogo' => $winner['logo'] ? $LOGOS_BASE_URL . $winner['logo'] : '',
                 'category' => $winner['categoria'],
                 'score'    => (int)$winner['score']
             ];

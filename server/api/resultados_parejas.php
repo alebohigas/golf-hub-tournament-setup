@@ -89,8 +89,8 @@ foreach ($rows as $row) {
         'partner'   => $row['jugador2'],
         'pairName'  => $row['pareja'],
         'club'      => $row['abr'],
-        'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . '/' . $row['logo'] : '',
-        'clubLogo2' => $row['logo2'] ? $LOGOS_BASE_URL . '/' . $row['logo2'] : '',
+        'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
+        'clubLogo2' => $row['logo2'] ? $LOGOS_BASE_URL . $row['logo2'] : '',
         'total'     => $gross == '1' ? (int)$row['so'] : (int)$row['sa'],
         'totalSO'   => (int)($row['so'] ?? 0),
         'totalSA'   => (int)($row['sa'] ?? 0)

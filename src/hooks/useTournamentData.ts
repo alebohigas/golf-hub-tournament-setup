@@ -46,7 +46,14 @@ export const useSponsors = () => {
 export const useTournamentInfo = () => {
   return useQuery<TournamentInfo>({
     queryKey: ['tournament'],
-    queryFn: () => apiFetch<TournamentInfo>(getTournamentUrl()),
+    queryFn: async () => {
+      const data = await apiFetch<any>(getTournamentUrl());
+      return {
+        ...data,
+        logoUrl: data.logo || data.logoUrl || '',
+        heroImageUrl: data.heroImage || data.heroImageUrl || '',
+      };
+    },
     staleTime: 5 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
   });

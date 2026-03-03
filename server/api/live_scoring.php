@@ -92,7 +92,7 @@ foreach ($rows as $row) {
         'playerId'     => $row['jugadorid'],
         'number'       => $row['numjugador'] ?? '',
         'name'         => $row['jugador'],
-        'clubLogo'     => $row['logo'] ? $LOGOS_BASE_URL . '/' . $row['logo'] : '',
+        'clubLogo'     => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'club'         => $row['club'] ?? '',
         'score'        => (int)$row['score'],
         'scoreSO'      => (int)($row['acumso'] ?? 0),
