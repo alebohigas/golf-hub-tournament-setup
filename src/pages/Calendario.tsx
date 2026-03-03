@@ -1,22 +1,22 @@
+/**
+ * Calendario Page
+ * Displays tournament schedule showing which category plays on which day
+ * Data fetched from calendario.php via React Query hooks
+ */
+
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sun, Moon } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { 
-  TournamentDay, 
-  CategorySchedule, 
-  TimeSlot,
-  fetchTournamentDays, 
-  fetchCategorySchedules 
-} from '@/data/calendarioData';
+import { Sun, Moon, Loader2 } from 'lucide-react';
+import { useTournamentDays, useCategorySchedules } from '@/hooks/useCalendarioData';
+import type { TimeSlot } from '@/data/calendarioData';
 import calendarioHero from '@/assets/calendario-hero.jpg';
 
+/** Renders a single AM/PM cell in the schedule table */
 const TimeSlotCell = ({ slot, shortName }: { slot: TimeSlot; shortName: string }) => {
   if (!slot) {
     return <td className="border border-border/30 bg-muted/20 p-2 text-center text-muted-foreground/30">-</td>;
   }
-  
   return (
     <td className={`border border-border/30 p-2 text-center font-medium ${
       slot === 'AM' 
@@ -29,22 +29,10 @@ const TimeSlotCell = ({ slot, shortName }: { slot: TimeSlot; shortName: string }
 };
 
 const Calendario = () => {
-  const [days, setDays] = useState<TournamentDay[]>([]);
-  const [categories, setCategories] = useState<CategorySchedule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: days = [], isLoading: loadingDays } = useTournamentDays();
+  const { data: categories = [], isLoading: loadingCats } = useCategorySchedules();
 
-  useEffect(() => {
-    const loadData = async () => {
-      const [daysData, categoriesData] = await Promise.all([
-        fetchTournamentDays(),
-        fetchCategorySchedules()
-      ]);
-      setDays(daysData);
-      setCategories(categoriesData);
-      setLoading(false);
-    };
-    loadData();
-  }, []);
+  const isLoading = loadingDays || loadingCats;
 
   return (
     <Layout>
@@ -55,11 +43,8 @@ const Calendario = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          {/* Category Schedule Table */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-foreground">
-              Calendario por Categoría
-            </h2>
+            <h2 className="text-2xl font-bold text-foreground">Calendario por Categoría</h2>
           </div>
           
           {/* Legend */}
@@ -78,8 +63,10 @@ const Calendario = () => {
             </div>
           </div>
 
-          {loading ? (
-            <div className="text-center text-muted-foreground">Cargando calendario...</div>
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
           ) : (
             <Card className="border-border/50 overflow-hidden max-w-5xl mx-auto">
               <CardContent className="p-0 overflow-x-auto">
@@ -98,10 +85,7 @@ const Calendario = () => {
                   </thead>
                   <tbody>
                     {categories.map((category, idx) => (
-                      <tr 
-                        key={category.categoryId}
-                        className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
-                      >
+                      <tr key={category.categoryId} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                         <td className="border border-border/30 p-3 font-medium text-foreground">
                           {category.categoryName}
                         </td>
