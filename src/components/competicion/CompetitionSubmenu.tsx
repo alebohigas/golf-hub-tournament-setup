@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Competition } from '@/data/competicionData';
-import { Target, Trophy, Flag, Zap, Star, Award, Medal } from 'lucide-react';
+import { Target, Trophy, Flag, Zap, Star, Award, Medal, Ruler, Crosshair } from 'lucide-react';
 
-const iconMap = {
+/** Map of icon keys to Lucide icon components */
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   target: Target,
   trophy: Trophy,
   flag: Flag,
@@ -10,6 +11,8 @@ const iconMap = {
   star: Star,
   award: Award,
   medal: Medal,
+  ruler: Ruler,
+  crosshair: Crosshair,
 };
 
 interface CompetitionSubmenuProps {
