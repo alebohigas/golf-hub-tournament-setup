@@ -29,7 +29,8 @@ const CompetitionSubmenu = ({ competitions, selectedId, onSelect }: CompetitionS
         Todos
       </Button>
       {competitions.map((comp) => {
-        const IconComponent = iconMap[comp.icon];
+        /** Resolve icon from map, fallback to Trophy if not found */
+        const IconComponent = iconMap[comp.icon as keyof typeof iconMap] || Trophy;
         return (
           <Button
             key={comp.id}
