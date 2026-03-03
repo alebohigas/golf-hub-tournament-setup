@@ -12,7 +12,7 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Trophy, Target, Ruler, Crosshair, Flag, Zap, Star, Award, Medal } from 'lucide-react';
-import competicionHero from '@/assets/competicion-hero.jpg';
+import competenciasHero from '@/assets/competencias-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
@@ -114,7 +114,7 @@ const Competencias = () => {
       <PageHero 
         title="Competencias"
         subtitle="Resultados de approach, drive y competencias especiales"
-        backgroundImage={competicionHero}
+        backgroundImage={competenciasHero}
       />
       
       <section className="py-16 bg-background">

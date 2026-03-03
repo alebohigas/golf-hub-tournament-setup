@@ -3,6 +3,7 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import CategoryTable from '@/components/convocatoria/CategoryTable';
 import ScheduleTable from '@/components/convocatoria/ScheduleTable';
+import convocatoriaHero from '@/assets/convocatoria-hero.jpg';
 import InfoSection from '@/components/convocatoria/InfoSection';
 import PricingSection from '@/components/convocatoria/PricingSection';
 import ContactSection from '@/components/convocatoria/ContactSection';
@@ -68,7 +69,7 @@ const Convocatoria = () => {
       <PageHero 
         title="Convocatoria"
         subtitle="Información completa sobre inscripciones, categorías y requisitos"
-        backgroundImage="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1920&q=80"
+        backgroundImage={convocatoriaHero}
       />
 
       <PageSubmenu sections={convocatoriaSections} activeSection={activeSection} />

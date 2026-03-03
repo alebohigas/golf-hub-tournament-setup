@@ -13,7 +13,7 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Trophy, Target, Ruler, Crosshair, Flag, Zap, Star, Award, Medal, Radio } from 'lucide-react';
-import competicionHero from '@/assets/competicion-hero.jpg';
+import liveHero from '@/assets/live-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
@@ -114,7 +114,7 @@ const Live = () => {
       <PageHero 
         title="Live"
         subtitle="Resultados en tiempo real del torneo"
-        backgroundImage={competicionHero}
+        backgroundImage={liveHero}
       />
       
       <section className="py-16 bg-background">
