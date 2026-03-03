@@ -1,7 +1,8 @@
 /**
  * Competencias Data Hooks
- * React Query hooks for approach, driver, and special competitions
- * Uses POLL_LIVE for real-time updates during active competitions
+ * React Query hooks for approach, driver, putt, and skin competitions
+ * Fetches from competencias.php PHP endpoint
+ * Uses POLL_ACTIVE for periodic updates during active competitions
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -9,15 +10,16 @@ import { apiFetch } from '@/lib/apiClient';
 import {
   getCompetenciasUrl,
   getCompetenciaDetailUrl,
-  getCompetenciaGroupUrl,
-  POLL_LIVE,
   POLL_ACTIVE,
 } from '@/config/api';
-import type { CompetenciaTipo, CompetenciaPlayer } from '@/data/competencias/types';
+import type { CompetenciaTipo } from '@/data/competencias/types';
 
 // ============= All Competencias =============
 
-/** Fetch all enabled competencia types */
+/**
+ * Fetch all enabled competencia types from the API
+ * Returns types with group metadata (no player data)
+ */
 export const useCompetencias = () => {
   return useQuery<CompetenciaTipo[]>({
     queryKey: ['competencias'],
@@ -30,39 +32,19 @@ export const useCompetencias = () => {
 // ============= Competencia Detail =============
 
 /**
- * Fetch a specific competencia with groups
- * @param id - Competencia identifier
+ * Fetch a specific competencia with full player data
+ * Uses ?detalle=1 to include players in each group
+ * @param tipo - Competition type identifier (oyes, oyesx-driver, putt, skin-game)
  * @param enabled - Whether to enable the query
  */
-export const useCompetenciaDetail = (id: string | null, enabled = true) => {
-  return useQuery<CompetenciaTipo>({
-    queryKey: ['competencias', id],
-    queryFn: () => apiFetch<CompetenciaTipo>(getCompetenciaDetailUrl(id!)),
-    enabled: enabled && !!id,
+export const useCompetenciaDetail = (tipo: string | null, enabled = true) => {
+  return useQuery<CompetenciaTipo[]>({
+    queryKey: ['competencias', tipo, 'detail'],
+    queryFn: () => apiFetch<CompetenciaTipo[]>(getCompetenciaDetailUrl(tipo!)),
+    enabled: enabled && !!tipo,
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
-  });
-};
-
-// ============= Group Players =============
-
-/**
- * Fetch players for a specific group in a competencia
- * Uses POLL_LIVE for real-time score updates
- * @param compId - Competencia ID
- * @param groupId - Group ID within the competencia
- * @param enabled - Whether to enable the query
- */
-export const useCompetenciaGroupPlayers = (
-  compId: string | null,
-  groupId: string | null,
-  enabled = true
-) => {
-  return useQuery<CompetenciaPlayer[]>({
-    queryKey: ['competencias', compId, 'groups', groupId],
-    queryFn: () => apiFetch<CompetenciaPlayer[]>(getCompetenciaGroupUrl(compId!, groupId!)),
-    enabled: enabled && !!compId && !!groupId,
-    staleTime: POLL_LIVE,
-    refetchInterval: POLL_LIVE, // Real-time polling
+    /** Extract the matching competition from the array */
+    select: (data) => data,
   });
 };

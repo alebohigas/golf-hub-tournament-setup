@@ -26,9 +26,11 @@ import {
   XCircle,
   Eye,
   EyeOff,
-  FolderTree
+  FolderTree,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTorneoId } from '@/hooks/useTorneoId';
 
 // ============= Login Form Component =============
 
@@ -125,6 +127,8 @@ const AdminDashboard = () => {
     setLayoutPreferences,
   } = usePageVisibility();
   const navigate = useNavigate();
+  const { torneoId, setTorneoId } = useTorneoId();
+  const [torneoInput, setTorneoInput] = useState(torneoId);
   
   const menuItems = getAllMenuItems();
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
@@ -227,8 +231,12 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tabs for different admin sections */}
-      <Tabs defaultValue="visibility" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="config" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="config" className="gap-2">
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">Configuración</span>
+          </TabsTrigger>
           <TabsTrigger value="visibility" className="gap-2">
             <Eye className="h-4 w-4" />
             <span className="hidden sm:inline">Visibilidad</span>
@@ -238,6 +246,59 @@ const AdminDashboard = () => {
             <span className="hidden sm:inline">Grupos de Menú</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Configuration Tab */}
+        <TabsContent value="config" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                Configuración del Torneo
+              </CardTitle>
+              <CardDescription>
+                Configura el ID del torneo que se muestra en esta página. 
+                Todos los datos (jugadores, resultados, competencias) se cargarán de este torneo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <Label htmlFor="torneoid">Torneo ID</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="torneoid"
+                      type="text"
+                      value={torneoInput}
+                      onChange={(e) => setTorneoInput(e.target.value)}
+                      placeholder="Ej: 123"
+                      className="font-mono"
+                    />
+                    <Button 
+                      onClick={() => {
+                        setTorneoId(torneoInput);
+                      }}
+                      disabled={torneoInput === torneoId}
+                    >
+                      Guardar
+                    </Button>
+                  </div>
+                  {torneoId && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      Torneo activo: <span className="font-mono font-bold">{torneoId}</span>
+                    </p>
+                  )}
+                  {!torneoId && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <XCircle className="h-4 w-4" />
+                      No hay torneo configurado. Los datos no se cargarán hasta configurar un ID.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Visibility Tab */}
         <TabsContent value="visibility" className="space-y-4">
