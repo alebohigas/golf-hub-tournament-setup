@@ -9,10 +9,11 @@ require_once 'config.php';
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
+/** Query: fetch categories with player count, joined to jugadores */
 $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
-               a.gross, a.catrel, a.colortee,
+               a.gross, a.catrel, a.sexo,
                COUNT(b.id) as playerCount
         FROM categorias a
         LEFT JOIN jugadores b ON (a.categoria_id = b.categoriaid)
@@ -20,11 +21,12 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
         GROUP BY a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
-                 a.gross, a.catrel, a.colortee
+                 a.gross, a.catrel, a.sexo
         ORDER BY a.categoria_id ASC";
 
 $rows = query_all($conn, $sql);
 
+/** Map DB rows to JSON response format */
 $categories = array_map(function($row) {
     return [
         'id'          => $row['categoria_id'],
@@ -41,7 +43,7 @@ $categories = array_map(function($row) {
         'teeId'       => $row['salida'],
         'gross'       => (int)$row['gross'],
         'relatedCat'  => $row['catrel'],
-        'teeColor'    => $row['colortee'],
+        'gender'      => $row['sexo'],
         'playerCount' => (int)$row['playerCount']
     ];
 }, $rows);
