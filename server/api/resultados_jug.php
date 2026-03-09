@@ -104,7 +104,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY f_torneosax(a.jugadorid, a.torneoid) ASC,
-                          u.cd1 ASC, u.cd2 ASC, u.cd3 ASC";
+                          u.c1 ASC, u.c2 ASC, u.c3 ASC";
     }
 
 } elseif ($sistema === 'STABLEFORD') {
@@ -129,7 +129,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(a.jugadorid, a.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY f_stl_gross(a.jugadorid, a.torneoid) DESC,
-                          u.cd1 DESC, u.cd2 DESC, u.cd3 DESC";
+                          u.c1 DESC, u.c2 DESC, u.c3 DESC";
     } else {
         // Stableford NETO
         $sql = "SELECT a.jugadorid, j.numjugador,
@@ -151,7 +151,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY f_torneosa(a.jugadorid, a.torneoid) DESC,
-                          u.cd1 DESC, u.cd2 DESC, u.cd3 DESC";
+                          u.c1 DESC, u.c2 DESC, u.c3 DESC";
     }
 }
 
