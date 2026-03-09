@@ -6,8 +6,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getResultadosUrl, getResultadosCategoryUrl, POLL_ACTIVE } from '@/config/api';
-import type { ResultCategory } from '@/data/resultadosData';
+import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, POLL_ACTIVE } from '@/config/api';
+import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType } from '@/data/resultadosData';
 
 // ============= All Results =============
 
@@ -76,12 +76,8 @@ export const useAllResults = () => {
 
 /**
  * Fetch results for a specific category
- * @param categoryId - Category identifier
- * @param enabled - Whether to enable the query
- */
-/**
- * Fetch results for a specific category
  * Normalizes flat API response (players at root) into ResultCategory shape
+ * Includes days[] and system for scorecard fetching
  * @param categoryId - Category identifier
  * @param enabled - Whether to enable the query
  */
@@ -91,7 +87,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true) =>
     queryFn: async () => {
       const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!));
 
-      // API returns flat object: { categoryId, categoryName, players, gross, system, ... }
+      // API returns flat object: { categoryId, categoryName, players, gross, system, days, ... }
       // Normalize into ResultCategory with scoringTypes array
       const scoringTypes = Array.isArray(raw.scoringTypes)
         ? raw.scoringTypes
@@ -116,6 +112,8 @@ export const useCategoryResults = (categoryId: string | null, enabled = true) =>
         categoryId: raw.categoryId || categoryId!,
         categoryName: raw.categoryName || '',
         shortName: raw.shortName || '',
+        system: raw.system || '',
+        days: raw.days || [],
         scoringTypes,
       } as ResultCategory;
     },
@@ -123,4 +121,95 @@ export const useCategoryResults = (categoryId: string | null, enabled = true) =>
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
   });
+};
+
+// ============= Player Scorecard =============
+
+/**
+ * Map API scoring system string to scorecard tipo parameter
+ * @param system - API system value (STROKE PLAY, STABLEFORD, etc.)
+ * @param scoringType - Current scoring type (NETO, GROS)
+ */
+const mapSystemToTipo = (system?: string): string => {
+  if (!system) return 'stroke';
+  const s = system.toUpperCase();
+  if (s.includes('STABLEFORD')) return 'stableford';
+  return 'stroke';
+};
+
+/**
+ * Map API scoring system to ScorecardType for display
+ * @param system - API system value
+ * @param scoringType - NETO or GROS
+ */
+const mapScorecardType = (system?: string, scoringType?: string): ScorecardType => {
+  if (!system) return 'hcp';
+  const s = system.toUpperCase();
+  if (s.includes('STABLEFORD')) return 'stableford';
+  if (scoringType === 'GROS') return 'scratch';
+  return 'hcp';
+};
+
+/**
+ * Fetch a player's hole-by-hole scorecard from the API
+ * @param playerId - Player ID from the results
+ * @param categoryId - Category ID
+ * @param fecha - Round date (YYYY-MM-DD)
+ * @param system - Scoring system (STROKE PLAY, STABLEFORD, etc.)
+ * @param scoringType - NETO or GROS
+ * @param round - Round number (1, 2, 3)
+ */
+export const fetchPlayerScorecardFromApi = async (
+  playerId: string,
+  categoryId: string,
+  fecha: string,
+  system: string,
+  scoringType: string,
+  round: number
+): Promise<RoundScorecard> => {
+  const tipo = mapSystemToTipo(system);
+  const scType = mapScorecardType(system, scoringType);
+  
+  const url = getResultadosTarjetaUrl(playerId, categoryId, fecha, tipo);
+  const raw = await apiFetch<any>(url);
+
+  // Map API holes to HoleScore[]
+  const holes: HoleScore[] = (raw.holes || []).map((h: any) => {
+    const golpes = h.scoreSO ?? 0;
+    const par = h.par ?? 0;
+    const neto = h.scoreSA ?? golpes;
+    const diff = golpes - par;
+
+    return {
+      hoyo: h.hole,
+      par,
+      hcp: h.ventaja ?? 0,
+      golpes,
+      neto,
+      puntos: undefined, // stableford points calculated below if needed
+      resultado: diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`,
+    } as HoleScore;
+  });
+
+  // Calculate stableford points if applicable
+  if (scType === 'stableford') {
+    holes.forEach(h => {
+      const netDiff = h.neto - h.par;
+      h.puntos = Math.max(0, 2 - netDiff);
+    });
+  }
+
+  const front9 = holes.slice(0, 9);
+  const back9 = holes.slice(9, 18);
+
+  return {
+    round,
+    scorecardType: scType,
+    holes,
+    totalGolpes: raw.totals?.SO ?? holes.reduce((s, h) => s + h.golpes, 0),
+    totalNeto: raw.totals?.SA ?? holes.reduce((s, h) => s + h.neto, 0),
+    totalPuntos: scType === 'stableford' ? holes.reduce((s, h) => s + (h.puntos || 0), 0) : undefined,
+    out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
+    in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
+  };
 };

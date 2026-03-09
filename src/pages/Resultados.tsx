@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
 import { useState, Fragment } from 'react';
-import { useAllResults, useCategoryResults } from '@/hooks/useResultadosData';
+import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
 import type { 
   ResultCategory, 
   ScoringType, 
@@ -114,22 +114,52 @@ const Resultados = () => {
     return selectedScoringType === 'GROS' ? 'scratch' : 'hcp';
   };
 
-  /** Handle round score click - toggle scorecard expansion */
+  /** Handle round score click - fetch scorecard from API and toggle expansion */
   const handleRoundClick = async (player: PlayerResult, round: number) => {
     const key = `${player.id}-${round}`;
     const roundScore = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
     
     if (roundScore === undefined || roundScore === null) return;
 
+    // Toggle off if already expanded
     if (expandedScorecard === key) {
       setExpandedScorecard(null);
       setScorecardData(null);
       return;
     }
 
-    // TODO: fetch real scorecard from API (resultados_tarjeta.php)
+    // Get the date for this round from the category detail days array
+    const days = categoryDetail?.days || [];
+    const fecha = days[round - 1]; // R1 → days[0], R2 → days[1], etc.
+
+    if (!fecha || !categoryDetail) {
+      console.warn('No date found for round', round, 'days:', days);
+      setExpandedScorecard(key);
+      setScorecardData(null);
+      return;
+    }
+
+    // Fetch scorecard from API
     setExpandedScorecard(key);
     setScorecardData(null);
+    setScorecardLoading(true);
+
+    try {
+      const scorecard = await fetchPlayerScorecardFromApi(
+        player.id,
+        categoryDetail.categoryId,
+        fecha,
+        categoryDetail.system || '',
+        selectedScoringType || 'NETO',
+        round
+      );
+      setScorecardData(scorecard);
+    } catch (err) {
+      console.error('Failed to fetch scorecard:', err);
+      setScorecardData(null);
+    } finally {
+      setScorecardLoading(false);
+    }
   };
 
   const isLoading = loadingCats || loadingDetail;
