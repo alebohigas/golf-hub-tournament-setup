@@ -57,6 +57,10 @@ export interface ResultCategory {
   shortName: string;
   /** Default scorecard type for this category (can be overridden per scoring) */
   defaultScorecardType?: ScorecardType;
+  /** Scoring system from the API: STROKE PLAY, STABLEFORD, etc. */
+  system?: string;
+  /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
+  days?: string[];
   scoringTypes: CategoryScoring[];
 }
 

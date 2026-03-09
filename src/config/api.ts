@@ -111,6 +111,26 @@ export const getCompetenciaGroupUrl = (compId: string, groupId: string): string 
 export const getEventosUrl = (): string => `${API_BASE_URL}/eventos.php${buildQuery()}`;
 
 /**
+ * Player scorecard (hole-by-hole) for a specific round
+ * @param jugadorId - Player ID
+ * @param categoriaId - Category ID
+ * @param fecha - Round date (YYYY-MM-DD)
+ * @param tipo - Scoring type: stroke | stableford | parejas
+ */
+export const getResultadosTarjetaUrl = (
+  jugadorId: string,
+  categoriaId: string,
+  fecha: string,
+  tipo: string = 'stroke'
+): string =>
+  `${API_BASE_URL}/resultados_tarjeta.php${buildQuery({
+    jugadorid: jugadorId,
+    categoriaid: categoriaId,
+    fecha,
+    tipo,
+  })}`;
+
+/**
  * Get full logo URL from logo filename
  * @param logoFilename - Logo filename from API response
  */
