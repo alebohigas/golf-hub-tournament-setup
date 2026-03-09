@@ -79,10 +79,46 @@ export const useAllResults = () => {
  * @param categoryId - Category identifier
  * @param enabled - Whether to enable the query
  */
+/**
+ * Fetch results for a specific category
+ * Normalizes flat API response (players at root) into ResultCategory shape
+ * @param categoryId - Category identifier
+ * @param enabled - Whether to enable the query
+ */
 export const useCategoryResults = (categoryId: string | null, enabled = true) => {
   return useQuery<ResultCategory>({
     queryKey: ['resultados', categoryId],
-    queryFn: () => apiFetch<ResultCategory>(getResultadosCategoryUrl(categoryId!)),
+    queryFn: async () => {
+      const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!));
+
+      // API returns flat object: { categoryId, categoryName, players, gross, system, ... }
+      // Normalize into ResultCategory with scoringTypes array
+      const scoringTypes = Array.isArray(raw.scoringTypes)
+        ? raw.scoringTypes
+        : raw.scoringTypes
+          ? [raw.scoringTypes]
+          : [{ 
+              scoringType: raw.gross === 1 ? 'GROS' as const : 'NETO' as const, 
+              players: (raw.players || []).map((p: any, idx: number) => ({
+                id: p.playerId || String(idx),
+                position: p.position ?? idx + 1,
+                name: p.name || '',
+                club: p.club || '',
+                r1: p.r1 ?? undefined,
+                r2: p.r2 ?? undefined,
+                r3: p.r3 ?? undefined,
+                total: p.total ?? p.totalSA ?? 0,
+                handicapIndex: p.handicapIndex,
+              })),
+            }];
+
+      return {
+        categoryId: raw.categoryId || categoryId!,
+        categoryName: raw.categoryName || '',
+        shortName: raw.shortName || '',
+        scoringTypes,
+      } as ResultCategory;
+    },
     enabled: enabled && !!categoryId,
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
