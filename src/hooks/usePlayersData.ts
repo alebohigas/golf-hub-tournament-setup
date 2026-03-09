@@ -18,9 +18,9 @@ interface PlayersApiResponse {
     numjugador: string;
     jugador: string;
     logo: string;
-    hi: string;
-    hc: string;
-    hn: string;
+    hi: string;     // hcpindex from DB
+    hj: string;     // indexjgo from DB  
+    hn: string;     // handicap neto (calculated)
   }[];
 }
 
@@ -56,8 +56,8 @@ export const usePlayers = (catId: string | null, enabled = true) => {
         clubLogo: p.logo,       // Already full URL from server (proxied via logo.php)
         name: p.jugador,
         handicapIndex: parseFloat(p.hi) || 0,
-        handicapJuego: parseFloat(p.hc) || 0,
-        handicapNeto: parseFloat(p.hn) || 0,
+        handicapJuego: parseFloat(p.hj) || 0,  // Fixed: was p.hc, now p.hj
+        handicapNeto: parseFloat(p.hn) || 0,   // Now correctly mapped
         categoryId: catId,
       }));
     },

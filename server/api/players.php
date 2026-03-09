@@ -29,13 +29,14 @@ if (!$result) {
 
 $players = [];
 while ($row = $result->fetch_assoc()) {
-    $players[] = [
+$players[] = [
         'id'         => $row['id'],
         'numjugador' => $row['numjugador'] ?? '',
         'jugador'    => $row['jugador'],
         'logo'       => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'hi'         => $row['hcpindex'] ?? '0',
         'hj'         => $row['indexjgo'] ?? '0',
+        'hn'         => $row['indexjgo'] ?? '0', // HN uses same as HJ for now
         'club'       => $row['club'] ?? '',
         'sexo'       => $row['sexo'] ?? '',
         'estatus'    => $row['estatus'] ?? 'NORMAL'
