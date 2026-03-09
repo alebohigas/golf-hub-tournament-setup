@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
 import { useState, Fragment } from 'react';
-import { useAllResults, useCategoryResults } from '@/hooks/useResultadosData';
+import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
 import type { 
   ResultCategory, 
   ScoringType, 
