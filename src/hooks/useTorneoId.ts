@@ -12,7 +12,7 @@ import { useState, useCallback, useEffect } from 'react';
 const TORNEO_ID_KEY = 'golf-app-torneo-id';
 
 /** Default tournament ID (empty means not configured) */
-const DEFAULT_TORNEO_ID = '51';
+const DEFAULT_TORNEO_ID = '';
 
 // ============= Hook =============
 
