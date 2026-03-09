@@ -61,11 +61,20 @@ export const useTournamentInfo = () => {
 
 // ============= Tournament Stats =============
 
-/** Fetch tournament statistics */
+/** Fetch tournament statistics, mapping API shape to TournamentStats */
 export const useTournamentStats = () => {
   return useQuery<TournamentStats>({
     queryKey: ['tournament-stats'],
-    queryFn: () => apiFetch<TournamentStats>(getTournamentStatsUrl()),
+    queryFn: async () => {
+      const data = await apiFetch<any>(getTournamentStatsUrl());
+      /** Map API response fields to frontend TournamentStats interface */
+      return {
+        totalParticipants: data?.stats?.players ?? 0,
+        holes: 18, // Not provided by API, default to 18
+        categories: data?.stats?.categories ?? 0,
+        yearsHistory: data?.stats?.days ?? 0,
+      };
+    },
     staleTime: 2 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
   });
