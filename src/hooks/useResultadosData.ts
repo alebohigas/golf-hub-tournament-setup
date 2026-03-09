@@ -15,7 +15,25 @@ import type { ResultCategory } from '@/data/resultadosData';
 export const useAllResults = () => {
   return useQuery<ResultCategory[]>({
     queryKey: ['resultados'],
-    queryFn: () => apiFetch<ResultCategory[]>(getResultadosUrl()),
+    queryFn: async () => {
+      // the API currently returns an object with separate arrays for
+      // strokePlay and matchPlay; convert to flat list so consumers can
+      // treat the result as a simple array (matches the mock data shape).
+      const resp = await apiFetch<{
+        strokePlay?: ResultCategory[];
+        matchPlay?: ResultCategory[];
+        // in case the API is eventually changed to return a raw array, handle it
+        // generically as well
+      } | ResultCategory[]>(getResultadosUrl());
+
+      if (Array.isArray(resp)) {
+        return resp;
+      }
+
+      const sp = resp.strokePlay ?? [];
+      const mp = resp.matchPlay ?? [];
+      return [...sp, ...mp];
+    },
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
   });

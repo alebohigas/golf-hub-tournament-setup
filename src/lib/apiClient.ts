@@ -42,5 +42,21 @@ export const apiFetch = async <T>(url: string): Promise<T> => {
     );
   }
 
-  return response.json();
+  // read body as text so we can log malformed output if needed
+  const text = await response.text();
+  let parsed: any;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    console.error('apiFetch: failed to parse JSON response', url, text);
+    throw err;
+  }
+
+  // if we expected an array but got something else, log a warning
+  // caller might rely on arrays (e.g. resultados endpoints)
+  if (url.includes('resultados') && parsed != null && !Array.isArray(parsed)) {
+    console.warn('apiFetch: resultados endpoint returned non-array', url, parsed);
+  }
+
+  return parsed as T;
 };
