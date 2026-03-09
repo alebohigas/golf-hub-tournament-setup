@@ -18,9 +18,9 @@ interface PlayersApiResponse {
     numjugador: string;
     jugador: string;
     logo: string;
-    hi: string;
-    hc: string;
-    hn: string;
+    hi: string;     // hcpindex from DB
+    hj: string;     // indexjgo from DB  
+    hn: string;     // handicap neto (calculated)
   }[];
 }
 
