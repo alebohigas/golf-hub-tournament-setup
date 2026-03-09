@@ -7,6 +7,10 @@
  */
 require_once 'config.php';
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1'); 
+
 $catid    = require_param('catid');
 $torneoid = require_param('torneoid');
 $gross    = optional_param('gross', '0');
@@ -77,7 +81,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(a.jugadorid, a.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY f_torneosox(a.jugadorid, a.torneoid) ASC,
-                          u.cd1 ASC, u.cd2 ASC, u.cd3 ASC";
+                          u.c1 ASC, u.c2 ASC, u.c3 ASC";
 
     } else {
         // NETO results
