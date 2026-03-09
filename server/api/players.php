@@ -12,13 +12,22 @@ $catid = require_param('catid');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
-/** Query: fetch players with club logo, using real column names from jugadores table */
+/** Query: fetch players with club logo and calculated handicaps using DB functions */
 $sql = "SELECT p.id, p.numjugador,
                CONCAT(p.nombre, ' ', p.apellido) as jugador,
-               c.logo, p.hcpindex, p.indexjgo, p.club,
-               p.sexo, p.estatus, p.equipo
+               c.logo, p.indexjgo as hi,
+               f_hdccampo(p.indexjgo, p.teesalidaid, cat.campoid) as hj,
+               f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, cat.porcentaje) as hn,
+               p.club, p.sexo, p.estatus, p.equipo
         FROM jugadores p
         LEFT JOIN clubs c ON (p.clubid = c.id)
+        LEFT JOIN (
+            SELECT cat.categoria_id, cj.campo as campoid, cat.porcentaje
+            FROM categorias cat
+            JOIN caljuego cj ON (cat.categoria_id = cj.categoriaid)
+            WHERE cat.categoria_id = '$cid'
+            LIMIT 1
+        ) cat ON (p.categoriaid = cat.categoria_id)
         WHERE p.categoriaid = '$cid' AND p.torneoid = $tid
         ORDER BY p.apellido, p.nombre ASC";
 
@@ -34,9 +43,9 @@ $players[] = [
         'numjugador' => $row['numjugador'] ?? '',
         'jugador'    => $row['jugador'],
         'logo'       => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
-        'hi'         => $row['hcpindex'] ?? '0',
-        'hj'         => $row['indexjgo'] ?? '0',
-        'hn'         => $row['indexjgo'] ?? '0', // HN uses same as HJ for now
+        'hi'         => $row['hi'] ?? '0',        // indexjgo (Handicap Índice)
+        'hj'         => $row['hj'] ?? '0',        // f_hdccampo() (Handicap Juego)
+        'hn'         => $row['hn'] ?? '0',        // f_hdccamponeto() (Handicap Neto)
         'club'       => $row['club'] ?? '',
         'sexo'       => $row['sexo'] ?? '',
         'estatus'    => $row['estatus'] ?? 'NORMAL'
