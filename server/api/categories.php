@@ -6,6 +6,11 @@
  */
 require_once 'config.php';
 
+// debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
