@@ -61,14 +61,14 @@ const Resultados = () => {
     !!selectedCategoryId
   );
 
-  /** Find the selected category object from the list */
+  /** Find the selected category object from the list (metadata only) */
   const selectedCategory = categories.find(c => c.categoryId === selectedCategoryId) || null;
 
-  /** Get players for the selected scoring type */
+  /** Get players for the selected scoring type - MUST use categoryDetail for full data */
   const players: PlayerResult[] = (() => {
-    const source = categoryDetail || selectedCategory;
-    if (!source || !selectedScoringType) return [];
-    const scoring = source.scoringTypes?.find(s => s.scoringType === selectedScoringType);
+    // only use categoryDetail which is fetched from resultados_jug.php and has full data
+    if (!categoryDetail || !selectedScoringType) return [];
+    const scoring = categoryDetail.scoringTypes?.find(s => s.scoringType === selectedScoringType);
     return scoring?.players || [];
   })();
 
@@ -77,12 +77,7 @@ const Resultados = () => {
     setSelectedCategoryId(category.categoryId);
     setExpandedScorecard(null);
     setScorecardData(null);
-    
-    if (category.scoringTypes.length === 1) {
-      setSelectedScoringType(category.scoringTypes[0].scoringType);
-    } else {
-      setSelectedScoringType(null);
-    }
+    setSelectedScoringType(null);  // reset scoring type - will be auto-selected once detail loads
   };
 
   /** Handle scoring type selection */
@@ -97,23 +92,25 @@ const Resultados = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
     if (selectedScoringType) {
-      if (selectedCategory && selectedCategory.scoringTypes.length === 1) {
+      // if there's one scoring type, go back to category list; else just clear scoring type
+      if (categoryDetail && categoryDetail.scoringTypes.length === 1) {
         setSelectedCategoryId(null);
         setSelectedScoringType(null);
       } else {
         setSelectedScoringType(null);
       }
     } else {
+      // no scoring type selected, go back to category list
       setSelectedCategoryId(null);
     }
   };
 
   /** Determine which scorecard type to use */
   const getActiveScorecardType = (): ScorecardType => {
-    if (!selectedCategory || !selectedScoringType) return 'hcp';
-    const scoring = selectedCategory.scoringTypes.find(s => s.scoringType === selectedScoringType);
+    if (!categoryDetail || !selectedScoringType) return 'hcp';
+    const scoring = categoryDetail.scoringTypes.find(s => s.scoringType === selectedScoringType);
     if (scoring?.scorecardType) return scoring.scorecardType;
-    if (selectedCategory.defaultScorecardType) return selectedCategory.defaultScorecardType;
+    if (categoryDetail.defaultScorecardType) return categoryDetail.defaultScorecardType;
     return selectedScoringType === 'GROS' ? 'scratch' : 'hcp';
   };
 
@@ -197,15 +194,21 @@ const Resultados = () => {
                 Volver a categorías
               </Button>
 
-              <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold text-foreground mb-2">
-                  {selectedCategory?.categoryName}
-                </h2>
-                <p className="text-muted-foreground">Selecciona el tipo de puntuación</p>
-              </div>
+              {loadingDetail ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-foreground mb-2">
+                      {categoryDetail?.categoryName}
+                    </h2>
+                    <p className="text-muted-foreground">Selecciona el tipo de puntuación</p>
+                  </div>
 
-              <div className="flex justify-center gap-4 flex-wrap max-w-md mx-auto">
-                {selectedCategory?.scoringTypes.map((scoring) => (
+                  <div className="flex justify-center gap-4 flex-wrap max-w-md mx-auto">
+                    {categoryDetail?.scoringTypes?.map((scoring) => (
                   <Card 
                     key={scoring.scoringType}
                     className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer flex-1 min-w-[140px]"
@@ -223,8 +226,10 @@ const Resultados = () => {
                       </p>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <>
