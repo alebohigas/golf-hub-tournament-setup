@@ -29,6 +29,7 @@ $sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
                  a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar";
 
 $catInfo = query_one($conn, $sql);
+debug_log_query('Category info', $sql);
 if (!$catInfo) {
     json_error('Category not found', 404);
 }
