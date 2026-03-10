@@ -62,100 +62,99 @@ $players = [];
 if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
     if ($gross == '1') {
-        // GROSS results
-        $sql = "SELECT a.jugadorid, j.numjugador,
+        // GROSS results — query directly from jugadores table
+        $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_torneosox(a.jugadorid, a.torneoid) as so,
-                       f_torneosax(a.jugadorid, a.torneoid) as sa";
+                       f_torneosox(j.id, j.torneoid) as so,
+                       f_torneosax(j.id, j.torneoid) as sa";
 
-        // Add per-day scores
+        // Add per-day scores (gross uses sox)
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sox(a.jugadorid, '$fecha') as d{$i}";
+            $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
         }
 
-        $sql .= ", b.abr, b.logo
-                 FROM v_jugadores a
-                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
-                 JOIN jugadores j ON (a.jugadorid = j.id)
-                 JOIN clubs b ON (j.clubid = b.id)
+        $sql .= ", c.abr, c.logo
+                 FROM jugadores j
+                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
-                   AND a.torneoid = $tid
-                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.torneoid = $tid
+                   AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
-                 ORDER BY f_torneosox(a.jugadorid, a.torneoid) ASC,
+                 ORDER BY f_torneosox(j.id, j.torneoid) ASC,
                           u.c1 ASC, u.c2 ASC, u.c3 ASC";
 
     } else {
-        // NETO results
-        $sql = "SELECT a.jugadorid, j.numjugador,
+        // NETO results — query directly from jugadores table
+        $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_torneosax(a.jugadorid, a.torneoid) as sa,
-                       f_torneosox(a.jugadorid, a.torneoid) as so";
+                       f_torneosax(j.id, j.torneoid) as sa,
+                       f_torneosox(j.id, j.torneoid) as so";
 
+        // Add per-day scores (neto uses sax)
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sax(a.jugadorid, '$fecha') as d{$i}";
+            $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
         }
 
-        $sql .= ", b.abr, b.logo
-                 FROM v_jugadores a
-                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
-                 JOIN jugadores j ON (a.jugadorid = j.id)
-                 JOIN clubs b ON (j.clubid = b.id)
+        $sql .= ", c.abr, c.logo
+                 FROM jugadores j
+                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
-                   AND a.torneoid = $tid
-                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.torneoid = $tid
+                   AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
-                 ORDER BY f_torneosax(a.jugadorid, a.torneoid) ASC,
+                 ORDER BY f_torneosax(j.id, j.torneoid) ASC,
                           u.c1 ASC, u.c2 ASC, u.c3 ASC";
     }
 
 } elseif ($sistema === 'STABLEFORD') {
 
     if ($gross == '1') {
-        // Stableford GROSS
-        $sql = "SELECT a.jugadorid, j.numjugador,
+        // Stableford GROSS — query directly from jugadores table
+        $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_stl_gross(a.jugadorid, a.torneoid) as sa,
-                       f_torneosox(a.jugadorid, a.torneoid) as so";
+                       f_stl_gross(j.id, j.torneoid) as sa,
+                       f_torneosox(j.id, j.torneoid) as so";
 
+        // Add per-day scores (gross uses sox)
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sox(a.jugadorid, '$fecha') as d{$i}";
+            $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
         }
 
-        $sql .= ", b.abr, b.logo
-                 FROM v_jugadores a
-                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
-                 JOIN jugadores j ON (a.jugadorid = j.id)
-                 JOIN clubs b ON (j.clubid = b.id)
+        $sql .= ", c.abr, c.logo
+                 FROM jugadores j
+                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
-                   AND a.torneoid = $tid
-                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.torneoid = $tid
+                   AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
-                 ORDER BY f_stl_gross(a.jugadorid, a.torneoid) DESC,
+                 ORDER BY f_stl_gross(j.id, j.torneoid) DESC,
                           u.c1 DESC, u.c2 DESC, u.c3 DESC";
     } else {
-        // Stableford NETO
-        $sql = "SELECT a.jugadorid, j.numjugador,
+        // Stableford NETO — query directly from jugadores table
+        $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_torneosa(a.jugadorid, a.torneoid) as sa,
-                       f_torneosox(a.jugadorid, a.torneoid) as so";
+                       f_torneosa(j.id, j.torneoid) as sa,
+                       f_torneosox(j.id, j.torneoid) as so";
 
+        // Add per-day scores (neto uses sax)
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sax(a.jugadorid, '$fecha') as d{$i}";
+            $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
         }
 
-        $sql .= ", b.abr, b.logo
-                 FROM v_jugadores a
-                 JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
-                 JOIN jugadores j ON (a.jugadorid = j.id)
-                 JOIN clubs b ON (j.clubid = b.id)
+        $sql .= ", c.abr, c.logo
+                 FROM jugadores j
+                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
-                   AND a.torneoid = $tid
-                   AND f_torneoso(a.jugadorid, a.torneoid) > 0
+                   AND j.torneoid = $tid
+                   AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
-                 ORDER BY f_torneosa(a.jugadorid, a.torneoid) DESC,
+                 ORDER BY f_torneosa(j.id, j.torneoid) DESC,
                           u.c1 DESC, u.c2 DESC, u.c3 DESC";
     }
 }
