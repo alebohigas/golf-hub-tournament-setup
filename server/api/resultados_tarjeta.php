@@ -50,6 +50,7 @@ if ($formato === 'PAREJAS') {
     $sql .= " ORDER BY a.fecha_juego, a.apellido, a.nombre";
 }
 
+debug_log_query('Player + card data (' . $formato . ')', $sql);
 $playerData = query_one($conn, $sql);
 if (!$playerData) { json_error('Player card not found', 404); }
 
