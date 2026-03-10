@@ -88,6 +88,7 @@ $sql = "SELECT ID, numero, par, campoid, salidaid, ventaja, yardaje
           AND salidaid = " . esc($conn, $salidaid) . "
         ORDER BY numero ASC";
 
+debug_log_query('Hole info (par + ventaja)', $sql);
 $holeRows = query_all($conn, $sql);
 
 // ============= Stableford values table =============

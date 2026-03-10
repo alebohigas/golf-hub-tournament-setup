@@ -156,6 +156,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
     }
 }
 
+debug_log_query('Main results query (' . $sistema . ', gross=' . $gross . ')', $sql);
 $rows = query_all($conn, $sql);
 
 $position = 0;
