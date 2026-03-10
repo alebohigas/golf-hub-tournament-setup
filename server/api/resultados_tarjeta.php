@@ -75,6 +75,7 @@ if ($formato === 'PAREJAS') {
             WHERE a.jugadorid = $jid AND a.categoriaid = $cid AND a.fecha_juego = '$fec'";
 }
 
+debug_log_query('Score adjusted (SA) per hole', $sql);
 $scoreData = query_one($conn, $sql);
 
 // ============= Hole info (par + ventaja per hole) =============
