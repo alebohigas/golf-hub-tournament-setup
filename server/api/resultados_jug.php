@@ -79,6 +79,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN jugadores j ON (a.jugadorid = j.id)
                  JOIN clubs b ON (j.clubid = b.id)
                  WHERE j.categoriaid = $cid
+                   AND a.torneoid = $tid
                    AND f_torneoso(a.jugadorid, a.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY f_torneosox(a.jugadorid, a.torneoid) ASC,
