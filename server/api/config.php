@@ -42,6 +42,25 @@ if ($conn->connect_error) {
 
 $conn->set_charset('utf8');
 
+// ============= Debug Mode =============
+/** Check if debug mode is enabled via ?debug=1 query param */
+$DEBUG_MODE = isset($_GET['debug']) && $_GET['debug'] === '1';
+
+/** Collected SQL queries for debug output */
+$DEBUG_QUERIES = [];
+
+/**
+ * Log a SQL query for debug output
+ * @param string $label - Description of the query
+ * @param string $sql - The SQL query string
+ */
+function debug_log_query($label, $sql) {
+    global $DEBUG_MODE, $DEBUG_QUERIES;
+    if ($DEBUG_MODE) {
+        $DEBUG_QUERIES[] = ['label' => $label, 'sql' => $sql];
+    }
+}
+
 // ============= Helper Functions =============
 
 /**
