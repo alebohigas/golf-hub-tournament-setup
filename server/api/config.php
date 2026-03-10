@@ -69,8 +69,18 @@ function debug_log_query($label, $sql) {
  * @param int $status - HTTP status code (default 200)
  */
 function json_response($data, $status = 200) {
+    global $DEBUG_MODE, $DEBUG_QUERIES;
     http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    // In debug mode, wrap response with query info
+    if ($DEBUG_MODE) {
+        echo json_encode([
+            '_debug_queries' => $DEBUG_QUERIES,
+            '_debug_query_count' => count($DEBUG_QUERIES),
+            'data' => $data
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    } else {
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
     exit;
 }
 
