@@ -29,6 +29,7 @@ $sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
                  a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar";
 
 $catInfo = query_one($conn, $sql);
+debug_log_query('Category info', $sql);
 if (!$catInfo) {
     json_error('Category not found', 404);
 }
@@ -155,6 +156,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
     }
 }
 
+debug_log_query('Main results query (' . $sistema . ', gross=' . $gross . ')', $sql);
 $rows = query_all($conn, $sql);
 
 $position = 0;

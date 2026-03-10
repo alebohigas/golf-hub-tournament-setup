@@ -26,6 +26,7 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
         ORDER BY a.categoria_id ASC";
 
 $rows = query_all($conn, $sql);
+debug_log_query('Categories with results', $sql);
 
 // Separate by system type
 $strokePlay = [];

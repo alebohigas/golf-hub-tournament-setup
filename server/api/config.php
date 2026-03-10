@@ -42,6 +42,25 @@ if ($conn->connect_error) {
 
 $conn->set_charset('utf8');
 
+// ============= Debug Mode =============
+/** Check if debug mode is enabled via ?debug=1 query param */
+$DEBUG_MODE = isset($_GET['debug']) && $_GET['debug'] === '1';
+
+/** Collected SQL queries for debug output */
+$DEBUG_QUERIES = [];
+
+/**
+ * Log a SQL query for debug output
+ * @param string $label - Description of the query
+ * @param string $sql - The SQL query string
+ */
+function debug_log_query($label, $sql) {
+    global $DEBUG_MODE, $DEBUG_QUERIES;
+    if ($DEBUG_MODE) {
+        $DEBUG_QUERIES[] = ['label' => $label, 'sql' => $sql];
+    }
+}
+
 // ============= Helper Functions =============
 
 /**
@@ -50,8 +69,18 @@ $conn->set_charset('utf8');
  * @param int $status - HTTP status code (default 200)
  */
 function json_response($data, $status = 200) {
+    global $DEBUG_MODE, $DEBUG_QUERIES;
     http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    // In debug mode, wrap response with query info
+    if ($DEBUG_MODE) {
+        echo json_encode([
+            '_debug_queries' => $DEBUG_QUERIES,
+            '_debug_query_count' => count($DEBUG_QUERIES),
+            'data' => $data
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    } else {
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
     exit;
 }
 

@@ -50,6 +50,7 @@ if ($formato === 'PAREJAS') {
     $sql .= " ORDER BY a.fecha_juego, a.apellido, a.nombre";
 }
 
+debug_log_query('Player + card data (' . $formato . ')', $sql);
 $playerData = query_one($conn, $sql);
 if (!$playerData) { json_error('Player card not found', 404); }
 
@@ -74,6 +75,7 @@ if ($formato === 'PAREJAS') {
             WHERE a.jugadorid = $jid AND a.categoriaid = $cid AND a.fecha_juego = '$fec'";
 }
 
+debug_log_query('Score adjusted (SA) per hole', $sql);
 $scoreData = query_one($conn, $sql);
 
 // ============= Hole info (par + ventaja per hole) =============
@@ -86,6 +88,7 @@ $sql = "SELECT ID, numero, par, campoid, salidaid, ventaja, yardaje
           AND salidaid = " . esc($conn, $salidaid) . "
         ORDER BY numero ASC";
 
+debug_log_query('Hole info (par + ventaja)', $sql);
 $holeRows = query_all($conn, $sql);
 
 // ============= Stableford values table =============
