@@ -33,8 +33,20 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 // ============= Query Client =============
 const queryClient = new QueryClient();
 
+/**
+ * SiteConfigLoader
+ * Silently fetches server-side torneoid and syncs to localStorage
+ * Renders children immediately (non-blocking)
+ */
+const SiteConfigLoader = ({ children }: { children: React.ReactNode }) => {
+  useSiteConfig(); // auto-fetches and syncs torneoid to localStorage
+  return <>{children}</>;
+};
+
 // ============= App Component =============
 const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <SiteConfigLoader>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <PageVisibilityProvider>
