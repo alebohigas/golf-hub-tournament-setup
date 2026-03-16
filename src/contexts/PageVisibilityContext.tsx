@@ -393,6 +393,8 @@ const defaultContextValue: PageVisibilityContextType = {
   setPageGroupAssignment: () => {},
   layoutPreferences: { layout: 'grid', columns: 3 },
   setLayoutPreferences: () => {},
+  menuItemOrder: {},
+  setMenuItemOrder: () => {},
 };
 
 // ============= Hook =============
