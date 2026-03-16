@@ -279,19 +279,26 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
   };
 
   /**
-   * Get all menu items (for admin dashboard)
+   * Get effective order for an item (custom override or default)
    */
-  const getAllMenuItems = (): MenuItem[] => {
-    return menuConfig.sort((a, b) => a.order - b.order);
+  const getItemOrder = (item: MenuItem): number => {
+    return menuItemOrder[item.id] ?? item.order;
   };
 
   /**
-   * Get visible menu items (for regular navigation)
+   * Get all menu items sorted by custom order (for admin dashboard)
+   */
+  const getAllMenuItems = (): MenuItem[] => {
+    return [...menuConfig].sort((a, b) => getItemOrder(a) - getItemOrder(b));
+  };
+
+  /**
+   * Get visible menu items sorted by custom order (for regular navigation)
    */
   const getVisibleMenuItems = (): MenuItem[] => {
     return menuConfig
       .filter(item => isPageVisible(item.id))
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => getItemOrder(a) - getItemOrder(b));
   };
 
   /**
