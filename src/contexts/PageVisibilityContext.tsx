@@ -338,6 +338,13 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     setLayoutPreferencesState(prefs);
   };
 
+  /**
+   * Update menu item order overrides
+   */
+  const setMenuItemOrder = (order: MenuItemOrder) => {
+    setMenuItemOrderState(order);
+  };
+
   const value: PageVisibilityContextType = {
     visibilitySettings,
     setPageVisibility,
