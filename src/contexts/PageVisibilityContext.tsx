@@ -72,6 +72,10 @@ interface PageVisibilityContextType {
   layoutPreferences: AdminLayoutPreferences;
   /** Update layout preferences */
   setLayoutPreferences: (prefs: AdminLayoutPreferences) => void;
+  /** Custom menu item order overrides */
+  menuItemOrder: MenuItemOrder;
+  /** Update menu item order */
+  setMenuItemOrder: (order: MenuItemOrder) => void;
 }
 
 // ============= Constants =============
