@@ -395,6 +395,18 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
+        {/* Menu Order Tab */}
+        <TabsContent value="order">
+          <AdminMenuOrder
+            menuItems={menuItems}
+            visibilitySettings={visibilitySettings}
+            menuItemOrder={menuItemOrder}
+            onOrderChange={setMenuItemOrder}
+            pageGroupAssignments={pageGroupAssignments}
+            menuGroups={menuGroups}
+          />
+        </TabsContent>
+
         {/* Menu Groups Tab */}
         <TabsContent value="groups">
           <AdminMenuGroups
