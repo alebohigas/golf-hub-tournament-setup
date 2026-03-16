@@ -13,6 +13,11 @@ import { MenuGroup } from '@/components/admin/AdminMenuGroups';
 // ============= Types =============
 
 /** Visibility settings for each page by ID */
+/** Custom order overrides for menu items */
+export interface MenuItemOrder {
+  [pageId: string]: number;
+}
+
 export interface PageVisibilitySettings {
   [pageId: string]: boolean;
 }
@@ -67,6 +72,10 @@ interface PageVisibilityContextType {
   layoutPreferences: AdminLayoutPreferences;
   /** Update layout preferences */
   setLayoutPreferences: (prefs: AdminLayoutPreferences) => void;
+  /** Custom menu item order overrides */
+  menuItemOrder: MenuItemOrder;
+  /** Update menu item order */
+  setMenuItemOrder: (order: MenuItemOrder) => void;
 }
 
 // ============= Constants =============
@@ -88,6 +97,9 @@ const PAGE_GROUPS_STORAGE_KEY = 'tournament_page_group_assignments';
 
 /** LocalStorage key for admin layout preferences */
 const LAYOUT_PREFS_STORAGE_KEY = 'tournament_admin_layout_prefs';
+
+/** LocalStorage key for custom menu item order */
+const MENU_ORDER_STORAGE_KEY = 'tournament_menu_item_order';
 
 /** Admin password - in production, this should be more secure */
 const ADMIN_PASSWORD = 'admin2025';
@@ -182,6 +194,19 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     return { layout: 'grid' as LayoutMode, columns: 3 as ColumnCount };
   });
 
+  // Custom menu item order state
+  const [menuItemOrder, setMenuItemOrderState] = useState<MenuItemOrder>(() => {
+    const stored = localStorage.getItem(MENU_ORDER_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // If parse fails, use empty object
+      }
+    }
+    return {};
+  });
+
   // Persist visibility settings to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(visibilitySettings));
@@ -211,6 +236,11 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
   useEffect(() => {
     localStorage.setItem(LAYOUT_PREFS_STORAGE_KEY, JSON.stringify(layoutPreferences));
   }, [layoutPreferences]);
+
+  // Persist menu item order to localStorage
+  useEffect(() => {
+    localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(menuItemOrder));
+  }, [menuItemOrder]);
 
   /**
    * Set visibility for a specific page
@@ -249,19 +279,26 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
   };
 
   /**
-   * Get all menu items (for admin dashboard)
+   * Get effective order for an item (custom override or default)
    */
-  const getAllMenuItems = (): MenuItem[] => {
-    return menuConfig.sort((a, b) => a.order - b.order);
+  const getItemOrder = (item: MenuItem): number => {
+    return menuItemOrder[item.id] ?? item.order;
   };
 
   /**
-   * Get visible menu items (for regular navigation)
+   * Get all menu items sorted by custom order (for admin dashboard)
+   */
+  const getAllMenuItems = (): MenuItem[] => {
+    return [...menuConfig].sort((a, b) => getItemOrder(a) - getItemOrder(b));
+  };
+
+  /**
+   * Get visible menu items sorted by custom order (for regular navigation)
    */
   const getVisibleMenuItems = (): MenuItem[] => {
     return menuConfig
       .filter(item => isPageVisible(item.id))
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => getItemOrder(a) - getItemOrder(b));
   };
 
   /**
@@ -301,6 +338,13 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     setLayoutPreferencesState(prefs);
   };
 
+  /**
+   * Update menu item order overrides
+   */
+  const setMenuItemOrder = (order: MenuItemOrder) => {
+    setMenuItemOrderState(order);
+  };
+
   const value: PageVisibilityContextType = {
     visibilitySettings,
     setPageVisibility,
@@ -318,6 +362,8 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     setPageGroupAssignment,
     layoutPreferences,
     setLayoutPreferences,
+    menuItemOrder,
+    setMenuItemOrder,
   };
 
   return (
@@ -347,6 +393,8 @@ const defaultContextValue: PageVisibilityContextType = {
   setPageGroupAssignment: () => {},
   layoutPreferences: { layout: 'grid', columns: 3 },
   setLayoutPreferences: () => {},
+  menuItemOrder: {},
+  setMenuItemOrder: () => {},
 };
 
 // ============= Hook =============

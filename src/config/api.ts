@@ -47,6 +47,9 @@ const buildQuery = (params: Record<string, string> = {}): string => {
 /** Health check */
 export const getHealthUrl = (): string => `${API_BASE_URL}/health.php`;
 
+/** Site config (torneoid per domain) */
+export const getSiteConfigUrl = (): string => `${API_BASE_URL}/site_config.php`;
+
 /** Menu items */
 export const getMenuUrl = (): string => `${API_BASE_URL}/menu.php${buildQuery()}`;
 
