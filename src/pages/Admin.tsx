@@ -432,7 +432,7 @@ const AdminDashboard = () => {
                     label={item.label}
                     path={item.path}
                     isVisible={visibilitySettings[item.id] ?? true}
-                    onToggle={(visible) => setPageVisibility(item.id, visible)}
+                    onToggle={(visible) => handleSetVisibility(item.id, visible)}
                     note={pageNotes[item.id] || ''}
                     onNoteChange={(note) => setPageNote(item.id, note)}
                     layout={layoutPreferences.layout}
