@@ -1,7 +1,7 @@
 /**
  * Site Config Hook
- * Fetches the server-side torneoid for the current domain
- * Falls back to localStorage if the server has no config
+ * Fetches server-side config (torneoid, menu_order, visibility, groups) for the current domain
+ * Syncs to localStorage so all visitors share the same config set by admin
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,26 +9,38 @@ import { API_BASE_URL } from '@/config/api';
 
 // ============= Types =============
 
-/** Server response for site config */
-interface SiteConfig {
+/** Full server response for site config */
+export interface SiteConfig {
   domain: string;
   torneoid: number | null;
+  menu_order: Record<string, number> | null;
+  visibility: Record<string, boolean> | null;
+  menu_groups: any[] | null;
+  page_group_assignments: Record<string, string> | null;
 }
 
-/** Response after saving config */
-interface SaveConfigResponse extends SiteConfig {
-  saved: boolean;
+/** Payload for saving config (all fields optional except password) */
+export interface SaveConfigPayload {
+  password: string;
+  torneoid?: number;
+  menu_order?: Record<string, number> | null;
+  visibility?: Record<string, boolean> | null;
+  menu_groups?: any[] | null;
+  page_group_assignments?: Record<string, string> | null;
 }
 
 // ============= Constants =============
 
 const TORNEO_ID_KEY = 'golf-app-torneo-id';
+const MENU_ORDER_KEY = 'tournament_menu_item_order';
+const VISIBILITY_KEY = 'tournament_page_visibility';
+const GROUPS_KEY = 'tournament_menu_groups';
+const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
 
 // ============= Fetch Functions =============
 
 /**
- * Fetch site config from server
- * Returns the torneoid configured for this domain
+ * Fetch full site config from server
  */
 const fetchSiteConfig = async (): Promise<SiteConfig> => {
   const res = await fetch(`${API_BASE_URL}/site_config.php`);
@@ -37,13 +49,13 @@ const fetchSiteConfig = async (): Promise<SiteConfig> => {
 };
 
 /**
- * Save torneoid to server for this domain
+ * Save config fields to server
  */
-const saveSiteConfig = async (torneoid: number, password: string): Promise<SaveConfigResponse> => {
+const saveSiteConfigApi = async (payload: SaveConfigPayload): Promise<{ domain: string; saved: boolean }> => {
   const res = await fetch(`${API_BASE_URL}/site_config.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ torneoid, password }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
@@ -56,17 +68,40 @@ const saveSiteConfig = async (torneoid: number, password: string): Promise<SaveC
 
 /**
  * useSiteConfig
- * Fetches server-side torneoid, syncs to localStorage for use by API helpers
+ * Fetches server-side config and syncs all values to localStorage
+ * so the app uses server-defined settings for all visitors
  */
 export const useSiteConfig = () => {
   return useQuery<SiteConfig>({
     queryKey: ['site-config'],
     queryFn: async () => {
       const config = await fetchSiteConfig();
-      // Sync server torneoid to localStorage so all API calls use it
+
+      // Sync torneoid
       if (config.torneoid) {
         localStorage.setItem(TORNEO_ID_KEY, String(config.torneoid));
       }
+
+      // Sync menu order
+      if (config.menu_order) {
+        localStorage.setItem(MENU_ORDER_KEY, JSON.stringify(config.menu_order));
+      }
+
+      // Sync visibility
+      if (config.visibility) {
+        localStorage.setItem(VISIBILITY_KEY, JSON.stringify(config.visibility));
+      }
+
+      // Sync menu groups
+      if (config.menu_groups) {
+        localStorage.setItem(GROUPS_KEY, JSON.stringify(config.menu_groups));
+      }
+
+      // Sync page group assignments
+      if (config.page_group_assignments) {
+        localStorage.setItem(PAGE_GROUPS_KEY, JSON.stringify(config.page_group_assignments));
+      }
+
       return config;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -76,20 +111,15 @@ export const useSiteConfig = () => {
 
 /**
  * useSaveSiteConfig
- * Mutation to save torneoid to server and update local state
+ * Mutation to save any config fields to server
  */
 export const useSaveSiteConfig = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ torneoid, password }: { torneoid: number; password: string }) =>
-      saveSiteConfig(torneoid, password),
-    onSuccess: (data) => {
-      // Update localStorage
-      if (data.torneoid) {
-        localStorage.setItem(TORNEO_ID_KEY, String(data.torneoid));
-      }
-      // Invalidate site config and all tournament data
+    mutationFn: (payload: SaveConfigPayload) => saveSiteConfigApi(payload),
+    onSuccess: () => {
+      // Invalidate to re-fetch fresh config
       queryClient.invalidateQueries({ queryKey: ['site-config'] });
       queryClient.invalidateQueries({ queryKey: ['tournament'] });
       queryClient.invalidateQueries({ queryKey: ['tournament-stats'] });
