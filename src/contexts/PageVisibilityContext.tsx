@@ -13,6 +13,11 @@ import { MenuGroup } from '@/components/admin/AdminMenuGroups';
 // ============= Types =============
 
 /** Visibility settings for each page by ID */
+/** Custom order overrides for menu items */
+export interface MenuItemOrder {
+  [pageId: string]: number;
+}
+
 export interface PageVisibilitySettings {
   [pageId: string]: boolean;
 }
