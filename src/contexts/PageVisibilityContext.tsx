@@ -362,6 +362,8 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     setPageGroupAssignment,
     layoutPreferences,
     setLayoutPreferences,
+    menuItemOrder,
+    setMenuItemOrder,
   };
 
   return (
