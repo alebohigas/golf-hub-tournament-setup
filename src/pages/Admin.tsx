@@ -264,19 +264,38 @@ const AdminDashboard = () => {
 
         {/* Configuration Tab */}
         <TabsContent value="config" className="space-y-4">
+          {/* Server-side torneoid config */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-primary" />
-                Configuración del Torneo
+                <Globe className="h-5 w-5 text-primary" />
+                Configuración del Torneo (Global)
               </CardTitle>
               <CardDescription>
-                Configura el ID del torneo que se muestra en esta página. 
-                Todos los datos (jugadores, resultados, competencias) se cargarán de este torneo.
+                Configura el ID del torneo para este dominio. Este valor aplica para <strong>todos los visitantes</strong> del sitio.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 max-w-md">
+                {/* Server config status */}
+                {isLoadingSiteConfig ? (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cargando configuración del servidor...
+                  </div>
+                ) : siteConfig?.torneoid ? (
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Torneo en servidor: <span className="font-mono font-bold">{siteConfig.torneoid}</span>
+                    <span className="text-xs">({siteConfig.domain})</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-600 flex items-center gap-1">
+                    <XCircle className="h-4 w-4" />
+                    Sin configuración en servidor. Los visitantes no verán datos hasta configurarlo.
+                  </p>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="torneoid">Torneo ID</Label>
                   <div className="flex gap-2">
@@ -285,28 +304,46 @@ const AdminDashboard = () => {
                       type="text"
                       value={torneoInput}
                       onChange={(e) => setTorneoInput(e.target.value)}
-                      placeholder="Ej: 123"
+                      placeholder="Ej: 341"
                       className="font-mono"
                     />
                     <Button 
                       onClick={() => {
+                        // Save locally
                         setTorneoId(torneoInput);
+                        // Save to server for all visitors
+                        saveSiteConfig.mutate(
+                          { torneoid: parseInt(torneoInput), password: 'admin2025' },
+                          {
+                            onSuccess: () => {
+                              toast({
+                                title: 'Configuración guardada',
+                                description: `Torneo ${torneoInput} configurado para todos los visitantes de este dominio.`,
+                              });
+                            },
+                            onError: (err) => {
+                              toast({
+                                title: 'Error al guardar en servidor',
+                                description: err.message + '. Se guardó solo localmente.',
+                                variant: 'destructive',
+                              });
+                            },
+                          }
+                        );
                       }}
-                      disabled={torneoInput === torneoId}
+                      disabled={!torneoInput || saveSiteConfig.isPending}
                     >
-                      Guardar
+                      {saveSiteConfig.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Guardar'
+                      )}
                     </Button>
                   </div>
                   {torneoId && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <CheckCircle2 className="h-4 w-4 text-primary" />
-                      Torneo activo: <span className="font-mono font-bold">{torneoId}</span>
-                    </p>
-                  )}
-                  {!torneoId && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <XCircle className="h-4 w-4" />
-                      No hay torneo configurado. Los datos no se cargarán hasta configurar un ID.
+                      Torneo local: <span className="font-mono font-bold">{torneoId}</span>
                     </p>
                   )}
                 </div>
