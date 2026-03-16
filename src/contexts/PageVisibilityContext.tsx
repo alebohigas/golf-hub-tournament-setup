@@ -237,6 +237,11 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     localStorage.setItem(LAYOUT_PREFS_STORAGE_KEY, JSON.stringify(layoutPreferences));
   }, [layoutPreferences]);
 
+  // Persist menu item order to localStorage
+  useEffect(() => {
+    localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(menuItemOrder));
+  }, [menuItemOrder]);
+
   /**
    * Set visibility for a specific page
    */
