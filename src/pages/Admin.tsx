@@ -461,9 +461,9 @@ const AdminDashboard = () => {
           <AdminMenuGroups
             menuItems={menuItems}
             groups={menuGroups}
-            onGroupsChange={setMenuGroups}
+            onGroupsChange={handleSetMenuGroups}
             pageGroupAssignments={pageGroupAssignments}
-            onPageGroupChange={setPageGroupAssignment}
+            onPageGroupChange={handleSetPageGroupAssignment}
             pageVisibility={visibilitySettings}
           />
         </TabsContent>
