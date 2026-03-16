@@ -145,6 +145,55 @@ const AdminDashboard = () => {
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
   const hiddenCount = menuItems.length - visibleCount;
 
+  /**
+   * Save a specific config field to the server for all visitors
+   */
+  const syncToServer = (fields: Record<string, any>) => {
+    saveSiteConfig.mutate(
+      { password: 'admin2025', ...fields },
+      {
+        onError: (err) => {
+          toast({
+            title: 'Error al sincronizar',
+            description: err.message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
+
+  /** Wrapper: set visibility and sync to server */
+  const handleSetVisibility = (pageId: string, visible: boolean) => {
+    const updated = { ...visibilitySettings, [pageId]: visible };
+    setPageVisibility(pageId, visible);
+    syncToServer({ visibility: updated });
+  };
+
+  /** Wrapper: set menu order and sync to server */
+  const handleSetMenuOrder = (order: Record<string, number>) => {
+    setMenuItemOrder(order);
+    syncToServer({ menu_order: Object.keys(order).length > 0 ? order : null });
+  };
+
+  /** Wrapper: set menu groups and sync to server */
+  const handleSetMenuGroups = (groups: any[]) => {
+    setMenuGroups(groups);
+    syncToServer({ menu_groups: groups.length > 0 ? groups : null });
+  };
+
+  /** Wrapper: set page group assignment and sync to server */
+  const handleSetPageGroupAssignment = (pageId: string, groupId: string | null) => {
+    setPageGroupAssignment(pageId, groupId);
+    const updated = { ...pageGroupAssignments };
+    if (groupId === null) {
+      delete updated[pageId];
+    } else {
+      updated[pageId] = groupId;
+    }
+    syncToServer({ page_group_assignments: Object.keys(updated).length > 0 ? updated : null });
+  };
+
   const handleLogout = () => {
     logoutAdmin();
     navigate('/');
@@ -383,7 +432,7 @@ const AdminDashboard = () => {
                     label={item.label}
                     path={item.path}
                     isVisible={visibilitySettings[item.id] ?? true}
-                    onToggle={(visible) => setPageVisibility(item.id, visible)}
+                    onToggle={(visible) => handleSetVisibility(item.id, visible)}
                     note={pageNotes[item.id] || ''}
                     onNoteChange={(note) => setPageNote(item.id, note)}
                     layout={layoutPreferences.layout}
@@ -401,7 +450,7 @@ const AdminDashboard = () => {
             menuItems={menuItems}
             visibilitySettings={visibilitySettings}
             menuItemOrder={menuItemOrder}
-            onOrderChange={setMenuItemOrder}
+            onOrderChange={handleSetMenuOrder}
             pageGroupAssignments={pageGroupAssignments}
             menuGroups={menuGroups}
           />
@@ -412,9 +461,9 @@ const AdminDashboard = () => {
           <AdminMenuGroups
             menuItems={menuItems}
             groups={menuGroups}
-            onGroupsChange={setMenuGroups}
+            onGroupsChange={handleSetMenuGroups}
             pageGroupAssignments={pageGroupAssignments}
-            onPageGroupChange={setPageGroupAssignment}
+            onPageGroupChange={handleSetPageGroupAssignment}
             pageVisibility={visibilitySettings}
           />
         </TabsContent>

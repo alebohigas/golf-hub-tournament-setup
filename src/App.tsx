@@ -9,8 +9,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PageVisibilityProvider } from "@/contexts/PageVisibilityContext";
+import { PageVisibilityProvider, usePageVisibility } from "@/contexts/PageVisibilityContext";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { useEffect } from "react";
 import Index from "./pages/Index";
 import Convocatoria from "./pages/Convocatoria";
 import Eventos from "./pages/Eventos";
@@ -34,21 +35,51 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 const queryClient = new QueryClient();
 
 /**
- * SiteConfigLoader
- * Silently fetches server-side torneoid and syncs to localStorage
- * Renders children immediately (non-blocking)
+ * SiteConfigSync
+ * Fetches server-side config and pushes values into PageVisibility context
+ * Must be rendered inside PageVisibilityProvider
  */
-const SiteConfigLoader = ({ children }: { children: React.ReactNode }) => {
-  useSiteConfig(); // auto-fetches and syncs torneoid to localStorage
+const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
+  const { data } = useSiteConfig();
+  const { 
+    setMenuItemOrder, 
+    setPageVisibility, 
+    setMenuGroups, 
+    setPageGroupAssignment,
+    isAdmin,
+  } = usePageVisibility();
+
+  /** Sync server config into context state when data arrives (non-admin only) */
+  useEffect(() => {
+    if (!data || isAdmin) return; // Admin manages locally, don't overwrite
+
+    if (data.menu_order) {
+      setMenuItemOrder(data.menu_order);
+    }
+    if (data.visibility) {
+      Object.entries(data.visibility).forEach(([pageId, visible]) => {
+        setPageVisibility(pageId, visible);
+      });
+    }
+    if (data.menu_groups) {
+      setMenuGroups(data.menu_groups);
+    }
+    if (data.page_group_assignments) {
+      Object.entries(data.page_group_assignments).forEach(([pageId, groupId]) => {
+        setPageGroupAssignment(pageId, groupId);
+      });
+    }
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return <>{children}</>;
 };
 
 // ============= App Component =============
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <SiteConfigLoader>
-      <TooltipProvider>
-        <PageVisibilityProvider>
+    <TooltipProvider>
+      <PageVisibilityProvider>
+        <SiteConfigSync>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -77,9 +108,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </PageVisibilityProvider>
-      </TooltipProvider>
-    </SiteConfigLoader>
+        </SiteConfigSync>
+      </PageVisibilityProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
