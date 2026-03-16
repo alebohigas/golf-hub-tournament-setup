@@ -21,7 +21,12 @@ export interface CategoryDetail {
   teeId: string;           // Tee identifier
   gross: number;           // Gross flag
   relatedCat: string;      // Related category ID
-  teeColor: string;        // Tee color name
+  teeColor: string;        // Tee color name (legacy)
+  teeName: string;         // Tee name (e.g. "AZULES")
+  teeColorName: string;    // Tee color from salidas table
+  rating: number | null;   // Course rating
+  slope: number | null;    // Course slope
+  par: number | null;      // Course par
   playerCount: number;     // Number of registered players
 }
 

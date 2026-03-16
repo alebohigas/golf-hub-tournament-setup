@@ -15,18 +15,26 @@ $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
 /** Query: fetch categories with player count, joined to jugadores */
+/** Query: fetch categories with player count, tee info, rating & slope */
 $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                a.gross, a.catrel, a.sexo,
-               COUNT(b.id) as playerCount
+               COUNT(b.id) as playerCount,
+               s.tee AS teeName, s.color AS teeColorName,
+               ct.rating, ct.slope, ct.parcampo
         FROM categorias a
         LEFT JOIN jugadores b ON (a.categoria_id = b.categoriaid)
+        LEFT JOIN salidas s ON (a.salida = s.id)
+        LEFT JOIN campo_tee ct ON (ct.salidaid = a.salida AND ct.campoid = (
+            SELECT campo FROM caljuego WHERE categoriaid = a.categoria_id LIMIT 1
+        ))
         WHERE a.estatus = 1 AND a.torneo_id = $tid
         GROUP BY a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
-                 a.gross, a.catrel, a.sexo
+                 a.gross, a.catrel, a.sexo,
+                 s.tee, s.color, ct.rating, ct.slope, ct.parcampo
         ORDER BY a.categoria_id ASC";
 
 $rows = query_all($conn, $sql);
@@ -49,7 +57,12 @@ $categories = array_map(function($row) {
         'gross'       => (int)$row['gross'],
         'relatedCat'  => $row['catrel'],
         'gender'      => $row['sexo'],
-        'playerCount' => (int)$row['playerCount']
+        'playerCount' => (int)$row['playerCount'],
+        'teeName'     => $row['teeName'] ?? '',
+        'teeColorName'=> $row['teeColorName'] ?? '',
+        'rating'      => $row['rating'] !== null ? (float)$row['rating'] : null,
+        'slope'       => $row['slope'] !== null ? (int)$row['slope'] : null,
+        'par'         => $row['parcampo'] !== null ? (int)$row['parcampo'] : null,
     ];
 }, $rows);
 
