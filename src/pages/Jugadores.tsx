@@ -106,7 +106,7 @@ const Jugadores = () => {
               </div>
 
               {/* Players Table */}
-              <Card className="border-border/50">
+              <Card className="border-border/50 w-full lg:w-fit lg:mx-auto">
                 <div className="overflow-x-auto">
                   {loadingPlayers ? (
                     <div className="flex justify-center py-12">
