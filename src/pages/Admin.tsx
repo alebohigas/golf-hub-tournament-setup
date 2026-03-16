@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminPageCard from '@/components/admin/AdminPageCard';
 import AdminLayoutSettings from '@/components/admin/AdminLayoutSettings';
 import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
+import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
 import { 
   Shield, 
   LogOut, 
@@ -27,10 +28,15 @@ import {
   Eye,
   EyeOff,
   FolderTree,
-  Database
+  Database,
+  GripVertical,
+  Globe,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
+import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
+import { useToast } from '@/hooks/use-toast';
 
 // ============= Login Form Component =============
 
