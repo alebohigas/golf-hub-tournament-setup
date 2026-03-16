@@ -80,7 +80,7 @@ const App = () => (
         </BrowserRouter>
       </PageVisibilityProvider>
     </TooltipProvider>
-  </QueryClientProvider>
+  </SiteConfigLoader>
 );
 
 export default App;
