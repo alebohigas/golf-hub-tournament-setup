@@ -290,7 +290,7 @@ const AdminDashboard = () => {
                     <span className="text-xs">({siteConfig.domain})</span>
                   </p>
                 ) : (
-                  <p className="text-sm text-amber-600 flex items-center gap-1">
+                  <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     <XCircle className="h-4 w-4" />
                     Sin configuración en servidor. Los visitantes no verán datos hasta configurarlo.
                   </p>
