@@ -98,6 +98,9 @@ const PAGE_GROUPS_STORAGE_KEY = 'tournament_page_group_assignments';
 /** LocalStorage key for admin layout preferences */
 const LAYOUT_PREFS_STORAGE_KEY = 'tournament_admin_layout_prefs';
 
+/** LocalStorage key for custom menu item order */
+const MENU_ORDER_STORAGE_KEY = 'tournament_menu_item_order';
+
 /** Admin password - in production, this should be more secure */
 const ADMIN_PASSWORD = 'admin2025';
 
