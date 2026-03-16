@@ -194,6 +194,19 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     return { layout: 'grid' as LayoutMode, columns: 3 as ColumnCount };
   });
 
+  // Custom menu item order state
+  const [menuItemOrder, setMenuItemOrderState] = useState<MenuItemOrder>(() => {
+    const stored = localStorage.getItem(MENU_ORDER_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // If parse fails, use empty object
+      }
+    }
+    return {};
+  });
+
   // Persist visibility settings to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(visibilitySettings));
