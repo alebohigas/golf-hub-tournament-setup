@@ -91,12 +91,18 @@ const Jugadores = () => {
               </Button>
 
               {/* Category Info Header */}
+              {/* Category Info Header with tee, rating, slope, par details */}
               <div className="mb-8">
                 <h2 className="text-2xl font-light text-foreground mb-2">
                   Categoría: <span className="font-bold">{selectedCategory.name}</span>
                 </h2>
                 <div className="text-muted-foreground space-y-1">
-                  <p>Tee {selectedCategory.teeColor} / Formato {selectedCategory.format}</p>
+                  <p>
+                    Tee Salida {selectedCategory.teeName || selectedCategory.teeColor}
+                    {selectedCategory.rating != null && ` / Rating ${selectedCategory.rating}`}
+                    {selectedCategory.slope != null && ` Slope ${selectedCategory.slope}`}
+                    {selectedCategory.par != null && ` par ${selectedCategory.par}`}
+                  </p>
                   <p>Sistema {selectedCategory.system} / Rango Handicaps {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
                   <p>
                     Porcentaje Handicap {selectedCategory.percentage}% / Total jugadores{' '}
