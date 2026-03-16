@@ -77,9 +77,9 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
 // ============= App Component =============
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <SiteConfigLoader>
-      <TooltipProvider>
-        <PageVisibilityProvider>
+    <TooltipProvider>
+      <PageVisibilityProvider>
+        <SiteConfigSync>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -108,9 +108,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </PageVisibilityProvider>
-      </TooltipProvider>
-    </SiteConfigLoader>
+        </SiteConfigSync>
+      </PageVisibilityProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
