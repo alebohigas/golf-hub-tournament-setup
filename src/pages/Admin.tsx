@@ -450,7 +450,7 @@ const AdminDashboard = () => {
             menuItems={menuItems}
             visibilitySettings={visibilitySettings}
             menuItemOrder={menuItemOrder}
-            onOrderChange={setMenuItemOrder}
+            onOrderChange={handleSetMenuOrder}
             pageGroupAssignments={pageGroupAssignments}
             menuGroups={menuGroups}
           />
