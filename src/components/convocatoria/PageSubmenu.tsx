@@ -24,7 +24,7 @@ const PageSubmenu = ({ sections, activeSection }: PageSubmenuProps) => {
   return (
     <nav className="sticky top-16 md:top-20 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-1 py-2 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center justify-center gap-1 py-2 overflow-x-auto scrollbar-hide">
           {sections.map((section) => (
             <button
               key={section.id}
