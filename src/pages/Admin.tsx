@@ -131,9 +131,14 @@ const AdminDashboard = () => {
     setPageGroupAssignment,
     layoutPreferences,
     setLayoutPreferences,
+    menuItemOrder,
+    setMenuItemOrder,
   } = usePageVisibility();
   const navigate = useNavigate();
   const { torneoId, setTorneoId } = useTorneoId();
+  const { data: siteConfig, isLoading: isLoadingSiteConfig } = useSiteConfig();
+  const saveSiteConfig = useSaveSiteConfig();
+  const { toast } = useToast();
   const [torneoInput, setTorneoInput] = useState(torneoId);
   
   const menuItems = getAllMenuItems();
