@@ -1,13 +1,6 @@
 // Mock data service - Replace with actual API calls
 // All data structures are ready for database integration
 
-// Import local sponsor logos
-import bmwLogo from '@/assets/sponsors/bmw.svg';
-import rolexLogo from '@/assets/sponsors/rolex.png';
-import titleistLogo from '@/assets/sponsors/titleist.svg';
-import callawayLogo from '@/assets/sponsors/callaway.svg';
-import taylormadeLogo from '@/assets/sponsors/taylormade.png';
-import pingLogo from '@/assets/sponsors/ping.png';
 export interface MenuItem {
   id: string;
   label: string;
