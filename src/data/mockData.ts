@@ -1,13 +1,6 @@
 // Mock data service - Replace with actual API calls
 // All data structures are ready for database integration
 
-// Import local sponsor logos
-import bmwLogo from '@/assets/sponsors/bmw.svg';
-import rolexLogo from '@/assets/sponsors/rolex.png';
-import titleistLogo from '@/assets/sponsors/titleist.svg';
-import callawayLogo from '@/assets/sponsors/callaway.svg';
-import taylormadeLogo from '@/assets/sponsors/taylormade.png';
-import pingLogo from '@/assets/sponsors/ping.png';
 export interface MenuItem {
   id: string;
   label: string;
@@ -71,13 +64,8 @@ export const menuConfig: MenuItem[] = [
   { id: 'reglas', label: 'REGLAS Y CC', path: '/reglas', enabled: true, order: 14 },
 ];
 
+/** Sponsors fallback - actual data comes from API via useSponsors hook */
 export const sponsors: Sponsor[] = [
-  { id: '1', name: 'BMW', logoUrl: bmwLogo },
-  { id: '2', name: 'Rolex', logoUrl: rolexLogo },
-  { id: '3', name: 'Titleist', logoUrl: titleistLogo },
-  { id: '4', name: 'Callaway', logoUrl: callawayLogo },
-  { id: '5', name: 'TaylorMade', logoUrl: taylormadeLogo },
-  { id: '6', name: 'Ping', logoUrl: pingLogo },
 ];
 
 export const tournamentInfo: TournamentInfo = {
