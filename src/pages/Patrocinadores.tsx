@@ -1,9 +1,17 @@
+/**
+ * Patrocinadores Page
+ * Displays sponsor grid fetched from the API (base64 logos from DB)
+ */
+
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
-import { sponsors } from '@/data/mockData';
+import { useSponsors } from '@/hooks/useTournamentData';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Patrocinadores = () => {
+  const { data: sponsors = [], isLoading } = useSponsors();
+
   return (
     <Layout>
       <PageHero 
@@ -17,24 +25,50 @@ const Patrocinadores = () => {
               Patrocinadores Oficiales
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Agradecemos a todas las empresas y marcas que apoyan el 51° Torneo Anual de Golf.
+              Agradecemos a todas las empresas y marcas que apoyan este torneo.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {sponsors.map((sponsor) => (
-              <Card key={sponsor.id} className="card-hover border-border/50">
-                <CardContent className="p-8 flex items-center justify-center h-40">
-                  <img 
-                    src={sponsor.logoUrl} 
-                    alt={sponsor.name}
-                    className="max-h-20 max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Sponsor grid - loading skeleton or actual cards */}
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i} className="border-border/50">
+                  <CardContent className="p-8 flex items-center justify-center h-40">
+                    <Skeleton className="h-16 w-32" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : sponsors.length === 0 ? (
+            <p className="text-center text-muted-foreground">No hay patrocinadores registrados.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {sponsors.map((sponsor) => (
+                <Card key={sponsor.id} className="card-hover border-border/50">
+                  <CardContent className="p-8 flex items-center justify-center h-40">
+                    {sponsor.websiteUrl ? (
+                      <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer">
+                        <img 
+                          src={sponsor.logoUrl} 
+                          alt={sponsor.name}
+                          className="max-h-20 max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                        />
+                      </a>
+                    ) : (
+                      <img 
+                        src={sponsor.logoUrl} 
+                        alt={sponsor.name}
+                        className="max-h-20 max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
+          {/* CTA section */}
           <div className="mt-16 text-center">
             <h3 className="text-xl font-display font-semibold text-foreground mb-4">
               ¿Desea ser patrocinador?
