@@ -10,25 +10,32 @@ require_once 'config.php';
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
+/** Sponsor logo proxy base URL */
+$SPONSOR_LOGO_URL = '/api/sponsor_logo.php?file=';
+
 /** Check if patrocinadores table exists before querying */
 $tableCheck = $conn->query("SHOW TABLES LIKE 'patrocinadores'");
 if ($tableCheck && $tableCheck->num_rows > 0) {
-    $sql = "SELECT id, nombre, logo, url, tipo, orden
+    /**
+     * Query sponsors for this tournament
+     * The 'imagen' column contains the relative path from the parent directory
+     * e.g. "logos_patrocinadores/imagen.png"
+     */
+    $sql = "SELECT id, nombre, contacto, imagen
             FROM patrocinadores
-            WHERE torneoid = $tid AND estatus = 1
-            ORDER BY orden ASC";
+            WHERE torneoid = $tid
+            ORDER BY nombre ASC";
 
     $rows = query_all($conn, $sql);
 
-    $sponsors = array_map(function($row) {
-        global $LOGOS_BASE_URL;
+    /** Map DB rows to frontend-friendly shape */
+    $sponsors = array_map(function($row) use ($SPONSOR_LOGO_URL) {
         return [
-            'id'   => $row['id'],
-            'name' => $row['nombre'],
-            'logo' => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : null,
-            'url'  => $row['url'],
-            'type' => $row['tipo'],
-            'order'=> (int)$row['orden']
+            'id'         => (int)$row['id'],
+            'name'       => $row['nombre'],
+            'logoUrl'    => $row['imagen'] ? $SPONSOR_LOGO_URL . $row['imagen'] : null,
+            'websiteUrl' => null,
+            'contact'    => $row['contacto'],
         ];
     }, $rows);
 
