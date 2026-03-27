@@ -19,6 +19,7 @@ export interface Sponsor {
 export interface TournamentInfo {
   id: string;
   name: string;
+  club: string;
   logoUrl: string;
   heroImageUrl: string;
   startDate: string;
