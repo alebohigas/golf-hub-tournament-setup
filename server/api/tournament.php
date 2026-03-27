@@ -12,8 +12,8 @@ $tid = esc($conn, $torneoid);
 // Tournament info
 $sql = "SELECT a.torneo_id, a.nombre, a.fecha_ini, a.fecha_fin, a.status,
                a.logo, a.formato, a.estilo, a.sistemajuego, a.tipotorneo,
-               a.color_cinta, a.imagen_gif,
-               b.nombre as club, b.logo as club_logo
+               a.color_cinta, a.imagen_gif, a.telefono, a.correotorne,
+               b.nombre as club, b.logo as club_logo, b.ciudad, b.estado
         FROM torneo a
         JOIN clubs b ON (a.club_id = b.id)
         WHERE a.torneo_id = $tid";
@@ -66,6 +66,10 @@ json_response([
     'type'        => $torneo['tipotorneo'],
     'ribbonColor' => $torneo['color_cinta'],
     'heroImage'   => $torneo['imagen_gif'] ? $LOGOS_BASE_URL . $torneo['imagen_gif'] : null,
+    'phone'       => $torneo['telefono'] ?? '',
+    'email'       => $torneo['correotorne'] ?? '',
+    'city'        => $torneo['ciudad'] ?? '',
+    'state'       => $torneo['estado'] ?? '',
     'stats' => [
         'totalHistoricalPlayers' => (int)($allPlayersStats['total'] ?? 0),
         'yearsHistory'           => $yearsHistory,

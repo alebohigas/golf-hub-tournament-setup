@@ -26,6 +26,9 @@ export interface TournamentInfo {
   endDate: string;
   venue: string;
   phone: string;
+  email: string;
+  city: string;
+  state: string;
 }
 
 export interface Category {
