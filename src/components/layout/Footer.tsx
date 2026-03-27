@@ -55,20 +55,16 @@ const Footer = () => {
             <h4 className="font-display font-semibold text-lg mb-4">En Números</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.totalParticipants || '—'}+</span>
-                <p className="text-sm text-primary-foreground/70">Participantes</p>
+                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.totalHistoricalPlayers?.toLocaleString() || '—'}+</span>
+                <p className="text-sm text-primary-foreground/70">Participantes Históricos</p>
               </div>
               <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.holes || '18'}</span>
-                <p className="text-sm text-primary-foreground/70">Hoyos</p>
+                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistoryDisplay || '—'}</span>
+                <p className="text-sm text-primary-foreground/70">Años de Historia</p>
               </div>
               <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.categories || '—'}</span>
-                <p className="text-sm text-primary-foreground/70">Categorías</p>
-              </div>
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistory || '—'}</span>
-                <p className="text-sm text-primary-foreground/70">Años con Speitour</p>
+                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.maxCategories || '—'}+</span>
+                <p className="text-sm text-primary-foreground/70">Categorías en un Torneo</p>
               </div>
             </div>
           </div>

@@ -69,13 +69,13 @@ export const useTournamentStats = () => {
     queryKey: ['tournament-stats'],
     queryFn: async () => {
       const data = await apiFetch<any>(getTournamentStatsUrl());
-      /** Map API response fields to frontend TournamentStats interface */
-      /** Map API response: players, categories from real counts; yearsHistory from club history calc */
+      const years = data?.stats?.yearsHistory ?? 0;
+      const rounded = data?.stats?.yearsHistoryRounded ?? (Math.floor(years / 2) * 2);
       return {
-        totalParticipants: data?.stats?.players ?? 0,
-        holes: 18, // Not provided by API, default to 18
-        categories: data?.stats?.categories ?? 0,
-        yearsHistory: data?.stats?.yearsHistory ?? 0,
+        totalHistoricalPlayers: data?.stats?.totalHistoricalPlayers ?? 0,
+        yearsHistory: years,
+        yearsHistoryDisplay: `${rounded}+`,
+        maxCategories: data?.stats?.maxCategories ?? 0,
       };
     },
     staleTime: 2 * 60 * 1000,
