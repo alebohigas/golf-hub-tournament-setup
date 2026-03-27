@@ -16,7 +16,7 @@ const StatsSection = () => {
     { value: `${stats.totalParticipants}+`, label: 'Participantes' },
     { value: stats.holes.toString(), label: 'Hoyos' },
     { value: stats.categories.toString(), label: 'Categorías' },
-    { value: stats.yearsHistory.toString(), label: 'Años de Historia' },
+    { value: stats.yearsHistory.toString(), label: 'Años de Historia con Speitour' },
   ];
 
   return (

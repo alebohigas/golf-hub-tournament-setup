@@ -35,6 +35,17 @@ $catStats = query_one($conn, $sql);
 $sql = "SELECT COUNT(DISTINCT fecha) as total FROM caljuego WHERE torneoid = $tid AND campo > 0";
 $dayStats = query_one($conn, $sql);
 
+// Years of history: calculate from min/max fecha_ini for same club_id
+$clubId = esc($conn, $torneo['club_id'] ?? 0);
+$sql = "SELECT MIN(YEAR(fecha_ini)) as min_year, MAX(YEAR(fecha_ini)) as max_year
+        FROM torneo
+        WHERE club_id = (SELECT club_id FROM torneo WHERE torneo_id = $tid)";
+$yearStats = query_one($conn, $sql);
+$yearsHistory = 0;
+if ($yearStats && $yearStats['min_year'] && $yearStats['max_year']) {
+    $yearsHistory = (int)$yearStats['max_year'] - (int)$yearStats['min_year'];
+}
+
 json_response([
     'id'          => $torneo['torneo_id'],
     'name'        => $torneo['nombre'],
@@ -51,8 +62,9 @@ json_response([
     'ribbonColor' => $torneo['color_cinta'],
     'heroImage'   => $torneo['imagen_gif'] ? $LOGOS_BASE_URL . $torneo['imagen_gif'] : null,
     'stats' => [
-        'players'    => (int)($stats['total'] ?? 0),
-        'categories' => (int)($catStats['total'] ?? 0),
-        'days'       => (int)($dayStats['total'] ?? 0)
+        'players'      => (int)($stats['total'] ?? 0),
+        'categories'   => (int)($catStats['total'] ?? 0),
+        'days'         => (int)($dayStats['total'] ?? 0),
+        'yearsHistory' => $yearsHistory
     ]
 ]);
