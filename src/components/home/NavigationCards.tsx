@@ -55,8 +55,11 @@ const descriptionMap: Record<string, string> = {
 // ============= Component =============
 
 const NavigationCards = () => {
-  const { getVisibleMenuItems } = usePageVisibility();
-  const menuItems = getVisibleMenuItems().filter(item => item.id !== 'home');
+  const { visibilitySettings } = usePageVisibility();
+  /** Filter cards to only show pages that are visible (respects admin settings even for admins) */
+  const menuItems = usePageVisibility().getVisibleMenuItems()
+    .filter(item => item.id !== 'home')
+    .filter(item => visibilitySettings[item.id] !== false);
 
   return (
     <section className="py-16 md:py-24 bg-background">
