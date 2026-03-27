@@ -72,6 +72,7 @@ export const sponsors: Sponsor[] = [
 export const tournamentInfo: TournamentInfo = {
   id: '51',
   name: '51° Torneo Anual de Golf',
+  club: 'Club Campestre Torreón',
   logoUrl: '',
   heroImageUrl: '',
   startDate: '2025-09-30',
