@@ -68,7 +68,7 @@ const Footer = () => {
               </div>
               <div>
                 <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistory || '—'}</span>
-                <p className="text-sm text-primary-foreground/70">Años de Historia</p>
+                <p className="text-sm text-primary-foreground/70">Años con Speitour</p>
               </div>
             </div>
           </div>
