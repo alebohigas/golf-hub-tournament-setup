@@ -49,9 +49,9 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
     isAdmin,
   } = usePageVisibility();
 
-  /** Sync server config into context state when data arrives (non-admin only) */
+  /** Sync server config into context state when data arrives */
   useEffect(() => {
-    if (!data || isAdmin) return; // Admin manages locally, don't overwrite
+    if (!data) return;
 
     if (data.menu_order) {
       setMenuItemOrder(data.menu_order);

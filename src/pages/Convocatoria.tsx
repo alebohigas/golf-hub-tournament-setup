@@ -8,6 +8,7 @@ import InfoSection from '@/components/convocatoria/InfoSection';
 import PricingSection from '@/components/convocatoria/PricingSection';
 import ContactSection from '@/components/convocatoria/ContactSection';
 import PageSubmenu from '@/components/convocatoria/PageSubmenu';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { 
   eligibilityText, 
   notesText, 
@@ -31,8 +32,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, AlertCircle, Calendar, Clock, Trophy, Gift, CalendarPlus, FileEdit, Info, GraduationCap } from 'lucide-react';
 
+/** Regex to match leading Roman numerals */
+const ROMAN_NUMERAL_REGEX = /^([IVXLCDM]+)\s+(.+)$/;
+
+/** Split tournament name into Roman numeral prefix and rest */
+const parseTournamentName = (name: string) => {
+  const match = name.trim().match(ROMAN_NUMERAL_REGEX);
+  return match ? { roman: match[1], rest: match[2] } : { roman: '', rest: name };
+};
+
 const Convocatoria = () => {
   const [activeSection, setActiveSection] = useState('elegibilidad');
+  const { data: tournamentData } = useTournamentInfo();
+  const parsed = tournamentData?.name ? parseTournamentName(tournamentData.name) : null;
 
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -76,18 +88,22 @@ const Convocatoria = () => {
 
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          {/* Tournament Logo/Info */}
+          {/* Tournament Logo/Info - dynamic from API */}
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-4 mb-6">
-              <div className="w-20 h-20 rounded-2xl gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-3xl shadow-elevated">
-                51°
-              </div>
+              {tournamentData?.logoUrl ? (
+                <img src={tournamentData.logoUrl} alt={tournamentData.name} className="w-20 h-20 rounded-2xl object-contain shadow-elevated" />
+              ) : (
+                <div className="w-20 h-20 rounded-2xl gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-3xl shadow-elevated">
+                  {parsed?.roman || ''}
+                </div>
+              )}
               <div className="text-left">
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-                  Torneo Anual de Golf
+                  {parsed?.rest || tournamentData?.name || 'Torneo de Golf'}
                 </h2>
                 <p className="text-lg font-display italic text-muted-foreground">
-                  Club Campestre Torreón
+                  {tournamentData?.club || ''}
                 </p>
               </div>
             </div>
