@@ -49,7 +49,7 @@ json_response([
     'system'      => $torneo['sistemajuego'],
     'type'        => $torneo['tipotorneo'],
     'ribbonColor' => $torneo['color_cinta'],
-    'heroImage'   => $torneo['imagen_gif'],
+    'heroImage'   => $torneo['imagen_gif'] ? $LOGOS_BASE_URL . $torneo['imagen_gif'] : null,
     'stats' => [
         'players'    => (int)($stats['total'] ?? 0),
         'categories' => (int)($catStats['total'] ?? 0),
