@@ -26,6 +26,9 @@ export interface TournamentInfo {
   endDate: string;
   venue: string;
   phone: string;
+  email: string;
+  city: string;
+  state: string;
 }
 
 export interface Category {
@@ -80,6 +83,9 @@ export const tournamentInfo: TournamentInfo = {
   endDate: '2025-10-04',
   venue: 'Club Campestre Torreón',
   phone: '(52) 871 721 2323',
+  email: '',
+  city: '',
+  state: '',
 };
 
 export const categories: Category[] = [
