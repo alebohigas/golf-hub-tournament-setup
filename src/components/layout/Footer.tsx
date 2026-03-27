@@ -2,14 +2,26 @@
  * Footer Component
  * Tournament info, contact, and stats in footer
  * Data fetched from API via React Query hooks
+ * Shows: tournament name (parsed), logo, location (city/state), phone, email, stats
  */
 
 import { useTournamentInfo, useTournamentStats } from '@/hooks/useTournamentData';
 import { MapPin, Phone, Mail } from 'lucide-react';
 
+/** Parse Roman numeral prefix from tournament name */
+const parseTournamentName = (name: string) => {
+  const match = name?.match(/^([IVXLCDM]+)\s+(.+)$/i);
+  return match ? { numeral: match[1], rest: match[2] } : { numeral: '', rest: name || '' };
+};
+
 const Footer = () => {
   const { data: tournamentInfo } = useTournamentInfo();
   const { data: tournamentStats } = useTournamentStats();
+
+  const { numeral, rest } = parseTournamentName(tournamentInfo?.name || '');
+
+  /** Build location string from city and state */
+  const location = [tournamentInfo?.city, tournamentInfo?.state].filter(Boolean).join(', ');
 
   return (
     <footer className="bg-primary text-primary-foreground">
@@ -18,16 +30,28 @@ const Footer = () => {
           {/* Tournament Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-lg bg-primary-foreground/10 flex items-center justify-center font-display font-bold text-xl">
-                {tournamentInfo?.id || '51'}
-              </div>
+              {/* Tournament logo or fallback */}
+              {tournamentInfo?.logoUrl ? (
+                <img
+                  src={tournamentInfo.logoUrl}
+                  alt="Logo del torneo"
+                  className="w-12 h-12 rounded-lg object-contain bg-primary-foreground/10"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-primary-foreground/10 flex items-center justify-center font-display font-bold text-xl text-secondary">
+                  {numeral || '⛳'}
+                </div>
+              )}
               <div>
-                <h3 className="font-display font-semibold">Torneo Anual de Golf</h3>
-                <p className="text-sm text-primary-foreground/70">{tournamentInfo?.venue || 'Club Campestre Torreón'}</p>
+                <h3 className="font-display font-semibold">
+                  {numeral && <span className="text-secondary">{numeral} </span>}
+                  {rest}
+                </h3>
+                <p className="text-sm text-primary-foreground/70">{tournamentInfo?.club || ''}</p>
               </div>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
-              El torneo amateur de golf más prestigioso de la región con más de 50 años de tradición.
+              El torneo amateur de golf más prestigioso de la región.
             </p>
           </div>
 
@@ -35,18 +59,25 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-semibold text-lg mb-4">Contacto</h4>
             <div className="space-y-3">
+              {/* Location: city, state */}
               <div className="flex items-center gap-3 text-sm text-primary-foreground/80">
-                <MapPin className="h-4 w-4 text-secondary" />
-                <span>{tournamentInfo?.venue || 'Club Campestre Torreón'}</span>
+                <MapPin className="h-4 w-4 text-secondary flex-shrink-0" />
+                <span>{location || tournamentInfo?.club || ''}</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-primary-foreground/80">
-                <Phone className="h-4 w-4 text-secondary" />
-                <span>Tel: {tournamentInfo?.phone || ''}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-primary-foreground/80">
-                <Mail className="h-4 w-4 text-secondary" />
-                <span>info@torneoanual.com</span>
-              </div>
+              {/* Phone from torneo.telefono */}
+              {tournamentInfo?.phone && (
+                <div className="flex items-center gap-3 text-sm text-primary-foreground/80">
+                  <Phone className="h-4 w-4 text-secondary flex-shrink-0" />
+                  <span>Tel: {tournamentInfo.phone}</span>
+                </div>
+              )}
+              {/* Email from torneo.correotorne */}
+              {tournamentInfo?.email && (
+                <div className="flex items-center gap-3 text-sm text-primary-foreground/80">
+                  <Mail className="h-4 w-4 text-secondary flex-shrink-0" />
+                  <span>{tournamentInfo.email}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -70,9 +101,10 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Copyright with club name */}
         <div className="mt-10 pt-6 border-t border-primary-foreground/20 text-center">
           <p className="text-sm text-primary-foreground/60">
-            © {new Date().getFullYear()} Club Campestre Torreón. Todos los derechos reservados.
+            © {new Date().getFullYear()} {tournamentInfo?.club || 'Club Campestre'}. Todos los derechos reservados.
           </p>
         </div>
       </div>
