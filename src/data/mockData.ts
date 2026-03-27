@@ -40,11 +40,12 @@ export interface Category {
   teeMarker: string;
 }
 
+/** Stats for the history ribbon section */
 export interface TournamentStats {
-  totalParticipants: number;
-  holes: number;
-  categories: number;
+  totalHistoricalPlayers: number;
   yearsHistory: number;
+  yearsHistoryDisplay: string;
+  maxCategories: number;
 }
 
 // Menu Configuration - Binary enabled/disabled from DB

@@ -23,20 +23,14 @@ if (!$torneo) {
     json_error('Tournament not found', 404);
 }
 
-// Player count
-$sql = "SELECT COUNT(*) as total FROM jugadores WHERE torneoid = $tid";
-$stats = query_one($conn, $sql);
-
-// Category count
-$sql = "SELECT COUNT(*) as total FROM categorias WHERE torneo_id = $tid AND estatus = 1";
-$catStats = query_one($conn, $sql);
-
-// Days of play
-$sql = "SELECT COUNT(DISTINCT fecha) as total FROM caljuego WHERE torneoid = $tid AND campo > 0";
-$dayStats = query_one($conn, $sql);
+// Total historical players across all tournaments for this club
+$sql = "SELECT SUM(j.total) as total
+        FROM (SELECT COUNT(*) as total FROM jugadores 
+              WHERE torneoid IN (SELECT torneo_id FROM torneo WHERE club_id = (SELECT club_id FROM torneo WHERE torneo_id = $tid))
+              GROUP BY torneoid) j";
+$allPlayersStats = query_one($conn, $sql);
 
 // Years of history: calculate from min/max fecha_ini for same club_id
-$clubId = esc($conn, $torneo['club_id'] ?? 0);
 $sql = "SELECT MIN(YEAR(fecha_ini)) as min_year, MAX(YEAR(fecha_ini)) as max_year
         FROM torneo
         WHERE club_id = (SELECT club_id FROM torneo WHERE torneo_id = $tid)";
@@ -45,6 +39,17 @@ $yearsHistory = 0;
 if ($yearStats && $yearStats['min_year'] && $yearStats['max_year']) {
     $yearsHistory = (int)$yearStats['max_year'] - (int)$yearStats['min_year'];
 }
+// Round down to nearest multiple of 2
+$yearsHistoryRounded = (int)(floor($yearsHistory / 2) * 2);
+
+// Max categories in any single tournament for this club
+$sql = "SELECT MAX(x.categorias_por_torneo) AS max_categorias
+        FROM (SELECT t.torneo_id, COUNT(c.categoria_id) AS categorias_por_torneo
+              FROM torneo t
+              JOIN categorias c ON c.torneo_id = t.torneo_id
+              WHERE t.club_id = (SELECT club_id FROM torneo WHERE torneo_id = $tid)
+              GROUP BY t.torneo_id) AS x";
+$maxCatStats = query_one($conn, $sql);
 
 json_response([
     'id'          => $torneo['torneo_id'],
@@ -62,9 +67,9 @@ json_response([
     'ribbonColor' => $torneo['color_cinta'],
     'heroImage'   => $torneo['imagen_gif'] ? $LOGOS_BASE_URL . $torneo['imagen_gif'] : null,
     'stats' => [
-        'players'      => (int)($stats['total'] ?? 0),
-        'categories'   => (int)($catStats['total'] ?? 0),
-        'days'         => (int)($dayStats['total'] ?? 0),
-        'yearsHistory' => $yearsHistory
+        'totalHistoricalPlayers' => (int)($allPlayersStats['total'] ?? 0),
+        'yearsHistory'           => $yearsHistory,
+        'yearsHistoryRounded'    => $yearsHistoryRounded,
+        'maxCategories'          => (int)($maxCatStats['max_categorias'] ?? 0),
     ]
 ]);
