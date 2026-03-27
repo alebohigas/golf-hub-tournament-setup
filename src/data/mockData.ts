@@ -40,11 +40,12 @@ export interface Category {
   teeMarker: string;
 }
 
+/** Stats for the history ribbon section */
 export interface TournamentStats {
-  totalParticipants: number;
-  holes: number;
-  categories: number;
+  totalHistoricalPlayers: number;
   yearsHistory: number;
+  yearsHistoryDisplay: string;
+  maxCategories: number;
 }
 
 // Menu Configuration - Binary enabled/disabled from DB
@@ -97,10 +98,10 @@ export const categories: Category[] = [
 ];
 
 export const tournamentStats: TournamentStats = {
-  totalParticipants: 344,
-  holes: 18,
-  categories: 12,
+  totalHistoricalPlayers: 344,
   yearsHistory: 51,
+  yearsHistoryDisplay: '50+',
+  maxCategories: 12,
 };
 
 export const eligibilityText = "Ser golfista amateur, mayor de 18 años cumplidos al 1° de octubre de 2025, excepto en la categoría Campeonato donde podrán jugar juveniles de 14 a 17 años.";
