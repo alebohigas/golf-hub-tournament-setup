@@ -30,13 +30,15 @@ export const useMenuItems = () => {
 
 // ============= Sponsors =============
 
-/** Fetch sponsor list */
+/** Fetch sponsor list - retry disabled since some tournaments have no sponsors */
 export const useSponsors = () => {
   return useQuery<Sponsor[]>({
     queryKey: ['sponsors'],
     queryFn: () => apiFetch<Sponsor[]>(getSponsorsUrl()),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
+    retry: 1,
+    retryDelay: 5000,
   });
 };
 
