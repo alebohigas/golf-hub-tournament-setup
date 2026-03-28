@@ -473,6 +473,11 @@ const AdminDashboard = () => {
             pageVisibility={visibilitySettings}
           />
         </TabsContent>
+
+        {/* Convocatoria Tab */}
+        <TabsContent value="convocatoria">
+          <AdminConvocatoria />
+        </TabsContent>
       </Tabs>
 
       {/* Info Note */}
