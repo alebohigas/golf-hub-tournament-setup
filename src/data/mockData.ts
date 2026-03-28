@@ -203,8 +203,26 @@ export const sociosPricing: PricingTable[] = [
   },
 ];
 
+/** Foráneos pricing interface */
+export interface ForaneosPricing {
+  title: string;
+  caballeros: string;
+  damasSeniors: string;
+}
+
 /** Foráneos pricing - not applicable for Valle Alto, empty */
 export const foraneosPricing: ForaneosPricing[] = [];
+
+/** Contact info interface */
+export interface ContactInfo {
+  bankName: string;
+  clabe: string;
+  cuenta: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  telefonoDirecto: string;
+}
 
 /** Pricing note */
 export const pricingNote = "";
