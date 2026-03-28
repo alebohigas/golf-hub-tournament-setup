@@ -110,7 +110,9 @@ const Convocatoria = () => {
             <div className="flex items-center justify-center gap-2 text-lg text-accent">
               <Calendar className="h-5 w-5" />
               <span className="font-medium">
-                {formatDate(tournamentInfo.startDate, tournamentInfo.endDate)}
+                {tournamentData?.startDate && tournamentData?.endDate
+                  ? formatDate(tournamentData.startDate, tournamentData.endDate)
+                  : formatDate(tournamentInfo.startDate, tournamentInfo.endDate)}
               </span>
             </div>
           </div>
