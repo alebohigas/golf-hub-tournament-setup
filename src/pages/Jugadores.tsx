@@ -124,6 +124,7 @@ const Jugadores = () => {
                     <Table>
                       <TableHeader>
                          <TableRow className="bg-primary hover:bg-primary">
+                           <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
                            <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                            <TableHead className="text-primary-foreground font-bold text-right">HI</TableHead>
                            <TableHead className="text-primary-foreground font-bold text-right">HJ</TableHead>
@@ -134,23 +135,19 @@ const Jugadores = () => {
                          {players.length > 0 ? (
                            players.map((player) => (
                              <TableRow key={player.id}>
-                               {/* Player name with club logo inline */}
-                               <TableCell>
-                                 <div className="flex items-center gap-2">
-                                   {player.clubLogo ? (
-                                     <img
-                                       src={player.clubLogo}
-                                       alt="Club"
-                                       className="w-auto object-contain rounded shrink-0"
-                                       style={{ height: '2.5rem' }}
-                                       onError={(e) => {
-                                         (e.target as HTMLImageElement).style.display = 'none';
-                                       }}
-                                     />
-                                   ) : null}
-                                   <span>{player.name}</span>
-                                 </div>
+                               {/* Club Logo column */}
+                               <TableCell className="p-1 text-center align-middle">
+                                 <img
+                                   src={player.clubLogo}
+                                   alt="Club logo"
+                                   className="w-auto object-contain rounded inline-block"
+                                   style={{ height: '3.5rem' }}
+                                   onError={(e) => {
+                                     (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                   }}
+                                 />
                                </TableCell>
+                               <TableCell>{player.name}</TableCell>
                               <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
                               <TableCell className="text-right">{player.handicapJuego}</TableCell>
                               <TableCell className="text-right">{player.handicapNeto}</TableCell>
@@ -158,7 +155,7 @@ const Jugadores = () => {
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                               <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                               No hay jugadores registrados en esta categoría
                             </TableCell>
