@@ -365,7 +365,7 @@ const Resultados = () => {
                                 {expandedScorecard?.startsWith(`${player.id}-`) && (
                                   scorecardLoading ? (
                                     <TableRow className="bg-muted/10 hover:bg-muted/10">
-                                      <TableCell colSpan={2 + (categoryDetail?.days?.length || 0) + 1} className="text-center py-6 text-muted-foreground">
+                                      <TableCell colSpan={3 + (categoryDetail?.days?.length || 0) + 1} className="text-center py-6 text-muted-foreground">
                                         Cargando tarjeta...
                                       </TableCell>
                                     </TableRow>
@@ -375,7 +375,7 @@ const Resultados = () => {
                                       playerName={player.name}
                                       roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
                                       onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
-                                      colSpan={2 + (categoryDetail?.days?.length || 0) + 1}
+                                      colSpan={3 + (categoryDetail?.days?.length || 0) + 1}
                                     />
                                   ) : null
                                 )}
@@ -383,7 +383,7 @@ const Resultados = () => {
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={2 + (categoryDetail?.days?.length || 0) + 1} className="text-center text-muted-foreground py-8">
+                              <TableCell colSpan={3 + (categoryDetail?.days?.length || 0) + 1} className="text-center text-muted-foreground py-8">
                                 No hay resultados disponibles
                               </TableCell>
                             </TableRow>
