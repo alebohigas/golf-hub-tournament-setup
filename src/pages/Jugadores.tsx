@@ -134,17 +134,19 @@ const Jugadores = () => {
                         {players.length > 0 ? (
                           players.map((player) => (
                             <TableRow key={player.id}>
-                              {/* Club Logo - original size, reduced padding */}
-                              <TableCell className="w-16 py-1 px-1 text-center">
-                                <img
-                                  src={player.clubLogo}
-                                  alt="Club logo"
-                                  className="max-w-10 max-h-10 object-contain rounded mx-auto"
-                                  onError={(e) => {
-                                    /* Fallback SVG if logo fails to load */
-                                    (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
-                                  }}
-                                />
+                              {/* Club Logo - uses full row height, width adjusts naturally */}
+                              <TableCell className="p-0.5 text-center align-middle">
+                                <div className="flex items-center justify-center h-12">
+                                  <img
+                                    src={player.clubLogo}
+                                    alt="Club logo"
+                                    className="max-h-12 w-auto object-contain rounded"
+                                    onError={(e) => {
+                                      /* Fallback SVG if logo fails to load */
+                                      (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                    }}
+                                  />
+                                </div>
                               </TableCell>
                               <TableCell>{player.name}</TableCell>
                               <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
