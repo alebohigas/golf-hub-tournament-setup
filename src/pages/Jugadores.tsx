@@ -92,7 +92,8 @@ const Jugadores = () => {
 
               {/* Category Info Header */}
               {/* Category Info Header with tee, rating, slope, par details */}
-              <div className="mb-8">
+              {/* Category Info Header - centered */}
+              <div className="mb-8 text-center">
                 <h2 className="text-2xl font-light text-foreground mb-2">
                   Categoría: <span className="font-bold">{selectedCategory.name}</span>
                 </h2>
@@ -111,8 +112,8 @@ const Jugadores = () => {
                 </div>
               </div>
 
-              {/* Players Table */}
-              <Card className="border-border/50 w-full lg:w-fit">
+              {/* Players Table - full width, centered */}
+              <Card className="border-border/50 w-full max-w-4xl mx-auto">
                 <div className="overflow-x-auto">
                   {loadingPlayers ? (
                     <div className="flex justify-center py-12">
@@ -134,14 +135,15 @@ const Jugadores = () => {
                           players.map((player) => (
                             <TableRow key={player.id}>
                               {/* Club Logo Image */}
-                              <TableCell className="w-16">
+                              {/* Club Logo - doubled size, constrained row height */}
+                              <TableCell className="w-20 py-1">
                                 <img
                                   src={player.clubLogo}
                                   alt="Club logo"
-                                  className="w-10 h-10 object-contain rounded"
+                                  className="w-20 h-10 object-contain rounded"
                                   onError={(e) => {
                                     /* Fallback SVG if logo fails to load */
-                                    (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                    (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="40"><rect width="80" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
                                   }}
                                 />
                               </TableCell>
