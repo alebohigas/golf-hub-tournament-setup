@@ -139,7 +139,7 @@ const Jugadores = () => {
                                 <img
                                   src={player.clubLogo}
                                   alt="Club logo"
-                                  className="w-10 h-10 object-contain rounded mx-auto"
+                                  className="max-w-10 max-h-10 object-contain rounded mx-auto"
                                   onError={(e) => {
                                     /* Fallback SVG if logo fails to load */
                                     (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
