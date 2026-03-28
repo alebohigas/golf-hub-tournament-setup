@@ -323,7 +323,7 @@ const Resultados = () => {
                                         src={player.clubLogo}
                                         alt="Club"
                                         className="w-auto object-contain rounded inline-block"
-                                        style={{ height: '3.5rem' }}
+                                        style={{ height: '2.625rem' }}
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
                                         }}
