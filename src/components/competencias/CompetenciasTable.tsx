@@ -119,10 +119,10 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
       {/* Results Table */}
       <div className="overflow-x-auto">
         <Table>
-          {/* Table Header - skip clubLogo column, it's merged into name */}
+          {/* Table Header */}
           <TableHeader>
             <TableRow className="bg-primary hover:bg-primary">
-              {columns.filter(col => col.key !== 'clubLogo').map((col) => (
+              {columns.map((col) => (
                 <TableHead 
                   key={col.key}
                   className={`text-primary-foreground font-bold ${
@@ -149,10 +149,11 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
                       : ''
                   }`}
                 >
-                  {columns.filter(col => col.key !== 'clubLogo').map((col) => (
+                  {columns.map((col) => (
                     <TableCell 
                       key={col.key}
                       className={`${
+                        col.key === 'clubLogo' ? 'p-1 text-center align-middle' :
                         col.align === 'center' ? 'text-center' : 
                         col.align === 'right' ? 'text-right' : 'text-left'
                       }`}
@@ -167,22 +168,21 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
                             {player.position}
                           </span>
                         </div>
-                      ) : col.key === 'name' ? (
-                        /* Player name with club logo inline */
-                        <div className="flex items-center gap-2">
-                          {player.clubLogo ? (
-                            <img
-                              src={player.clubLogo}
-                              alt="Club"
-                              className="w-auto object-contain rounded shrink-0"
-                              style={{ height: '2.5rem' }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          ) : null}
-                          <span>{player.name}</span>
-                        </div>
+                      ) : col.key === 'clubLogo' ? (
+                        /* Club logo image - separate column, always left of name */
+                        player.clubLogo ? (
+                          <img
+                            src={player.clubLogo}
+                            alt="Club logo"
+                            className="w-auto object-contain rounded inline-block"
+                            style={{ height: '3.5rem' }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                            }}
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{player.club}</span>
+                        )
                       ) : (
                         /* Standard cell rendering */
                         formatValue(getCellValue(player, col.key), col.format)
@@ -194,7 +194,7 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
             ) : (
               <TableRow>
                 <TableCell 
-                  colSpan={columns.filter(col => col.key !== 'clubLogo').length} 
+                  colSpan={columns.length} 
                   className="text-center text-muted-foreground py-8"
                 >
                   {searchQuery 
