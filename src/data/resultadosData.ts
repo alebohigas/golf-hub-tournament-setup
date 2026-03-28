@@ -37,6 +37,8 @@ export interface PlayerResult {
   position: number;
   name: string;
   club: string;
+  /** Club logo URL (proxied via logo.php) */
+  clubLogo?: string;
   r1?: number;
   r2?: number;
   r3?: number;
