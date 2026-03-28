@@ -98,15 +98,14 @@ const Jugadores = () => {
                   Categoría: <span className="font-bold">{selectedCategory.name}</span>
                 </h2>
                 <div className="text-muted-foreground space-y-1">
-                  <p>
-                    Tee Salida {selectedCategory.teeName || selectedCategory.teeColor}
-                    {selectedCategory.rating != null && ` / Rating ${selectedCategory.rating}`}
-                    {selectedCategory.slope != null && ` Slope ${selectedCategory.slope}`}
-                    {selectedCategory.par != null && ` par ${selectedCategory.par}`}
-                  </p>
-                  <p>Sistema {selectedCategory.system} / Rango Handicaps {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
-                  <p>
-                    Porcentaje Handicap {selectedCategory.percentage}% / Total jugadores{' '}
+                  <p><span className="font-bold text-foreground">Tee Salida:</span> {selectedCategory.teeName || selectedCategory.teeColor}</p>
+                  {selectedCategory.rating != null && <p><span className="font-bold text-foreground">Rating:</span> {selectedCategory.rating}</p>}
+                  {selectedCategory.slope != null && <p><span className="font-bold text-foreground">Slope:</span> {selectedCategory.slope}</p>}
+                  {selectedCategory.par != null && <p><span className="font-bold text-foreground">Par:</span> {selectedCategory.par}</p>}
+                  <p><span className="font-bold text-foreground">Sistema:</span> {selectedCategory.system}</p>
+                  <p><span className="font-bold text-foreground">Rango Handicaps:</span> {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
+                  <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentage}%</p>
+                  <p><span className="font-bold text-foreground">Total jugadores:</span>{' '}
                     <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
                   </p>
                 </div>
