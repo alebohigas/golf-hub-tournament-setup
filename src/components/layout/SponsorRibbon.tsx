@@ -34,14 +34,14 @@ const SponsorRibbon = () => {
                     <img
                       src={sponsor.logoUrl}
                       alt={sponsor.name}
-                      className="h-12 md:h-16 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      className="h-16 md:h-20 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
                     />
                   </a>
                 ) : (
                   <img
                     src={sponsor.logoUrl}
                     alt={sponsor.name}
-                    className="h-12 md:h-16 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                    className="h-16 md:h-20 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
                   />
                 )}
               </div>
