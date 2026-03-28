@@ -18,6 +18,7 @@ import AdminPageCard from '@/components/admin/AdminPageCard';
 import AdminLayoutSettings from '@/components/admin/AdminLayoutSettings';
 import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
 import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
+import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
 import { 
   Shield, 
   LogOut, 
@@ -32,6 +33,7 @@ import {
   GripVertical,
   Globe,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -292,7 +294,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -308,6 +310,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="groups" className="gap-2">
             <FolderTree className="h-4 w-4" />
             <span className="hidden sm:inline">Grupos</span>
+          </TabsTrigger>
+          <TabsTrigger value="convocatoria" className="gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Convocatoria</span>
           </TabsTrigger>
         </TabsList>
 
