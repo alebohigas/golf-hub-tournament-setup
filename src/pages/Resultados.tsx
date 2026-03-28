@@ -295,10 +295,10 @@ const Resultados = () => {
                           <TableRow className="bg-primary hover:bg-primary">
                             <TableHead className="text-primary-foreground font-bold w-16">Pos</TableHead>
                             <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                            <TableHead className="text-primary-foreground font-bold">Club</TableHead>
-                            <TableHead className="text-primary-foreground font-bold text-center">R1</TableHead>
-                            <TableHead className="text-primary-foreground font-bold text-center">R2</TableHead>
-                            <TableHead className="text-primary-foreground font-bold text-center">R3</TableHead>
+                            {/* Dynamic round columns based on days array */}
+                            {(categoryDetail?.days || []).map((_, i) => (
+                              <TableHead key={`r${i+1}`} className="text-primary-foreground font-bold text-center">R{i + 1}</TableHead>
+                            ))}
                             <TableHead className="text-primary-foreground font-bold text-center">Total</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -315,9 +315,26 @@ const Resultados = () => {
                                       </span>
                                     </div>
                                   </TableCell>
-                                  <TableCell className="font-medium">{player.name}</TableCell>
-                                  <TableCell className="text-muted-foreground">{player.club}</TableCell>
-                                  {[1, 2, 3].map(round => {
+                                  {/* Player name with club logo inline */}
+                                  <TableCell className="font-medium">
+                                    <div className="flex items-center gap-2">
+                                      {player.clubLogo ? (
+                                        <img
+                                          src={player.clubLogo}
+                                          alt="Club"
+                                          className="w-auto object-contain rounded shrink-0"
+                                          style={{ height: '2.5rem' }}
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : null}
+                                      <span>{player.name}</span>
+                                    </div>
+                                  </TableCell>
+                                  {/* Dynamic round score cells */}
+                                  {(categoryDetail?.days || []).map((_, i) => {
+                                    const round = i + 1;
                                     const score = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
                                     const isExpanded = expandedScorecard === `${player.id}-${round}`;
                                     return (
@@ -347,7 +364,7 @@ const Resultados = () => {
                                 {expandedScorecard?.startsWith(`${player.id}-`) && (
                                   scorecardLoading ? (
                                     <TableRow className="bg-muted/10 hover:bg-muted/10">
-                                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                                      <TableCell colSpan={2 + (categoryDetail?.days?.length || 0) + 1} className="text-center py-6 text-muted-foreground">
                                         Cargando tarjeta...
                                       </TableCell>
                                     </TableRow>
@@ -357,7 +374,7 @@ const Resultados = () => {
                                       playerName={player.name}
                                       roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
                                       onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
-                                      colSpan={7}
+                                      colSpan={2 + (categoryDetail?.days?.length || 0) + 1}
                                     />
                                   ) : null
                                 )}
@@ -365,7 +382,7 @@ const Resultados = () => {
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              <TableCell colSpan={2 + (categoryDetail?.days?.length || 0) + 1} className="text-center text-muted-foreground py-8">
                                 No hay resultados disponibles
                               </TableCell>
                             </TableRow>

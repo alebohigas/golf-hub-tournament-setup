@@ -100,6 +100,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true) =>
                 position: p.position ?? idx + 1,
                 name: p.name || '',
                 club: p.club || '',
+                clubLogo: p.clubLogo || '',
                 r1: p.r1 ?? undefined,
                 r2: p.r2 ?? undefined,
                 r3: p.r3 ?? undefined,
