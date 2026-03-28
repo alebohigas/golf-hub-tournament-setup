@@ -134,19 +134,18 @@ const Jugadores = () => {
                         {players.length > 0 ? (
                           players.map((player) => (
                             <TableRow key={player.id}>
-                              {/* Club Logo - uses full row height, width adjusts naturally */}
-                              <TableCell className="p-0.5 text-center align-middle">
-                                <div className="flex items-center justify-center h-12">
-                                  <img
-                                    src={player.clubLogo}
-                                    alt="Club logo"
-                                    className="max-h-12 w-auto object-contain rounded"
-                                    onError={(e) => {
-                                      /* Fallback SVG if logo fails to load */
-                                      (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
-                                    }}
-                                  />
-                                </div>
+                              {/* Club Logo - fills row height, no artificial limits */}
+                              <TableCell className="p-1 text-center align-middle">
+                                <img
+                                  src={player.clubLogo}
+                                  alt="Club logo"
+                                  className="w-auto object-contain rounded inline-block"
+                                  style={{ height: '3.5rem' }}
+                                  onError={(e) => {
+                                    /* Fallback SVG if logo fails to load */
+                                    (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                  }}
+                                />
                               </TableCell>
                               <TableCell>{player.name}</TableCell>
                               <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
