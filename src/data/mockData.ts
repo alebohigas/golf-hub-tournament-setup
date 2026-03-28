@@ -244,13 +244,79 @@ export const diaDePracticaText = "Los jugadores inscritos no socios tendrán der
 
 export const informacionGeneralText = "El Comité Organizador se reserva el derecho de hacer los cambios que juzgue necesarios para el mejor desarrollo del Torneo. Cualquier punto no considerado en la presente convocatoria será resuelto por el Comité de Golf y su decisión será final e inapelable.";
 
-export const convocatoriaSections = [
-  { id: 'elegibilidad', label: 'Elegibilidad' },
-  { id: 'categorias', label: 'Categorías' },
-  { id: 'horarios', label: 'Horarios' },
-  { id: 'info-importante', label: 'Información Importante' },
-  { id: 'costos', label: 'Costos' },
-  { id: 'contacto', label: 'Contacto' },
+/** Convocatoria section configuration */
+export interface ConvocatoriaSection {
+  id: string;
+  label: string;
+  enabled: boolean;
+  order: number;
+}
+
+/** Default 8 sections for convocatoria page */
+export const convocatoriaSections: ConvocatoriaSection[] = [
+  { id: 'descripcion', label: 'Descripción', enabled: true, order: 1 },
+  { id: 'elegibilidad', label: 'Elegibilidad', enabled: true, order: 2 },
+  { id: 'costos', label: 'Costos', enabled: true, order: 3 },
+  { id: 'categorias', label: 'Categorías y Sistema de Juego', enabled: true, order: 4 },
+  { id: 'premiacion', label: 'Premiación', enabled: true, order: 5 },
+  { id: 'calendario', label: 'Calendario y Horario', enabled: true, order: 6 },
+  { id: 'reglas', label: 'Reglas Locales', enabled: true, order: 7 },
+  { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
+];
+
+/** Description text shown below tournament header */
+export const convocatoriaDescripcion = "Se convoca a todos los socios e invitados a participar en el Torneo Anual de Golf que se llevará a cabo en las instalaciones del club. Los interesados deberán registrarse en Coordinación Deportiva según las fechas y requisitos descritos a continuación.";
+
+/** Premiación data - structured prize descriptions */
+export interface PremioCategoria {
+  categoria: string;
+  premios: string[];
+}
+
+export const premiacionData: PremioCategoria[] = [
+  {
+    categoria: 'Todas las categorías (Caballeros)',
+    premios: ['1°, 2° y 3° lugar - Trofeo'],
+  },
+  {
+    categoria: 'Seniors Campeonato',
+    premios: ['1° Lugar Gross por Stroke Play'],
+  },
+  {
+    categoria: 'Damas 1ra',
+    premios: ['1° Lugar Gross por Stableford'],
+  },
+  {
+    categoria: 'Campeonato',
+    premios: ['Copa Challenger - El jugador que la gane 3 veces la tendrá definitivamente'],
+  },
+];
+
+/** Reglas locales - structured rules */
+export interface ReglaItem {
+  titulo: string;
+  contenido: string;
+}
+
+export const reglasData: ReglaItem[] = [
+  { titulo: 'Hándicap', contenido: handicapText },
+  { titulo: 'Salidas', contenido: salidasText },
+  { titulo: 'Desempates para ganador de trofeo', contenido: desempatesText },
+  { titulo: 'Información General', contenido: informacionGeneralText },
+];
+
+/** Competencias especiales data */
+export interface CompetenciaEspecial {
+  nombre: string;
+  descripcion: string;
+  premios?: string;
+}
+
+export const competenciasEspecialesData: CompetenciaEspecial[] = [
+  { nombre: 'Torneo de Putt', descripcion: 'Competencia abierta a todos los jugadores inscritos.', premios: 'Premios por definir' },
+  { nombre: 'Torneo de Approach', descripcion: 'Competencia abierta a todos los jugadores inscritos.', premios: 'Premios por definir' },
+  { nombre: 'Torneo de Drive', descripcion: 'Competencia de distancia y precisión.', premios: 'Premios por definir' },
+  { nombre: 'Shootout', descripcion: 'Evento especial con formato eliminatorio.' },
 ];
 
 // API simulation functions - replace with actual fetch calls

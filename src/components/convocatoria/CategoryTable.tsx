@@ -36,10 +36,10 @@ const CategoryTable = () => {
         <TableHeader>
           <TableRow className="bg-primary hover:bg-primary">
             <TableHead className="text-primary-foreground font-semibold">CATEGORÍAS</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">H.I</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center">RANGO DE HÁNDICAP</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center">FORMATO</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center">VENTAJAS</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">JUGADORES</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center">CUPO</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center">RONDA</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center">MARCAS</TableHead>
           </TableRow>
