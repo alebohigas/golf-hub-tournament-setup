@@ -99,9 +99,11 @@ const Jugadores = () => {
                 </h2>
                 <div className="text-muted-foreground space-y-1">
                   <p><span className="font-bold text-foreground">Tee Salida:</span> {selectedCategory.teeName || selectedCategory.teeColor}</p>
-                  {selectedCategory.rating != null && <p><span className="font-bold text-foreground">Rating:</span> {selectedCategory.rating}</p>}
-                  {selectedCategory.slope != null && <p><span className="font-bold text-foreground">Slope:</span> {selectedCategory.slope}</p>}
-                  {selectedCategory.par != null && <p><span className="font-bold text-foreground">Par:</span> {selectedCategory.par}</p>}
+                  <p>
+                    {selectedCategory.rating != null && <><span className="font-bold text-foreground">Rating:</span> {selectedCategory.rating} </>}
+                    {selectedCategory.slope != null && <><span className="font-bold text-foreground">Slope:</span> {selectedCategory.slope} </>}
+                    {selectedCategory.par != null && <><span className="font-bold text-foreground">Par:</span> {selectedCategory.par}</>}
+                  </p>
                   <p><span className="font-bold text-foreground">Sistema:</span> {selectedCategory.system}</p>
                   <p><span className="font-bold text-foreground">Rango Handicaps:</span> {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
                   <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentage}%</p>
