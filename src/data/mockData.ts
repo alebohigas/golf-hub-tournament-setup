@@ -110,15 +110,15 @@ export const tournamentStats: TournamentStats = {
   maxCategories: 12,
 };
 
-export const eligibilityText = "Ser golfista amateur, mayor de 18 años cumplidos al 1° de octubre de 2025, excepto en la categoría Campeonato donde podrán jugar juveniles de 14 a 17 años.";
+/** Eligibility requirements from convocatoria */
+export const eligibilityText = "Podrán participar damas y caballeros amateurs mayores de 18 años que tengan hándicap registrado en la FMG o en el sistema interno del club, publicado al 1° de abril de 2026. En categoría \"Campeonato y Premier\" se permitirá jugar a menores de 18 años, que cuenten con el hándicap solicitado. Al jugador que no tenga hándicap registrado, los profesionales le podrán calcular uno siempre y cuando tengan un mínimo de 8 scores entregados.";
 
+/** Important notes for eligibility section */
 export const notesText = [
-  "Las Damas se dividirán en 2 categorías, de acuerdo al número de participantes y en base al hándicap índice.",
-  "Los campeones del Torneo Anual 2022−2023 jugarán en la categoría inmediata superior.",
-  "En la categoría Campeonato sólo podrán participar jugadores invitados por el Club.",
-  "Las categorías Seniors serán de 60 años cumplidos a la fecha del Torneo. Súper Seniors será de 70 y mayores.",
-  "En la categoría que se inscriban menos de 10 jugadores se declarará desierta; sin embargo, los jugadores afectados pasarán a la categoría inmediata superior, siempre y cuando en esta haya cupo.",
-  "El cupo máximo del Torneo será de 344 jugadores.",
+  "La fecha límite de inscripción será el domingo 19 de abril o al completar el cupo límite de cada categoría.",
+  "La fecha límite para recibir cancelaciones será el martes 21 de abril y en su caso les será reembolsado el pago de las inscripciones. Después de esta fecha no se aceptan cancelaciones.",
+  "Los jugadores que soliciten participar en una categoría que no les corresponda con su hándicap, tendrán que esperar hasta 2 días antes del inicio de juego de la categoría solicitada, para asegurar que no quede fuera otro jugador que sí cumpla con el hándicap requerido.",
+  "Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores que se queden fuera entrarán en una lista de espera.",
 ];
 
 export interface ScheduleSlot {
@@ -131,38 +131,45 @@ export interface ScheduleSlot {
   sabado: string[];
 }
 
+/** Schedule data from convocatoria PDF - Valle Alto */
 export const scheduleData: ScheduleSlot[] = [
   {
     turno: 'MATUTINO',
-    horario: 'A PARTIR DE 6:40 AM',
-    martes: ['Damas 2da.', 'Damas 1ra.', 'Seniors Camp.', 'Seniors A', 'Seniors B', 'Super Seniors'],
-    miercoles: ['Damas 1ra.', 'Damas 2da.', 'Seniors Camp.', 'Seniors A', 'Seniors B', 'Super Seniors'],
-    jueves: ['E', 'C', 'B', '', '', ''],
-    viernes: ['Damas 1ra.', 'Damas 2da.', 'Seniors Camp.', 'Seniors A', 'Seniors B', 'Super Seniors'],
-    sabado: ['D', 'C', 'B', '', '', ''],
+    horario: 'A PARTIR DE 06:10 HRS',
+    martes: [],
+    miercoles: [],
+    jueves: [],
+    viernes: ['Campeonato', 'Premier', 'AA'],
+    sabado: ['A'],
   },
   {
     turno: 'VESPERTINO',
-    horario: 'A PARTIR DE 11:30 AM',
-    martes: ['E', 'D', 'C'],
-    miercoles: ['E', 'D', 'B'],
-    jueves: ['A', 'AA', 'CAMPEONATO'],
-    viernes: ['A', 'AA', 'CAMPEONATO'],
-    sabado: ['A', 'AA', 'CAMPEONATO'],
+    horario: 'A PARTIR DE 11:00 HRS',
+    martes: [],
+    miercoles: [],
+    jueves: [],
+    viernes: [],
+    sabado: [],
   },
 ];
 
-export const salidasText = "Por horario en el turno correspondiente.";
+/** Salidas description */
+export const salidasText = "Las salidas del turno matutino serán a partir de las 06:10hrs. Las salidas del turno vespertino serán a partir de las 11:00hrs.";
 
-export const handicapText = "La competencia se jugará con los hándicaps del 1 de septiembre de 2025, de la Federación Mexicana de Golf como primer referente. Como segunda opción, será una carta de su Club. El Comité se reserva el derecho de aceptar la validez del hándicap. Jugadores que no comprueben debidamente su handicap no podrán pelear por los trofeos de los primeros lugares.";
+/** Handicap rules */
+export const handicapText = "Los jugadores deberán tener hándicap registrado en la FMG o en el sistema interno del club, publicado al 1° de abril de 2026. Al jugador que no tenga hándicap registrado, los profesionales le podrán calcular uno siempre y cuando tengan un mínimo de 8 scores entregados.";
 
-export const desempatesText = "Para el primer lugar de todas las categorías será \"muerte súbita\" en los hoyos asignados por el Comité. Las categorías Damas, Seniors y E que juegan con hándicap, las ventajas serán en los hoyos correspondientes. Para las demás posiciones el desempate será determinado por comparación de tarjetas.";
+/** Desempates rules from PDF */
+export const desempatesText = "Primer término: ganará el jugador con mejor score del último día. Segundo término: se tomará la tarjeta del último día para desempatar por el sistema de comparación de tarjetas (9-6-3-1), de la vuelta del hoyo 10 al 18. En caso de persistir el empate, se hará lo mismo para la 1ª vuelta. Para trofeos: Solo para el primer lugar en todas las categorías Gross o Neto se jugará a muerte súbita sin ventajas. El resto de los empates se definirá en primer término por el mejor score del último día. En segundo término será por comparación de tarjetas, comparando las tarjetas del último día del hoyo 10 al 18 bajo el sistema antes mencionado.";
 
-export const premiosText = "Trofeo al primero, segundo y tercer lugar de cada categoría. En la categoría Seniors Campeonato y 1ra. Damas habrá 1er. Lugar Gross por stroke play y stableford, respectivamente. Copa Challenger en la categoría Campeonato. El jugador que la gane 3 veces la tendrá definitivamente.";
+/** Premios description */
+export const premiosText = "Trofeos para primero, segundo y tercer lugar en cada categoría según se detalla.";
 
-export const eventosAdicionalesText = "Torneo de Putt, Torneo de Aproach, Torneo de Drive, Shootout y rifas.";
+/** Eventos adicionales */
+export const eventosAdicionalesText = "Tiro Espectacular de Approach, Torneo de Putt, Putt de 35yds, Torneo Driver Damas, Torneo Driver Caballeros.";
 
-export const inscripcionesText = "En Coordinación Deportiva a partir del 1 de mayo de 2025. Cierre de inscripciones el 24 de septiembre de 2025 a las 2 pm o al completarse el cupo de jugadores por categoría.";
+/** Inscripciones text from PDF */
+export const inscripcionesText = "Asociados a partir del miércoles 01 de abril. Hijos de socios dependientes a partir del miércoles 15 de abril. Invitados e Hijos no dependientes a partir del domingo 19 de abril.";
 
 export interface PricingTier {
   categoria: string;
@@ -180,44 +187,33 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
+/** Pricing tables - Valle Alto (simple structure from PDF) */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Socios que jugaron anual 2024 y 2023',
+    title: 'Costos de Inscripción',
+    subtitle: 'Solamente para jugadores que quieran participar en el Torneo',
     tiers: [
-      { categoria: 'CABALLEROS', costo: '$13,500.00', mayo6: '$2,250.00', junio5: '$2,700.00', julio4: '$3,375.00', agosto3: '$4,500.00', sept2: '$6,750.00' },
-      { categoria: 'DAMAS/SENIORS', costo: '$12,500.00', mayo6: '$2,083.33', junio5: '$2,500.00', julio4: '$3,125.00', agosto3: '$4,166.66', sept2: '$6,250.00' },
-    ],
-  },
-  {
-    title: 'Socios que jugaron anual 2024 o 2023',
-    tiers: [
-      { categoria: 'CABALLEROS', costo: '$14,500.00', mayo6: '$2,416.66', junio5: '$2,900.00', julio4: '$3,625.00', agosto3: '$4,833.33', sept2: '$7,250.00' },
-      { categoria: 'DAMAS/SENIORS', costo: '$13,500.00', mayo6: '$2,250.00', junio5: '$2,700.00', julio4: '$3,375.00', agosto3: '$4,500.00', sept2: '$6,750.00' },
-    ],
-  },
-  {
-    title: 'Socios que no jugaron anual 2024 y 2023',
-    tiers: [
-      { categoria: 'CABALLEROS', costo: '$16,500.00', mayo6: '$2,833.33', junio5: '$3,400.00', julio4: '$4,250.00', agosto3: '$5,666.66', sept2: '$8,500.00' },
-      { categoria: 'DAMAS/SENIORS', costo: '$15,500.00', mayo6: '$2,666.66', junio5: '$3,200.00', julio4: '$4,000.00', agosto3: '$5,333.33', sept2: '$8,000.00' },
+      { categoria: 'Socios Titulares', costo: '$6,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Eméritos', costo: '$5,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas', costo: '$5,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Dependientes', costo: '$5,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados Caballeros', costo: '$18,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados Damas y Juveniles', costo: '$10,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
 
+/** Foráneos pricing interface */
 export interface ForaneosPricing {
   title: string;
   caballeros: string;
   damasSeniors: string;
 }
 
-export const foraneosPricing: ForaneosPricing[] = [
-  { title: 'Jugaron 2023 y 2024', caballeros: '$14,500.00', damasSeniors: '$13,500.00' },
-  { title: 'Jugaron 2023 o 2024', caballeros: '$15,500.00', damasSeniors: '$14,500.00' },
-  { title: 'No jugaron 2022 ni 2023', caballeros: '$17,000.00', damasSeniors: '$16,000.00' },
-];
+/** Foráneos pricing - not applicable for Valle Alto, empty */
+export const foraneosPricing: ForaneosPricing[] = [];
 
-export const pricingNote = "Estas cantidades se podrán pagar en 6, 5, 4, 3 ó 2 mensualidades, dejando forzosamente un pago inicial y los documentos correspondientes a los pagos futuros.";
-
+/** Contact info interface */
 export interface ContactInfo {
   bankName: string;
   clabe: string;
@@ -228,21 +224,28 @@ export interface ContactInfo {
   telefonoDirecto: string;
 }
 
+/** Pricing note */
+export const pricingNote = "";
+
+/** Contact/banking info */
 export const contactInfo: ContactInfo = {
-  bankName: 'BANREGIO',
-  clabe: '058080800000090114',
-  cuenta: '800-000-90011',
-  nombre: 'CAMPESTRE TORREÓN, S.A. DE C.V.',
-  email: 'coordinaciondeportiva@campestretorreon.com.mx',
-  telefono: '(871) 7-21-23-23 Ext. 119 y 155',
-  telefonoDirecto: '(871) 7-21-05-41',
+  bankName: '',
+  clabe: '',
+  cuenta: '',
+  nombre: 'Club de Golf Valle Alto',
+  email: '',
+  telefono: '',
+  telefonoDirecto: '',
 };
 
-export const contactWarning = "Cheque devuelto o cargo de tarjeta no autorizado por el banco, causará baja automática del jugador al Torneo. A partir del 4 de septiembre por ningún motivo se reembolsará el costo de la inscripción por cancelaciones.";
+/** Contact warning */
+export const contactWarning = "";
 
-export const diaDePracticaText = "Los jugadores inscritos no socios tendrán derecho a un día de práctica que son 20, 21, 27 y 28 de septiembre del 2025. El lunes 29 de septiembre será la práctica para jugadores foráneos y Campeonato, de clubes fuera de la Laguna.";
+/** Día de práctica - not specified in Valle Alto PDF */
+export const diaDePracticaText = "";
 
-export const informacionGeneralText = "El Comité Organizador se reserva el derecho de hacer los cambios que juzgue necesarios para el mejor desarrollo del Torneo. Cualquier punto no considerado en la presente convocatoria será resuelto por el Comité de Golf y su decisión será final e inapelable.";
+/** Información general disclaimer */
+export const informacionGeneralText = "El comité Organizador se reserva el derecho de hacer cualquier cambio que juzgue necesario para el mejor desarrollo del torneo y cualquier punto no previsto en la presente convocatoria o que no esté redactado con claridad, será resuelto por el Comité Organizador y su decisión será inapelable.";
 
 /** Convocatoria section configuration */
 export interface ConvocatoriaSection {
@@ -264,8 +267,8 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
 ];
 
-/** Description text shown below tournament header */
-export const convocatoriaDescripcion = "Se convoca a todos los socios e invitados a participar en el Torneo Anual de Golf que se llevará a cabo en las instalaciones del club. Los interesados deberán registrarse en Coordinación Deportiva según las fechas y requisitos descritos a continuación.";
+/** Description text shown below tournament header - from PDF page 2 */
+export const convocatoriaDescripcion = "Se convoca a todos los Asociados del club de golf Valle Alto e invitados, a participar en su LXX Torneo Anual de Invitación, que se llevará a cabo del 24 de abril al 02 de mayo 2026 en las instalaciones de nuestro club.";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
@@ -273,22 +276,47 @@ export interface PremioCategoria {
   premios: string[];
 }
 
+/** Premiación data from PDF page 5 - Trofeos */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Todas las categorías (Caballeros)',
-    premios: ['1°, 2° y 3° lugar - Trofeo'],
+    categoria: 'Damas A',
+    premios: ['1° y 2° Gross - Trofeo', '1°, 2° y 3° Neto - Trofeo'],
   },
   {
-    categoria: 'Seniors Campeonato',
-    premios: ['1° Lugar Gross por Stroke Play'],
+    categoria: 'Damas B',
+    premios: ['1°, 2° y 3° Gross - Trofeo', '1°, 2° y 3° Neto - Trofeo'],
   },
   {
-    categoria: 'Damas 1ra',
-    premios: ['1° Lugar Gross por Stableford'],
+    categoria: 'Damas C',
+    premios: ['1°, 2° y 3° - Trofeo'],
   },
   {
-    categoria: 'Campeonato',
-    premios: ['Copa Challenger - El jugador que la gane 3 veces la tendrá definitivamente'],
+    categoria: 'Damas D',
+    premios: ['1°, 2° y 3° - Trofeo'],
+  },
+  {
+    categoria: 'Damas E',
+    premios: ['1°, 2° y 3° - Trofeo'],
+  },
+  {
+    categoria: 'Damas Estelares',
+    premios: ['1°, 2° y 3° - Trofeo'],
+  },
+  {
+    categoria: 'Caballeros (todas las categorías)',
+    premios: ['1°, 2° y 3° - Trofeo'],
+  },
+  {
+    categoria: 'Seniors Campeonato Mayores',
+    premios: ['1° y 2° Gross - Trofeo', '1° y 2° Neto - Trofeo'],
+  },
+  {
+    categoria: 'Seniors A',
+    premios: ['1°, 2° y 3° - Trofeo'],
+  },
+  {
+    categoria: 'Seniors B',
+    premios: ['1°, 2° y 3° - Trofeo'],
   },
 ];
 
@@ -298,10 +326,11 @@ export interface ReglaItem {
   contenido: string;
 }
 
+/** Reglas locales from PDF page 5 */
 export const reglasData: ReglaItem[] = [
-  { titulo: 'Hándicap', contenido: handicapText },
-  { titulo: 'Salidas', contenido: salidasText },
-  { titulo: 'Desempates para ganador de trofeo', contenido: desempatesText },
+  { titulo: 'Reglas de Juego', contenido: 'Se jugará bajo las reglas de la USGA adoptadas por la Federación Mexicana de Golf, así como las reglas locales y términos de la competencia que se publicarán para el torneo. Las controversias que se originen sobre cualquier punto relacionado con la aplicación de las reglas serán resueltas por el Oficial de Reglas y/o el Comité organizador y su fallo será definitivo e inapelable. Las rondas de juego estipuladas para este torneo son de 9 hoyos.' },
+  { titulo: 'Desempates para Corte', contenido: desempatesText },
+  { titulo: 'Nota Importante', contenido: 'Jugador que no pasó el corte oficialmente una vez publicadas las listas de resultados no podrá participar en la ronda final por ningún motivo. En el caso de jugadores participando en dos categorías si pasan el corte en ambas categorías el jugador deberá dar aviso al final aclarando cual de las dos categorías quiere jugar para la ronda final.' },
   { titulo: 'Información General', contenido: informacionGeneralText },
 ];
 
@@ -312,11 +341,33 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
+/** Competencias especiales from PDF pages 7-10 */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
-  { nombre: 'Torneo de Putt', descripcion: 'Competencia abierta a todos los jugadores inscritos.', premios: 'Premios por definir' },
-  { nombre: 'Torneo de Approach', descripcion: 'Competencia abierta a todos los jugadores inscritos.', premios: 'Premios por definir' },
-  { nombre: 'Torneo de Drive', descripcion: 'Competencia de distancia y precisión.', premios: 'Premios por definir' },
-  { nombre: 'Shootout', descripcion: 'Evento especial con formato eliminatorio.' },
+  {
+    nombre: 'Tiro Espectacular de Approach',
+    descripcion: 'Podrán participar únicamente jugadores inscritos al torneo. Cada participante tendrá derecho a realizar dos tiros en los días de calificación. Pasarán a la final los mejores 10 resultados diarios. Calificación: sábado 25, domingo 26, lunes 27 y martes 28 de abril en el área del par 3, de 11:00 a 17:00hrs. Final: miércoles 29 de abril a las 18:30hrs en el Green del Hoyo 15.',
+    premios: '1er Lugar: Auto 2026 (solo se entregará un auto). 2do Lugar: Bolsa de Golf.',
+  },
+  {
+    nombre: 'Torneo de Putt',
+    descripcion: 'Podrán participar únicamente jugadores inscritos al torneo. Cada participante tendrá derecho a realizar 2 tiros en los días de calificación (cada jugador solo podrá participar 1 vez en el día). Calificaciones diarias del sábado 25 al miércoles 29 de abril de 11:00 a 17:00hrs en el putting green. Pasarán a la final los mejores 64 caballeros y las mejores 32 damas. Final: viernes 1 de mayo (18:00hrs damas, 19:30hrs caballeros).',
+    premios: '1er Lugar Damas: $10,000 en Vales. 1er Lugar Caballeros: $10,000 en Vales. 2do Lugar: $7,000 en Vales. 3er Lugar: $5,000 en Vales.',
+  },
+  {
+    nombre: 'Putt Espectacular de 35 Yardas',
+    descripcion: 'Participarán las 4 finalistas del Torneo de Putt damas y los 8 finalistas del torneo de Putt caballeros. Se jugará el viernes 1 de mayo durante el torneo de Putt. 1 Putt de 35 yardas en el Putting Green de la Terraza. Se sortea el turno de participación.',
+    premios: 'Primer jugador que emboque: 25,000 USD. Segundo jugador que emboque o mejor O\'yes: Bolsa de Golf.',
+  },
+  {
+    nombre: 'Torneo Driver Damas',
+    descripcion: 'Driver de distancia: se premiará al driver más largo dentro del fairway del hoyo 4 entre categorías A, B, C, D y E. Driver de precisión: se premiará al driver más cerca de la línea marcada entre categorías A, B, C, D, E y Estelares. Una jugadora no podrá ganar ambos premios. Día de juego: lunes 27 de abril. Lugar: Hoyo 4.',
+    premios: '1er lugar de precisión: 300 dlls. 1er lugar de distancia: 300 dlls.',
+  },
+  {
+    nombre: 'Torneo Driver Caballeros',
+    descripcion: 'Podrán participar todos los jugadores inscritos con un mínimo de distancia de 280 yardas. Inscripciones el día del evento en la mesa de salida del hoyo 16. Cada jugador tendrá derecho a realizar dos tiros. Día de competencia: jueves 30 de abril a las 18:30hrs en la tee del hoyo 16.',
+    premios: '1er lugar: 400 Dlls. 2do lugar: 300 Dlls.',
+  },
 ];
 
 // API simulation functions - replace with actual fetch calls
