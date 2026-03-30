@@ -31,12 +31,28 @@ const CompetenciasEspecialesSection = ({ data }: CompetenciasEspecialesSectionPr
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-muted-foreground leading-relaxed">{comp.descripcion}</p>
-              {comp.premios && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Gift className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-foreground">{comp.premios}</span>
-                </div>
-              )}
+              {comp.premios && (() => {
+                /** Split prizes by ". " pattern (e.g. "1ero: $1,000 USD. 2do: $850 USD.") */
+                const items = comp.premios.split(/\.\s+/).map(s => s.replace(/\.$/, '').trim()).filter(Boolean);
+                return items.length > 1 ? (
+                  <div>
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                      <Gift className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-foreground">Premios:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-foreground ml-6">
+                      {items.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Gift className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-foreground">{comp.premios}</span>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         ))}
