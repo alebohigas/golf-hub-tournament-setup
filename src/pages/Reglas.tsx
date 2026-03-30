@@ -72,8 +72,8 @@ const Reglas = () => {
             </Card>
           )}
 
-          {/* Reglamento Local - free-text local rules from convocatoria */}
-          {reglamentoLocalData && reglamentoLocalData.trim().length > 0 && (
+          {/* Reglamento Local - collapsible sections from convocatoria */}
+          {reglamentoLocalData.length > 0 && (
             <Card className="border-border/50 mb-12">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display">
@@ -81,8 +81,19 @@ const Reglas = () => {
                   Reglamento Local
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                {reglamentoLocalData}
+              <CardContent>
+                <Accordion type="multiple" className="w-full">
+                  {reglamentoLocalData.map((item, idx) => (
+                    <AccordionItem key={idx} value={`reglamento-${idx}`}>
+                      <AccordionTrigger className="hover:no-underline font-medium">
+                        {item.titulo}
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {item.contenido}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </CardContent>
             </Card>
           )}
