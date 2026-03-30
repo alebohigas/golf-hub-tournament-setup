@@ -54,6 +54,7 @@ export const useTournamentInfo = () => {
         ...data,
         logoUrl: data.logo || data.logoUrl || '',
         heroImageUrl: data.heroImage || data.heroImageUrl || '',
+        logoHeaderUrl: data.logoHeader || data.logoHeaderUrl || '',
         phone: data.phone || '',
         email: data.email || '',
         city: data.city || '',

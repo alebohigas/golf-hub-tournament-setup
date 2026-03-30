@@ -21,7 +21,10 @@ export interface TournamentInfo {
   name: string;
   club: string;
   logoUrl: string;
+  /** Background image for Hero section (from logo_fondo) */
   heroImageUrl: string;
+  /** Logo for header/nav ribbon (from logo_header) */
+  logoHeaderUrl: string;
   startDate: string;
   endDate: string;
   venue: string;
@@ -79,6 +82,7 @@ export const tournamentInfo: TournamentInfo = {
   club: 'Club Campestre Torreón',
   logoUrl: '',
   heroImageUrl: '',
+  logoHeaderUrl: '',
   startDate: '2025-09-30',
   endDate: '2025-10-04',
   venue: 'Club Campestre Torreón',

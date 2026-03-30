@@ -13,6 +13,7 @@ $tid = esc($conn, $torneoid);
 $sql = "SELECT a.torneo_id, a.nombre, a.fecha_ini, a.fecha_fin, a.status,
                a.logo, a.formato, a.estilo, a.sistemajuego, a.tipotorneo,
                a.color_cinta, a.imagen_gif, a.telefono, a.correotorne,
+               a.logo_fondo, a.logo_header,
                b.nombre as club, b.logo as club_logo, b.ciudad, b.estado
         FROM torneo a
         JOIN clubs b ON (a.club_id = b.id)
@@ -65,7 +66,8 @@ json_response([
     'system'      => $torneo['sistemajuego'],
     'type'        => $torneo['tipotorneo'],
     'ribbonColor' => $torneo['color_cinta'],
-    'heroImage'   => $torneo['imagen_gif'] ? $LOGOS_BASE_URL . $torneo['imagen_gif'] : null,
+    'heroImage'   => $torneo['logo_fondo'] ? $LOGOS_BASE_URL . $torneo['logo_fondo'] : ($torneo['imagen_gif'] ? $LOGOS_BASE_URL . $torneo['imagen_gif'] : null),
+    'logoHeader'  => $torneo['logo_header'] ? $LOGOS_BASE_URL . $torneo['logo_header'] : null,
     'phone'       => $torneo['telefono'] ?? '',
     'email'       => $torneo['correotorne'] ?? '',
     'city'        => $torneo['ciudad'] ?? '',
