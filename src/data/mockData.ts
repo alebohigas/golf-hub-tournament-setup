@@ -89,18 +89,15 @@ export const tournamentInfo: TournamentInfo = {
 };
 
 export const categories: Category[] = [
-  { id: '1', name: 'CAMPEONATO', handicapMin: -5, handicapMax: 1.8, format: 'STROKE PLAY', ventajas: 'SIN VENTAJAS', maxPlayers: 36, rounds: '54 HOYOS', teeMarker: 'AZULES' },
-  { id: '2', name: 'AA', handicapMin: 1.9, handicapMax: 5.3, format: 'STROKE PLAY', ventajas: 'SIN VENTAJAS', maxPlayers: 32, rounds: '54 HOYOS', teeMarker: 'AZULES' },
-  { id: '3', name: 'A', handicapMin: 5.4, handicapMax: 9.5, format: 'STABLEFORD', ventajas: 'SIN VENTAJAS', maxPlayers: 40, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '4', name: 'B', handicapMin: 9.6, handicapMax: 13.9, format: 'STABLEFORD', ventajas: 'SIN VENTAJAS', maxPlayers: 36, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '5', name: 'C', handicapMin: 14.0, handicapMax: 18.3, format: 'STABLEFORD', ventajas: 'SIN VENTAJAS', maxPlayers: 36, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '6', name: 'D', handicapMin: 18.4, handicapMax: 22.7, format: 'STABLEFORD', ventajas: 'SIN VENTAJAS', maxPlayers: 32, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '7', name: 'E', handicapMin: 22.8, handicapMax: 32.4, format: 'STABLEFORD', ventajas: 'AL 70%', maxPlayers: 24, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '8', name: 'SENIORS CAMPEONATO', handicapMin: 0.1, handicapMax: 9.4, format: 'STROKE PLAY', ventajas: '80%', maxPlayers: 16, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
-  { id: '9', name: 'SENIORS A', handicapMin: 9.5, handicapMax: 18.0, format: 'STABLEFORD', ventajas: '70%', maxPlayers: 20, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
-  { id: '10', name: 'SENIORS B', handicapMin: 18.1, handicapMax: 37.9, format: 'STABLEFORD', ventajas: 'AL 70%', maxPlayers: 20, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
-  { id: '11', name: 'SUPER SENIORS 70 Y MÁS', handicapMin: 3.5, handicapMax: 33, format: 'STABLEFORD', ventajas: 'AL 70%', maxPlayers: 20, rounds: '54 HOYOS', teeMarker: 'AMARILLAS' },
-  { id: '12', name: 'DAMAS 1ra. 2da.', handicapMin: 3.5, handicapMax: 33, format: 'STABLEFORD', ventajas: 'AL 80%', maxPlayers: 32, rounds: '54 HOYOS', teeMarker: 'ROJAS' },
+  { id: '1', name: 'PRIMERA', handicapMin: 0.4, handicapMax: 6.9, format: 'STROKE PLAY', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'AZULES' },
+  { id: '2', name: 'A', handicapMin: 7.0, handicapMax: 11.5, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '3', name: 'B', handicapMin: 11.6, handicapMax: 16.2, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '4', name: 'C', handicapMin: 16.3, handicapMax: 20.8, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '5', name: 'D', handicapMin: 20.9, handicapMax: 31.9, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '6', name: 'SENIOR PRIMERA', handicapMin: 0.0, handicapMax: 15.0, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'DORADAS' },
+  { id: '7', name: 'SENIOR PRIMERA', handicapMin: 16.0, handicapMax: 29.0, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'DORADAS' },
+  { id: '8', name: 'DAMAS', handicapMin: 0.0, handicapMax: 35.2, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'ROJAS' },
+  { id: '9', name: 'NOVATOS', handicapMin: 0, handicapMax: 54, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '9 HOYOS P/DÍA', teeMarker: 'BLANCAS' },
 ];
 
 export const tournamentStats: TournamentStats = {
