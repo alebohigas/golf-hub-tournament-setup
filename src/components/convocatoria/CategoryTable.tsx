@@ -71,7 +71,7 @@ const CategoryTable = () => {
                 {category.ventajas}
               </TableCell>
               <TableCell className="text-center font-medium text-foreground">
-                {category.maxPlayers}
+                {category.maxPlayers ? category.maxPlayers : '∞'}
               </TableCell>
               <TableCell className="text-center text-muted-foreground">
                 {category.rounds}
