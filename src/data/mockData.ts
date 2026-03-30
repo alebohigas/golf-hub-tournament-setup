@@ -82,6 +82,7 @@ export const tournamentInfo: TournamentInfo = {
   club: 'Club Campestre Torreón',
   logoUrl: '',
   heroImageUrl: '',
+  logoHeaderUrl: '',
   startDate: '2025-09-30',
   endDate: '2025-10-04',
   venue: 'Club Campestre Torreón',
