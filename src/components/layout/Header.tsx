@@ -444,7 +444,7 @@ const Header = () => {
               size="icon"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="h-16 w-16" strokeWidth={4} /> : <Menu className="h-16 w-16" strokeWidth={4} />}
+              {isMenuOpen ? <X className="h-24 w-24" strokeWidth={4} /> : <Menu className="h-24 w-24" strokeWidth={4} />}
             </Button>
           </div>
         </div>
