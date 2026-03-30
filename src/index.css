@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Golf-inspired color palette */
-    --background: 45 20% 97%;
+    --background: 0 0% 100%;
     --foreground: 150 30% 10%;
 
     --card: 45 30% 98%;
