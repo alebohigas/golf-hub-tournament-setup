@@ -307,7 +307,7 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
