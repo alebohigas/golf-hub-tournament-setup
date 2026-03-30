@@ -22,6 +22,7 @@ interface CostosSectionProps {
   pricingNote: string;
   contactInfo: ContactInfo;
   contactWarning: string;
+  inscripcionesText?: string;
 }
 
 /** Column definitions for installment months */
@@ -43,6 +44,7 @@ const CostosSection = ({
   pricingNote,
   contactInfo,
   contactWarning,
+  inscripcionesText,
 }: CostosSectionProps) => {
   return (
     <div className="space-y-8">
@@ -178,6 +180,13 @@ const CostosSection = ({
       {/* Warning note — only if not empty */}
       {contactWarning && (
         <p className="text-center text-sm text-muted-foreground italic px-4">{contactWarning}</p>
+      )}
+
+      {/* Inscripciones contact note */}
+      {inscripcionesText && (
+        <p className="text-center text-sm font-medium text-foreground whitespace-pre-line px-4">
+          {inscripcionesText}
+        </p>
       )}
     </div>
   );
