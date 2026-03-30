@@ -115,7 +115,7 @@ const Hero = () => {
             <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-gold font-semibold px-8">
               <Link to="/convocatoria">Ver Convocatoria</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+            <Button asChild variant="outline" size="lg" className="border-primary-foreground/30 text-foreground bg-background/90 hover:bg-background">
               <Link to="/jugadores">Ver Jugadores</Link>
             </Button>
           </div>
