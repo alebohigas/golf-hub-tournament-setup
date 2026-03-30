@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText } from 'lucide-react';
 import { reglasData, reglamentoLocalData } from '@/data/mockData';
+import reglasHero from '@/assets/reglas-hero.jpg';
 
 const Reglas = () => {
   return (
@@ -16,6 +17,7 @@ const Reglas = () => {
       <PageHero 
         title="Reglas y Código de Conducta"
         subtitle="Reglamento oficial del torneo"
+        backgroundImage={reglasHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
