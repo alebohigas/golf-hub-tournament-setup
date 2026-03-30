@@ -25,10 +25,22 @@ const formatTime = (timeStr: string): string => {
   return `${displayHour}:${m} ${ampm}`;
 };
 
+/** Map English day/month names to Spanish */
+const dayNameEs: Record<string, string> = {
+  Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles',
+  Thursday: 'Jueves', Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo',
+};
+const monthNameEs: Record<string, string> = {
+  January: 'Enero', February: 'Febrero', March: 'Marzo', April: 'Abril',
+  May: 'Mayo', June: 'Junio', July: 'Julio', August: 'Agosto',
+  September: 'Septiembre', October: 'Octubre', November: 'Noviembre', December: 'Diciembre',
+};
+
 /** Format date for column headers — e.g. "Jueves 2 de Abril" */
 const formatDateHeader = (d: CalendarDate): string => {
-  const monthCapitalized = d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '';
-  return `${d.dayOfWeek} ${d.dayNum} de ${monthCapitalized}`;
+  const day = dayNameEs[d.dayOfWeek] || d.dayOfWeek;
+  const month = monthNameEs[d.month] || (d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '');
+  return `${day} ${d.dayNum} de ${month}`;
 };
 
 const Calendario = () => {
