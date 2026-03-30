@@ -171,7 +171,7 @@ const Resultados = () => {
         subtitle="Consulta los resultados de cada ronda y clasificación general"
         backgroundImage={resultadosHero}
       />
-      <section className="py-16 bg-background">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           {!selectedCategoryId ? (
             <>
@@ -307,7 +307,7 @@ const Resultados = () => {
                           {players.length > 0 ? (
                             players.map((player, idx) => (
                               <Fragment key={player.id}>
-                                <TableRow className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
+                                <TableRow className={idx % 2 === 0 ? 'bg-white' : 'bg-muted/30'}>
                                   <TableCell className="font-semibold">
                                     <div className="flex items-center gap-2">
                                       {getPositionIcon(player.position)}

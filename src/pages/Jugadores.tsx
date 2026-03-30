@@ -41,7 +41,7 @@ const Jugadores = () => {
         subtitle="Lista completa de participantes inscritos en el torneo"
         backgroundImage={jugadoresHero}
       />
-      <section className="py-16 bg-background">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           {!selectedCategory ? (
             <>
