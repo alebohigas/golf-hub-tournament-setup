@@ -268,8 +268,119 @@ export interface ReglaItem {
 /** Reglas locales - Semana Santa (no detailed rules in flyer) */
 export const reglasData: ReglaItem[] = [];
 
-/** Reglamento local - free-text local rules content (populated from convocatoria PDF) */
-export const reglamentoLocalData: string = '';
+/** Reglamento local - structured local rules with collapsible sections */
+export interface ReglamentoLocalItem {
+  titulo: string;
+  contenido: string;
+}
+
+/** Reglamento local - Semana Santa Chilchota 2026 */
+export const reglamentoLocalData: ReglamentoLocalItem[] = [
+  {
+    titulo: 'Responsabilidad del Jugador',
+    contenido: 'ES RESPONSABILIDAD DEL JUGADOR CONOCER LAS REGLAS DE GOLF, LAS CONDICIONES DE LA COMPETENCIA Y LAS REGLAS LOCALES.'
+  },
+  {
+    titulo: 'Reglas Aplicables',
+    contenido: 'Regirán las Reglas de Golf de la USGA adoptadas por FMG, así como las siguientes Condiciones de Competencia y Reglas Locales, mismas que dejan sin efecto otras utilizadas en otros torneos incluyendo las propias del Score Card del Club o cualquier otro documento. Se designa al comité de golf como Juez del Torneo.\n\nLa penalidad por infringir alguna de las presentes será de dos golpes.'
+  },
+  {
+    titulo: 'Handicaps (R3.3)',
+    contenido: 'El Comité será el encargado de registrar los hándicaps de los jugadores y ubicarlos en su categoría correspondiente, pero si un jugador sabe que el comité cometió un error con su hándicap deberá informarlo lo más pronto posible, de lo contrario este podría quedar descalificado de la competencia. La fecha de corte del hándicap es al día 15 de marzo 2026. El comité se reserva el derecho de aceptar la validez del hándicap.'
+  },
+  {
+    titulo: 'Jugadores sin Handicap Oficial',
+    contenido: 'Si un jugador no cuenta con un hándicap Oficial como GHIN O SPEI, deberá presentar una carta del profesional al club que pertenezca.'
+  },
+  {
+    titulo: 'Hora de Salida (R5.3a)',
+    contenido: 'Los jugadores deberán estar en su Área de salida, listos para jugar, a la hora estipulada independientemente del orden en que les toque salir. Si el jugador se presenta hasta con cinco minutos de retraso a su mesa de salida, tendrá dos golpes de castigo. Si el jugador se presenta después de los cinco minutos, será descalificado.'
+  },
+  {
+    titulo: 'Retraso Injustificado (R5.6)',
+    contenido: 'Par time para 18 hoyos es de 4:40 hrs. Penalidad por retraso injustificado: un golpe de castigo en primera ocasión, dos golpes en segunda y descalificación en tercera ocasión. Cuando un grupo se retrase, el tiempo para ejecutar su golpe es de 45 segundos al primer jugador en turno y de 40 segundos cada jugador restante.'
+  },
+  {
+    titulo: 'Entrega de Scores (3.3)',
+    contenido: 'El jugador deberá entregar la tarjeta lo más pronto posible; el tiempo máximo para entregar la tarjeta es de 15 minutos.'
+  },
+  {
+    titulo: 'Lies Preferidos - Regla Local E-3',
+    contenido: 'El jugador podrá tomar alivio colocando su bola a lo largo de una tarjeta score sin acercarse a la bandera y sin cambiar de área del campo en el área general y bunkers, no aplica para áreas de penalidad, ni greenes.'
+  },
+  {
+    titulo: 'Puntuación Stableford',
+    contenido: '• 1 golpe sobre par: 1 punto\n• Golpes en el par: 2 puntos\n• 1 golpe bajo el par: 3 puntos\n• 2 golpes bajo el par: 4 puntos\n• 3 golpes bajo el par: 5 puntos\n• 4 golpes bajo el par: 6 puntos'
+  },
+  {
+    titulo: 'Obstrucciones Temporales Inamovibles (RL F-23)',
+    contenido: 'Todas las instalaciones de publicidad, anuncios y carpas, que no se puedan mover, así como los vehículos en exhibición instalados especialmente para este Torneo, se consideran Obstrucciones Temporales Inamovibles y podrán tener alivio sin castigo incluyendo la línea de juego.'
+  },
+  {
+    titulo: 'Zonas o Círculos de Dropeo',
+    contenido: 'Son una opción más de alivio a la regla aplicable para una bola en área de penalidad, hoyo 12.'
+  },
+  {
+    titulo: 'Equipo para Medir Distancia (R4.3,1)',
+    contenido: 'Está permitido. No deberá tener alguna función adicional que pueda medir altura, humedad o temperatura o similar. Penalidad de descalificación.'
+  },
+  {
+    titulo: 'Obstrucciones Inamovibles (R16)',
+    contenido: 'Caminos con superficie artificial y jardineras rodeadas por estos; controles de riego, aspersores, bancas de descanso, casetas de bombeo, tapas de registro de cemento y metal. Snack del hoyo 5.'
+  },
+  {
+    titulo: 'Green Equivocado / Zona de Juego Prohibido (2.4)',
+    contenido: 'Alivio sin castigo obligatorio.'
+  },
+  {
+    titulo: 'Obstrucciones Movibles (R-15)',
+    contenido: 'Esta regla cubre el alivio sin penalidad que está permitido de objetos artificiales como rastrillos u cualquier objeto que cumplen con la definición de obstrucción movible.'
+  },
+  {
+    titulo: 'Obstrucciones Inamovibles Alrededor de los Greenes (Regla Local F-5)',
+    contenido: 'Cuando en la línea de juego exista intervención por una obstrucción que se encuentra dentro de dos bastones de la bola que está dentro del largo de dos bastones del Green, habrá alivio sin castigo dropeando la bola lo más cerca posible de su posición original más 1 bastón (R16), que no se acerque al hoyo, evite la intervención, y esta repose en el Área general.'
+  },
+  {
+    titulo: 'Objetos Integrantes del Campo (R8.1a)',
+    contenido: 'Todos los muros de contención de las mesas de salida incluyendo los setos del hoyo 9 se consideran objetos integrales del campo, por lo cual no tienen alivio.'
+  },
+  {
+    titulo: 'Condiciones Anormales del Campo (R16)',
+    contenido: 'Áreas que estén encerradas con líneas o puntos blancos definen terreno en reparación, Hormigueros, agujeros de animal, Agua Temporal. Los caminos de grava y terracería que involucran a los hoyos 6, 8, 15 y 17.\n\nLas áreas marcadas como terreno en reparación que terminan en caminos con superficie artificial son parte de la misma condición.'
+  },
+  {
+    titulo: 'Bola Enterrada (R16.3)',
+    contenido: 'Una bola tendrá alivio sin castigo si está enterrada por su propio impacto a través del campo en área general.'
+  },
+  {
+    titulo: 'Áreas de Penalidad (R17)',
+    contenido: 'Se encuentran identificados por estacas y/o líneas pintadas de rojo (lateral). Los cordones de concreto se consideran parte integrante del campo. Las líneas tienen prioridad sobre las estacas.'
+  },
+  {
+    titulo: 'Fuera de Límites',
+    contenido: 'Está marcado en la parte inferior interna con estacas, líneas blancas o bardas. Las líneas tienen prioridad sobre cualquier otra cosa.'
+  },
+  {
+    titulo: 'Zonas de Juego Prohibido',
+    contenido: 'Identificadas con estaca azul, alivio obligatorio sin castigo, algunas jardineras y árboles recién plantados.'
+  },
+  {
+    titulo: 'Cierre de la Competencia',
+    contenido: 'La Competencia se considera cerrada en el momento del inicio de la ceremonia de premiación.'
+  },
+  {
+    titulo: 'Otras Recomendaciones',
+    contenido: 'Recuerde que las Reglas contemplan:\n\n• Marcar su bola para identificación.\n• No hay dadas, hay que embocar.\n• No se puede cambiar la bola sobre el Green o en ninguna otra parte a menos que una Regla lo permita.\n• No se pueden usar más de 14 bastones.\n• Estar 10 minutos antes de su hora de salida.\n• No se puede dar o recibir consejo.'
+  },
+  {
+    titulo: 'Desempates',
+    contenido: 'Para el primer lugar en todas las categorías será en el campo hoyo por hoyo bajo el mismo sistema jugado durante la competencia con ventajas por el hoyo designado por el Oficial de Reglas y el Comité, el primer criterio será por comparación de tarjetas de la última ronda (mejor score) y como segundo criterio será (retrogresión) en la vuelta 10-18, de la última ronda, en caso de persistir el empate, de los hoyos: 13-18, 16-18, 18.'
+  },
+  {
+    titulo: 'Suspensión',
+    contenido: 'En caso de ser necesario la Suspensión de la ronda esta será avisada por medio de un escopetazo, al igual que la reanudación de la misma.'
+  }
+];
 
 /** Competencias especiales data */
 export interface CompetenciaEspecial {
