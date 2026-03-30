@@ -7,7 +7,7 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Scale, Clock, AlertTriangle, Gavel } from 'lucide-react';
+import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText } from 'lucide-react';
 import { reglasData, reglamentoLocalData } from '@/data/mockData';
 
 const Reglas = () => {
