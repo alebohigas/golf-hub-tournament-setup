@@ -25,9 +25,10 @@ const formatTime = (timeStr: string): string => {
   return `${displayHour}:${m} ${ampm}`;
 };
 
-/** Format date for column headers */
+/** Format date for column headers — e.g. "Jueves 2 de Abril" */
 const formatDateHeader = (d: CalendarDate): string => {
-  return `${d.dayOfWeek} ${d.dayNum}`;
+  const monthCapitalized = d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '';
+  return `${d.dayOfWeek} ${d.dayNum} de ${monthCapitalized}`;
 };
 
 const Calendario = () => {
