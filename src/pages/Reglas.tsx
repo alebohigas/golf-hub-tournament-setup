@@ -1,8 +1,14 @@
+/**
+ * Reglas Page
+ * Displays tournament rules, code of conduct, and local rules from convocatoria
+ */
+
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Scale, Clock, AlertTriangle } from 'lucide-react';
+import { BookOpen, Scale, Clock, AlertTriangle, Gavel } from 'lucide-react';
+import { reglasData } from '@/data/mockData';
 
 const Reglas = () => {
   return (
@@ -13,6 +19,7 @@ const Reglas = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
+          {/* General rules cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <Card className="border-border/50">
               <CardHeader>
@@ -39,9 +46,36 @@ const Reglas = () => {
             </Card>
           </div>
 
+          {/* Local rules from convocatoria */}
+          {reglasData.length > 0 && (
+            <Card className="border-border/50 mb-12">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <Gavel className="h-5 w-5 text-primary" />
+                  Reglas Locales del Torneo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="multiple" className="w-full">
+                  {reglasData.map((regla, idx) => (
+                    <AccordionItem key={idx} value={`regla-${idx}`}>
+                      <AccordionTrigger className="hover:no-underline font-medium">
+                        {regla.titulo}
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {regla.contenido}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Code of conduct accordion */}
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="font-display">Reglamento del Torneo</CardTitle>
+              <CardTitle className="font-display">Código de Conducta</CardTitle>
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
