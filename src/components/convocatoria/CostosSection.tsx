@@ -184,7 +184,7 @@ const CostosSection = ({
 
       {/* Inscripciones contact note */}
       {inscripcionesText && (
-        <p className="text-center text-sm font-medium text-foreground whitespace-pre-line px-4">
+        <p className="text-center text-sm text-foreground whitespace-pre-line px-4 font-bold">
           {inscripcionesText}
         </p>
       )}
