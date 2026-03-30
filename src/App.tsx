@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PageVisibilityProvider, usePageVisibility } from "@/contexts/PageVisibilityContext";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { useAppIcon } from "@/hooks/useAppIcon";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import Convocatoria from "./pages/Convocatoria";
@@ -41,6 +42,9 @@ const queryClient = new QueryClient();
  */
 const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
   const { data } = useSiteConfig();
+
+  /** Set apple-touch-icon & favicon dynamically from tournament logo */
+  useAppIcon();
   const { 
     setMenuItemOrder, 
     setPageVisibility, 
