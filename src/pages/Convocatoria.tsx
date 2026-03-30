@@ -28,7 +28,6 @@ import CompetenciasEspecialesSection from '@/components/convocatoria/Competencia
 import {
   eligibilityText,
   notesText,
-  tournamentInfo,
   scheduleData,
   inscripcionesText,
   sociosPricing,
