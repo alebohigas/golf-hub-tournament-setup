@@ -72,6 +72,21 @@ const Reglas = () => {
             </Card>
           )}
 
+          {/* Reglamento Local - free-text local rules from convocatoria */}
+          {reglamentoLocalData && reglamentoLocalData.trim().length > 0 && (
+            <Card className="border-border/50 mb-12">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <ScrollText className="h-5 w-5 text-primary" />
+                  Reglamento Local
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                {reglamentoLocalData}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Code of conduct accordion */}
           <Card className="border-border/50">
             <CardHeader>
