@@ -268,6 +268,9 @@ export interface ReglaItem {
 /** Reglas locales - Semana Santa (no detailed rules in flyer) */
 export const reglasData: ReglaItem[] = [];
 
+/** Reglamento local - free-text local rules content (populated from convocatoria PDF) */
+export const reglamentoLocalData: string = '';
+
 /** Competencias especiales data */
 export interface CompetenciaEspecial {
   nombre: string;

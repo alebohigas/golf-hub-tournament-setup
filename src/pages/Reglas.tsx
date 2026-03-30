@@ -7,8 +7,8 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Scale, Clock, AlertTriangle, Gavel } from 'lucide-react';
-import { reglasData } from '@/data/mockData';
+import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText } from 'lucide-react';
+import { reglasData, reglamentoLocalData } from '@/data/mockData';
 
 const Reglas = () => {
   return (
@@ -68,6 +68,21 @@ const Reglas = () => {
                     </AccordionItem>
                   ))}
                 </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Reglamento Local - free-text local rules from convocatoria */}
+          {reglamentoLocalData && reglamentoLocalData.trim().length > 0 && (
+            <Card className="border-border/50 mb-12">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <ScrollText className="h-5 w-5 text-primary" />
+                  Reglamento Local
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                {reglamentoLocalData}
               </CardContent>
             </Card>
           )}
