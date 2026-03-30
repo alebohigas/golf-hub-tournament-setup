@@ -171,14 +171,14 @@ const Convocatoria = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-2 text-lg text-accent">
-              <Calendar className="h-5 w-5" />
-              <span className="font-medium">
-                {tournamentData?.startDate && tournamentData?.endDate
-                  ? formatDate(tournamentData.startDate, tournamentData.endDate)
-                  : formatDate(tournamentInfo.startDate, tournamentInfo.endDate)}
-              </span>
-            </div>
+            {tournamentData?.startDate && tournamentData?.endDate && (
+              <div className="flex items-center justify-center gap-2 text-lg text-accent">
+                <Calendar className="h-5 w-5" />
+                <span className="font-medium">
+                  {formatDate(tournamentData.startDate, tournamentData.endDate)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Dynamic sections rendered in order */}
