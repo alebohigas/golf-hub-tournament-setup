@@ -15,7 +15,6 @@ const StatsSection = () => {
   /** Stats display configuration */
   const statsData = [
     { value: `${stats.totalHistoricalPlayers.toLocaleString()}+`, label: 'Participantes Registrados' },
-    { value: '—', label: 'Premios Otorgados' }, // TODO: pendiente definir query de premios
     { value: stats.yearsHistoryDisplay, label: 'Años de Historia' },
     { value: `${stats.maxCategories}+`, label: 'Categorías en un Torneo' },
   ];
