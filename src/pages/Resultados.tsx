@@ -287,10 +287,10 @@ const Resultados = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <Card className="border-border/50 max-w-5xl mx-auto">
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
+                <Card className="border-border/50 bg-white max-w-5xl mx-auto">
+                  <CardContent className="p-0 bg-white">
+                    <div className="overflow-x-auto bg-white">
+                      <Table className="bg-white">
                         <TableHeader>
                           <TableRow className="bg-primary hover:bg-primary">
                             <TableHead className="text-primary-foreground font-bold w-16">Pos</TableHead>
@@ -307,7 +307,7 @@ const Resultados = () => {
                           {players.length > 0 ? (
                             players.map((player, idx) => (
                               <Fragment key={player.id}>
-                                <TableRow className={idx % 2 === 0 ? 'bg-white' : 'bg-muted/30'}>
+                                <TableRow className="bg-white hover:bg-white">
                                   <TableCell className="font-semibold">
                                     <div className="flex items-center gap-2">
                                       {getPositionIcon(player.position)}
@@ -364,7 +364,7 @@ const Resultados = () => {
                                 {/* Expanded scorecard row */}
                                 {expandedScorecard?.startsWith(`${player.id}-`) && (
                                   scorecardLoading ? (
-                                    <TableRow className="bg-muted/10 hover:bg-muted/10">
+                                    <TableRow className="bg-white hover:bg-white">
                                       <TableCell colSpan={3 + (categoryDetail?.days?.length || 0) + 1} className="text-center py-6 text-muted-foreground">
                                         Cargando tarjeta...
                                       </TableCell>

@@ -114,14 +114,14 @@ const Jugadores = () => {
               </div>
 
               {/* Players Table - full width, centered */}
-              <Card className="border-border/50 w-full max-w-4xl mx-auto">
-                <div className="overflow-x-auto">
+              <Card className="border-border/50 bg-white w-full max-w-4xl mx-auto">
+                <div className="overflow-x-auto bg-white">
                   {loadingPlayers ? (
                     <div className="flex justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : (
-                    <Table>
+                    <Table className="bg-white">
                       <TableHeader>
                          <TableRow className="bg-primary hover:bg-primary">
                            <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
@@ -134,7 +134,7 @@ const Jugadores = () => {
                        <TableBody>
                          {players.length > 0 ? (
                            players.map((player) => (
-                             <TableRow key={player.id}>
+                             <TableRow key={player.id} className="bg-white hover:bg-white">
                                {/* Club Logo column */}
                                <TableCell className="p-1 text-center align-middle">
                                  <img
