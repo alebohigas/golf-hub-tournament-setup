@@ -22,6 +22,7 @@ interface CostosSectionProps {
   pricingNote: string;
   contactInfo: ContactInfo;
   contactWarning: string;
+  inscripcionesText?: string;
 }
 
 /** Column definitions for installment months */
