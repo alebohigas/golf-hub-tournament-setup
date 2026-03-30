@@ -33,15 +33,7 @@ export const useAppIcon = () => {
     }
     appleTouchIcon.href = logoUrl;
 
-    // ============= Standard Favicon =============
-    let favicon = document.querySelector<HTMLLinkElement>(
-      'link[rel="icon"]'
-    );
-    if (!favicon) {
-      favicon = document.createElement('link');
-      favicon.rel = 'icon';
-      document.head.appendChild(favicon);
-    }
-    favicon.href = logoUrl;
+    // Note: Standard favicon is NOT changed here — it keeps the original
+    // favicon.ico for browser tabs. Only apple-touch-icon is set dynamically.
   }, [tournament?.logoHeaderUrl]);
 };
