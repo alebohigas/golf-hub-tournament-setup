@@ -445,7 +445,16 @@ const Header = () => {
               className="!h-14 !w-14"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="!h-9 !w-9" strokeWidth={2.5} /> : <Menu className="!h-9 !w-9" strokeWidth={2.5} />}
+              {isMenuOpen ? (
+                <X className="!h-9 !w-9" strokeWidth={2.5} />
+              ) : (
+                /* Custom hamburger icon with tighter bar spacing */
+                <svg className="!h-9 !w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <line x1="4" y1="8" x2="20" y2="8" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="16" x2="20" y2="16" />
+                </svg>
+              )}
             </Button>
           </div>
         </div>
