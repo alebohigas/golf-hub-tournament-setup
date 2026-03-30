@@ -317,7 +317,7 @@ const Header = () => {
                 <img 
                   src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
-                  className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-contain"
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-contain"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
