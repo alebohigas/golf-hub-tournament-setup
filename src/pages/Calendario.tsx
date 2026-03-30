@@ -1,16 +1,18 @@
 /**
  * Calendario Page
  * Displays tournament schedule showing which category plays on which day
- * Data fetched from calendario.php via React Query hooks
+ * Also shows convocatoria schedule/horario data when available
  */
 
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
-import { Card, CardContent } from '@/components/ui/card';
-import { Sun, Moon, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sun, Moon, Loader2, CalendarDays } from 'lucide-react';
 import { useTournamentDays, useCategorySchedules } from '@/hooks/useCalendarioData';
 import type { TimeSlot } from '@/data/calendarioData';
 import calendarioHero from '@/assets/calendario-hero.jpg';
+import { scheduleData, salidasText } from '@/data/mockData';
+import ScheduleTable from '@/components/convocatoria/ScheduleTable';
 
 /** Renders a single AM/PM cell in the schedule table */
 const TimeSlotCell = ({ slot, shortName }: { slot: TimeSlot; shortName: string }) => {
@@ -34,6 +36,11 @@ const Calendario = () => {
 
   const isLoading = loadingDays || loadingCats;
 
+  /** Check if convocatoria schedule has any data */
+  const hasScheduleData = scheduleData.length > 0 && scheduleData.some(
+    (s) => s.martes.length > 0 || s.miercoles.length > 0 || s.jueves.length > 0 || s.viernes.length > 0 || s.sabado.length > 0
+  );
+
   return (
     <Layout>
       <PageHero 
@@ -43,6 +50,7 @@ const Calendario = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
+          {/* DB-driven category schedule */}
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-foreground">Calendario por Categoría</h2>
           </div>
@@ -102,6 +110,26 @@ const Calendario = () => {
                 </table>
               </CardContent>
             </Card>
+          )}
+
+          {/* Convocatoria schedule/horario section */}
+          {hasScheduleData && (
+            <div className="mt-16 max-w-5xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-display">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                    Horario de Salidas por Turno
+                  </CardTitle>
+                  {salidasText && (
+                    <p className="text-muted-foreground text-sm mt-1">{salidasText}</p>
+                  )}
+                </CardHeader>
+                <CardContent className="p-0 md:p-6 pt-0">
+                  <ScheduleTable scheduleData={scheduleData} />
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </section>
