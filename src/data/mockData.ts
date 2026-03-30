@@ -111,15 +111,10 @@ export const tournamentStats: TournamentStats = {
 };
 
 /** Eligibility requirements from convocatoria */
-export const eligibilityText = "Podrán participar damas y caballeros amateurs mayores de 18 años que tengan hándicap registrado en la FMG o en el sistema interno del club, publicado al 1° de abril de 2026. En categoría \"Campeonato y Premier\" se permitirá jugar a menores de 18 años, que cuenten con el hándicap solicitado. Al jugador que no tenga hándicap registrado, los profesionales le podrán calcular uno siempre y cuando tengan un mínimo de 8 scores entregados.";
+export const eligibilityText = "";
 
 /** Important notes for eligibility section */
-export const notesText = [
-  "La fecha límite de inscripción será el domingo 19 de abril o al completar el cupo límite de cada categoría.",
-  "La fecha límite para recibir cancelaciones será el martes 21 de abril y en su caso les será reembolsado el pago de las inscripciones. Después de esta fecha no se aceptan cancelaciones.",
-  "Los jugadores que soliciten participar en una categoría que no les corresponda con su hándicap, tendrán que esperar hasta 2 días antes del inicio de juego de la categoría solicitada, para asegurar que no quede fuera otro jugador que sí cumpla con el hándicap requerido.",
-  "Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores que se queden fuera entrarán en una lista de espera.",
-];
+export const notesText: string[] = [];
 
 export interface ScheduleSlot {
   turno: string;
@@ -131,45 +126,26 @@ export interface ScheduleSlot {
   sabado: string[];
 }
 
-/** Schedule data from convocatoria PDF - Valle Alto */
-export const scheduleData: ScheduleSlot[] = [
-  {
-    turno: 'MATUTINO',
-    horario: 'A PARTIR DE 06:10 HRS',
-    martes: [],
-    miercoles: [],
-    jueves: [],
-    viernes: ['Campeonato', 'Premier', 'AA'],
-    sabado: ['A'],
-  },
-  {
-    turno: 'VESPERTINO',
-    horario: 'A PARTIR DE 11:00 HRS',
-    martes: [],
-    miercoles: [],
-    jueves: [],
-    viernes: [],
-    sabado: [],
-  },
-];
+/** Schedule data - Semana Santa Chilchota 2026 (no detailed schedule in flyer) */
+export const scheduleData: ScheduleSlot[] = [];
 
 /** Salidas description */
-export const salidasText = "Las salidas del turno matutino serán a partir de las 06:10hrs. Las salidas del turno vespertino serán a partir de las 11:00hrs.";
+export const salidasText = "";
 
 /** Handicap rules */
-export const handicapText = "Los jugadores deberán tener hándicap registrado en la FMG o en el sistema interno del club, publicado al 1° de abril de 2026. Al jugador que no tenga hándicap registrado, los profesionales le podrán calcular uno siempre y cuando tengan un mínimo de 8 scores entregados.";
+export const handicapText = "";
 
-/** Desempates rules from PDF */
-export const desempatesText = "Primer término: ganará el jugador con mejor score del último día. Segundo término: se tomará la tarjeta del último día para desempatar por el sistema de comparación de tarjetas (9-6-3-1), de la vuelta del hoyo 10 al 18. En caso de persistir el empate, se hará lo mismo para la 1ª vuelta. Para trofeos: Solo para el primer lugar en todas las categorías Gross o Neto se jugará a muerte súbita sin ventajas. El resto de los empates se definirá en primer término por el mejor score del último día. En segundo término será por comparación de tarjetas, comparando las tarjetas del último día del hoyo 10 al 18 bajo el sistema antes mencionado.";
+/** Desempates rules */
+export const desempatesText = "";
 
 /** Premios description */
-export const premiosText = "Trofeos para primero, segundo y tercer lugar en cada categoría según se detalla.";
+export const premiosText = "Se entregarán trofeos al 1°, 2° y 3° lugar de cada categoría y primer Gross a la Primera categoría. Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación.";
 
 /** Eventos adicionales */
-export const eventosAdicionalesText = "Tiro Espectacular de Approach, Torneo de Putt, Putt de 35yds, Torneo Driver Damas, Torneo Driver Caballeros.";
+export const eventosAdicionalesText = "Automóvil 2026 Hole in One, Premios O'Yes General, Torneo de Putt, Torneo de Approach.";
 
-/** Inscripciones text from PDF */
-export const inscripcionesText = "Asociados a partir del miércoles 01 de abril. Hijos de socios dependientes a partir del miércoles 15 de abril. Invitados e Hijos no dependientes a partir del domingo 19 de abril.";
+/** Inscripciones text */
+export const inscripcionesText = "Informes e inscripciones: Oficinas del Club Campestre de Gómez Palacio. Tel: 87 17 14 20 35. WhatsApp: 871 158 8744.";
 
 export interface PricingTier {
   categoria: string;
@@ -187,18 +163,12 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing tables - Valle Alto (simple structure from PDF) */
+/** Pricing - Semana Santa Chilchota 2026 */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costos de Inscripción',
-    subtitle: 'Solamente para jugadores que quieran participar en el Torneo',
+    title: 'Costo de Inscripción',
     tiers: [
-      { categoria: 'Socios Titulares', costo: '$6,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Eméritos', costo: '$5,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas', costo: '$5,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Dependientes', costo: '$5,000', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitados Caballeros', costo: '$18,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitados Damas y Juveniles', costo: '$10,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Inscripción General', costo: '$3,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
@@ -210,7 +180,7 @@ export interface ForaneosPricing {
   damasSeniors: string;
 }
 
-/** Foráneos pricing - not applicable for Valle Alto, empty */
+/** Foráneos pricing - not applicable */
 export const foraneosPricing: ForaneosPricing[] = [];
 
 /** Contact info interface */
@@ -227,25 +197,25 @@ export interface ContactInfo {
 /** Pricing note */
 export const pricingNote = "";
 
-/** Contact/banking info */
+/** Contact/banking info - Gómez Palacio */
 export const contactInfo: ContactInfo = {
   bankName: '',
   clabe: '',
   cuenta: '',
-  nombre: 'Club de Golf Valle Alto',
+  nombre: 'Club Campestre de Gómez Palacio',
   email: '',
-  telefono: '',
-  telefonoDirecto: '',
+  telefono: '87 17 14 20 35',
+  telefonoDirecto: '871 158 8744',
 };
 
 /** Contact warning */
 export const contactWarning = "";
 
-/** Día de práctica - not specified in Valle Alto PDF */
+/** Día de práctica */
 export const diaDePracticaText = "";
 
 /** Información general disclaimer */
-export const informacionGeneralText = "El comité Organizador se reserva el derecho de hacer cualquier cambio que juzgue necesario para el mejor desarrollo del torneo y cualquier punto no previsto en la presente convocatoria o que no esté redactado con claridad, será resuelto por el Comité Organizador y su decisión será inapelable.";
+export const informacionGeneralText = "";
 
 /** Convocatoria section configuration */
 export interface ConvocatoriaSection {
@@ -255,20 +225,20 @@ export interface ConvocatoriaSection {
   order: number;
 }
 
-/** Default 8 sections for convocatoria page */
+/** Default 8 sections for convocatoria page - disabled if no info */
 export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'descripcion', label: 'Descripción', enabled: true, order: 1 },
-  { id: 'elegibilidad', label: 'Elegibilidad', enabled: true, order: 2 },
+  { id: 'elegibilidad', label: 'Elegibilidad', enabled: false, order: 2 },
   { id: 'costos', label: 'Costos', enabled: true, order: 3 },
   { id: 'categorias', label: 'Categorías y Sistema de Juego', enabled: true, order: 4 },
   { id: 'premiacion', label: 'Premiación', enabled: true, order: 5 },
-  { id: 'calendario', label: 'Calendario y Horario', enabled: true, order: 6 },
-  { id: 'reglas', label: 'Reglas Locales', enabled: true, order: 7 },
+  { id: 'calendario', label: 'Calendario y Horario', enabled: false, order: 6 },
+  { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
 ];
 
-/** Description text shown below tournament header - from PDF page 2 */
-export const convocatoriaDescripcion = "Se convoca a todos los Asociados del club de golf Valle Alto e invitados, a participar en su LXX Torneo Anual de Invitación, que se llevará a cabo del 24 de abril al 02 de mayo 2026 en las instalaciones de nuestro club.";
+/** Description text - Semana Santa Chilchota 2026 */
+export const convocatoriaDescripcion = "Se convoca a todos los socios e invitados a participar en el Torneo Anual de Golf Semana Santa Chilchota 2026, que se llevará a cabo los días 1, 2, 3 y 4 de abril de 2026 en las instalaciones del Club Campestre de Gómez Palacio.";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
@@ -276,47 +246,15 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación data from PDF page 5 - Trofeos */
+/** Premiación data - Semana Santa Chilchota 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Damas A',
-    premios: ['1° y 2° Gross - Trofeo', '1°, 2° y 3° Neto - Trofeo'],
+    categoria: 'Todas las Categorías',
+    premios: ['1°, 2° y 3° Lugar - Trofeo', 'Primer Gross a la Primera Categoría - Trofeo'],
   },
   {
-    categoria: 'Damas B',
-    premios: ['1°, 2° y 3° Gross - Trofeo', '1°, 2° y 3° Neto - Trofeo'],
-  },
-  {
-    categoria: 'Damas C',
-    premios: ['1°, 2° y 3° - Trofeo'],
-  },
-  {
-    categoria: 'Damas D',
-    premios: ['1°, 2° y 3° - Trofeo'],
-  },
-  {
-    categoria: 'Damas E',
-    premios: ['1°, 2° y 3° - Trofeo'],
-  },
-  {
-    categoria: 'Damas Estelares',
-    premios: ['1°, 2° y 3° - Trofeo'],
-  },
-  {
-    categoria: 'Caballeros (todas las categorías)',
-    premios: ['1°, 2° y 3° - Trofeo'],
-  },
-  {
-    categoria: 'Seniors Campeonato Mayores',
-    premios: ['1° y 2° Gross - Trofeo', '1° y 2° Neto - Trofeo'],
-  },
-  {
-    categoria: 'Seniors A',
-    premios: ['1°, 2° y 3° - Trofeo'],
-  },
-  {
-    categoria: 'Seniors B',
-    premios: ['1°, 2° y 3° - Trofeo'],
+    categoria: 'Premios Adicionales',
+    premios: ['Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación'],
   },
 ];
 
@@ -326,13 +264,8 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Reglas locales from PDF page 5 */
-export const reglasData: ReglaItem[] = [
-  { titulo: 'Reglas de Juego', contenido: 'Se jugará bajo las reglas de la USGA adoptadas por la Federación Mexicana de Golf, así como las reglas locales y términos de la competencia que se publicarán para el torneo. Las controversias que se originen sobre cualquier punto relacionado con la aplicación de las reglas serán resueltas por el Oficial de Reglas y/o el Comité organizador y su fallo será definitivo e inapelable. Las rondas de juego estipuladas para este torneo son de 9 hoyos.' },
-  { titulo: 'Desempates para Corte', contenido: desempatesText },
-  { titulo: 'Nota Importante', contenido: 'Jugador que no pasó el corte oficialmente una vez publicadas las listas de resultados no podrá participar en la ronda final por ningún motivo. En el caso de jugadores participando en dos categorías si pasan el corte en ambas categorías el jugador deberá dar aviso al final aclarando cual de las dos categorías quiere jugar para la ronda final.' },
-  { titulo: 'Información General', contenido: informacionGeneralText },
-];
+/** Reglas locales - Semana Santa (no detailed rules in flyer) */
+export const reglasData: ReglaItem[] = [];
 
 /** Competencias especiales data */
 export interface CompetenciaEspecial {
