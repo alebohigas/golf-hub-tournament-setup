@@ -42,6 +42,9 @@ const queryClient = new QueryClient();
  */
 const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
   const { data } = useSiteConfig();
+
+  /** Set apple-touch-icon & favicon dynamically from tournament logo */
+  useAppIcon();
   const { 
     setMenuItemOrder, 
     setPageVisibility, 
