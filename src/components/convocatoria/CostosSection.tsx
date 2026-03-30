@@ -181,6 +181,13 @@ const CostosSection = ({
       {contactWarning && (
         <p className="text-center text-sm text-muted-foreground italic px-4">{contactWarning}</p>
       )}
+
+      {/* Inscripciones contact note */}
+      {inscripcionesText && (
+        <p className="text-center text-sm font-medium text-foreground whitespace-pre-line px-4">
+          {inscripcionesText}
+        </p>
+      )}
     </div>
   );
 };
