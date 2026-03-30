@@ -274,35 +274,29 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Competencias especiales from PDF pages 7-10 */
+/** Competencias especiales - Semana Santa Chilchota 2026 */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
   {
-    nombre: 'Tiro Espectacular de Approach',
-    descripcion: 'Podrán participar únicamente jugadores inscritos al torneo. Cada participante tendrá derecho a realizar dos tiros en los días de calificación. Pasarán a la final los mejores 10 resultados diarios. Calificación: sábado 25, domingo 26, lunes 27 y martes 28 de abril en el área del par 3, de 11:00 a 17:00hrs. Final: miércoles 29 de abril a las 18:30hrs en el Green del Hoyo 15.',
-    premios: '1er Lugar: Auto 2026 (solo se entregará un auto). 2do Lugar: Bolsa de Golf.',
+    nombre: 'Automóvil 2026 - Hole in One',
+    descripcion: 'Hoyo 7. Presentado por Quesos Chilchota. En caso de no caer el Hole in One, será rifado en la premiación.',
+    premios: 'Automóvil 2026.',
+  },
+  {
+    nombre: "Premios O'Yes General",
+    descripcion: "Hoyos 3, 7, 10 y 12.",
+    premios: "1ero: $1,000 USD. 2do: $850 USD. 3ero: $700 USD. 4to: $550 USD. 5to: $400 USD. 6to: $200 USD. 7mo: $100 USD.",
   },
   {
     nombre: 'Torneo de Putt',
-    descripcion: 'Podrán participar únicamente jugadores inscritos al torneo. Cada participante tendrá derecho a realizar 2 tiros en los días de calificación (cada jugador solo podrá participar 1 vez en el día). Calificaciones diarias del sábado 25 al miércoles 29 de abril de 11:00 a 17:00hrs en el putting green. Pasarán a la final los mejores 64 caballeros y las mejores 32 damas. Final: viernes 1 de mayo (18:00hrs damas, 19:30hrs caballeros).',
-    premios: '1er Lugar Damas: $10,000 en Vales. 1er Lugar Caballeros: $10,000 en Vales. 2do Lugar: $7,000 en Vales. 3er Lugar: $5,000 en Vales.',
+    descripcion: 'Torneo de Putt para jugadores inscritos.',
+    premios: 'Premio: $200 DLLS.',
   },
   {
-    nombre: 'Putt Espectacular de 35 Yardas',
-    descripcion: 'Participarán las 4 finalistas del Torneo de Putt damas y los 8 finalistas del torneo de Putt caballeros. Se jugará el viernes 1 de mayo durante el torneo de Putt. 1 Putt de 35 yardas en el Putting Green de la Terraza. Se sortea el turno de participación.',
-    premios: 'Primer jugador que emboque: 25,000 USD. Segundo jugador que emboque o mejor O\'yes: Bolsa de Golf.',
-  },
-  {
-    nombre: 'Torneo Driver Damas',
-    descripcion: 'Driver de distancia: se premiará al driver más largo dentro del fairway del hoyo 4 entre categorías A, B, C, D y E. Driver de precisión: se premiará al driver más cerca de la línea marcada entre categorías A, B, C, D, E y Estelares. Una jugadora no podrá ganar ambos premios. Día de juego: lunes 27 de abril. Lugar: Hoyo 4.',
-    premios: '1er lugar de precisión: 300 dlls. 1er lugar de distancia: 300 dlls.',
-  },
-  {
-    nombre: 'Torneo Driver Caballeros',
-    descripcion: 'Podrán participar todos los jugadores inscritos con un mínimo de distancia de 280 yardas. Inscripciones el día del evento en la mesa de salida del hoyo 16. Cada jugador tendrá derecho a realizar dos tiros. Día de competencia: jueves 30 de abril a las 18:30hrs en la tee del hoyo 16.',
-    premios: '1er lugar: 400 Dlls. 2do lugar: 300 Dlls.',
+    nombre: 'Torneo de Approach',
+    descripcion: 'Torneo de Approach para jugadores inscritos.',
+    premios: 'Premio: $200 DLLS.',
   },
 ];
-
 // API simulation functions - replace with actual fetch calls
 export const fetchMenuConfig = async (): Promise<MenuItem[]> => {
   // Simulate API delay
