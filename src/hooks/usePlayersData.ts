@@ -50,7 +50,7 @@ export const usePlayers = (catId: string | null, enabled = true) => {
       if (!catId) return [];
       const data = await apiFetch<PlayersApiResponse>(getPlayersApiUrl(catId));
 
-      // Transform API response to Player format
+      // Transform API response to Player format and sort alphabetically by first name
       return (data.players || []).map(p => ({
         id: p.id,
         clubLogo: p.logo,       // Already full URL from server (proxied via logo.php)
@@ -59,7 +59,7 @@ export const usePlayers = (catId: string | null, enabled = true) => {
         handicapJuego: parseFloat(p.hj) || 0,  // Fixed: was p.hc, now p.hj
         handicapNeto: parseFloat(p.hn) || 0,   // Now correctly mapped
         categoryId: catId,
-      }));
+      })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
     },
     enabled: enabled && !!catId,
     staleTime: POLL_SLOW,
