@@ -44,6 +44,7 @@ const CostosSection = ({
   pricingNote,
   contactInfo,
   contactWarning,
+  inscripcionesText,
 }: CostosSectionProps) => {
   return (
     <div className="space-y-8">

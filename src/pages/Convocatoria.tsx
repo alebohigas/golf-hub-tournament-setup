@@ -83,6 +83,7 @@ const renderSection = (sectionId: string) => {
           pricingNote={pricingNote}
           contactInfo={contactInfo}
           contactWarning={contactWarning}
+          inscripcionesText={inscripcionesText}
         />
       );
     case 'categorias':
