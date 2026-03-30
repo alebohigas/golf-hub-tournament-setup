@@ -313,9 +313,9 @@ const Header = () => {
           {/* Logo */}
           <div ref={logoRef} className="flex-shrink-0">
             <Link to="/" className="flex items-center gap-3">
-              {tournamentInfo?.logoUrl ? (
+              {(tournamentInfo?.logoHeaderUrl || tournamentInfo?.logoUrl) ? (
                 <img 
-                  src={tournamentInfo.logoUrl} 
+                  src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
                   className="w-12 h-12 md:w-14 md:h-14 rounded-lg object-contain"
                 />

@@ -21,7 +21,10 @@ export interface TournamentInfo {
   name: string;
   club: string;
   logoUrl: string;
+  /** Background image for Hero section (from logo_fondo) */
   heroImageUrl: string;
+  /** Logo for header/nav ribbon (from logo_header) */
+  logoHeaderUrl: string;
   startDate: string;
   endDate: string;
   venue: string;
