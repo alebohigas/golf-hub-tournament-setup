@@ -2,67 +2,63 @@
 /**
  * Calendario (Calendar) Endpoint
  * GET /api/calendario.php?torneoid=XXX
- * Returns tournament days and category schedules
+ * Returns tournament calendar dates from caljuego table
+ * Uses fecha, horainicio_1, and categoria fields
+ * Skips rows where categoria is blank
  */
 require_once 'config.php';
 
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
-// Get tournament days
-$sql = "SELECT DISTINCT c.fecha, c.campo, ca.campo as campo_nombre,
-               DATE_FORMAT(c.fecha, '%W') as dia_semana
+// Get calendar entries with non-blank categoria, joined with categorias for full name
+$sql = "SELECT c.id, c.fecha, c.horainicio_1, c.categoria, c.campo,
+               ca.campo as campo_nombre,
+               cat.categoria as categoria_nombre, cat.abreviatura,
+               DATE_FORMAT(c.fecha, '%W') as dia_semana,
+               DATE_FORMAT(c.fecha, '%e') as dia_num,
+               DATE_FORMAT(c.fecha, '%M') as mes_nombre
         FROM caljuego c
         LEFT JOIN campos ca ON (c.campo = ca.id)
-        WHERE c.torneoid = $tid AND c.campo > 0
-        ORDER BY c.fecha ASC";
+        LEFT JOIN categorias cat ON (c.categoriaid = cat.categoria_id)
+        WHERE c.torneoid = $tid 
+          AND c.categoria IS NOT NULL 
+          AND c.categoria != ''
+          AND c.campo > 0
+        ORDER BY c.fecha ASC, c.horainicio_1 ASC, c.categoria ASC";
 
-$dayRows = query_all($conn, $sql);
+$rows = query_all($conn, $sql);
 
-// Get category schedules per day
-$sql = "SELECT c.id, c.fecha, c.campo, c.categoriaid,
-               cat.categoria, cat.abreviatura, cat.sistema,
-               ca.campo as campo_nombre, s.tee,
-               c.estatus, c.cierre
-        FROM caljuego c
-        JOIN categorias cat ON (c.categoriaid = cat.categoria_id)
-        LEFT JOIN campos ca ON (c.campo = ca.id)
-        LEFT JOIN salidas s ON (cat.salida = s.id)
-        WHERE c.torneoid = $tid AND c.campo > 0
-        ORDER BY c.fecha ASC, cat.categoria_id ASC";
+// Build unique dates list
+$datesMap = [];
+$entries = [];
 
-$scheduleRows = query_all($conn, $sql);
-
-// Group schedules by date
-$schedules = [];
-foreach ($scheduleRows as $row) {
+foreach ($rows as $row) {
     $fecha = $row['fecha'];
-    if (!isset($schedules[$fecha])) {
-        $schedules[$fecha] = [];
+    
+    // Track unique dates for column headers
+    if (!isset($datesMap[$fecha])) {
+        $datesMap[$fecha] = [
+            'date'      => $fecha,
+            'dayOfWeek' => $row['dia_semana'],
+            'dayNum'    => $row['dia_num'],
+            'month'     => $row['mes_nombre'],
+            'course'    => $row['campo_nombre']
+        ];
     }
-    $schedules[$fecha][] = [
-        'id'           => $row['id'],
-        'categoryId'   => $row['categoriaid'],
-        'categoryName' => $row['categoria'],
-        'shortName'    => $row['abreviatura'],
-        'system'       => $row['sistema'],
-        'course'       => $row['campo_nombre'],
-        'tee'          => $row['tee'],
-        'status'       => (int)$row['estatus'],
-        'closed'       => (int)$row['cierre']
+
+    $entries[] = [
+        'id'           => (int)$row['id'],
+        'date'         => $fecha,
+        'category'     => $row['categoria'],
+        'categoryName' => $row['categoria_nombre'] ?: $row['categoria'],
+        'shortName'    => $row['abreviatura'] ?: $row['categoria'],
+        'startTime'    => $row['horainicio_1'],
+        'course'       => $row['campo_nombre']
     ];
 }
 
-// Build days array
-$days = [];
-foreach ($dayRows as $row) {
-    $fecha = $row['fecha'];
-    $days[] = [
-        'date'      => $fecha,
-        'dayOfWeek' => $row['dia_semana'],
-        'course'    => $row['campo_nombre'],
-        'schedules' => $schedules[$fecha] ?? []
-    ];
-}
-
-json_response(['days' => $days]);
+json_response([
+    'dates'   => array_values($datesMap),
+    'entries' => $entries
+]);

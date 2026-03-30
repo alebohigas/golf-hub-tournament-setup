@@ -1,34 +1,46 @@
 /**
  * Calendario Data Hooks
- * React Query hooks for tournament calendar and schedules
+ * React Query hooks for tournament calendar from caljuego table
  * Uses POLL_SLOW since calendar rarely changes
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getCalendarioDaysUrl, getCalendarioSchedulesUrl, POLL_SLOW } from '@/config/api';
-import type { TournamentDay, CategorySchedule } from '@/data/calendarioData';
+import { getCalendarioUrl, POLL_SLOW } from '@/config/api';
+import type { CalendarDate, CalendarEntry, TournamentDay, CategorySchedule } from '@/data/calendarioData';
 
-// ============= Tournament Days =============
+/** API response shape from calendario.php */
+interface CalendarioResponse {
+  dates: CalendarDate[];
+  entries: CalendarEntry[];
+}
 
-/** Fetch tournament days list */
-export const useTournamentDays = () => {
-  return useQuery<TournamentDay[]>({
-    queryKey: ['calendario-days'],
-    queryFn: () => apiFetch<TournamentDay[]>(getCalendarioDaysUrl()),
+/** Fetch full calendario data (dates + entries) from caljuego table */
+export const useCalendarioData = () => {
+  return useQuery<CalendarioResponse>({
+    queryKey: ['calendario'],
+    queryFn: () => apiFetch<CalendarioResponse>(getCalendarioUrl()),
     staleTime: POLL_SLOW,
     refetchInterval: POLL_SLOW,
   });
 };
 
-// ============= Category Schedules =============
+// ============= Legacy hooks (kept for backward compatibility) =============
 
-/** Fetch which category plays on which day/time */
+/** @deprecated Use useCalendarioData instead */
+export const useTournamentDays = () => {
+  return useQuery<TournamentDay[]>({
+    queryKey: ['calendario-days'],
+    queryFn: async () => [],
+    staleTime: POLL_SLOW,
+  });
+};
+
+/** @deprecated Use useCalendarioData instead */
 export const useCategorySchedules = () => {
   return useQuery<CategorySchedule[]>({
     queryKey: ['calendario-schedules'],
-    queryFn: () => apiFetch<CategorySchedule[]>(getCalendarioSchedulesUrl()),
+    queryFn: async () => [],
     staleTime: POLL_SLOW,
-    refetchInterval: POLL_SLOW,
   });
 };

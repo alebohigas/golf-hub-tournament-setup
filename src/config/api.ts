@@ -72,10 +72,13 @@ export const getCategoriesUrl = (): string => `${API_BASE_URL}/categories.php${b
 export const getPlayersApiUrl = (catId: string): string =>
   `${API_BASE_URL}/players.php${buildQuery({ catid: catId })}`;
 
-/** Tournament days */
+/** Calendario - tournament calendar from caljuego table */
+export const getCalendarioUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery()}`;
+
+/** @deprecated Use getCalendarioUrl instead */
 export const getCalendarioDaysUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery({ modo: 'days' })}`;
 
-/** Category schedules */
+/** @deprecated Use getCalendarioUrl instead */
 export const getCalendarioSchedulesUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery({ modo: 'schedules' })}`;
 
 /** All results (master: list of categories) */
