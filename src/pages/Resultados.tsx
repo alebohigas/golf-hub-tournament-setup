@@ -171,7 +171,7 @@ const Resultados = () => {
         subtitle="Consulta los resultados de cada ronda y clasificación general"
         backgroundImage={resultadosHero}
       />
-      <section className="py-16 bg-background">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           {!selectedCategoryId ? (
             <>
