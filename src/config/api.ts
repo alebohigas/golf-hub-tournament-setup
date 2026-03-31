@@ -36,8 +36,17 @@ export const POLL_STATIC = 0;
  * @returns Query string starting with ?
  */
 const buildQuery = (params: Record<string, string> = {}): string => {
+  /** Enable backend debug mode when route includes ?debug=1 */
+  const debugMode = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('debug')
+    : null;
   const torneoId = getTorneoId();
-  const allParams = torneoId ? { torneoid: torneoId, ...params } : { ...params };
+  const baseParams = torneoId ? { torneoid: torneoId } : {};
+  const allParams = {
+    ...baseParams,
+    ...params,
+    ...(debugMode === '1' ? { debug: '1' } : {}),
+  };
   const qs = new URLSearchParams(allParams).toString();
   return qs ? `?${qs}` : '';
 };
@@ -92,8 +101,8 @@ export const getResultadosCategoryUrl = (categoryId: string): string =>
 export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQuery()}`;
 
 /** Tee times by day */
-export const getSalidasDayUrl = (dayId: string): string =>
-  `${API_BASE_URL}/salidas_det.php${buildQuery({ caljgoid: dayId })}`;
+export const getSalidasDayUrl = (dayId: string, formato: string = 'individual'): string =>
+  `${API_BASE_URL}/salidas_det.php${buildQuery({ caljgoid: dayId, formato })}`;
 
 /** All competitions (competición - trofeos) */
 export const getCompeticionUrl = (): string => `${API_BASE_URL}/competicion.php${buildQuery()}`;
