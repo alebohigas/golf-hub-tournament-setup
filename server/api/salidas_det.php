@@ -22,7 +22,21 @@ $sql = "SELECT a.id, a.torneoid, a.fecha, a.campo, a.categoriaid,
         WHERE a.id = $cgid";
 
 $calInfo = query_one($conn, $sql);
-if (!$calInfo) { json_error('Calendar game not found', 404); }
+if (!$calInfo) {
+    // Return empty response if calendar game not found (no salidas generated)
+    json_response([
+        'caljgoid'     => $caljgoid,
+        'date'         => '',
+        'course'       => '',
+        'categoryId'   => '',
+        'categoryName' => '',
+        'shortName'    => '',
+        'system'       => '',
+        'tee'          => '',
+        'groups'       => []
+    ]);
+    exit;
+}
 
 $sistema  = strtoupper($calInfo['sistema']);
 $gross    = (int)$calInfo['gross'];

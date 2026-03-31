@@ -19,6 +19,7 @@ $sql = "SELECT a.nombre, b.nombre as club
 $torneo = query_one($conn, $sql);
 
 // Get play days with their calendar game IDs
+// Only include categories that have at least one salidagrupo (generated tee times)
 $sql = "SELECT c.id as caljgoid, c.fecha,
                DATE_FORMAT(c.fecha, '%W %e de %M %Y') as fecha_formato,
                c.campo, ca.campo as campo_nombre,
@@ -30,6 +31,10 @@ $sql = "SELECT c.id as caljgoid, c.fecha,
         LEFT JOIN campos ca ON (c.campo = ca.id)
         LEFT JOIN salidas s ON (cat.salida = s.id)
         WHERE c.torneoid = $tid AND c.campo > 0
+          AND EXISTS (
+              SELECT 1 FROM salidagrupo sg
+              WHERE sg.caljuegoid = c.id AND sg.categoriaid = c.categoriaid
+          )
         ORDER BY c.fecha ASC, cat.categoria_id ASC";
 
 $rows = query_all($conn, $sql);
