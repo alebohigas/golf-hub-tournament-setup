@@ -33,7 +33,31 @@ export const useAppIcon = () => {
     }
     appleTouchIcon.href = logoUrl;
 
-    // Note: Standard favicon is NOT changed here — it keeps the original
-    // favicon.ico for browser tabs. Only apple-touch-icon is set dynamically.
+    // ============= Standard Favicon (browser tabs) =============
+    // Also update the standard favicon so mobile browsers use the
+    // tournament logo when creating home-screen shortcuts.
+    let favicon = document.querySelector<HTMLLinkElement>(
+      'link[rel="icon"]'
+    );
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      document.head.appendChild(favicon);
+    }
+    favicon.href = logoUrl;
+    favicon.type = 'image/png';
+
+    // ============= Additional sizes for Android/Chrome =============
+    let icon192 = document.querySelector<HTMLLinkElement>(
+      'link[rel="icon"][sizes="192x192"]'
+    );
+    if (!icon192) {
+      icon192 = document.createElement('link');
+      icon192.rel = 'icon';
+      icon192.setAttribute('sizes', '192x192');
+      document.head.appendChild(icon192);
+    }
+    icon192.href = logoUrl;
+
   }, [tournament?.logoHeaderUrl]);
 };
