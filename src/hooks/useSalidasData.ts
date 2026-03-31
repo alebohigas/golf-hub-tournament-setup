@@ -1,49 +1,117 @@
 /**
  * Salidas (Tee Times) Data Hooks
- * React Query hooks for tee time data
+ * React Query hooks for tee time data from salidas.php and salidas_det.php
  * Uses POLL_ACTIVE for updates during tournament
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getSalidasUrl, getSalidasDayUrl, POLL_ACTIVE } from '@/config/api';
-import type { DaySalidas } from '@/data/salidasData';
 
 // ============= Types =============
 
-/** Day summary from API */
-interface DaySummary {
-  dayId: string;
-  dayName: string;
-  date: string;
-  foursomeCount: number;
-  playerCount: number;
+/** Category within a day from salidas.php */
+export interface SalidasCategory {
+  caljgoid: string;
+  categoryId: string;
+  categoryName: string;
+  shortName: string;
+  system: string;
+  format: string;
+  tee: string;
 }
 
-// ============= All Days Summary =============
+/** Day summary from salidas.php */
+export interface SalidasDay {
+  date: string;
+  dateFormatted: string;
+  course: string;
+  categories: SalidasCategory[];
+}
 
-/** Fetch days summary with counts */
-export const useSalidasDays = () => {
-  return useQuery<DaySummary[]>({
-    queryKey: ['salidas-days'],
-    queryFn: () => apiFetch<DaySummary[]>(getSalidasUrl()),
+/** Master response from salidas.php */
+interface SalidasMasterResponse {
+  tournament: string;
+  club: string;
+  days: SalidasDay[];
+}
+
+/** Player in a tee time group from salidas_det.php */
+export interface SalidasPlayer {
+  name: string;
+  clubLogo: string;
+  clubLogo2?: string;
+  score: number;
+  system: string;
+  groupId?: string;
+}
+
+/** Tee time group from salidas_det.php */
+export interface SalidasGroup {
+  id: string;
+  tee: string;
+  time: string;
+  players: SalidasPlayer[];
+}
+
+/** Detail response from salidas_det.php */
+export interface SalidasDetailResponse {
+  caljgoid: string;
+  date: string;
+  course: string;
+  categoryId: string;
+  categoryName: string;
+  shortName: string;
+  system: string;
+  tee: string;
+  groups: SalidasGroup[];
+}
+
+// ============= Master: Days + Categories =============
+
+/** Fetch all days with their categories from salidas.php */
+export const useSalidasMaster = () => {
+  return useQuery<SalidasMasterResponse>({
+    queryKey: ['salidas-master'],
+    queryFn: async () => {
+      const data = await apiFetch<any>(getSalidasUrl());
+      // Defensive: ensure days is always an array
+      return {
+        tournament: data?.tournament ?? '',
+        club: data?.club ?? '',
+        days: Array.isArray(data?.days) ? data.days : [],
+      };
+    },
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
   });
 };
 
-// ============= Day Detail =============
+// ============= Detail: Groups by caljgoid =============
 
 /**
- * Fetch foursomes for a specific day
- * @param dayId - Day identifier
+ * Fetch tee time groups for a specific calendar game (caljgoid)
+ * @param caljgoid - Calendar game ID
  * @param enabled - Whether to enable the query
  */
-export const useSalidasByDay = (dayId: string | null, enabled = true) => {
-  return useQuery<DaySalidas>({
-    queryKey: ['salidas', dayId],
-    queryFn: () => apiFetch<DaySalidas>(getSalidasDayUrl(dayId!)),
-    enabled: enabled && !!dayId,
+export const useSalidasDetail = (caljgoid: string | null, enabled = true) => {
+  return useQuery<SalidasDetailResponse>({
+    queryKey: ['salidas-detail', caljgoid],
+    queryFn: async () => {
+      const data = await apiFetch<any>(getSalidasDayUrl(caljgoid!));
+      return {
+        caljgoid: data?.caljgoid ?? caljgoid,
+        date: data?.date ?? '',
+        course: data?.course ?? '',
+        categoryId: data?.categoryId ?? '',
+        categoryName: data?.categoryName ?? '',
+        shortName: data?.shortName ?? '',
+        system: data?.system ?? '',
+        tee: data?.tee ?? '',
+        groups: Array.isArray(data?.groups) ? data.groups : [],
+      };
+    },
+    enabled: enabled && !!caljgoid,
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
   });
