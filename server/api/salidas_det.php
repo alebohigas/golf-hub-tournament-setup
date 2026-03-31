@@ -8,6 +8,7 @@ require_once 'config.php';
 
 $caljgoid = require_param('caljgoid');
 $formato  = optional_param('formato', 'individual');
+$formato='individual';
 
 $cgid = esc($conn, $caljgoid);
 
@@ -58,6 +59,8 @@ $isParejas = ($formato === 'parejas');
 
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
+
+//echo $viewName.'  '.$formato.'<br>';
 
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
@@ -112,6 +115,7 @@ foreach ($groupRows as $group) {
         }
     }
 
+//echo $sql.'<br>';
     $playerRows = query_all($conn, $sql);
 
     $players = [];
