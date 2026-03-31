@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useSalidasMaster, useSalidasDetail } from '@/hooks/useSalidasData';
 import type { SalidasDay, SalidasCategory } from '@/hooks/useSalidasData';
 import { LOGOS_BASE_URL } from '@/config/api';
+import { ApiError } from '@/lib/apiClient';
 import salidasHero from '@/assets/salidas-hero.jpg';
 
 // ============= Component =============
@@ -31,8 +32,16 @@ const Salidas = () => {
   const { data: master, isLoading: loadingMaster } = useSalidasMaster();
   const days = master?.days ?? [];
 
+  /** Normalize selected format to endpoint-compatible values */
+  const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
+
   // Fetch detail for selected category
-  const { data: detail, isLoading: loadingDetail } = useSalidasDetail(selectedCaljgoid);
+  const {
+    data: detail,
+    isLoading: loadingDetail,
+    isError: detailIsError,
+    error: detailError,
+  } = useSalidasDetail(selectedCaljgoid, selectedFormato);
 
   /** Handle day card click - if only one category, go directly to detail */
   const handleDayClick = (dayIdx: number) => {
@@ -271,9 +280,31 @@ const Salidas = () => {
                     </Card>
                   )}
                 </>
+              ) : detailIsError ? (
+                <div className="text-center py-16">
+                  <p className="text-muted-foreground mb-2">Error al cargar los datos</p>
+                  <p className="text-xs text-muted-foreground break-all">
+                    {detailError instanceof ApiError
+                      ? `${detailError.status} · ${detailError.message}`
+                      : 'Error desconocido'}
+                  </p>
+                  {detailError instanceof ApiError && detailError.endpoint.includes('debug=1') ? (
+                    <pre className="mt-4 text-left text-[11px] leading-5 text-muted-foreground bg-muted p-3 rounded-md overflow-auto max-w-4xl mx-auto whitespace-pre-wrap break-all">
+                      {JSON.stringify(
+                        (detailError.responseData as { _debug?: unknown; _debug_queries?: unknown })?._debug ??
+                          (detailError.responseData as { _debug_queries?: unknown })?._debug_queries ??
+                          detailError.responseData ??
+                          detailError.responseBody ??
+                          null,
+                        null,
+                        2
+                      )}
+                    </pre>
+                  ) : null}
+                </div>
               ) : (
                 <div className="text-center py-16">
-                  <p className="text-muted-foreground">Error al cargar los datos</p>
+                  <p className="text-muted-foreground">Sin datos para la categoría seleccionada</p>
                 </div>
               )}
             </>
