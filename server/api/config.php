@@ -154,9 +154,10 @@ function optional_param($name, $default = null) {
  * @return array - Result rows
  */
 function query_all($conn, $sql) {
+    debug_log_query('query_all', $sql);
     $result = $conn->query($sql);
     if (!$result) {
-        json_error('Query failed: ' . $conn->error);
+        json_error('Query failed: ' . $conn->error, 500, ['failed_sql' => $sql]);
     }
     $rows = [];
     while ($row = $result->fetch_assoc()) {
@@ -173,9 +174,10 @@ function query_all($conn, $sql) {
  * @return array|null - Single row or null
  */
 function query_one($conn, $sql) {
+    debug_log_query('query_one', $sql);
     $result = $conn->query($sql);
     if (!$result) {
-        json_error('Query failed: ' . $conn->error);
+        json_error('Query failed: ' . $conn->error, 500, ['failed_sql' => $sql]);
     }
     $row = $result->fetch_assoc();
     $result->free();
