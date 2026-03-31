@@ -16,6 +16,7 @@ $conn->query("SET lc_time_names = 'es_ES'");
 $sql = "SELECT a.nombre, b.nombre as club
         FROM torneo a JOIN clubs b ON (a.club_id = b.id)
         WHERE a.torneo_id = $tid";
+debug_log_query('salidas_master_torneo', $sql);
 $torneo = query_one($conn, $sql);
 
 // Get play days with their calendar game IDs
@@ -36,6 +37,7 @@ $sql = "SELECT c.id as caljgoid, c.fecha,
               WHERE sg.caljuegoid = c.id AND sg.categoriaid = c.categoriaid
           )
         ORDER BY c.fecha ASC, cat.categoria_id ASC";
+debug_log_query('salidas_master_dias_categorias', $sql);
 
 $rows = query_all($conn, $sql);
 
