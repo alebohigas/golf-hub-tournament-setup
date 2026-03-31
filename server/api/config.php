@@ -49,16 +49,38 @@ $DEBUG_MODE = isset($_GET['debug']) && $_GET['debug'] === '1';
 /** Collected SQL queries for debug output */
 $DEBUG_QUERIES = [];
 
+/** Track latest SQL query executed (for error diagnostics) */
+$LAST_SQL = null;
+
 /**
  * Log a SQL query for debug output
  * @param string $label - Description of the query
  * @param string $sql - The SQL query string
  */
 function debug_log_query($label, $sql) {
-    global $DEBUG_MODE, $DEBUG_QUERIES;
+    global $DEBUG_MODE, $DEBUG_QUERIES, $LAST_SQL;
+    // Keep latest SQL for failure context regardless of mode
+    $LAST_SQL = $sql;
+
+    // Keep full query log only in debug mode
     if ($DEBUG_MODE) {
         $DEBUG_QUERIES[] = ['label' => $label, 'sql' => $sql];
     }
+}
+
+/**
+ * Build standardized debug context payload
+ * @param array $extra Optional extra debug values
+ * @return array Debug context information
+ */
+function debug_context($extra = []) {
+    global $DEBUG_QUERIES, $LAST_SQL;
+    return array_merge([
+        'query_count' => count($DEBUG_QUERIES),
+        'queries' => $DEBUG_QUERIES,
+        'last_sql' => $LAST_SQL,
+        'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
+    ], $extra);
 }
 
 // ============= Helper Functions =============
@@ -88,10 +110,18 @@ function json_response($data, $status = 200) {
  * Send error JSON response and exit
  * @param string $message - Error message
  * @param int $status - HTTP status code (default 500)
+ * @param array $extraDebug Optional extra debug values
  */
-function json_error($message, $status = 500) {
+function json_error($message, $status = 500, $extraDebug = []) {
+    global $DEBUG_MODE;
     http_response_code($status);
-    echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE);
+
+    $payload = ['error' => $message];
+    if ($DEBUG_MODE) {
+        $payload['_debug'] = debug_context($extraDebug);
+    }
+
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
