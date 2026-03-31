@@ -100,9 +100,9 @@ export const getResultadosCategoryUrl = (categoryId: string): string =>
 /** Tee times summary */
 export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQuery()}`;
 
-/** Tee times by day */
-export const getSalidasDayUrl = (dayId: string, formato: string = 'individual'): string =>
-  `${API_BASE_URL}/salidas_det.php${buildQuery({ caljgoid: dayId, formato })}`;
+/** Tee times by day (legacy-compatible: send only caljgoid, no extra params) */
+export const getSalidasDayUrl = (dayId: string, _formato: string = 'individual'): string =>
+  `${API_BASE_URL}/salidas_det.php?caljgoid=${encodeURIComponent(dayId)}`;
 
 /** All competitions (competición - trofeos) */
 export const getCompeticionUrl = (): string => `${API_BASE_URL}/competicion.php${buildQuery()}`;
