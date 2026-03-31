@@ -11,7 +11,9 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public endpoint: string
+    public endpoint: string,
+    public responseBody?: string,
+    public responseData?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
@@ -27,6 +29,7 @@ export class ApiError extends Error {
  * @throws ApiError on non-OK responses
  */
 export const apiFetch = async <T>(url: string): Promise<T> => {
+  /** Request API endpoint using GET */
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -34,22 +37,44 @@ export const apiFetch = async <T>(url: string): Promise<T> => {
     },
   });
 
+  /** Read response text once to support both success and error parsing */
+  const text = await response.text();
+  const trimmedText = text.trim();
+  let parsed: any = null;
+
+  /** Try to parse JSON payload when available */
+  if (trimmedText) {
+    try {
+      parsed = JSON.parse(trimmedText);
+    } catch {
+      parsed = null;
+    }
+  }
+
   if (!response.ok) {
+    /** Prefer backend error message when provided */
+    const backendMessage =
+      parsed?.error ??
+      parsed?.message ??
+      `API error (${response.status})`;
+
     throw new ApiError(
-      `API error: ${response.statusText}`,
+      backendMessage,
       response.status,
-      url
+      url,
+      trimmedText,
+      parsed
     );
   }
 
-  // read body as text so we can log malformed output if needed
-  const text = await response.text();
-  let parsed: any;
-  try {
-    parsed = JSON.parse(text);
-  } catch (err) {
-    console.error('apiFetch: failed to parse JSON response', url, text);
-    throw err;
+  /** Ensure successful responses are valid JSON */
+  if (!trimmedText) {
+    throw new ApiError('API returned an empty response body', response.status, url, trimmedText);
+  }
+
+  if (parsed === null) {
+    console.error('apiFetch: failed to parse JSON response', url, trimmedText);
+    throw new ApiError('API returned malformed JSON/HTML response', response.status, url, trimmedText);
   }
 
   // if we expected an array but got something else, log a warning

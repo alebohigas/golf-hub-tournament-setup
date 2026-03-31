@@ -94,11 +94,15 @@ export const useSalidasMaster = () => {
  * @param caljgoid - Calendar game ID
  * @param enabled - Whether to enable the query
  */
-export const useSalidasDetail = (caljgoid: string | null, enabled = true) => {
+export const useSalidasDetail = (
+  caljgoid: string | null,
+  formato: string = 'individual',
+  enabled = true
+) => {
   return useQuery<SalidasDetailResponse>({
-    queryKey: ['salidas-detail', caljgoid],
+    queryKey: ['salidas-detail', caljgoid, formato],
     queryFn: async () => {
-      const data = await apiFetch<any>(getSalidasDayUrl(caljgoid!));
+      const data = await apiFetch<any>(getSalidasDayUrl(caljgoid!, formato));
       return {
         caljgoid: data?.caljgoid ?? caljgoid,
         date: data?.date ?? '',
