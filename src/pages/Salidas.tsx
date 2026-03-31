@@ -188,12 +188,13 @@ const Salidas = () => {
                 </div>
               ) : detail ? (
                 <>
-                  {/* Header */}
-                  <div className="mb-8 text-center">
-                    <h2 className="text-3xl font-bold text-foreground mb-2">
+                  {/* Header: left-aligned on mobile, centered on desktop */}
+                  <div className="mb-8 text-left md:text-center">
+                    <h2 className="text-3xl font-bold text-foreground mb-1">
                       {detail.categoryName}
                     </h2>
-                    <p className="text-muted-foreground text-lg">{detail.course} — {selectedDay?.dateFormatted}</p>
+                    <p className="text-muted-foreground text-lg">{detail.course}</p>
+                    <p className="text-muted-foreground text-lg">{selectedDay?.dateFormatted}</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {detail.system} · Tee: {detail.tee} · {detail.groups.length} grupos
                     </p>
