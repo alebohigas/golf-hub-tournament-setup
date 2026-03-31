@@ -1,6 +1,7 @@
 /**
  * Salidas Page
- * Displays tee times organized by day and category
+ * Displays tee times organized by day → category → groups
+ * Uses table format consistent with other pages (Resultados, etc.)
  * Data fetched from salidas.php and salidas_det.php via React Query hooks
  */
 
@@ -8,297 +9,273 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { ArrowLeft, Calendar, Users, Search, X, Loader2 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
-import { useSalidasDays, useSalidasByDay } from '@/hooks/useSalidasData';
-import type { DaySalidas, PlayerInFoursome } from '@/data/salidasData';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ArrowLeft, Calendar, Loader2, Users } from 'lucide-react';
+import { useState } from 'react';
+import { useSalidasMaster, useSalidasDetail } from '@/hooks/useSalidasData';
+import type { SalidasDay, SalidasCategory } from '@/hooks/useSalidasData';
+import { LOGOS_BASE_URL } from '@/config/api';
 import salidasHero from '@/assets/salidas-hero.jpg';
 
-/** Player name with hover card showing details */
-const PlayerName = ({ player, highlight }: { player: PlayerInFoursome; highlight?: string }) => {
-  const renderName = () => {
-    if (!highlight) return player.name;
-    const index = player.name.toLowerCase().indexOf(highlight.toLowerCase());
-    if (index === -1) return player.name;
-    return (
-      <>
-        {player.name.slice(0, index)}
-        <span className="bg-primary/30 text-primary font-bold">
-          {player.name.slice(index, index + highlight.length)}
-        </span>
-        {player.name.slice(index + highlight.length)}
-      </>
-    );
-  };
-
-  return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <span className="cursor-pointer hover:text-primary transition-colors font-medium">
-          {renderName()}
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-72 bg-card border-border" side="top">
-        <div className="space-y-3">
-          <h4 className="font-bold text-foreground text-lg">{player.name}</h4>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <div className="flex justify-between items-center">
-              <span>Club:</span>
-              <span className="font-semibold text-foreground">{player.club}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Handicap Index:</span>
-              <span className="font-semibold text-foreground">{player.handicapIndex.toFixed(1)}</span>
-            </div>
-            {player.score !== undefined && (
-              <div className="flex justify-between items-center pt-2 border-t border-border">
-                <span>Score:</span>
-                <span className="font-bold text-primary text-lg">{player.score}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  );
-};
+// ============= Component =============
 
 const Salidas = () => {
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  /** Currently selected day index */
+  const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
+  /** Currently selected caljgoid for detail view */
+  const [selectedCaljgoid, setSelectedCaljgoid] = useState<string | null>(null);
+  /** Selected category metadata for header display */
+  const [selectedCatMeta, setSelectedCatMeta] = useState<SalidasCategory | null>(null);
 
-  // Fetch days summary from API
-  const { data: days = [], isLoading: loadingDays } = useSalidasDays();
+  // Fetch master data: days + categories
+  const { data: master, isLoading: loadingMaster } = useSalidasMaster();
+  const days = master?.days ?? [];
 
-  // Fetch selected day detail from API
-  const { data: selectedDay, isLoading: loadingDay } = useSalidasByDay(selectedDayId, !!selectedDayId);
+  // Fetch detail for selected category
+  const { data: detail, isLoading: loadingDetail } = useSalidasDetail(selectedCaljgoid);
 
-  const handleDayClick = (dayId: string) => {
-    setSelectedDayId(dayId);
-    setSelectedCategories([]);
-    setSearchQuery('');
-  };
-
-  const handleBack = () => {
-    setSelectedDayId(null);
-    setSelectedCategories([]);
-    setSearchQuery('');
-  };
-
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
-
-  // Auto-select categories with search matches
-  useEffect(() => {
-    if (!selectedDay || !searchQuery.trim()) return;
-    const searchTerm = searchQuery.trim().toLowerCase();
-    const matchingCategoryIds = selectedDay.categories
-      .filter(category => 
-        category.foursomes.some(foursome =>
-          foursome.players.some(player =>
-            player.name.toLowerCase().includes(searchTerm)
-          )
-        )
-      )
-      .map(c => c.categoryId);
-    if (matchingCategoryIds.length > 0) {
-      setSelectedCategories(matchingCategoryIds);
+  /** Handle day card click - if only one category, go directly to detail */
+  const handleDayClick = (dayIdx: number) => {
+    const day = days[dayIdx];
+    if (day.categories.length === 1) {
+      // Skip category selection, go directly to groups
+      setSelectedDayIdx(dayIdx);
+      setSelectedCaljgoid(String(day.categories[0].caljgoid));
+      setSelectedCatMeta(day.categories[0]);
+    } else {
+      setSelectedDayIdx(dayIdx);
+      setSelectedCaljgoid(null);
+      setSelectedCatMeta(null);
     }
-  }, [selectedDay, searchQuery]);
+  };
 
-  const filteredCategories = useMemo(() => {
-    if (!selectedDay) return [];
-    const searchTerm = searchQuery.trim().toLowerCase();
-    const allCategoryIds = selectedDay.categories.map(c => c.categoryId);
-    const showAllCategories = selectedCategories.length === 0 || selectedCategories.length === allCategoryIds.length;
-    
-    return selectedDay.categories
-      .map(category => {
-        if (searchTerm) {
-          const filteredFoursomes = category.foursomes.filter(foursome =>
-            foursome.players.some(player => player.name.toLowerCase().includes(searchTerm))
-          );
-          return { ...category, foursomes: filteredFoursomes };
-        }
-        if (!showAllCategories && !selectedCategories.includes(category.categoryId)) {
-          return { ...category, foursomes: [] };
-        }
-        return category;
-      })
-      .filter(cat => cat.foursomes.length > 0);
-  }, [selectedDay, selectedCategories, searchQuery]);
+  /** Handle category click */
+  const handleCategoryClick = (cat: SalidasCategory) => {
+    setSelectedCaljgoid(String(cat.caljgoid));
+    setSelectedCatMeta(cat);
+  };
 
-  const totalFoursomes = days.reduce((sum, d) => sum + d.foursomeCount, 0);
-  const isLoading = loadingDays || loadingDay;
+  /** Handle back navigation */
+  const handleBack = () => {
+    if (selectedCaljgoid) {
+      // If day has multiple categories, go back to category selection
+      const day = selectedDayIdx !== null ? days[selectedDayIdx] : null;
+      if (day && day.categories.length > 1) {
+        setSelectedCaljgoid(null);
+        setSelectedCatMeta(null);
+      } else {
+        // Single category day - go back to days
+        setSelectedDayIdx(null);
+        setSelectedCaljgoid(null);
+        setSelectedCatMeta(null);
+      }
+    } else {
+      // Back to days
+      setSelectedDayIdx(null);
+    }
+  };
+
+  /** Currently selected day object */
+  const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
+
+  /** Total groups across all days for header */
+  const totalCategories = days.reduce((sum, d) => sum + d.categories.length, 0);
 
   return (
     <Layout>
-      <PageHero 
+      <PageHero
         title="Salidas"
         subtitle="Horarios de salida y grupos de juego"
         backgroundImage={salidasHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          {!selectedDayId ? (
+
+          {/* ============= Level 1: Day Selection ============= */}
+          {selectedDayIdx === null ? (
             <>
               <div className="text-center mb-10">
                 <h2 className="text-3xl font-bold text-foreground">
-                  GRUPOS DE SALIDA: <span className="text-primary">{loadingDays ? '…' : totalFoursomes}</span>
+                  DÍAS DE JUEGO: <span className="text-primary">{loadingMaster ? '…' : days.length}</span>
                 </h2>
               </div>
 
-              {loadingDays ? (
+              {loadingMaster ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+              ) : days.length === 0 ? (
+                <div className="text-center py-16">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p className="text-muted-foreground text-lg">No hay salidas disponibles</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                  {days.map((day) => (
-                    <Card key={day.dayId} className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg">
+                  {days.map((day, idx) => (
+                    <Card
+                      key={idx}
+                      className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
+                      onClick={() => handleDayClick(idx)}
+                    >
                       <CardContent className="p-6 text-center">
                         <Calendar className="h-8 w-8 mx-auto mb-3 text-primary" />
-                        <h3 className="font-bold text-foreground text-xl mb-1">{day.dayName}</h3>
-                        <p className="text-muted-foreground text-sm mb-4">{day.date}</p>
-                        <div className="flex justify-center gap-6 mb-4 text-sm">
+                        <h3 className="font-bold text-foreground text-lg mb-1 capitalize">{day.dateFormatted}</h3>
+                        <p className="text-muted-foreground text-sm mb-3">{day.course}</p>
+                        <div className="flex justify-center gap-4 text-sm">
                           <div>
-                            <span className="text-2xl font-bold text-primary">{day.foursomeCount}</span>
-                            <p className="text-muted-foreground">Grupos</p>
-                          </div>
-                          <div>
-                            <span className="text-2xl font-bold text-primary">{day.playerCount}</span>
-                            <p className="text-muted-foreground">Jugadores</p>
+                            <span className="text-2xl font-bold text-primary">{day.categories.length}</span>
+                            <p className="text-muted-foreground">Categorías</p>
                           </div>
                         </div>
-                        <Button 
-                          onClick={() => handleDayClick(day.dayId)}
-                          className="w-full"
-                          disabled={day.foursomeCount === 0}
-                        >
-                          {day.foursomeCount > 0 ? 'Ver Salidas' : 'Sin salidas'}
-                        </Button>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
             </>
-          ) : (
+
+          /* ============= Level 2: Category Selection (multi-category days) ============= */
+          ) : !selectedCaljgoid && selectedDay ? (
             <>
               <Button variant="ghost" onClick={handleBack} className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20">
                 <ArrowLeft className="h-4 w-4" />
                 Volver a días
               </Button>
 
-              {loadingDay ? (
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-bold text-foreground mb-2 capitalize">{selectedDay.dateFormatted}</h2>
+                <p className="text-muted-foreground">{selectedDay.course}</p>
+                <p className="text-muted-foreground mt-1">Selecciona una categoría</p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
+                {selectedDay.categories.map((cat) => (
+                  <Card
+                    key={cat.caljgoid}
+                    className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
+                    onClick={() => handleCategoryClick(cat)}
+                  >
+                    <CardContent className="p-5 text-center">
+                      <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+                      <h3 className="font-bold text-foreground text-lg mb-1">{cat.shortName || cat.categoryName}</h3>
+                      <p className="text-xs text-muted-foreground">{cat.tee}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+
+          /* ============= Level 3: Groups Table ============= */
+          ) : (
+            <>
+              <Button variant="ghost" onClick={handleBack} className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20">
+                <ArrowLeft className="h-4 w-4" />
+                {selectedDay && selectedDay.categories.length > 1 ? 'Volver a categorías' : 'Volver a días'}
+              </Button>
+
+              {loadingDetail ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : selectedDay ? (
+              ) : detail ? (
                 <>
-                  <div className="mb-6 text-center">
-                    <h2 className="text-3xl font-bold text-foreground mb-2">{selectedDay.dayName}</h2>
-                    <p className="text-muted-foreground text-lg">{selectedDay.date}</p>
+                  {/* Header */}
+                  <div className="mb-8 text-center">
+                    <h2 className="text-3xl font-bold text-foreground mb-2">
+                      {detail.categoryName}
+                    </h2>
+                    <p className="text-muted-foreground text-lg">{detail.course} — {selectedDay?.dateFormatted}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {detail.system} · Tee: {detail.tee} · {detail.groups.length} grupos
+                    </p>
                   </div>
 
-                  {/* Filters */}
-                  <div className="mb-8 space-y-4">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <span className="text-sm text-muted-foreground mr-2">Filtrar:</span>
-                      {selectedDay.categories.map((category) => {
-                        const allCategoryIds = selectedDay.categories.map(c => c.categoryId);
-                        const showingAll = selectedCategories.length === 0 || selectedCategories.length === allCategoryIds.length;
-                        const isSelected = selectedCategories.includes(category.categoryId);
-                        const isHighlighted = showingAll || isSelected;
-                        return (
-                          <Button
-                            key={category.categoryId}
-                            variant={isHighlighted ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleCategory(category.categoryId)}
-                            className={`transition-all ${isHighlighted ? '' : 'bg-background hover:bg-primary/10'}`}
-                          >
-                            {category.categoryName}
-                          </Button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="max-w-md mx-auto relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        placeholder="Buscar jugador por nombre..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-10"
-                      />
-                      {searchQuery && (
-                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {filteredCategories.length === 0 ? (
+                  {detail.groups.length === 0 ? (
                     <div className="text-center py-16">
                       <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                      <p className="text-muted-foreground text-lg">
-                        {searchQuery ? 'No se encontraron jugadores con ese nombre' : 'No hay salidas para las categorías seleccionadas'}
-                      </p>
+                      <p className="text-muted-foreground text-lg">No hay grupos de salida para esta categoría</p>
                     </div>
                   ) : (
-                    <div className="space-y-12">
-                      {filteredCategories.map((category) => (
-                        <div key={category.categoryId}>
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="h-1 flex-1 bg-gradient-to-r from-primary/50 to-transparent rounded" />
-                            <h3 className="text-2xl font-bold text-foreground px-4">{category.categoryName}</h3>
-                            <div className="h-1 flex-1 bg-gradient-to-l from-primary/50 to-transparent rounded" />
-                          </div>
-                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {category.foursomes.map((foursome) => (
-                              <Card key={foursome.id} className="border-border/50 overflow-hidden hover:shadow-md transition-shadow">
-                                <div className="bg-primary px-4 py-3 flex justify-between items-center">
-                                  <span className="font-bold text-primary-foreground">Hoyo {foursome.hole}</span>
-                                  <span className="font-bold text-primary-foreground text-lg">{foursome.time}</span>
-                                </div>
-                                <CardContent className="p-0">
-                                  {foursome.players.map((player, idx) => (
-                                    <div 
-                                      key={player.id} 
-                                      className={`px-4 py-3 flex items-center justify-between ${
-                                        idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'
-                                      } ${idx < foursome.players.length - 1 ? 'border-b border-border/30' : ''}`}
-                                    >
-                                      <div className="flex-1 min-w-0">
-                                        <PlayerName player={player} highlight={searchQuery} />
-                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{player.club}</p>
-                                      </div>
-                                      <div className="text-right ml-3">
-                                        <span className="font-bold text-foreground">{player.score ?? '-'}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
+                    <Card className="border-border/50 bg-white max-w-5xl mx-auto">
+                      <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto bg-white">
+                          <Table className="bg-white">
+                            <TableHeader>
+                              <TableRow className="bg-primary hover:bg-primary">
+                                <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
+                                <TableHead className="text-primary-foreground font-bold text-center w-20">Hora</TableHead>
+                                <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
+                                <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                                <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {detail.groups.map((group, gIdx) => (
+                                group.players.map((player, pIdx) => (
+                                  <TableRow
+                                    key={`${group.id}-${pIdx}`}
+                                    className={`bg-white hover:bg-white ${
+                                      pIdx === group.players.length - 1 && gIdx < detail.groups.length - 1
+                                        ? 'border-b-2 border-primary/20'
+                                        : ''
+                                    }`}
+                                  >
+                                    {/* Show hole and time only on first player of each group */}
+                                    {pIdx === 0 ? (
+                                      <>
+                                        <TableCell
+                                          className="text-center font-bold text-foreground"
+                                          rowSpan={group.players.length}
+                                        >
+                                          {group.tee}
+                                        </TableCell>
+                                        <TableCell
+                                          className="text-center font-medium text-foreground"
+                                          rowSpan={group.players.length}
+                                        >
+                                          {group.time}
+                                        </TableCell>
+                                      </>
+                                    ) : null}
+                                    {/* Club logo */}
+                                    <TableCell className="p-1 text-center align-middle">
+                                      {player.clubLogo ? (
+                                        <img
+                                          src={player.clubLogo}
+                                          alt="Club"
+                                          className="w-auto object-contain rounded inline-block"
+                                          style={{ height: '2.25rem' }}
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    {/* Player name */}
+                                    <TableCell className="font-medium text-foreground">
+                                      {player.name}
+                                    </TableCell>
+                                    {/* Score */}
+                                    <TableCell className="text-center font-bold text-primary">
+                                      {player.score || '—'}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                      ))}
-                    </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </>
-              ) : null}
+              ) : (
+                <div className="text-center py-16">
+                  <p className="text-muted-foreground">Error al cargar los datos</p>
+                </div>
+              )}
             </>
           )}
         </div>
