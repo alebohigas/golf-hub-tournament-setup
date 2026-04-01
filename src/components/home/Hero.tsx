@@ -50,9 +50,12 @@ const Hero = () => {
   }, [tournamentInfo?.name, tournamentInfo?.club]);
 
   /** Format date range for display */
+  /** Format date range avoiding timezone offset issues by parsing as UTC */
   const formatDate = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const [sy, sm, sd] = start.split('-').map(Number);
+    const [ey, em, ed] = end.split('-').map(Number);
+    const startDate = new Date(sy, sm - 1, sd);
+    const endDate = new Date(ey, em - 1, ed);
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
     return `Del ${startDate.toLocaleDateString('es-MX', options)} al ${endDate.toLocaleDateString('es-MX', { ...options, year: 'numeric' })}`;
   };
