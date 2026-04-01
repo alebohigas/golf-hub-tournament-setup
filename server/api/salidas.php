@@ -31,7 +31,7 @@ $sql = "SELECT c.id as caljgoid, c.fecha,
         JOIN categorias cat ON (c.categoriaid = cat.categoria_id)
         LEFT JOIN campos ca ON (c.campo = ca.id)
         LEFT JOIN salidas s ON (cat.salida = s.id)
-        WHERE c.torneoid = $tid AND c.campo > 0
+        WHERE c.torneoid = $tid AND c.campo > 0 AND c.estatus = 2
           AND EXISTS (
               SELECT 1 FROM salidagrupo sg
               WHERE sg.caljuegoid = c.id AND sg.categoriaid = c.categoriaid
