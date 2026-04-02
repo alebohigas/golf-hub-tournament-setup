@@ -35,10 +35,10 @@ export const useSponsors = () => {
   return useQuery<Sponsor[]>({
     queryKey: ['sponsors'],
     queryFn: () => apiFetch<Sponsor[]>(getSponsorsUrl()),
-    staleTime: 10 * 60 * 1000,
-    refetchInterval: POLL_STATIC || false,
-    retry: 1,
-    retryDelay: 5000,
+    staleTime: 30 * 60 * 1000, // 30 min cache - sponsors rarely change
+    refetchInterval: false,     // No polling - fetch once per session
+    retry: 0,                   // Don't retry if no sponsors exist
+    refetchOnWindowFocus: false,
   });
 };
 
