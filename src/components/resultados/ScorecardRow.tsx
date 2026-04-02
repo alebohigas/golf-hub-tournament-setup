@@ -214,8 +214,8 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             {renderSection(back9, 'IN')}
           </div>
 
-          {/* Totals - adapted to type */}
-          <div className="flex justify-end gap-6 mt-3 text-sm flex-wrap">
+          {/* Totals - aligned baseline, consistent sizing */}
+          <div className="flex justify-end items-baseline gap-6 mt-3 text-sm flex-wrap">
             <span className="text-muted-foreground">
               OUT: <strong className="text-foreground">{scorecard.out}</strong>
             </span>
@@ -223,21 +223,21 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               IN: <strong className="text-foreground">{scorecard.in}</strong>
             </span>
             <span className="text-muted-foreground">
-              Total: <strong className="text-primary text-base">{scorecard.totalGolpes}</strong>
+              Total: <strong className="text-foreground font-bold">{scorecard.totalGolpes}</strong>
             </span>
             {(type === 'hcp' || type === 'stableford') && (
               <span className="text-muted-foreground">
-                Neto: <strong className="text-foreground">{scorecard.totalNeto}</strong>
+                Neto: <strong className="text-foreground font-bold">{scorecard.totalNeto}</strong>
               </span>
             )}
             {type === 'stableford' && (
               <span className="text-muted-foreground">
-                Puntos: <strong className="text-amber-700 text-base">{scorecard.totalPuntos}</strong>
+                Puntos: <strong className="text-primary font-bold">{scorecard.totalPuntos}</strong>
               </span>
             )}
             {type === 'scratch' && (
               <span className="text-muted-foreground">
-                +/-: <strong className={`text-base ${
+                +/-: <strong className={`font-bold ${
                   (scorecard.totalGolpes - 72) < 0 ? 'text-red-600' : 
                   (scorecard.totalGolpes - 72) > 0 ? 'text-blue-600' : ''
                 }`}>
