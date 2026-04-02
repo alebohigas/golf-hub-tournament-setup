@@ -78,7 +78,7 @@ $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
 $competencias = [];
 
-// ============= O'Yes (Approach / Closest to Pin) =============
+// ============= O'Yes (Approach / Closest to Pin in a course hole. Not to be confused with approach, which is a single set approach separate from the course par 3's) =============
 if ($tipo === '' || $tipo === 'oyes') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM premiosjug WHERE torneoid = $tid";
     $row = safe_query_one($conn, $sql);
@@ -145,7 +145,7 @@ if ($tipo === '' || $tipo === 'oyes') {
 }
 
 
-// ============= Approach =============
+// ============= Approach, done in a single set approach separate from the course par 3's) =============
 if ($tipo === '' || $tipo === 'approach') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM approach WHERE torneoid = $tid AND premio > 0";
     $row = safe_query_one($conn, $sql);
