@@ -99,19 +99,20 @@ foreach ($groupRows as $group) {
             }
         }
     } else {
-        // Stroke Play
+        // Stroke Play - use gross (acumso) or net (acumsa) based on category config
+        $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
         if ($isParejas) {
             $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                           acumso as sa, sistema
+                           $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY acumso ASC";
+                    ORDER BY $scoreCol ASC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                           acumso as sa, sistema, grupoid
+                           $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY acumso ASC";
+                    ORDER BY $scoreCol ASC";
         }
     }
 
