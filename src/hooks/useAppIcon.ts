@@ -7,7 +7,7 @@
 
 import { useEffect } from 'react';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
-import { getLogoUrl } from '@/config/api';
+
 
 /**
  * Sets <link rel="apple-touch-icon"> and <link rel="icon"> dynamically
