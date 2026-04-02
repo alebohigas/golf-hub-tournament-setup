@@ -220,6 +220,7 @@ if ($tipo === '' || $tipo === 'putt') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
     $row = safe_query_one($conn, $sql);
     
+
     if ($row && (int)$row['cnt'] > 0) {
         // Pre-update marks (safe - won't crash on failure)
         safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
@@ -228,15 +229,17 @@ if ($tipo === '' || $tipo === 'putt') {
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, hoyo
+        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name ,LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact 
                 FROM puttjug
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
         $prizes = safe_query_all($conn, $sql);
         $groups = [];
+
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-            
+            $descripcion = esc($conn, $p['name']);            
+
             $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
             $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
@@ -246,20 +249,18 @@ if ($tipo === '' || $tipo === 'putt') {
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
               #  'hoyo'        => (int)$p['hoyo'],
-              #  'maxPlayers'  => $numPrem,
+                'maxPlayers'  => $numPrem,
                 'playerCount' => $playerCount,
             ];
-            
-error_log('PUTT GROUP: ' . json_encode($group));
 
             if ($detalle === '1') {
-                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
-                $group['lastUpdated'] = get_putt_last_updated($conn, $tid);
-
-                error_log('PUTT GROUP FULL: ' . json_encode($group));
+                $group['players'] = get_putt_players($conn, $tid, $premioId);
+                 $group['lastUpdated'] = $p['ultact'] ?? null;
             }
+
             $groups[] = $group;
         }
+
         $competencias[] = [
             'id'          => 'putt',
             'name'        => 'Putt',
@@ -280,6 +281,7 @@ error_log('PUTT GROUP: ' . json_encode($group));
         ];
     }
 }
+
 
 // ============= Skin Game =============
 // if ($tipo === '' || $tipo === 'skin') {
@@ -354,11 +356,6 @@ usort($competencias, function($a, $b) {
 });
 
 json_response($competencias);
-
-echo '<pre>';
-var_dump($competencias);
-echo '</pre>';
-exit;
 
 // ============= Helper Functions =============
 
@@ -458,20 +455,20 @@ function get_oyesx_last_updated($conn, $descName, $tid) {
 }
 
 /** Get Putt players for a prize group */
-function get_putt_players($conn, $tid, $premioId, $numPrem) {
+function get_putt_players($conn, $tid, $premioId) {
     global $LOGOS_BASE_URL;
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   a.distancia, a.hoyo,
+                   a.distancia,
                    c.logo, c.nombre as club
             FROM puttjug a
-            JOIN v_puttjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
+            JOIN v_puttjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid)
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia ASC
-            LIMIT $numPrem";
+            ORDER BY a.distancia ASC";
+
 
     $winners = safe_query_all($conn, $sql);
 
@@ -488,13 +485,14 @@ function get_putt_players($conn, $tid, $premioId, $numPrem) {
             'club'      => $w['club'],
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
+        
     }
     return $players;
 }
 
 /** Get Putt last updated timestamp */
-function get_putt_last_updated($conn, $tid) {
-    $sql = "SELECT f_ultfechaputt($tid) as lastUpdated";
+function get_putt_last_updated($conn, $tid, $premio) {
+    $sql = "SELECT f_ultfechaputt($premio,$tid) as lastUpdated";
     $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
 }
