@@ -179,6 +179,7 @@ export const fetchPlayerScorecardFromApi = async (
     const golpes = h.scoreSO ?? 0;
     const par = h.par ?? 0;
     const neto = h.scoreSA ?? golpes;
+    const hcpStrokes = h.hcpStrokes ?? 0;
     const diff = golpes - par;
 
     return {
@@ -187,6 +188,7 @@ export const fetchPlayerScorecardFromApi = async (
       hcp: h.ventaja ?? 0,
       golpes,
       neto,
+      hcpStrokes,
       puntos: undefined, // stableford points calculated below if needed
       resultado: diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`,
     } as HoleScore;
