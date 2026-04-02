@@ -202,13 +202,22 @@ export const fetchPlayerScorecardFromApi = async (
   const front9 = holes.slice(0, 9);
   const back9 = holes.slice(9, 18);
 
+  // For Stableford: API's totals.SA = stableford points, neto = sum of per-hole neto
+  const isStableford = scType === 'stableford';
+  const totalNeto = isStableford
+    ? holes.reduce((s, h) => s + h.neto, 0)
+    : (raw.totals?.SA ?? holes.reduce((s, h) => s + h.neto, 0));
+  const totalPuntos = isStableford
+    ? (raw.totals?.SA ?? holes.reduce((s, h) => s + (h.puntos || 0), 0))
+    : undefined;
+
   return {
     round,
     scorecardType: scType,
     holes,
     totalGolpes: raw.totals?.SO ?? holes.reduce((s, h) => s + h.golpes, 0),
-    totalNeto: raw.totals?.SA ?? holes.reduce((s, h) => s + h.neto, 0),
-    totalPuntos: scType === 'stableford' ? holes.reduce((s, h) => s + (h.puntos || 0), 0) : undefined,
+    totalNeto,
+    totalPuntos,
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
   };
