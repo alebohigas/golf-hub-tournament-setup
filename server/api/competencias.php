@@ -72,7 +72,7 @@ if (!$torneoInfo) {
 $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
 $competencias = [];
-
+// echo "/* Debug: torneo_id=$tid, tipo='$tipo', detalle='$detalle', numPrem=$numPrem */\n";
 // ============= O'Yes (Approach / Closest to Pin) =============
 if ($tipo === '' || $tipo === 'oyes') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM premiosjug WHERE torneoid = $tid";
@@ -133,6 +133,7 @@ if ($tipo === '' || $tipo === 'oyes') {
         ];
     }
 }
+
 
 // ============= O'Yes-X (Driver, Precision, etc.) =============
 if ($tipo === '' || $tipo === 'oyesx') {
