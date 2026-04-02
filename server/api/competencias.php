@@ -44,7 +44,7 @@ function safe_query_one($conn, $sql) {
 
 /** Safe query_all - returns empty array on failure instead of dying */
 function safe_query_all($conn, $sql) {
-    debug_log_query('safe_query_all', $sql);
+    // debug_log_query('safe_query_all', $sql);
     $result = $conn->query($sql);
     if (!$result) {
         error_log("competencias.php - query failed: " . $conn->error . " | SQL: $sql");
