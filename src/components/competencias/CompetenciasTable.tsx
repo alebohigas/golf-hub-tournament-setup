@@ -158,16 +158,9 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
                         col.align === 'right' ? 'text-right' : 'text-left'
                       }`}
                     >
-                      {/* Special handling for position column with medal */}
+                      {/* Position column - number only */}
                       {col.key === 'position' && col.format === 'medal' ? (
-                        <div className="flex items-center justify-center gap-1">
-                          {player.position <= 3 && (
-                            <Medal className={`h-5 w-5 ${getPositionStyle(player.position)}`} />
-                          )}
-                          <span className={getPositionStyle(player.position)}>
-                            {player.position}
-                          </span>
-                        </div>
+                        <span>{player.position}</span>
                       ) : col.key === 'clubLogo' ? (
                         /* Club logo image - separate column, always left of name */
                         player.clubLogo ? (
