@@ -178,9 +178,14 @@ export const fetchPlayerScorecardFromApi = async (
   const holes: HoleScore[] = (raw.holes || []).map((h: any) => {
     const golpes = h.scoreSO ?? 0;
     const par = h.par ?? 0;
-    const neto = h.scoreSA ?? golpes;
     const hcpStrokes = h.hcpStrokes ?? 0;
     const diff = golpes - par;
+
+    // For Stableford: scoreSA from API = stableford points, neto = gross - hcpStrokes
+    // For Stroke: scoreSA from API = net score
+    const isStableford = scType === 'stableford';
+    const neto = isStableford ? (golpes - hcpStrokes) : (h.scoreSA ?? golpes);
+    const puntos = isStableford ? (h.scoreSA ?? 0) : undefined;
 
     return {
       hoyo: h.hole,
@@ -189,18 +194,10 @@ export const fetchPlayerScorecardFromApi = async (
       golpes,
       neto,
       hcpStrokes,
-      puntos: undefined, // stableford points calculated below if needed
+      puntos,
       resultado: diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`,
     } as HoleScore;
   });
-
-  // Calculate stableford points if applicable
-  if (scType === 'stableford') {
-    holes.forEach(h => {
-      const netDiff = h.neto - h.par;
-      h.puntos = Math.max(0, 2 - netDiff);
-    });
-  }
 
   const front9 = holes.slice(0, 9);
   const back9 = holes.slice(9, 18);
