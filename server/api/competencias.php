@@ -198,7 +198,7 @@ if ($tipo === '' || $tipo === 'approach') {
             'description' => 'Approach - Más cerca de la bandera',
             'icon'        => 'crosshair',
             'endpoint'    => 'approach',
-            'order'       => 5,
+            'order'       => 3,
             'enabled'     => true,
             'groupCount'  => count($groups),
             'groups'      => $groups,
