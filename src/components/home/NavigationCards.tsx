@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import type { MenuItem } from '@/data/mockData';
 import { 
-  FileText, Calendar, Users, Clock, Radio, Trophy, 
+  FileText, Calendar, Users, Clock, Radio, Trophy, Target,
   CalendarDays, Bell, Award, Handshake, BookOpen 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
