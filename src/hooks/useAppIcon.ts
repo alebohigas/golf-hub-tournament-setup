@@ -19,8 +19,8 @@ export const useAppIcon = () => {
   useEffect(() => {
     if (!tournament?.logoHeaderUrl) return;
 
-    /** Full URL to the logo image via our proxy */
-    const logoUrl = getLogoUrl(tournament.logoHeaderUrl);
+    /** Logo URL - already includes proxy path from API response */
+    const logoUrl = tournament.logoHeaderUrl;
 
     // ============= Apple Touch Icon (home screen shortcut) =============
     let appleTouchIcon = document.querySelector<HTMLLinkElement>(
