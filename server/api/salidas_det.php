@@ -89,7 +89,7 @@ foreach ($groupRows as $group) {
                                acumsa as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumsa ASC";
+                        ORDER BY acumsa DESC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumsa as sa, sistema, grupoid
