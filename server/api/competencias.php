@@ -65,7 +65,7 @@ $tid = esc($conn, $torneoid);
 
 // ============= Get tournament config =============
 $sql = "SELECT oyesnumprem FROM torneo WHERE torneo_id = $tid";
-$torneoInfo = query_one($conn, $sql);
+$torneoInfo = safe_query_one($conn, $sql);
 if (!$torneoInfo) {
     json_error("Tournament $torneoid not found", 404);
 }
@@ -76,7 +76,7 @@ $competencias = [];
 // ============= O'Yes (Approach / Closest to Pin) =============
 if ($tipo === '' || $tipo === 'oyes') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM premiosjug WHERE torneoid = $tid";
-    $row = query_one($conn, $sql);
+    $row = safe_query_one($conn, $sql);
     
     if ($row && (int)$row['cnt'] > 0) {
         // Get groups (prizes)
@@ -84,7 +84,7 @@ if ($tipo === '' || $tipo === 'oyes') {
                 FROM premiosjug
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
-        $prizes = query_all($conn, $sql);
+        $prizes = safe_query_all($conn, $sql);
         
         $groups = [];
         foreach ($prizes as $p) {
@@ -92,7 +92,7 @@ if ($tipo === '' || $tipo === 'oyes') {
             
             // Count players
             $sql = "SELECT COUNT(*) as cnt FROM premiosjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
-            $countRow = query_one($conn, $sql);
+            $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
             
             $group = [
@@ -145,7 +145,7 @@ if ($tipo === '' || $tipo === 'oyesx') {
 
     // Group O'Yes-X by description type (driver, precision, etc.)
     $sql = "SELECT DISTINCT descripcion FROM oyesxjug WHERE torneoid = $tid ORDER BY descripcion";
-    $descRows = query_all($conn, $sql);
+    $descRows = safe_query_all($conn, $sql);
 
     foreach ($descRows as $descRow) {
         $descName = $descRow['descripcion'];
@@ -166,14 +166,14 @@ if ($tipo === '' || $tipo === 'oyesx') {
                 FROM oyesxjug
                 WHERE torneoid = $tid AND descripcion = '$descEsc'
                 ORDER BY premio ASC";
-        $prizes = query_all($conn, $sql);
+        $prizes = safe_query_all($conn, $sql);
 
         $groups = [];
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
             
             $sql = "SELECT COUNT(*) as cnt FROM oyesxjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
-            $countRow = query_one($conn, $sql);
+            $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
 
             $group = [
@@ -221,7 +221,7 @@ if ($tipo === '' || $tipo === 'oyesx') {
 // ============= Putt =============
 if ($tipo === '' || $tipo === 'putt') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
-    $row = query_one($conn, $sql);
+    $row = safe_query_one($conn, $sql);
     
     if ($row && (int)$row['cnt'] > 0) {
         // Pre-update marks (safe - won't crash on failure)
@@ -235,14 +235,14 @@ if ($tipo === '' || $tipo === 'putt') {
                 FROM puttjug
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
-        $prizes = query_all($conn, $sql);
+        $prizes = safe_query_all($conn, $sql);
 
         $groups = [];
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
             
             $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
-            $countRow = query_one($conn, $sql);
+            $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
 
             $group = [
@@ -289,7 +289,7 @@ if ($tipo === '' || $tipo === 'skin') {
             FROM categorias a
             JOIN caljuego c ON (a.categoria_id = c.categoriaid AND c.campo > 0 AND c.cierre = 1 AND c.skin = 1)
             WHERE a.torneo_id = $tid AND a.estatus = 1 AND a.Skin_grupo_id > 0";
-    $row = query_one($conn, $sql);
+    $row = safe_query_one($conn, $sql);
     
     if ($row && (int)$row['cnt'] > 0) {
         $conn->query("SET lc_time_names = 'es_ES'");
@@ -301,7 +301,7 @@ if ($tipo === '' || $tipo === 'skin') {
                 JOIN caljuego c ON (a.categoria_id = c.categoriaid AND c.campo > 0 AND c.cierre = 1 AND c.skin = 1)
                 WHERE a.torneo_id = $tid AND a.estatus = 1 AND a.Skin_grupo_id > 0
                 ORDER BY fecha";
-        $dateRows = query_all($conn, $sql);
+        $dateRows = safe_query_all($conn, $sql);
 
         $groups = [];
         foreach ($dateRows as $dr) {
@@ -312,7 +312,7 @@ if ($tipo === '' || $tipo === 'skin') {
                     JOIN caljuego c ON (a.categoria_id = c.categoriaid AND c.campo > 0 AND c.cierre = 1 AND c.skin = 1)
                     WHERE a.torneo_id = $tid AND a.estatus = 1 AND a.Skin_grupo_id > 0 AND c.fecha = '$fec'
                     ORDER BY Skin_grupo_id";
-            $groupRows = query_all($conn, $sql);
+            $groupRows = safe_query_all($conn, $sql);
 
             foreach ($groupRows as $gr) {
                 $gid = (int)$gr['Skin_grupo_id'];
@@ -381,7 +381,7 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $numPrem";
-    $winners = query_all($conn, $sql);
+    $winners = safe_query_all($conn, $sql);
 
     $players = [];
     $pos = 0;
@@ -402,7 +402,7 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
 /** Get O'Yes last updated timestamp */
 function get_oyes_last_updated($conn, $tid, $premioId) {
     $sql = "SELECT f_ultact($tid, $premioId) as lastUpdated";
-    $row = query_one($conn, $sql);
+    $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
 }
 
@@ -423,7 +423,7 @@ function get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower) {
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
             ORDER BY a.distancia $sortOrder
             LIMIT $numPrem";
-    $winners = query_all($conn, $sql);
+    $winners = safe_query_all($conn, $sql);
 
     $players = [];
     $pos = 0;
@@ -445,7 +445,7 @@ function get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower) {
 function get_oyesx_last_updated($conn, $descName, $tid) {
     $descEsc = esc($conn, $descName);
     $sql = "SELECT f_ultfechaoyesx('$descEsc', $tid) as lastUpdated";
-    $row = query_one($conn, $sql);
+    $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
 }
 
@@ -464,7 +464,7 @@ function get_putt_players($conn, $tid, $premioId, $numPrem) {
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $numPrem";
-    $winners = query_all($conn, $sql);
+    $winners = safe_query_all($conn, $sql);
 
     $players = [];
     $pos = 0;
@@ -485,6 +485,6 @@ function get_putt_players($conn, $tid, $premioId, $numPrem) {
 /** Get Putt last updated timestamp */
 function get_putt_last_updated($conn, $tid) {
     $sql = "SELECT f_ultfechaputt($tid) as lastUpdated";
-    $row = query_one($conn, $sql);
+    $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
 }
