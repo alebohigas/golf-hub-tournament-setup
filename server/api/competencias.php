@@ -4,10 +4,11 @@
  * GET /api/competencias.php?torneoid=XXX
  * Returns available competition types based on existing data in DB tables
  *
- * Checks: premiosjug (O'Yes), oyesxjug (O'Yes-X), puttjug (Putt), Skeen_tarjetas (Skin Game)
+ * Checks: premiosjug (O'Yes), approachjug (Approach), puttjug (Putt), Skeen_tarjetas (Skin Game)
+ * Each type includes its groups (prizes) and player counts
  * Each type includes its groups (prizes) and player counts
  *
- * Optional: ?tipo=oyes|oyesx|putt|skin - filter to a specific type
+ * Optional: ?tipo=oyes|approach|putt|skin - filter to a specific type
  * Optional: ?detalle=1 - include full player data for each group
  */
 require_once 'config.php';
@@ -43,7 +44,7 @@ function safe_query_one($conn, $sql) {
 
 /** Safe query_all - returns empty array on failure instead of dying */
 function safe_query_all($conn, $sql) {
-    debug_log_query('safe_query_all', $sql);
+    // debug_log_query('safe_query_all', $sql);
     $result = $conn->query($sql);
     if (!$result) {
         error_log("competencias.php - query failed: " . $conn->error . " | SQL: $sql");
@@ -144,93 +145,76 @@ if ($tipo === '' || $tipo === 'oyes') {
 }
 
 
-// ============= O'Yes-X (Driver, Precision, etc.) =============
-// if ($tipo === '' || $tipo === 'oyesx') {
-//     // Pre-update marks (safe - won't crash on failure)
-//     // safe_exec($conn, "UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid", 'oyesx reset orden');
-//     // safe_exec($conn, "UPDATE oyesxjug a
-//     //               JOIN v_oyesx b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
-//     //               SET a.orden = 1
-//     //               WHERE a.torneoid = $tid", 'oyesx set orden');
+// ============= Approach =============
+if ($tipo === '' || $tipo === 'approach') {
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM approach WHERE torneoid = $tid AND premio > 0";
+    $row = safe_query_one($conn, $sql);
 
-//     // Group O'Yes-X by description type (driver, precision, etc.)
-//     $sql = "SELECT DISTINCT premio  FROM premios WHERE torneoid = $tid ORDER BY premio";
-//     $descRows = safe_query_all($conn, $sql);
+    if ($row && (int)$row['cnt'] > 0) {
+        // Get groups (premio, descripcion, hoyo)
+        $sql = "SELECT premio as id, descripcion as name, hoyo,
+                       LEFT(f_ultfechaapproach(descripcion, torneoid), 16) AS ultact
+                FROM approach
+                WHERE torneoid = $tid AND premio > 0
+                GROUP BY premio, descripcion, hoyo
+                ORDER BY premio ASC";
+        $prizes = safe_query_all($conn, $sql);
 
-//     foreach ($descRows as $descRow) {
-//         $descName = $descRow['premio'];
-//         $descEsc = esc($conn, $descName);
-        
-//         // Determine icon based on description
-//         $descLower = strtolower($descName);
-//         $icon = 'star';
-//         $typeId = 'oyesx-' . preg_replace('/[^a-z0-9]/', '-', $descLower);
-//         if (strpos($descLower, 'driver') !== false || strpos($descLower, 'distancia') !== false) {
-//             $icon = 'ruler';
-//         } elseif (strpos($descLower, 'precision') !== false || strpos($descLower, 'precisión') !== false) {
-//             $icon = 'crosshair';
-//         }
+        $groups = [];
+        foreach ($prizes as $p) {
+            $premioId = esc($conn, $p['id']);
+            $descripcion = esc($conn, $p['name']);
+            $hoyo = (int)$p['hoyo'];
 
-//         // Get prizes for this description type
-//         $sql = "SELECT DISTINCT premio as id, premio as name, hoyo
-//                 FROM premiosjug
-//                 WHERE torneoid = $tid AND premio = '$descEsc'
-//                 ORDER BY premio ASC";
-//         $prizes = safe_query_all($conn, $sql);
+            $group = [
+                'id'          => 'approach-' . $p['id'],
+                'name'        => $p['name'],
+                'shortName'   => $p['name'],
+                'hoyo'        => $hoyo,
+                'maxPlayers'  => $hoyo, // hoyo = number of slots
+                'playerCount' => 0,
+            ];
 
-//         $groups = [];
-//         foreach ($prizes as $p) {
-//             $premioId = esc($conn, $p['id']);
+            if ($detalle === '1') {
+                $group['players'] = get_approach_players($conn, $tid, $descripcion, $hoyo);
+                $group['lastUpdated'] = $p['ultact'] ?? null;
+            }
 
-//             $sql = "SELECT COUNT(*) as cnt FROM premiosjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
-//             $countRow = safe_query_one($conn, $sql);
-//             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
+            // Count actual players returned
+            if ($detalle === '1') {
+                $group['playerCount'] = count($group['players']);
+            } else {
+                // Quick count without full data
+                $sql2 = "SELECT COUNT(*) as cnt FROM approachjug WHERE torneoid = $tid AND premiosjugcol = '$descripcion'";
+                $cntRow = safe_query_one($conn, $sql2);
+                $group['playerCount'] = min((int)($cntRow['cnt'] ?? 0), $hoyo);
+            }
 
-//             $group = [
-//                 'id'          => 'oyesx-' . $p['id'],
-//                 'name'        => $p['name'],
-//                 'shortName'   => $p['name'],
-//                 'hoyo'        => (int)$p['hoyo'],
-//                 'maxPlayers'  => $numPrem,
-//                 'playerCount' => $playerCount,
-//             ];
+            $groups[] = $group;
+        }
 
-//             if ($detalle === '1') {
-//                 $group['players'] = get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower);
-//                 $group['lastUpdated'] = get_oyesx_last_updated($conn, $descName, $tid);
-//             }
+        $competencias[] = [
+            'id'          => 'approach',
+            'name'        => 'Approach',
+            'shortName'   => 'Approach',
+            'description' => 'Approach - Más cerca de la bandera',
+            'icon'        => 'crosshair',
+            'endpoint'    => 'approach',
+            'order'       => 5,
+            'enabled'     => true,
+            'groupCount'  => count($groups),
+            'groups'      => $groups,
+            'columns'     => [
+                ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+                ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
+                ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
+            ],
+        ];
+    }
+}
+error_log("competencias.php - Completed Approach section, competencias count: " . count($competencias));
 
-//             $groups[] = $group;
-//         }
-//         // echo "/* Debug: Completed O'Yes-X groups for description '$descName', group count: " . count($groups) . " */\n";
-//         error_log("competencias.php - Completed O'Yes-X groups for description '$descName', group count: " . count($groups));
-
-//         // Determine sort type for columns
-//         $sortDesc = (strpos($descLower, 'distancia') !== false || strpos($descLower, 'driver') !== false);
-
-//         $competencias[] = [
-//             'id'          => $typeId,
-//             'name'        => $descName,
-//             'shortName'   => $descName,
-//             'description' => "Competencia $descName",
-//             'icon'        => $icon,
-//             'endpoint'    => 'oyesx',
-//             'endpointParams' => ['tipo' => $descName],
-//             'order'       => 10 + count($competencias),
-//             'enabled'     => true,
-//             'groupCount'  => count($groups),
-//             'groups'      => $groups,
-//             'columns'     => [
-//                 ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
-//                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
-//                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
-//                 ['key' => 'distance', 'label' => $sortDesc ? 'Distancia' : 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
-//             ],
-//         ];
-//     }
-// }
-// echo "/* Debug: Completed O'Yes-X pre-update, competencias count: " . count($competencias) . " */\n";
-error_log("competencias.php - Completed O'Yes-X pre-update, competencias count: " . count($competencias));
 
 
 // ============= Putt =============
@@ -441,7 +425,7 @@ function get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower) {
             ORDER BY a.distancia $sortOrder
             LIMIT $numPrem";
 
-echo "/* Debug: O'Yes-X players SQL for premioId=$premioId, desc='$descLower': $sql */\n";
+error_log("competencias.php - O'Yes-X players SQL for premioId=$premioId, desc='$descLower'");
 
     $winners = safe_query_all($conn, $sql);
 
@@ -507,4 +491,47 @@ function get_putt_last_updated($conn, $tid) {
     $sql = "SELECT f_ultfechaputt($tid) as lastUpdated";
     $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
+}
+
+/** Get Approach players for a prize group */
+function get_approach_players($conn, $tid, $descripcion, $limit) {
+    global $LOGOS_BASE_URL;
+
+    // Pre-update: reset orden and mark unique best distances
+    safe_exec($conn, "UPDATE approachjug SET orden = 0 WHERE torneoid = $tid", 'approach reset orden');
+    safe_exec($conn, "UPDATE approachjug a
+                  JOIN v_approachunico b ON (a.jugadorid = b.jugadorid AND a.distancia = b.mindistancia AND a.torneoid = $tid)
+                  SET a.orden = 1", 'approach set orden');
+
+    // Fetch players joined with v_approach for category matching
+    $sql = "SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
+                   j.club, j.categoriaid,
+                   c.descripcion,
+                   f_logo(j.club) as logo
+            FROM approachjug a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN v_approach c ON (a.campo = c.campo AND b.categoriaid = c.categoriaid AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia ASC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $logoPath = $w['logo'] ?? '';
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $logoPath ? $LOGOS_BASE_URL . $logoPath : '',
+        ];
+    }
+    return $players;
 }
