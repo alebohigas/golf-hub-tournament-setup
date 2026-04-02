@@ -29,8 +29,11 @@ export interface CompetenciaGroup {
   shortName: string;
   description?: string;
   hoyo?: number;
-  maxPlayers: number;
-  players: CompetenciaPlayer[];
+  maxPlayers?: number;
+  /** Player count from API (available before detail load) */
+  playerCount?: number;
+  /** Player data (only available with detalle=1) */
+  players?: CompetenciaPlayer[];
   lastUpdated?: string;
 }
 
