@@ -105,7 +105,7 @@ const Competencias = () => {
   return (
     <Layout>
       <PageHero 
-        title="Competencias"
+        title="Competición"
         subtitle="Resultados de approach, drive y competencias especiales"
         backgroundImage={competenciasHero}
       />
