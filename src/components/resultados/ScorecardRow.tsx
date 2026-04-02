@@ -64,13 +64,13 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
           </tr>
         </thead>
         <tbody>
-          {/* Par row - always shown */}
-          <tr className="bg-muted/50">
-            <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Par</td>
+          {/* Par row - always shown, darker background for emphasis */}
+          <tr className="bg-muted">
+            <td className="px-2 py-1 font-semibold text-center text-foreground">Par</td>
             {holes.map(h => (
-              <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.par}</td>
+              <td key={h.hoyo} className="px-2 py-1 text-center font-medium text-foreground">{h.par}</td>
             ))}
-            <td className="px-2 py-1 text-center font-semibold text-muted-foreground">
+            <td className="px-2 py-1 text-center font-semibold text-foreground">
               {holes.reduce((s, h) => s + h.par, 0)}
             </td>
           </tr>
