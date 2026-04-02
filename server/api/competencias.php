@@ -74,8 +74,6 @@ if (!$torneoInfo) {
 }
 $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
-
-
 $competencias = [];
 
 // ============= O'Yes (Approach / Closest to Pin in a course hole. Not to be confused with approach, which is a single set approach separate from the course par 3's) =============
@@ -247,16 +245,19 @@ if ($tipo === '' || $tipo === 'putt') {
                 'id'          => 'putt-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
-                'hoyo'        => (int)$p['hoyo'],
-                'maxPlayers'  => $numPrem,
+              #  'hoyo'        => (int)$p['hoyo'],
+              #  'maxPlayers'  => $numPrem,
                 'playerCount' => $playerCount,
             ];
+            
+error_log('PUTT GROUP: ' . json_encode($group));
 
             if ($detalle === '1') {
                 $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
                 $group['lastUpdated'] = get_putt_last_updated($conn, $tid);
-            }
 
+                error_log('PUTT GROUP FULL: ' . json_encode($group));
+            }
             $groups[] = $group;
         }
         $competencias[] = [
@@ -353,6 +354,11 @@ usort($competencias, function($a, $b) {
 });
 
 json_response($competencias);
+
+echo '<pre>';
+var_dump($competencias);
+echo '</pre>';
+exit;
 
 // ============= Helper Functions =============
 
@@ -466,10 +472,12 @@ function get_putt_players($conn, $tid, $premioId, $numPrem) {
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $numPrem";
+
     $winners = safe_query_all($conn, $sql);
 
     $players = [];
     $pos = 0;
+
     foreach ($winners as $w) {
         $pos++;
         $players[] = [
