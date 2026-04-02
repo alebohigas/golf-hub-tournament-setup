@@ -112,7 +112,7 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY $scoreCol DESC";
+                    ORDER BY $scoreCol ASC";
         }
     }
 
