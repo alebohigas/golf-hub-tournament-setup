@@ -24,7 +24,8 @@ interface CompetenciasGroupCardProps {
  * Displays a clickable card for a competition group
  */
 const CompetenciasGroupCard = ({ group, onClick }: CompetenciasGroupCardProps) => {
-  const playerCount = group.players.length;
+  /** Use playerCount from API, fallback to players array length if available */
+  const playerCount = group.playerCount ?? group.players?.length ?? 0;
   
   return (
     <Card 
