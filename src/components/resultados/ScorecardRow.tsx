@@ -3,9 +3,9 @@
  * Renders an expandable scorecard (hole-by-hole) below a player row
  * Adapts layout based on scorecardType: 'hcp', 'stableford', or 'scratch'
  * 
- * - hcp: Hoyo, Par, HCP, Golpes, Neto
- * - stableford: Hoyo, Par, HCP, Golpes, Puntos
- * - scratch: Hoyo, Par, Golpes, +/-
+ * Stableford: Hoyo, Par, Vtja, Gross, Hcp., Neto, Ptos
+ * HCP (Stroke Neto): Hoyo, Par, Vtja, Gross, Hcp., Neto
+ * Scratch (Gross): Hoyo, Par, Golpes, +/-
  */
 
 import { TableRow, TableCell } from '@/components/ui/table';
@@ -75,10 +75,10 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </td>
           </tr>
 
-          {/* HCP row - shown for 'hcp' and 'stableford' types */}
+          {/* Vtja (Ventaja) row - shown for hcp and stableford */}
           {(type === 'hcp' || type === 'stableford') && (
             <tr className="bg-muted/30">
-              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">HCP</td>
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
               {holes.map(h => (
                 <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground text-[11px]">{h.hcp}</td>
               ))}
@@ -86,23 +86,37 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
-          {/* Golpes row - always shown */}
-          <tr>
-            <td className="px-2 py-1 font-semibold text-center">Golpes</td>
-            {holes.map(h => (
-              <td key={h.hoyo} className={`px-2 py-1 text-center font-bold rounded ${getScoreColor(h.golpes, h.par)}`}>
-                {h.golpes}
+          {/* Gross row - shown for hcp and stableford (labeled "Gross") */}
+          {(type === 'hcp' || type === 'stableford') && (
+            <tr>
+              <td className="px-2 py-1 font-semibold text-center">Gross</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className={`px-2 py-1 text-center font-bold rounded ${getScoreColor(h.golpes, h.par)}`}>
+                  {h.golpes}
+                </td>
+              ))}
+              <td className="px-2 py-1 text-center font-bold">
+                {holes.reduce((s, h) => s + h.golpes, 0)}
               </td>
-            ))}
-            <td className="px-2 py-1 text-center font-bold">
-              {holes.reduce((s, h) => s + h.golpes, 0)}
-            </td>
-          </tr>
+            </tr>
+          )}
 
-          {/* Type-specific bottom row */}
-          {type === 'hcp' && (
-            /* Neto row for HCP type */
+          {/* Hcp. strokes row - shown for hcp and stableford */}
+          {(type === 'hcp' || type === 'stableford') && (
             <tr className="bg-muted/20">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Hcp.</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcpStrokes ?? 0}</td>
+              ))}
+              <td className="px-2 py-1 text-center font-semibold text-muted-foreground">
+                {holes.reduce((s, h) => s + (h.hcpStrokes ?? 0), 0)}
+              </td>
+            </tr>
+          )}
+
+          {/* Neto row - shown for hcp and stableford */}
+          {(type === 'hcp' || type === 'stableford') && (
+            <tr className="bg-muted/30">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Neto</td>
               {holes.map(h => (
                 <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.neto}</td>
@@ -113,10 +127,10 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
+          {/* Puntos row - only for stableford */}
           {type === 'stableford' && (
-            /* Puntos row for Stableford type */
             <tr className="bg-amber-500/10">
-              <td className="px-2 py-1 font-semibold text-center text-amber-700">Puntos</td>
+              <td className="px-2 py-1 font-semibold text-center text-amber-700">Ptos</td>
               {holes.map(h => (
                 <td key={h.hoyo} className={`px-2 py-1 text-center font-bold ${
                   (h.puntos || 0) >= 3 ? 'text-primary' : 
@@ -131,8 +145,23 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
+          {/* Scratch type: Golpes row */}
           {type === 'scratch' && (
-            /* +/- row for Scratch type */
+            <tr>
+              <td className="px-2 py-1 font-semibold text-center">Golpes</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className={`px-2 py-1 text-center font-bold rounded ${getScoreColor(h.golpes, h.par)}`}>
+                  {h.golpes}
+                </td>
+              ))}
+              <td className="px-2 py-1 text-center font-bold">
+                {holes.reduce((s, h) => s + h.golpes, 0)}
+              </td>
+            </tr>
+          )}
+
+          {/* +/- row for Scratch type */}
+          {type === 'scratch' && (
             <tr className="bg-muted/20">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">+/-</td>
               {holes.map(h => {
@@ -196,7 +225,7 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             <span className="text-muted-foreground">
               Total: <strong className="text-primary text-base">{scorecard.totalGolpes}</strong>
             </span>
-            {type === 'hcp' && (
+            {(type === 'hcp' || type === 'stableford') && (
               <span className="text-muted-foreground">
                 Neto: <strong className="text-foreground">{scorecard.totalNeto}</strong>
               </span>
