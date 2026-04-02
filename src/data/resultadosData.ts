@@ -9,9 +9,14 @@ export type ScorecardType = 'hcp' | 'stableford' | 'scratch';
 export interface HoleScore {
   hoyo: number;
   par: number;
+  /** Hole difficulty ranking (ventaja) */
   hcp: number;
+  /** Gross strokes (Score Original) */
   golpes: number;
+  /** Net strokes (Score Adjusted) */
   neto: number;
+  /** Handicap strokes received on this hole */
+  hcpStrokes?: number;
   /** Stableford points for this hole (only for stableford type) */
   puntos?: number;
   /** +/- result string for scratch type */
