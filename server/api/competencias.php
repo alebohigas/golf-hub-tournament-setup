@@ -195,12 +195,12 @@ if ($tipo === '' || $tipo === 'putt') {
     $row = query_one($conn, $sql);
     
     if ($row && (int)$row['cnt'] > 0) {
-        // Pre-update marks
-        $conn->query("UPDATE puttjug SET orden = 0 WHERE torneoid = $tid");
-        $conn->query("UPDATE puttjug a
+        // Pre-update marks (safe - won't crash on failure)
+        safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
+        safe_exec($conn, "UPDATE puttjug a
                       JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
                       SET a.orden = 1
-                      WHERE a.torneoid = $tid");
+                      WHERE a.torneoid = $tid", 'putt set orden');
 
         $sql = "SELECT DISTINCT premio as id, descripcion as name, hoyo
                 FROM puttjug
