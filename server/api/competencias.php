@@ -334,12 +334,12 @@ json_response($competencias);
 function get_oyes_players($conn, $tid, $premioId, $numPrem) {
     global $LOGOS_BASE_URL;
     
-    // Pre-update
-    $conn->query("UPDATE premiosjug SET orden = 0 WHERE torneoid = $tid");
-    $conn->query("UPDATE premiosjug a
+    // Pre-update (safe - won't crash on failure)
+    safe_exec($conn, "UPDATE premiosjug SET orden = 0 WHERE torneoid = $tid", 'oyes reset orden');
+    safe_exec($conn, "UPDATE premiosjug a
                   JOIN v_oyesunicas b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
                   SET a.orden = 1
-                  WHERE a.torneoid = $tid");
+                  WHERE a.torneoid = $tid", 'oyes set orden');
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
