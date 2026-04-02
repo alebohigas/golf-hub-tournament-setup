@@ -28,6 +28,35 @@ function safe_exec($conn, $sql, $label = '') {
     return $result;
 }
 
+/** Safe query_one - returns null on failure instead of dying */
+function safe_query_one($conn, $sql) {
+    debug_log_query('safe_query_one', $sql);
+    $result = $conn->query($sql);
+    if (!$result) {
+        error_log("competencias.php - query failed: " . $conn->error . " | SQL: $sql");
+        return null;
+    }
+    $row = $result->fetch_assoc();
+    $result->free();
+    return $row;
+}
+
+/** Safe query_all - returns empty array on failure instead of dying */
+function safe_query_all($conn, $sql) {
+    debug_log_query('safe_query_all', $sql);
+    $result = $conn->query($sql);
+    if (!$result) {
+        error_log("competencias.php - query failed: " . $conn->error . " | SQL: $sql");
+        return [];
+    }
+    $rows = [];
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    $result->free();
+    return $rows;
+}
+
 $torneoid = require_param('torneoid');
 $tipo     = optional_param('tipo', '');
 $detalle  = optional_param('detalle', '0');
