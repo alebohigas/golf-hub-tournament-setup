@@ -12,6 +12,22 @@
  */
 require_once 'config.php';
 
+// Enable error reporting for debugging 500s
+error_reporting(E_ALL);
+ini_set('display_errors', '0'); // Don't display, capture instead
+ini_set('log_errors', '1');
+
+/** Safe query execution - returns false on failure instead of crashing */
+function safe_exec($conn, $sql, $label = '') {
+    $result = $conn->query($sql);
+    if (!$result) {
+        // Log but don't crash - UPDATE failures shouldn't kill the response
+        error_log("competencias.php - $label failed: " . $conn->error . " | SQL: $sql");
+        return false;
+    }
+    return $result;
+}
+
 $torneoid = require_param('torneoid');
 $tipo     = optional_param('tipo', '');
 $detalle  = optional_param('detalle', '0');
@@ -21,6 +37,9 @@ $tid = esc($conn, $torneoid);
 // ============= Get tournament config =============
 $sql = "SELECT oyesnumprem FROM torneo WHERE torneo_id = $tid";
 $torneoInfo = query_one($conn, $sql);
+if (!$torneoInfo) {
+    json_error("Tournament $torneoid not found", 404);
+}
 $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
 $competencias = [];
