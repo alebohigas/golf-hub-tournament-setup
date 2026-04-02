@@ -21,7 +21,6 @@ import Salidas from "./pages/Salidas";
 import LiveScoring from "./pages/LiveScoring";
 import Live from "./pages/Live";
 import Resultados from "./pages/Resultados";
-import Competicion from "./pages/Competicion";
 import Competencias from "./pages/Competencias";
 import Calendario from "./pages/Calendario";
 import Avisos from "./pages/Avisos";
