@@ -21,7 +21,6 @@ import Salidas from "./pages/Salidas";
 import LiveScoring from "./pages/LiveScoring";
 import Live from "./pages/Live";
 import Resultados from "./pages/Resultados";
-import Competicion from "./pages/Competicion";
 import Competencias from "./pages/Competencias";
 import Calendario from "./pages/Calendario";
 import Avisos from "./pages/Avisos";
@@ -100,8 +99,7 @@ const App = () => (
               <Route path="/live-scoring" element={<ProtectedRoute pageId="live-scoring"><LiveScoring /></ProtectedRoute>} />
               <Route path="/live" element={<ProtectedRoute pageId="live"><Live /></ProtectedRoute>} />
               <Route path="/resultados" element={<ProtectedRoute pageId="resultados"><Resultados /></ProtectedRoute>} />
-              <Route path="/competicion" element={<ProtectedRoute pageId="competicion"><Competicion /></ProtectedRoute>} />
-              <Route path="/competencias" element={<ProtectedRoute pageId="competencias"><Competencias /></ProtectedRoute>} />
+              <Route path="/competicion" element={<ProtectedRoute pageId="competicion"><Competencias /></ProtectedRoute>} />
               <Route path="/calendario" element={<ProtectedRoute pageId="calendario"><Calendario /></ProtectedRoute>} />
               <Route path="/avisos" element={<ProtectedRoute pageId="avisos"><Avisos /></ProtectedRoute>} />
               <Route path="/premios" element={<ProtectedRoute pageId="premios"><Premios /></ProtectedRoute>} />

@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import type { MenuItem } from '@/data/mockData';
 import { 
-  FileText, Calendar, Users, Clock, Radio, Trophy, 
+  FileText, Calendar, Users, Clock, Radio, Trophy, Target,
   CalendarDays, Bell, Award, Handshake, BookOpen 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,7 +25,7 @@ const iconMap: Record<string, React.ElementType> = {
   'live-scoring': Radio,
   live: Radio,
   resultados: Trophy,
-  competicion: Award,
+  competicion: Target,
   calendario: CalendarDays,
   avisos: Bell,
   premios: Award,
@@ -44,7 +44,7 @@ const descriptionMap: Record<string, string> = {
   'live-scoring': 'Resultados en tiempo real durante el torneo',
   live: 'Resultados en vivo y scoring en tiempo real',
   resultados: 'Consulta los resultados de cada ronda',
-  competicion: 'Formato y modalidades de competencia',
+  competicion: 'Resultados de approach, drive y competencias especiales',
   calendario: 'Fechas importantes del torneo',
   avisos: 'Comunicados y noticias importantes',
   premios: 'Reconocimientos y premiación',
