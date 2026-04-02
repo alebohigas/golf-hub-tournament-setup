@@ -106,7 +106,7 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY $scoreCol ASC";
+                    ORDER BY $scoreCol DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
