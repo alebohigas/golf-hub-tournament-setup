@@ -117,7 +117,7 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
       </div>
 
       {/* Results Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto bg-white rounded-lg">
         <Table>
           {/* Table Header */}
           <TableHeader>
