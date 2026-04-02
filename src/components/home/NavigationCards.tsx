@@ -25,7 +25,7 @@ const iconMap: Record<string, React.ElementType> = {
   'live-scoring': Radio,
   live: Radio,
   resultados: Trophy,
-  competicion: Award,
+  competicion: Target,
   calendario: CalendarDays,
   avisos: Bell,
   premios: Award,
