@@ -83,19 +83,19 @@ foreach ($groupRows as $group) {
                         ORDER BY acumstbgross DESC";
             }
         } else {
-            // Stableford Neto
+            // Stableford Neto - display and order by net total strokes, not points
             if ($isParejas) {
                 $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                               acumstb as sa, sistema
+                               acumsa as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumstb DESC";
+                        ORDER BY acumsa ASC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                               acumstb as sa, sistema, grupoid
+                               acumsa as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumstb DESC";
+                        ORDER BY acumsa ASC";
             }
         }
     } else {
