@@ -492,3 +492,46 @@ function get_putt_last_updated($conn, $tid) {
     $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
 }
+
+/** Get Approach players for a prize group */
+function get_approach_players($conn, $tid, $descripcion, $limit) {
+    global $LOGOS_BASE_URL;
+
+    // Pre-update: reset orden and mark unique best distances
+    safe_exec($conn, "UPDATE approachjug SET orden = 0 WHERE torneoid = $tid", 'approach reset orden');
+    safe_exec($conn, "UPDATE approachjug a
+                  JOIN v_approachunico b ON (a.jugadorid = b.jugadorid AND a.distancia = b.mindistancia AND a.torneoid = $tid)
+                  SET a.orden = 1", 'approach set orden');
+
+    // Fetch players joined with v_approach for category matching
+    $sql = "SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
+                   j.club, j.categoriaid,
+                   c.descripcion,
+                   f_logo(j.club) as logo
+            FROM approachjug a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN v_approach c ON (a.campo = c.campo AND b.categoriaid = c.categoriaid AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia ASC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $logoPath = $w['logo'] ?? '';
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $logoPath ? $LOGOS_BASE_URL . $logoPath : '',
+        ];
+    }
+    return $players;
+}
