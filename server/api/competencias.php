@@ -132,10 +132,11 @@ if ($tipo === '' || $tipo === 'oyes') {
             'groupCount'  => count($groups),
             'groups'      => $groups,
             'columns'     => [
-                ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+                ['key' => 'position', 'label' => 'Po', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
-                ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
+                ['key' => 'hole', 'label' => 'Ho', 'align' => 'center', 'width' => '60px'],
+                ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
         ];
     }
