@@ -250,7 +250,7 @@ const Competencias = () => {
               </div>
 
               {/* Results Table */}
-              <Card className="border-border/50 max-w-4xl mx-auto">
+              <Card className="border-border/50 max-w-4xl mx-auto bg-white">
                 <CardContent className="p-0">
                   <CompetenciasTable 
                     players={selectedGroup.players || []}
