@@ -8,7 +8,7 @@
  * Each type includes its groups (prizes) and player counts
  * Each type includes its groups (prizes) and player counts
  *
- * Optional: ?tipo=oyes|oyesx|putt|skin - filter to a specific type
+ * Optional: ?tipo=oyes|approach|putt|skin - filter to a specific type
  * Optional: ?detalle=1 - include full player data for each group
  */
 require_once 'config.php';
