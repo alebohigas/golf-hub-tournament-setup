@@ -170,7 +170,7 @@ if ($tipo === '' || $tipo === 'approach') {
                 'id'          => 'approach-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
-                'hoyo'        => $hoyo,
+               # 'hoyo'        => $hoyo,
                 'maxPlayers'  => $hoyo, // hoyo = number of slots
                 'playerCount' => 0,
             ];
@@ -218,70 +218,68 @@ error_log("competencias.php - Completed Approach section, competencias count: " 
 
 
 // ============= Putt =============
-// if ($tipo === '' || $tipo === 'putt') {
-//     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
-//     $row = safe_query_one($conn, $sql);
+if ($tipo === '' || $tipo === 'putt') {
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
+    $row = safe_query_one($conn, $sql);
     
-//     if ($row && (int)$row['cnt'] > 0) {
-//         // Pre-update marks (safe - won't crash on failure)
-//         safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
-//         safe_exec($conn, "UPDATE puttjug a
-//                       JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
-//                       SET a.orden = 1
-//                       WHERE a.torneoid = $tid", 'putt set orden');
+    if ($row && (int)$row['cnt'] > 0) {
+        // Pre-update marks (safe - won't crash on failure)
+        safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
+        safe_exec($conn, "UPDATE puttjug a
+                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid)
+                      SET a.orden = 1
+                      WHERE a.torneoid = $tid", 'putt set orden');
 
-//         $sql = "SELECT DISTINCT premio as id, descripcion as name, hoyo
-//                 FROM puttjug
-//                 WHERE torneoid = $tid
-//                 ORDER BY premio ASC";
-//         $prizes = safe_query_all($conn, $sql);
-// // echo "/* Debug: Putt prizes found: " . count($prizes) . " */\n";
-//         $groups = [];
-//         foreach ($prizes as $p) {
-//             $premioId = esc($conn, $p['id']);
+        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, hoyo
+                FROM puttjug
+                WHERE torneoid = $tid
+                ORDER BY premio ASC";
+        $prizes = safe_query_all($conn, $sql);
+        $groups = [];
+        foreach ($prizes as $p) {
+            $premioId = esc($conn, $p['id']);
             
-//             $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
-//             $countRow = safe_query_one($conn, $sql);
-//             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
+            $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
+            $countRow = safe_query_one($conn, $sql);
+            $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
 
-//             $group = [
-//                 'id'          => 'putt-' . $p['id'],
-//                 'name'        => $p['name'],
-//                 'shortName'   => $p['name'],
-//                 'hoyo'        => (int)$p['hoyo'],
-//                 'maxPlayers'  => $numPrem,
-//                 'playerCount' => $playerCount,
-//             ];
+            $group = [
+                'id'          => 'putt-' . $p['id'],
+                'name'        => $p['name'],
+                'shortName'   => $p['name'],
+                'hoyo'        => (int)$p['hoyo'],
+                'maxPlayers'  => $numPrem,
+                'playerCount' => $playerCount,
+            ];
 
-//             if ($detalle === '1') {
-//                 $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
-//                 $group['lastUpdated'] = get_putt_last_updated($conn, $tid);
-//             }
+            if ($detalle === '1') {
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
+                $group['lastUpdated'] = get_putt_last_updated($conn, $tid);
+            }
 
-//             $groups[] = $group;
-//         }
-// // echo "/* Debug: Completed Putt groups, group count: " . count($groups) . " */\n";
-//         $competencias[] = [
-//             'id'          => 'putt',
-//             'name'        => 'Putt',
-//             'shortName'   => 'Putt',
-//             'description' => 'Competencia de Putt',
-//             'icon'        => 'target',
-//             'endpoint'    => 'putt',
-//             'order'       => 30,
-//             'enabled'     => true,
-//             'groupCount'  => count($groups),
-//             'groups'      => $groups,
-//             'columns'     => [
-//                 ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
-//                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
-//                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
-//                 ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
-//             ],
-//         ];
-//     }
-// }
-// echo "/* Debug: Completed Putt section, competencias count: " . count($competencias) . " */\n";
+            $groups[] = $group;
+        }
+        $competencias[] = [
+            'id'          => 'putt',
+            'name'        => 'Putt',
+            'shortName'   => 'Putt',
+            'description' => 'Competencia de Putt',
+            'icon'        => 'target',
+            'endpoint'    => 'putt',
+            'order'       => 30,
+            'enabled'     => true,
+            'groupCount'  => count($groups),
+            'groups'      => $groups,
+            'columns'     => [
+                ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+                ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
+                ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
+            ],
+        ];
+    }
+}
+
 // ============= Skin Game =============
 // if ($tipo === '' || $tipo === 'skin') {
 //     $sql = "SELECT COUNT(DISTINCT a.categoria_id) as cnt 
@@ -462,7 +460,7 @@ function get_putt_players($conn, $tid, $premioId, $numPrem) {
                    a.distancia, a.hoyo,
                    c.logo, c.nombre as club
             FROM puttjug a
-            JOIN v_putt b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
+            JOIN v_puttjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
