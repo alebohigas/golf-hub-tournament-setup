@@ -268,7 +268,7 @@ if ($tipo === '' || $tipo === 'putt') {
             'description' => 'Competencia de Putt',
             'icon'        => 'target',
             'endpoint'    => 'putt',
-            'order'       => 30,
+            'order'       => 2,
             'enabled'     => true,
             'groupCount'  => count($groups),
             'groups'      => $groups,
