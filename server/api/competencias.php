@@ -107,12 +107,12 @@ if ($tipo === '' || $tipo === 'oyes') {
 
 // ============= O'Yes-X (Driver, Precision, etc.) =============
 if ($tipo === '' || $tipo === 'oyesx') {
-    // Pre-update marks
-    $conn->query("UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid");
-    $conn->query("UPDATE oyesxjug a
+    // Pre-update marks (safe - won't crash on failure)
+    safe_exec($conn, "UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid", 'oyesx reset orden');
+    safe_exec($conn, "UPDATE oyesxjug a
                   JOIN v_oyesx b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
                   SET a.orden = 1
-                  WHERE a.torneoid = $tid");
+                  WHERE a.torneoid = $tid", 'oyesx set orden');
 
     // Group O'Yes-X by description type (driver, precision, etc.)
     $sql = "SELECT DISTINCT descripcion FROM oyesxjug WHERE torneoid = $tid ORDER BY descripcion";
