@@ -425,7 +425,7 @@ function get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower) {
             ORDER BY a.distancia $sortOrder
             LIMIT $numPrem";
 
-echo "/* Debug: O'Yes-X players SQL for premioId=$premioId, desc='$descLower': $sql */\n";
+error_log("competencias.php - O'Yes-X players SQL for premioId=$premioId, desc='$descLower'");
 
     $winners = safe_query_all($conn, $sql);
 
