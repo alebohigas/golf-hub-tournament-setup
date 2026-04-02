@@ -62,7 +62,7 @@ $tipo     = optional_param('tipo', '');
 $detalle  = optional_param('detalle', '0');
 
 $tid = esc($conn, $torneoid);
-
+echo "/* Debug: Received request for torneoid=$tid, tipo='$tipo', detalle='$detalle' */\n";
 // ============= Get tournament config =============
 $sql = "SELECT oyesnumprem FROM torneo WHERE torneo_id = $tid";
 $torneoInfo = safe_query_one($conn, $sql);
@@ -72,7 +72,7 @@ if (!$torneoInfo) {
 $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
 $competencias = [];
-// echo "/* Debug: torneo_id=$tid, tipo='$tipo', detalle='$detalle', numPrem=$numPrem */\n";
+echo "/* Debug: torneo_id=$tid, tipo='$tipo', detalle='$detalle', numPrem=$numPrem */\n";
 // ============= O'Yes (Approach / Closest to Pin) =============
 if ($tipo === '' || $tipo === 'oyes') {
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM premiosjug WHERE torneoid = $tid";
@@ -85,6 +85,10 @@ if ($tipo === '' || $tipo === 'oyes') {
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
         $prizes = safe_query_all($conn, $sql);
+
+
+echo "/* Debug: O'Yes prizes found: " . count($prizes) . " */\n";
+echo $sql . "\n";
         
         $groups = [];
         foreach ($prizes as $p) {
@@ -103,6 +107,7 @@ if ($tipo === '' || $tipo === 'oyes') {
                 'maxPlayers'  => $numPrem,
                 'playerCount' => $playerCount,
             ];
+echo "/* Debug: O'Yes group for premioId={$p['id']} - playerCount=$playerCount */\n";
 
             // Include full player data if requested
             if ($detalle === '1') {
@@ -113,6 +118,8 @@ if ($tipo === '' || $tipo === 'oyes') {
             $groups[] = $group;
         }
         
+echo "/* Debug: Total O'Yes groups: " . count($groups) . " */\n";
+
         $competencias[] = [
             'id'          => 'oyes',
             'name'        => "O'Yes",
@@ -133,6 +140,8 @@ if ($tipo === '' || $tipo === 'oyes') {
         ];
     }
 }
+
+echo "/* Debug: Completed O'Yes section, competencias count: " . count($competencias) . " */\n";
 
 
 // ============= O'Yes-X (Driver, Precision, etc.) =============
@@ -161,6 +170,9 @@ if ($tipo === '' || $tipo === 'oyesx') {
         } elseif (strpos($descLower, 'precision') !== false || strpos($descLower, 'precisión') !== false) {
             $icon = 'crosshair';
         }
+    }
+}
+echo "/* Debug: Completed O'Yes-X pre-update, competencias count: " . count($competencias) . " */\n";
 
         // Get prizes for this description type
         $sql = "SELECT DISTINCT premio as id, descripcion as name, hoyo
@@ -193,7 +205,7 @@ if ($tipo === '' || $tipo === 'oyesx') {
 
             $groups[] = $group;
         }
-
+echo "/* Debug: Completed O'Yes-X groups for description '$descName', group count: " . count($groups) . " */\n";
         // Determine sort type for columns
         $sortDesc = (strpos($descLower, 'distancia') !== false || strpos($descLower, 'driver') !== false);
         
@@ -216,8 +228,7 @@ if ($tipo === '' || $tipo === 'oyesx') {
                 ['key' => 'distance', 'label' => $sortDesc ? 'Distancia' : 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
         ];
-    }
-}
+echo "/* Debug: Completed O'Yes-X section for description '$descName', competencias count: " . count($competencias) . " */\n";
 
 // ============= Putt =============
 if ($tipo === '' || $tipo === 'putt') {
@@ -237,7 +248,7 @@ if ($tipo === '' || $tipo === 'putt') {
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
         $prizes = safe_query_all($conn, $sql);
-
+echo "/* Debug: Putt prizes found: " . count($prizes) . " */\n";
         $groups = [];
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
@@ -262,7 +273,7 @@ if ($tipo === '' || $tipo === 'putt') {
 
             $groups[] = $group;
         }
-
+echo "/* Debug: Completed Putt groups, group count: " . count($groups) . " */\n";
         $competencias[] = [
             'id'          => 'putt',
             'name'        => 'Putt',
@@ -283,7 +294,7 @@ if ($tipo === '' || $tipo === 'putt') {
         ];
     }
 }
-
+echo "/* Debug: Completed Putt section, competencias count: " . count($competencias) . " */\n";
 // ============= Skin Game =============
 if ($tipo === '' || $tipo === 'skin') {
     $sql = "SELECT COUNT(DISTINCT a.categoria_id) as cnt 
