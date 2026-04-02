@@ -4,7 +4,8 @@
  * GET /api/competencias.php?torneoid=XXX
  * Returns available competition types based on existing data in DB tables
  *
- * Checks: premiosjug (O'Yes), oyesxjug (O'Yes-X), puttjug (Putt), Skeen_tarjetas (Skin Game)
+ * Checks: premiosjug (O'Yes), approachjug (Approach), puttjug (Putt), Skeen_tarjetas (Skin Game)
+ * Each type includes its groups (prizes) and player counts
  * Each type includes its groups (prizes) and player counts
  *
  * Optional: ?tipo=oyes|oyesx|putt|skin - filter to a specific type
