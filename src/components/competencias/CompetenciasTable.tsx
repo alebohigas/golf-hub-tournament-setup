@@ -143,7 +143,7 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
               filteredPlayers.map((player, idx) => (
                 <TableRow 
                   key={player.id}
-                  className={`bg-white hover:bg-white ${
+                  className={`bg-white hover:bg-muted/30 ${
                     searchQuery && normalizeText(player.name).includes(normalizeText(searchQuery))
                       ? 'ring-2 ring-primary/50 ring-inset'
                       : ''
