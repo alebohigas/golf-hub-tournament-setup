@@ -95,7 +95,7 @@ foreach ($groupRows as $group) {
                                acumsa as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumsa ASC";
+                        ORDER BY acumsa DESC";
             }
         }
     } else {
