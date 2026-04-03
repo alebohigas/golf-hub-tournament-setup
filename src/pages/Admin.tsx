@@ -484,6 +484,11 @@ const AdminDashboard = () => {
         <TabsContent value="convocatoria">
           <AdminConvocatoria />
         </TabsContent>
+
+        {/* Live Scoring Tab */}
+        <TabsContent value="live">
+          <AdminLiveScoring />
+        </TabsContent>
       </Tabs>
 
       {/* Info Note */}
