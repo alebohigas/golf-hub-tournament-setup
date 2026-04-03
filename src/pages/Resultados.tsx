@@ -55,10 +55,11 @@ const Resultados = () => {
   // Fetch all categories from API
   const { data: categories = [], isLoading: loadingCats } = useAllResults();
 
-  // Fetch selected category detail from API
+  // Fetch selected category detail from API (passes gross param based on scoring type)
   const { data: categoryDetail, isLoading: loadingDetail } = useCategoryResults(
     selectedCategoryId,
-    !!selectedCategoryId
+    !!selectedCategoryId && !!selectedScoringType,
+    selectedScoringType || 'NETO'
   );
 
   /** Find the selected category object from the list (metadata only) */
