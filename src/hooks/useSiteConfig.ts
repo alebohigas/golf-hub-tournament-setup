@@ -114,6 +114,11 @@ export const useSiteConfig = () => {
         localStorage.setItem(PAGE_GROUPS_KEY, JSON.stringify(config.page_group_assignments));
       }
 
+      // Sync live scoring config
+      if (config.live_scoring_config) {
+        localStorage.setItem(LIVE_SCORING_KEY, JSON.stringify(config.live_scoring_config));
+      }
+
       return config;
     },
     staleTime: 30 * 1000, // 30 seconds - keep fresh for admin changes
