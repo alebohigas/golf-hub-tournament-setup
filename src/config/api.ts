@@ -92,10 +92,9 @@ export const getCalendarioSchedulesUrl = (): string => `${API_BASE_URL}/calendar
 
 /** All results (master: list of categories) */
 export const getResultadosUrl = (): string => `${API_BASE_URL}/resultados.php${buildQuery()}`;
-
-/** Results by category */
-export const getResultadosCategoryUrl = (categoryId: string): string =>
-  `${API_BASE_URL}/resultados_jug.php${buildQuery({ catid: categoryId })}`;
+/** Results by category - gross=1 for GROS scoring, gross=0 (default) for NETO */
+export const getResultadosCategoryUrl = (categoryId: string, gross: '0' | '1' = '0'): string =>
+  `${API_BASE_URL}/resultados_jug.php${buildQuery({ catid: categoryId, gross })}`;
 
 /** Tee times summary */
 export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQuery()}`;
