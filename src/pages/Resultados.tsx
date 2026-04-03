@@ -55,10 +55,11 @@ const Resultados = () => {
   // Fetch all categories from API
   const { data: categories = [], isLoading: loadingCats } = useAllResults();
 
-  // Fetch selected category detail from API
+  // Fetch selected category detail from API (passes gross param based on scoring type)
   const { data: categoryDetail, isLoading: loadingDetail } = useCategoryResults(
     selectedCategoryId,
-    !!selectedCategoryId
+    !!selectedCategoryId && !!selectedScoringType,
+    selectedScoringType || 'NETO'
   );
 
   /** Find the selected category object from the list (metadata only) */
@@ -72,12 +73,17 @@ const Resultados = () => {
     return scoring?.players || [];
   })();
 
-  /** Handle category card click */
+  /** Handle category card click - auto-select scoring if only one type */
   const handleCategoryClick = (category: ResultCategory) => {
     setSelectedCategoryId(category.categoryId);
     setExpandedScorecard(null);
     setScorecardData(null);
-    setSelectedScoringType(null);  // reset scoring type - will be auto-selected once detail loads
+    // Auto-select if only one scoring type available
+    if (category.scoringTypes.length === 1) {
+      setSelectedScoringType(category.scoringTypes[0].scoringType as ScoringType);
+    } else {
+      setSelectedScoringType(null);
+    }
   };
 
   /** Handle scoring type selection */
@@ -92,15 +98,15 @@ const Resultados = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
     if (selectedScoringType) {
-      // if there's one scoring type, go back to category list; else just clear scoring type
-      if (categoryDetail && categoryDetail.scoringTypes.length === 1) {
+      // if category only has one scoring type, go back to category list
+      const cat = categories.find(c => c.categoryId === selectedCategoryId);
+      if (cat && cat.scoringTypes.length <= 1) {
         setSelectedCategoryId(null);
         setSelectedScoringType(null);
       } else {
         setSelectedScoringType(null);
       }
     } else {
-      // no scoring type selected, go back to category list
       setSelectedCategoryId(null);
     }
   };

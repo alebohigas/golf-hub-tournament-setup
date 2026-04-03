@@ -11,19 +11,19 @@ import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType } from '@
 
 // ============= All Results =============
 
-/** Fetch all categories with results */
+/** Fetch all categories with results, including GROS when enabled */
 export const useAllResults = () => {
   return useQuery<ResultCategory[]>({
     queryKey: ['resultados'],
     queryFn: async () => {
       // Step 1: Fetch category list from resultados.php
       const catListResp = await apiFetch<{
-        strokePlay?: Array<{ categoryId: string; name: string; shortName?: string; [key: string]: any }>;
-        matchPlay?: Array<{ categoryId: string; name: string; shortName?: string; [key: string]: any }>;
-      } | Array<{ categoryId: string; name: string; [key: string]: any }>>(getResultadosUrl());
+        strokePlay?: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }>;
+        matchPlay?: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }>;
+      } | Array<{ categoryId: string; name: string; gross?: number; [key: string]: any }>>(getResultadosUrl());
 
       // Flatten the category list
-      let categories: Array<{ categoryId: string; name: string; shortName?: string; [key: string]: any }> = [];
+      let categories: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }> = [];
       if (Array.isArray(catListResp)) {
         categories = catListResp;
       } else {
@@ -32,20 +32,46 @@ export const useAllResults = () => {
         categories = [...sp, ...mp];
       }
 
-      // Step 2: For each category, fetch its detailed results via resultados_jug.php
+      // Step 2: For each category, fetch NETO results; if gross=1, also fetch GROS
       const categoriesWithDetails = await Promise.all(
         categories.map(async (cat) => {
           try {
-            const detailResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId));
-            
-            // Normalize the response to scoringTypes array
-            const scoringTypes = Array.isArray(detailResp)
-              ? detailResp
-              : detailResp.scoringTypes
-              ? Array.isArray(detailResp.scoringTypes)
-                ? detailResp.scoringTypes
-                : [{ scoringType: detailResp.scoringType || 'NETO', players: detailResp.players || [] }]
-              : [{ scoringType: 'NETO', players: detailResp.players || [] }];
+            // Always fetch NETO (gross=0)
+            const netoResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '0'));
+            const netoPlayers = (netoResp.players || []).map((p: any, idx: number) => ({
+              id: p.playerId || String(idx),
+              position: p.position ?? idx + 1,
+              name: p.name || '',
+              club: p.club || '',
+              clubLogo: p.clubLogo || '',
+              r1: p.r1 ?? undefined,
+              r2: p.r2 ?? undefined,
+              r3: p.r3 ?? undefined,
+              total: p.total ?? p.totalSA ?? 0,
+              handicapIndex: p.handicapIndex,
+            }));
+
+            const scoringTypes: Array<{ scoringType: string; players: any[] }> = [
+              { scoringType: 'NETO', players: netoPlayers },
+            ];
+
+            // If category has gross enabled, also fetch GROS results
+            if (cat.gross === 1) {
+              const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
+              const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
+                id: p.playerId || String(idx),
+                position: p.position ?? idx + 1,
+                name: p.name || '',
+                club: p.club || '',
+                clubLogo: p.clubLogo || '',
+                r1: p.r1 ?? undefined,
+                r2: p.r2 ?? undefined,
+                r3: p.r3 ?? undefined,
+                total: p.total ?? p.totalSO ?? 0,
+                handicapIndex: p.handicapIndex,
+              }));
+              scoringTypes.push({ scoringType: 'GROS', players: grosPlayers });
+            }
 
             return {
               categoryId: cat.categoryId,
@@ -75,26 +101,26 @@ export const useAllResults = () => {
 // ============= Category Results =============
 
 /**
- * Fetch results for a specific category
- * Normalizes flat API response (players at root) into ResultCategory shape
- * Includes days[] and system for scorecard fetching
+ * Fetch results for a specific category and scoring type
  * @param categoryId - Category identifier
+ * @param scoringType - NETO or GROS (determines gross parameter)
  * @param enabled - Whether to enable the query
  */
-export const useCategoryResults = (categoryId: string | null, enabled = true) => {
-  return useQuery<ResultCategory>({
-    queryKey: ['resultados', categoryId],
-    queryFn: async () => {
-      const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!));
+export const useCategoryResults = (categoryId: string | null, enabled = true, scoringType: string = 'NETO') => {
+  const gross: '0' | '1' = scoringType === 'GROS' ? '1' : '0';
 
-      // API returns flat object: { categoryId, categoryName, players, gross, system, days, ... }
+  return useQuery<ResultCategory>({
+    queryKey: ['resultados', categoryId, gross],
+    queryFn: async () => {
+      const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!, gross));
+
       // Normalize into ResultCategory with scoringTypes array
       const scoringTypes = Array.isArray(raw.scoringTypes)
         ? raw.scoringTypes
         : raw.scoringTypes
           ? [raw.scoringTypes]
-          : [{ 
-              scoringType: raw.gross === 1 ? 'GROS' as const : 'NETO' as const, 
+          : [{
+              scoringType: raw.gross === 1 ? 'GROS' as const : 'NETO' as const,
               players: (raw.players || []).map((p: any, idx: number) => ({
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
@@ -104,7 +130,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true) =>
                 r1: p.r1 ?? undefined,
                 r2: p.r2 ?? undefined,
                 r3: p.r3 ?? undefined,
-                total: p.total ?? p.totalSA ?? 0,
+                total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
                 handicapIndex: p.handicapIndex,
               })),
             }];
@@ -129,7 +155,6 @@ export const useCategoryResults = (categoryId: string | null, enabled = true) =>
 /**
  * Map API scoring system string to scorecard tipo parameter
  * @param system - API system value (STROKE PLAY, STABLEFORD, etc.)
- * @param scoringType - Current scoring type (NETO, GROS)
  */
 const mapSystemToTipo = (system?: string): string => {
   if (!system) return 'stroke';
@@ -170,7 +195,7 @@ export const fetchPlayerScorecardFromApi = async (
 ): Promise<RoundScorecard> => {
   const tipo = mapSystemToTipo(system);
   const scType = mapScorecardType(system, scoringType);
-  
+
   const url = getResultadosTarjetaUrl(playerId, categoryId, fecha, tipo);
   const raw = await apiFetch<any>(url);
 
@@ -181,8 +206,8 @@ export const fetchPlayerScorecardFromApi = async (
     const hcpStrokes = h.hcpStrokes ?? 0;
     const diff = golpes - par;
 
-    // For Stableford: scoreSA from API = stableford points, neto = gross - hcpStrokes
-    // For Stroke: scoreSA from API = net score
+    // For Stableford: scoreSA = stableford points, neto = gross - hcpStrokes
+    // For Stroke: scoreSA = net score
     const isStableford = scType === 'stableford';
     const neto = isStableford ? (golpes - hcpStrokes) : (h.scoreSA ?? golpes);
     const puntos = isStableford ? (h.scoreSA ?? 0) : undefined;
@@ -202,7 +227,6 @@ export const fetchPlayerScorecardFromApi = async (
   const front9 = holes.slice(0, 9);
   const back9 = holes.slice(9, 18);
 
-  // For Stableford: API's totals.SA = stableford points, neto = sum of per-hole neto
   const isStableford = scType === 'stableford';
   const totalNeto = isStableford
     ? holes.reduce((s, h) => s + h.neto, 0)
