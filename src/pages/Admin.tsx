@@ -35,6 +35,7 @@ import {
   Globe,
   Loader2,
   FileText,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
