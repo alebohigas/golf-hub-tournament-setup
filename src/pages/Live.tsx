@@ -116,8 +116,10 @@ const Live = () => {
   /** Site config with live scoring entries */
   const { data: siteConfig, isLoading: loadingConfig } = useSiteConfig();
 
-  /** Enabled entries from admin config */
-  const enabledEntries = (siteConfig?.live_scoring_config || []).filter(e => e.enabled);
+  /** Enabled entries from admin config, sorted by order (default: categoryId ASC) */
+  const enabledEntries = (siteConfig?.live_scoring_config || [])
+    .filter(e => e.enabled)
+    .sort((a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId)));
 
   /** Fetch leaderboard data when a category is selected */
   const { data: leaderboard, isLoading: loadingLeaderboard } = useQuery<LiveScoringResponse>({
