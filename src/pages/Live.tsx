@@ -276,7 +276,7 @@ const Live = () => {
                               </TableCell>
 
                               {/* Club logo - own column */}
-                              <TableCell className="p-1 text-center align-middle">
+                              <TableCell className="w-16 min-w-16 p-1 text-center align-middle">
                                 {player.clubLogo ? (
                                   <img
                                     src={player.clubLogo}
