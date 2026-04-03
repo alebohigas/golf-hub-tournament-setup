@@ -511,11 +511,12 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
     $sql = "SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    CONCAT(b.nombre, ' ', b.apellido) as jugador,
-                   b.club, b.categoriaid,
+                   cl.nombre as club, b.categoriaid,
                    c.descripcion,
-                   f_logo(b.club) as logo
+                   cl.logo as logo
             FROM approachjug a
             JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs cl ON (b.clubid = cl.id)
             JOIN v_approach c ON (a.campo = c.campo AND b.categoriaid = c.categoriaid AND a.premiosjugcol = c.descripcion)
             WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
             ORDER BY c.descripcion, a.distancia ASC
