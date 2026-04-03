@@ -125,6 +125,15 @@ export const getCompetenciaGroupUrl = (compId: string, groupId: string): string 
 export const getEventosUrl = (): string => `${API_BASE_URL}/eventos.php${buildQuery()}`;
 
 /**
+ * Live Scoring leaderboard for a specific category
+ * @param catId - Category ID
+ * @param tipo - Scoring type: stroke | stableford
+ * @param gross - 0 for net, 1 for gross
+ */
+export const getLiveScoringUrl = (catId: string, tipo: string = 'stroke', gross: string = '0'): string =>
+  `${API_BASE_URL}/live_scoring.php${buildQuery({ catid: catId, tipo, gross })}`;
+
+/**
  * Player scorecard (hole-by-hole) for a specific round
  * @param jugadorId - Player ID
  * @param categoriaId - Category ID
