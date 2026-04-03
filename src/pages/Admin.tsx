@@ -19,6 +19,7 @@ import AdminLayoutSettings from '@/components/admin/AdminLayoutSettings';
 import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
 import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
 import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
+import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
 import { 
   Shield, 
   LogOut, 
