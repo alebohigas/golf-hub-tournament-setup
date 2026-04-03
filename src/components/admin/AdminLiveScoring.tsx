@@ -2,6 +2,7 @@
  * AdminLiveScoring
  * Admin panel component for configuring which categories appear
  * on the Live Scoring page and their scoring type (stroke/stableford)
+ * Uses checkbox list for easy multi-select of categories
  */
 
 import { useState, useEffect } from 'react';
@@ -10,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Radio, Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Radio, Loader2, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getCategoriesUrl } from '@/config/api';
@@ -30,15 +32,18 @@ interface ApiCategory {
 
 // ============= Component =============
 
-interface AdminLiveScoringProps {}
-
-const AdminLiveScoring = ({}: AdminLiveScoringProps) => {
+const AdminLiveScoring = () => {
   const { toast } = useToast();
   const { data: siteConfig } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
 
-  /** Local state for the live scoring entries */
-  const [entries, setEntries] = useState<LiveScoringEntry[]>([]);
+  /** Local state for the live scoring entries keyed by categoryId */
+  const [entries, setEntries] = useState<Map<string, LiveScoringEntry>>(new Map());
+
+  /** Global scoring type applied to all selected categories */
+  const [globalTipo, setGlobalTipo] = useState<'stroke' | 'stableford'>('stroke');
+  /** Global gross toggle */
+  const [globalGross, setGlobalGross] = useState(false);
 
   /** Fetch available categories from API */
   const { data: categories, isLoading: loadingCategories } = useQuery<ApiCategory[]>({
@@ -77,43 +82,79 @@ const AdminLiveScoring = ({}: AdminLiveScoringProps) => {
   /** Load saved config into local state */
   useEffect(() => {
     if (siteConfig?.live_scoring_config) {
-      setEntries(siteConfig.live_scoring_config);
+      const map = new Map<string, LiveScoringEntry>();
+      siteConfig.live_scoring_config.forEach(e => map.set(e.categoryId, e));
+      setEntries(map);
+      // Infer global settings from first entry
+      const first = siteConfig.live_scoring_config[0];
+      if (first) {
+        setGlobalTipo(first.tipo);
+        setGlobalGross(first.gross === 1);
+      }
     }
   }, [siteConfig?.live_scoring_config]);
 
-  /** Add a new entry */
-  const handleAdd = () => {
-    if (!categories || categories.length === 0) return;
-    // Pick first category not already in list
-    const usedIds = new Set(entries.map(e => e.categoryId));
-    const available = categories.find(c => !usedIds.has(c.categoryId));
-    if (!available) {
-      toast({ title: 'Todas las categorías ya están agregadas', variant: 'destructive' });
-      return;
+  /** Toggle a category on/off */
+  const toggleCategory = (cat: ApiCategory) => {
+    setEntries(prev => {
+      const next = new Map(prev);
+      if (next.has(cat.categoryId)) {
+        next.delete(cat.categoryId);
+      } else {
+        next.set(cat.categoryId, {
+          categoryId: cat.categoryId,
+          categoryName: cat.name,
+          tipo: globalTipo,
+          gross: globalGross ? 1 : 0,
+          enabled: true,
+        });
+      }
+      return next;
+    });
+  };
+
+  /** Select/deselect all */
+  const toggleAll = (select: boolean) => {
+    if (!categories) return;
+    if (select) {
+      const next = new Map<string, LiveScoringEntry>();
+      categories.forEach(cat => {
+        next.set(cat.categoryId, entries.get(cat.categoryId) || {
+          categoryId: cat.categoryId,
+          categoryName: cat.name,
+          tipo: globalTipo,
+          gross: globalGross ? 1 : 0,
+          enabled: true,
+        });
+      });
+      setEntries(next);
+    } else {
+      setEntries(new Map());
     }
-    setEntries(prev => [...prev, {
-      categoryId: available.categoryId,
-      categoryName: available.name,
-      tipo: (available.system?.toLowerCase().includes('stableford') ? 'stableford' : 'stroke') as 'stroke' | 'stableford',
-      gross: 0,
-      enabled: true,
-    }]);
   };
 
-  /** Remove an entry */
-  const handleRemove = (idx: number) => {
-    setEntries(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  /** Update a field in an entry */
-  const updateEntry = (idx: number, field: Partial<LiveScoringEntry>) => {
-    setEntries(prev => prev.map((e, i) => i === idx ? { ...e, ...field } : e));
+  /** Apply global tipo/gross to all selected entries */
+  const applyGlobalSettings = () => {
+    setEntries(prev => {
+      const next = new Map(prev);
+      next.forEach((entry, key) => {
+        next.set(key, { ...entry, tipo: globalTipo, gross: globalGross ? 1 : 0 });
+      });
+      return next;
+    });
   };
 
   /** Save config to server */
   const handleSave = () => {
+    // Apply global settings before saving
+    const entriesArray = Array.from(entries.values()).map(e => ({
+      ...e,
+      tipo: globalTipo,
+      gross: globalGross ? 1 : 0 as 0 | 1,
+    }));
+
     saveSiteConfig.mutate(
-      { password: 'admin2025', live_scoring_config: entries.length > 0 ? entries : null },
+      { password: 'admin2025', live_scoring_config: entriesArray.length > 0 ? entriesArray : null },
       {
         onSuccess: () => {
           toast({ title: 'Live Scoring guardado', description: 'Configuración actualizada para todos los visitantes.' });
@@ -125,6 +166,9 @@ const AdminLiveScoring = ({}: AdminLiveScoringProps) => {
     );
   };
 
+  const selectedCount = entries.size;
+  const totalCount = categories?.length || 0;
+
   return (
     <Card>
       <CardHeader>
@@ -133,11 +177,33 @@ const AdminLiveScoring = ({}: AdminLiveScoringProps) => {
           Configuración de Live Scoring
         </CardTitle>
         <CardDescription>
-          Selecciona las categorías que se mostrarán en la página <strong>/live</strong> con sus resultados en tiempo real.
-          Elige el tipo de scoring para cada una.
+          Selecciona las categorías que se mostrarán en la página <strong>/live</strong> con resultados en tiempo real.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* Global settings */}
+        <div className="flex flex-wrap items-end gap-4 p-4 rounded-lg border border-border bg-muted/30">
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1 block">Tipo de scoring</Label>
+            <Select value={globalTipo} onValueChange={(val) => setGlobalTipo(val as 'stroke' | 'stableford')}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stroke">Stroke Play</SelectItem>
+                <SelectItem value="stableford">Stableford</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Gross</Label>
+            <Switch checked={globalGross} onCheckedChange={setGlobalGross} />
+            <Badge variant={globalGross ? 'default' : 'secondary'} className="text-xs">
+              {globalGross ? 'GROSS' : 'NETO'}
+            </Badge>
+          </div>
+        </div>
+
         {/* Loading categories */}
         {loadingCategories && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -146,98 +212,59 @@ const AdminLiveScoring = ({}: AdminLiveScoringProps) => {
           </div>
         )}
 
-        {/* Entries list */}
-        {entries.map((entry, idx) => (
-          <div key={idx} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border bg-card">
-            {/* Category selector */}
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Categoría</Label>
-              <Select
-                value={entry.categoryId}
-                onValueChange={(val) => {
-                  const cat = categories?.find(c => c.categoryId === val);
-                  updateEntry(idx, {
-                    categoryId: val,
-                    categoryName: cat?.name || val,
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories?.map(c => (
-                    <SelectItem key={c.categoryId} value={c.categoryId}>
-                      {c.name} {c.shortName ? `(${c.shortName})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Category checkboxes */}
+        {categories && categories.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">
+                Categorías ({selectedCount}/{totalCount} seleccionadas)
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => toggleAll(true)}>
+                  Seleccionar todas
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => toggleAll(false)}>
+                  Deseleccionar
+                </Button>
+              </div>
             </div>
 
-            {/* Tipo selector */}
-            <div className="w-[150px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
-              <Select
-                value={entry.tipo}
-                onValueChange={(val) => updateEntry(idx, { tipo: val as 'stroke' | 'stableford' })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="stroke">Stroke Play</SelectItem>
-                  <SelectItem value="stableford">Stableford</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {categories.map(cat => {
+                const isSelected = entries.has(cat.categoryId);
+                return (
+                  <label
+                    key={cat.categoryId}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleCategory(cat)}
+                    />
+                    <span className="text-sm font-medium">{cat.name}</span>
+                    {cat.shortName && (
+                      <Badge variant="secondary" className="text-xs ml-auto">
+                        {cat.shortName}
+                      </Badge>
+                    )}
+                  </label>
+                );
+              })}
             </div>
-
-            {/* Gross toggle */}
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Gross</Label>
-              <Switch
-                checked={entry.gross === 1}
-                onCheckedChange={(checked) => updateEntry(idx, { gross: checked ? 1 : 0 })}
-              />
-            </div>
-
-            {/* Enabled toggle */}
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Activo</Label>
-              <Switch
-                checked={entry.enabled}
-                onCheckedChange={(checked) => updateEntry(idx, { enabled: checked })}
-              />
-              <Badge variant={entry.enabled ? 'default' : 'secondary'} className="text-xs">
-                {entry.enabled ? 'ON' : 'OFF'}
-              </Badge>
-            </div>
-
-            {/* Remove button */}
-            <Button variant="ghost" size="icon" onClick={() => handleRemove(idx)} className="text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
-        ))}
+        )}
 
-        {/* Add + Save buttons */}
+        {/* Save button */}
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" onClick={handleAdd} disabled={loadingCategories} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Agregar Categoría
-          </Button>
           <Button onClick={handleSave} disabled={saveSiteConfig.isPending} className="gap-2">
             {saveSiteConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Guardar
           </Button>
         </div>
-
-        {/* Empty state */}
-        {entries.length === 0 && !loadingCategories && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No hay categorías configuradas para Live Scoring. Agrega una para comenzar.
-          </p>
-        )}
       </CardContent>
     </Card>
   );
