@@ -1,11 +1,11 @@
 /**
  * AdminLiveScoring
- * Admin panel component for configuring which categories appear
- * on the Live Scoring page and their scoring type (stroke/stableford)
- * Each category can have its own tipo (stroke/stableford) and gross setting
+ * Admin panel for configuring which categories appear on the Live Scoring page.
+ * Each category has its own tipo (stroke/stableford) and gross setting.
+ * Categories can be reordered via drag & drop; default order is categoryId ASC.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Radio, Loader2, RefreshCw } from 'lucide-react';
+import { Radio, Loader2, RefreshCw, GripVertical } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { apiFetch } from '@/lib/apiClient';
 import { getCategoriesUrl } from '@/config/api';
 import { useSiteConfig, useSaveSiteConfig, type LiveScoringEntry } from '@/hooks/useSiteConfig';
@@ -37,8 +38,10 @@ const AdminLiveScoring = () => {
   const { data: siteConfig } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
 
-  /** Local state for the live scoring entries keyed by categoryId */
-  const [entries, setEntries] = useState<Map<string, LiveScoringEntry>>(new Map());
+  /** Ordered list of selected entries (order matters for display on /live) */
+  const [orderedEntries, setOrderedEntries] = useState<LiveScoringEntry[]>([]);
+  /** Set of selected categoryIds for quick lookup */
+  const selectedIds = new Set(orderedEntries.map(e => e.categoryId));
 
   /** Fetch available categories from API */
   const { data: categories, isLoading: loadingCategories } = useQuery<ApiCategory[]>({
@@ -46,11 +49,9 @@ const AdminLiveScoring = () => {
     queryFn: async () => {
       const resp = await apiFetch<any>(getCategoriesUrl());
 
-      /** Normalize category shape because categories.php returns `id`, not always `categoryId` */
       const normalizeCategory = (raw: any): ApiCategory | null => {
         const categoryId = String(raw?.categoryId ?? raw?.id ?? raw?.categoria_id ?? '').trim();
         if (!categoryId) return null;
-
         return {
           categoryId,
           name: raw?.name ?? raw?.categoryName ?? raw?.categoria ?? categoryId,
@@ -59,7 +60,6 @@ const AdminLiveScoring = () => {
         };
       };
 
-      /** Collect and dedupe categories by stable ID */
       const categoriesMap = new Map<string, ApiCategory>();
       const sourceLists = Array.isArray(resp)
         ? [resp]
@@ -68,9 +68,7 @@ const AdminLiveScoring = () => {
       sourceLists.forEach((list) => {
         list.forEach((raw: any) => {
           const normalized = normalizeCategory(raw);
-          if (normalized) {
-            categoriesMap.set(normalized.categoryId, normalized);
-          }
+          if (normalized) categoriesMap.set(normalized.categoryId, normalized);
         });
       });
 
@@ -78,87 +76,85 @@ const AdminLiveScoring = () => {
     },
   });
 
-  /** Load saved config into local state */
+  /** Load saved config into ordered list */
   useEffect(() => {
     if (siteConfig?.live_scoring_config) {
-      const map = new Map<string, LiveScoringEntry>();
-      siteConfig.live_scoring_config.forEach(e => map.set(e.categoryId, e));
-      setEntries(map);
+      const sorted = [...siteConfig.live_scoring_config].sort(
+        (a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId))
+      );
+      setOrderedEntries(sorted);
     }
   }, [siteConfig?.live_scoring_config]);
 
   /** Toggle a category on/off */
-  const toggleCategory = (cat: ApiCategory) => {
-    setEntries(prev => {
-      const next = new Map(prev);
-      if (next.has(cat.categoryId)) {
-        next.delete(cat.categoryId);
-      } else {
-        next.set(cat.categoryId, {
-          categoryId: cat.categoryId,
-          categoryName: cat.name,
-          tipo: 'stableford',
-          gross: 0,
-          enabled: true,
-        });
+  const toggleCategory = useCallback((cat: ApiCategory) => {
+    setOrderedEntries(prev => {
+      if (prev.some(e => e.categoryId === cat.categoryId)) {
+        return prev.filter(e => e.categoryId !== cat.categoryId);
       }
-      return next;
+      return [...prev, {
+        categoryId: cat.categoryId,
+        categoryName: cat.name,
+        tipo: 'stableford' as const,
+        gross: 0 as const,
+        enabled: true,
+        order: prev.length,
+      }];
     });
-  };
+  }, []);
 
   /** Update tipo for a specific category */
   const setCategoryTipo = (categoryId: string, tipo: 'stroke' | 'stableford') => {
-    setEntries(prev => {
-      const next = new Map(prev);
-      const entry = next.get(categoryId);
-      if (entry) {
-        next.set(categoryId, { ...entry, tipo });
-      }
-      return next;
-    });
+    setOrderedEntries(prev => prev.map(e =>
+      e.categoryId === categoryId ? { ...e, tipo } : e
+    ));
   };
 
   /** Update gross for a specific category */
   const setCategoryGross = (categoryId: string, gross: boolean) => {
-    setEntries(prev => {
-      const next = new Map(prev);
-      const entry = next.get(categoryId);
-      if (entry) {
-        next.set(categoryId, { ...entry, gross: gross ? 1 : 0 });
-      }
-      return next;
-    });
+    setOrderedEntries(prev => prev.map(e =>
+      e.categoryId === categoryId ? { ...e, gross: gross ? 1 : 0 } : e
+    ));
   };
 
   /** Select/deselect all */
   const toggleAll = (select: boolean) => {
     if (!categories) return;
     if (select) {
-      const next = new Map<string, LiveScoringEntry>();
-      categories.forEach(cat => {
-        next.set(cat.categoryId, entries.get(cat.categoryId) || {
-          categoryId: cat.categoryId,
-          categoryName: cat.name,
-          tipo: 'stableford',
-          gross: 0,
-          enabled: true,
-        });
-      });
-      setEntries(next);
+      const existing = new Map(orderedEntries.map(e => [e.categoryId, e]));
+      const sorted = [...categories].sort((a, b) => Number(a.categoryId) - Number(b.categoryId));
+      setOrderedEntries(sorted.map((cat, idx) => existing.get(cat.categoryId) || {
+        categoryId: cat.categoryId,
+        categoryName: cat.name,
+        tipo: 'stableford' as const,
+        gross: 0 as const,
+        enabled: true,
+        order: idx,
+      }));
     } else {
-      setEntries(new Map());
+      setOrderedEntries([]);
     }
+  };
+
+  /** Handle drag & drop reorder */
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    setOrderedEntries(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(result.source.index, 1);
+      next.splice(result.destination!.index, 0, moved);
+      return next.map((e, i) => ({ ...e, order: i }));
+    });
   };
 
   /** Save config to server */
   const handleSave = () => {
-    const entriesArray = Array.from(entries.values());
-
+    const withOrder = orderedEntries.map((e, i) => ({ ...e, order: i }));
     saveSiteConfig.mutate(
-      { password: 'admin2025', live_scoring_config: entriesArray.length > 0 ? entriesArray : null },
+      { password: 'admin2025', live_scoring_config: withOrder.length > 0 ? withOrder : null },
       {
         onSuccess: () => {
-          toast({ title: 'Live Scoring guardado', description: 'Configuración actualizada para todos los visitantes.' });
+          toast({ title: 'Live Scoring guardado', description: 'Configuración actualizada.' });
         },
         onError: (err) => {
           toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' });
@@ -167,7 +163,6 @@ const AdminLiveScoring = () => {
     );
   };
 
-  const selectedCount = entries.size;
   const totalCount = categories?.length || 0;
 
   return (
@@ -178,11 +173,11 @@ const AdminLiveScoring = () => {
           Configuración de Live Scoring
         </CardTitle>
         <CardDescription>
-          Selecciona las categorías y configura el tipo de scoring (Stroke Play o Stableford) para cada una individualmente.
+          Selecciona categorías, configura el tipo de scoring individual, y arrastra para reordenar.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Loading categories */}
+        {/* Loading */}
         {loadingCategories && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -190,12 +185,13 @@ const AdminLiveScoring = () => {
           </div>
         )}
 
-        {/* Category checkboxes with per-category settings */}
+        {/* Category selection */}
         {categories && categories.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Header with select/deselect buttons */}
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">
-                Categorías ({selectedCount}/{totalCount} seleccionadas)
+                Categorías ({orderedEntries.length}/{totalCount} seleccionadas)
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => toggleAll(true)}>
@@ -207,79 +203,98 @@ const AdminLiveScoring = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              {categories.map(cat => {
-                const isSelected = entries.has(cat.categoryId);
-                const entry = entries.get(cat.categoryId);
-                return (
+            {/* Unselected categories as simple checkboxes */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {categories
+                .filter(cat => !selectedIds.has(cat.categoryId))
+                .map(cat => (
                   <div
                     key={cat.categoryId}
-                    className={`rounded-lg border transition-colors ${
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/30'
-                    }`}
+                    className="flex items-center gap-2 p-2 rounded-lg border border-border hover:border-primary/30 cursor-pointer transition-colors"
+                    onClick={() => toggleCategory(cat)}
                   >
-                    {/* Category row: checkbox + name */}
-                    <div
-                      className="flex items-center gap-3 p-3 cursor-pointer"
-                      onClick={() => toggleCategory(cat)}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleCategory(cat)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <span className="text-sm font-medium flex-1">{cat.name}</span>
-                      {cat.shortName && (
-                        <Badge variant="secondary" className="text-xs">
-                          {cat.shortName}
-                        </Badge>
-                      )}
-                      {isSelected && entry && (
-                        <Badge variant={entry.tipo === 'stroke' ? 'default' : 'outline'} className="text-xs">
-                          {entry.tipo === 'stroke' ? 'Stroke' : 'Stableford'}
-                        </Badge>
-                      )}
-                    </div>
+                    <Checkbox checked={false} onCheckedChange={() => toggleCategory(cat)} onClick={e => e.stopPropagation()} />
+                    <span className="text-sm">{cat.name}</span>
+                  </div>
+                ))
+              }
+            </div>
 
-                    {/* Per-category settings (visible when selected) */}
-                    {isSelected && entry && (
-                      <div
-                        className="flex flex-wrap items-center gap-4 px-3 pb-3 pt-1 border-t border-border/50"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
-                          <Select
-                            value={entry.tipo}
-                            onValueChange={(val) => setCategoryTipo(cat.categoryId, val as 'stroke' | 'stableford')}
-                          >
-                            <SelectTrigger className="w-[140px] h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="stroke">Stroke Play</SelectItem>
-                              <SelectItem value="stableford">Stableford</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs text-muted-foreground">Gross</Label>
-                          <Switch
-                            checked={entry.gross === 1}
-                            onCheckedChange={(checked) => setCategoryGross(cat.categoryId, checked)}
-                          />
-                          <Badge variant={entry.gross === 1 ? 'default' : 'secondary'} className="text-xs">
-                            {entry.gross === 1 ? 'GROSS' : 'NETO'}
-                          </Badge>
-                        </div>
+            {/* Selected categories - drag & drop reorderable */}
+            {orderedEntries.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                  Orden de visualización (arrastra para reordenar)
+                </p>
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="live-categories">
+                    {(provided) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
+                        {orderedEntries.map((entry, index) => (
+                          <Draggable key={entry.categoryId} draggableId={entry.categoryId} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`rounded-lg border transition-colors ${
+                                  snapshot.isDragging
+                                    ? 'border-primary shadow-lg bg-background'
+                                    : 'border-primary/50 bg-primary/5'
+                                }`}
+                              >
+                                {/* Row: grip + checkbox + name + settings */}
+                                <div className="flex items-center gap-2 p-3">
+                                  {/* Drag handle */}
+                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
+                                    <GripVertical className="h-4 w-4" />
+                                  </div>
+
+                                  {/* Checkbox to deselect */}
+                                  <Checkbox
+                                    checked={true}
+                                    onCheckedChange={() => toggleCategory({ categoryId: entry.categoryId, name: entry.categoryName })}
+                                    onClick={e => e.stopPropagation()}
+                                  />
+
+                                  {/* Category name */}
+                                  <span className="text-sm font-medium flex-1">{entry.categoryName}</span>
+
+                                  {/* Inline tipo selector */}
+                                  <Select
+                                    value={entry.tipo}
+                                    onValueChange={(val) => setCategoryTipo(entry.categoryId, val as 'stroke' | 'stableford')}
+                                  >
+                                    <SelectTrigger className="w-[130px] h-7 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="stroke">Stroke Play</SelectItem>
+                                      <SelectItem value="stableford">Stableford</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+
+                                  {/* Gross toggle */}
+                                  <div className="flex items-center gap-1">
+                                    <Switch
+                                      checked={entry.gross === 1}
+                                      onCheckedChange={(checked) => setCategoryGross(entry.categoryId, checked)}
+                                    />
+                                    <Badge variant={entry.gross === 1 ? 'default' : 'secondary'} className="text-[10px]">
+                                      {entry.gross === 1 ? 'GROSS' : 'NETO'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
                       </div>
                     )}
-                  </div>
-                );
-              })}
-            </div>
+                  </Droppable>
+                </DragDropContext>
+              </div>
+            )}
           </div>
         )}
 

@@ -16,6 +16,8 @@ export interface LiveScoringEntry {
   tipo: 'stroke' | 'stableford';
   gross: 0 | 1;
   enabled: boolean;
+  /** Display order on /live page (lower = first). Default: categoryId ASC */
+  order?: number;
 }
 
 /** Full server response for site config */

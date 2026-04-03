@@ -116,8 +116,10 @@ const Live = () => {
   /** Site config with live scoring entries */
   const { data: siteConfig, isLoading: loadingConfig } = useSiteConfig();
 
-  /** Enabled entries from admin config */
-  const enabledEntries = (siteConfig?.live_scoring_config || []).filter(e => e.enabled);
+  /** Enabled entries from admin config, sorted by order (default: categoryId ASC) */
+  const enabledEntries = (siteConfig?.live_scoring_config || [])
+    .filter(e => e.enabled)
+    .sort((a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId)));
 
   /** Fetch leaderboard data when a category is selected */
   const { data: leaderboard, isLoading: loadingLeaderboard } = useQuery<LiveScoringResponse>({
@@ -185,14 +187,24 @@ const Live = () => {
                     onClick={() => setSelected(entry)}
                   >
                     <CardContent className="p-6 text-center">
-                      <div className="w-14 h-14 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <div className={`w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center transition-colors ${
+                        entry.tipo === 'stroke'
+                          ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                          : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
+                      }`}>
                         <Radio className="h-6 w-6" />
                       </div>
                       <h3 className="font-bold text-foreground text-lg mb-2">
                         {entry.categoryName}
                       </h3>
                       <div className="flex justify-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge
+                          className={`text-xs ${
+                            entry.tipo === 'stroke'
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-primary text-primary-foreground'
+                          }`}
+                        >
                           {entry.tipo === 'stroke' ? 'Stroke Play' : 'Stableford'}
                         </Badge>
                         {entry.gross === 1 && (
