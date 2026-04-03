@@ -230,25 +230,20 @@ const Resultados = () => {
                 Volver a categorías
               </Button>
 
-              {loadingDetail ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (
                 <>
                   <div className="text-center mb-10">
                     <h2 className="text-3xl font-bold text-foreground mb-2">
-                      {categoryDetail?.categoryName}
+                      {selectedCategory?.categoryName}
                     </h2>
                     <p className="text-muted-foreground">Selecciona el tipo de puntuación</p>
                   </div>
 
                   <div className="flex justify-center gap-4 flex-wrap max-w-md mx-auto">
-                    {categoryDetail?.scoringTypes?.map((scoring) => (
+                    {selectedCategory?.scoringTypes?.map((scoring) => (
                   <Card 
                     key={scoring.scoringType}
                     className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer flex-1 min-w-[140px]"
-                    onClick={() => handleScoringClick(scoring.scoringType)}
+                    onClick={() => handleScoringClick(scoring.scoringType as ScoringType)}
                   >
                     <CardContent className="p-6 text-center">
                       <div className={`w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center ${
@@ -265,7 +260,6 @@ const Resultados = () => {
                     ))}
                   </div>
                 </>
-              )}
             </>
           ) : (
             <>
