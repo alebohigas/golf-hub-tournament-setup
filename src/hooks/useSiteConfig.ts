@@ -47,6 +47,7 @@ const MENU_ORDER_KEY = 'tournament_menu_item_order';
 const VISIBILITY_KEY = 'tournament_page_visibility';
 const GROUPS_KEY = 'tournament_menu_groups';
 const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
+const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
 
 // ============= Fetch Functions =============
 
