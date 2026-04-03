@@ -98,15 +98,15 @@ const Resultados = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
     if (selectedScoringType) {
-      // if there's one scoring type, go back to category list; else just clear scoring type
-      if (categoryDetail && categoryDetail.scoringTypes.length === 1) {
+      // if category only has one scoring type, go back to category list
+      const cat = categories.find(c => c.categoryId === selectedCategoryId);
+      if (cat && cat.scoringTypes.length <= 1) {
         setSelectedCategoryId(null);
         setSelectedScoringType(null);
       } else {
         setSelectedScoringType(null);
       }
     } else {
-      // no scoring type selected, go back to category list
       setSelectedCategoryId(null);
     }
   };
