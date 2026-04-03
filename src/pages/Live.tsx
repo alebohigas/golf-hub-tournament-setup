@@ -256,15 +256,15 @@ const Live = () => {
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-primary/5">
-                            <TableHead className="w-[50px] text-center">Pos</TableHead>
-                            <TableHead className="w-[50px] p-1 text-center">Club</TableHead>
-                            <TableHead>Jugador</TableHead>
-                            <TableHead className="text-center w-[80px]">
+                          <TableRow className="bg-primary hover:bg-primary">
+                            <TableHead className="text-primary-foreground font-bold w-[50px] text-center">Pos</TableHead>
+                            <TableHead className="text-primary-foreground font-bold w-[50px] p-1 text-center">Club</TableHead>
+                            <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                            <TableHead className="text-primary-foreground font-bold text-center w-[80px]">
                               {isStroke ? 'Dif Par' : 'Total'}
                             </TableHead>
-                            <TableHead className="text-center w-[80px]">Hoy</TableHead>
-                            <TableHead className="text-center w-[60px]">Thru</TableHead>
+                            <TableHead className="text-primary-foreground font-bold text-center w-[80px]">Hoy</TableHead>
+                            <TableHead className="text-primary-foreground font-bold text-center w-[60px]">Thru</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
