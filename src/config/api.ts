@@ -20,7 +20,7 @@ export const LOGOS_BASE_URL = '/api/logo.php?file=';
 
 // ============= Polling Intervals (ms) =============
 /** Polling for live scoring data - fast refresh */
-export const POLL_LIVE = 10_000;       // 10 seconds
+export const POLL_LIVE = 100_000;      // 100 seconds
 /** Polling for active tournament data (results, salidas) */
 export const POLL_ACTIVE = 30_000;     // 30 seconds
 /** Polling for semi-static data (players, categories) */
