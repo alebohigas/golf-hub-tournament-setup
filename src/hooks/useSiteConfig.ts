@@ -9,6 +9,15 @@ import { API_BASE_URL } from '@/config/api';
 
 // ============= Types =============
 
+/** Configuration for a single live scoring entry on the Live page */
+export interface LiveScoringEntry {
+  categoryId: string;
+  categoryName: string;
+  tipo: 'stroke' | 'stableford';
+  gross: 0 | 1;
+  enabled: boolean;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -17,6 +26,7 @@ export interface SiteConfig {
   visibility: Record<string, boolean> | null;
   menu_groups: any[] | null;
   page_group_assignments: Record<string, string> | null;
+  live_scoring_config: LiveScoringEntry[] | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -27,6 +37,7 @@ export interface SaveConfigPayload {
   visibility?: Record<string, boolean> | null;
   menu_groups?: any[] | null;
   page_group_assignments?: Record<string, string> | null;
+  live_scoring_config?: LiveScoringEntry[] | null;
 }
 
 // ============= Constants =============
