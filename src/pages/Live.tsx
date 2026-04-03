@@ -257,15 +257,13 @@ const Live = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-primary/5">
-                            <TableHead className="w-[60px] text-center">Pos</TableHead>
+                            <TableHead className="w-[50px] text-center">Pos</TableHead>
+                            <TableHead className="w-[50px] p-1 text-center">Club</TableHead>
                             <TableHead>Jugador</TableHead>
-                            <TableHead className="text-center">Club</TableHead>
                             <TableHead className="text-center w-[80px]">
                               {isStroke ? 'Dif Par' : 'SA Total'}
                             </TableHead>
-                            <TableHead className="text-center w-[80px]">
-                              {isStroke ? 'Hoy' : 'Hoy'}
-                            </TableHead>
+                            <TableHead className="text-center w-[80px]">Hoy</TableHead>
                             <TableHead className="text-center w-[60px]">Thru</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -277,24 +275,21 @@ const Live = () => {
                                 {player.position}
                               </TableCell>
 
-                              {/* Player name with club logo */}
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  {player.clubLogo && (
-                                    <img
-                                      src={player.clubLogo}
-                                      alt={player.club}
-                                      className="w-6 h-6 object-contain"
-                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                    />
-                                  )}
-                                  {player.name}
-                                </div>
+                              {/* Club logo - own column */}
+                              <TableCell className="p-1 text-center">
+                                {player.clubLogo ? (
+                                  <img
+                                    src={player.clubLogo}
+                                    alt={player.club}
+                                    className="h-9 w-auto object-contain mx-auto"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                  />
+                                ) : null}
                               </TableCell>
 
-                              {/* Club name */}
-                              <TableCell className="text-center text-sm text-muted-foreground">
-                                {player.club}
+                              {/* Player name */}
+                              <TableCell className="font-medium">
+                                {player.name}
                               </TableCell>
 
                               {/* Main score: difpar for stroke, SA total for stableford */}
