@@ -281,7 +281,8 @@ const Live = () => {
                                   <img
                                     src={player.clubLogo}
                                     alt={player.club}
-                                    className="h-9 w-auto object-contain mx-auto"
+                                    className="w-auto object-contain rounded inline-block"
+                                    style={{ height: '2.25rem' }}
                                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                   />
                                 ) : null}
