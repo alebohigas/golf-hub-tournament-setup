@@ -4,6 +4,9 @@
  * Fetches categories configured in admin via live_scoring_config
  * and displays leaderboard data from live_scoring.php API
  * 
+ * Stableford: shows total SA points, today's SA, holes played (thru)
+ * Stroke: shows diff to par, today's diff, holes played (thru)
+ * 
  * Flow: Category cards → Leaderboard table
  * Auto-refreshes every 10 seconds
  */
@@ -31,28 +34,44 @@ import {
 
 // ============= Types =============
 
-/** Player row from live_scoring.php API */
-interface LivePlayer {
+/** Player row from live_scoring.php — Stableford mode */
+interface StablefordPlayer {
   position: number;
   playerId: string;
   number: string;
   name: string;
   clubLogo: string;
   club: string;
+  /** Total accumulated SA points */
   score: number;
-  scoreSO: number;
-  scoreSTB: number;
-  scoreSTBGross: number;
-  currentHole: number | null;
-  thru: number | null;
-  holes: (number | null)[];
-  out: number;
-  in: number;
-  total: number;
-  toPar: number;
-  cardId: string;
-  groupId: string | null;
+  /** Previous round accumulated SA */
+  prevRoundScore: number;
+  /** Current round SA points */
+  todayScore: number;
+  /** Holes completed in current round */
+  thru: number;
+  status: string;
 }
+
+/** Player row from live_scoring.php — Stroke mode */
+interface StrokePlayer {
+  position: number;
+  playerId: string;
+  name: string;
+  clubLogo: string;
+  club: string;
+  /** Accumulated difference to par */
+  score: number;
+  /** Current round difference to par */
+  todayScore: number;
+  /** Holes completed in current round */
+  thru: number;
+  handicap: string;
+  status: string;
+}
+
+/** Union type for player row */
+type LivePlayer = StablefordPlayer | StrokePlayer;
 
 /** API response from live_scoring.php */
 interface LiveScoringResponse {
@@ -60,7 +79,7 @@ interface LiveScoringResponse {
   categoryName: string;
   shortName: string;
   system: string;
-  type: string;
+  type: 'stroke' | 'stableford';
   gross: number;
   par: number;
   course: { rating: number; slope: number; tee: string } | null;
@@ -70,27 +89,21 @@ interface LiveScoringResponse {
 // ============= Helpers =============
 
 /**
- * Format score display for stroke play (relative to par)
- * @param toPar - Score relative to par
- * @param total - Total strokes
+ * Format stroke score display (difference to par)
+ * E for even, +N for over, -N for under
  */
-const formatStrokeScore = (toPar: number, total: number): string => {
-  if (total === 0) return '-';
-  if (toPar === 0) return 'E';
-  return toPar > 0 ? `+${toPar}` : `${toPar}`;
+const formatDifPar = (difpar: number): string => {
+  if (difpar === 0) return 'E';
+  return difpar > 0 ? `+${difpar}` : `${difpar}`;
 };
 
 /**
- * Get CSS class for score coloring
- * @param toPar - Score relative to par
- * @param isStroke - Whether stroke play
+ * Get CSS class for stroke score coloring
+ * Green for under par, red for over par
  */
-const getScoreClass = (toPar: number, isStroke: boolean): string => {
-  if (isStroke) {
-    if (toPar < 0) return 'text-green-600 font-bold';
-    if (toPar > 0) return 'text-red-600 font-bold';
-    return 'font-bold';
-  }
+const getStrokeScoreClass = (difpar: number): string => {
+  if (difpar < 0) return 'text-green-600 font-bold';
+  if (difpar > 0) return 'text-red-600 font-bold';
   return 'font-bold';
 };
 
@@ -117,7 +130,7 @@ const Live = () => {
   });
 
   /** Whether it's stroke play */
-  const isStroke = selected?.tipo === 'stroke';
+  const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
 
   return (
     <Layout>
@@ -154,7 +167,7 @@ const Live = () => {
             </Card>
           )}
 
-          {/* Category selection */}
+          {/* Category selection cards */}
           {!loadingConfig && enabledEntries.length > 0 && !selected && (
             <>
               <div className="text-center mb-10">
@@ -236,20 +249,23 @@ const Live = () => {
                             <TableHead>Jugador</TableHead>
                             <TableHead className="text-center">Club</TableHead>
                             <TableHead className="text-center w-[80px]">
-                              {isStroke ? 'Score' : 'Pts'}
+                              {isStroke ? 'Dif Par' : 'SA Total'}
+                            </TableHead>
+                            <TableHead className="text-center w-[80px]">
+                              {isStroke ? 'Hoy' : 'Hoy'}
                             </TableHead>
                             <TableHead className="text-center w-[60px]">Thru</TableHead>
-                            <TableHead className="text-center w-[60px]">Out</TableHead>
-                            <TableHead className="text-center w-[60px]">In</TableHead>
-                            <TableHead className="text-center w-[60px]">Total</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {leaderboard.players.map((player) => (
                             <TableRow key={player.playerId} className="bg-white hover:bg-muted/30">
+                              {/* Position */}
                               <TableCell className="text-center font-bold">
                                 {player.position}
                               </TableCell>
+
+                              {/* Player name with club logo */}
                               <TableCell className="font-medium">
                                 <div className="flex items-center gap-2">
                                   {player.clubLogo && (
@@ -263,26 +279,28 @@ const Live = () => {
                                   {player.name}
                                 </div>
                               </TableCell>
+
+                              {/* Club name */}
                               <TableCell className="text-center text-sm text-muted-foreground">
                                 {player.club}
                               </TableCell>
-                              <TableCell className={`text-center ${getScoreClass(player.toPar, isStroke)}`}>
+
+                              {/* Main score: difpar for stroke, SA total for stableford */}
+                              <TableCell className={`text-center ${isStroke ? getStrokeScoreClass(player.score) : 'font-bold'}`}>
+                                {isStroke ? formatDifPar(player.score) : player.score}
+                              </TableCell>
+
+                              {/* Today's score */}
+                              <TableCell className={`text-center text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
                                 {isStroke
-                                  ? formatStrokeScore(player.toPar, player.total)
-                                  : player.score
+                                  ? formatDifPar(player.todayScore ?? 0)
+                                  : (player.todayScore ?? '-')
                                 }
                               </TableCell>
+
+                              {/* Holes completed */}
                               <TableCell className="text-center text-sm">
-                                {player.thru ?? player.currentHole ?? '-'}
-                              </TableCell>
-                              <TableCell className="text-center text-sm">
-                                {player.out || '-'}
-                              </TableCell>
-                              <TableCell className="text-center text-sm">
-                                {player.in || '-'}
-                              </TableCell>
-                              <TableCell className="text-center font-semibold">
-                                {player.total || '-'}
+                                {player.thru || '-'}
                               </TableCell>
                             </TableRow>
                           ))}

@@ -2,8 +2,11 @@
 /**
  * Live Scoring Leaderboard Endpoint
  * GET /api/live_scoring.php?catid=XXX&torneoid=XXX&tipo=stroke|stableford&gross=0|1
- * Returns real-time leaderboard with per-hole detail
- * Replaces livescoring_strokego.php and similar
+ * 
+ * Returns real-time leaderboard using legacy views:
+ *   Stableford: v_sumsa, v_sumsarr, v_difpar_ulttarjeta_stb
+ *   Stableford Neto: v_sumsa, v_sumsarr, v_difpar_ulttarjeta_neto
+ *   Stroke:     v_difpar_jugador, v_difpar_ulttarjeta
  */
 require_once 'config.php';
 
@@ -15,13 +18,13 @@ $gross    = optional_param('gross', '0');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
-// Category info
+// ── Category info ──
 $sql = "SELECT categoria_id, categoria, abreviatura, sistema, formato, salida, porcentaje
         FROM categorias WHERE categoria_id = $cid";
 $catInfo = query_one($conn, $sql);
 if (!$catInfo) { json_error('Category not found', 404); }
 
-// Course info
+// ── Course info (par, rating, slope) ──
 $salidaid = esc($conn, $catInfo['salida']);
 $sql = "SELECT b.campoid, rating, slope, tee, parcampo
         FROM caljuego a
@@ -31,83 +34,115 @@ $sql = "SELECT b.campoid, rating, slope, tee, parcampo
 $courseInfo = query_one($conn, $sql);
 $parcampo = (int)($courseInfo['parcampo'] ?? 72);
 
-// Get current day's date
-$sql = "SELECT fecha FROM caljuego
-        WHERE categoriaid = $cid AND campo > 0 AND estatus > 1
-        ORDER BY fecha DESC LIMIT 1";
-$dayInfo = query_one($conn, $sql);
-$currentDate = $dayInfo['fecha'] ?? date('Y-m-d');
+// ── Determine scoring system ──
+$sistema = strtoupper($catInfo['sistema'] ?? '');
+$isStableford = ($sistema === 'STABLEFORD' || $tipo === 'stableford');
 
-// Build leaderboard query
-$sistema = strtoupper($catInfo['sistema']);
+// ── Build leaderboard query based on scoring system ──
+if ($isStableford) {
+    /**
+     * Stableford query — mirrors legacy livescoring_stableford.php
+     * Joins: jugadores → clubs, v_sumsa (total SA), v_sumsarr (previous round SA + progress),
+     *        v_difpar_ulttarjeta_stb (current round stableford detail)
+     * For NETO uses v_difpar_ulttarjeta_neto instead
+     */
+    $ultTarView = ($gross == '1') ? 'v_difpar_ulttarjeta_stb' : 'v_difpar_ulttarjeta_neto';
+    $orderDir   = 'DESC';  // Stableford: higher = better
 
-if ($sistema === 'STABLEFORD' || $tipo === 'stableford') {
-    if ($gross == '1') {
-        $scoreField = 'acumstbgross';
-        $orderDir = 'DESC';
-    } else {
-        $scoreField = 'acumstb';
-        $orderDir = 'DESC';
-    }
+    $sql = "SELECT a.id AS jugadorid, numjugador,
+                   CONCAT(nombre, ' ', apellido) AS jugador,
+                   IF(c.avance IS NULL, 0, c.avance) AS avance,
+                   IF(c.sumsa IS NULL, 0, c.sumsa) AS sumsault,
+                   b.sumsa,
+                   a.estatus AS estatjug,
+                   club,
+                   cl.logo AS juglogoclub,
+                   v.sa
+            FROM jugadores AS a
+            JOIN clubs AS cl ON (a.clubid = cl.id AND estatus = 'NORMAL')
+            JOIN v_sumsa AS b ON (a.id = b.jugadorid)
+            LEFT JOIN v_sumsarr AS c ON (a.id = c.jugadorid)
+            LEFT JOIN $ultTarView AS v ON (a.id = v.jugadorid)
+            WHERE a.categoriaid = $cid
+            ORDER BY b.sumsa $orderDir";
+
 } else {
-    // Stroke Play
-    $scoreField = 'acumso';
+    /**
+     * Stroke Play query — mirrors legacy live_scoring_det_neto.php
+     * Joins: jugadores → clubs, v_difpar_jugador (accumulated diff to par),
+     *        v_difpar_ulttarjeta (current round detail)
+     * ORDER: ASC by difpar (fewer strokes = better), then DESC avance (more progress = tiebreak)
+     */
     $orderDir = 'ASC';
-}
 
-$sql = "SELECT jugadorid, numjugador,
-               CONCAT(nombre, ' ', apellido) as jugador,
-               logo, club, $scoreField as score,
-               hoyojugando, thru, salidagrupoid,
-               acumso, acumstb, acumstbgross,
-               h1, h2, h3, h4, h5, h6, h7, h8, h9,
-               h10, h11, h12, h13, h14, h15, h16, h17, h18,
-               tarjetaid, categoriaid
-        FROM v_sal_jug
-        WHERE categoriaid = $cid
-          AND $scoreField > 0
-        ORDER BY $scoreField $orderDir";
+    $sql = "SELECT b.id AS jugadorid, b.nombre, apellido,
+                   b.estatus AS estatjug,
+                   club,
+                   b.indexjgo,
+                   cl.logo AS juglogoclub,
+                   dif.difpar,
+                   v.difpar_ulttar AS difparulttar,
+                   v.avance AS avance_ulttar
+            FROM jugadores AS b
+            JOIN clubs AS cl ON (b.clubid = cl.id)
+            JOIN v_difpar_jugador AS dif ON (dif.jugadorid = b.id)
+            JOIN v_difpar_ulttarjeta AS v ON (b.id = v.jugadorid)
+            WHERE b.ESTATUS = 'NORMAL' AND b.categoriaid = $cid
+            ORDER BY difpar ASC, avance DESC";
+}
 
 $rows = query_all($conn, $sql);
 
+// ── Format response ──
 $players = [];
 $pos = 0;
+
 foreach ($rows as $row) {
     $pos++;
 
-    // Build 18-hole detail
-    $holes = [];
-    for ($h = 1; $h <= 18; $h++) {
-        $score = $row["h$h"];
-        $holes[] = $score !== null && $score != '' ? (int)$score : null;
+    if ($isStableford) {
+        /**
+         * Stableford player mapping:
+         *   score    = sumsa (total accumulated stableford points)
+         *   prevRoundScore = sumsault (previous round accumulated)
+         *   thru     = avance (holes completed in current round)
+         *   todayScore = sa (current round stableford points)
+         */
+        $players[] = [
+            'position'       => $pos,
+            'playerId'       => $row['jugadorid'],
+            'number'         => $row['numjugador'] ?? '',
+            'name'           => $row['jugador'],
+            'clubLogo'       => $row['juglogoclub'] ? $LOGOS_BASE_URL . $row['juglogoclub'] : '',
+            'club'           => $row['club'] ?? '',
+            'score'          => (int)($row['sumsa'] ?? 0),
+            'prevRoundScore' => (int)($row['sumsault'] ?? 0),
+            'todayScore'     => (int)($row['sa'] ?? 0),
+            'thru'           => (int)($row['avance'] ?? 0),
+            'status'         => $row['estatjug'] ?? '',
+        ];
+    } else {
+        /**
+         * Stroke player mapping:
+         *   score       = difpar (accumulated difference to par, negative = under par)
+         *   todayScore  = difparulttar (current round diff to par)
+         *   thru        = avance_ulttar (holes completed in current round)
+         *   handicap    = indexjgo (player's playing handicap index)
+         */
+        $playerName = trim(($row['nombre'] ?? '') . ' ' . ($row['apellido'] ?? ''));
+        $players[] = [
+            'position'       => $pos,
+            'playerId'       => $row['jugadorid'],
+            'name'           => $playerName,
+            'clubLogo'       => $row['juglogoclub'] ? $LOGOS_BASE_URL . $row['juglogoclub'] : '',
+            'club'           => $row['club'] ?? '',
+            'score'          => (int)($row['difpar'] ?? 0),
+            'todayScore'     => (int)($row['difparulttar'] ?? 0),
+            'thru'           => (int)($row['avance_ulttar'] ?? 0),
+            'handicap'       => $row['indexjgo'] ?? '',
+            'status'         => $row['estatjug'] ?? '',
+        ];
     }
-
-    // Calculate front/back nine
-    $out = 0; $in = 0;
-    for ($h = 0; $h < 9; $h++) { $out += $holes[$h] ?? 0; }
-    for ($h = 9; $h < 18; $h++) { $in += $holes[$h] ?? 0; }
-
-    $players[] = [
-        'position'     => $pos,
-        'playerId'     => $row['jugadorid'],
-        'number'       => $row['numjugador'] ?? '',
-        'name'         => $row['jugador'],
-        'clubLogo'     => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
-        'club'         => $row['club'] ?? '',
-        'score'        => (int)$row['score'],
-        'scoreSO'      => (int)($row['acumso'] ?? 0),
-        'scoreSTB'     => (int)($row['acumstb'] ?? 0),
-        'scoreSTBGross'=> (int)($row['acumstbgross'] ?? 0),
-        'currentHole'  => $row['hoyojugando'] ?? null,
-        'thru'         => $row['thru'] ?? null,
-        'holes'        => $holes,
-        'out'          => $out,
-        'in'           => $in,
-        'total'        => $out + $in,
-        'toPar'        => ($out + $in) - $parcampo,
-        'cardId'       => $row['tarjetaid'],
-        'groupId'      => $row['salidagrupoid'] ?? null
-    ];
 }
 
 json_response([
@@ -115,7 +150,7 @@ json_response([
     'categoryName' => $catInfo['categoria'],
     'shortName'    => $catInfo['abreviatura'],
     'system'       => $catInfo['sistema'],
-    'type'         => $tipo,
+    'type'         => $isStableford ? 'stableford' : 'stroke',
     'gross'        => (int)$gross,
     'par'          => $parcampo,
     'course'       => $courseInfo ? [
