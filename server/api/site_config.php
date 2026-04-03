@@ -13,6 +13,7 @@
  *   visibility TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to boolean',
  *   menu_groups TEXT DEFAULT NULL COMMENT 'JSON array of menu group configs',
  *   page_group_assignments TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to groupId',
+ *   live_scoring_config TEXT DEFAULT NULL COMMENT 'JSON object with live scoring page settings',
  *   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  * );
  */
