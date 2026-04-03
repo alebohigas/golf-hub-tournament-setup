@@ -261,7 +261,7 @@ const Live = () => {
                             <TableHead className="w-[50px] p-1 text-center">Club</TableHead>
                             <TableHead>Jugador</TableHead>
                             <TableHead className="text-center w-[80px]">
-                              {isStroke ? 'Dif Par' : 'SA Total'}
+                              {isStroke ? 'Dif Par' : 'Total'}
                             </TableHead>
                             <TableHead className="text-center w-[80px]">Hoy</TableHead>
                             <TableHead className="text-center w-[60px]">Thru</TableHead>
