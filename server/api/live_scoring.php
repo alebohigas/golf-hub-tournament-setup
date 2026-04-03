@@ -68,12 +68,13 @@ if ($isStableford) {
 
 } else {
     /**
-     * Stroke Play query — mirrors legacy live_scoring_det_neto.php
-     * Joins: jugadores → clubs, v_difpar_jugador (accumulated diff to par),
-     *        v_difpar_ulttarjeta (current round detail)
-     * ORDER: ASC by difpar (fewer strokes = better), then DESC avance (more progress = tiebreak)
+     * Stroke Play query
+     * Gross: v_difpar_jugador + v_difpar_ulttarjeta
+     * Neto:  v_difpar_jugador_neto + v_difpar_ulttarjeta_neto
+     * ORDER: players with no progress (avance=0) go to bottom
      */
-    $orderDir = 'ASC';
+    $difView    = ($gross == '1') ? 'v_difpar_jugador'      : 'v_difpar_jugador_neto';
+    $ultTarView = ($gross == '1') ? 'v_difpar_ulttarjeta'   : 'v_difpar_ulttarjeta_neto';
 
     $sql = "SELECT b.id AS jugadorid, b.nombre, apellido,
                    b.estatus AS estatjug,
@@ -85,8 +86,8 @@ if ($isStableford) {
                    v.avance AS avance_ulttar
             FROM jugadores AS b
             JOIN clubs AS cl ON (b.clubid = cl.id)
-            JOIN v_difpar_jugador AS dif ON (dif.jugadorid = b.id)
-            JOIN v_difpar_ulttarjeta AS v ON (b.id = v.jugadorid)
+            JOIN $difView AS dif ON (dif.jugadorid = b.id)
+            JOIN $ultTarView AS v ON (b.id = v.jugadorid)
             WHERE b.ESTATUS = 'NORMAL' AND b.categoriaid = $cid
             ORDER BY if(v.avance=0,999,dif.difpar) ASC, dif.difpar ASC, v.avance DESC";
 }
