@@ -59,11 +59,11 @@ if ($isStableford) {
                    cl.logo AS juglogoclub,
                    v.sa
             FROM jugadores AS a
-            JOIN clubs AS cl ON (a.clubid = cl.id AND estatus = 'NORMAL')
+            JOIN clubs AS cl ON (a.clubid = cl.id)
             JOIN v_sumsa AS b ON (a.id = b.jugadorid)
             LEFT JOIN v_sumsarr AS c ON (a.id = c.jugadorid)
             LEFT JOIN $ultTarView AS v ON (a.id = v.jugadorid)
-            WHERE a.categoriaid = $cid
+            WHERE a.estatus = 'NORMAL' AND a.categoriaid = $cid
             ORDER BY b.sumsa $orderDir";
 
 } else {
