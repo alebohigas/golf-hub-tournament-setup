@@ -2,7 +2,7 @@
  * AdminLiveScoring
  * Admin panel component for configuring which categories appear
  * on the Live Scoring page and their scoring type (stroke/stableford)
- * Uses checkbox list for easy multi-select of categories
+ * Each category can have its own tipo (stroke/stableford) and gross setting
  */
 
 import { useState, useEffect } from 'react';
@@ -39,11 +39,6 @@ const AdminLiveScoring = () => {
 
   /** Local state for the live scoring entries keyed by categoryId */
   const [entries, setEntries] = useState<Map<string, LiveScoringEntry>>(new Map());
-
-  /** Global scoring type applied to all selected categories */
-  const [globalTipo, setGlobalTipo] = useState<'stroke' | 'stableford'>('stroke');
-  /** Global gross toggle */
-  const [globalGross, setGlobalGross] = useState(false);
 
   /** Fetch available categories from API */
   const { data: categories, isLoading: loadingCategories } = useQuery<ApiCategory[]>({
@@ -89,12 +84,6 @@ const AdminLiveScoring = () => {
       const map = new Map<string, LiveScoringEntry>();
       siteConfig.live_scoring_config.forEach(e => map.set(e.categoryId, e));
       setEntries(map);
-      // Infer global settings from first entry
-      const first = siteConfig.live_scoring_config[0];
-      if (first) {
-        setGlobalTipo(first.tipo);
-        setGlobalGross(first.gross === 1);
-      }
     }
   }, [siteConfig?.live_scoring_config]);
 
@@ -108,10 +97,34 @@ const AdminLiveScoring = () => {
         next.set(cat.categoryId, {
           categoryId: cat.categoryId,
           categoryName: cat.name,
-          tipo: globalTipo,
-          gross: globalGross ? 1 : 0,
+          tipo: 'stableford',
+          gross: 0,
           enabled: true,
         });
+      }
+      return next;
+    });
+  };
+
+  /** Update tipo for a specific category */
+  const setCategoryTipo = (categoryId: string, tipo: 'stroke' | 'stableford') => {
+    setEntries(prev => {
+      const next = new Map(prev);
+      const entry = next.get(categoryId);
+      if (entry) {
+        next.set(categoryId, { ...entry, tipo });
+      }
+      return next;
+    });
+  };
+
+  /** Update gross for a specific category */
+  const setCategoryGross = (categoryId: string, gross: boolean) => {
+    setEntries(prev => {
+      const next = new Map(prev);
+      const entry = next.get(categoryId);
+      if (entry) {
+        next.set(categoryId, { ...entry, gross: gross ? 1 : 0 });
       }
       return next;
     });
@@ -126,8 +139,8 @@ const AdminLiveScoring = () => {
         next.set(cat.categoryId, entries.get(cat.categoryId) || {
           categoryId: cat.categoryId,
           categoryName: cat.name,
-          tipo: globalTipo,
-          gross: globalGross ? 1 : 0,
+          tipo: 'stableford',
+          gross: 0,
           enabled: true,
         });
       });
@@ -137,25 +150,9 @@ const AdminLiveScoring = () => {
     }
   };
 
-  /** Apply global tipo/gross to all selected entries */
-  const applyGlobalSettings = () => {
-    setEntries(prev => {
-      const next = new Map(prev);
-      next.forEach((entry, key) => {
-        next.set(key, { ...entry, tipo: globalTipo, gross: globalGross ? 1 : 0 });
-      });
-      return next;
-    });
-  };
-
   /** Save config to server */
   const handleSave = () => {
-    // Apply global settings before saving
-    const entriesArray = Array.from(entries.values()).map(e => ({
-      ...e,
-      tipo: globalTipo,
-      gross: globalGross ? 1 : 0 as 0 | 1,
-    }));
+    const entriesArray = Array.from(entries.values());
 
     saveSiteConfig.mutate(
       { password: 'admin2025', live_scoring_config: entriesArray.length > 0 ? entriesArray : null },
@@ -181,33 +178,10 @@ const AdminLiveScoring = () => {
           Configuración de Live Scoring
         </CardTitle>
         <CardDescription>
-          Selecciona las categorías que se mostrarán en la página <strong>/live</strong> con resultados en tiempo real.
+          Selecciona las categorías y configura el tipo de scoring (Stroke Play o Stableford) para cada una individualmente.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Global settings */}
-        <div className="flex flex-wrap items-end gap-4 p-4 rounded-lg border border-border bg-muted/30">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1 block">Tipo de scoring</Label>
-            <Select value={globalTipo} onValueChange={(val) => setGlobalTipo(val as 'stroke' | 'stableford')}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="stroke">Stroke Play</SelectItem>
-                <SelectItem value="stableford">Stableford</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Gross</Label>
-            <Switch checked={globalGross} onCheckedChange={setGlobalGross} />
-            <Badge variant={globalGross ? 'default' : 'secondary'} className="text-xs">
-              {globalGross ? 'GROSS' : 'NETO'}
-            </Badge>
-          </div>
-        </div>
-
         {/* Loading categories */}
         {loadingCategories && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -216,7 +190,7 @@ const AdminLiveScoring = () => {
           </div>
         )}
 
-        {/* Category checkboxes */}
+        {/* Category checkboxes with per-category settings */}
         {categories && categories.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -233,29 +207,74 @@ const AdminLiveScoring = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="space-y-2">
               {categories.map(cat => {
                 const isSelected = entries.has(cat.categoryId);
+                const entry = entries.get(cat.categoryId);
                 return (
                   <div
                     key={cat.categoryId}
-                    onClick={() => toggleCategory(cat)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    className={`rounded-lg border transition-colors ${
                       isSelected
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-primary/30'
                     }`}
                   >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleCategory(cat)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <span className="text-sm font-medium">{cat.name}</span>
-                    {cat.shortName && (
-                      <Badge variant="secondary" className="text-xs ml-auto">
-                        {cat.shortName}
-                      </Badge>
+                    {/* Category row: checkbox + name */}
+                    <div
+                      className="flex items-center gap-3 p-3 cursor-pointer"
+                      onClick={() => toggleCategory(cat)}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleCategory(cat)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className="text-sm font-medium flex-1">{cat.name}</span>
+                      {cat.shortName && (
+                        <Badge variant="secondary" className="text-xs">
+                          {cat.shortName}
+                        </Badge>
+                      )}
+                      {isSelected && entry && (
+                        <Badge variant={entry.tipo === 'stroke' ? 'default' : 'outline'} className="text-xs">
+                          {entry.tipo === 'stroke' ? 'Stroke' : 'Stableford'}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Per-category settings (visible when selected) */}
+                    {isSelected && entry && (
+                      <div
+                        className="flex flex-wrap items-center gap-4 px-3 pb-3 pt-1 border-t border-border/50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
+                          <Select
+                            value={entry.tipo}
+                            onValueChange={(val) => setCategoryTipo(cat.categoryId, val as 'stroke' | 'stableford')}
+                          >
+                            <SelectTrigger className="w-[140px] h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="stroke">Stroke Play</SelectItem>
+                              <SelectItem value="stableford">Stableford</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground">Gross</Label>
+                          <Switch
+                            checked={entry.gross === 1}
+                            onCheckedChange={(checked) => setCategoryGross(cat.categoryId, checked)}
+                          />
+                          <Badge variant={entry.gross === 1 ? 'default' : 'secondary'} className="text-xs">
+                            {entry.gross === 1 ? 'GROSS' : 'NETO'}
+                          </Badge>
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
