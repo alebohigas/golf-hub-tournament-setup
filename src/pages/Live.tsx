@@ -258,7 +258,7 @@ const Live = () => {
                         <TableHeader>
                           <TableRow className="bg-primary hover:bg-primary">
                             <TableHead className="text-primary-foreground font-bold w-[50px] text-center">Pos</TableHead>
-                            <TableHead className="text-primary-foreground font-bold p-1 text-center">Club</TableHead>
+                            <TableHead className="text-primary-foreground font-bold w-16 min-w-16 p-1 text-center">Club</TableHead>
                             <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                             <TableHead className="text-primary-foreground font-bold text-center w-[80px]">
                               {isStroke ? 'Dif Par' : 'Total'}
