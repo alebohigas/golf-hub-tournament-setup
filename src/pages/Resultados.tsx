@@ -73,12 +73,17 @@ const Resultados = () => {
     return scoring?.players || [];
   })();
 
-  /** Handle category card click */
+  /** Handle category card click - auto-select scoring if only one type */
   const handleCategoryClick = (category: ResultCategory) => {
     setSelectedCategoryId(category.categoryId);
     setExpandedScorecard(null);
     setScorecardData(null);
-    setSelectedScoringType(null);  // reset scoring type - will be auto-selected once detail loads
+    // Auto-select if only one scoring type available
+    if (category.scoringTypes.length === 1) {
+      setSelectedScoringType(category.scoringTypes[0].scoringType as ScoringType);
+    } else {
+      setSelectedScoringType(null);
+    }
   };
 
   /** Handle scoring type selection */
