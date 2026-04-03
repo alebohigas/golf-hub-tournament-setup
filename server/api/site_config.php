@@ -13,6 +13,7 @@
  *   visibility TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to boolean',
  *   menu_groups TEXT DEFAULT NULL COMMENT 'JSON array of menu group configs',
  *   page_group_assignments TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to groupId',
+ *   live_scoring_config TEXT DEFAULT NULL COMMENT 'JSON object with live scoring page settings',
  *   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  * );
  */
@@ -27,7 +28,7 @@ $domain = esc($conn, $domain);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
-    $sql = "SELECT torneoid, menu_order, visibility, menu_groups, page_group_assignments 
+    $sql = "SELECT torneoid, menu_order, visibility, menu_groups, page_group_assignments, live_scoring_config 
             FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
     
@@ -39,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'visibility'            => $row['visibility'] ? json_decode($row['visibility'], true) : null,
             'menu_groups'           => $row['menu_groups'] ? json_decode($row['menu_groups'], true) : null,
             'page_group_assignments'=> $row['page_group_assignments'] ? json_decode($row['page_group_assignments'], true) : null,
+            'live_scoring_config'   => $row['live_scoring_config'] ? json_decode($row['live_scoring_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -48,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'visibility'            => null,
             'menu_groups'           => null,
             'page_group_assignments'=> null,
+            'live_scoring_config'   => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -101,6 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['page_group_assignments'] !== null ? "'" . esc($conn, json_encode($body['page_group_assignments'])) . "'" : 'NULL';
         $fields[] = "page_group_assignments = $val";
         $insertFields[] = 'page_group_assignments';
+        $insertValues[] = $val;
+    }
+    
+    if (array_key_exists('live_scoring_config', $body)) {
+        $val = $body['live_scoring_config'] !== null ? "'" . esc($conn, json_encode($body['live_scoring_config'])) . "'" : 'NULL';
+        $fields[] = "live_scoring_config = $val";
+        $insertFields[] = 'live_scoring_config';
         $insertValues[] = $val;
     }
     

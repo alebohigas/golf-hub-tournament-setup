@@ -9,6 +9,15 @@ import { API_BASE_URL } from '@/config/api';
 
 // ============= Types =============
 
+/** Configuration for a single live scoring entry on the Live page */
+export interface LiveScoringEntry {
+  categoryId: string;
+  categoryName: string;
+  tipo: 'stroke' | 'stableford';
+  gross: 0 | 1;
+  enabled: boolean;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -17,6 +26,7 @@ export interface SiteConfig {
   visibility: Record<string, boolean> | null;
   menu_groups: any[] | null;
   page_group_assignments: Record<string, string> | null;
+  live_scoring_config: LiveScoringEntry[] | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -27,6 +37,7 @@ export interface SaveConfigPayload {
   visibility?: Record<string, boolean> | null;
   menu_groups?: any[] | null;
   page_group_assignments?: Record<string, string> | null;
+  live_scoring_config?: LiveScoringEntry[] | null;
 }
 
 // ============= Constants =============
@@ -36,6 +47,7 @@ const MENU_ORDER_KEY = 'tournament_menu_item_order';
 const VISIBILITY_KEY = 'tournament_page_visibility';
 const GROUPS_KEY = 'tournament_menu_groups';
 const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
+const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
 
 // ============= Fetch Functions =============
 
@@ -100,6 +112,11 @@ export const useSiteConfig = () => {
       // Sync page group assignments
       if (config.page_group_assignments) {
         localStorage.setItem(PAGE_GROUPS_KEY, JSON.stringify(config.page_group_assignments));
+      }
+
+      // Sync live scoring config
+      if (config.live_scoring_config) {
+        localStorage.setItem(LIVE_SCORING_KEY, JSON.stringify(config.live_scoring_config));
       }
 
       return config;

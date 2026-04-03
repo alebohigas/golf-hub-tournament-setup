@@ -19,6 +19,7 @@ import AdminLayoutSettings from '@/components/admin/AdminLayoutSettings';
 import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
 import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
 import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
+import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
 import { 
   Shield, 
   LogOut, 
@@ -34,6 +35,7 @@ import {
   Globe,
   Loader2,
   FileText,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -294,7 +296,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -314,6 +316,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="convocatoria" className="gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Convocatoria</span>
+          </TabsTrigger>
+          <TabsTrigger value="live" className="gap-2">
+            <Radio className="h-4 w-4" />
+            <span className="hidden sm:inline">Live</span>
           </TabsTrigger>
         </TabsList>
 
@@ -477,6 +483,11 @@ const AdminDashboard = () => {
         {/* Convocatoria Tab */}
         <TabsContent value="convocatoria">
           <AdminConvocatoria />
+        </TabsContent>
+
+        {/* Live Scoring Tab */}
+        <TabsContent value="live">
+          <AdminLiveScoring />
         </TabsContent>
       </Tabs>
 
