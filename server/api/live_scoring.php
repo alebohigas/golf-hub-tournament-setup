@@ -50,7 +50,7 @@ if ($isStableford) {
     $orderDir   = 'DESC';  // Stableford: higher = better
 
     $sql = "SELECT a.id AS jugadorid, numjugador,
-                   CONCAT(nombre, ' ', apellido) AS jugador,
+                   CONCAT(a.nombre, ' ', a.apellido) AS jugador,
                    IF(c.avance IS NULL, 0, c.avance) AS avance,
                    IF(c.sumsa IS NULL, 0, c.sumsa) AS sumsault,
                    b.sumsa,
