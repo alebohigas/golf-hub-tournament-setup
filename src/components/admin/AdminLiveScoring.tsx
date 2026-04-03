@@ -233,8 +233,9 @@ const AdminLiveScoring = () => {
               {categories.map(cat => {
                 const isSelected = entries.has(cat.categoryId);
                 return (
-                  <label
+                  <div
                     key={cat.categoryId}
+                    onClick={() => toggleCategory(cat)}
                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                       isSelected
                         ? 'border-primary bg-primary/5'
@@ -244,6 +245,7 @@ const AdminLiveScoring = () => {
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleCategory(cat)}
+                      onClick={(e) => e.stopPropagation()}
                     />
                     <span className="text-sm font-medium">{cat.name}</span>
                     {cat.shortName && (
@@ -251,7 +253,7 @@ const AdminLiveScoring = () => {
                         {cat.shortName}
                       </Badge>
                     )}
-                  </label>
+                  </div>
                 );
               })}
             </div>
