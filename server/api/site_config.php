@@ -107,6 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $insertValues[] = $val;
     }
     
+    if (array_key_exists('live_scoring_config', $body)) {
+        $val = $body['live_scoring_config'] !== null ? "'" . esc($conn, json_encode($body['live_scoring_config'])) . "'" : 'NULL';
+        $fields[] = "live_scoring_config = $val";
+        $insertFields[] = 'live_scoring_config';
+        $insertValues[] = $val;
+    }
+    
     if (empty($fields)) {
         json_error('No fields to update', 400);
     }
