@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'visibility'            => $row['visibility'] ? json_decode($row['visibility'], true) : null,
             'menu_groups'           => $row['menu_groups'] ? json_decode($row['menu_groups'], true) : null,
             'page_group_assignments'=> $row['page_group_assignments'] ? json_decode($row['page_group_assignments'], true) : null,
+            'live_scoring_config'   => $row['live_scoring_config'] ? json_decode($row['live_scoring_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -49,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'visibility'            => null,
             'menu_groups'           => null,
             'page_group_assignments'=> null,
+            'live_scoring_config'   => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
