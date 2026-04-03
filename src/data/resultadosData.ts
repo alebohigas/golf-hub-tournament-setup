@@ -1,6 +1,6 @@
 // Resultados data - prepared for API/database integration
 
-export type ScoringType = 'NETO' | 'GROS';
+export type ScoringType = 'NETO' | 'GROSS';
 
 /** Scorecard display format - determines which columns the tarjeta shows */
 export type ScorecardType = 'hcp' | 'stableford' | 'scratch';
@@ -186,7 +186,7 @@ export const mockResultsData: ResultCategory[] = [
         ],
       },
       {
-        scoringType: 'GROS',
+        scoringType: 'GROSS',
         players: [
           { id: 'p17', position: 1, name: 'Alberto Pérez', club: 'Tigres', r1: 72, r2: 73, r3: 71, total: 216, handicapIndex: 2.0 },
           { id: 'p18', position: 2, name: 'Fernando Reyes', club: 'CCT', r1: 74, r2: 72, r3: 73, total: 219, handicapIndex: 2.5 },
@@ -246,7 +246,7 @@ export const mockResultsData: ResultCategory[] = [
         ],
       },
       {
-        scoringType: 'GROS',
+        scoringType: 'GROSS',
         players: [
           { id: 'p22', position: 1, name: 'María González', club: 'SCGA', r1: 76, r2: 77, r3: 75, total: 228, handicapIndex: 5.0 },
           { id: 'p23', position: 2, name: 'Laura Martínez', club: 'Tigres', r1: 78, r2: 76, r3: 77, total: 231, handicapIndex: 6.2 },

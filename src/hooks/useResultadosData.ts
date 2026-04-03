@@ -11,7 +11,7 @@ import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType } from '@
 
 // ============= All Results =============
 
-/** Fetch all categories with results, including GROS when enabled */
+/** Fetch all categories with results, including GROSS when enabled */
 export const useAllResults = () => {
   return useQuery<ResultCategory[]>({
     queryKey: ['resultados'],
@@ -32,7 +32,7 @@ export const useAllResults = () => {
         categories = [...sp, ...mp];
       }
 
-      // Step 2: For each category, fetch NETO results; if gross=1, also fetch GROS
+      // Step 2: For each category, fetch NETO results; if gross=1, also fetch GROSS
       const categoriesWithDetails = await Promise.all(
         categories.map(async (cat) => {
           try {
@@ -55,7 +55,7 @@ export const useAllResults = () => {
               { scoringType: 'NETO', players: netoPlayers },
             ];
 
-            // If category has gross enabled, also fetch GROS results
+            // If category has gross enabled, also fetch GROSS results
             if (cat.gross === 1) {
               const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
               const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
@@ -70,7 +70,7 @@ export const useAllResults = () => {
                 total: p.total ?? p.totalSO ?? 0,
                 handicapIndex: p.handicapIndex,
               }));
-              scoringTypes.push({ scoringType: 'GROS', players: grosPlayers });
+              scoringTypes.push({ scoringType: 'GROSS', players: grosPlayers });
             }
 
             return {
@@ -103,11 +103,11 @@ export const useAllResults = () => {
 /**
  * Fetch results for a specific category and scoring type
  * @param categoryId - Category identifier
- * @param scoringType - NETO or GROS (determines gross parameter)
+ * @param scoringType - NETO or GROSS (determines gross parameter)
  * @param enabled - Whether to enable the query
  */
 export const useCategoryResults = (categoryId: string | null, enabled = true, scoringType: string = 'NETO') => {
-  const gross: '0' | '1' = scoringType === 'GROS' ? '1' : '0';
+  const gross: '0' | '1' = scoringType === 'GROSS' ? '1' : '0';
 
   return useQuery<ResultCategory>({
     queryKey: ['resultados', categoryId, gross],
@@ -120,7 +120,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         : raw.scoringTypes
           ? [raw.scoringTypes]
           : [{
-              scoringType: raw.gross === 1 ? 'GROS' as const : 'NETO' as const,
+              scoringType: raw.gross === 1 ? 'GROSS' as const : 'NETO' as const,
               players: (raw.players || []).map((p: any, idx: number) => ({
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
@@ -166,13 +166,13 @@ const mapSystemToTipo = (system?: string): string => {
 /**
  * Map API scoring system to ScorecardType for display
  * @param system - API system value
- * @param scoringType - NETO or GROS
+ * @param scoringType - NETO or GROSS
  */
 const mapScorecardType = (system?: string, scoringType?: string): ScorecardType => {
   if (!system) return 'hcp';
   const s = system.toUpperCase();
   if (s.includes('STABLEFORD')) return 'stableford';
-  if (scoringType === 'GROS') return 'scratch';
+  if (scoringType === 'GROSS') return 'scratch';
   return 'hcp';
 };
 
@@ -182,7 +182,7 @@ const mapScorecardType = (system?: string, scoringType?: string): ScorecardType 
  * @param categoryId - Category ID
  * @param fecha - Round date (YYYY-MM-DD)
  * @param system - Scoring system (STROKE PLAY, STABLEFORD, etc.)
- * @param scoringType - NETO or GROS
+ * @param scoringType - NETO or GROSS
  * @param round - Round number (1, 2, 3)
  */
 export const fetchPlayerScorecardFromApi = async (

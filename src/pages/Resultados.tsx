@@ -117,7 +117,7 @@ const Resultados = () => {
     const scoring = categoryDetail.scoringTypes.find(s => s.scoringType === selectedScoringType);
     if (scoring?.scorecardType) return scoring.scorecardType;
     if (categoryDetail.defaultScorecardType) return categoryDetail.defaultScorecardType;
-    return selectedScoringType === 'GROS' ? 'scratch' : 'hcp';
+    return selectedScoringType === 'GROSS' ? 'scratch' : 'hcp';
   };
 
   /** Handle round score click - fetch scorecard from API and toggle expansion */
