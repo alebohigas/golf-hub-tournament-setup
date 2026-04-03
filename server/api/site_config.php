@@ -28,7 +28,7 @@ $domain = esc($conn, $domain);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
-    $sql = "SELECT torneoid, menu_order, visibility, menu_groups, page_group_assignments 
+    $sql = "SELECT torneoid, menu_order, visibility, menu_groups, page_group_assignments, live_scoring_config 
             FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
     
