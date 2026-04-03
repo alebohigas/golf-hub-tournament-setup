@@ -88,7 +88,7 @@ if ($isStableford) {
             JOIN v_difpar_jugador AS dif ON (dif.jugadorid = b.id)
             JOIN v_difpar_ulttarjeta AS v ON (b.id = v.jugadorid)
             WHERE b.ESTATUS = 'NORMAL' AND b.categoriaid = $cid
-            ORDER BY difpar ASC, avance DESC";
+            ORDER BY if(v.avance=0,999,dif.difpar) ASC, dif.difpar ASC, v.avance DESC";
 }
 
 $rows = query_all($conn, $sql);

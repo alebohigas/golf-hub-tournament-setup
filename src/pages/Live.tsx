@@ -99,12 +99,11 @@ const formatDifPar = (difpar: number): string => {
 
 /**
  * Get CSS class for stroke score coloring
- * Green for under par, red for over par
+ * Red for under par (negative), black for over par or even
  */
 const getStrokeScoreClass = (difpar: number): string => {
-  if (difpar < 0) return 'text-green-600 font-bold';
-  if (difpar > 0) return 'text-red-600 font-bold';
-  return 'font-bold';
+  if (difpar < 0) return 'text-red-600 font-bold';
+  return 'text-foreground font-bold';
 };
 
 // ============= Component =============
