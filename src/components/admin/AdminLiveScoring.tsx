@@ -50,32 +50,36 @@ const AdminLiveScoring = () => {
     queryKey: ['admin-categories'],
     queryFn: async () => {
       const resp = await apiFetch<any>(getCategoriesUrl());
-      const cats: ApiCategory[] = [];
-      if (resp.strokePlay) {
-        resp.strokePlay.forEach((c: any) => cats.push({
-          categoryId: c.categoryId,
-          name: c.name,
-          shortName: c.shortName,
-          system: c.system,
-        }));
-      }
-      if (resp.matchPlay) {
-        resp.matchPlay.forEach((c: any) => cats.push({
-          categoryId: c.categoryId,
-          name: c.name,
-          shortName: c.shortName,
-          system: c.system,
-        }));
-      }
-      if (Array.isArray(resp)) {
-        resp.forEach((c: any) => cats.push({
-          categoryId: c.categoryId,
-          name: c.name,
-          shortName: c.shortName,
-          system: c.system,
-        }));
-      }
-      return cats;
+
+      /** Normalize category shape because categories.php returns `id`, not always `categoryId` */
+      const normalizeCategory = (raw: any): ApiCategory | null => {
+        const categoryId = String(raw?.categoryId ?? raw?.id ?? raw?.categoria_id ?? '').trim();
+        if (!categoryId) return null;
+
+        return {
+          categoryId,
+          name: raw?.name ?? raw?.categoryName ?? raw?.categoria ?? categoryId,
+          shortName: raw?.shortName ?? raw?.abreviatura ?? raw?.short_name,
+          system: raw?.system ?? raw?.sistema,
+        };
+      };
+
+      /** Collect and dedupe categories by stable ID */
+      const categoriesMap = new Map<string, ApiCategory>();
+      const sourceLists = Array.isArray(resp)
+        ? [resp]
+        : [resp?.strokePlay ?? [], resp?.matchPlay ?? []];
+
+      sourceLists.forEach((list) => {
+        list.forEach((raw: any) => {
+          const normalized = normalizeCategory(raw);
+          if (normalized) {
+            categoriesMap.set(normalized.categoryId, normalized);
+          }
+        });
+      });
+
+      return Array.from(categoriesMap.values());
     },
   });
 
