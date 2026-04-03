@@ -26,10 +26,34 @@ header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 $domain = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $domain = esc($conn, $domain);
 
+/**
+ * Detect whether the live_scoring_config column exists.
+ * This keeps the endpoint backward-compatible on servers
+ * where the schema has not been updated yet.
+ */
+function site_config_has_live_scoring_config($conn) {
+    static $hasColumn = null;
+
+    if ($hasColumn !== null) {
+        return $hasColumn;
+    }
+
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'live_scoring_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+
+    return $hasColumn;
+}
+
+$hasLiveScoringConfig = site_config_has_live_scoring_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
-    $sql = "SELECT torneoid, menu_order, visibility, menu_groups, page_group_assignments, live_scoring_config 
-            FROM site_config WHERE domain = '$domain' LIMIT 1";
+    $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
+    if ($hasLiveScoringConfig) {
+        $selectFields .= ', live_scoring_config';
+    }
+
+    $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
     
     if ($row) {
@@ -40,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'visibility'            => $row['visibility'] ? json_decode($row['visibility'], true) : null,
             'menu_groups'           => $row['menu_groups'] ? json_decode($row['menu_groups'], true) : null,
             'page_group_assignments'=> $row['page_group_assignments'] ? json_decode($row['page_group_assignments'], true) : null,
-            'live_scoring_config'   => $row['live_scoring_config'] ? json_decode($row['live_scoring_config'], true) : null,
+            'live_scoring_config'   => $hasLiveScoringConfig && !empty($row['live_scoring_config']) ? json_decode($row['live_scoring_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -108,6 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     
     if (array_key_exists('live_scoring_config', $body)) {
+        if (!$hasLiveScoringConfig) {
+            json_error("Missing DB column live_scoring_config in site_config. Run: ALTER TABLE site_config ADD COLUMN live_scoring_config TEXT DEFAULT NULL COMMENT 'JSON object with live scoring page settings';", 500);
+        }
+
         $val = $body['live_scoring_config'] !== null ? "'" . esc($conn, json_encode($body['live_scoring_config'])) . "'" : 'NULL';
         $fields[] = "live_scoring_config = $val";
         $insertFields[] = 'live_scoring_config';
