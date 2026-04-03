@@ -194,7 +194,13 @@ const Live = () => {
                         {entry.categoryName}
                       </h3>
                       <div className="flex justify-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge
+                          className={`text-xs ${
+                            entry.tipo === 'stroke'
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-primary text-primary-foreground'
+                          }`}
+                        >
                           {entry.tipo === 'stroke' ? 'Stroke Play' : 'Stableford'}
                         </Badge>
                         {entry.gross === 1 && (
