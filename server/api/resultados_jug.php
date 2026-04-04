@@ -133,11 +133,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 } elseif ($sistema === 'STABLEFORD') {
 
     if ($gross == '1') {
-        // Stableford GROSS — query directly from jugadores table
+        // Stableford GROSS — select muerte subita for priority tiebreaker
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        f_stl_gross(j.id, j.torneoid) as sa,
-                       f_torneosox(j.id, j.torneoid) as so";
+                       f_torneosox(j.id, j.torneoid) as so,
+                       IFNULL(j.muertesubita, 0) as muertesubita";
 
         // Add per-day scores (gross uses sox)
         foreach ($dias as $i => $fecha) {
@@ -154,6 +155,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.estatus = 'NORMAL'
                  ORDER BY f_stl_gross(j.id, j.torneoid) DESC";
 
+        // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
+        $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Tiebreaker: last round score DESC (highest last round wins)
         $lastDayGross = end($dias);
         if ($lastDayGross) {
