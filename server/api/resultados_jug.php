@@ -96,11 +96,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         $sql .= ", u.c1 ASC, u.c2 ASC, u.c3 ASC";
 
     } else {
-        // NETO results — query directly from jugadores table
+        // NETO results — select muerte subita for priority tiebreaker
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        f_torneosax(j.id, j.torneoid) as sa,
-                       f_torneosox(j.id, j.torneoid) as so";
+                       f_torneosox(j.id, j.torneoid) as so,
+                       IFNULL(j.muertesubita, 0) as muertesubita";
 
         // Add per-day scores (neto uses sax)
         foreach ($dias as $i => $fecha) {
@@ -118,6 +119,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.campgross = 0
                  ORDER BY f_torneosax(j.id, j.torneoid) ASC";
 
+        // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
+        $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Tiebreaker: best last round score ASC (lowest wins in Stroke Play)
         $lastDayNeto = end($dias);
         if ($lastDayNeto) {
