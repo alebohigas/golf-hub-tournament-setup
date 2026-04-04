@@ -132,7 +132,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY f_stl_gross(j.id, j.torneoid) DESC,
-                          u.c1 DESC, u.c2 DESC, u.c3 DESC";
+                           u.c1 DESC, u.c2 DESC, u.c3 DESC";
     } else {
         // Stableford NETO — query directly from jugadores table
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
@@ -154,8 +154,15 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
-                 ORDER BY f_torneosa(j.id, j.torneoid) DESC,
-                          u.c1 DESC, u.c2 DESC, u.c3 DESC";
+                 ORDER BY f_torneosa(j.id, j.torneoid) DESC";
+
+        // Tiebreaker: last round score DESC (highest last round wins)
+        $lastDay = end($dias);
+        if ($lastDay) {
+            $sql .= ", f_score_dia_sax(j.id, '$lastDay') DESC";
+        }
+        // Secondary tiebreakers
+        $sql .= ", u.c1 DESC, u.c2 DESC, u.c3 DESC";
     }
 }
 
