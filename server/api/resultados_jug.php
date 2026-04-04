@@ -112,8 +112,15 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
-                 ORDER BY f_torneosax(j.id, j.torneoid) ASC,
-                          u.c1 ASC, u.c2 ASC, u.c3 ASC";
+                 ORDER BY f_torneosax(j.id, j.torneoid) ASC";
+
+        // Tiebreaker: best last round score ASC (lowest wins in Stroke Play)
+        $lastDayNeto = end($dias);
+        if ($lastDayNeto) {
+            $sql .= ", f_score_dia_sax(j.id, '$lastDayNeto') ASC";
+        }
+        // Secondary tiebreakers (9-6-3-1 system)
+        $sql .= ", u.c1 ASC, u.c2 ASC, u.c3 ASC";
     }
 
 } elseif ($sistema === 'STABLEFORD') {
