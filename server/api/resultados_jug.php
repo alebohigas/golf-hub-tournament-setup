@@ -165,11 +165,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         // Secondary tiebreakers
         $sql .= ", u.c1 DESC, u.c2 DESC, u.c3 DESC";
     } else {
-        // Stableford NETO — query directly from jugadores table
+        // Stableford NETO — select muerte subita for priority tiebreaker
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        f_torneosa(j.id, j.torneoid) as sa,
-                       f_torneosox(j.id, j.torneoid) as so";
+                       f_torneosox(j.id, j.torneoid) as so,
+                       IFNULL(j.muertesubita, 0) as muertesubita";
 
         // Add per-day scores (neto uses sax)
         foreach ($dias as $i => $fecha) {
@@ -187,6 +188,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.campgross = 0
                  ORDER BY f_torneosa(j.id, j.torneoid) DESC";
 
+        // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
+        $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Tiebreaker: last round score DESC (highest last round wins)
         $lastDay = end($dias);
         if ($lastDay) {
