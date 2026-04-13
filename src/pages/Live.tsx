@@ -143,15 +143,38 @@ const Live = () => {
     .filter(e => e.enabled)
     .sort((a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId)));
 
-  /** Fetch leaderboard data when a category is selected */
-  const { data: leaderboard, isLoading: loadingLeaderboard } = useQuery<LiveScoringResponse>({
-    queryKey: ['live-scoring', selected?.categoryId, selected?.tipo, selected?.gross],
-    queryFn: () => apiFetch<LiveScoringResponse>(
-      getLiveScoringUrl(selected!.categoryId, selected!.tipo, String(selected!.gross))
-    ),
-    enabled: !!selected,
-    refetchInterval: POLL_LIVE,
+  /** Pre-fetch all category leaderboards to detect completion status on card view */
+  const categoryQueries = useQueries({
+    queries: enabledEntries.map(entry => ({
+      queryKey: ['live-scoring', entry.categoryId, entry.tipo, entry.gross],
+      queryFn: () => apiFetch<LiveScoringResponse>(
+        getLiveScoringUrl(entry.categoryId, entry.tipo, String(entry.gross))
+      ),
+      refetchInterval: POLL_LIVE,
+    })),
   });
+
+  /** Map of categoryId → completion status */
+  const completionMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    enabledEntries.forEach((entry, idx) => {
+      const data = categoryQueries[idx]?.data;
+      if (data && data.players.length > 0) {
+        map.set(entry.categoryId, isCategoryCompleted(data.players));
+      }
+    });
+    return map;
+  }, [enabledEntries, categoryQueries]);
+
+  /** Get leaderboard for currently selected category from pre-fetched data */
+  const selectedIdx = selected
+    ? enabledEntries.findIndex(e => e.categoryId === selected.categoryId)
+    : -1;
+  const leaderboard = selectedIdx >= 0 ? categoryQueries[selectedIdx]?.data : undefined;
+  const loadingLeaderboard = selectedIdx >= 0 ? categoryQueries[selectedIdx]?.isLoading : false;
+
+  /** Whether the selected category is completed */
+  const isSelectedCompleted = selected ? (completionMap.get(selected.categoryId) ?? false) : false;
 
   /** Whether it's stroke play */
   const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
@@ -202,40 +225,63 @@ const Live = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                {enabledEntries.map((entry, idx) => (
-                  <Card
-                    key={`${entry.categoryId}-${idx}`}
-                    className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
-                    onClick={() => setSelected(entry)}
-                  >
-                    <CardContent className="p-6 text-center">
-                      <div className={`w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center transition-colors ${
-                        entry.tipo === 'stroke'
-                          ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
-                          : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
-                      }`}>
-                        <Radio className="h-6 w-6" />
-                      </div>
-                      <h3 className="font-bold text-foreground text-lg mb-2">
-                        {entry.categoryName}
-                      </h3>
-                      <div className="flex justify-center gap-2">
-                        <Badge
-                          className={`text-xs ${
-                            entry.tipo === 'stroke'
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-primary text-primary-foreground'
-                          }`}
-                        >
-                          {entry.tipo === 'stroke' ? 'Stroke Play' : 'Stableford'}
-                        </Badge>
-                        {entry.gross === 1 && (
-                          <Badge variant="outline" className="text-xs">GROSS</Badge>
+                {enabledEntries.map((entry, idx) => {
+                  const isCompleted = completionMap.get(entry.categoryId) ?? false;
+
+                  return (
+                    <Card
+                      key={`${entry.categoryId}-${idx}`}
+                      className={`border-border/50 transition-all ${
+                        isCompleted
+                          ? 'opacity-60 cursor-default border-muted'
+                          : 'hover:border-primary/50 hover:shadow-lg cursor-pointer group'
+                      }`}
+                      onClick={() => !isCompleted && setSelected(entry)}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className={`w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center transition-colors ${
+                          isCompleted
+                            ? 'bg-muted text-muted-foreground'
+                            : entry.tipo === 'stroke'
+                              ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                              : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
+                        }`}>
+                          {isCompleted
+                            ? <CheckCircle2 className="h-6 w-6" />
+                            : <Radio className="h-6 w-6" />
+                          }
+                        </div>
+                        <h3 className={`font-bold text-lg mb-2 ${isCompleted ? 'text-muted-foreground' : 'text-foreground'}`}>
+                          {entry.categoryName}
+                        </h3>
+
+                        {/* Completed message */}
+                        {isCompleted && (
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Categoría terminada, visualiza en resultados
+                          </p>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        <div className="flex justify-center gap-2">
+                          <Badge
+                            className={`text-xs ${
+                              isCompleted
+                                ? 'bg-muted text-muted-foreground'
+                                : entry.tipo === 'stroke'
+                                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                  : 'bg-primary text-primary-foreground'
+                            }`}
+                          >
+                            {entry.tipo === 'stroke' ? 'Stroke Play' : 'Stableford'}
+                          </Badge>
+                          {entry.gross === 1 && (
+                            <Badge variant="outline" className="text-xs">GROSS</Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </>
           )}
@@ -260,6 +306,12 @@ const Live = () => {
                   <Badge>{selected.tipo === 'stroke' ? 'Stroke Play' : 'Stableford'}</Badge>
                   {selected.gross === 1 && <Badge variant="outline">GROSS</Badge>}
                   {leaderboard && <Badge variant="secondary">Par {leaderboard.par}</Badge>}
+                  {isSelectedCompleted && (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/30">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Finalizado
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -327,9 +379,9 @@ const Live = () => {
                                 }
                               </TableCell>
 
-                              {/* Holes completed */}
-                              <TableCell className="text-center text-sm">
-                                {player.thru || '-'}
+                              {/* Holes completed — shows "F" when finished */}
+                              <TableCell className={`text-center text-sm ${isPlayerFinished(player.thru) ? 'font-bold text-green-700' : ''}`}>
+                                {formatThru(player.thru)}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -352,10 +404,12 @@ const Live = () => {
                 </Card>
               )}
 
-              {/* Auto-refresh indicator */}
-              <p className="text-center text-xs text-muted-foreground mt-4">
-                Actualización automática cada 10 segundos
-              </p>
+              {/* Auto-refresh indicator — hidden when category is completed */}
+              {!isSelectedCompleted && (
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                  Actualización automática cada 10 segundos
+                </p>
+              )}
             </>
           )}
         </div>
