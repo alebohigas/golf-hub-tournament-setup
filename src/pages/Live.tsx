@@ -106,6 +106,29 @@ const getStrokeScoreClass = (difpar: number): string => {
   return 'text-foreground font-bold';
 };
 
+/**
+ * Check if a player has finished their round (18 holes completed)
+ */
+const isPlayerFinished = (thru: number): boolean => thru >= 18;
+
+/**
+ * Format the "Thru" column display
+ * Shows "F" for finished players (18 holes), hole number otherwise, "-" if 0
+ */
+const formatThru = (thru: number): string => {
+  if (thru >= 18) return 'F';
+  if (thru === 0) return '-';
+  return String(thru);
+};
+
+/**
+ * Check if all players in a category have finished (all thru >= 18)
+ */
+const isCategoryCompleted = (players: LivePlayer[]): boolean => {
+  if (players.length === 0) return false;
+  return players.every(p => p.thru >= 18);
+};
+
 // ============= Component =============
 
 const Live = () => {
