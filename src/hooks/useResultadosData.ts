@@ -7,7 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
-import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType } from '@/data/resultadosData';
+import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlayer } from '@/data/resultadosData';
 
 // ============= All Results =============
 
@@ -135,12 +135,25 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
               })),
             }];
 
+      // Map cut players (non-NORMAL status)
+      const cutPlayers: CutPlayer[] = (raw.cutPlayers || []).map((cp: any) => ({
+        playerId: cp.playerId || '',
+        number: cp.number || '',
+        name: cp.name || '',
+        club: cp.club || '',
+        clubLogo: cp.clubLogo || '',
+        statusCode: cp.statusCode || 'D',
+        statusLabel: cp.statusLabel || 'Descalificado',
+      }));
+
       return {
         categoryId: raw.categoryId || categoryId!,
         categoryName: raw.categoryName || '',
         shortName: raw.shortName || '',
         system: raw.system || '',
         days: raw.days || [],
+        medalCount: raw.medalCount ?? 3,
+        cutPlayers,
         scoringTypes,
       } as ResultCategory;
     },

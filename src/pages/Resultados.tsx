@@ -2,7 +2,8 @@
  * Resultados Page
  * Displays tournament results by category and scoring type
  * Supports expandable scorecards when clicking on round scores
- * Data fetched from resultados.php via React Query hooks
+ * Shows cut line separator and non-NORMAL players (S/R/D) below
+ * Medal count is dynamic based on numjugprem from DB
  */
 
 import Layout from '@/components/layout/Layout';
@@ -20,25 +21,42 @@ import type {
   ScorecardType,
   PlayerResult,
   RoundScorecard,
+  CutPlayer,
 } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
 
 // ============= Helper Functions =============
 
-/** Returns medal color class based on position */
-const getPositionStyle = (position: number) => {
+/**
+ * Returns medal color class based on position
+ * Gold (1st), Silver (2nd), Bronze (3rd+)
+ */
+const getMedalStyle = (position: number) => {
   if (position === 1) return 'text-yellow-500';
   if (position === 2) return 'text-gray-400';
-  if (position === 3) return 'text-amber-600';
-  return '';
+  return 'text-amber-600'; // bronze for 3rd and beyond
 };
 
-/** Returns medal icon for top 3 positions */
-const getPositionIcon = (position: number) => {
-  if (position <= 3) {
-    return <Medal className={`h-5 w-5 ${getPositionStyle(position)}`} />;
+/**
+ * Returns medal icon if position is within medal count, otherwise null
+ * @param position - Player's ranking position
+ * @param medalCount - Number of medal winners from DB (numjugprem)
+ */
+const getPositionIcon = (position: number, medalCount: number) => {
+  if (position <= medalCount) {
+    return <Medal className={`h-5 w-5 ${getMedalStyle(position)}`} />;
   }
   return null;
+};
+
+/**
+ * Returns status badge color classes based on status code
+ * S = No Show (muted), R = Retiro (warning), D = Descalificado (destructive)
+ */
+const getStatusBadgeClasses = (code: string) => {
+  if (code === 'S') return 'bg-muted text-muted-foreground';
+  if (code === 'R') return 'bg-amber-100 text-amber-800';
+  return 'bg-red-100 text-red-800'; // D
 };
 
 // ============= Component =============
@@ -65,9 +83,14 @@ const Resultados = () => {
   /** Find the selected category object from the list (metadata only) */
   const selectedCategory = categories.find(c => c.categoryId === selectedCategoryId) || null;
 
+  /** Medal count from API (defaults to 3) */
+  const medalCount = categoryDetail?.medalCount ?? 3;
+
+  /** Cut players (non-NORMAL status) from API */
+  const cutPlayers: CutPlayer[] = categoryDetail?.cutPlayers || [];
+
   /** Get players for the selected scoring type - MUST use categoryDetail for full data */
   const players: PlayerResult[] = (() => {
-    // only use categoryDetail which is fetched from resultados_jug.php and has full data
     if (!categoryDetail || !selectedScoringType) return [];
     const scoring = categoryDetail.scoringTypes?.find(s => s.scoringType === selectedScoringType);
     return scoring?.players || [];
@@ -78,7 +101,6 @@ const Resultados = () => {
     setSelectedCategoryId(category.categoryId);
     setExpandedScorecard(null);
     setScorecardData(null);
-    // Auto-select if only one scoring type available
     if (category.scoringTypes.length === 1) {
       setSelectedScoringType(category.scoringTypes[0].scoringType as ScoringType);
     } else {
@@ -98,7 +120,6 @@ const Resultados = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
     if (selectedScoringType) {
-      // if category only has one scoring type, go back to category list
       const cat = categories.find(c => c.categoryId === selectedCategoryId);
       if (cat && cat.scoringTypes.length <= 1) {
         setSelectedCategoryId(null);
@@ -127,16 +148,14 @@ const Resultados = () => {
     
     if (roundScore === undefined || roundScore === null) return;
 
-    // Toggle off if already expanded
     if (expandedScorecard === key) {
       setExpandedScorecard(null);
       setScorecardData(null);
       return;
     }
 
-    // Get the date for this round from the category detail days array
     const days = categoryDetail?.days || [];
-    const fecha = days[round - 1]; // R1 → days[0], R2 → days[1], etc.
+    const fecha = days[round - 1];
 
     if (!fecha || !categoryDetail) {
       console.warn('No date found for round', round, 'days:', days);
@@ -145,7 +164,6 @@ const Resultados = () => {
       return;
     }
 
-    // Fetch scorecard from API
     setExpandedScorecard(key);
     setScorecardData(null);
     setScorecardLoading(true);
@@ -167,6 +185,9 @@ const Resultados = () => {
       setScorecardLoading(false);
     }
   };
+
+  /** Total columns count for colSpan calculations */
+  const totalCols = 3 + (categoryDetail?.days?.length || 0) + 1;
 
   const isLoading = loadingCats || loadingDetail;
 
@@ -305,18 +326,19 @@ const Resultados = () => {
                         </TableHeader>
                         <TableBody>
                           {players.length > 0 ? (
-                            players.map((player, idx) => (
+                            players.map((player) => (
                               <Fragment key={player.id}>
                                 <TableRow className="bg-white hover:bg-white">
+                                  {/* Position with dynamic medal */}
                                   <TableCell className="font-semibold">
                                     <div className="flex items-center gap-2">
-                                      {getPositionIcon(player.position)}
-                                      <span className={getPositionStyle(player.position)}>
+                                      {getPositionIcon(player.position, medalCount)}
+                                      <span className={player.position <= medalCount ? getMedalStyle(player.position) : ''}>
                                         {player.position}
                                       </span>
                                     </div>
                                   </TableCell>
-                                  {/* Club Logo column - always left of name */}
+                                  {/* Club Logo */}
                                   <TableCell className="p-1 text-center align-middle">
                                     {player.clubLogo ? (
                                       <img
@@ -365,7 +387,7 @@ const Resultados = () => {
                                 {expandedScorecard?.startsWith(`${player.id}-`) && (
                                   scorecardLoading ? (
                                     <TableRow className="bg-white hover:bg-white">
-                                      <TableCell colSpan={3 + (categoryDetail?.days?.length || 0) + 1} className="text-center py-6 text-muted-foreground">
+                                      <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
                                         Cargando tarjeta...
                                       </TableCell>
                                     </TableRow>
@@ -375,7 +397,7 @@ const Resultados = () => {
                                       playerName={player.name}
                                       roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
                                       onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
-                                      colSpan={3 + (categoryDetail?.days?.length || 0) + 1}
+                                      colSpan={totalCols}
                                     />
                                   ) : null
                                 )}
@@ -383,10 +405,63 @@ const Resultados = () => {
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={3 + (categoryDetail?.days?.length || 0) + 1} className="text-center text-muted-foreground py-8">
+                              <TableCell colSpan={totalCols} className="text-center text-muted-foreground py-8">
                                 No hay resultados disponibles
                               </TableCell>
                             </TableRow>
+                          )}
+
+                          {/* ============= CUT LINE SEPARATOR ============= */}
+                          {cutPlayers.length > 0 && (
+                            <>
+                              {/* Visual cut line: grey separator row */}
+                              <TableRow className="bg-muted/60 hover:bg-muted/60 border-t-2 border-b-2 border-border">
+                                <TableCell colSpan={totalCols} className="text-center py-3">
+                                  <span className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
+                                    — No completaron —
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+
+                              {/* Non-NORMAL players (S/R/D) */}
+                              {cutPlayers.map((cp) => (
+                                <TableRow key={cp.playerId} className="bg-muted/20 hover:bg-muted/30">
+                                  {/* Status code instead of position */}
+                                  <TableCell className="font-semibold text-center">
+                                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
+                                      {cp.statusCode}
+                                    </span>
+                                  </TableCell>
+                                  {/* Club Logo */}
+                                  <TableCell className="p-1 text-center align-middle">
+                                    {cp.clubLogo ? (
+                                      <img
+                                        src={cp.clubLogo}
+                                        alt="Club"
+                                        className="w-auto object-contain rounded inline-block opacity-60"
+                                        style={{ height: '2.25rem' }}
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">{cp.club}</span>
+                                    )}
+                                  </TableCell>
+                                  {/* Player name + status label */}
+                                  <TableCell className="font-medium text-muted-foreground">
+                                    {cp.name}
+                                    <span className="ml-2 text-xs text-muted-foreground/70">({cp.statusLabel})</span>
+                                  </TableCell>
+                                  {/* Empty round cells */}
+                                  {(categoryDetail?.days || []).map((_, i) => (
+                                    <TableCell key={i} className="text-center text-muted-foreground">—</TableCell>
+                                  ))}
+                                  {/* Empty total */}
+                                  <TableCell className="text-center text-muted-foreground font-medium">—</TableCell>
+                                </TableRow>
+                              ))}
+                            </>
                           )}
                         </TableBody>
                       </Table>
