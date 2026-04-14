@@ -51,6 +51,19 @@ export interface PlayerResult {
   handicapIndex?: number;
 }
 
+/** Player who did not complete the tournament (NO SHOW, RETIRO, DQ) */
+export interface CutPlayer {
+  playerId: string;
+  number: string;
+  name: string;
+  club: string;
+  clubLogo?: string;
+  /** Status code: S = No Show, R = Retiro, D = Descalificado */
+  statusCode: 'S' | 'R' | 'D';
+  /** Human-readable status label */
+  statusLabel: string;
+}
+
 export interface CategoryScoring {
   scoringType: ScoringType;
   /** Which scorecard format to use when expanding rounds */
@@ -68,6 +81,10 @@ export interface ResultCategory {
   system?: string;
   /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
   days?: string[];
+  /** Number of medal winners from DB (numjugprem) */
+  medalCount?: number;
+  /** Players who did not complete (NO SHOW, RETIRO, DQ) */
+  cutPlayers?: CutPlayer[];
   scoringTypes: CategoryScoring[];
 }
 
