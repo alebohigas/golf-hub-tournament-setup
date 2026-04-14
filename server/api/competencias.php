@@ -83,7 +83,7 @@ if ($tipo === '' || $tipo === 'oyes') {
     
     if ($row && (int)$row['cnt'] > 0) {
         // Get groups (prizes)
-        $sql = "SELECT DISTINCT premio as id, CONCAT('Premio ', premio) as name #hoyo
+        $sql = "SELECT DISTINCT premio as id, descripcion as name
                 FROM premiosjug
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
