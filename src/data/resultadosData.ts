@@ -51,6 +51,19 @@ export interface PlayerResult {
   handicapIndex?: number;
 }
 
+/** Player who did not complete the tournament (NO SHOW, RETIRO, DQ) */
+export interface CutPlayer {
+  playerId: string;
+  number: string;
+  name: string;
+  club: string;
+  clubLogo?: string;
+  /** Status code: S = No Show, R = Retiro, D = Descalificado */
+  statusCode: 'S' | 'R' | 'D';
+  /** Human-readable status label */
+  statusLabel: string;
+}
+
 export interface CategoryScoring {
   scoringType: ScoringType;
   /** Which scorecard format to use when expanding rounds */
