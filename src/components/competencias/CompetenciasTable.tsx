@@ -85,7 +85,7 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
             players.map((player) => (
               <TableRow 
                 key={player.id}
-                className="bg-white hover:bg-muted/30"
+                className="bg-white"
               >
                 {columns.map((col) => (
                   <TableCell 
