@@ -397,7 +397,7 @@ const Live = () => {
                         <TableBody>
                           {leaderboard.players.map((player) => (
                             <Fragment key={player.playerId}>
-                              <TableRow className="bg-white hover:bg-muted/30">
+                              <TableRow className="bg-white">
                                 {/* Position */}
                                 <TableCell className="text-center font-bold">
                                   {player.position}

@@ -40,11 +40,19 @@ export const useCompetencias = () => {
 export const useCompetenciaDetail = (tipo: string | null, enabled = true) => {
   return useQuery<CompetenciaTipo[]>({
     queryKey: ['competencias', tipo, 'detail'],
-    queryFn: () => apiFetch<CompetenciaTipo[]>(getCompetenciaDetailUrl(tipo!)),
+    queryFn: async () => {
+      const data = await apiFetch<CompetenciaTipo[]>(getCompetenciaDetailUrl(tipo!));
+      // Transform API response to map 'descripcion' (backend) to 'description' (frontend)
+      return data.map(comp => ({
+        ...comp,
+        groups: comp.groups?.map(group => ({
+          ...group,
+          description: group.description || (group as unknown as Record<string, string>)['descripcion'] || group.name,
+        })) || [],
+      }));
+    },
     enabled: enabled && !!tipo,
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
-    /** Extract the matching competition from the array */
-    select: (data) => data,
   });
 };
