@@ -425,7 +425,7 @@ const Resultados = () => {
 
                               {/* Non-NORMAL players (S/R/D) */}
                               {cutPlayers.map((cp) => (
-                                <TableRow key={cp.playerId} className="bg-muted/20 hover:bg-muted/30">
+                                <TableRow key={cp.playerId} className="bg-muted/20">
                                   {/* Status code instead of position */}
                                   <TableCell className="font-semibold text-center">
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
