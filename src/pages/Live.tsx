@@ -337,8 +337,8 @@ const Live = () => {
                             <TableHead className="text-primary-foreground font-bold text-center w-[80px]">
                               {isStroke ? 'Dif Par' : 'Total'}
                             </TableHead>
-                            <TableHead className="text-primary-foreground font-bold text-center w-[80px]">Hoy</TableHead>
                             <TableHead className="text-primary-foreground font-bold text-center w-[60px]">Thru</TableHead>
+                            <TableHead className="text-primary-foreground font-bold text-center w-[80px]">Hoy</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -371,17 +371,17 @@ const Live = () => {
                                 {isStroke ? formatDifPar(player.score) : player.score}
                               </TableCell>
 
+                              {/* Holes completed — shows "F" when finished */}
+                              <TableCell className={`text-center text-sm ${isPlayerFinished(player.thru) ? 'font-bold text-green-700' : ''}`}>
+                                {formatThru(player.thru)}
+                              </TableCell>
+
                               {/* Today's score */}
                               <TableCell className={`text-center text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
                                 {isStroke
                                   ? formatDifPar(player.todayScore ?? 0)
                                   : (player.todayScore ?? '-')
                                 }
-                              </TableCell>
-
-                              {/* Holes completed — shows "F" when finished */}
-                              <TableCell className={`text-center text-sm ${isPlayerFinished(player.thru) ? 'font-bold text-green-700' : ''}`}>
-                                {formatThru(player.thru)}
                               </TableCell>
                             </TableRow>
                           ))}
