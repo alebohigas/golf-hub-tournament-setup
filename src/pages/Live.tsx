@@ -9,9 +9,12 @@
  * 
  * Flow: Category cards → Leaderboard table
  * Auto-refreshes every 10 seconds
+ * 
+ * Clickable scores: clicking a player's main score (Dif Par / Total)
+ * expands their live scorecard fetched from live_tarjeta.php
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +25,9 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getLiveScoringUrl, POLL_LIVE } from '@/config/api';
 import { useSiteConfig, type LiveScoringEntry } from '@/hooks/useSiteConfig';
+import { fetchLiveScorecardFromApi } from '@/hooks/useResultadosData';
+import type { RoundScorecard } from '@/data/resultadosData';
+import ScorecardRow from '@/components/resultados/ScorecardRow';
 import liveHero from '@/assets/live-hero.jpg';
 import {
   Table,
@@ -135,6 +141,11 @@ const Live = () => {
   /** Currently selected category entry */
   const [selected, setSelected] = useState<LiveScoringEntry | null>(null);
 
+  /** Expanded scorecard state: playerId or null */
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const [scorecardData, setScorecardData] = useState<RoundScorecard | null>(null);
+  const [scorecardLoading, setScorecardLoading] = useState(false);
+
   /** Site config with live scoring entries */
   const { data: siteConfig, isLoading: loadingConfig } = useSiteConfig();
 
@@ -178,6 +189,48 @@ const Live = () => {
 
   /** Whether it's stroke play */
   const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
+
+  /**
+   * Handle click on a player's main score to show/hide their live scorecard
+   * Fetches data from live_tarjeta.php
+   */
+  const handleScoreClick = async (player: LivePlayer) => {
+    // Toggle off if already expanded
+    if (expandedPlayerId === player.playerId) {
+      setExpandedPlayerId(null);
+      setScorecardData(null);
+      return;
+    }
+
+    // Only show scorecard if player has started (thru > 0)
+    if (player.thru <= 0) return;
+
+    setExpandedPlayerId(player.playerId);
+    setScorecardData(null);
+    setScorecardLoading(true);
+
+    try {
+      const tipo = selected?.tipo || (isStroke ? 'stroke' : 'stableford');
+      const scoringType = selected?.gross === 1 ? 'GROSS' : 'NETO';
+      const scorecard = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
+      setScorecardData(scorecard);
+    } catch (err) {
+      console.error('Failed to fetch live scorecard:', err);
+      setScorecardData(null);
+    } finally {
+      setScorecardLoading(false);
+    }
+  };
+
+  /** Reset scorecard state when changing category */
+  const handleSelectCategory = (entry: LiveScoringEntry) => {
+    setExpandedPlayerId(null);
+    setScorecardData(null);
+    setSelected(entry);
+  };
+
+  /** Total number of columns in the leaderboard table */
+  const totalCols = 6;
 
   return (
     <Layout>
@@ -236,7 +289,7 @@ const Live = () => {
                           ? 'opacity-60 cursor-default border-muted'
                           : 'hover:border-primary/50 hover:shadow-lg cursor-pointer group'
                       }`}
-                      onClick={() => !isCompleted && setSelected(entry)}
+                      onClick={() => !isCompleted && handleSelectCategory(entry)}
                     >
                       <CardContent className="p-6 text-center">
                         <div className={`w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center transition-colors ${
@@ -291,7 +344,7 @@ const Live = () => {
             <>
               <Button
                 variant="ghost"
-                onClick={() => setSelected(null)}
+                onClick={() => { setSelected(null); setExpandedPlayerId(null); setScorecardData(null); }}
                 className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -337,53 +390,88 @@ const Live = () => {
                             <TableHead className="text-primary-foreground font-bold text-center w-[80px]">
                               {isStroke ? 'Dif Par' : 'Total'}
                             </TableHead>
-                            <TableHead className="text-primary-foreground font-bold text-center w-[80px]">Hoy</TableHead>
                             <TableHead className="text-primary-foreground font-bold text-center w-[60px]">Thru</TableHead>
+                            <TableHead className="text-primary-foreground font-bold text-center w-[80px]">Hoy</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {leaderboard.players.map((player) => (
-                            <TableRow key={player.playerId} className="bg-white hover:bg-muted/30">
-                              {/* Position */}
-                              <TableCell className="text-center font-bold">
-                                {player.position}
-                              </TableCell>
+                            <Fragment key={player.playerId}>
+                              <TableRow className="bg-white hover:bg-muted/30">
+                                {/* Position */}
+                                <TableCell className="text-center font-bold">
+                                  {player.position}
+                                </TableCell>
 
-                              {/* Club logo - own column */}
-                              <TableCell className="w-16 min-w-16 p-1 text-center align-middle">
-                                {player.clubLogo ? (
-                                  <img
-                                    src={player.clubLogo}
-                                    alt={player.club}
-                                    className="w-14 h-9 object-contain rounded inline-block mx-auto"
-                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                {/* Club logo */}
+                                <TableCell className="w-16 min-w-16 p-1 text-center align-middle">
+                                  {player.clubLogo ? (
+                                    <img
+                                      src={player.clubLogo}
+                                      alt={player.club}
+                                      className="w-14 h-9 object-contain rounded inline-block mx-auto"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                  ) : null}
+                                </TableCell>
+
+                                {/* Player name */}
+                                <TableCell className="font-medium">
+                                  {player.name}
+                                </TableCell>
+
+                                {/* Main score — clickable to expand live scorecard */}
+                                <TableCell className="text-center p-0">
+                                  {player.thru > 0 ? (
+                                    <button
+                                      onClick={() => handleScoreClick(player)}
+                                      className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
+                                        isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
+                                      } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
+                                      title="Ver tarjeta en vivo"
+                                    >
+                                      {isStroke ? formatDifPar(player.score) : player.score}
+                                    </button>
+                                  ) : (
+                                    <span className={`py-3 px-2 inline-block ${isStroke ? getStrokeScoreClass(player.score) : 'font-bold'}`}>
+                                      {isStroke ? formatDifPar(player.score) : player.score}
+                                    </span>
+                                  )}
+                                </TableCell>
+
+                                {/* Holes completed — shows "F" when finished */}
+                                <TableCell className={`text-center text-sm ${isPlayerFinished(player.thru) ? 'font-bold text-green-700' : ''}`}>
+                                  {formatThru(player.thru)}
+                                </TableCell>
+
+                                {/* Today's score */}
+                                <TableCell className={`text-center text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
+                                  {isStroke
+                                    ? formatDifPar(player.todayScore ?? 0)
+                                    : (player.todayScore ?? '-')
+                                  }
+                                </TableCell>
+                              </TableRow>
+
+                              {/* Expanded live scorecard row */}
+                              {expandedPlayerId === player.playerId && (
+                                scorecardLoading ? (
+                                  <TableRow className="bg-white hover:bg-white">
+                                    <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
+                                      Cargando tarjeta...
+                                    </TableCell>
+                                  </TableRow>
+                                ) : scorecardData ? (
+                                  <ScorecardRow
+                                    scorecard={scorecardData}
+                                    playerName={player.name}
+                                    roundLabel="En Vivo"
+                                    onClose={() => { setExpandedPlayerId(null); setScorecardData(null); }}
+                                    colSpan={totalCols}
                                   />
-                                ) : null}
-                              </TableCell>
-
-                              {/* Player name */}
-                              <TableCell className="font-medium">
-                                {player.name}
-                              </TableCell>
-
-                              {/* Main score: difpar for stroke, SA total for stableford */}
-                              <TableCell className={`text-center ${isStroke ? getStrokeScoreClass(player.score) : 'font-bold'}`}>
-                                {isStroke ? formatDifPar(player.score) : player.score}
-                              </TableCell>
-
-                              {/* Today's score */}
-                              <TableCell className={`text-center text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
-                                {isStroke
-                                  ? formatDifPar(player.todayScore ?? 0)
-                                  : (player.todayScore ?? '-')
-                                }
-                              </TableCell>
-
-                              {/* Holes completed — shows "F" when finished */}
-                              <TableCell className={`text-center text-sm ${isPlayerFinished(player.thru) ? 'font-bold text-green-700' : ''}`}>
-                                {formatThru(player.thru)}
-                              </TableCell>
-                            </TableRow>
+                                ) : null
+                              )}
+                            </Fragment>
                           ))}
                         </TableBody>
                       </Table>
