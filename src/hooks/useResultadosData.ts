@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, POLL_ACTIVE } from '@/config/api';
+import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType } from '@/data/resultadosData';
 
 // ============= All Results =============
