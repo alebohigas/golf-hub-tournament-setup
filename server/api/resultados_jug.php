@@ -4,6 +4,11 @@
  * GET /api/resultados_jug.php?catid=XXX&torneoid=XXX&gross=0|1
  * Returns tournament results for a category
  * Supports: Stroke Play (Neto/Gross), Stableford (Neto/Gross)
+ *
+ * IMPORTANT: Totals only include CLOSED scorecards (statlsc = 1)
+ * to avoid counting partial live scoring data.
+ * Per-day functions (f_score_dia_sax/sox) already use v_resultar
+ * which filters by statlsc = 1.
  */
 require_once 'config.php';
 
@@ -56,21 +61,33 @@ $sql = "SELECT b.campoid, b.salidaid, rating, slope, tee, parcampo
         LIMIT 1";
 $courseInfo = query_one($conn, $sql);
 
+// ============= Inline subquery helpers for closed-card totals =============
+// These replace the DB functions (f_torneosa, f_torneoso, etc.) which do NOT
+// filter by statlsc, causing partial live scoring data to inflate totals.
+
+/** Sum SA (neto/stableford points) from CLOSED cards only */
+$closedSA  = "(SELECT IFNULL(SUM(t.SA), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
+
+/** Sum SO (gross strokes) from CLOSED cards only */
+$closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
+
+/** Sum totstbgross (stableford gross points) from CLOSED cards only */
+$closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
+
 // ============= Build main results query =============
 $players = [];
 
 if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
     if ($gross == '1') {
-        // GROSS results — query directly from jugadores table
-        // GROSS results — select muerte subita for priority tiebreaker
+        // GROSS results — only closed scorecards in totals
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_torneosox(j.id, j.torneoid) as so,
-                       f_torneosax(j.id, j.torneoid) as sa,
+                       $closedSO as so,
+                       $closedSA as sa,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
-        // Add per-day scores (gross uses sox)
+        // Per-day scores (already filtered via v_resultar → statlsc = 1)
         foreach ($dias as $i => $fecha) {
             $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
         }
@@ -83,7 +100,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.torneoid = $tid
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
-                 ORDER BY f_torneosox(j.id, j.torneoid) ASC";
+                 ORDER BY $closedSO ASC";
 
         // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
@@ -96,14 +113,14 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         $sql .= ", u.c1 ASC, u.c2 ASC, u.c3 ASC";
 
     } else {
-        // NETO results — select muerte subita for priority tiebreaker
+        // NETO results — only closed scorecards in totals
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_torneosax(j.id, j.torneoid) as sa,
-                       f_torneosox(j.id, j.torneoid) as so,
+                       $closedSA as sa,
+                       $closedSO as so,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
-        // Add per-day scores (neto uses sax)
+        // Per-day scores (already filtered via v_resultar → statlsc = 1)
         foreach ($dias as $i => $fecha) {
             $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
         }
@@ -117,7 +134,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
-                 ORDER BY f_torneosax(j.id, j.torneoid) ASC";
+                 ORDER BY $closedSA ASC";
 
         // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
@@ -133,14 +150,14 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 } elseif ($sistema === 'STABLEFORD') {
 
     if ($gross == '1') {
-        // Stableford GROSS — select muerte subita for priority tiebreaker
+        // Stableford GROSS — only closed scorecards in totals
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_stl_gross(j.id, j.torneoid) as sa,
-                       f_torneosox(j.id, j.torneoid) as so,
+                       $closedSTBGross as sa,
+                       $closedSO as so,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
-        // Add per-day scores (gross uses sox)
+        // Per-day scores (already filtered via v_resultar → statlsc = 1)
         foreach ($dias as $i => $fecha) {
             $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
         }
@@ -153,7 +170,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.torneoid = $tid
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
-                 ORDER BY f_stl_gross(j.id, j.torneoid) DESC";
+                 ORDER BY $closedSTBGross DESC";
 
         // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
@@ -165,14 +182,14 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         // Secondary tiebreakers
         $sql .= ", u.c1 DESC, u.c2 DESC, u.c3 DESC";
     } else {
-        // Stableford NETO — select muerte subita for priority tiebreaker
+        // Stableford NETO — only closed scorecards in totals
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
-                       f_torneosa(j.id, j.torneoid) as sa,
-                       f_torneosox(j.id, j.torneoid) as so,
+                       $closedSA as sa,
+                       $closedSO as so,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
-        // Add per-day scores (neto uses sax)
+        // Per-day scores (already filtered via v_resultar → statlsc = 1)
         foreach ($dias as $i => $fecha) {
             $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
         }
@@ -186,7 +203,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND f_torneoso(j.id, j.torneoid) > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
-                 ORDER BY f_torneosa(j.id, j.torneoid) DESC";
+                 ORDER BY $closedSA DESC";
 
         // Priority tiebreaker: muerte subita (highest wins, 0/NULL = no value)
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
