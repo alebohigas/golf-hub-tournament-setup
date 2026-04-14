@@ -38,7 +38,17 @@ export const useAllCompetenciasWithPlayers = () => {
   // Step 1: Fetch master list to know all types
   const masterQuery = useQuery<CompetenciaTipo[]>({
     queryKey: ['competencias'],
-    queryFn: () => apiFetch<CompetenciaTipo[]>(getCompetenciasUrl()),
+    queryFn: async () => {
+      const data = await apiFetch<CompetenciaTipo[]>(getCompetenciasUrl());
+      // Transform API response to map 'descripcion' (backend) to 'description' (frontend)
+      return data.map(comp => ({
+        ...comp,
+        groups: comp.groups?.map(group => ({
+          ...group,
+          description: group.description || (group as unknown as Record<string, string>)['descripcion'] || group.name,
+        })) || [],
+      }));
+    },
     staleTime: POLL_ACTIVE,
   });
 
@@ -54,10 +64,18 @@ export const useAllCompetenciasWithPlayers = () => {
     queryFn: async () => {
       // Fetch detail for each unique base type in parallel
       const results = await Promise.all(
-        uniqueBaseTypes.map(tipo =>
-          apiFetch<CompetenciaTipo[]>(getCompetenciaDetailUrl(tipo))
-            .catch(() => [] as CompetenciaTipo[])
-        )
+        uniqueBaseTypes.map(async tipo => {
+          const data = await apiFetch<CompetenciaTipo[]>(getCompetenciaDetailUrl(tipo))
+            .catch(() => [] as CompetenciaTipo[]);
+          // Transform API response to map 'descripcion' (backend) to 'description' (frontend)
+          return data.map(comp => ({
+            ...comp,
+            groups: comp.groups?.map(group => ({
+              ...group,
+              description: group.description || (group as unknown as Record<string, string>)['descripcion'] || group.name,
+            })) || [],
+          }));
+        })
       );
       // Flatten all results into a single array
       return results.flat();
