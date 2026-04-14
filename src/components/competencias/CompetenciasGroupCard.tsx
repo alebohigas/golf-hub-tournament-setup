@@ -33,9 +33,9 @@ const CompetenciasGroupCard = ({ group, onClick }: CompetenciasGroupCardProps) =
       onClick={onClick}
     >
       <CardContent className="p-5">
-        {/* Group name */}
+        {/* Group description or name */}
         <h3 className="font-bold text-foreground text-lg mb-3 group-hover:text-primary transition-colors">
-          {group.name}
+          {group.description || group.name}
         </h3>
         
         {/* Stats row */}
