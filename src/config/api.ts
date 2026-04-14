@@ -154,6 +154,20 @@ export const getResultadosTarjetaUrl = (
   })}`;
 
 /**
+ * Live Tarjeta (real-time scorecard) for a player
+ * @param jugadorId - Player ID
+ * @param tipo - Scoring type: stroke | stableford | goro_neto | goro_gross
+ */
+export const getLiveTarjetaUrl = (
+  jugadorId: string,
+  tipo: string = 'stroke'
+): string =>
+  `${API_BASE_URL}/live_tarjeta.php${buildQuery({
+    jugadorid: jugadorId,
+    tipo,
+  })}`;
+
+/**
  * Get full logo URL from logo filename
  * @param logoFilename - Logo filename from API response
  */
