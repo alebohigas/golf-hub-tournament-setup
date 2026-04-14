@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, POLL_ACTIVE } from '@/config/api';
+import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType } from '@/data/resultadosData';
 
 // ============= All Results =============
@@ -237,6 +237,79 @@ export const fetchPlayerScorecardFromApi = async (
 
   return {
     round,
+    scorecardType: scType,
+    holes,
+    totalGolpes: raw.totals?.SO ?? holes.reduce((s, h) => s + h.golpes, 0),
+    totalNeto,
+    totalPuntos,
+    out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
+    in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
+  };
+};
+
+// ============= Live Scorecard =============
+
+/**
+ * Fetch a player's live (real-time) scorecard from live_tarjeta.php
+ * Maps the flat response into the same RoundScorecard structure used by Resultados
+ * @param playerId - Player ID
+ * @param tipo - Scoring type: stroke | stableford
+ * @param scoringType - NETO or GROSS (for display purposes)
+ */
+export const fetchLiveScorecardFromApi = async (
+  playerId: string,
+  tipo: string,
+  scoringType: string = 'NETO'
+): Promise<RoundScorecard> => {
+  const scType = tipo === 'stableford' ? 'stableford' : (scoringType === 'GROSS' ? 'scratch' : 'hcp');
+
+  const url = getLiveTarjetaUrl(playerId, tipo);
+  const raw = await apiFetch<any>(url);
+
+  // Parse par and ventajas arrays from the response
+  const parArr: number[] = raw.par || [];
+  const ventajasArr: number[] = raw.ventajas || [];
+  const holesSOArr: (number | null)[] = raw.holes || [];
+  const holesSAArr: (number | null)[] = raw.holesSA || [];
+
+  const isStableford = scType === 'stableford';
+
+  // Map into HoleScore[]
+  const holes: HoleScore[] = [];
+  for (let i = 0; i < 18; i++) {
+    const par = parArr[i] ?? 0;
+    const golpes = holesSOArr[i] ?? 0;
+    const hcpStrokes = ventajasArr[i] ?? 0;
+    const scoreSA = holesSAArr[i] ?? 0;
+    const diff = golpes - par;
+
+    const neto = isStableford ? (golpes - hcpStrokes) : scoreSA;
+    const puntos = isStableford ? scoreSA : undefined;
+
+    holes.push({
+      hoyo: i + 1,
+      par,
+      hcp: 0, // live_tarjeta doesn't return ventaja ranking per hole
+      golpes,
+      neto,
+      hcpStrokes,
+      puntos,
+      resultado: diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`,
+    });
+  }
+
+  const front9 = holes.slice(0, 9);
+  const back9 = holes.slice(9, 18);
+
+  const totalNeto = isStableford
+    ? holes.reduce((s, h) => s + h.neto, 0)
+    : (raw.totals?.SA ?? holes.reduce((s, h) => s + h.neto, 0));
+  const totalPuntos = isStableford
+    ? (raw.totals?.SA ?? holes.reduce((s, h) => s + (h.puntos || 0), 0))
+    : undefined;
+
+  return {
+    round: 0, // live — no specific round number
     scorecardType: scType,
     holes,
     totalGolpes: raw.totals?.SO ?? holes.reduce((s, h) => s + h.golpes, 0),
