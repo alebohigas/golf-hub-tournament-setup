@@ -81,6 +81,10 @@ export interface ResultCategory {
   system?: string;
   /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
   days?: string[];
+  /** Number of medal winners from DB (numjugprem) */
+  medalCount?: number;
+  /** Players who did not complete (NO SHOW, RETIRO, DQ) */
+  cutPlayers?: CutPlayer[];
   scoringTypes: CategoryScoring[];
 }
 
