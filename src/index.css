@@ -242,18 +242,20 @@
   display: none;
 }
 
-/* ============= Tournament Table Scaling & Name Wrapping ============= */
+/* ============= Tournament Table Scaling & Name Wrapping (mobile only) ============= */
 
-/** Scale tournament tables to 85% for better viewport fit */
-.tournament-table {
-  zoom: 0.85;
-}
+@media (max-width: 767px) {
+  /** Scale tournament tables to 85% on mobile for better viewport fit */
+  .tournament-table {
+    zoom: 0.85;
+  }
 
-/** Player name cells: wrap text tightly with no extra line spacing */
-.player-name-cell {
-  max-width: 160px;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  line-height: 1.15;
-  white-space: normal;
+  /** Player name cells: wrap text tightly with no extra line spacing */
+  .player-name-cell {
+    max-width: 160px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.15;
+    white-space: normal;
+  }
 }
