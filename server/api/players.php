@@ -37,15 +37,20 @@ if (!$result) {
 }
 
 $players = [];
+$fechaHandicap = '';  // Same for all players in category
 while ($row = $result->fetch_assoc()) {
-$players[] = [
+    // Capture fechahandicap from first row (same for all players in category)
+    if (empty($fechaHandicap) && !empty($row['fechahandicap']) && $row['fechahandicap'] !== '0000-00-00') {
+        $fechaHandicap = $row['fechahandicap'];
+    }
+    $players[] = [
         'id'         => $row['id'],
         'numjugador' => $row['numjugador'] ?? '',
         'jugador'    => $row['jugador'],
         'logo'       => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
-        'hi'         => $row['hi'] ?? '0',        // indexjgo (Handicap Índice)
-        'hj'         => $row['hj'] ?? '0',        // f_hdccampo() (Handicap Juego)
-        'hn'         => $row['hn'] ?? '0',        // f_hdccamponeto() (Handicap Neto)
+        'hi'         => $row['hi'] ?? '0',
+        'hj'         => $row['hj'] ?? '0',
+        'hn'         => $row['hn'] ?? '0',
         'club'       => $row['club'] ?? '',
         'sexo'       => $row['sexo'] ?? '',
         'estatus'    => $row['estatus'] ?? 'NORMAL'
@@ -53,4 +58,4 @@ $players[] = [
 }
 $result->free();
 
-json_response(['players' => $players]);
+json_response(['players' => $players, 'fechaHandicap' => $fechaHandicap]);

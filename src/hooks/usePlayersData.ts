@@ -18,10 +18,11 @@ interface PlayersApiResponse {
     numjugador: string;
     jugador: string;
     logo: string;
-    hi: string;     // hcpindex from DB
-    hj: string;     // indexjgo from DB  
-    hn: string;     // handicap neto (calculated)
+    hi: string;
+    hj: string;
+    hn: string;
   }[];
+  fechaHandicap: string;  // Handicap date for the category (empty or YYYY-MM-DD)
 }
 
 // ============= Categories =============
