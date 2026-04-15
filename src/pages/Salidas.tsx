@@ -142,6 +142,34 @@ const Salidas = () => {
     error: detailError,
   } = useSalidasDetail(selectedCaljgoid, selectedFormato);
 
+  /** Currently selected day object */
+  const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
+
+  /** Fetch group counts for all categories of the selected day (for card badges) */
+  const categoryGroupQueries = useQueries({
+    queries: selectedDay && !selectedCaljgoid
+      ? selectedDay.categories.map((cat) => ({
+          queryKey: ['salidas-group-count', String(cat.caljgoid), cat.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual'],
+          queryFn: async () => {
+            const fmt = cat.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
+            const data = await apiFetch<any>(getSalidasDayUrl(String(cat.caljgoid), fmt));
+            const groups = Array.isArray(data?.groups) ? data.groups : [];
+            return { caljgoid: String(cat.caljgoid), groupCount: groups.length };
+          },
+          staleTime: POLL_ACTIVE,
+        }))
+      : [],
+  });
+
+  /** Map caljgoid → group count for quick lookup */
+  const groupCountMap = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    for (const q of categoryGroupQueries) {
+      if (q.data) map[q.data.caljgoid] = q.data.groupCount;
+    }
+    return map;
+  }, [categoryGroupQueries]);
+
   /** Handle day card click - if only one category, go directly to detail */
   const handleDayClick = (dayIdx: number) => {
     const day = days[dayIdx];
@@ -184,9 +212,6 @@ const Salidas = () => {
     setSearchQuery('');
     setSearchActive(false);
   };
-
-  /** Currently selected day object */
-  const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
 
   return (
     <Layout>
@@ -394,7 +419,15 @@ const Salidas = () => {
                     <CardContent className="p-5 text-center">
                       <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
                       <h3 className="font-bold text-foreground text-lg mb-1">{cat.shortName || cat.categoryName}</h3>
-                      <p className="text-xs text-muted-foreground">{cat.tee}</p>
+                      <p className="text-xs text-muted-foreground mb-2">{cat.tee}</p>
+                      {/* Group count badge */}
+                      {groupCountMap[String(cat.caljgoid)] !== undefined ? (
+                        <p className="text-sm text-muted-foreground">
+                          <span className="text-lg font-bold text-primary">{groupCountMap[String(cat.caljgoid)]}</span> grupo{groupCountMap[String(cat.caljgoid)] !== 1 ? 's' : ''}
+                        </p>
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mx-auto" />
+                      )}
                     </CardContent>
                   </Card>
                 ))}
