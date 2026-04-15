@@ -311,7 +311,7 @@ const Resultados = () => {
                 <Card className="border-border/50 bg-white max-w-5xl mx-auto">
                   <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto bg-white">
-                      <Table className="bg-white">
+                      <Table className="bg-white tournament-table">
                         <TableHeader>
                           <TableRow className="bg-primary hover:bg-primary">
                             <TableHead className="text-primary-foreground font-bold w-16">Pos</TableHead>
@@ -354,7 +354,7 @@ const Resultados = () => {
                                       <span className="text-xs text-muted-foreground">{player.club}</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="font-medium">{player.name}</TableCell>
+                                  <TableCell className="font-medium player-name-cell">{player.name}</TableCell>
                                   {/* Dynamic round score cells */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
@@ -449,7 +449,7 @@ const Resultados = () => {
                                     )}
                                   </TableCell>
                                   {/* Player name + status label */}
-                                  <TableCell className="font-medium text-muted-foreground">
+                                  <TableCell className="font-medium text-muted-foreground player-name-cell">
                                     {cp.name}
                                     <span className="ml-2 text-xs text-muted-foreground/70">({cp.statusLabel})</span>
                                   </TableCell>

@@ -381,7 +381,7 @@ const Live = () => {
                 <Card className="border-border/50 max-w-5xl mx-auto overflow-hidden">
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                      <Table>
+                      <Table className="tournament-table">
                         <TableHeader>
                           <TableRow className="bg-primary hover:bg-primary">
                             <TableHead className="text-primary-foreground font-bold w-[50px] text-center">Pos</TableHead>
@@ -416,7 +416,7 @@ const Live = () => {
                                 </TableCell>
 
                                 {/* Player name */}
-                                <TableCell className="font-medium">
+                                <TableCell className="font-medium player-name-cell">
                                   {player.name}
                                 </TableCell>
 

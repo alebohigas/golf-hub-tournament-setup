@@ -134,7 +134,7 @@ const Jugadores = () => {
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : (
-                    <Table className="bg-white">
+                    <Table className="bg-white tournament-table">
                       <TableHeader>
                         <TableRow className="bg-primary hover:bg-primary">
                           <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
@@ -203,7 +203,7 @@ const Jugadores = () => {
                                    }}
                                  />
                                </TableCell>
-                               <TableCell>{player.name}</TableCell>
+                               <TableCell className="player-name-cell">{player.name}</TableCell>
                               <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
                               <TableCell className="text-right">{player.handicapJuego}</TableCell>
                               <TableCell className="text-right">{player.handicapNeto}</TableCell>

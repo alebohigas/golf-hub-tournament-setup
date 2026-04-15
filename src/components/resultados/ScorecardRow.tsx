@@ -193,6 +193,7 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
         <div className="p-4 border-t border-b border-primary/20">
           {/* Header */}
           <div className="flex items-center justify-between mb-3">
+            {/* Left section: player name, round, type */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-foreground">{playerName}</span>
               <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
@@ -202,16 +203,20 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
                 {scorecardTypeLabels[type]}
               </span>
-              {/* Date badge - formatted from YYYY-MM-DD */}
+            </div>
+
+            {/* Right section: date (aligned right) and close button */}
+            <div className="flex items-center gap-3">
+              {/* Date badge - aligned to the right */}
               {scorecard.date && scorecard.date !== '0' && (
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground text-xs text-right">
                   Fecha: {scorecard.date}
                 </span>
               )}
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X className="h-4 w-4" />
-            </button>
           </div>
 
           {/* Scorecard grid */}
