@@ -23,10 +23,12 @@ const Jugadores = () => {
   const { data: categories = [], isLoading: loadingCats } = useCategories();
 
   // Fetch players only when a category is selected
-  const { data: players = [], isLoading: loadingPlayers } = usePlayers(
+  const { data: playersData, isLoading: loadingPlayers } = usePlayers(
     selectedCategory?.id ?? null,
     !!selectedCategory
   );
+  const players = playersData?.players ?? [];
+  const fechaHandicap = playersData?.fechaHandicap ?? '';
 
   /** Total players across all categories */
   const totalPlayers = categories.reduce((sum, cat) => sum + cat.playerCount, 0);
