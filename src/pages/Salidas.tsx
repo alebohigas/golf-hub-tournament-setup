@@ -142,6 +142,9 @@ const Salidas = () => {
     error: detailError,
   } = useSalidasDetail(selectedCaljgoid, selectedFormato);
 
+  /** Currently selected day object */
+  const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
+
   /** Fetch group counts for all categories of the selected day (for card badges) */
   const categoryGroupQueries = useQueries({
     queries: selectedDay && !selectedCaljgoid
