@@ -60,7 +60,7 @@ const getCellValue = (player: CompetenciaPlayer, key: string): unknown => {
 const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
   return (
     <div className="overflow-x-auto bg-white rounded-lg">
-      <Table>
+      <Table className="tournament-table">
         {/* Table Header */}
         <TableHeader>
           <TableRow className="bg-primary hover:bg-primary">
@@ -92,6 +92,7 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
                     key={col.key}
                     className={`${
                       col.key === 'clubLogo' ? 'p-1 text-center align-middle' :
+                      col.key === 'name' ? 'player-name-cell' :
                       col.align === 'center' ? 'text-center' : 
                       col.align === 'right' ? 'text-right' : 'text-left'
                     }`}

@@ -241,3 +241,19 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ============= Tournament Table Scaling & Name Wrapping ============= */
+
+/** Scale tournament tables to 85% for better viewport fit */
+.tournament-table {
+  zoom: 0.85;
+}
+
+/** Player name cells: wrap text tightly with no extra line spacing */
+.player-name-cell {
+  max-width: 160px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.15;
+  white-space: normal;
+}

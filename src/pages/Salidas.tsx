@@ -265,7 +265,7 @@ const Salidas = () => {
                             </div>
                             {/* Group table */}
                             <div className="overflow-x-auto bg-white">
-                              <Table className="bg-white">
+                              <Table className="bg-white tournament-table">
                                 <TableHeader>
                                   <TableRow className="bg-primary hover:bg-primary">
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
@@ -306,7 +306,7 @@ const Salidas = () => {
                                           <span className="text-xs text-muted-foreground">—</span>
                                         )}
                                       </TableCell>
-                                      <TableCell className={`font-medium ${pIdx === result.matchedPlayerIdx ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                      <TableCell className={`font-medium player-name-cell ${pIdx === result.matchedPlayerIdx ? 'text-primary font-bold' : 'text-foreground'}`}>
                                         {player.name}
                                       </TableCell>
                                       <TableCell className="text-center font-bold text-primary">
@@ -436,7 +436,7 @@ const Salidas = () => {
                     <Card className="border-border/50 bg-white max-w-5xl mx-auto">
                       <CardContent className="p-0 bg-white">
                         <div className="overflow-x-auto bg-white">
-                          <Table className="bg-white">
+                          <Table className="bg-white tournament-table">
                             <TableHeader>
                               <TableRow className="bg-primary hover:bg-primary">
                                 <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
@@ -488,7 +488,7 @@ const Salidas = () => {
                                         <span className="text-xs text-muted-foreground">—</span>
                                       )}
                                     </TableCell>
-                                    <TableCell className="font-medium text-foreground">
+                                    <TableCell className="font-medium text-foreground player-name-cell">
                                       {player.name}
                                     </TableCell>
                                     <TableCell className="text-center font-bold text-primary">
