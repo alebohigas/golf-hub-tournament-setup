@@ -1,7 +1,7 @@
 /**
  * Salidas Page
  * Displays tee times organized by day → category → groups
- * Uses table format consistent with other pages (Resultados, etc.)
+ * Includes player search across all days/categories
  * Data fetched from salidas.php and salidas_det.php via React Query hooks
  */
 
@@ -9,14 +9,37 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Calendar, Loader2, Users } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Calendar, Loader2, Search, Users, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { useSalidasMaster, useSalidasDetail } from '@/hooks/useSalidasData';
-import type { SalidasDay, SalidasCategory } from '@/hooks/useSalidasData';
-import { LOGOS_BASE_URL } from '@/config/api';
+import type { SalidasDay, SalidasCategory, SalidasDetailResponse, SalidasGroup } from '@/hooks/useSalidasData';
+import { apiFetch } from '@/lib/apiClient';
+import { getSalidasDayUrl, POLL_ACTIVE } from '@/config/api';
 import { ApiError } from '@/lib/apiClient';
 import salidasHero from '@/assets/salidas-hero.jpg';
+
+// ============= Search Result Type =============
+
+/** Represents a player search match with full group context */
+interface SearchResult {
+  /** Day display label */
+  dayLabel: string;
+  /** Course name */
+  course: string;
+  /** Category name */
+  categoryName: string;
+  /** Scoring system (e.g. Medal Play, Stableford) */
+  system: string;
+  /** Tee assignment */
+  tee: string;
+  /** The full group containing the matched player */
+  group: SalidasGroup;
+  /** Index of matched player within the group */
+  matchedPlayerIdx: number;
+}
 
 // ============= Component =============
 
@@ -27,10 +50,86 @@ const Salidas = () => {
   const [selectedCaljgoid, setSelectedCaljgoid] = useState<string | null>(null);
   /** Selected category metadata for header display */
   const [selectedCatMeta, setSelectedCatMeta] = useState<SalidasCategory | null>(null);
+  /** Player search query */
+  const [searchQuery, setSearchQuery] = useState('');
+  /** Whether search mode is active */
+  const [searchActive, setSearchActive] = useState(false);
 
   // Fetch master data: days + categories
   const { data: master, isLoading: loadingMaster } = useSalidasMaster();
   const days = master?.days ?? [];
+
+  /** Collect all caljgoids across all days for search queries */
+  const allCategories = useMemo(() => {
+    return days.flatMap((day) =>
+      day.categories.map((cat) => ({
+        caljgoid: String(cat.caljgoid),
+        formato: cat.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual',
+        dayLabel: day.dateFormatted,
+        course: day.course,
+      }))
+    );
+  }, [days]);
+
+  /** Fetch all category details in parallel for search (only when search is active) */
+  const searchQueries = useQueries({
+    queries: searchActive && searchQuery.trim().length >= 2
+      ? allCategories.map((cat) => ({
+          queryKey: ['salidas-detail', cat.caljgoid, cat.formato],
+          queryFn: async () => {
+            const data = await apiFetch<any>(getSalidasDayUrl(cat.caljgoid, cat.formato));
+            return {
+              ...cat,
+              detail: {
+                caljgoid: data?.caljgoid ?? cat.caljgoid,
+                date: data?.date ?? '',
+                course: data?.course ?? cat.course,
+                categoryId: data?.categoryId ?? '',
+                categoryName: data?.categoryName ?? '',
+                shortName: data?.shortName ?? '',
+                system: data?.system ?? '',
+                tee: data?.tee ?? '',
+                groups: Array.isArray(data?.groups) ? data.groups : [],
+              } as SalidasDetailResponse,
+            };
+          },
+          staleTime: POLL_ACTIVE,
+          enabled: searchActive && searchQuery.trim().length >= 2,
+        }))
+      : [],
+  });
+
+  /** Filter search results based on query */
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+
+    const results: SearchResult[] = [];
+    for (const query of searchQueries) {
+      if (!query.data?.detail) continue;
+      const { dayLabel, course, detail } = query.data;
+      for (const group of detail.groups) {
+        const matchIdx = group.players.findIndex((p) =>
+          p.name.toLowerCase().includes(q)
+        );
+        if (matchIdx !== -1) {
+          results.push({
+            dayLabel,
+            course,
+            categoryName: detail.categoryName,
+            system: detail.system,
+            tee: detail.tee,
+            group,
+            matchedPlayerIdx: matchIdx,
+          });
+        }
+      }
+    }
+    return results;
+  }, [searchQuery, searchQueries]);
+
+  /** Whether search data is still loading */
+  const searchLoading = searchActive && searchQuery.trim().length >= 2 && searchQueries.some((q) => q.isLoading);
 
   /** Normalize selected format to endpoint-compatible values */
   const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
@@ -47,7 +146,6 @@ const Salidas = () => {
   const handleDayClick = (dayIdx: number) => {
     const day = days[dayIdx];
     if (day.categories.length === 1) {
-      // Skip category selection, go directly to groups
       setSelectedDayIdx(dayIdx);
       setSelectedCaljgoid(String(day.categories[0].caljgoid));
       setSelectedCatMeta(day.categories[0]);
@@ -67,28 +165,28 @@ const Salidas = () => {
   /** Handle back navigation */
   const handleBack = () => {
     if (selectedCaljgoid) {
-      // If day has multiple categories, go back to category selection
       const day = selectedDayIdx !== null ? days[selectedDayIdx] : null;
       if (day && day.categories.length > 1) {
         setSelectedCaljgoid(null);
         setSelectedCatMeta(null);
       } else {
-        // Single category day - go back to days
         setSelectedDayIdx(null);
         setSelectedCaljgoid(null);
         setSelectedCatMeta(null);
       }
     } else {
-      // Back to days
       setSelectedDayIdx(null);
     }
   };
 
+  /** Clear search and return to normal view */
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchActive(false);
+  };
+
   /** Currently selected day object */
   const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
-
-  /** Total groups across all days for header */
-  const totalCategories = days.reduce((sum, d) => sum + d.categories.length, 0);
 
   return (
     <Layout>
@@ -109,37 +207,166 @@ const Salidas = () => {
                 </h2>
               </div>
 
-              {loadingMaster ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {/* ============= Player Search Bar ============= */}
+              {!loadingMaster && days.length > 0 && (
+                <div className="max-w-md mx-auto mb-8">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Buscar jugador por nombre..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (e.target.value.trim().length >= 2) {
+                          setSearchActive(true);
+                        }
+                      }}
+                      className="pl-10 pr-10"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ) : days.length === 0 ? (
-                <div className="text-center py-16">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground text-lg">No hay salidas disponibles</p>
+              )}
+
+              {/* ============= Search Results ============= */}
+              {searchActive && searchQuery.trim().length >= 2 ? (
+                <div className="max-w-5xl mx-auto">
+                  {searchLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                      <p className="text-muted-foreground">No se encontró ningún jugador con "{searchQuery}"</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-sm text-muted-foreground text-center mb-4">
+                        {searchResults.length} grupo{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                      </p>
+                      {searchResults.map((result, rIdx) => (
+                        <Card key={rIdx} className="border-border/50 bg-white">
+                          <CardContent className="p-0 bg-white">
+                            {/* Result context header */}
+                            <div className="bg-muted/50 px-4 py-2 border-b border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                              <span className="font-semibold text-foreground capitalize">{result.dayLabel}</span>
+                              <span className="text-muted-foreground">{result.course}</span>
+                              <span className="text-primary font-medium">{result.categoryName}</span>
+                              <span className="text-muted-foreground">{result.system} · Tee: {result.tee}</span>
+                            </div>
+                            {/* Group table */}
+                            <div className="overflow-x-auto bg-white">
+                              <Table className="bg-white">
+                                <TableHeader>
+                                  <TableRow className="bg-primary hover:bg-primary">
+                                    <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center w-20">Hora</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {result.group.players.map((player, pIdx) => (
+                                    <TableRow
+                                      key={pIdx}
+                                      className={`bg-white hover:bg-white ${
+                                        pIdx === result.matchedPlayerIdx ? 'bg-primary/5 hover:bg-primary/5' : ''
+                                      }`}
+                                    >
+                                      {pIdx === 0 ? (
+                                        <>
+                                          <TableCell className="text-center font-bold text-foreground" rowSpan={result.group.players.length}>
+                                            {result.group.tee}
+                                          </TableCell>
+                                          <TableCell className="text-center font-medium text-foreground" rowSpan={result.group.players.length}>
+                                            {result.group.time}
+                                          </TableCell>
+                                        </>
+                                      ) : null}
+                                      <TableCell className="p-1 text-center align-middle">
+                                        {player.clubLogo ? (
+                                          <img
+                                            src={player.clubLogo}
+                                            alt="Club"
+                                            className="w-auto object-contain rounded inline-block"
+                                            style={{ height: '2.25rem' }}
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                          />
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">—</span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className={`font-medium ${pIdx === result.matchedPlayerIdx ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                        {player.name}
+                                      </TableCell>
+                                      <TableCell className="text-center font-bold text-primary">
+                                        {player.score || '—'}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                                {/* Footer with category name */}
+                                <tfoot>
+                                  <tr className="bg-primary">
+                                    <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
+                                      {result.categoryName}
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              </Table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                  {days.map((day, idx) => (
-                    <Card
-                      key={idx}
-                      className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
-                      onClick={() => handleDayClick(idx)}
-                    >
-                      <CardContent className="p-6 text-center">
-                        <Calendar className="h-8 w-8 mx-auto mb-3 text-primary" />
-                        <h3 className="font-bold text-foreground text-lg mb-1 capitalize">{day.dateFormatted}</h3>
-                        <p className="text-muted-foreground text-sm mb-3">{day.course}</p>
-                        <div className="flex justify-center gap-4 text-sm">
-                          <div>
-                            <span className="text-2xl font-bold text-primary">{day.categories.length}</span>
-                            <p className="text-muted-foreground">Categorías</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                /* ============= Day Cards Grid ============= */
+                <>
+                  {loadingMaster ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : days.length === 0 ? (
+                    <div className="text-center py-16">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                      <p className="text-muted-foreground text-lg">No hay salidas disponibles</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                      {days.map((day, idx) => (
+                        <Card
+                          key={idx}
+                          className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
+                          onClick={() => handleDayClick(idx)}
+                        >
+                          <CardContent className="p-6 text-center">
+                            <Calendar className="h-8 w-8 mx-auto mb-3 text-primary" />
+                            <h3 className="font-bold text-foreground text-lg mb-1 capitalize">{day.dateFormatted}</h3>
+                            <p className="text-muted-foreground text-sm mb-3">{day.course}</p>
+                            <div className="flex justify-center gap-4 text-sm">
+                              <div>
+                                <span className="text-2xl font-bold text-primary">{day.categories.length}</span>
+                                <p className="text-muted-foreground">Categorías</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </>
 
@@ -230,7 +457,6 @@ const Salidas = () => {
                                         : ''
                                     }`}
                                   >
-                                    {/* Show hole and time only on first player of each group */}
                                     {pIdx === 0 ? (
                                       <>
                                         <TableCell
@@ -247,7 +473,6 @@ const Salidas = () => {
                                         </TableCell>
                                       </>
                                     ) : null}
-                                    {/* Club logo */}
                                     <TableCell className="p-1 text-center align-middle">
                                       {player.clubLogo ? (
                                         <img
@@ -263,11 +488,9 @@ const Salidas = () => {
                                         <span className="text-xs text-muted-foreground">—</span>
                                       )}
                                     </TableCell>
-                                    {/* Player name */}
                                     <TableCell className="font-medium text-foreground">
                                       {player.name}
                                     </TableCell>
-                                    {/* Score */}
                                     <TableCell className="text-center font-bold text-primary">
                                       {player.score || '—'}
                                     </TableCell>
