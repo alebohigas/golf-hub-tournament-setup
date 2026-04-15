@@ -257,6 +257,7 @@ export const fetchPlayerScorecardFromApi = async (
     totalPuntos,
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
+    date: raw.date || '',
   };
 };
 
@@ -322,7 +323,7 @@ export const fetchLiveScorecardFromApi = async (
     : undefined;
 
   return {
-    round: 0, // live — no specific round number
+    round: 0,
     scorecardType: scType,
     holes,
     totalGolpes: raw.totals?.SO ?? holes.reduce((s, h) => s + h.golpes, 0),
@@ -330,5 +331,6 @@ export const fetchLiveScorecardFromApi = async (
     totalPuntos,
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
+    date: raw.date || '',
   };
 };

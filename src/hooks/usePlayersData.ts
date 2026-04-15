@@ -18,10 +18,11 @@ interface PlayersApiResponse {
     numjugador: string;
     jugador: string;
     logo: string;
-    hi: string;     // hcpindex from DB
-    hj: string;     // indexjgo from DB  
-    hn: string;     // handicap neto (calculated)
+    hi: string;
+    hj: string;
+    hn: string;
   }[];
+  fechaHandicap: string;  // Handicap date for the category (empty or YYYY-MM-DD)
 }
 
 // ============= Categories =============
@@ -44,22 +45,24 @@ export const useCategories = () => {
  * @param enabled - Whether to enable the query
  */
 export const usePlayers = (catId: string | null, enabled = true) => {
-  return useQuery<Player[]>({
+  return useQuery<{ players: Player[]; fechaHandicap: string }>({
     queryKey: ['players', catId],
     queryFn: async () => {
-      if (!catId) return [];
+      if (!catId) return { players: [], fechaHandicap: '' };
       const data = await apiFetch<PlayersApiResponse>(getPlayersApiUrl(catId));
 
       // Transform API response to Player format and sort alphabetically by first name
-      return (data.players || []).map(p => ({
+      const players = (data.players || []).map(p => ({
         id: p.id,
-        clubLogo: p.logo,       // Already full URL from server (proxied via logo.php)
+        clubLogo: p.logo,
         name: p.jugador,
         handicapIndex: parseFloat(p.hi) || 0,
-        handicapJuego: parseFloat(p.hj) || 0,  // Fixed: was p.hc, now p.hj
-        handicapNeto: parseFloat(p.hn) || 0,   // Now correctly mapped
+        handicapJuego: parseFloat(p.hj) || 0,
+        handicapNeto: parseFloat(p.hn) || 0,
         categoryId: catId,
       })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+      return { players, fechaHandicap: data.fechaHandicap || '' };
     },
     enabled: enabled && !!catId,
     staleTime: POLL_SLOW,

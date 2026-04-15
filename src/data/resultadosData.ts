@@ -35,6 +35,8 @@ export interface RoundScorecard {
   totalPuntos?: number;
   out: number;
   in: number;
+  /** Date of the round (YYYY-MM-DD) */
+  date?: string;
 }
 
 export interface PlayerResult {

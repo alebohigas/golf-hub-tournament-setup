@@ -9,7 +9,8 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Users, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowLeft, Users, Loader2, HelpCircle } from 'lucide-react';
 import jugadoresHero from '@/assets/jugadores-hero.jpg';
 import { useState } from 'react';
 import { useCategories, usePlayers } from '@/hooks/usePlayersData';
@@ -23,10 +24,12 @@ const Jugadores = () => {
   const { data: categories = [], isLoading: loadingCats } = useCategories();
 
   // Fetch players only when a category is selected
-  const { data: players = [], isLoading: loadingPlayers } = usePlayers(
+  const { data: playersData, isLoading: loadingPlayers } = usePlayers(
     selectedCategory?.id ?? null,
     !!selectedCategory
   );
+  const players = playersData?.players ?? [];
+  const fechaHandicap = playersData?.fechaHandicap ?? '';
 
   /** Total players across all categories */
   const totalPlayers = categories.reduce((sum, cat) => sum + cat.playerCount, 0);
@@ -107,6 +110,16 @@ const Jugadores = () => {
                   <p><span className="font-bold text-foreground">Sistema:</span> {selectedCategory.system}</p>
                   <p><span className="font-bold text-foreground">Rango Handicaps:</span> {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
                   <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentage}%</p>
+                  {/* Día Handicap: show only if fechahandicap has a valid date */}
+                  {fechaHandicap && (() => {
+                    const [y, m, d] = fechaHandicap.split('-').map(Number);
+                    const date = new Date(y, m - 1, d);
+                    return (
+                      <p><span className="font-bold text-foreground">Día Handicap:</span>{' '}
+                        {date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    );
+                  })()}
                   <p><span className="font-bold text-foreground">Total jugadores:</span>{' '}
                     <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
                   </p>
@@ -123,14 +136,57 @@ const Jugadores = () => {
                   ) : (
                     <Table className="bg-white">
                       <TableHeader>
-                         <TableRow className="bg-primary hover:bg-primary">
-                           <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
-                           <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                           <TableHead className="text-primary-foreground font-bold text-right">HI</TableHead>
-                           <TableHead className="text-primary-foreground font-bold text-right">HJ</TableHead>
-                           <TableHead className="text-primary-foreground font-bold text-right">HN</TableHead>
-                         </TableRow>
-                       </TableHeader>
+                        <TableRow className="bg-primary hover:bg-primary">
+                          <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
+                          <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                          {/* HI, HJ, HN headers with help tooltips */}
+                          <TableHead className="text-primary-foreground font-bold text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex items-center gap-1 cursor-help">
+                                    HI <HelpCircle className="h-3.5 w-3.5 opacity-70" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                                  <p className="font-bold">Handicap Índice</p>
+                                  <p>Medida portátil de la habilidad del jugador, calculada a partir de sus mejores 8 de las últimas 20 rondas.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex items-center gap-1 cursor-help">
+                                    HJ <HelpCircle className="h-3.5 w-3.5 opacity-70" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                                  <p className="font-bold">Handicap de Juego</p>
+                                  <p>Golpes que el jugador recibe en un campo específico, ajustado por el rating y slope del tee de salida.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex items-center gap-1 cursor-help">
+                                    HN <HelpCircle className="h-3.5 w-3.5 opacity-70" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                                  <p className="font-bold">Handicap Neto</p>
+                                  <p>Handicap de juego ajustado por el porcentaje de la categoría, usado para calcular el score neto del torneo.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
                        <TableBody>
                          {players.length > 0 ? (
                            players.map((player) => (

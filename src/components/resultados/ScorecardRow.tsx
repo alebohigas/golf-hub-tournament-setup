@@ -202,6 +202,12 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
                 {scorecardTypeLabels[type]}
               </span>
+              {/* Date badge - formatted from YYYY-MM-DD */}
+              {scorecard.date && scorecard.date !== '0' && (
+                <span className="text-muted-foreground text-xs">
+                  Fecha: {scorecard.date}
+                </span>
+              )}
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
               <X className="h-4 w-4" />
