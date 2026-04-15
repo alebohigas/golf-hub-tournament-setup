@@ -213,9 +213,6 @@ const Salidas = () => {
     setSearchActive(false);
   };
 
-  /** Currently selected day object */
-  const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
-
   return (
     <Layout>
       <PageHero
