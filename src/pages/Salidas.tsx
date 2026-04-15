@@ -419,7 +419,15 @@ const Salidas = () => {
                     <CardContent className="p-5 text-center">
                       <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
                       <h3 className="font-bold text-foreground text-lg mb-1">{cat.shortName || cat.categoryName}</h3>
-                      <p className="text-xs text-muted-foreground">{cat.tee}</p>
+                      <p className="text-xs text-muted-foreground mb-2">{cat.tee}</p>
+                      {/* Group count badge */}
+                      {groupCountMap[String(cat.caljgoid)] !== undefined ? (
+                        <p className="text-sm text-muted-foreground">
+                          <span className="text-lg font-bold text-primary">{groupCountMap[String(cat.caljgoid)]}</span> grupo{groupCountMap[String(cat.caljgoid)] !== 1 ? 's' : ''}
+                        </p>
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mx-auto" />
+                      )}
                     </CardContent>
                   </Card>
                 ))}
