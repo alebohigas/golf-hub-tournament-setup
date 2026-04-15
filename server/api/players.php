@@ -18,7 +18,7 @@ $sql = "SELECT p.id, p.numjugador,
                c.logo, p.indexjgo as hi,
                f_hdccampo(p.indexjgo, p.teesalidaid, cat.campoid) as hj,
                f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, cat.porcentaje) as hn,
-               p.club, p.sexo, p.estatus, p.equipo
+               p.club, p.sexo, p.estatus, p.equipo, p.fechahandicap
         FROM jugadores p
         LEFT JOIN clubs c ON (p.clubid = c.id)
         LEFT JOIN (
