@@ -109,6 +109,16 @@ const Jugadores = () => {
                   <p><span className="font-bold text-foreground">Sistema:</span> {selectedCategory.system}</p>
                   <p><span className="font-bold text-foreground">Rango Handicaps:</span> {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
                   <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentage}%</p>
+                  {/* Día Handicap: show only if fechahandicap has a valid date */}
+                  {fechaHandicap && (() => {
+                    const [y, m, d] = fechaHandicap.split('-').map(Number);
+                    const date = new Date(y, m - 1, d);
+                    return (
+                      <p><span className="font-bold text-foreground">Día Handicap:</span>{' '}
+                        {date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    );
+                  })()}
                   <p><span className="font-bold text-foreground">Total jugadores:</span>{' '}
                     <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
                   </p>
