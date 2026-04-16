@@ -246,12 +246,11 @@
 
 @media (max-width: 767px) {
   /** Player name cells: wrap only at word boundaries, compact line height */
+  /** Player name: allow natural word-wrap, no max-width constraint */
   .player-name-cell {
-    max-width: 120px;
     word-break: normal;
     overflow-wrap: normal;
     white-space: normal;
-    line-height: 1.2;
   }
 
   /** Numeric score columns: reduce horizontal padding on mobile */
