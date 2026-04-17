@@ -100,9 +100,9 @@ const Salidas = () => {
       : [],
   });
 
-  /** Filter search results based on query */
+  /** Filter search results based on query (whitespace/accent tolerant) */
   const searchResults = useMemo<SearchResult[]>(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizeSearchText(searchQuery);
     if (q.length < 2) return [];
 
     const results: SearchResult[] = [];
@@ -111,7 +111,7 @@ const Salidas = () => {
       const { dayLabel, course, detail } = query.data;
       for (const group of detail.groups) {
         const matchIdx = group.players.findIndex((p) =>
-          p.name.toLowerCase().includes(q)
+          normalizeSearchText(p.name).includes(q)
         );
         if (matchIdx !== -1) {
           results.push({
@@ -129,8 +129,26 @@ const Salidas = () => {
     return results;
   }, [searchQuery, searchQueries]);
 
+  /**
+   * Build unique player-name suggestions from already-loaded data.
+   * Salidas fetches detail only when search is active, so suggestions populate
+   * progressively as queries resolve.
+   */
+  const playerSuggestions = useMemo(() => {
+    const allNames: string[] = [];
+    for (const query of searchQueries) {
+      if (!query.data?.detail) continue;
+      for (const group of query.data.detail.groups) {
+        for (const p of group.players) {
+          if (p?.name) allNames.push(p.name);
+        }
+      }
+    }
+    return buildUniqueNameSuggestions(allNames);
+  }, [searchQueries]);
+
   /** Whether search data is still loading */
-  const searchLoading = searchActive && searchQuery.trim().length >= 2 && searchQueries.some((q) => q.isLoading);
+  const searchLoading = searchActive && normalizeSearchText(searchQuery).length >= 2 && searchQueries.some((q) => q.isLoading);
 
   /** Normalize selected format to endpoint-compatible values */
   const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
