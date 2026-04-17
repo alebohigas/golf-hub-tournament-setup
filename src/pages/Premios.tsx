@@ -8,12 +8,13 @@
 import { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Trophy, Award, Medal, Star, Search, X, Target, Flag, Zap, Crosshair, Ruler, Loader2 } from 'lucide-react';
+import { Trophy, Award, Medal, Star, Target, Flag, Zap, Crosshair, Ruler, Loader2 } from 'lucide-react';
 import {
   useAllCompetenciasWithPlayers,
   searchPlayerAcrossCompetencias,
+  collectUniquePlayerNames,
   type PlayerCompetitionResult,
 } from '@/hooks/useAllCompetenciasData';
 
@@ -207,6 +208,12 @@ const Premios = () => {
   /** Fetch all competitions with player data */
   const { competencias, isLoading } = useAllCompetenciasWithPlayers();
 
+  /** Unique player names for autocomplete suggestions */
+  const playerSuggestions = useMemo(
+    () => collectUniquePlayerNames(competencias),
+    [competencias]
+  );
+
   /** Search results grouped by competition ID */
   const groupedResults = useMemo(() => {
     const results = searchPlayerAcrossCompetencias(competencias, searchQuery);
@@ -227,9 +234,6 @@ const Premios = () => {
   /** Whether search is active */
   const isSearchActive = searchQuery.trim().length > 0;
 
-  /** Clear search handler */
-  const handleClearSearch = () => setSearchQuery('');
-
   return (
     <Layout>
       <PageHero
@@ -240,28 +244,13 @@ const Premios = () => {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
 
-          {/* Player Search Bar */}
-          <div className="max-w-md mx-auto mb-10">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar jugador por nombre..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              {searchQuery && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Player Search Bar with autocomplete */}
+          <PlayerSearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            suggestions={playerSuggestions}
+            className="max-w-md mx-auto mb-10"
+          />
 
           {/* Loading state */}
           {isLoading && isSearchActive && (
