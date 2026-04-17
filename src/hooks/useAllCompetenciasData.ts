@@ -94,27 +94,30 @@ export const useAllCompetenciasWithPlayers = () => {
 
 // ============= Search Helper =============
 
-/** Normalize text for accent-insensitive search */
-const normalizeText = (text: string): string =>
-  text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
 
 /**
- * Search for a player across all competitions and groups
+ * Search for a player across all competitions and groups.
+ * Uses normalizeSearchText to be tolerant of:
+ *  - Leading/trailing whitespace in DB records
+ *  - Double/triple spaces between names
+ *  - Accents (Núñez ↔ Nunez)
+ *  - Mixed casing
  * Returns grouped results by competition type
  */
 export const searchPlayerAcrossCompetencias = (
   competencias: CompetenciaTipo[],
   query: string
 ): PlayerCompetitionResult[] => {
-  if (!query.trim()) return [];
-  
-  const normalizedQuery = normalizeText(query);
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return [];
+
   const results: PlayerCompetitionResult[] = [];
 
   for (const comp of competencias) {
     for (const group of comp.groups || []) {
       for (const player of group.players || []) {
-        if (normalizeText(player.name).includes(normalizedQuery)) {
+        if (normalizeSearchText(player.name).includes(normalizedQuery)) {
           results.push({
             competenciaId: comp.id,
             competenciaName: comp.name,
@@ -122,7 +125,7 @@ export const searchPlayerAcrossCompetencias = (
             groupId: group.id,
             groupName: group.name,
             position: player.position,
-            playerName: player.name,
+            playerName: (player.name || '').replace(/\s+/g, ' ').trim(),
             playerData: player as unknown as Record<string, unknown>,
           });
         }
@@ -131,4 +134,20 @@ export const searchPlayerAcrossCompetencias = (
   }
 
   return results;
+};
+
+/**
+ * Build the unique-name suggestion list for autocomplete from all competencias.
+ * Cleaned (whitespace-collapsed) and alphabetically sorted.
+ */
+export const collectUniquePlayerNames = (competencias: CompetenciaTipo[]): string[] => {
+  const allNames: string[] = [];
+  for (const comp of competencias) {
+    for (const group of comp.groups || []) {
+      for (const player of group.players || []) {
+        if (player?.name) allNames.push(player.name);
+      }
+    }
+  }
+  return buildUniqueNameSuggestions(allNames);
 };
