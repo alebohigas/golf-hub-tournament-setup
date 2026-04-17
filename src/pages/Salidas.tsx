@@ -251,33 +251,21 @@ const Salidas = () => {
                 </h2>
               </div>
 
-              {/* ============= Player Search Bar ============= */}
+              {/* ============= Player Search Bar (with autocomplete) ============= */}
               {!loadingMaster && days.length > 0 && (
-                <div className="max-w-md mx-auto mb-8">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Buscar jugador por nombre..."
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        if (e.target.value.trim().length >= 2) {
-                          setSearchActive(true);
-                        }
-                      }}
-                      className="pl-10 pr-10"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={handleClearSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <PlayerSearchInput
+                  className="max-w-md mx-auto mb-8"
+                  value={searchQuery}
+                  onChange={(v) => {
+                    setSearchQuery(v);
+                    if (normalizeSearchText(v).length >= 2) {
+                      setSearchActive(true);
+                    } else if (v === '') {
+                      setSearchActive(false);
+                    }
+                  }}
+                  suggestions={playerSuggestions}
+                />
               )}
 
               {/* ============= Search Results ============= */}
