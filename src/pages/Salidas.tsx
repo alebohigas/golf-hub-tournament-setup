@@ -7,11 +7,11 @@
 
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Calendar, Loader2, Search, Users, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, Search, Users } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { useSalidasMaster, useSalidasDetail } from '@/hooks/useSalidasData';
@@ -19,6 +19,7 @@ import type { SalidasDay, SalidasCategory, SalidasDetailResponse, SalidasGroup }
 import { apiFetch } from '@/lib/apiClient';
 import { getSalidasDayUrl, POLL_ACTIVE } from '@/config/api';
 import { ApiError } from '@/lib/apiClient';
+import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
 import salidasHero from '@/assets/salidas-hero.jpg';
 
 // ============= Search Result Type =============
@@ -99,9 +100,9 @@ const Salidas = () => {
       : [],
   });
 
-  /** Filter search results based on query */
+  /** Filter search results based on query (whitespace/accent tolerant) */
   const searchResults = useMemo<SearchResult[]>(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizeSearchText(searchQuery);
     if (q.length < 2) return [];
 
     const results: SearchResult[] = [];
@@ -110,7 +111,7 @@ const Salidas = () => {
       const { dayLabel, course, detail } = query.data;
       for (const group of detail.groups) {
         const matchIdx = group.players.findIndex((p) =>
-          p.name.toLowerCase().includes(q)
+          normalizeSearchText(p.name).includes(q)
         );
         if (matchIdx !== -1) {
           results.push({
@@ -128,8 +129,26 @@ const Salidas = () => {
     return results;
   }, [searchQuery, searchQueries]);
 
+  /**
+   * Build unique player-name suggestions from already-loaded data.
+   * Salidas fetches detail only when search is active, so suggestions populate
+   * progressively as queries resolve.
+   */
+  const playerSuggestions = useMemo(() => {
+    const allNames: string[] = [];
+    for (const query of searchQueries) {
+      if (!query.data?.detail) continue;
+      for (const group of query.data.detail.groups) {
+        for (const p of group.players) {
+          if (p?.name) allNames.push(p.name);
+        }
+      }
+    }
+    return buildUniqueNameSuggestions(allNames);
+  }, [searchQueries]);
+
   /** Whether search data is still loading */
-  const searchLoading = searchActive && searchQuery.trim().length >= 2 && searchQueries.some((q) => q.isLoading);
+  const searchLoading = searchActive && normalizeSearchText(searchQuery).length >= 2 && searchQueries.some((q) => q.isLoading);
 
   /** Normalize selected format to endpoint-compatible values */
   const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
@@ -232,34 +251,22 @@ const Salidas = () => {
                 </h2>
               </div>
 
-              {/* ============= Player Search Bar ============= */}
-              {!loadingMaster && days.length > 0 && (
-                <div className="max-w-md mx-auto mb-8">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Buscar jugador por nombre..."
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        if (e.target.value.trim().length >= 2) {
-                          setSearchActive(true);
-                        }
-                      }}
-                      className="pl-10 pr-10"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={handleClearSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* ============= Player Search Bar (with autocomplete) =============
+                  Always rendered at day-selection level (mirrors Competición).
+                  Visible even while master data is loading or when no days exist. */}
+              <PlayerSearchInput
+                className="max-w-md mx-auto mb-8"
+                value={searchQuery}
+                onChange={(v) => {
+                  setSearchQuery(v);
+                  if (normalizeSearchText(v).length >= 2) {
+                    setSearchActive(true);
+                  } else if (v === '') {
+                    setSearchActive(false);
+                  }
+                }}
+                suggestions={playerSuggestions}
+              />
 
               {/* ============= Search Results ============= */}
               {searchActive && searchQuery.trim().length >= 2 ? (

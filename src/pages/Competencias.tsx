@@ -6,8 +6,10 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Trophy, Target, Ruler, Crosshair, Flag, Zap, Star, Award, Medal, Loader2 } from 'lucide-react';
@@ -16,6 +18,7 @@ import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
+import { useAllCompetenciasWithPlayers, collectUniquePlayerNames } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
@@ -40,12 +43,33 @@ const Competencias = () => {
   // Navigation state
   const [selectedCompetenciaId, setSelectedCompetenciaId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
+  /** Player search query (autocomplete) */
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
   
   // Context for admin visibility control
   const { isPageVisible } = usePageVisibility();
 
   // Fetch all competition types (master list)
   const { data: allCompetencias = [], isLoading: loadingList } = useCompetencias();
+
+  /** All competencias with player data — used for autocomplete suggestions */
+  const { competencias: allWithPlayers } = useAllCompetenciasWithPlayers();
+  const playerSuggestions = useMemo(
+    () => collectUniquePlayerNames(allWithPlayers),
+    [allWithPlayers]
+  );
+
+  /**
+   * Handle player selection: navigate to /premios with the selected name as query
+   * so the user sees all positions/medals across competitions.
+   */
+  const handlePlayerSearch = (name: string) => {
+    setSearchQuery(name);
+    if (name.trim().length > 0) {
+      navigate(`/premios?q=${encodeURIComponent(name.trim())}`);
+    }
+  };
 
   // Fetch detail data when a competition is selected (includes players)
   const { data: detailData, isLoading: loadingDetail } = useCompetenciaDetail(
@@ -124,6 +148,17 @@ const Competencias = () => {
           {/* View: Competition Types (no selection) */}
           {!isLoading && !selectedCompetenciaId && (
             <>
+              {/* Player search bar with autocomplete — jumps to /premios on pick */}
+              {playerSuggestions.length > 0 && (
+                <PlayerSearchInput
+                  className="max-w-md mx-auto mb-8"
+                  value={searchQuery}
+                  onChange={handlePlayerSearch}
+                  suggestions={playerSuggestions}
+                  placeholder="Buscar jugador en competencias..."
+                />
+              )}
+
               {/* Submenu for filtering */}
               <CompetenciasSubmenu 
                 competencias={competencias}
