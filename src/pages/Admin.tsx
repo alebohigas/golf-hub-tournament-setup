@@ -14,13 +14,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AdminPageCard from '@/components/admin/AdminPageCard';
-import AdminLayoutSettings from '@/components/admin/AdminLayoutSettings';
-import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
-import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
 import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
 import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
 import AdminSponsors from '@/components/admin/AdminSponsors';
+import AdminPagina from '@/components/admin/AdminPagina';
 import { 
   Shield, 
   LogOut, 
@@ -38,6 +35,7 @@ import {
   FileText,
   Radio,
   Image as ImageIcon,
+  LayoutPanelTop,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -298,22 +296,14 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
           </TabsTrigger>
-          <TabsTrigger value="visibility" className="gap-2">
-            <Eye className="h-4 w-4" />
-            <span className="hidden sm:inline">Visibilidad</span>
-          </TabsTrigger>
-          <TabsTrigger value="order" className="gap-2">
-            <GripVertical className="h-4 w-4" />
-            <span className="hidden sm:inline">Orden</span>
-          </TabsTrigger>
-          <TabsTrigger value="groups" className="gap-2">
-            <FolderTree className="h-4 w-4" />
-            <span className="hidden sm:inline">Grupos</span>
+          <TabsTrigger value="pagina" className="gap-2">
+            <LayoutPanelTop className="h-4 w-4" />
+            <span className="hidden sm:inline">Página</span>
           </TabsTrigger>
           <TabsTrigger value="convocatoria" className="gap-2">
             <FileText className="h-4 w-4" />
@@ -419,70 +409,24 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Visibility Tab */}
-        <TabsContent value="visibility" className="space-y-4">
-          {/* Layout Settings */}
-          <AdminLayoutSettings
-            layout={layoutPreferences.layout}
-            onLayoutChange={(layout) => setLayoutPreferences({ ...layoutPreferences, layout })}
-            columns={layoutPreferences.columns}
-            onColumnsChange={(columns) => setLayoutPreferences({ ...layoutPreferences, columns })}
-          />
-
-          {/* Page Cards */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Control de Visibilidad</CardTitle>
-              <CardDescription>
-                Activa/desactiva páginas y añade notas para cada una. Las páginas ocultas no aparecen en el menú.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                layoutPreferences.layout === 'grid' 
-                  ? `grid ${getGridClass()} gap-4` 
-                  : 'space-y-3'
-              )}>
-                {menuItems.map((item) => (
-                  <AdminPageCard
-                    key={item.id}
-                    pageId={item.id}
-                    label={item.label}
-                    path={item.path}
-                    isVisible={visibilitySettings[item.id] ?? true}
-                    onToggle={(visible) => handleSetVisibility(item.id, visible)}
-                    note={pageNotes[item.id] || ''}
-                    onNoteChange={(note) => setPageNote(item.id, note)}
-                    layout={layoutPreferences.layout}
-                    groupName={getGroupName(item.id)}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Menu Order Tab */}
-        <TabsContent value="order">
-          <AdminMenuOrder
+        {/* Página Tab — groups Visibilidad, Orden y Grupos as nested sub-tabs */}
+        <TabsContent value="pagina">
+          <AdminPagina
             menuItems={menuItems}
             visibilitySettings={visibilitySettings}
-            menuItemOrder={menuItemOrder}
-            onOrderChange={handleSetMenuOrder}
+            pageNotes={pageNotes}
             pageGroupAssignments={pageGroupAssignments}
             menuGroups={menuGroups}
-          />
-        </TabsContent>
-
-        {/* Menu Groups Tab */}
-        <TabsContent value="groups">
-          <AdminMenuGroups
-            menuItems={menuItems}
-            groups={menuGroups}
-            onGroupsChange={handleSetMenuGroups}
-            pageGroupAssignments={pageGroupAssignments}
-            onPageGroupChange={handleSetPageGroupAssignment}
-            pageVisibility={visibilitySettings}
+            layoutPreferences={layoutPreferences}
+            menuItemOrder={menuItemOrder}
+            getGroupName={getGroupName}
+            getGridClass={getGridClass}
+            onSetVisibility={handleSetVisibility}
+            onSetPageNote={setPageNote}
+            onSetLayoutPreferences={setLayoutPreferences}
+            onSetMenuOrder={handleSetMenuOrder}
+            onSetMenuGroups={handleSetMenuGroups}
+            onSetPageGroupAssignment={handleSetPageGroupAssignment}
           />
         </TabsContent>
 

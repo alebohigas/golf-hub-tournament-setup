@@ -1,210 +1,52 @@
 /**
  * AdminSponsors Component
- * Admin tab to configure how sponsor logos are displayed on the public Patrocinadores page.
+ * Container for the Patrocinadores admin tab.
+ * Hosts three sub-tabs:
+ *   - Preview  → grid columns + live sponsor preview
+ *   - Ribbon   → per-page visibility of the scrolling sponsor ribbon
+ *   - Carrusel → upcoming carousel configuration (placeholder)
  *
- * Currently exposes:
- *  - `columns`: number of columns in the sponsor grid (1–6).
- *    Fewer columns ⇒ logos render larger; more columns ⇒ logos render smaller.
- *
- * Persisted server-side via the `sponsors_config` field of the site_config row,
- * so all visitors of the current domain share the same setting.
+ * All settings are persisted server-side under `site_config.sponsors_config`.
  */
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Loader2, Image as ImageIcon, Save, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useSiteConfig, useSaveSiteConfig, SponsorsConfig } from '@/hooks/useSiteConfig';
-import { useToast } from '@/hooks/use-toast';
-import { useSponsors } from '@/hooks/useTournamentData';
-import SponsorLogoImage from '@/components/sponsors/SponsorLogoImage';
-
-// ============= Constants =============
-
-/** Allowed column counts for the sponsor grid */
-const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
-
-/** Default config used when nothing is stored on the server yet */
-const DEFAULT_SPONSORS_CONFIG: SponsorsConfig = { columns: 4 };
-
-// ============= Component =============
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Image as ImageIcon, Eye, GalleryHorizontal } from 'lucide-react';
+import AdminSponsorsPreview from './sponsors/AdminSponsorsPreview';
+import AdminSponsorsRibbon from './sponsors/AdminSponsorsRibbon';
+import AdminSponsorsCarousel from './sponsors/AdminSponsorsCarousel';
 
 /**
  * AdminSponsors
- * Lets the admin pick the number of columns used to display sponsor logos.
+ * Renders the three sponsor sub-tabs inside the Admin → Patrocinadores section.
  */
 const AdminSponsors = () => {
-  const { data: siteConfig, isLoading } = useSiteConfig();
-  const saveSiteConfig = useSaveSiteConfig();
-  const { toast } = useToast();
-
-  /** Live sponsor list — used to render an actual preview with broken-logo warnings */
-  const { data: sponsors = [], isLoading: isLoadingSponsors } = useSponsors();
-
-  /** Local draft state — reflects the column count being edited */
-  const [columns, setColumns] = useState<number>(DEFAULT_SPONSORS_CONFIG.columns);
-
-  // Sync local state whenever the server config (re)loads
-  useEffect(() => {
-    if (siteConfig?.sponsors_config?.columns) {
-      setColumns(siteConfig.sponsors_config.columns);
-    }
-  }, [siteConfig?.sponsors_config?.columns]);
-
-  /** Save the current column count to the server */
-  const handleSave = () => {
-    saveSiteConfig.mutate(
-      {
-        password: 'admin2025',
-        sponsors_config: { columns },
-      },
-      {
-        onSuccess: () => {
-          toast({
-            title: 'Configuración guardada',
-            description: `Patrocinadores se mostrarán en ${columns} columna${columns > 1 ? 's' : ''}.`,
-          });
-        },
-        onError: (err) => {
-          toast({
-            title: 'Error al guardar',
-            description: err.message,
-            variant: 'destructive',
-          });
-        },
-      }
-    );
-  };
-
-  const currentSavedColumns = siteConfig?.sponsors_config?.columns ?? DEFAULT_SPONSORS_CONFIG.columns;
-  const hasChanges = columns !== currentSavedColumns;
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ImageIcon className="h-5 w-5 text-primary" />
-          Configuración de Patrocinadores
-        </CardTitle>
-        <CardDescription>
-          Define cuántas columnas se usan para mostrar los logos en la página de Patrocinadores.
-          Menos columnas = logos más grandes. Más columnas = logos más pequeños.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {isLoading ? (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Cargando configuración...
-          </div>
-        ) : (
-          <>
-            {/* Current saved value */}
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              Valor actual guardado:&nbsp;
-              <span className="font-mono font-bold">{currentSavedColumns}</span>
-              &nbsp;columna{currentSavedColumns > 1 ? 's' : ''}
-            </p>
+    <Tabs defaultValue="preview" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="preview" className="gap-2">
+          <ImageIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">Preview</span>
+        </TabsTrigger>
+        <TabsTrigger value="ribbon" className="gap-2">
+          <Eye className="h-4 w-4" />
+          <span className="hidden sm:inline">Ribbon</span>
+        </TabsTrigger>
+        <TabsTrigger value="carrusel" className="gap-2">
+          <GalleryHorizontal className="h-4 w-4" />
+          <span className="hidden sm:inline">Carrusel</span>
+        </TabsTrigger>
+      </TabsList>
 
-            {/* Column selector + inline Save button (right side) */}
-            <div className="space-y-2">
-              <Label className="text-sm">Columnas en la cuadrícula</Label>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Column option buttons */}
-                <div className="flex flex-wrap gap-2">
-                  {COLUMN_OPTIONS.map((opt) => (
-                    <Button
-                      key={opt}
-                      variant={columns === opt ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setColumns(opt)}
-                      className={cn('min-w-[3rem]', columns === opt && 'pointer-events-none')}
-                    >
-                      {opt}
-                    </Button>
-                  ))}
-                </div>
-                {/* Inline Save button — relocated from the bottom of the card */}
-                <Button
-                  onClick={handleSave}
-                  disabled={!hasChanges || saveSiteConfig.isPending}
-                  size="sm"
-                  className="gap-2"
-                >
-                  {saveSiteConfig.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  Guardar cambios
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                En pantallas pequeñas el grid se reduce automáticamente para mantener legibilidad.
-              </p>
-            </div>
-
-            {/* Live preview placeholder grid */}
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">
-                Vista previa de patrocinadores reales del torneo activo
-              </Label>
-              <div
-                className="grid gap-3 p-4 rounded-lg border border-border bg-muted/30"
-                style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-              >
-                {isLoadingSponsors ? (
-                  // Skeleton placeholders while sponsors are loading
-                  Array.from({ length: columns * 2 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="aspect-[3/2] rounded-md bg-background border border-border/60 flex items-center justify-center text-muted-foreground text-xs"
-                    >
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ))
-                ) : sponsors.length === 0 ? (
-                  <p className="text-xs text-muted-foreground col-span-full text-center py-4">
-                    No hay patrocinadores registrados para este torneo.
-                  </p>
-                ) : (
-                  sponsors.map((sponsor) => (
-                    <div
-                      key={sponsor.id}
-                      // aspect-square keeps the card proportional to column width,
-                      // so as columns increase, each card shrinks naturally.
-                      className="aspect-square rounded-md bg-background border border-border/60 flex flex-col items-center justify-center gap-1 p-3 overflow-hidden"
-                    >
-                      {/* Logo fills the available area. `h-full w-full` on the
-                          wrapper + `max-h-full max-w-full` on the image lets the
-                          logo scale up to the card size while preserving aspect. */}
-                      <div className="flex-1 w-full flex items-center justify-center min-h-0">
-                        <SponsorLogoImage
-                          url={sponsor.logoUrl}
-                          alt={sponsor.name}
-                          showErrorPlaceholder
-                          className="max-h-full max-w-full w-auto h-auto object-contain"
-                        />
-                      </div>
-                      {/* Sponsor name (from `nombre` column) — always shown for identification */}
-                      <p
-                        className="text-[10px] leading-tight text-muted-foreground text-center break-words line-clamp-2 w-full shrink-0"
-                        title={sponsor.name}
-                      >
-                        {sponsor.name}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+      <TabsContent value="preview">
+        <AdminSponsorsPreview />
+      </TabsContent>
+      <TabsContent value="ribbon">
+        <AdminSponsorsRibbon />
+      </TabsContent>
+      <TabsContent value="carrusel">
+        <AdminSponsorsCarousel />
+      </TabsContent>
+    </Tabs>
   );
 };
 
