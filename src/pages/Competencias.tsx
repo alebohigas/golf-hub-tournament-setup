@@ -43,12 +43,33 @@ const Competencias = () => {
   // Navigation state
   const [selectedCompetenciaId, setSelectedCompetenciaId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
+  /** Player search query (autocomplete) */
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
   
   // Context for admin visibility control
   const { isPageVisible } = usePageVisibility();
 
   // Fetch all competition types (master list)
   const { data: allCompetencias = [], isLoading: loadingList } = useCompetencias();
+
+  /** All competencias with player data — used for autocomplete suggestions */
+  const { competencias: allWithPlayers } = useAllCompetenciasWithPlayers();
+  const playerSuggestions = useMemo(
+    () => collectUniquePlayerNames(allWithPlayers),
+    [allWithPlayers]
+  );
+
+  /**
+   * Handle player selection: navigate to /premios with the selected name as query
+   * so the user sees all positions/medals across competitions.
+   */
+  const handlePlayerSearch = (name: string) => {
+    setSearchQuery(name);
+    if (name.trim().length > 0) {
+      navigate(`/premios?q=${encodeURIComponent(name.trim())}`);
+    }
+  };
 
   // Fetch detail data when a competition is selected (includes players)
   const { data: detailData, isLoading: loadingDetail } = useCompetenciaDetail(
