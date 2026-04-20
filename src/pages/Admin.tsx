@@ -413,70 +413,24 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Visibility Tab */}
-        <TabsContent value="visibility" className="space-y-4">
-          {/* Layout Settings */}
-          <AdminLayoutSettings
-            layout={layoutPreferences.layout}
-            onLayoutChange={(layout) => setLayoutPreferences({ ...layoutPreferences, layout })}
-            columns={layoutPreferences.columns}
-            onColumnsChange={(columns) => setLayoutPreferences({ ...layoutPreferences, columns })}
-          />
-
-          {/* Page Cards */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Control de Visibilidad</CardTitle>
-              <CardDescription>
-                Activa/desactiva páginas y añade notas para cada una. Las páginas ocultas no aparecen en el menú.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                layoutPreferences.layout === 'grid' 
-                  ? `grid ${getGridClass()} gap-4` 
-                  : 'space-y-3'
-              )}>
-                {menuItems.map((item) => (
-                  <AdminPageCard
-                    key={item.id}
-                    pageId={item.id}
-                    label={item.label}
-                    path={item.path}
-                    isVisible={visibilitySettings[item.id] ?? true}
-                    onToggle={(visible) => handleSetVisibility(item.id, visible)}
-                    note={pageNotes[item.id] || ''}
-                    onNoteChange={(note) => setPageNote(item.id, note)}
-                    layout={layoutPreferences.layout}
-                    groupName={getGroupName(item.id)}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Menu Order Tab */}
-        <TabsContent value="order">
-          <AdminMenuOrder
+        {/* Página Tab — groups Visibilidad, Orden y Grupos as nested sub-tabs */}
+        <TabsContent value="pagina">
+          <AdminPagina
             menuItems={menuItems}
             visibilitySettings={visibilitySettings}
-            menuItemOrder={menuItemOrder}
-            onOrderChange={handleSetMenuOrder}
+            pageNotes={pageNotes}
             pageGroupAssignments={pageGroupAssignments}
             menuGroups={menuGroups}
-          />
-        </TabsContent>
-
-        {/* Menu Groups Tab */}
-        <TabsContent value="groups">
-          <AdminMenuGroups
-            menuItems={menuItems}
-            groups={menuGroups}
-            onGroupsChange={handleSetMenuGroups}
-            pageGroupAssignments={pageGroupAssignments}
-            onPageGroupChange={handleSetPageGroupAssignment}
-            pageVisibility={visibilitySettings}
+            layoutPreferences={layoutPreferences}
+            menuItemOrder={menuItemOrder}
+            getGroupName={getGroupName}
+            getGridClass={getGridClass}
+            onSetVisibility={handleSetVisibility}
+            onSetPageNote={setPageNote}
+            onSetLayoutPreferences={setLayoutPreferences}
+            onSetMenuOrder={handleSetMenuOrder}
+            onSetMenuGroups={handleSetMenuGroups}
+            onSetPageGroupAssignment={handleSetPageGroupAssignment}
           />
         </TabsContent>
 
