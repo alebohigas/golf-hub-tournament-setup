@@ -24,6 +24,13 @@ $sql = "SELECT categoria_id, categoria, abreviatura, sistema, formato, salida, p
 $catInfo = query_one($conn, $sql);
 if (!$catInfo) { json_error('Category not found', 404); }
 
+// ── Total scheduled rounds for this category (from caljuego) ──
+// Used to determine when a player has all their cards closed (statlsc=1)
+$sqlRounds = "SELECT COUNT(*) AS total FROM caljuego
+              WHERE torneoid = $tid AND categoriaid = $cid";
+$roundsRow = query_one($conn, $sqlRounds);
+$totalRounds = (int)($roundsRow['total'] ?? 0);
+
 // ── Course info (par, rating, slope) ──
 $salidaid = esc($conn, $catInfo['salida']);
 $sql = "SELECT b.campoid, rating, slope, tee, parcampo
@@ -57,7 +64,9 @@ if ($isStableford) {
                    a.estatus AS estatjug,
                    club,
                    cl.logo AS juglogoclub,
-                   v.sa
+                   v.sa,
+                   (SELECT COUNT(*) FROM tarjetas t
+                      WHERE t.jugadorid = a.id AND t.torneoid = $tid AND t.statlsc = 1) AS cardsclosed
             FROM jugadores AS a
             JOIN clubs AS cl ON (a.clubid = cl.id)
             JOIN v_sumsa AS b ON (a.id = b.jugadorid)
@@ -83,7 +92,9 @@ if ($isStableford) {
                    cl.logo AS juglogoclub,
                    dif.difpar,
                    v.difpar_ulttar AS difparulttar,
-                   v.avance AS avance_ulttar
+                   v.avance AS avance_ulttar,
+                   (SELECT COUNT(*) FROM tarjetas t
+                      WHERE t.jugadorid = b.id AND t.torneoid = $tid AND t.statlsc = 1) AS cardsclosed
             FROM jugadores AS b
             JOIN clubs AS cl ON (b.clubid = cl.id)
             JOIN $difView AS dif ON (dif.jugadorid = b.id)
@@ -121,6 +132,9 @@ foreach ($rows as $row) {
             'todayScore'     => (int)($row['sa'] ?? 0),
             'thru'           => (int)($row['avance'] ?? 0),
             'status'         => $row['estatjug'] ?? '',
+            'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
+            'cardsTotal'     => $totalRounds,
+            'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
         ];
     } else {
         /**
@@ -142,6 +156,9 @@ foreach ($rows as $row) {
             'thru'           => (int)($row['avance_ulttar'] ?? 0),
             'handicap'       => $row['indexjgo'] ?? '',
             'status'         => $row['estatjug'] ?? '',
+            'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
+            'cardsTotal'     => $totalRounds,
+            'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
         ];
     }
 }
@@ -154,6 +171,7 @@ json_response([
     'type'         => $isStableford ? 'stableford' : 'stroke',
     'gross'        => (int)$gross,
     'par'          => $parcampo,
+    'totalRounds'  => $totalRounds,
     'course'       => $courseInfo ? [
         'rating' => (float)($courseInfo['rating'] ?? 0),
         'slope'  => (int)($courseInfo['slope'] ?? 0),
