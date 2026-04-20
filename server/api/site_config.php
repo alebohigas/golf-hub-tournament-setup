@@ -72,6 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasLiveScoringConfig) {
         $selectFields .= ', live_scoring_config';
     }
+    if ($hasSponsorsConfig) {
+        $selectFields .= ', sponsors_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -85,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'menu_groups'           => $row['menu_groups'] ? json_decode($row['menu_groups'], true) : null,
             'page_group_assignments'=> $row['page_group_assignments'] ? json_decode($row['page_group_assignments'], true) : null,
             'live_scoring_config'   => $hasLiveScoringConfig && !empty($row['live_scoring_config']) ? json_decode($row['live_scoring_config'], true) : null,
+            'sponsors_config'       => $hasSponsorsConfig && !empty($row['sponsors_config']) ? json_decode($row['sponsors_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -95,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'menu_groups'           => null,
             'page_group_assignments'=> null,
             'live_scoring_config'   => null,
+            'sponsors_config'       => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
