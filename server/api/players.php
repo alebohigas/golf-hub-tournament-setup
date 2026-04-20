@@ -18,7 +18,7 @@ $sql = "SELECT p.id, p.numjugador,
                c.logo, p.indexjgo as hi,
                f_hdccampo(p.indexjgo, p.teesalidaid, cat.campoid) as hj,
                f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, cat.porcentaje) as hn,
-               p.club, p.sexo, p.estatus, p.equipo, p.fechahandicap
+               p.club, p.sexo, p.estatus, p.equipo
         FROM jugadores p
         LEFT JOIN clubs c ON (p.clubid = c.id)
         LEFT JOIN (
@@ -37,12 +37,14 @@ if (!$result) {
 }
 
 $players = [];
-$fechaHandicap = '';  // Same for all players in category
+/**
+ * fechaHandicap: Tournament-wide handicap effective date.
+ * Source: torneo.fecha_hand (PK: torneo_id), looked up by current $torneoid.
+ * NOTE: Previously read from jugadores.fechahandicap (per-player). Changed
+ * per requirement to use the single tournament-level value.
+ */
+$fechaHandicap = '';
 while ($row = $result->fetch_assoc()) {
-    // Capture fechahandicap from first row (same for all players in category)
-    if (empty($fechaHandicap) && !empty($row['fechahandicap']) && $row['fechahandicap'] !== '0000-00-00') {
-        $fechaHandicap = $row['fechahandicap'];
-    }
     $players[] = [
         'id'         => $row['id'],
         'numjugador' => $row['numjugador'] ?? '',
@@ -57,5 +59,22 @@ while ($row = $result->fetch_assoc()) {
     ];
 }
 $result->free();
+
+/**
+ * Fetch fecha_hand from torneo table (PK: torneo_id).
+ * Uses prepared-style escaped value; safely returns empty string if not found
+ * or if value is the MySQL zero-date placeholder.
+ */
+$tnSql = "SELECT fecha_hand FROM torneo WHERE torneo_id = $tid LIMIT 1";
+$tnRes = $conn->query($tnSql);
+if ($tnRes) {
+    if ($tnRow = $tnRes->fetch_assoc()) {
+        $val = $tnRow['fecha_hand'] ?? '';
+        if (!empty($val) && $val !== '0000-00-00') {
+            $fechaHandicap = $val;
+        }
+    }
+    $tnRes->free();
+}
 
 json_response(['players' => $players, 'fechaHandicap' => $fechaHandicap]);
