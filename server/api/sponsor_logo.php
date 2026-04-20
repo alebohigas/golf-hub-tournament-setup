@@ -47,27 +47,56 @@ if (!in_array($ext, $allowedExts)) {
 
 // ============= Resolve Path =============
 /**
- * Build absolute path to the image file
- * The logos folder is ONE level above the web root:
- *   web root:    /htdocs/torneo/         (where index.html lives)
- *   logos folder: /htdocs/logos_patrocinadores/
- * 
- * Since this script lives in /htdocs/torneo/api/, we go up two levels:
- *   __DIR__/../../  =>  /htdocs/
- * Then append the file path from the DB (e.g. "logos_patrocinadores/imagen.png")
+ * Build absolute path to the image file.
+ *
+ * The `logos_patrocinadores/` folder lives somewhere relative to this script,
+ * but its exact depth depends on the deployment layout:
+ *
+ *   Layout A (subfolder install):
+ *     web root:    /htdocs/torneo/         (index.html lives here)
+ *     api script:  /htdocs/torneo/api/sponsor_logo.php
+ *     logos at:    /htdocs/logos_patrocinadores/   ← TWO levels up
+ *
+ *   Layout B (root install — e.g. gomez-ia.speitour.mx):
+ *     web root:    /htdocs/                (index.html lives here)
+ *     api script:  /htdocs/api/sponsor_logo.php
+ *     logos at:    /htdocs/logos_patrocinadores/   ← ONE level up
+ *
+ *   Layout C (sibling folder — fallback):
+ *     logos at:    /htdocs/torneo/logos_patrocinadores/   ← SAME level as web root
+ *
+ * To support every layout without per-domain configuration, we probe each
+ * candidate basePath (one, two, three levels up) and use the FIRST one where
+ * the requested file actually exists. The chosen basePath is still used to
+ * verify the resolved path stays under it (directory-traversal protection).
  */
-$basePath = realpath(__DIR__ . '/../../');
-if (!$basePath) {
+$candidateBases = array_filter([
+    realpath(__DIR__ . '/..'),       // one level up   (Layout B: /htdocs)
+    realpath(__DIR__ . '/../..'),    // two levels up  (Layout A: /htdocs)
+    realpath(__DIR__ . '/../../..'), // three levels up (deeper installs)
+]);
+
+if (empty($candidateBases)) {
     http_response_code(500);
     echo 'Base path not found';
     exit;
 }
 
-$fullPath = $basePath . '/' . $file;
+$basePath     = null;
+$resolvedPath = null;
 
-// Verify resolved path is still under the base (extra traversal protection)
-$resolvedPath = realpath($fullPath);
-if (!$resolvedPath || strpos($resolvedPath, $basePath) !== 0) {
+foreach ($candidateBases as $candidate) {
+    $tryFull   = $candidate . '/' . $file;
+    $tryResolved = realpath($tryFull);
+    // Accept the first candidate where the file exists AND stays under that base
+    if ($tryResolved && strpos($tryResolved, $candidate) === 0 && is_file($tryResolved)) {
+        $basePath     = $candidate;
+        $resolvedPath = $tryResolved;
+        break;
+    }
+}
+
+if (!$resolvedPath) {
     http_response_code(404);
     echo 'Logo not found';
     exit;
