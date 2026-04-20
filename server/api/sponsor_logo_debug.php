@@ -94,28 +94,52 @@ if (!$extensionAllowed) {
 // ============= Resolve absolute paths =============
 
 /**
- * basePath: the directory the proxy treats as its root.
- * `sponsor_logo.php` lives at `<webroot>/api/sponsor_logo.php` and computes
- * `realpath(__DIR__ . '/../../')`, which lands one level ABOVE the web root.
- * That is where the `logos_patrocinadores/` folder is expected to be.
+ * basePath probing.
+ * The real proxy now tries multiple candidate basePaths (1, 2, and 3 levels
+ * above this script) and picks the first one where the file actually exists.
+ * We replicate that logic and report every candidate so it's obvious which
+ * directory layout the deployment is using.
  */
-$basePath = realpath(__DIR__ . '/../../');
-$basePathOk = $basePath !== false;
+$candidateBases = array_filter([
+    realpath(__DIR__ . '/..'),       // one level up   (e.g. /htdocs)
+    realpath(__DIR__ . '/../..'),    // two levels up  (e.g. /htdocs when api is in /htdocs/torneo/api)
+    realpath(__DIR__ . '/../../..'), // three levels up
+]);
 
-if (!$basePathOk) {
-    $errors[] = 'Could not resolve basePath via realpath(__DIR__/../../)';
+$candidatesReport = [];
+$basePath         = null;
+$fullPath         = null;
+$resolvedPath     = null;
+$withinBase       = false;
+
+foreach ($candidateBases as $candidate) {
+    $tryFull     = $cleaned !== '' ? $candidate . '/' . $cleaned : null;
+    $tryResolved = $tryFull ? (realpath($tryFull) ?: null) : null;
+    $tryWithin   = $tryResolved && strpos($tryResolved, $candidate) === 0;
+    $tryExists   = $tryResolved && file_exists($tryResolved) && is_file($tryResolved);
+
+    $candidatesReport[] = [
+        'basePath'     => $candidate,
+        'fullPath'     => $tryFull,
+        'resolvedPath' => $tryResolved,
+        'withinBase'   => (bool)$tryWithin,
+        'exists'       => (bool)$tryExists,
+    ];
+
+    // Pick the first candidate that resolves to an existing file under itself
+    if ($basePath === null && $tryExists && $tryWithin) {
+        $basePath     = $candidate;
+        $fullPath     = $tryFull;
+        $resolvedPath = $tryResolved;
+        $withinBase   = true;
+    }
 }
 
-$fullPath     = $basePathOk && $cleaned !== '' ? $basePath . '/' . $cleaned : null;
-$resolvedPath = $fullPath !== null ? (realpath($fullPath) ?: null) : null;
-
-/** Sanity check: resolved path must remain inside basePath */
-$withinBase = false;
-if ($resolvedPath !== null && $basePathOk) {
-    $withinBase = strpos($resolvedPath, $basePath) === 0;
-    if (!$withinBase) {
-        $errors[] = 'Resolved path escapes basePath (potential traversal)';
-    }
+if ($basePath === null) {
+    // Fall back to the first candidate so the rest of the report has values
+    $basePath = $candidateBases[0] ?? null;
+    $fullPath = $basePath && $cleaned !== '' ? $basePath . '/' . $cleaned : null;
+    $errors[] = 'No candidate basePath contains the requested file';
 }
 
 // ============= File-system inspection =============
@@ -172,5 +196,7 @@ echo json_encode([
     'group'             => $group,
     'mtime'             => $mtime ? date('c', $mtime) : null,
     'errors'            => $errors,
+    /** Per-candidate breakdown — shows every basePath the proxy tried */
+    'candidates'        => $candidatesReport,
     'wouldServe'        => $wouldServe,
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
