@@ -148,6 +148,17 @@ const Competencias = () => {
           {/* View: Competition Types (no selection) */}
           {!isLoading && !selectedCompetenciaId && (
             <>
+              {/* Player search bar with autocomplete — jumps to /premios on pick */}
+              {playerSuggestions.length > 0 && (
+                <PlayerSearchInput
+                  className="max-w-md mx-auto mb-8"
+                  value={searchQuery}
+                  onChange={handlePlayerSearch}
+                  suggestions={playerSuggestions}
+                  placeholder="Buscar jugador en competencias..."
+                />
+              )}
+
               {/* Submenu for filtering */}
               <CompetenciasSubmenu 
                 competencias={competencias}
