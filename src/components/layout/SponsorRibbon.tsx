@@ -28,12 +28,6 @@ const SponsorRibbon = () => {
   const { data: siteConfig } = useSiteConfig();
   const { pathname } = useLocation();
 
-  // Per-page visibility map from server config — undefined = legacy default (show everywhere)
-  const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
-  if (ribbonVisiblePages && ribbonVisiblePages[pathname] === false) {
-    return null;
-  }
-
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
    * raw sponsor list before duplicating it for the infinite-scroll loop.
@@ -70,6 +64,12 @@ const SponsorRibbon = () => {
     }
     return list;
   }, [sponsors, carousel?.randomize, carousel?.order, carousel?.visibleCount]);
+
+  // Per-page visibility map from server config — undefined = legacy default (show everywhere)
+  const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
+  if (ribbonVisiblePages && ribbonVisiblePages[pathname] === false) {
+    return null;
+  }
 
   if (orderedSponsors.length === 0) return null;
 
