@@ -166,6 +166,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $insertFields[] = 'live_scoring_config';
         $insertValues[] = $val;
     }
+
+    if (array_key_exists('sponsors_config', $body)) {
+        if (!$hasSponsorsConfig) {
+            json_error("Missing DB column sponsors_config in site_config. Run: ALTER TABLE site_config ADD COLUMN sponsors_config TEXT DEFAULT NULL COMMENT 'JSON object with sponsors page display settings';", 500);
+        }
+
+        $val = $body['sponsors_config'] !== null ? "'" . esc($conn, json_encode($body['sponsors_config'])) . "'" : 'NULL';
+        $fields[] = "sponsors_config = $val";
+        $insertFields[] = 'sponsors_config';
+        $insertValues[] = $val;
+    }
     
     if (empty($fields)) {
         json_error('No fields to update', 400);
