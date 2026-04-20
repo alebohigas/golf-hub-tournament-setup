@@ -418,7 +418,7 @@ const Resultados = () => {
                               <TableRow className="bg-muted/60 hover:bg-muted/60 border-t-2 border-b-2 border-border">
                                 <TableCell colSpan={totalCols} className="text-center py-3">
                                   <span className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
-                                    — No completaron —
+                                    — Corte —
                                   </span>
                                 </TableCell>
                               </TableRow>
