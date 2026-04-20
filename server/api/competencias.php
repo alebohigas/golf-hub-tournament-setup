@@ -502,6 +502,29 @@ usort($competencias, function($a, $b) {
     return $a['order'] - $b['order'];
 });
 
+/**
+ * Final response.
+ * In ?debug=1 mode we wrap the array inside an object so we can attach
+ * a `_debug` payload describing what each section did. The frontend treats
+ * the response as an array of competencias, so debug mode is intended for
+ * manual curl/browser inspection only — DO NOT enable in normal traffic.
+ */
+if (!empty($DEBUG_MODE)) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'competencias' => $competencias,
+        '_debug' => [
+            'torneoid'     => (int)$tid,
+            'tipo_filter'  => $tipo,
+            'detalle'      => $detalle,
+            'numPrem'      => $numPrem,
+            'returned'     => count($competencias),
+            'returned_ids' => array_map(fn($c) => $c['id'], $competencias),
+            'sections'     => $DEBUG_SECTIONS,
+        ],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 json_response($competencias);
 
 } catch (\Throwable $e) {
