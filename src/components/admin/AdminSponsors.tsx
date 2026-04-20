@@ -18,6 +18,8 @@ import { Loader2, Image as ImageIcon, Save, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig, SponsorsConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
+import { useSponsors } from '@/hooks/useTournamentData';
+import SponsorLogoImage from '@/components/sponsors/SponsorLogoImage';
 
 // ============= Constants =============
 
@@ -37,6 +39,9 @@ const AdminSponsors = () => {
   const { data: siteConfig, isLoading } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
+
+  /** Live sponsor list — used to render an actual preview with broken-logo warnings */
+  const { data: sponsors = [], isLoading: isLoadingSponsors } = useSponsors();
 
   /** Local draft state — reflects the column count being edited */
   const [columns, setColumns] = useState<number>(DEFAULT_SPONSORS_CONFIG.columns);
@@ -127,19 +132,53 @@ const AdminSponsors = () => {
 
             {/* Live preview placeholder grid */}
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Vista previa</Label>
+              <Label className="text-sm text-muted-foreground">
+                Vista previa de patrocinadores reales del torneo activo
+              </Label>
               <div
                 className="grid gap-3 p-4 rounded-lg border border-border bg-muted/30"
                 style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
               >
-                {Array.from({ length: columns * 2 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-[3/2] rounded-md bg-background border border-border/60 flex items-center justify-center text-muted-foreground text-xs"
-                  >
-                    Logo
-                  </div>
-                ))}
+                {isLoadingSponsors ? (
+                  // Skeleton placeholders while sponsors are loading
+                  Array.from({ length: columns * 2 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="aspect-[3/2] rounded-md bg-background border border-border/60 flex items-center justify-center text-muted-foreground text-xs"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ))
+                ) : sponsors.length === 0 ? (
+                  <p className="text-xs text-muted-foreground col-span-full text-center py-4">
+                    No hay patrocinadores registrados para este torneo.
+                  </p>
+                ) : (
+                  sponsors.map((sponsor) => (
+                    <div
+                      key={sponsor.id}
+                      className="aspect-[3/2] rounded-md bg-background border border-border/60 flex flex-col items-center justify-center gap-1 p-2"
+                    >
+                      {/* Renders the actual logo, OR a warning placeholder on error.
+                          Admin always sees the warning so broken records are visible. */}
+                      <div className="flex-1 w-full flex items-center justify-center min-h-0">
+                        <SponsorLogoImage
+                          url={sponsor.logoUrl}
+                          alt={sponsor.name}
+                          showErrorPlaceholder
+                          className="max-h-12 max-w-full object-contain"
+                        />
+                      </div>
+                      {/* Sponsor name (from `nombre` column) — always shown for identification */}
+                      <p
+                        className="text-[10px] text-muted-foreground text-center break-words line-clamp-2 w-full"
+                        title={sponsor.name}
+                      >
+                        {sponsor.name}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
