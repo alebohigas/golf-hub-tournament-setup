@@ -132,11 +132,13 @@ if ($tipo === '' || $tipo === 'oyes') {
     $row = safe_query_one($conn, $sql);
     
     if ($row && (int)$row['cnt'] > 0) {
-        // Get groups (prizes)
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name
-                FROM premiosjug
-                WHERE torneoid = $tid
-                ORDER BY premio ASC";
+        // Get groups (prizes) - prize descriptions live in `premios` table, not `premiosjug`
+        $sql = "SELECT DISTINCT pj.premio as id,
+                       COALESCE(p.descripcion, CONCAT('Premio ', pj.premio)) as name
+                FROM premiosjug pj
+                LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
+                WHERE pj.torneoid = $tid
+                ORDER BY pj.premio ASC";
                
         $prizes = safe_query_all($conn, $sql); 
         $groups = [];
