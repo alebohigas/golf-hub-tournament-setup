@@ -256,18 +256,31 @@ if ($tipo === '' || $tipo === 'oyes') {
 
 // ============= Approach, done in a single set approach separate from the course par 3's) =============
 if ($tipo === '' || $tipo === 'approach') {
+    $DEBUG_SECTIONS['approach']['enabled'] = true;
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM approach WHERE torneoid = $tid AND premio > 0";
-    $row = safe_query_one($conn, $sql);
+    $row = dbg_query_one($conn, $sql, 'approach', 'count_distinct_premio');
+    $DEBUG_SECTIONS['approach']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // Get groups (premio, descripcion, hoyo)
+        // Get groups (premio, descripcion, hoyo). The f_ultfechaapproach() function
+        // is OPTIONAL — if it doesn't exist on this DB the whole SELECT would fail,
+        // so we fall back to a no-function variant on error.
         $sql = "SELECT premio as id, descripcion as name, hoyo,
                        LEFT(f_ultfechaapproach(descripcion, torneoid), 16) AS ultact
                 FROM approach
                 WHERE torneoid = $tid AND premio > 0
                 GROUP BY premio, descripcion, hoyo
                 ORDER BY premio ASC";
-        $prizes = safe_query_all($conn, $sql);
+        $prizes = dbg_query_all($conn, $sql, 'approach', 'list_prizes_with_fn');
+        if (empty($prizes) && !empty($DEBUG_SECTIONS['approach']['errors'])) {
+            // Function may be missing — retry without it
+            $sql = "SELECT premio as id, descripcion as name, hoyo, NULL AS ultact
+                    FROM approach
+                    WHERE torneoid = $tid AND premio > 0
+                    GROUP BY premio, descripcion, hoyo
+                    ORDER BY premio ASC";
+            $prizes = dbg_query_all($conn, $sql, 'approach', 'list_prizes_no_fn');
+        }
 
         $groups = [];
         foreach ($prizes as $p) {
@@ -301,8 +314,10 @@ if ($tipo === '' || $tipo === 'approach') {
 
             $groups[] = $group;
         }
+        $DEBUG_SECTIONS['approach']['group_count'] = count($groups);
 
-        $competencias[] = [
+        if (count($groups) > 0) {
+            $competencias[] = [
             'id'          => 'approach',
             'name'        => 'Approach',
             'shortName'   => 'Approach',
@@ -319,7 +334,12 @@ if ($tipo === '' || $tipo === 'approach') {
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
                 ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
-        ];
+            ];
+        } else {
+            $DEBUG_SECTIONS['approach']['reason'] = 'no groups built (prizes query empty or all filtered)';
+        }
+    } else {
+        $DEBUG_SECTIONS['approach']['reason'] = 'no rows in approach with premio > 0';
     }
 }
 error_log("competencias.php - Completed Approach section, competencias count: " . count($competencias));
