@@ -12,6 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useState, useCallback } from 'react';
+import SponsorLogoImage, { SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
 
 /** Default column count when no admin config is set */
 const DEFAULT_COLUMNS = 4;
@@ -51,6 +53,29 @@ const Patrocinadores = () => {
   const columns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
   const { gridClass, cardHeight, logoMax } = getGridConfig(columns);
 
+  /**
+   * Track which sponsor IDs have logos that failed to load.
+   * On the public page these are hidden entirely (instead of showing a broken
+   * image) — only the admin panel exposes the broken-logo warning.
+   */
+  const [brokenIds, setBrokenIds] = useState<Set<number>>(new Set());
+
+  /** Mark/unmark a sponsor as broken based on the image load status. */
+  const handleStatus = useCallback((id: number, status: SponsorLogoStatus) => {
+    setBrokenIds((prev) => {
+      const isBroken = status === 'error';
+      if (isBroken && prev.has(id)) return prev;
+      if (!isBroken && !prev.has(id)) return prev;
+      const next = new Set(prev);
+      if (isBroken) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  /** Sponsors visible to public users — broken logos are filtered out. */
+  const visibleSponsors = sponsors.filter((s) => !brokenIds.has(s.id));
+
   return (
     <Layout>
       <PageHero 
@@ -83,23 +108,32 @@ const Patrocinadores = () => {
             <p className="text-center text-muted-foreground">No hay patrocinadores registrados.</p>
           ) : (
             <div className={`grid ${gridClass} gap-6`}>
-              {sponsors.map((sponsor) => (
+              {sponsors.map((sponsor) => {
+                // Hidden visually if the logo failed, but we still need to mount
+                // the <SponsorLogoImage> for sponsors not yet evaluated so the
+                // onError callback can fire. We render a hidden probe instead.
+                if (brokenIds.has(sponsor.id)) {
+                  return null;
+                }
+                return (
                 <Card key={sponsor.id} className="card-hover border-border/50">
                   <CardContent className={`p-6 flex flex-col items-center justify-between gap-3 ${cardHeight}`}>
                     {/* Logo preview */}
                     <div className="flex-1 w-full flex items-center justify-center min-h-0">
                       {sponsor.websiteUrl ? (
                         <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer">
-                          <img
-                            src={sponsor.logoUrl}
+                          <SponsorLogoImage
+                            url={sponsor.logoUrl}
                             alt={sponsor.name}
+                            onStatusChange={(s) => handleStatus(sponsor.id, s)}
                             className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
                           />
                         </a>
                       ) : (
-                        <img
-                          src={sponsor.logoUrl}
+                        <SponsorLogoImage
+                          url={sponsor.logoUrl}
                           alt={sponsor.name}
+                          onStatusChange={(s) => handleStatus(sponsor.id, s)}
                           className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
                         />
                       )}
@@ -115,7 +149,14 @@ const Patrocinadores = () => {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
+              {/* Empty-state hint when ALL sponsors had broken logos */}
+              {visibleSponsors.length === 0 && (
+                <p className="text-center text-muted-foreground col-span-full">
+                  No hay patrocinadores disponibles para mostrar.
+                </p>
+              )}
             </div>
           )}
 
