@@ -25,7 +25,7 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
      * The DB is being migrated so the path now lives in the dedicated 'logo' column.
      * The legacy 'logo_nombre' column is intentionally NOT read.
      */
-    $sql = "SELECT id, nombre, contacto, logo
+    $sql = "SELECT id, nombre, contacto, logo, logo_nombre
             FROM patrocinadores
             WHERE torneoid = $tid
             ORDER BY nombre ASC";
@@ -40,6 +40,8 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
             'logoUrl'    => $row['logo'] ? $SPONSOR_LOGO_URL . $row['logo'] : null,
             'websiteUrl' => null,
             'contact'    => $row['contacto'],
+            /** Legacy column kept ONLY as a human-readable identifier (e.g. shown under the logo in the public page) */
+            'logoName'   => $row['logo_nombre'] ?? null,
         ];
     }, $rows);
 
