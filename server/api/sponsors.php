@@ -18,10 +18,14 @@ $tableCheck = $conn->query("SHOW TABLES LIKE 'patrocinadores'");
 if ($tableCheck && $tableCheck->num_rows > 0) {
     /**
      * Query sponsors for this tournament
-     * The 'imagen' column contains the relative path from the parent directory
-     * e.g. "logos_patrocinadores/imagen.png"
+     * The 'logo' column contains the relative path from the parent directory
+     * e.g. "logos_patrocinadores/imagen.png".
+     *
+     * NOTE: Previously the path lived in 'logo_nombre' (aliased here as 'imagen').
+     * The DB is being migrated so the path now lives in the dedicated 'logo' column.
+     * The legacy 'logo_nombre' column is intentionally NOT read.
      */
-    $sql = "SELECT id, nombre, contacto, imagen
+    $sql = "SELECT id, nombre, contacto, logo
             FROM patrocinadores
             WHERE torneoid = $tid
             ORDER BY nombre ASC";
@@ -33,7 +37,7 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
         return [
             'id'         => (int)$row['id'],
             'name'       => $row['nombre'],
-            'logoUrl'    => $row['imagen'] ? $SPONSOR_LOGO_URL . $row['imagen'] : null,
+            'logoUrl'    => $row['logo'] ? $SPONSOR_LOGO_URL . $row['logo'] : null,
             'websiteUrl' => null,
             'contact'    => $row['contacto'],
         ];
