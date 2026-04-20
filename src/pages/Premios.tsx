@@ -5,7 +5,8 @@
  * grouped results by competition type with position/medal icons
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
@@ -204,6 +205,29 @@ const SearchResults = ({ groupedResults, playerName }: SearchResultsProps) => {
 const Premios = () => {
   /** Search query state */
   const [searchQuery, setSearchQuery] = useState('');
+  /** URL query params — supports ?q=NAME to preload a search from other pages */
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  /** Sync ?q= URL param into local state on mount and when it changes */
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && q !== searchQuery) {
+      setSearchQuery(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  /** Wrap onChange to also keep ?q= in URL in sync (clears when emptied) */
+  const handleQueryChange = (value: string) => {
+    setSearchQuery(value);
+    const next = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      next.set('q', value.trim());
+    } else {
+      next.delete('q');
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   /** Fetch all competitions with player data */
   const { competencias, isLoading } = useAllCompetenciasWithPlayers();
@@ -247,7 +271,7 @@ const Premios = () => {
           {/* Player Search Bar with autocomplete */}
           <PlayerSearchInput
             value={searchQuery}
-            onChange={setSearchQuery}
+            onChange={handleQueryChange}
             suggestions={playerSuggestions}
             className="max-w-md mx-auto mb-10"
           />
