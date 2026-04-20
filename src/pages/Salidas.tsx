@@ -109,8 +109,9 @@ const Salidas = () => {
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
       const { dayLabel, course, detail } = query.data;
-      for (const group of detail.groups) {
-        const matchIdx = group.players.findIndex((p) =>
+      for (const group of (detail.groups ?? [])) {
+        const players = group.players ?? [];
+        const matchIdx = players.findIndex((p) =>
           normalizeSearchText(p.name).includes(q)
         );
         if (matchIdx !== -1) {
@@ -138,8 +139,8 @@ const Salidas = () => {
     const allNames: string[] = [];
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
-      for (const group of query.data.detail.groups) {
-        for (const p of group.players) {
+      for (const group of (query.data.detail.groups ?? [])) {
+        for (const p of (group.players ?? [])) {
           if (p?.name) allNames.push(p.name);
         }
       }
