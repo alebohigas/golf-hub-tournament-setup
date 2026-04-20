@@ -112,6 +112,9 @@ $detalle  = optional_param('detalle', '0');
 $tid = esc($conn, $torneoid);
 // // echo "/* Debug: Received request for torneoid=$tid, tipo='$tipo', detalle='$detalle' */\n";
 error_log("competencias.php - Request received: torneoid=$tid, tipo='$tipo', detalle='$detalle'");
+
+// Wrap the entire main flow in try/catch so any thrown error becomes JSON
+try {
 // ============= Get tournament config =============
 $sql = "SELECT oyesnumprem FROM torneo WHERE torneo_id = $tid";
 // // echo $sql;
