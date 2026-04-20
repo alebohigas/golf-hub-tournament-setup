@@ -191,16 +191,20 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
     <TableRow className="bg-muted/10 hover:bg-muted/10">
       <TableCell colSpan={colSpan} className="p-0">
         <div className="p-4 border-t border-b border-primary/20">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            {/* Left section: Date (prominent title), player name, round, type */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Date as prominent title - left aligned */}
-              {scorecard.date && scorecard.date !== '0' && (
-                <span className="text-lg font-display font-bold text-primary">
-                  {scorecard.date}
-                </span>
-              )}
+          {/* Date header - prominent title on its own line */}
+          {scorecard.date && scorecard.date !== '0' && (
+            <div className="mb-3 pb-2 border-b border-border/50">
+              <span className="text-muted-foreground text-sm font-medium uppercase tracking-wide">Fecha</span>
+              <span className="ml-2 text-lg font-display font-bold text-primary">
+                {scorecard.date}
+              </span>
+            </div>
+          )}
+
+          {/* Header row with player info and close button */}
+          <div className="flex items-center justify-between mb-3">
+            {/* Left section: player name, round, type */}
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-foreground">{playerName}</span>
               <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
                 {roundLabel}
@@ -211,7 +215,7 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               </span>
             </div>
 
-            {/* Right section: close button only */}
+            {/* Right section: close button */}
             <div className="flex items-center">
               <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="h-4 w-4" />
