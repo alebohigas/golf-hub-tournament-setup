@@ -8,7 +8,8 @@
  * Each type includes its groups (prizes) and player counts
  * 
  * Fixed: SQL join error on v_puttunico view - 2026-04-20
- * 
+ * Note: separator change for cut applied previously - 2026-04-20
+ *
  * Optional: ?tipo=oyes|approach|putt|skin - filter to a specific type
  * Optional: ?detalle=1 - include full player data for each group
  */
