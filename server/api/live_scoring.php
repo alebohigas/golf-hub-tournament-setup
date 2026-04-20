@@ -193,11 +193,7 @@ foreach ($closedRows as $cr) {
 
 // ── Format response ──
 $players = [];
-$pos = 0;
-
 foreach ($rows as $row) {
-    $pos++;
-
     if ($isStableford) {
         /**
          * Stableford player mapping:
@@ -209,7 +205,7 @@ foreach ($rows as $row) {
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
         $players[] = [
-            'position'       => $pos,
+            'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
             'number'         => $row['numjugador'] ?? '',
             'name'           => $row['jugador'],
@@ -238,7 +234,7 @@ foreach ($rows as $row) {
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
         $players[] = [
-            'position'       => $pos,
+            'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
             'name'           => $playerName,
             'clubLogo'       => $row['juglogoclub'] ? $LOGOS_BASE_URL . $row['juglogoclub'] : '',
@@ -256,6 +252,20 @@ foreach ($rows as $row) {
         ];
     }
 }
+
+/**
+ * Re-sort by closed-only Total so the leaderboard reflects what users actually see.
+ *   Stableford → DESC (more points = better)
+ *   Stroke     → ASC  (lower diff to par = better)
+ * Tie-break: keep original order from the SQL (stable sort via usort + index).
+ */
+usort($players, function($a, $b) use ($isStableford) {
+    $sa = (int)$a['score'];
+    $sb = (int)$b['score'];
+    if ($sa === $sb) return 0;
+    return $isStableford ? ($sb <=> $sa) : ($sa <=> $sb);
+});
+foreach ($players as $i => $_) { $players[$i]['position'] = $i + 1; }
 
 json_response([
     'categoryId'   => $catInfo['categoria_id'],
