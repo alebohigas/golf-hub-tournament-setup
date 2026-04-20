@@ -7,6 +7,10 @@
  * whether the ribbon appears on that page.
  *
  * Persisted server-side via `sponsors_config.ribbonVisiblePages`.
+ *
+ * The eye icon next to each route mirrors the global page visibility
+ * configured under Admin → Página → Visibilidad, so admins can see at
+ * a glance whether the underlying page is exposed to end users.
  */
 
 import { useEffect, useState } from 'react';
