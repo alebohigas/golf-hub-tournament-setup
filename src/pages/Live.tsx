@@ -125,26 +125,33 @@ const getStrokeScoreClass = (difpar: number): string => {
 };
 
 /**
- * Check if a player has finished their round (18 holes completed)
+ * Check if a player has finished the tournament.
+ * Authoritative source: backend `finished` flag (1 when all scheduled
+ * scorecards have statlsc=1 in the `tarjetas` table).
+ * Falls back to legacy "thru >= 18" only when the flag is absent.
  */
-const isPlayerFinished = (thru: number): boolean => thru >= 18;
-
-/**
- * Format the "Thru" column display
- * Shows "F" for finished players (18 holes), hole number otherwise, "-" if 0
- */
-const formatThru = (thru: number): string => {
-  if (thru >= 18) return 'F';
-  if (thru === 0) return '-';
-  return String(thru);
+const isPlayerFinished = (player: LivePlayer): boolean => {
+  if (typeof player.finished === 'number') return player.finished === 1;
+  return player.thru >= 18;
 };
 
 /**
- * Check if all players in a category have finished (all thru >= 18)
+ * Format the "Thru" column display
+ * Shows "F" for finished players (tournament complete), hole number otherwise, "-" if 0
+ */
+const formatThru = (player: LivePlayer): string => {
+  if (isPlayerFinished(player)) return 'F';
+  if (player.thru === 0) return '-';
+  return String(player.thru);
+};
+
+/**
+ * Check if a whole category is finished — every player has all scorecards closed.
+ * Uses the backend `finished` flag (statlsc-based) when available.
  */
 const isCategoryCompleted = (players: LivePlayer[]): boolean => {
   if (players.length === 0) return false;
-  return players.every(p => p.thru >= 18);
+  return players.every(p => isPlayerFinished(p));
 };
 
 // ============= Component =============
