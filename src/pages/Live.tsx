@@ -25,7 +25,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getLiveScoringUrl, POLL_LIVE } from '@/config/api';
 import { useSiteConfig, type LiveScoringEntry } from '@/hooks/useSiteConfig';
-import { fetchLiveScorecardFromApi } from '@/hooks/useResultadosData';
+import { fetchLiveScorecardFromApi, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
 import type { RoundScorecard } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
 import liveHero from '@/assets/live-hero.jpg';
@@ -166,7 +166,12 @@ const Live = () => {
 
   /** Expanded scorecard state: playerId or null */
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const [scorecardData, setScorecardData] = useState<RoundScorecard | null>(null);
+  /**
+   * Stack of scorecards for the expanded player, ordered chronologically:
+   * previous closed rounds first (oldest → newest), and the live (in-progress)
+   * scorecard last. Each carries its own `date` for labeling.
+   */
+  const [scorecardStack, setScorecardStack] = useState<RoundScorecard[]>([]);
   const [scorecardLoading, setScorecardLoading] = useState(false);
 
   /** Site config with live scoring entries */
