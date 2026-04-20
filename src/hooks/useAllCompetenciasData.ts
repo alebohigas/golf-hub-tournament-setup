@@ -37,7 +37,7 @@ export interface PlayerCompetitionResult {
 export const useAllCompetenciasWithPlayers = () => {
   // Step 1: Fetch master list to know all types
   const masterQuery = useQuery<CompetenciaTipo[]>({
-    queryKey: ['competencias'],
+    queryKey: ['competencias', 'all-master'],
     queryFn: async () => {
       const data = await apiFetch<CompetenciaTipo[]>(getCompetenciasUrl());
       // Transform API response to map 'descripcion' (backend) to 'description' (frontend)

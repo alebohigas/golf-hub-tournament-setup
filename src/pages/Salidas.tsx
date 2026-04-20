@@ -53,8 +53,12 @@ const Salidas = () => {
   const [selectedCatMeta, setSelectedCatMeta] = useState<SalidasCategory | null>(null);
   /** Player search query */
   const [searchQuery, setSearchQuery] = useState('');
-  /** Whether search mode is active */
-  const [searchActive, setSearchActive] = useState(false);
+  /**
+   * Whether the search results UI should take over the day-selection screen.
+   * Derived from searchQuery length (no separate boolean to avoid stale state).
+   */
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const searchActive = normalizedQuery.length >= 2;
 
   // Fetch master data: days + categories
   const { data: master, isLoading: loadingMaster } = useSalidasMaster();
@@ -72,11 +76,22 @@ const Salidas = () => {
     );
   }, [days]);
 
-  /** Fetch all category details in parallel for search (only when search is active) */
+  /**
+   * Fetch ALL category details in parallel as soon as we know the categories.
+   * We need this data both for the autocomplete suggestions AND for the
+   * search results — fetching only on-demand caused inconsistent results
+   * because suggestions never populated until after typing started, and
+   * late-arriving fetches were ignored by the UI.
+   *
+   * IMPORTANT: This MUST use a different queryKey than `useSalidasDetail`
+   * because it stores a WRAPPED object ({ ...cat, detail }) rather than the
+   * raw SalidasDetailResponse. Sharing the key would corrupt the cache used
+   * by the detail view, causing it to render with `detail.groups === undefined`.
+   */
   const searchQueries = useQueries({
-    queries: searchActive && searchQuery.trim().length >= 2
+    queries: allCategories.length > 0
       ? allCategories.map((cat) => ({
-          queryKey: ['salidas-detail', cat.caljgoid, cat.formato],
+          queryKey: ['salidas-search', cat.caljgoid, cat.formato],
           queryFn: async () => {
             const data = await apiFetch<any>(getSalidasDayUrl(cat.caljgoid, cat.formato));
             return {
@@ -95,23 +110,22 @@ const Salidas = () => {
             };
           },
           staleTime: POLL_ACTIVE,
-          enabled: searchActive && searchQuery.trim().length >= 2,
         }))
       : [],
   });
 
   /** Filter search results based on query (whitespace/accent tolerant) */
   const searchResults = useMemo<SearchResult[]>(() => {
-    const q = normalizeSearchText(searchQuery);
-    if (q.length < 2) return [];
+    if (normalizedQuery.length < 2) return [];
 
     const results: SearchResult[] = [];
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
       const { dayLabel, course, detail } = query.data;
-      for (const group of detail.groups) {
-        const matchIdx = group.players.findIndex((p) =>
-          normalizeSearchText(p.name).includes(q)
+      for (const group of (detail.groups ?? [])) {
+        const players = group.players ?? [];
+        const matchIdx = players.findIndex((p) =>
+          normalizeSearchText(p.name).includes(normalizedQuery)
         );
         if (matchIdx !== -1) {
           results.push({
@@ -127,7 +141,7 @@ const Salidas = () => {
       }
     }
     return results;
-  }, [searchQuery, searchQueries]);
+  }, [normalizedQuery, searchQueries]);
 
   /**
    * Build unique player-name suggestions from already-loaded data.
@@ -138,8 +152,8 @@ const Salidas = () => {
     const allNames: string[] = [];
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
-      for (const group of query.data.detail.groups) {
-        for (const p of group.players) {
+      for (const group of (query.data.detail.groups ?? [])) {
+        for (const p of (group.players ?? [])) {
           if (p?.name) allNames.push(p.name);
         }
       }
@@ -147,8 +161,27 @@ const Salidas = () => {
     return buildUniqueNameSuggestions(allNames);
   }, [searchQueries]);
 
-  /** Whether search data is still loading */
-  const searchLoading = searchActive && normalizeSearchText(searchQuery).length >= 2 && searchQueries.some((q) => q.isLoading);
+  /**
+   * True only while NO query has resolved yet. We intentionally avoid
+   * `some(isLoading)` — that would block the UI even when most days have
+   * already loaded, hiding partial matches the user could already see.
+   */
+  const searchLoading = searchActive && searchQueries.length > 0 && searchQueries.every((q) => q.isLoading);
+
+  /** Count of failed search queries — used to surface silent fetch failures
+      that would otherwise hide a player's tee time on a specific day. */
+  const searchFailures = useMemo(() => {
+    const failed = searchQueries.filter((q) => q.isError);
+    if (failed.length > 0) {
+      // Log details to console so the developer can see which day/category failed
+      // eslint-disable-next-line no-console
+      console.warn('[Salidas search] Some category fetches failed:', failed.map((q, i) => ({
+         category: allCategories[i],
+         error: q.error,
+      })).filter((x) => x.error));
+    }
+    return failed.length;
+  }, [searchQueries, allCategories]);
 
   /** Normalize selected format to endpoint-compatible values */
   const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
@@ -229,7 +262,6 @@ const Salidas = () => {
   /** Clear search and return to normal view */
   const handleClearSearch = () => {
     setSearchQuery('');
-    setSearchActive(false);
   };
 
   return (
@@ -257,14 +289,7 @@ const Salidas = () => {
               <PlayerSearchInput
                 className="max-w-md mx-auto mb-8"
                 value={searchQuery}
-                onChange={(v) => {
-                  setSearchQuery(v);
-                  if (normalizeSearchText(v).length >= 2) {
-                    setSearchActive(true);
-                  } else if (v === '') {
-                    setSearchActive(false);
-                  }
-                }}
+                onChange={setSearchQuery}
                 suggestions={playerSuggestions}
               />
 
@@ -285,6 +310,11 @@ const Salidas = () => {
                       <p className="text-sm text-muted-foreground text-center mb-4">
                         {searchResults.length} grupo{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
                       </p>
+                      {searchFailures > 0 && (
+                        <p className="text-sm text-destructive text-center mb-2">
+                          ⚠️ {searchFailures} día(s)/categoría(s) no se pudieron cargar — algunos resultados pueden faltar. Revisa la consola.
+                        </p>
+                      )}
                       {searchResults.map((result, rIdx) => (
                         <Card key={rIdx} className="border-border/50 bg-white">
                           <CardContent className="p-0 bg-white">
@@ -308,7 +338,7 @@ const Salidas = () => {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {result.group.players.map((player, pIdx) => (
+                                  {(result.group.players ?? []).map((player, pIdx) => (
                                     <TableRow
                                       key={pIdx}
                                       className={`bg-white hover:bg-white ${
@@ -317,10 +347,10 @@ const Salidas = () => {
                                     >
                                       {pIdx === 0 ? (
                                         <>
-                                          <TableCell className="text-center font-bold text-foreground" rowSpan={result.group.players.length}>
+                                          <TableCell className="text-center font-bold text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.tee}
                                           </TableCell>
-                                          <TableCell className="text-center font-medium text-foreground" rowSpan={result.group.players.length}>
+                                          <TableCell className="text-center font-medium text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.time}
                                           </TableCell>
                                         </>
@@ -351,7 +381,7 @@ const Salidas = () => {
                                 <tfoot>
                                   <tr className="bg-primary">
                                     <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
-                                      {result.categoryName}
+                                      CATEGORÍA: {result.categoryName}
                                     </td>
                                   </tr>
                                 </tfoot>
@@ -463,11 +493,11 @@ const Salidas = () => {
                     <p className="text-muted-foreground text-lg">{detail.course}</p>
                     <p className="text-muted-foreground text-lg">{selectedDay?.dateFormatted}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {detail.system} · Tee: {detail.tee} · {detail.groups.length} grupos
+                      {detail.system} · Tee: {detail.tee} · {(detail.groups ?? []).length} grupos
                     </p>
                   </div>
 
-                  {detail.groups.length === 0 ? (
+                  {(detail.groups ?? []).length === 0 ? (
                     <div className="text-center py-16">
                       <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                       <p className="text-muted-foreground text-lg">No hay grupos de salida para esta categoría</p>
@@ -487,12 +517,12 @@ const Salidas = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {detail.groups.map((group, gIdx) => (
-                                group.players.map((player, pIdx) => (
+                              {(detail.groups ?? []).map((group, gIdx) => (
+                                (group.players ?? []).map((player, pIdx) => (
                                   <TableRow
                                     key={`${group.id}-${pIdx}`}
                                     className={`bg-white hover:bg-white ${
-                                      pIdx === group.players.length - 1 && gIdx < detail.groups.length - 1
+                                      pIdx === (group.players ?? []).length - 1 && gIdx < (detail.groups ?? []).length - 1
                                         ? 'border-b-2 border-primary/20'
                                         : ''
                                     }`}
@@ -501,13 +531,13 @@ const Salidas = () => {
                                       <>
                                         <TableCell
                                           className="text-center font-bold text-foreground"
-                                          rowSpan={group.players.length}
+                                          rowSpan={(group.players ?? []).length}
                                         >
                                           {group.tee}
                                         </TableCell>
                                         <TableCell
                                           className="text-center font-medium text-foreground"
-                                          rowSpan={group.players.length}
+                                          rowSpan={(group.players ?? []).length}
                                         >
                                           {group.time}
                                         </TableCell>
@@ -542,7 +572,7 @@ const Salidas = () => {
                             <tfoot>
                               <tr className="bg-primary">
                                 <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
-                                  {detail.categoryName}
+                                  CATEGORÍA: {detail.categoryName}
                                 </td>
                               </tr>
                             </tfoot>
