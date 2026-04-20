@@ -21,6 +21,7 @@ import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
 import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
 import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
 import AdminSponsors from '@/components/admin/AdminSponsors';
+import AdminPagina from '@/components/admin/AdminPagina';
 import { 
   Shield, 
   LogOut, 
@@ -38,6 +39,7 @@ import {
   FileText,
   Radio,
   Image as ImageIcon,
+  LayoutPanelTop,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -298,22 +300,14 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
           </TabsTrigger>
-          <TabsTrigger value="visibility" className="gap-2">
-            <Eye className="h-4 w-4" />
-            <span className="hidden sm:inline">Visibilidad</span>
-          </TabsTrigger>
-          <TabsTrigger value="order" className="gap-2">
-            <GripVertical className="h-4 w-4" />
-            <span className="hidden sm:inline">Orden</span>
-          </TabsTrigger>
-          <TabsTrigger value="groups" className="gap-2">
-            <FolderTree className="h-4 w-4" />
-            <span className="hidden sm:inline">Grupos</span>
+          <TabsTrigger value="pagina" className="gap-2">
+            <LayoutPanelTop className="h-4 w-4" />
+            <span className="hidden sm:inline">Página</span>
           </TabsTrigger>
           <TabsTrigger value="convocatoria" className="gap-2">
             <FileText className="h-4 w-4" />
