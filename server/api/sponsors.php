@@ -17,31 +17,58 @@ $SPONSOR_LOGO_URL = '/api/sponsor_logo.php?file=';
 $tableCheck = $conn->query("SHOW TABLES LIKE 'patrocinadores'");
 if ($tableCheck && $tableCheck->num_rows > 0) {
     /**
-     * Query sponsors for this tournament
-     * The 'logo' column contains the relative path from the parent directory
-     * e.g. "logos_patrocinadores/imagen.png".
+     * Detect which optional columns exist on the patrocinadores table.
      *
-     * NOTE: Previously the path lived in 'logo_nombre' (aliased here as 'imagen').
-     * The DB is being migrated so the path now lives in the dedicated 'logo' column.
-     * The legacy 'logo_nombre' column is intentionally NOT read.
+     * Schema is being migrated:
+     *  - NEW: 'logo'        => holds the relative file path (e.g. "logos_patrocinadores/foo.png")
+     *  - OLD: 'logo_nombre' => previously held the path; now becoming a human-readable label
+     *  - 'contacto'         => optional, may not exist on every deployment
+     *
+     * We probe each column with SHOW COLUMNS so the endpoint stays resilient
+     * regardless of which migration step a given environment is on.
      */
-    $sql = "SELECT id, nombre, contacto, logo, logo_nombre
+    $hasLogo       = $conn->query("SHOW COLUMNS FROM patrocinadores LIKE 'logo'");
+    $hasLogoNombre = $conn->query("SHOW COLUMNS FROM patrocinadores LIKE 'logo_nombre'");
+    $hasContacto   = $conn->query("SHOW COLUMNS FROM patrocinadores LIKE 'contacto'");
+
+    $hasLogo       = $hasLogo && $hasLogo->num_rows > 0;
+    $hasLogoNombre = $hasLogoNombre && $hasLogoNombre->num_rows > 0;
+    $hasContacto   = $hasContacto && $hasContacto->num_rows > 0;
+
+    // Build SELECT list dynamically based on existing columns
+    $selectCols = ['id', 'nombre'];
+    if ($hasContacto)   { $selectCols[] = 'contacto'; }
+    if ($hasLogo)       { $selectCols[] = 'logo'; }
+    if ($hasLogoNombre) { $selectCols[] = 'logo_nombre'; }
+
+    $selectStr = implode(', ', $selectCols);
+    $sql = "SELECT $selectStr
             FROM patrocinadores
             WHERE torneoid = $tid
             ORDER BY nombre ASC";
 
     $rows = query_all($conn, $sql);
 
-    /** Map DB rows to frontend-friendly shape */
-    $sponsors = array_map(function($row) use ($SPONSOR_LOGO_URL) {
+    /**
+     * Map DB rows to frontend-friendly shape.
+     * Path resolution priority: 'logo' (new) → 'logo_nombre' (legacy fallback).
+     */
+    $sponsors = array_map(function($row) use ($SPONSOR_LOGO_URL, $hasLogo, $hasLogoNombre, $hasContacto) {
+        $logoPath = null;
+        if ($hasLogo && !empty($row['logo'])) {
+            $logoPath = $row['logo'];
+        } elseif ($hasLogoNombre && !empty($row['logo_nombre'])) {
+            $logoPath = $row['logo_nombre'];
+        }
+
         return [
             'id'         => (int)$row['id'],
             'name'       => $row['nombre'],
-            'logoUrl'    => $row['logo'] ? $SPONSOR_LOGO_URL . $row['logo'] : null,
+            'logoUrl'    => $logoPath ? $SPONSOR_LOGO_URL . $logoPath : null,
             'websiteUrl' => null,
-            'contact'    => $row['contacto'],
-            /** Legacy column kept ONLY as a human-readable identifier (e.g. shown under the logo in the public page) */
-            'logoName'   => $row['logo_nombre'] ?? null,
+            'contact'    => $hasContacto ? ($row['contacto'] ?? null) : null,
+            /** Human-readable identifier shown under each logo on the public page */
+            'logoName'   => $hasLogoNombre ? ($row['logo_nombre'] ?? null) : null,
         ];
     }, $rows);
 
