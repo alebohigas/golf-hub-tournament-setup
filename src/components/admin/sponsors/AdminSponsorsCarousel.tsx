@@ -12,7 +12,7 @@
  * Persisted server-side via `sponsors_config.carousel` in the site_config row.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { useSponsors } from '@/hooks/useTournamentData';
-import SponsorLogoImage from '@/components/sponsors/SponsorLogoImage';
+import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
 
 // ============= Constants =============
 
@@ -77,31 +77,65 @@ const AdminSponsorsCarousel = () => {
   const [visibleCount, setVisibleCount] = useState<number>(DEFAULT_VISIBLE_COUNT);
 
   /**
+   * Sponsor IDs whose logo image failed to load. These are hidden from the
+   * drag-and-drop list to mirror the public Patrocinadores page / ribbon
+   * (sponsors without a working logo are not advertised anywhere).
+   */
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+  const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
+    setBrokenIds((prev) => {
+      const isBroken = status === 'error';
+      if (isBroken && prev.has(id)) return prev;
+      if (!isBroken && !prev.has(id)) return prev;
+      const next = new Set(prev);
+      if (isBroken) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  /**
+   * Sponsors that actually have a (working) logo. Sponsors with no `logoUrl`
+   * are excluded immediately; sponsors whose <img> errors are excluded once
+   * the load attempt completes (via `brokenIds`).
+   */
+  const renderableSponsors = useMemo(
+    () => sponsors.filter((s) => Boolean(s.logoUrl) && !brokenIds.has(String(s.id))),
+    [sponsors, brokenIds]
+  );
+
+  /**
    * Build the editor's working list by merging:
    *   - the saved order (filtered to existing sponsors),
    *   - any new sponsors not yet present in the order (appended at the end).
    * This keeps newly added sponsors visible without losing the admin's order.
    */
   useEffect(() => {
-    if (sponsors.length === 0) return;
-    const sponsorIds = sponsors.map((s) => Number(s.id));
+    if (renderableSponsors.length === 0) return;
+    const sponsorIds = renderableSponsors.map((s) => Number(s.id));
     const savedOrder = (savedCarousel.order ?? []).filter((id) => sponsorIds.includes(id));
     const missing = sponsorIds.filter((id) => !savedOrder.includes(id));
     setOrderedIds([...savedOrder, ...missing]);
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sponsors, siteConfig?.sponsors_config?.carousel]);
+  }, [renderableSponsors, siteConfig?.sponsors_config?.carousel]);
 
   /** Quick lookup: sponsor by ID */
   const sponsorById = useMemo(() => {
     const map = new Map<number, (typeof sponsors)[number]>();
-    sponsors.forEach((s) => map.set(Number(s.id), s));
+    renderableSponsors.forEach((s) => map.set(Number(s.id), s));
     return map;
-  }, [sponsors]);
+  }, [renderableSponsors]);
 
-  /** Total sponsors available for this tournament */
-  const totalSponsors = sponsors.length;
+  /** Total sponsors with a working logo (the only ones we show anywhere) */
+  const totalSponsors = renderableSponsors.length;
+
+  /** Sponsors with no logo at all — surfaced as a hint at the bottom */
+  const missingLogoSponsors = useMemo(
+    () => sponsors.filter((s) => !s.logoUrl || brokenIds.has(String(s.id))),
+    [sponsors, brokenIds]
+  );
 
   /** Effective number of logos shown on the public ribbon */
   const effectiveVisible =
@@ -175,12 +209,27 @@ const AdminSponsorsCarousel = () => {
             <Loader2 className="h-4 w-4 animate-spin" />
             Cargando configuración...
           </div>
-        ) : totalSponsors === 0 ? (
+        ) : sponsors.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
             No hay patrocinadores registrados para este torneo.
           </p>
         ) : (
           <>
+            {/* Hidden probes: trigger image loads for ALL sponsors with a URL
+                so we can detect broken logos and exclude them from the editor. */}
+            <div className="hidden" aria-hidden="true">
+              {sponsors
+                .filter((s) => Boolean(s.logoUrl))
+                .map((s) => (
+                  <SponsorLogoImage
+                    key={`probe-${s.id}`}
+                    url={s.logoUrl}
+                    alt={s.name}
+                    onStatusChange={(status) => handleStatus(String(s.id), status)}
+                  />
+                ))}
+            </div>
+
             {/* Header: status + Save button */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -204,6 +253,16 @@ const AdminSponsorsCarousel = () => {
                 Guardar cambios
               </Button>
             </div>
+
+            {/* Hint: sponsors excluded because they have no usable logo */}
+            {missingLogoSponsors.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {missingLogoSponsors.length} patrocinador
+                {missingLogoSponsors.length === 1 ? '' : 'es'} sin logo válido
+                {missingLogoSponsors.length === 1 ? ' fue ocultado' : ' fueron ocultados'} del
+                carrusel y de la página pública de Patrocinadores.
+              </p>
+            )}
 
             {/* Settings: randomize + visible count */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
