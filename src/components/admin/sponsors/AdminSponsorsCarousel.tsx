@@ -6,8 +6,10 @@
  *  - Drag-and-drop ordering of sponsor logos (uses @hello-pangea/dnd).
  *  - Randomize toggle: when on, the ribbon is shuffled on every page load
  *    and the manual order is ignored on the public site (kept here as a fallback).
- *  - Visible count: caps how many distinct sponsor logos appear in the ribbon
- *    at any given time (0 = show all).
+ *  - Visible count: how many sponsor logos fit on screen in the ribbon at any
+ *    given moment. Each slot gets `100% / visibleCount` of the container
+ *    width on the public site. Lower values also speed up the scrolling
+ *    animation slightly so the ribbon doesn't feel sluggish. 0 = auto sizing.
  *
  * Persisted server-side via `sponsors_config.carousel` in the site_config row.
  */
@@ -26,8 +28,6 @@ import {
   Save,
   Shuffle,
   CheckCircle2,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
@@ -137,9 +137,20 @@ const AdminSponsorsCarousel = () => {
     [sponsors, brokenIds]
   );
 
-  /** Effective number of logos shown on the public ribbon */
-  const effectiveVisible =
+  /** How many logos will be visible on screen in the ribbon at any moment. */
+  const onScreenLogos =
     visibleCount > 0 ? Math.min(visibleCount, totalSponsors) : totalSponsors;
+
+  /**
+   * Human-readable label for the resulting scroll speed (mirrors the logic
+   * applied in `SponsorRibbon`). Keeps admins informed without exposing
+   * raw seconds.
+   */
+  const speedLabel =
+    visibleCount === 1 ? 'rápida' :
+    visibleCount === 2 ? 'rápida' :
+    visibleCount === 3 ? 'moderada' :
+    'estándar';
 
   /** Detect unsaved changes vs. server-stored config */
   const hasChanges =
@@ -176,8 +187,8 @@ const AdminSponsorsCarousel = () => {
           toast({
             title: 'Carrusel guardado',
             description: randomize
-              ? `Aleatorio activo. Mostrando ${effectiveVisible} de ${totalSponsors} logos.`
-              : `Orden personalizado guardado. Mostrando ${effectiveVisible} de ${totalSponsors} logos.`,
+              ? `Aleatorio activo. ${onScreenLogos} logo${onScreenLogos === 1 ? '' : 's'} en pantalla a la vez.`
+              : `Orden personalizado guardado. ${onScreenLogos} logo${onScreenLogos === 1 ? '' : 's'} en pantalla a la vez.`,
           });
         },
         onError: (err) => {
@@ -200,7 +211,8 @@ const AdminSponsorsCarousel = () => {
         </CardTitle>
         <CardDescription>
           Define el orden de los patrocinadores, activa la rotación aleatoria
-          y limita cuántos logos se muestran al mismo tiempo en el ribbon.
+          y elige cuántos logos caben en pantalla a la vez en el ribbon.
+          Con menos logos visibles, el ribbon se mueve un poco más rápido.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -234,10 +246,11 @@ const AdminSponsorsCarousel = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
-                Mostrando{' '}
-                <span className="font-mono font-bold">{effectiveVisible}</span>{' '}
-                de <span className="font-mono font-bold">{totalSponsors}</span>{' '}
-                {randomize ? '(orden aleatorio)' : '(orden personalizado)'}
+                <span className="font-mono font-bold">{onScreenLogos}</span> logo
+                {onScreenLogos === 1 ? '' : 's'} en pantalla a la vez · velocidad{' '}
+                <span className="font-bold">{speedLabel}</span>
+                {' · '}
+                {randomize ? 'orden aleatorio' : 'orden personalizado'}
               </p>
               <Button
                 onClick={handleSave}
@@ -294,10 +307,11 @@ const AdminSponsorsCarousel = () => {
               <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-md border border-border bg-background">
                 <div className="flex flex-col min-w-0">
                   <Label htmlFor="carousel-visible-count" className="text-sm font-medium">
-                    Logos visibles
+                    Logos visibles a la vez
                   </Label>
                   <span className="text-xs text-muted-foreground">
-                    Máximo de logos distintos en el ribbon. 0 = mostrar todos.
+                    Cuántos logos caben en pantalla simultáneamente. Con 1–3 el
+                    ribbon se mueve más rápido. 0 = tamaño automático.
                   </span>
                 </div>
                 <Input
@@ -320,10 +334,9 @@ const AdminSponsorsCarousel = () => {
             <div className="space-y-2">
               <Label className="text-sm">Orden del carrusel</Label>
               <p className="text-xs text-muted-foreground">
-                Arrastra para reordenar. Los primeros{' '}
-                <span className="font-mono font-bold">{effectiveVisible}</span>{' '}
-                logos serán los visibles cuando "Logos visibles" sea mayor a 0
-                y el orden aleatorio esté desactivado.
+                Arrastra para reordenar. Todos los logos rotan en el ribbon —
+                el campo "Logos visibles a la vez" solo controla cuántos caben
+                simultáneamente en pantalla.
               </p>
 
               <DragDropContext onDragEnd={handleDragEnd}>
@@ -337,8 +350,6 @@ const AdminSponsorsCarousel = () => {
                       {orderedIds.map((id, index) => {
                         const sponsor = sponsorById.get(id);
                         if (!sponsor) return null;
-                        const isWithinVisibleSlice =
-                          visibleCount === 0 || index < effectiveVisible;
                         return (
                           <Draggable
                             key={id}
@@ -353,8 +364,7 @@ const AdminSponsorsCarousel = () => {
                                 className={cn(
                                   'flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-background',
                                   snapshot.isDragging && 'shadow-lg border-primary/40 bg-primary/5',
-                                  randomize && 'opacity-60',
-                                  !isWithinVisibleSlice && !randomize && 'opacity-50'
+                                  randomize && 'opacity-60'
                                 )}
                               >
                                 {/* Drag handle */}
@@ -376,19 +386,6 @@ const AdminSponsorsCarousel = () => {
                                   {index + 1}
                                 </span>
 
-                                {/* Visibility-within-slice indicator */}
-                                {isWithinVisibleSlice ? (
-                                  <Eye
-                                    className="h-4 w-4 shrink-0 text-primary"
-                                    aria-label="Visible en el ribbon"
-                                  />
-                                ) : (
-                                  <EyeOff
-                                    className="h-4 w-4 shrink-0 text-muted-foreground/60"
-                                    aria-label="Fuera del corte de logos visibles"
-                                  />
-                                )}
-
                                 {/* Logo thumbnail */}
                                 <div className="h-10 w-16 shrink-0 flex items-center justify-center bg-muted/30 border border-border/50 rounded">
                                   <SponsorLogoImage
@@ -401,10 +398,7 @@ const AdminSponsorsCarousel = () => {
 
                                 {/* Sponsor name */}
                                 <span
-                                  className={cn(
-                                    'text-sm font-medium truncate flex-1',
-                                    !isWithinVisibleSlice && !randomize && 'text-muted-foreground'
-                                  )}
+                                  className="text-sm font-medium truncate flex-1"
                                   title={sponsor.name}
                                 >
                                   {sponsor.name}
