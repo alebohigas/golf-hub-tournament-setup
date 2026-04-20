@@ -83,12 +83,15 @@ const Salidas = () => {
    * because suggestions never populated until after typing started, and
    * late-arriving fetches were ignored by the UI.
    *
-   * React Query dedupes by key, so this is shared with the per-day fetches.
+   * IMPORTANT: This MUST use a different queryKey than `useSalidasDetail`
+   * because it stores a WRAPPED object ({ ...cat, detail }) rather than the
+   * raw SalidasDetailResponse. Sharing the key would corrupt the cache used
+   * by the detail view, causing it to render with `detail.groups === undefined`.
    */
   const searchQueries = useQueries({
     queries: allCategories.length > 0
       ? allCategories.map((cat) => ({
-          queryKey: ['salidas-detail', cat.caljgoid, cat.formato],
+          queryKey: ['salidas-search', cat.caljgoid, cat.formato],
           queryFn: async () => {
             const data = await apiFetch<any>(getSalidasDayUrl(cat.caljgoid, cat.formato));
             return {
