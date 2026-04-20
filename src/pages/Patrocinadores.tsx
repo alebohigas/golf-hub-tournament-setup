@@ -85,21 +85,33 @@ const Patrocinadores = () => {
             <div className={`grid ${gridClass} gap-6`}>
               {sponsors.map((sponsor) => (
                 <Card key={sponsor.id} className="card-hover border-border/50">
-                  <CardContent className={`p-8 flex items-center justify-center ${cardHeight}`}>
-                    {sponsor.websiteUrl ? (
-                      <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer">
-                        <img 
-                          src={sponsor.logoUrl} 
+                  <CardContent className={`p-6 flex flex-col items-center justify-between gap-3 ${cardHeight}`}>
+                    {/* Logo preview */}
+                    <div className="flex-1 w-full flex items-center justify-center min-h-0">
+                      {sponsor.websiteUrl ? (
+                        <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={sponsor.logoUrl}
+                            alt={sponsor.name}
+                            className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
+                          />
+                        </a>
+                      ) : (
+                        <img
+                          src={sponsor.logoUrl}
                           alt={sponsor.name}
                           className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
                         />
-                      </a>
-                    ) : (
-                      <img 
-                        src={sponsor.logoUrl} 
-                        alt={sponsor.name}
-                        className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
-                      />
+                      )}
+                    </div>
+                    {/* logo_nombre label — helps identify each sponsor at a glance */}
+                    {sponsor.logoName && (
+                      <p
+                        className="text-xs text-muted-foreground text-center font-mono break-all line-clamp-2 w-full"
+                        title={sponsor.logoName}
+                      >
+                        {sponsor.logoName}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
