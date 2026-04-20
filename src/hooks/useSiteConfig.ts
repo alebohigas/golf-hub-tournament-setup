@@ -30,6 +30,21 @@ export interface SponsorsConfig {
    * If undefined, the ribbon defaults to visible on every page (legacy behavior).
    */
   ribbonVisiblePages?: Record<string, boolean>;
+  /**
+   * Carousel/ribbon presentation settings.
+   *  - order:         Custom sponsor display order as an array of sponsor IDs (numbers).
+   *                   Sponsors not present in this list fall back to alphabetical order
+   *                   (server default) and are appended after the configured ones.
+   *  - randomize:     When true, the displayed order is shuffled on every page load.
+   *                   The custom `order` is ignored in this case.
+   *  - visibleCount:  Maximum number of distinct sponsor logos to keep "visible"
+   *                   (i.e. included in the ribbon set). 0 / undefined = show all.
+   */
+  carousel?: {
+    order?: number[];
+    randomize?: boolean;
+    visibleCount?: number;
+  };
 }
 
 /** Full server response for site config */

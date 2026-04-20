@@ -4,6 +4,7 @@
  * Data fetched from sponsors.php via useSponsors hook
  */
 
+import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
@@ -15,11 +16,54 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
  * Visibility per route is admin-controlled via `sponsors_config.ribbonVisiblePages`
  * (managed in /admin → tab Patrocinadores). If no per-page config exists,
  * the ribbon defaults to visible everywhere.
+ *
+ * Order, randomization and the maximum number of visible logos are admin-controlled
+ * via `sponsors_config.carousel` (Admin → Patrocinadores → Carrusel):
+ *   - carousel.order:        custom display order (array of sponsor IDs)
+ *   - carousel.randomize:    shuffle order on every render (overrides custom order)
+ *   - carousel.visibleCount: max number of distinct sponsors included in the ribbon
  */
 const SponsorRibbon = () => {
   const { data: sponsors = [] } = useSponsors();
   const { data: siteConfig } = useSiteConfig();
   const { pathname } = useLocation();
+
+  /**
+   * Apply admin carousel config (order / randomize / visibleCount) to the
+   * raw sponsor list before duplicating it for the infinite-scroll loop.
+   * Memoized so randomization happens once per mount/data change instead of
+   * on every re-render.
+   */
+  const carousel = siteConfig?.sponsors_config?.carousel;
+  const orderedSponsors = useMemo(() => {
+    if (!sponsors.length) return [];
+    let list = [...sponsors];
+
+    if (carousel?.randomize) {
+      // Fisher–Yates shuffle for an unbiased random order
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+    } else if (carousel?.order && carousel.order.length > 0) {
+      // Apply custom order: configured IDs first (in admin order), then any
+      // sponsors not present in the order array (preserves server alphabetical order).
+      const indexById = new Map<number, number>();
+      carousel.order.forEach((id, idx) => indexById.set(id, idx));
+      list.sort((a, b) => {
+        const ai = indexById.has(Number(a.id)) ? (indexById.get(Number(a.id)) as number) : Number.POSITIVE_INFINITY;
+        const bi = indexById.has(Number(b.id)) ? (indexById.get(Number(b.id)) as number) : Number.POSITIVE_INFINITY;
+        return ai - bi;
+      });
+    }
+
+    // Cap the number of distinct logos shown if visibleCount is set (>0)
+    const cap = carousel?.visibleCount ?? 0;
+    if (cap > 0 && list.length > cap) {
+      list = list.slice(0, cap);
+    }
+    return list;
+  }, [sponsors, carousel?.randomize, carousel?.order, carousel?.visibleCount]);
 
   // Per-page visibility map from server config — undefined = legacy default (show everywhere)
   const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
@@ -27,10 +71,10 @@ const SponsorRibbon = () => {
     return null;
   }
 
-  if (sponsors.length === 0) return null;
+  if (orderedSponsors.length === 0) return null;
 
   // Duplicate sponsors for infinite scroll effect
-  const duplicatedSponsors = [...sponsors, ...sponsors];
+  const duplicatedSponsors = [...orderedSponsors, ...orderedSponsors];
 
   return (
     <div className="bg-muted/50 border-y border-border py-4 overflow-hidden">

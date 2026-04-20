@@ -2,20 +2,161 @@
  * AdminSponsorsCarousel Component
  * Sub-tab inside Admin → Patrocinadores.
  *
- * Placeholder for the upcoming "Carrusel" feature (large rotating sponsor
- * showcase). The configuration UI for this feature will be added in the
- * next iteration.
+ * Lets the admin configure how the public sponsor ribbon/carousel is displayed:
+ *  - Drag-and-drop ordering of sponsor logos (uses @hello-pangea/dnd).
+ *  - Randomize toggle: when on, the ribbon is shuffled on every page load
+ *    and the manual order is ignored on the public site (kept here as a fallback).
+ *  - Visible count: caps how many distinct sponsor logos appear in the ribbon
+ *    at any given time (0 = show all).
+ *
+ * Persisted server-side via `sponsors_config.carousel` in the site_config row.
  */
 
+import { useEffect, useMemo, useState } from 'react';
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GalleryHorizontal, Wrench } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import {
+  GalleryHorizontal,
+  GripVertical,
+  Loader2,
+  Save,
+  Shuffle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
+import { useToast } from '@/hooks/use-toast';
+import { useSponsors } from '@/hooks/useTournamentData';
+import SponsorLogoImage from '@/components/sponsors/SponsorLogoImage';
+
+// ============= Constants =============
+
+/** Default visibleCount used when nothing is stored yet (0 = "all") */
+const DEFAULT_VISIBLE_COUNT = 0;
+
+// ============= Helpers =============
+
+/**
+ * Reorder helper used by the drag-and-drop callback to move an item from one
+ * index to another while preserving the rest of the list.
+ */
+const reorder = <T,>(list: T[], startIndex: number, endIndex: number): T[] => {
+  const result = [...list];
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+  return result;
+};
+
+// ============= Component =============
 
 /**
  * AdminSponsorsCarousel
- * Currently displays an "in progress" placeholder so the tab structure
- * is in place ahead of the carousel feature implementation.
+ * Drag-and-drop ordering + randomize toggle + visible-count selector for the
+ * public sponsor ribbon. Saves to `site_config.sponsors_config.carousel`.
  */
 const AdminSponsorsCarousel = () => {
+  const { data: siteConfig, isLoading: isLoadingConfig } = useSiteConfig();
+  const { data: sponsors = [], isLoading: isLoadingSponsors } = useSponsors();
+  const saveSiteConfig = useSaveSiteConfig();
+  const { toast } = useToast();
+
+  /** Saved carousel config (or sane defaults) */
+  const savedCarousel = siteConfig?.sponsors_config?.carousel ?? {};
+
+  /** Local draft state — order of sponsor IDs */
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+  /** Local draft state — randomize on each page load */
+  const [randomize, setRandomize] = useState<boolean>(false);
+  /** Local draft state — max distinct logos visible at any time (0 = all) */
+  const [visibleCount, setVisibleCount] = useState<number>(DEFAULT_VISIBLE_COUNT);
+
+  /**
+   * Build the editor's working list by merging:
+   *   - the saved order (filtered to existing sponsors),
+   *   - any new sponsors not yet present in the order (appended at the end).
+   * This keeps newly added sponsors visible without losing the admin's order.
+   */
+  useEffect(() => {
+    if (sponsors.length === 0) return;
+    const sponsorIds = sponsors.map((s) => Number(s.id));
+    const savedOrder = (savedCarousel.order ?? []).filter((id) => sponsorIds.includes(id));
+    const missing = sponsorIds.filter((id) => !savedOrder.includes(id));
+    setOrderedIds([...savedOrder, ...missing]);
+    setRandomize(Boolean(savedCarousel.randomize));
+    setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sponsors, siteConfig?.sponsors_config?.carousel]);
+
+  /** Quick lookup: sponsor by ID */
+  const sponsorById = useMemo(() => {
+    const map = new Map<number, (typeof sponsors)[number]>();
+    sponsors.forEach((s) => map.set(Number(s.id), s));
+    return map;
+  }, [sponsors]);
+
+  /** Total sponsors available for this tournament */
+  const totalSponsors = sponsors.length;
+
+  /** Effective number of logos shown on the public ribbon */
+  const effectiveVisible =
+    visibleCount > 0 ? Math.min(visibleCount, totalSponsors) : totalSponsors;
+
+  /** Detect unsaved changes vs. server-stored config */
+  const hasChanges =
+    JSON.stringify(orderedIds) !== JSON.stringify(savedCarousel.order ?? []) ||
+    Boolean(savedCarousel.randomize) !== randomize ||
+    (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount;
+
+  /** DnD callback — applies the new order returned by react-beautiful-dnd */
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    if (result.destination.index === result.source.index) return;
+    setOrderedIds((prev) => reorder(prev, result.source.index, result.destination!.index));
+  };
+
+  /**
+   * Persist the carousel config to the server, preserving any other sponsors_config
+   * fields (columns, ribbonVisiblePages).
+   */
+  const handleSave = () => {
+    saveSiteConfig.mutate(
+      {
+        password: 'admin2025',
+        sponsors_config: {
+          ...(siteConfig?.sponsors_config ?? { columns: 4 }),
+          carousel: {
+            order: orderedIds,
+            randomize,
+            visibleCount,
+          },
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Carrusel guardado',
+            description: randomize
+              ? `Aleatorio activo. Mostrando ${effectiveVisible} de ${totalSponsors} logos.`
+              : `Orden personalizado guardado. Mostrando ${effectiveVisible} de ${totalSponsors} logos.`,
+          });
+        },
+        onError: (err) => {
+          toast({
+            title: 'Error al guardar',
+            description: err.message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -24,20 +165,204 @@ const AdminSponsorsCarousel = () => {
           Carrusel de Patrocinadores
         </CardTitle>
         <CardDescription>
-          Próximamente: configura el carrusel destacado de patrocinadores.
+          Define el orden de los patrocinadores, activa la rotación aleatoria
+          y limita cuántos logos se muestran al mismo tiempo en el ribbon.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center justify-center text-center gap-3 py-10 px-4 rounded-lg border border-dashed border-border bg-muted/30">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Wrench className="h-6 w-6 text-primary" />
+      <CardContent className="space-y-6">
+        {isLoadingConfig || isLoadingSponsors ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Cargando configuración...
           </div>
-          <p className="text-sm font-medium">Sección en construcción</p>
-          <p className="text-xs text-muted-foreground max-w-md">
-            Aquí podrás configurar el carrusel de patrocinadores: orden, duración por slide,
-            páginas donde se muestra y más. Lo definimos en el siguiente branch.
+        ) : totalSponsors === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No hay patrocinadores registrados para este torneo.
           </p>
-        </div>
+        ) : (
+          <>
+            {/* Header: status + Save button */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                Mostrando{' '}
+                <span className="font-mono font-bold">{effectiveVisible}</span>{' '}
+                de <span className="font-mono font-bold">{totalSponsors}</span>{' '}
+                {randomize ? '(orden aleatorio)' : '(orden personalizado)'}
+              </p>
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || saveSiteConfig.isPending}
+                size="sm"
+                className="gap-2"
+              >
+                {saveSiteConfig.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Guardar cambios
+              </Button>
+            </div>
+
+            {/* Settings: randomize + visible count */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Randomize toggle */}
+              <label
+                htmlFor="carousel-randomize"
+                className={cn(
+                  'flex items-center justify-between gap-3 px-4 py-3 rounded-md border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors',
+                  randomize && 'border-primary/40 bg-primary/5'
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Shuffle className="h-4 w-4 text-primary shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium">Orden aleatorio</span>
+                    <span className="text-xs text-muted-foreground">
+                      Cada visita muestra los logos en orden distinto.
+                    </span>
+                  </div>
+                </div>
+                <Switch
+                  id="carousel-randomize"
+                  checked={randomize}
+                  onCheckedChange={setRandomize}
+                />
+              </label>
+
+              {/* Visible count input */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-md border border-border bg-background">
+                <div className="flex flex-col min-w-0">
+                  <Label htmlFor="carousel-visible-count" className="text-sm font-medium">
+                    Logos visibles
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    Máximo de logos distintos en el ribbon. 0 = mostrar todos.
+                  </span>
+                </div>
+                <Input
+                  id="carousel-visible-count"
+                  type="number"
+                  min={0}
+                  max={totalSponsors}
+                  value={visibleCount}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isNaN(v)) return;
+                    setVisibleCount(Math.max(0, Math.min(v, totalSponsors)));
+                  }}
+                  className="w-24 text-right font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Drag-and-drop sponsor list */}
+            <div className="space-y-2">
+              <Label className="text-sm">Orden del carrusel</Label>
+              <p className="text-xs text-muted-foreground">
+                Arrastra para reordenar. Los primeros{' '}
+                <span className="font-mono font-bold">{effectiveVisible}</span>{' '}
+                logos serán los visibles cuando "Logos visibles" sea mayor a 0
+                y el orden aleatorio esté desactivado.
+              </p>
+
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="carousel-list">
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="space-y-1.5"
+                    >
+                      {orderedIds.map((id, index) => {
+                        const sponsor = sponsorById.get(id);
+                        if (!sponsor) return null;
+                        const isWithinVisibleSlice =
+                          visibleCount === 0 || index < effectiveVisible;
+                        return (
+                          <Draggable
+                            key={id}
+                            draggableId={String(id)}
+                            index={index}
+                            isDragDisabled={randomize}
+                          >
+                            {(prov, snapshot) => (
+                              <div
+                                ref={prov.innerRef}
+                                {...prov.draggableProps}
+                                className={cn(
+                                  'flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-background',
+                                  snapshot.isDragging && 'shadow-lg border-primary/40 bg-primary/5',
+                                  randomize && 'opacity-60',
+                                  !isWithinVisibleSlice && !randomize && 'opacity-50'
+                                )}
+                              >
+                                {/* Drag handle */}
+                                <button
+                                  type="button"
+                                  {...prov.dragHandleProps}
+                                  className={cn(
+                                    'shrink-0 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+                                    randomize && 'cursor-not-allowed opacity-40'
+                                  )}
+                                  aria-label="Arrastrar para reordenar"
+                                  disabled={randomize}
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </button>
+
+                                {/* Position number */}
+                                <span className="font-mono text-xs text-muted-foreground w-6 text-right shrink-0">
+                                  {index + 1}
+                                </span>
+
+                                {/* Visibility-within-slice indicator */}
+                                {isWithinVisibleSlice ? (
+                                  <Eye
+                                    className="h-4 w-4 shrink-0 text-primary"
+                                    aria-label="Visible en el ribbon"
+                                  />
+                                ) : (
+                                  <EyeOff
+                                    className="h-4 w-4 shrink-0 text-muted-foreground/60"
+                                    aria-label="Fuera del corte de logos visibles"
+                                  />
+                                )}
+
+                                {/* Logo thumbnail */}
+                                <div className="h-10 w-16 shrink-0 flex items-center justify-center bg-muted/30 border border-border/50 rounded">
+                                  <SponsorLogoImage
+                                    url={sponsor.logoUrl}
+                                    alt={sponsor.name}
+                                    showErrorPlaceholder
+                                    className="max-h-full max-w-full object-contain"
+                                  />
+                                </div>
+
+                                {/* Sponsor name */}
+                                <span
+                                  className={cn(
+                                    'text-sm font-medium truncate flex-1',
+                                    !isWithinVisibleSlice && !randomize && 'text-muted-foreground'
+                                  )}
+                                  title={sponsor.name}
+                                >
+                                  {sponsor.name}
+                                </span>
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
