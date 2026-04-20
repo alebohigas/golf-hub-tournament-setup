@@ -6,8 +6,10 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Trophy, Target, Ruler, Crosshair, Flag, Zap, Star, Award, Medal, Loader2 } from 'lucide-react';
@@ -16,6 +18,7 @@ import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
+import { useAllCompetenciasWithPlayers, collectUniquePlayerNames } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
