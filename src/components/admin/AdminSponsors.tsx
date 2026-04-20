@@ -109,21 +109,38 @@ const AdminSponsors = () => {
               &nbsp;columna{currentSavedColumns > 1 ? 's' : ''}
             </p>
 
-            {/* Column selector */}
+            {/* Column selector + inline Save button (right side) */}
             <div className="space-y-2">
               <Label className="text-sm">Columnas en la cuadrícula</Label>
-              <div className="flex flex-wrap gap-2">
-                {COLUMN_OPTIONS.map((opt) => (
-                  <Button
-                    key={opt}
-                    variant={columns === opt ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setColumns(opt)}
-                    className={cn('min-w-[3rem]', columns === opt && 'pointer-events-none')}
-                  >
-                    {opt}
-                  </Button>
-                ))}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Column option buttons */}
+                <div className="flex flex-wrap gap-2">
+                  {COLUMN_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt}
+                      variant={columns === opt ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setColumns(opt)}
+                      className={cn('min-w-[3rem]', columns === opt && 'pointer-events-none')}
+                    >
+                      {opt}
+                    </Button>
+                  ))}
+                </div>
+                {/* Inline Save button — relocated from the bottom of the card */}
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges || saveSiteConfig.isPending}
+                  size="sm"
+                  className="gap-2"
+                >
+                  {saveSiteConfig.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Guardar cambios
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 En pantallas pequeñas el grid se reduce automáticamente para mantener legibilidad.
@@ -180,18 +197,6 @@ const AdminSponsors = () => {
                   ))
                 )}
               </div>
-            </div>
-
-            {/* Save */}
-            <div className="flex justify-end">
-              <Button onClick={handleSave} disabled={!hasChanges || saveSiteConfig.isPending} className="gap-2">
-                {saveSiteConfig.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Guardar cambios
-              </Button>
             </div>
           </>
         )}
