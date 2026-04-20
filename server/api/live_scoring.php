@@ -132,6 +132,9 @@ foreach ($rows as $row) {
             'todayScore'     => (int)($row['sa'] ?? 0),
             'thru'           => (int)($row['avance'] ?? 0),
             'status'         => $row['estatjug'] ?? '',
+            'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
+            'cardsTotal'     => $totalRounds,
+            'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
         ];
     } else {
         /**
@@ -153,6 +156,9 @@ foreach ($rows as $row) {
             'thru'           => (int)($row['avance_ulttar'] ?? 0),
             'handicap'       => $row['indexjgo'] ?? '',
             'status'         => $row['estatjug'] ?? '',
+            'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
+            'cardsTotal'     => $totalRounds,
+            'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
         ];
     }
 }
@@ -165,6 +171,7 @@ json_response([
     'type'         => $isStableford ? 'stableford' : 'stroke',
     'gross'        => (int)$gross,
     'par'          => $parcampo,
+    'totalRounds'  => $totalRounds,
     'course'       => $courseInfo ? [
         'rating' => (float)($courseInfo['rating'] ?? 0),
         'slope'  => (int)($courseInfo['slope'] ?? 0),
