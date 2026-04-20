@@ -505,15 +505,19 @@ const Live = () => {
                                   {player.name}
                                 </TableCell>
 
-                                {/* Main score — clickable to expand stacked scorecards (previous rounds + live) */}
+                                {/*
+                                  Total column — clickable when player has previously CLOSED scorecards.
+                                  Click expands all previous closed cards (statlsc=1) stacked by date.
+                                  Live/in-progress round is NOT included here (see "Hoy").
+                                */}
                                 <TableCell className="text-center p-0">
-                                  {(player.thru > 0 || (player.prevRoundDates && player.prevRoundDates.length > 0)) ? (
+                                  {(player.prevRoundDates && player.prevRoundDates.length > 0) ? (
                                     <button
-                                      onClick={() => handleScoreClick(player)}
+                                      onClick={() => handleTotalClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjetas (rondas previas + en vivo)"
+                                      title="Ver tarjetas de rondas previas"
                                     >
                                       {isStroke ? formatDifPar(player.score) : player.score}
                                     </button>
@@ -529,21 +533,41 @@ const Live = () => {
                                   {formatThru(player)}
                                 </TableCell>
 
-                                {/* Today's score */}
-                                <TableCell className={`text-center text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
-                                  {isStroke
-                                    ? formatDifPar(player.todayScore ?? 0)
-                                    : (player.todayScore ?? '-')
-                                  }
+                                {/*
+                                  Hoy column — clickable when player has started today's round (thru > 0).
+                                  Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
+                                */}
+                                <TableCell className="text-center p-0">
+                                  {player.thru > 0 ? (
+                                    <button
+                                      onClick={() => handleTodayClick(player)}
+                                      className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
+                                        isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''
+                                      } ${expandedPlayerId === `${player.playerId}::today` ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
+                                      title="Ver tarjeta en vivo (ronda en curso)"
+                                    >
+                                      {isStroke
+                                        ? formatDifPar(player.todayScore ?? 0)
+                                        : (player.todayScore ?? '-')
+                                      }
+                                    </button>
+                                  ) : (
+                                    <span className={`py-3 px-2 inline-block text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
+                                      {isStroke
+                                        ? formatDifPar(player.todayScore ?? 0)
+                                        : (player.todayScore ?? '-')
+                                      }
+                                    </span>
+                                  )}
                                 </TableCell>
                               </TableRow>
 
                               {/*
                                 Expanded scorecards block.
-                                Renders each previous closed round plus the in-progress live card,
-                                stacked top-to-bottom, each with its own date label.
+                                When triggered from "Total" → renders previous closed rounds (with date labels).
+                                When triggered from "Hoy"   → renders the single in-progress live card.
                               */}
-                              {expandedPlayerId === player.playerId && (
+                              {(expandedPlayerId === player.playerId || expandedPlayerId === `${player.playerId}::today`) && (
                                 scorecardLoading ? (
                                   <TableRow className="bg-white hover:bg-white">
                                     <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
@@ -552,9 +576,8 @@ const Live = () => {
                                   </TableRow>
                                 ) : scorecardStack.length > 0 ? (
                                   scorecardStack.map((sc, idx) => {
-                                    const prevCount = (player.prevRoundDates ?? []).length;
-                                    const isLive = idx >= prevCount;
-                                    const roundLabel = isLive
+                                    const isLiveExpansion = expandedPlayerId === `${player.playerId}::today`;
+                                    const roundLabel = isLiveExpansion
                                       ? 'En Vivo'
                                       : `Ronda ${idx + 1}`;
                                     return (
