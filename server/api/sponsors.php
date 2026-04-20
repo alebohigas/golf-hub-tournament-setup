@@ -10,8 +10,12 @@ require_once 'config.php';
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
-/** Sponsor logo proxy base URL */
-$SPONSOR_LOGO_URL = '/api/sponsor_logo.php?file=';
+/**
+ * Sponsor logos are hosted on an external domain (not on this server's filesystem).
+ * We build absolute URLs pointing directly to that public bucket.
+ * Example final URL: https://alien2019.speitour.mx/logos_patrocinadores/apat-12.png
+ */
+$SPONSOR_LOGO_BASE = 'https://alien2019.speitour.mx/logos_patrocinadores/';
 
 /** Check if patrocinadores table exists before querying */
 $tableCheck = $conn->query("SHOW TABLES LIKE 'patrocinadores'");
@@ -51,24 +55,34 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
 
     /**
      * Map DB rows to frontend-friendly shape.
-     * Path resolution priority: 'logo' (new) → 'logo_nombre' (legacy fallback).
+     *
+     * Field usage (per latest spec):
+     *  - 'logo_nombre' → file name/path of the logo image (used to build the URL)
+     *  - 'nombre'      → human-readable sponsor name (used as visible label/alt)
+     *
+     * The 'logo' column is intentionally ignored even if present.
+     * Any leading "../" or slashes are stripped so we end up with a clean basename
+     * that we can safely append to the external bucket URL.
      */
-    $sponsors = array_map(function($row) use ($SPONSOR_LOGO_URL, $hasLogo, $hasLogoNombre, $hasContacto) {
-        $logoPath = null;
-        if ($hasLogo && !empty($row['logo'])) {
-            $logoPath = $row['logo'];
-        } elseif ($hasLogoNombre && !empty($row['logo_nombre'])) {
-            $logoPath = $row['logo_nombre'];
+    $sponsors = array_map(function($row) use ($SPONSOR_LOGO_BASE, $hasLogoNombre, $hasContacto) {
+        $logoUrl = null;
+        if ($hasLogoNombre && !empty($row['logo_nombre'])) {
+            // Normalise: strip "../", leading dots/slashes, and any "logos_patrocinadores/" prefix
+            $file = $row['logo_nombre'];
+            $file = preg_replace('#^(\.\./)+#', '', $file);     // remove repeated "../"
+            $file = ltrim($file, './\\/');                       // remove leading dots/slashes
+            $file = preg_replace('#^logos_patrocinadores/#', '', $file); // avoid double folder
+            $logoUrl = $SPONSOR_LOGO_BASE . $file;
         }
 
         return [
             'id'         => (int)$row['id'],
             'name'       => $row['nombre'],
-            'logoUrl'    => $logoPath ? $SPONSOR_LOGO_URL . $logoPath : null,
+            'logoUrl'    => $logoUrl,
             'websiteUrl' => null,
             'contact'    => $hasContacto ? ($row['contacto'] ?? null) : null,
-            /** Human-readable identifier shown under each logo on the public page */
-            'logoName'   => $hasLogoNombre ? ($row['logo_nombre'] ?? null) : null,
+            /** Visible label under each logo — uses 'nombre' (not 'logo_nombre') */
+            'logoName'   => $row['nombre'] ?? null,
         ];
     }, $rows);
 
