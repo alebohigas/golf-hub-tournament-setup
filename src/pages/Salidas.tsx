@@ -507,12 +507,12 @@ const Salidas = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {detail.groups.map((group, gIdx) => (
-                                group.players.map((player, pIdx) => (
+                              {(detail.groups ?? []).map((group, gIdx) => (
+                                (group.players ?? []).map((player, pIdx) => (
                                   <TableRow
                                     key={`${group.id}-${pIdx}`}
                                     className={`bg-white hover:bg-white ${
-                                      pIdx === group.players.length - 1 && gIdx < detail.groups.length - 1
+                                      pIdx === (group.players ?? []).length - 1 && gIdx < (detail.groups ?? []).length - 1
                                         ? 'border-b-2 border-primary/20'
                                         : ''
                                     }`}
@@ -521,13 +521,13 @@ const Salidas = () => {
                                       <>
                                         <TableCell
                                           className="text-center font-bold text-foreground"
-                                          rowSpan={group.players.length}
+                                          rowSpan={(group.players ?? []).length}
                                         >
                                           {group.tee}
                                         </TableCell>
                                         <TableCell
                                           className="text-center font-medium text-foreground"
-                                          rowSpan={group.players.length}
+                                          rowSpan={(group.players ?? []).length}
                                         >
                                           {group.time}
                                         </TableCell>
