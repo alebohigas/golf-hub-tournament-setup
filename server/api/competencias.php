@@ -126,11 +126,63 @@ $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
 $competencias = [];
 
+/**
+ * Debug accumulator (only emitted when ?debug=1).
+ * Tracks per-section: row counts, executed SQL snippets, and query errors.
+ * Helps diagnose why a competition type may be missing from the response
+ * (e.g. SQL error from a missing column/function, or empty result set).
+ */
+$DEBUG_SECTIONS = [
+    'oyes'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'approach' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'putt'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+];
+
+/**
+ * Run a query and record diagnostics into $DEBUG_SECTIONS for the given section.
+ * Returns rows array (empty on failure). Behaves like safe_query_all but with tracing.
+ */
+function dbg_query_all($conn, $sql, $section, $label) {
+    global $DEBUG_SECTIONS;
+    $result = $conn->query($sql);
+    if (!$result) {
+        $err = $conn->error;
+        error_log("competencias.php - $section.$label failed: $err | SQL: $sql");
+        $DEBUG_SECTIONS[$section]['errors'][] = ['label' => $label, 'error' => $err, 'sql' => $sql];
+        return [];
+    }
+    $rows = [];
+    while ($row = $result->fetch_assoc()) { $rows[] = $row; }
+    $result->free();
+    $DEBUG_SECTIONS[$section]['queries'][] = ['label' => $label, 'rows' => count($rows), 'sql' => $sql];
+    return $rows;
+}
+
+/**
+ * Run a query expecting a single row, with diagnostics. Returns null on failure or empty.
+ */
+function dbg_query_one($conn, $sql, $section, $label) {
+    global $DEBUG_SECTIONS;
+    $result = $conn->query($sql);
+    if (!$result) {
+        $err = $conn->error;
+        error_log("competencias.php - $section.$label failed: $err | SQL: $sql");
+        $DEBUG_SECTIONS[$section]['errors'][] = ['label' => $label, 'error' => $err, 'sql' => $sql];
+        return null;
+    }
+    $row = $result->fetch_assoc();
+    $result->free();
+    $DEBUG_SECTIONS[$section]['queries'][] = ['label' => $label, 'rows' => $row ? 1 : 0, 'sql' => $sql];
+    return $row;
+}
+
 // ============= O'Yes (Approach / Closest to Pin in a course hole. Not to be confused with approach, which is a single set approach separate from the course par 3's) =============
 if ($tipo === '' || $tipo === 'oyes') {
+    $DEBUG_SECTIONS['oyes']['enabled'] = true;
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM premiosjug WHERE torneoid = $tid";
-    $row = safe_query_one($conn, $sql);
-    
+    $row = dbg_query_one($conn, $sql, 'oyes', 'count_distinct_premio');
+    $DEBUG_SECTIONS['oyes']['count'] = (int)($row['cnt'] ?? 0);
+
     if ($row && (int)$row['cnt'] > 0) {
         // Get groups (prizes) - prize descriptions live in `premios` table, not `premiosjug`
         $sql = "SELECT DISTINCT pj.premio as id,
@@ -140,8 +192,15 @@ if ($tipo === '' || $tipo === 'oyes') {
                 WHERE pj.torneoid = $tid
                 ORDER BY pj.premio ASC";
                
-        $prizes = safe_query_all($conn, $sql); 
+        $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes');
         $groups = [];
+    } else {
+        $DEBUG_SECTIONS['oyes']['reason'] = 'no rows in premiosjug for this torneoid';
+        $prizes = [];
+        $groups = [];
+    }
+
+    if (!empty($prizes)) {
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
@@ -197,18 +256,31 @@ if ($tipo === '' || $tipo === 'oyes') {
 
 // ============= Approach, done in a single set approach separate from the course par 3's) =============
 if ($tipo === '' || $tipo === 'approach') {
+    $DEBUG_SECTIONS['approach']['enabled'] = true;
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM approach WHERE torneoid = $tid AND premio > 0";
-    $row = safe_query_one($conn, $sql);
+    $row = dbg_query_one($conn, $sql, 'approach', 'count_distinct_premio');
+    $DEBUG_SECTIONS['approach']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // Get groups (premio, descripcion, hoyo)
+        // Get groups (premio, descripcion, hoyo). The f_ultfechaapproach() function
+        // is OPTIONAL — if it doesn't exist on this DB the whole SELECT would fail,
+        // so we fall back to a no-function variant on error.
         $sql = "SELECT premio as id, descripcion as name, hoyo,
                        LEFT(f_ultfechaapproach(descripcion, torneoid), 16) AS ultact
                 FROM approach
                 WHERE torneoid = $tid AND premio > 0
                 GROUP BY premio, descripcion, hoyo
                 ORDER BY premio ASC";
-        $prizes = safe_query_all($conn, $sql);
+        $prizes = dbg_query_all($conn, $sql, 'approach', 'list_prizes_with_fn');
+        if (empty($prizes) && !empty($DEBUG_SECTIONS['approach']['errors'])) {
+            // Function may be missing — retry without it
+            $sql = "SELECT premio as id, descripcion as name, hoyo, NULL AS ultact
+                    FROM approach
+                    WHERE torneoid = $tid AND premio > 0
+                    GROUP BY premio, descripcion, hoyo
+                    ORDER BY premio ASC";
+            $prizes = dbg_query_all($conn, $sql, 'approach', 'list_prizes_no_fn');
+        }
 
         $groups = [];
         foreach ($prizes as $p) {
@@ -242,8 +314,10 @@ if ($tipo === '' || $tipo === 'approach') {
 
             $groups[] = $group;
         }
+        $DEBUG_SECTIONS['approach']['group_count'] = count($groups);
 
-        $competencias[] = [
+        if (count($groups) > 0) {
+            $competencias[] = [
             'id'          => 'approach',
             'name'        => 'Approach',
             'shortName'   => 'Approach',
@@ -260,7 +334,12 @@ if ($tipo === '' || $tipo === 'approach') {
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
                 ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
-        ];
+            ];
+        } else {
+            $DEBUG_SECTIONS['approach']['reason'] = 'no groups built (prizes query empty or all filtered)';
+        }
+    } else {
+        $DEBUG_SECTIONS['approach']['reason'] = 'no rows in approach with premio > 0';
     }
 }
 error_log("competencias.php - Completed Approach section, competencias count: " . count($competencias));
@@ -269,9 +348,10 @@ error_log("competencias.php - Completed Approach section, competencias count: " 
 
 // ============= Putt =============
 if ($tipo === '' || $tipo === 'putt') {
+    $DEBUG_SECTIONS['putt']['enabled'] = true;
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
-    $row = safe_query_one($conn, $sql);
-    
+    $row = dbg_query_one($conn, $sql, 'putt', 'count_distinct_premio');
+    $DEBUG_SECTIONS['putt']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
         // Pre-update marks (safe - won't crash on failure)
@@ -281,11 +361,19 @@ if ($tipo === '' || $tipo === 'putt') {
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name ,LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact 
+        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
                 FROM puttjug
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
-        $prizes = safe_query_all($conn, $sql);
+        $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
+        if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
+            // Fallback if f_ultfechaputt() doesn't exist on this DB
+            $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, NULL AS ultact
+                    FROM puttjug
+                    WHERE torneoid = $tid
+                    ORDER BY premio ASC";
+            $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
+        }
         $groups = [];
 
         foreach ($prizes as $p) {
@@ -312,8 +400,10 @@ if ($tipo === '' || $tipo === 'putt') {
 
             $groups[] = $group;
         }
+        $DEBUG_SECTIONS['putt']['group_count'] = count($groups);
 
-        $competencias[] = [
+        if (count($groups) > 0) {
+            $competencias[] = [
             'id'          => 'putt',
             'name'        => 'Putt',
             'shortName'   => 'Putt',
@@ -330,7 +420,12 @@ if ($tipo === '' || $tipo === 'putt') {
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
                 ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
-        ];
+            ];
+        } else {
+            $DEBUG_SECTIONS['putt']['reason'] = 'no groups built';
+        }
+    } else {
+        $DEBUG_SECTIONS['putt']['reason'] = 'no rows in puttjug for this torneoid';
     }
 }
 
@@ -407,6 +502,29 @@ usort($competencias, function($a, $b) {
     return $a['order'] - $b['order'];
 });
 
+/**
+ * Final response.
+ * In ?debug=1 mode we wrap the array inside an object so we can attach
+ * a `_debug` payload describing what each section did. The frontend treats
+ * the response as an array of competencias, so debug mode is intended for
+ * manual curl/browser inspection only — DO NOT enable in normal traffic.
+ */
+if (!empty($DEBUG_MODE)) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'competencias' => $competencias,
+        '_debug' => [
+            'torneoid'     => (int)$tid,
+            'tipo_filter'  => $tipo,
+            'detalle'      => $detalle,
+            'numPrem'      => $numPrem,
+            'returned'     => count($competencias),
+            'returned_ids' => array_map(fn($c) => $c['id'], $competencias),
+            'sections'     => $DEBUG_SECTIONS,
+        ],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 json_response($competencias);
 
 } catch (\Throwable $e) {
