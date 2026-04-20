@@ -14,7 +14,8 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Loader2, Image as ImageIcon, Save, CheckCircle2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Image as ImageIcon, Save, CheckCircle2, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig, SponsorsConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
@@ -26,8 +27,39 @@ import SponsorLogoImage from '@/components/sponsors/SponsorLogoImage';
 /** Allowed column counts for the sponsor grid */
 const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 
+/**
+ * Pages where the sponsor ribbon can be displayed.
+ * `path` matches the React Router route exactly (used by useLocation in SponsorRibbon).
+ */
+const RIBBON_PAGES: { path: string; label: string }[] = [
+  { path: '/', label: 'Inicio' },
+  { path: '/convocatoria', label: 'Convocatoria' },
+  { path: '/eventos', label: 'Eventos' },
+  { path: '/jugadores', label: 'Jugadores' },
+  { path: '/salidas', label: 'Salidas' },
+  { path: '/live', label: 'LIVE' },
+  { path: '/live-scoring', label: 'Live Scoring' },
+  { path: '/resultados', label: 'Resultados' },
+  { path: '/competicion', label: 'Competición' },
+  { path: '/calendario', label: 'Calendario' },
+  { path: '/avisos', label: 'Avisos' },
+  { path: '/premios', label: 'Premios' },
+  { path: '/patrocinadores', label: 'Patrocinadores' },
+  { path: '/reglas', label: 'Reglas' },
+];
+
+/** Build a default visibility map (all pages visible by default) */
+const buildDefaultRibbonVisibility = (): Record<string, boolean> =>
+  RIBBON_PAGES.reduce<Record<string, boolean>>((acc, p) => {
+    acc[p.path] = true;
+    return acc;
+  }, {});
+
 /** Default config used when nothing is stored on the server yet */
-const DEFAULT_SPONSORS_CONFIG: SponsorsConfig = { columns: 4 };
+const DEFAULT_SPONSORS_CONFIG: SponsorsConfig = {
+  columns: 4,
+  ribbonVisiblePages: buildDefaultRibbonVisibility(),
+};
 
 // ============= Component =============
 
@@ -46,25 +78,35 @@ const AdminSponsors = () => {
   /** Local draft state — reflects the column count being edited */
   const [columns, setColumns] = useState<number>(DEFAULT_SPONSORS_CONFIG.columns);
 
+  /** Local draft state — per-route visibility of the sponsor ribbon */
+  const [ribbonVisiblePages, setRibbonVisiblePages] = useState<Record<string, boolean>>(
+    buildDefaultRibbonVisibility()
+  );
+
   // Sync local state whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.sponsors_config?.columns) {
       setColumns(siteConfig.sponsors_config.columns);
     }
-  }, [siteConfig?.sponsors_config?.columns]);
+    // Merge stored map with defaults so newly added pages start visible
+    const stored = siteConfig?.sponsors_config?.ribbonVisiblePages;
+    if (stored) {
+      setRibbonVisiblePages({ ...buildDefaultRibbonVisibility(), ...stored });
+    }
+  }, [siteConfig?.sponsors_config?.columns, siteConfig?.sponsors_config?.ribbonVisiblePages]);
 
   /** Save the current column count to the server */
   const handleSave = () => {
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
-        sponsors_config: { columns },
+        sponsors_config: { columns, ribbonVisiblePages },
       },
       {
         onSuccess: () => {
           toast({
             title: 'Configuración guardada',
-            description: `Patrocinadores se mostrarán en ${columns} columna${columns > 1 ? 's' : ''}.`,
+            description: `Patrocinadores: ${columns} columna${columns > 1 ? 's' : ''}. Ribbon visible en ${Object.values(ribbonVisiblePages).filter(Boolean).length} página(s).`,
           });
         },
         onError: (err) => {
@@ -79,7 +121,18 @@ const AdminSponsors = () => {
   };
 
   const currentSavedColumns = siteConfig?.sponsors_config?.columns ?? DEFAULT_SPONSORS_CONFIG.columns;
-  const hasChanges = columns !== currentSavedColumns;
+  const savedRibbonVisible =
+    siteConfig?.sponsors_config?.ribbonVisiblePages ?? buildDefaultRibbonVisibility();
+  // Detect any change to columns or any per-page toggle
+  const hasRibbonChanges = RIBBON_PAGES.some(
+    (p) => (ribbonVisiblePages[p.path] ?? true) !== (savedRibbonVisible[p.path] ?? true)
+  );
+  const hasChanges = columns !== currentSavedColumns || hasRibbonChanges;
+
+  /** Toggle ribbon visibility for a given route path */
+  const toggleRibbonForPath = (path: string, value: boolean) => {
+    setRibbonVisiblePages((prev) => ({ ...prev, [path]: value }));
+  };
 
   return (
     <Card>
