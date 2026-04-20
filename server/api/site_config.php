@@ -14,6 +14,7 @@
  *   menu_groups TEXT DEFAULT NULL COMMENT 'JSON array of menu group configs',
  *   page_group_assignments TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to groupId',
  *   live_scoring_config TEXT DEFAULT NULL COMMENT 'JSON object with live scoring page settings',
+ *   sponsors_config TEXT DEFAULT NULL COMMENT 'JSON object with sponsors page display settings (e.g. column count)',
  *   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  * );
  */
@@ -46,11 +47,33 @@ function site_config_has_live_scoring_config($conn) {
 
 $hasLiveScoringConfig = site_config_has_live_scoring_config($conn);
 
+/**
+ * Detect whether the sponsors_config column exists.
+ * Keeps endpoint backward-compatible if the schema has not been migrated yet.
+ */
+function site_config_has_sponsors_config($conn) {
+    static $hasColumn = null;
+
+    if ($hasColumn !== null) {
+        return $hasColumn;
+    }
+
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'sponsors_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+
+    return $hasColumn;
+}
+
+$hasSponsorsConfig = site_config_has_sponsors_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
     if ($hasLiveScoringConfig) {
         $selectFields .= ', live_scoring_config';
+    }
+    if ($hasSponsorsConfig) {
+        $selectFields .= ', sponsors_config';
     }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
@@ -65,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'menu_groups'           => $row['menu_groups'] ? json_decode($row['menu_groups'], true) : null,
             'page_group_assignments'=> $row['page_group_assignments'] ? json_decode($row['page_group_assignments'], true) : null,
             'live_scoring_config'   => $hasLiveScoringConfig && !empty($row['live_scoring_config']) ? json_decode($row['live_scoring_config'], true) : null,
+            'sponsors_config'       => $hasSponsorsConfig && !empty($row['sponsors_config']) ? json_decode($row['sponsors_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -75,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'menu_groups'           => null,
             'page_group_assignments'=> null,
             'live_scoring_config'   => null,
+            'sponsors_config'       => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -139,6 +164,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['live_scoring_config'] !== null ? "'" . esc($conn, json_encode($body['live_scoring_config'])) . "'" : 'NULL';
         $fields[] = "live_scoring_config = $val";
         $insertFields[] = 'live_scoring_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('sponsors_config', $body)) {
+        if (!$hasSponsorsConfig) {
+            json_error("Missing DB column sponsors_config in site_config. Run: ALTER TABLE site_config ADD COLUMN sponsors_config TEXT DEFAULT NULL COMMENT 'JSON object with sponsors page display settings';", 500);
+        }
+
+        $val = $body['sponsors_config'] !== null ? "'" . esc($conn, json_encode($body['sponsors_config'])) . "'" : 'NULL';
+        $fields[] = "sponsors_config = $val";
+        $insertFields[] = 'sponsors_config';
         $insertValues[] = $val;
     }
     

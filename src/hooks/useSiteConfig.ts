@@ -20,6 +20,12 @@ export interface LiveScoringEntry {
   order?: number;
 }
 
+/** Configuration for the Patrocinadores (sponsors) page */
+export interface SponsorsConfig {
+  /** Number of columns in the sponsor logo grid (1–6) */
+  columns: number;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -29,6 +35,7 @@ export interface SiteConfig {
   menu_groups: any[] | null;
   page_group_assignments: Record<string, string> | null;
   live_scoring_config: LiveScoringEntry[] | null;
+  sponsors_config: SponsorsConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -40,6 +47,7 @@ export interface SaveConfigPayload {
   menu_groups?: any[] | null;
   page_group_assignments?: Record<string, string> | null;
   live_scoring_config?: LiveScoringEntry[] | null;
+  sponsors_config?: SponsorsConfig | null;
 }
 
 // ============= Constants =============
@@ -50,6 +58,7 @@ const VISIBILITY_KEY = 'tournament_page_visibility';
 const GROUPS_KEY = 'tournament_menu_groups';
 const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
 const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
+const SPONSORS_CONFIG_KEY = 'tournament_sponsors_config';
 
 // ============= Fetch Functions =============
 
@@ -119,6 +128,11 @@ export const useSiteConfig = () => {
       // Sync live scoring config
       if (config.live_scoring_config) {
         localStorage.setItem(LIVE_SCORING_KEY, JSON.stringify(config.live_scoring_config));
+      }
+
+      // Sync sponsors config
+      if (config.sponsors_config) {
+        localStorage.setItem(SPONSORS_CONFIG_KEY, JSON.stringify(config.sponsors_config));
       }
 
       return config;
