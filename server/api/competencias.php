@@ -348,9 +348,10 @@ error_log("competencias.php - Completed Approach section, competencias count: " 
 
 // ============= Putt =============
 if ($tipo === '' || $tipo === 'putt') {
+    $DEBUG_SECTIONS['putt']['enabled'] = true;
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
-    $row = safe_query_one($conn, $sql);
-    
+    $row = dbg_query_one($conn, $sql, 'putt', 'count_distinct_premio');
+    $DEBUG_SECTIONS['putt']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
         // Pre-update marks (safe - won't crash on failure)
@@ -360,11 +361,19 @@ if ($tipo === '' || $tipo === 'putt') {
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name ,LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact 
+        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
                 FROM puttjug
                 WHERE torneoid = $tid
                 ORDER BY premio ASC";
-        $prizes = safe_query_all($conn, $sql);
+        $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
+        if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
+            // Fallback if f_ultfechaputt() doesn't exist on this DB
+            $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, NULL AS ultact
+                    FROM puttjug
+                    WHERE torneoid = $tid
+                    ORDER BY premio ASC";
+            $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
+        }
         $groups = [];
 
         foreach ($prizes as $p) {
@@ -391,8 +400,10 @@ if ($tipo === '' || $tipo === 'putt') {
 
             $groups[] = $group;
         }
+        $DEBUG_SECTIONS['putt']['group_count'] = count($groups);
 
-        $competencias[] = [
+        if (count($groups) > 0) {
+            $competencias[] = [
             'id'          => 'putt',
             'name'        => 'Putt',
             'shortName'   => 'Putt',
@@ -409,7 +420,12 @@ if ($tipo === '' || $tipo === 'putt') {
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
                 ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
-        ];
+            ];
+        } else {
+            $DEBUG_SECTIONS['putt']['reason'] = 'no groups built';
+        }
+    } else {
+        $DEBUG_SECTIONS['putt']['reason'] = 'no rows in puttjug for this torneoid';
     }
 }
 
