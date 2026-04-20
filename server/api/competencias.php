@@ -357,7 +357,7 @@ if ($tipo === '' || $tipo === 'putt') {
         // Pre-update marks (safe - won't crash on failure)
         safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
         safe_exec($conn, "UPDATE puttjug a
-                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
+                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.distancia = b.mindistancia)
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
