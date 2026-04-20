@@ -24,6 +24,12 @@ export interface LiveScoringEntry {
 export interface SponsorsConfig {
   /** Number of columns in the sponsor logo grid (1–6) */
   columns: number;
+  /**
+   * Map of route paths (e.g. "/", "/jugadores") → boolean indicating
+   * whether the scrolling sponsor ribbon should be displayed on that page.
+   * If undefined, the ribbon defaults to visible on every page (legacy behavior).
+   */
+  ribbonVisiblePages?: Record<string, boolean>;
 }
 
 /** Full server response for site config */
