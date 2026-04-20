@@ -150,6 +150,21 @@ const Salidas = () => {
   /** Whether search data is still loading */
   const searchLoading = searchActive && normalizeSearchText(searchQuery).length >= 2 && searchQueries.some((q) => q.isLoading);
 
+  /** Count of failed search queries — used to surface silent fetch failures
+      that would otherwise hide a player's tee time on a specific day. */
+  const searchFailures = useMemo(() => {
+    const failed = searchQueries.filter((q) => q.isError);
+    if (failed.length > 0) {
+      // Log details to console so the developer can see which day/category failed
+      // eslint-disable-next-line no-console
+      console.warn('[Salidas search] Some category fetches failed:', failed.map((q, i) => ({
+         category: allCategories[i],
+         error: q.error,
+      })).filter((x) => x.error));
+    }
+    return failed.length;
+  }, [searchQueries, allCategories]);
+
   /** Normalize selected format to endpoint-compatible values */
   const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
 
@@ -285,6 +300,11 @@ const Salidas = () => {
                       <p className="text-sm text-muted-foreground text-center mb-4">
                         {searchResults.length} grupo{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
                       </p>
+                      {searchFailures > 0 && (
+                        <p className="text-sm text-destructive text-center mb-2">
+                          ⚠️ {searchFailures} día(s)/categoría(s) no se pudieron cargar — algunos resultados pueden faltar. Revisa la consola.
+                        </p>
+                      )}
                       {searchResults.map((result, rIdx) => (
                         <Card key={rIdx} className="border-border/50 bg-white">
                           <CardContent className="p-0 bg-white">
