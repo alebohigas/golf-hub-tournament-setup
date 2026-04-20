@@ -473,7 +473,11 @@ const Salidas = () => {
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : detail ? (
+              ) : detail ? (() => {
+                /** Defensive: API may omit `groups` on certain categories.
+                    Normalize to an empty array to avoid runtime errors. */
+                const safeGroups = Array.isArray(detail.groups) ? detail.groups : [];
+                return (
                 <>
                   {/* Header: left-aligned on mobile, centered on desktop */}
                   <div className="mb-8 text-left md:text-center">
@@ -483,11 +487,11 @@ const Salidas = () => {
                     <p className="text-muted-foreground text-lg">{detail.course}</p>
                     <p className="text-muted-foreground text-lg">{selectedDay?.dateFormatted}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {detail.system} · Tee: {detail.tee} · {detail.groups.length} grupos
+                      {detail.system} · Tee: {detail.tee} · {safeGroups.length} grupos
                     </p>
                   </div>
 
-                  {detail.groups.length === 0 ? (
+                  {safeGroups.length === 0 ? (
                     <div className="text-center py-16">
                       <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                       <p className="text-muted-foreground text-lg">No hay grupos de salida para esta categoría</p>
