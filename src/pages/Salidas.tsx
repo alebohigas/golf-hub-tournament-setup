@@ -259,7 +259,6 @@ const Salidas = () => {
   /** Clear search and return to normal view */
   const handleClearSearch = () => {
     setSearchQuery('');
-    setSearchActive(false);
   };
 
   return (
