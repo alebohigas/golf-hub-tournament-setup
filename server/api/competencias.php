@@ -407,6 +407,24 @@ usort($competencias, function($a, $b) {
 
 json_response($competencias);
 
+} catch (\Throwable $e) {
+    // Caught by the main try: return JSON with details in debug mode
+    global $DEBUG_MODE;
+    http_response_code(500);
+    $payload = ['error' => 'competencias.php threw an exception'];
+    if (!empty($DEBUG_MODE)) {
+        $payload['_debug'] = [
+            'type'    => get_class($e),
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => array_slice(explode("\n", $e->getTraceAsString()), 0, 15),
+        ];
+    }
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // ============= Helper Functions =============
 
 /** Get O'Yes players for a prize group */
