@@ -4,10 +4,28 @@
  * Data fetched from sponsors.php via useSponsors hook
  */
 
+import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
+/**
+ * SponsorRibbon
+ * Infinite scrolling ribbon of sponsor logos.
+ *
+ * Visibility per route is admin-controlled via `sponsors_config.ribbonVisiblePages`
+ * (managed in /admin → tab Patrocinadores). If no per-page config exists,
+ * the ribbon defaults to visible everywhere.
+ */
 const SponsorRibbon = () => {
   const { data: sponsors = [] } = useSponsors();
+  const { data: siteConfig } = useSiteConfig();
+  const { pathname } = useLocation();
+
+  // Per-page visibility map from server config — undefined = legacy default (show everywhere)
+  const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
+  if (ribbonVisiblePages && ribbonVisiblePages[pathname] === false) {
+    return null;
+  }
 
   if (sponsors.length === 0) return null;
 
