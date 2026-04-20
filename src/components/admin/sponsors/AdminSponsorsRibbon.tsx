@@ -66,8 +66,9 @@ const AdminSponsorsRibbon = () => {
   const { data: siteConfig, isLoading } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
-  // Read live page-visibility state to render the eye indicator next to each row.
-  const { isPageVisible } = usePageVisibility();
+  // Read raw visibility settings (not isPageVisible, which always returns true for admins)
+  // so the eye indicator reflects what end users actually see.
+  const { visibilitySettings } = usePageVisibility();
 
   /** Local draft state — per-route ribbon visibility */
   const [ribbonVisiblePages, setRibbonVisiblePages] = useState<Record<string, boolean>>(
@@ -191,7 +192,11 @@ const AdminSponsorsRibbon = () => {
               {RIBBON_PAGES.map((page) => {
                 const checked = ribbonVisiblePages[page.path] ?? true;
                 // A page with no managed pageId is always considered visible.
-                const pageVisibleForUsers = page.pageId ? isPageVisible(page.pageId) : true;
+                // Default to visible (true) when the visibility setting is undefined,
+                // matching the behavior of AdminPageCard / PageVisibilityContext.
+                const pageVisibleForUsers = page.pageId
+                  ? visibilitySettings[page.pageId] ?? true
+                  : true;
                 return (
                   <label
                     key={page.path}
