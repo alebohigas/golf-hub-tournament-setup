@@ -18,11 +18,15 @@ import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/
  * (managed in /admin → tab Patrocinadores). If no per-page config exists,
  * the ribbon defaults to visible everywhere.
  *
- * Order, randomization and the maximum number of visible logos are admin-controlled
+ * Order, randomization and the on-screen logo count are admin-controlled
  * via `sponsors_config.carousel` (Admin → Patrocinadores → Carrusel):
  *   - carousel.order:        custom display order (array of sponsor IDs)
  *   - carousel.randomize:    shuffle order on every render (overrides custom order)
- *   - carousel.visibleCount: max number of distinct sponsors included in the ribbon
+ *   - carousel.visibleCount: how many logos are visible in the viewport at any
+ *                            given time. Each slot is sized to `100% / visibleCount`
+ *                            of the container width. The full sponsor set still
+ *                            scrolls — this only controls visual density.
+ *                            0 / undefined = legacy auto sizing.
  */
 const SponsorRibbon = () => {
   const { data: sponsors = [] } = useSponsors();
@@ -81,13 +85,8 @@ const SponsorRibbon = () => {
       });
     }
 
-    // Cap the number of distinct logos shown if visibleCount is set (>0)
-    const cap = carousel?.visibleCount ?? 0;
-    if (cap > 0 && list.length > cap) {
-      list = list.slice(0, cap);
-    }
     return list;
-  }, [sponsors, brokenIds, carousel?.randomize, carousel?.order, carousel?.visibleCount]);
+  }, [sponsors, brokenIds, carousel?.randomize, carousel?.order]);
 
   // Per-page visibility map from server config — undefined = legacy default (show everywhere)
   const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
@@ -95,16 +94,52 @@ const SponsorRibbon = () => {
     return null;
   }
 
-  // We still need to mount probes for sponsors not yet evaluated so their
-  // onError callbacks can fire and update `brokenIds`. Build a hidden probe
-  // list of any sponsor that has a URL but isn't in `orderedSponsors` yet.
-  const evaluatedIds = new Set(orderedSponsors.map((s) => String(s.id)));
-  const probeSponsors = sponsors.filter(
-    (s) => Boolean(s.logoUrl) && !evaluatedIds.has(String(s.id)) && !brokenIds.has(String(s.id))
-  );
+  // No need for separate probes anymore: every sponsor with a URL is in
+  // `orderedSponsors` (broken ones drop out once their <img> errors).
+  const probeSponsors: typeof sponsors = [];
 
-  // Duplicate sponsors for infinite scroll effect
-  const duplicatedSponsors = [...orderedSponsors, ...orderedSponsors];
+  /**
+   * On-screen logo density.
+   *  - >0: each slot is `100% / visibleCount` wide so exactly that many logos
+   *        fit in the viewport at once.
+   *  - 0/undefined: legacy auto sizing (logos use their natural width).
+   */
+  const visibleCount = carousel?.visibleCount ?? 0;
+  const slotStyle: React.CSSProperties | undefined =
+    visibleCount > 0
+      ? { flex: `0 0 ${100 / visibleCount}%`, width: `${100 / visibleCount}%` }
+      : undefined;
+  const slotClass =
+    visibleCount > 0
+      ? 'flex items-center justify-center px-4 opacity-60 hover:opacity-100 transition-opacity duration-300'
+      : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
+
+  /**
+   * Animation speed.
+   * Base = 30s for 4+ visible logos. With fewer visible logos the loop is
+   * shorter (= faster) so the ribbon doesn't feel sluggish:
+   *   1 visible → ~18s
+   *   2 visible → ~22s
+   *   3 visible → ~26s
+   *   4+ visible → 30s (baseline)
+   */
+  const speedSeconds =
+    visibleCount === 1 ? 18 :
+    visibleCount === 2 ? 22 :
+    visibleCount === 3 ? 26 :
+    30;
+  const animationStyle: React.CSSProperties = {
+    animationDuration: `${speedSeconds}s`,
+  };
+
+  // Duplicate sponsors so the loop wraps seamlessly. If the number of visible
+  // slots is greater than the unique sponsor set, repeat enough times to fill
+  // the viewport AND keep the seamless loop (need ≥2x the visible count).
+  const minRepeats =
+    visibleCount > 0 && orderedSponsors.length > 0
+      ? Math.max(2, Math.ceil((visibleCount * 2) / orderedSponsors.length))
+      : 2;
+  const duplicatedSponsors = Array.from({ length: minRepeats }).flatMap(() => orderedSponsors);
 
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
@@ -112,11 +147,12 @@ const SponsorRibbon = () => {
     <div className="bg-muted/50 border-y border-border py-4 overflow-hidden">
       <div className="container mx-auto">
         <div className="fade-edge-left">
-          <div className="flex items-center sponsor-scroll">
+          <div className="flex items-center sponsor-scroll" style={animationStyle}>
             {duplicatedSponsors.map((sponsor, index) => (
               <div
                 key={`${sponsor.id}-${index}`}
-                className="flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300"
+                className={slotClass}
+                style={slotStyle}
               >
                 {sponsor.websiteUrl ? (
                   <a
