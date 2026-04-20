@@ -150,6 +150,21 @@ const Salidas = () => {
   /** Whether search data is still loading */
   const searchLoading = searchActive && normalizeSearchText(searchQuery).length >= 2 && searchQueries.some((q) => q.isLoading);
 
+  /** Count of failed search queries — used to surface silent fetch failures
+      that would otherwise hide a player's tee time on a specific day. */
+  const searchFailures = useMemo(() => {
+    const failed = searchQueries.filter((q) => q.isError);
+    if (failed.length > 0) {
+      // Log details to console so the developer can see which day/category failed
+      // eslint-disable-next-line no-console
+      console.warn('[Salidas search] Some category fetches failed:', failed.map((q, i) => ({
+         category: allCategories[i],
+         error: q.error,
+      })).filter((x) => x.error));
+    }
+    return failed.length;
+  }, [searchQueries, allCategories]);
+
   /** Normalize selected format to endpoint-compatible values */
   const selectedFormato = selectedCatMeta?.format?.toLowerCase().includes('pareja') ? 'parejas' : 'individual';
 
