@@ -58,10 +58,10 @@ const Patrocinadores = () => {
    * On the public page these are hidden entirely (instead of showing a broken
    * image) — only the admin panel exposes the broken-logo warning.
    */
-  const [brokenIds, setBrokenIds] = useState<Set<number>>(new Set());
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
 
   /** Mark/unmark a sponsor as broken based on the image load status. */
-  const handleStatus = useCallback((id: number, status: SponsorLogoStatus) => {
+  const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
     setBrokenIds((prev) => {
       const isBroken = status === 'error';
       if (isBroken && prev.has(id)) return prev;
