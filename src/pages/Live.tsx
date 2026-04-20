@@ -219,32 +219,72 @@ const Live = () => {
   const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
 
   /**
-   * Handle click on a player's main score to show/hide their live scorecard
-   * Fetches data from live_tarjeta.php
+   * Handle click on a player's main score to show/hide their scorecards.
+   * Builds a stack of:
+   *   1. Each previous closed scorecard (statlsc=1) by date
+   *      → fetched via resultados_tarjeta.php (date-specific)
+   *   2. The current/in-progress live scorecard
+   *      → fetched via live_tarjeta.php
+   * Renders them stacked, each with its own date label.
    */
   const handleScoreClick = async (player: LivePlayer) => {
     // Toggle off if already expanded
     if (expandedPlayerId === player.playerId) {
       setExpandedPlayerId(null);
-      setScorecardData(null);
+      setScorecardStack([]);
       return;
     }
 
-    // Only show scorecard if player has started (thru > 0)
-    if (player.thru <= 0) return;
+    const prevDates = player.prevRoundDates ?? [];
+    // Nothing to show: no live progress and no closed cards
+    if (player.thru <= 0 && prevDates.length === 0) return;
 
     setExpandedPlayerId(player.playerId);
-    setScorecardData(null);
+    setScorecardStack([]);
     setScorecardLoading(true);
 
     try {
       const tipo = selected?.tipo || (isStroke ? 'stroke' : 'stableford');
       const scoringType = selected?.gross === 1 ? 'GROSS' : 'NETO';
-      const scorecard = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
-      setScorecardData(scorecard);
+      const system = (selected?.tipo === 'stableford' || tipo === 'stableford')
+        ? 'STABLEFORD' : 'STROKE PLAY';
+
+      // Fetch all previous closed scorecards in parallel (by date)
+      const prevPromises = prevDates.map((fecha, idx) =>
+        fetchPlayerScorecardFromApi(
+          player.playerId,
+          selected?.categoryId || '',
+          fecha,
+          system,
+          scoringType,
+          idx + 1
+        ).then(sc => ({ ...sc, date: sc.date || fecha }))
+         .catch(err => {
+           console.error(`Failed to fetch previous scorecard for ${fecha}:`, err);
+           return null;
+         })
+      );
+
+      // Fetch live scorecard if player has started today's round
+      const livePromise = player.thru > 0
+        ? fetchLiveScorecardFromApi(player.playerId, tipo, scoringType)
+            .then(sc => ({ ...sc, round: prevDates.length + 1 }))
+            .catch(err => { console.error('Failed to fetch live scorecard:', err); return null; })
+        : Promise.resolve(null);
+
+      const [prevResults, liveCard] = await Promise.all([
+        Promise.all(prevPromises),
+        livePromise,
+      ]);
+
+      const stack: RoundScorecard[] = [
+        ...prevResults.filter((c): c is RoundScorecard => c !== null),
+        ...(liveCard ? [liveCard] : []),
+      ];
+      setScorecardStack(stack);
     } catch (err) {
-      console.error('Failed to fetch live scorecard:', err);
-      setScorecardData(null);
+      console.error('Failed to fetch scorecards:', err);
+      setScorecardStack([]);
     } finally {
       setScorecardLoading(false);
     }
@@ -253,7 +293,7 @@ const Live = () => {
   /** Reset scorecard state when changing category */
   const handleSelectCategory = (entry: LiveScoringEntry) => {
     setExpandedPlayerId(null);
-    setScorecardData(null);
+    setScorecardStack([]);
     setSelected(entry);
   };
 
