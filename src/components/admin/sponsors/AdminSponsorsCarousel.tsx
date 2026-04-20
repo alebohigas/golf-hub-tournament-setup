@@ -187,8 +187,8 @@ const AdminSponsorsCarousel = () => {
           toast({
             title: 'Carrusel guardado',
             description: randomize
-              ? `Aleatorio activo. Mostrando ${effectiveVisible} de ${totalSponsors} logos.`
-              : `Orden personalizado guardado. Mostrando ${effectiveVisible} de ${totalSponsors} logos.`,
+              ? `Aleatorio activo. ${onScreenLogos} logo${onScreenLogos === 1 ? '' : 's'} en pantalla a la vez.`
+              : `Orden personalizado guardado. ${onScreenLogos} logo${onScreenLogos === 1 ? '' : 's'} en pantalla a la vez.`,
           });
         },
         onError: (err) => {
