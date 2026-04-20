@@ -728,3 +728,5 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
     }
     return $players;
 }
+
+// End of competencias.php - Fixed SQL join error 2026-04-20
