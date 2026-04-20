@@ -251,22 +251,22 @@ const Salidas = () => {
                 </h2>
               </div>
 
-              {/* ============= Player Search Bar (with autocomplete) ============= */}
-              {!loadingMaster && days.length > 0 && (
-                <PlayerSearchInput
-                  className="max-w-md mx-auto mb-8"
-                  value={searchQuery}
-                  onChange={(v) => {
-                    setSearchQuery(v);
-                    if (normalizeSearchText(v).length >= 2) {
-                      setSearchActive(true);
-                    } else if (v === '') {
-                      setSearchActive(false);
-                    }
-                  }}
-                  suggestions={playerSuggestions}
-                />
-              )}
+              {/* ============= Player Search Bar (with autocomplete) =============
+                  Always rendered at day-selection level (mirrors Competición).
+                  Visible even while master data is loading or when no days exist. */}
+              <PlayerSearchInput
+                className="max-w-md mx-auto mb-8"
+                value={searchQuery}
+                onChange={(v) => {
+                  setSearchQuery(v);
+                  if (normalizeSearchText(v).length >= 2) {
+                    setSearchActive(true);
+                  } else if (v === '') {
+                    setSearchActive(false);
+                  }
+                }}
+                suggestions={playerSuggestions}
+              />
 
               {/* ============= Search Results ============= */}
               {searchActive && searchQuery.trim().length >= 2 ? (
