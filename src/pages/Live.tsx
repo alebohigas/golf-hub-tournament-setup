@@ -57,6 +57,12 @@ interface StablefordPlayer {
   /** Holes completed in current round */
   thru: number;
   status: string;
+  /** Number of player's scorecards with statlsc=1 (closed) — from live_scoring.php */
+  cardsClosed?: number;
+  /** Total scheduled rounds for the category (from caljuego) */
+  cardsTotal?: number;
+  /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
+  finished?: number;
 }
 
 /** Player row from live_scoring.php — Stroke mode */
@@ -74,6 +80,12 @@ interface StrokePlayer {
   thru: number;
   handicap: string;
   status: string;
+  /** Number of player's scorecards with statlsc=1 (closed) — from live_scoring.php */
+  cardsClosed?: number;
+  /** Total scheduled rounds for the category (from caljuego) */
+  cardsTotal?: number;
+  /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
+  finished?: number;
 }
 
 /** Union type for player row */
