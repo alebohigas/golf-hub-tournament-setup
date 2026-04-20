@@ -61,13 +61,22 @@ const Competencias = () => {
   );
 
   /**
-   * Handle player selection: navigate to /premios with the selected name as query
-   * so the user sees all positions/medals across competitions.
+   * Handle local typing in the search input.
+   * IMPORTANT: This only updates the local query — it does NOT navigate.
+   * Navigation is reserved for explicit submit (Enter) or suggestion pick.
    */
   const handlePlayerSearch = (name: string) => {
     setSearchQuery(name);
-    if (name.trim().length > 0) {
-      navigate(`/premios?q=${encodeURIComponent(name.trim())}`);
+  };
+
+  /**
+   * Handle explicit submission (Enter key or suggestion click).
+   * Only here do we navigate to /premios with the selected name.
+   */
+  const handlePlayerSubmit = (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length > 0) {
+      navigate(`/premios?q=${encodeURIComponent(trimmed)}`);
     }
   };
 
@@ -154,6 +163,7 @@ const Competencias = () => {
                   className="max-w-md mx-auto mb-8"
                   value={searchQuery}
                   onChange={handlePlayerSearch}
+                  onSubmit={handlePlayerSubmit}
                   suggestions={playerSuggestions}
                   placeholder="Buscar jugador en competencias..."
                 />
