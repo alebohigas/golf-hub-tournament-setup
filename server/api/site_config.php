@@ -14,6 +14,7 @@
  *   menu_groups TEXT DEFAULT NULL COMMENT 'JSON array of menu group configs',
  *   page_group_assignments TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to groupId',
  *   live_scoring_config TEXT DEFAULT NULL COMMENT 'JSON object with live scoring page settings',
+ *   sponsors_config TEXT DEFAULT NULL COMMENT 'JSON object with sponsors page display settings (e.g. column count)',
  *   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  * );
  */
@@ -45,6 +46,25 @@ function site_config_has_live_scoring_config($conn) {
 }
 
 $hasLiveScoringConfig = site_config_has_live_scoring_config($conn);
+
+/**
+ * Detect whether the sponsors_config column exists.
+ * Keeps endpoint backward-compatible if the schema has not been migrated yet.
+ */
+function site_config_has_sponsors_config($conn) {
+    static $hasColumn = null;
+
+    if ($hasColumn !== null) {
+        return $hasColumn;
+    }
+
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'sponsors_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+
+    return $hasColumn;
+}
+
+$hasSponsorsConfig = site_config_has_sponsors_config($conn);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
