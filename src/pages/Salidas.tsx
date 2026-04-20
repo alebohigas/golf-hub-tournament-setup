@@ -53,8 +53,12 @@ const Salidas = () => {
   const [selectedCatMeta, setSelectedCatMeta] = useState<SalidasCategory | null>(null);
   /** Player search query */
   const [searchQuery, setSearchQuery] = useState('');
-  /** Whether search mode is active */
-  const [searchActive, setSearchActive] = useState(false);
+  /**
+   * Whether the search results UI should take over the day-selection screen.
+   * Derived from searchQuery length (no separate boolean to avoid stale state).
+   */
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const searchActive = normalizedQuery.length >= 2;
 
   // Fetch master data: days + categories
   const { data: master, isLoading: loadingMaster } = useSalidasMaster();
@@ -72,9 +76,17 @@ const Salidas = () => {
     );
   }, [days]);
 
-  /** Fetch all category details in parallel for search (only when search is active) */
+  /**
+   * Fetch ALL category details in parallel as soon as we know the categories.
+   * We need this data both for the autocomplete suggestions AND for the
+   * search results — fetching only on-demand caused inconsistent results
+   * because suggestions never populated until after typing started, and
+   * late-arriving fetches were ignored by the UI.
+   *
+   * React Query dedupes by key, so this is shared with the per-day fetches.
+   */
   const searchQueries = useQueries({
-    queries: searchActive && searchQuery.trim().length >= 2
+    queries: allCategories.length > 0
       ? allCategories.map((cat) => ({
           queryKey: ['salidas-detail', cat.caljgoid, cat.formato],
           queryFn: async () => {
@@ -95,15 +107,13 @@ const Salidas = () => {
             };
           },
           staleTime: POLL_ACTIVE,
-          enabled: searchActive && searchQuery.trim().length >= 2,
         }))
       : [],
   });
 
   /** Filter search results based on query (whitespace/accent tolerant) */
   const searchResults = useMemo<SearchResult[]>(() => {
-    const q = normalizeSearchText(searchQuery);
-    if (q.length < 2) return [];
+    if (normalizedQuery.length < 2) return [];
 
     const results: SearchResult[] = [];
     for (const query of searchQueries) {
@@ -112,7 +122,7 @@ const Salidas = () => {
       for (const group of (detail.groups ?? [])) {
         const players = group.players ?? [];
         const matchIdx = players.findIndex((p) =>
-          normalizeSearchText(p.name).includes(q)
+          normalizeSearchText(p.name).includes(normalizedQuery)
         );
         if (matchIdx !== -1) {
           results.push({
@@ -128,7 +138,7 @@ const Salidas = () => {
       }
     }
     return results;
-  }, [searchQuery, searchQueries]);
+  }, [normalizedQuery, searchQueries]);
 
   /**
    * Build unique player-name suggestions from already-loaded data.
@@ -148,8 +158,12 @@ const Salidas = () => {
     return buildUniqueNameSuggestions(allNames);
   }, [searchQueries]);
 
-  /** Whether search data is still loading */
-  const searchLoading = searchActive && normalizeSearchText(searchQuery).length >= 2 && searchQueries.some((q) => q.isLoading);
+  /**
+   * True only while NO query has resolved yet. We intentionally avoid
+   * `some(isLoading)` — that would block the UI even when most days have
+   * already loaded, hiding partial matches the user could already see.
+   */
+  const searchLoading = searchActive && searchQueries.length > 0 && searchQueries.every((q) => q.isLoading);
 
   /** Count of failed search queries — used to surface silent fetch failures
       that would otherwise hide a player's tee time on a specific day. */
@@ -273,14 +287,7 @@ const Salidas = () => {
               <PlayerSearchInput
                 className="max-w-md mx-auto mb-8"
                 value={searchQuery}
-                onChange={(v) => {
-                  setSearchQuery(v);
-                  if (normalizeSearchText(v).length >= 2) {
-                    setSearchActive(true);
-                  } else if (v === '') {
-                    setSearchActive(false);
-                  }
-                }}
+                onChange={setSearchQuery}
                 suggestions={playerSuggestions}
               />
 
