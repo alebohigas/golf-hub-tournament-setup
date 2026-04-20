@@ -329,7 +329,7 @@ const Salidas = () => {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {result.group.players.map((player, pIdx) => (
+                                  {(result.group.players ?? []).map((player, pIdx) => (
                                     <TableRow
                                       key={pIdx}
                                       className={`bg-white hover:bg-white ${
@@ -338,10 +338,10 @@ const Salidas = () => {
                                     >
                                       {pIdx === 0 ? (
                                         <>
-                                          <TableCell className="text-center font-bold text-foreground" rowSpan={result.group.players.length}>
+                                          <TableCell className="text-center font-bold text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.tee}
                                           </TableCell>
-                                          <TableCell className="text-center font-medium text-foreground" rowSpan={result.group.players.length}>
+                                          <TableCell className="text-center font-medium text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.time}
                                           </TableCell>
                                         </>
