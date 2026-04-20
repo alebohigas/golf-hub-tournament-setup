@@ -254,6 +254,47 @@ const AdminSponsors = () => {
                 )}
               </div>
             </div>
+
+            {/* ---------------- Ribbon visibility per page ---------------- */}
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-medium">
+                  Mostrar carrusel de patrocinadores en páginas
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Selecciona en qué páginas aparecerá el ribbon animado de logos. Los cambios se aplican
+                al guardar.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {RIBBON_PAGES.map((page) => {
+                  const checked = ribbonVisiblePages[page.path] ?? true;
+                  return (
+                    <label
+                      key={page.path}
+                      htmlFor={`ribbon-${page.path}`}
+                      className={cn(
+                        'flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors',
+                        checked && 'border-primary/40 bg-primary/5'
+                      )}
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium truncate">{page.label}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground truncate">
+                          {page.path}
+                        </span>
+                      </div>
+                      <Switch
+                        id={`ribbon-${page.path}`}
+                        checked={checked}
+                        onCheckedChange={(v) => toggleRibbonForPath(page.path, v)}
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </>
         )}
       </CardContent>
