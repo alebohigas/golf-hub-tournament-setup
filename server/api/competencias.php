@@ -357,7 +357,7 @@ if ($tipo === '' || $tipo === 'putt') {
         // Pre-update marks (safe - won't crash on failure)
         safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
         safe_exec($conn, "UPDATE puttjug a
-                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid)
+                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
@@ -651,7 +651,7 @@ function get_putt_players($conn, $tid, $premioId) {
                    a.distancia,
                    c.logo, c.nombre as club
             FROM puttjug a
-            JOIN v_puttjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid)
+            JOIN v_puttjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
