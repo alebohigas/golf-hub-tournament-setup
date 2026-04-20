@@ -6,8 +6,9 @@
  *
  * Checks: premiosjug (O'Yes), approachjug (Approach), puttjug (Putt), Skeen_tarjetas (Skin Game)
  * Each type includes its groups (prizes) and player counts
- * Each type includes its groups (prizes) and player counts
- *
+ * 
+ * Fixed: SQL join error on v_puttunico view - 2026-04-20
+ * 
  * Optional: ?tipo=oyes|approach|putt|skin - filter to a specific type
  * Optional: ?detalle=1 - include full player data for each group
  */
