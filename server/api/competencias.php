@@ -126,11 +126,63 @@ $numPrem = (int)($torneoInfo['oyesnumprem'] ?? 3);
 
 $competencias = [];
 
+/**
+ * Debug accumulator (only emitted when ?debug=1).
+ * Tracks per-section: row counts, executed SQL snippets, and query errors.
+ * Helps diagnose why a competition type may be missing from the response
+ * (e.g. SQL error from a missing column/function, or empty result set).
+ */
+$DEBUG_SECTIONS = [
+    'oyes'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'approach' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'putt'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+];
+
+/**
+ * Run a query and record diagnostics into $DEBUG_SECTIONS for the given section.
+ * Returns rows array (empty on failure). Behaves like safe_query_all but with tracing.
+ */
+function dbg_query_all($conn, $sql, $section, $label) {
+    global $DEBUG_SECTIONS;
+    $result = $conn->query($sql);
+    if (!$result) {
+        $err = $conn->error;
+        error_log("competencias.php - $section.$label failed: $err | SQL: $sql");
+        $DEBUG_SECTIONS[$section]['errors'][] = ['label' => $label, 'error' => $err, 'sql' => $sql];
+        return [];
+    }
+    $rows = [];
+    while ($row = $result->fetch_assoc()) { $rows[] = $row; }
+    $result->free();
+    $DEBUG_SECTIONS[$section]['queries'][] = ['label' => $label, 'rows' => count($rows), 'sql' => $sql];
+    return $rows;
+}
+
+/**
+ * Run a query expecting a single row, with diagnostics. Returns null on failure or empty.
+ */
+function dbg_query_one($conn, $sql, $section, $label) {
+    global $DEBUG_SECTIONS;
+    $result = $conn->query($sql);
+    if (!$result) {
+        $err = $conn->error;
+        error_log("competencias.php - $section.$label failed: $err | SQL: $sql");
+        $DEBUG_SECTIONS[$section]['errors'][] = ['label' => $label, 'error' => $err, 'sql' => $sql];
+        return null;
+    }
+    $row = $result->fetch_assoc();
+    $result->free();
+    $DEBUG_SECTIONS[$section]['queries'][] = ['label' => $label, 'rows' => $row ? 1 : 0, 'sql' => $sql];
+    return $row;
+}
+
 // ============= O'Yes (Approach / Closest to Pin in a course hole. Not to be confused with approach, which is a single set approach separate from the course par 3's) =============
 if ($tipo === '' || $tipo === 'oyes') {
+    $DEBUG_SECTIONS['oyes']['enabled'] = true;
     $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM premiosjug WHERE torneoid = $tid";
-    $row = safe_query_one($conn, $sql);
-    
+    $row = dbg_query_one($conn, $sql, 'oyes', 'count_distinct_premio');
+    $DEBUG_SECTIONS['oyes']['count'] = (int)($row['cnt'] ?? 0);
+
     if ($row && (int)$row['cnt'] > 0) {
         // Get groups (prizes) - prize descriptions live in `premios` table, not `premiosjug`
         $sql = "SELECT DISTINCT pj.premio as id,
@@ -140,8 +192,15 @@ if ($tipo === '' || $tipo === 'oyes') {
                 WHERE pj.torneoid = $tid
                 ORDER BY pj.premio ASC";
                
-        $prizes = safe_query_all($conn, $sql); 
+        $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes');
         $groups = [];
+    } else {
+        $DEBUG_SECTIONS['oyes']['reason'] = 'no rows in premiosjug for this torneoid';
+        $prizes = [];
+        $groups = [];
+    }
+
+    if (!empty($prizes)) {
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
