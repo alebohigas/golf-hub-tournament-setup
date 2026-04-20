@@ -14,6 +14,12 @@ export interface Sponsor {
   name: string;
   logoUrl: string;
   websiteUrl?: string;
+  /**
+   * Legacy 'logo_nombre' value from the DB — a human-readable identifier
+   * (often the original logo filename). Shown under each logo in the
+   * Patrocinadores page to make sponsors easy to identify.
+   */
+  logoName?: string;
 }
 
 export interface TournamentInfo {
