@@ -458,9 +458,9 @@ const Live = () => {
                                   )}
                                 </TableCell>
 
-                                {/* Holes completed — shows "F" when finished */}
-                                <TableCell className={`text-center text-sm ${isPlayerFinished(player.thru) ? 'font-bold text-green-700' : ''}`}>
-                                  {formatThru(player.thru)}
+                                {/* Holes completed — shows "F" when player has all scorecards closed (statlsc=1) */}
+                                <TableCell className={`text-center text-sm ${isPlayerFinished(player) ? 'font-bold text-green-700' : ''}`}>
+                                  {formatThru(player)}
                                 </TableCell>
 
                                 {/* Today's score */}
