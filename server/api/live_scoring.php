@@ -105,6 +105,27 @@ if ($isStableford) {
 
 $rows = query_all($conn, $sql);
 
+/**
+ * Pre-fetch previous round dates per player.
+ * For each player in this category, list the dates (YYYY-MM-DD) of all
+ * scorecards with statlsc=1 (closed/registered). The frontend will use
+ * these to render stacked previous-day scorecards in the Live view.
+ */
+$prevDatesByPlayer = [];
+$sqlPrev = "SELECT t.jugadorid, DATE_FORMAT(t.fecha_juego, '%Y-%m-%d') AS fecha
+            FROM tarjetas t
+            JOIN jugadores j ON (j.id = t.jugadorid)
+            WHERE t.torneoid = $tid
+              AND j.categoriaid = $cid
+              AND t.statlsc = 1
+            ORDER BY t.jugadorid, t.fecha_juego ASC";
+$prevRows = query_all($conn, $sqlPrev);
+foreach ($prevRows as $pr) {
+    $pid = (string)$pr['jugadorid'];
+    if (!isset($prevDatesByPlayer[$pid])) { $prevDatesByPlayer[$pid] = []; }
+    $prevDatesByPlayer[$pid][] = $pr['fecha'];
+}
+
 // ── Format response ──
 $players = [];
 $pos = 0;
@@ -135,6 +156,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'prevRoundDates' => $prevDatesByPlayer[(string)$row['jugadorid']] ?? [],
         ];
     } else {
         /**
@@ -159,6 +181,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'prevRoundDates' => $prevDatesByPlayer[(string)$row['jugadorid']] ?? [],
         ];
     }
 }

@@ -25,7 +25,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getLiveScoringUrl, POLL_LIVE } from '@/config/api';
 import { useSiteConfig, type LiveScoringEntry } from '@/hooks/useSiteConfig';
-import { fetchLiveScorecardFromApi } from '@/hooks/useResultadosData';
+import { fetchLiveScorecardFromApi, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
 import type { RoundScorecard } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
 import liveHero from '@/assets/live-hero.jpg';
@@ -63,6 +63,8 @@ interface StablefordPlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  prevRoundDates?: string[];
 }
 
 /** Player row from live_scoring.php — Stroke mode */
@@ -86,6 +88,8 @@ interface StrokePlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  prevRoundDates?: string[];
 }
 
 /** Union type for player row */
@@ -162,7 +166,12 @@ const Live = () => {
 
   /** Expanded scorecard state: playerId or null */
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const [scorecardData, setScorecardData] = useState<RoundScorecard | null>(null);
+  /**
+   * Stack of scorecards for the expanded player, ordered chronologically:
+   * previous closed rounds first (oldest → newest), and the live (in-progress)
+   * scorecard last. Each carries its own `date` for labeling.
+   */
+  const [scorecardStack, setScorecardStack] = useState<RoundScorecard[]>([]);
   const [scorecardLoading, setScorecardLoading] = useState(false);
 
   /** Site config with live scoring entries */
@@ -210,32 +219,72 @@ const Live = () => {
   const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
 
   /**
-   * Handle click on a player's main score to show/hide their live scorecard
-   * Fetches data from live_tarjeta.php
+   * Handle click on a player's main score to show/hide their scorecards.
+   * Builds a stack of:
+   *   1. Each previous closed scorecard (statlsc=1) by date
+   *      → fetched via resultados_tarjeta.php (date-specific)
+   *   2. The current/in-progress live scorecard
+   *      → fetched via live_tarjeta.php
+   * Renders them stacked, each with its own date label.
    */
   const handleScoreClick = async (player: LivePlayer) => {
     // Toggle off if already expanded
     if (expandedPlayerId === player.playerId) {
       setExpandedPlayerId(null);
-      setScorecardData(null);
+      setScorecardStack([]);
       return;
     }
 
-    // Only show scorecard if player has started (thru > 0)
-    if (player.thru <= 0) return;
+    const prevDates = player.prevRoundDates ?? [];
+    // Nothing to show: no live progress and no closed cards
+    if (player.thru <= 0 && prevDates.length === 0) return;
 
     setExpandedPlayerId(player.playerId);
-    setScorecardData(null);
+    setScorecardStack([]);
     setScorecardLoading(true);
 
     try {
       const tipo = selected?.tipo || (isStroke ? 'stroke' : 'stableford');
       const scoringType = selected?.gross === 1 ? 'GROSS' : 'NETO';
-      const scorecard = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
-      setScorecardData(scorecard);
+      const system = (selected?.tipo === 'stableford' || tipo === 'stableford')
+        ? 'STABLEFORD' : 'STROKE PLAY';
+
+      // Fetch all previous closed scorecards in parallel (by date)
+      const prevPromises = prevDates.map((fecha, idx) =>
+        fetchPlayerScorecardFromApi(
+          player.playerId,
+          selected?.categoryId || '',
+          fecha,
+          system,
+          scoringType,
+          idx + 1
+        ).then(sc => ({ ...sc, date: sc.date || fecha }))
+         .catch(err => {
+           console.error(`Failed to fetch previous scorecard for ${fecha}:`, err);
+           return null;
+         })
+      );
+
+      // Fetch live scorecard if player has started today's round
+      const livePromise = player.thru > 0
+        ? fetchLiveScorecardFromApi(player.playerId, tipo, scoringType)
+            .then(sc => ({ ...sc, round: prevDates.length + 1 }))
+            .catch(err => { console.error('Failed to fetch live scorecard:', err); return null; })
+        : Promise.resolve(null);
+
+      const [prevResults, liveCard] = await Promise.all([
+        Promise.all(prevPromises),
+        livePromise,
+      ]);
+
+      const stack: RoundScorecard[] = [
+        ...prevResults.filter((c): c is RoundScorecard => c !== null),
+        ...(liveCard ? [liveCard] : []),
+      ];
+      setScorecardStack(stack);
     } catch (err) {
-      console.error('Failed to fetch live scorecard:', err);
-      setScorecardData(null);
+      console.error('Failed to fetch scorecards:', err);
+      setScorecardStack([]);
     } finally {
       setScorecardLoading(false);
     }
@@ -244,7 +293,7 @@ const Live = () => {
   /** Reset scorecard state when changing category */
   const handleSelectCategory = (entry: LiveScoringEntry) => {
     setExpandedPlayerId(null);
-    setScorecardData(null);
+    setScorecardStack([]);
     setSelected(entry);
   };
 
@@ -363,7 +412,7 @@ const Live = () => {
             <>
               <Button
                 variant="ghost"
-                onClick={() => { setSelected(null); setExpandedPlayerId(null); setScorecardData(null); }}
+                onClick={() => { setSelected(null); setExpandedPlayerId(null); setScorecardStack([]); }}
                 className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -439,15 +488,15 @@ const Live = () => {
                                   {player.name}
                                 </TableCell>
 
-                                {/* Main score — clickable to expand live scorecard */}
+                                {/* Main score — clickable to expand stacked scorecards (previous rounds + live) */}
                                 <TableCell className="text-center p-0">
-                                  {player.thru > 0 ? (
+                                  {(player.thru > 0 || (player.prevRoundDates && player.prevRoundDates.length > 0)) ? (
                                     <button
                                       onClick={() => handleScoreClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjeta en vivo"
+                                      title="Ver tarjetas (rondas previas + en vivo)"
                                     >
                                       {isStroke ? formatDifPar(player.score) : player.score}
                                     </button>
@@ -472,22 +521,39 @@ const Live = () => {
                                 </TableCell>
                               </TableRow>
 
-                              {/* Expanded live scorecard row */}
+                              {/*
+                                Expanded scorecards block.
+                                Renders each previous closed round plus the in-progress live card,
+                                stacked top-to-bottom, each with its own date label.
+                              */}
                               {expandedPlayerId === player.playerId && (
                                 scorecardLoading ? (
                                   <TableRow className="bg-white hover:bg-white">
                                     <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
-                                      Cargando tarjeta...
+                                      Cargando tarjetas...
                                     </TableCell>
                                   </TableRow>
-                                ) : scorecardData ? (
-                                  <ScorecardRow
-                                    scorecard={scorecardData}
-                                    playerName={player.name}
-                                    roundLabel="En Vivo"
-                                    onClose={() => { setExpandedPlayerId(null); setScorecardData(null); }}
-                                    colSpan={totalCols}
-                                  />
+                                ) : scorecardStack.length > 0 ? (
+                                  scorecardStack.map((sc, idx) => {
+                                    const prevCount = (player.prevRoundDates ?? []).length;
+                                    const isLive = idx >= prevCount;
+                                    const roundLabel = isLive
+                                      ? 'En Vivo'
+                                      : `Ronda ${idx + 1}`;
+                                    return (
+                                      <ScorecardRow
+                                        key={`${player.playerId}-sc-${idx}`}
+                                        scorecard={sc}
+                                        playerName={player.name}
+                                        roundLabel={roundLabel}
+                                        onClose={() => {
+                                          setExpandedPlayerId(null);
+                                          setScorecardStack([]);
+                                        }}
+                                        colSpan={totalCols}
+                                      />
+                                    );
+                                  })
                                 ) : null
                               )}
                             </Fragment>
