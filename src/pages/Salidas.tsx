@@ -109,8 +109,9 @@ const Salidas = () => {
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
       const { dayLabel, course, detail } = query.data;
-      for (const group of detail.groups) {
-        const matchIdx = group.players.findIndex((p) =>
+      for (const group of (detail.groups ?? [])) {
+        const players = group.players ?? [];
+        const matchIdx = players.findIndex((p) =>
           normalizeSearchText(p.name).includes(q)
         );
         if (matchIdx !== -1) {
@@ -138,8 +139,8 @@ const Salidas = () => {
     const allNames: string[] = [];
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
-      for (const group of query.data.detail.groups) {
-        for (const p of group.players) {
+      for (const group of (query.data.detail.groups ?? [])) {
+        for (const p of (group.players ?? [])) {
           if (p?.name) allNames.push(p.name);
         }
       }
@@ -328,7 +329,7 @@ const Salidas = () => {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {result.group.players.map((player, pIdx) => (
+                                  {(result.group.players ?? []).map((player, pIdx) => (
                                     <TableRow
                                       key={pIdx}
                                       className={`bg-white hover:bg-white ${
@@ -337,10 +338,10 @@ const Salidas = () => {
                                     >
                                       {pIdx === 0 ? (
                                         <>
-                                          <TableCell className="text-center font-bold text-foreground" rowSpan={result.group.players.length}>
+                                          <TableCell className="text-center font-bold text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.tee}
                                           </TableCell>
-                                          <TableCell className="text-center font-medium text-foreground" rowSpan={result.group.players.length}>
+                                          <TableCell className="text-center font-medium text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.time}
                                           </TableCell>
                                         </>
@@ -483,11 +484,11 @@ const Salidas = () => {
                     <p className="text-muted-foreground text-lg">{detail.course}</p>
                     <p className="text-muted-foreground text-lg">{selectedDay?.dateFormatted}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {detail.system} · Tee: {detail.tee} · {detail.groups.length} grupos
+                      {detail.system} · Tee: {detail.tee} · {(detail.groups ?? []).length} grupos
                     </p>
                   </div>
 
-                  {detail.groups.length === 0 ? (
+                  {(detail.groups ?? []).length === 0 ? (
                     <div className="text-center py-16">
                       <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                       <p className="text-muted-foreground text-lg">No hay grupos de salida para esta categoría</p>
@@ -507,12 +508,12 @@ const Salidas = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {detail.groups.map((group, gIdx) => (
-                                group.players.map((player, pIdx) => (
+                              {(detail.groups ?? []).map((group, gIdx) => (
+                                (group.players ?? []).map((player, pIdx) => (
                                   <TableRow
                                     key={`${group.id}-${pIdx}`}
                                     className={`bg-white hover:bg-white ${
-                                      pIdx === group.players.length - 1 && gIdx < detail.groups.length - 1
+                                      pIdx === (group.players ?? []).length - 1 && gIdx < (detail.groups ?? []).length - 1
                                         ? 'border-b-2 border-primary/20'
                                         : ''
                                     }`}
@@ -521,13 +522,13 @@ const Salidas = () => {
                                       <>
                                         <TableCell
                                           className="text-center font-bold text-foreground"
-                                          rowSpan={group.players.length}
+                                          rowSpan={(group.players ?? []).length}
                                         >
                                           {group.tee}
                                         </TableCell>
                                         <TableCell
                                           className="text-center font-medium text-foreground"
-                                          rowSpan={group.players.length}
+                                          rowSpan={(group.players ?? []).length}
                                         >
                                           {group.time}
                                         </TableCell>
