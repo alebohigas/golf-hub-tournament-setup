@@ -64,7 +64,9 @@ if ($isStableford) {
                    a.estatus AS estatjug,
                    club,
                    cl.logo AS juglogoclub,
-                   v.sa
+                   v.sa,
+                   (SELECT COUNT(*) FROM tarjetas t
+                      WHERE t.jugadorid = a.id AND t.torneoid = $tid AND t.statlsc = 1) AS cardsclosed
             FROM jugadores AS a
             JOIN clubs AS cl ON (a.clubid = cl.id)
             JOIN v_sumsa AS b ON (a.id = b.jugadorid)
@@ -90,7 +92,9 @@ if ($isStableford) {
                    cl.logo AS juglogoclub,
                    dif.difpar,
                    v.difpar_ulttar AS difparulttar,
-                   v.avance AS avance_ulttar
+                   v.avance AS avance_ulttar,
+                   (SELECT COUNT(*) FROM tarjetas t
+                      WHERE t.jugadorid = b.id AND t.torneoid = $tid AND t.statlsc = 1) AS cardsclosed
             FROM jugadores AS b
             JOIN clubs AS cl ON (b.clubid = cl.id)
             JOIN $difView AS dif ON (dif.jugadorid = b.id)
