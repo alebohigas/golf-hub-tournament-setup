@@ -4,10 +4,11 @@
  * Data fetched from sponsors.php via useSponsors hook
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
 
 /**
  * SponsorRibbon
@@ -35,9 +36,32 @@ const SponsorRibbon = () => {
    * on every re-render.
    */
   const carousel = siteConfig?.sponsors_config?.carousel;
+  /**
+   * Track sponsor IDs whose logo image failed to load. Mirrors the behavior
+   * of the public Patrocinadores page: broken logos are hidden entirely
+   * (no name, no placeholder) so the ribbon never advertises a sponsor we
+   * cannot actually display.
+   */
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+
+  /** Mark/unmark a sponsor as broken based on the image load status. */
+  const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
+    setBrokenIds((prev) => {
+      const isBroken = status === 'error';
+      if (isBroken && prev.has(id)) return prev;
+      if (!isBroken && !prev.has(id)) return prev;
+      const next = new Set(prev);
+      if (isBroken) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
   const orderedSponsors = useMemo(() => {
     if (!sponsors.length) return [];
-    let list = [...sponsors];
+    // Drop sponsors with no logo URL up-front; broken-on-load ones are
+    // additionally filtered via `brokenIds` after render.
+    let list = sponsors.filter((s) => Boolean(s.logoUrl) && !brokenIds.has(String(s.id)));
 
     if (carousel?.randomize) {
       // Fisher–Yates shuffle for an unbiased random order
@@ -63,7 +87,7 @@ const SponsorRibbon = () => {
       list = list.slice(0, cap);
     }
     return list;
-  }, [sponsors, carousel?.randomize, carousel?.order, carousel?.visibleCount]);
+  }, [sponsors, brokenIds, carousel?.randomize, carousel?.order, carousel?.visibleCount]);
 
   // Per-page visibility map from server config — undefined = legacy default (show everywhere)
   const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
@@ -71,10 +95,18 @@ const SponsorRibbon = () => {
     return null;
   }
 
-  if (orderedSponsors.length === 0) return null;
+  // We still need to mount probes for sponsors not yet evaluated so their
+  // onError callbacks can fire and update `brokenIds`. Build a hidden probe
+  // list of any sponsor that has a URL but isn't in `orderedSponsors` yet.
+  const evaluatedIds = new Set(orderedSponsors.map((s) => String(s.id)));
+  const probeSponsors = sponsors.filter(
+    (s) => Boolean(s.logoUrl) && !evaluatedIds.has(String(s.id)) && !brokenIds.has(String(s.id))
+  );
 
   // Duplicate sponsors for infinite scroll effect
   const duplicatedSponsors = [...orderedSponsors, ...orderedSponsors];
+
+  if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
   return (
     <div className="bg-muted/50 border-y border-border py-4 overflow-hidden">
@@ -93,19 +125,32 @@ const SponsorRibbon = () => {
                     rel="noopener noreferrer"
                     className="block"
                   >
-                    <img
-                      src={sponsor.logoUrl}
+                    <SponsorLogoImage
+                      url={sponsor.logoUrl}
                       alt={sponsor.name}
+                      onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
                       className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
                     />
                   </a>
                 ) : (
-                  <img
-                    src={sponsor.logoUrl}
+                  <SponsorLogoImage
+                    url={sponsor.logoUrl}
                     alt={sponsor.name}
+                    onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
                     className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
                   />
                 )}
+              </div>
+            ))}
+            {/* Hidden probes: detect broken logos for sponsors not yet rendered
+                so they can be filtered out before showing in the visible slice. */}
+            {probeSponsors.map((sponsor) => (
+              <div key={`probe-${sponsor.id}`} aria-hidden="true" className="hidden">
+                <SponsorLogoImage
+                  url={sponsor.logoUrl}
+                  alt={sponsor.name}
+                  onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
+                />
               </div>
             ))}
           </div>
