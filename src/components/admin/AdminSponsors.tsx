@@ -174,21 +174,24 @@ const AdminSponsors = () => {
                   sponsors.map((sponsor) => (
                     <div
                       key={sponsor.id}
-                      className="aspect-[3/2] rounded-md bg-background border border-border/60 flex flex-col items-center justify-center gap-1 p-2"
+                      // aspect-square keeps the card proportional to column width,
+                      // so as columns increase, each card shrinks naturally.
+                      className="aspect-square rounded-md bg-background border border-border/60 flex flex-col items-center justify-center gap-1 p-3 overflow-hidden"
                     >
-                      {/* Renders the actual logo, OR a warning placeholder on error.
-                          Admin always sees the warning so broken records are visible. */}
+                      {/* Logo fills the available area. `h-full w-full` on the
+                          wrapper + `max-h-full max-w-full` on the image lets the
+                          logo scale up to the card size while preserving aspect. */}
                       <div className="flex-1 w-full flex items-center justify-center min-h-0">
                         <SponsorLogoImage
                           url={sponsor.logoUrl}
                           alt={sponsor.name}
                           showErrorPlaceholder
-                          className="max-h-12 max-w-full object-contain"
+                          className="max-h-full max-w-full w-auto h-auto object-contain"
                         />
                       </div>
                       {/* Sponsor name (from `nombre` column) — always shown for identification */}
                       <p
-                        className="text-[10px] text-muted-foreground text-center break-words line-clamp-2 w-full"
+                        className="text-[10px] leading-tight text-muted-foreground text-center break-words line-clamp-2 w-full shrink-0"
                         title={sponsor.name}
                       >
                         {sponsor.name}
