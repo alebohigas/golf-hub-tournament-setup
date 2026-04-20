@@ -18,6 +18,53 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0'); // Don't display, capture instead
 ini_set('log_errors', '1');
 
+/**
+ * Fatal error / exception safety net.
+ * Guarantees the endpoint ALWAYS returns JSON, even on fatal errors
+ * (parse errors, undefined functions, out of memory, uncaught exceptions).
+ * In ?debug=1 mode, includes the error details in the `_debug` field.
+ */
+set_exception_handler(function ($e) {
+    global $DEBUG_MODE;
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    $payload = ['error' => 'Unhandled exception in competencias.php'];
+    if (!empty($DEBUG_MODE)) {
+        $payload['_debug'] = [
+            'type'    => get_class($e),
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => array_slice(explode("\n", $e->getTraceAsString()), 0, 15),
+        ];
+    }
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
+});
+
+register_shutdown_function(function () {
+    global $DEBUG_MODE;
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        $payload = ['error' => 'Fatal error in competencias.php'];
+        if (!empty($DEBUG_MODE)) {
+            $payload['_debug'] = [
+                'type'    => $err['type'],
+                'message' => $err['message'],
+                'file'    => $err['file'],
+                'line'    => $err['line'],
+            ];
+        }
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    }
+});
+
 /** Safe query execution - returns false on failure instead of crashing */
 function safe_exec($conn, $sql, $label = '') {
     $result = $conn->query($sql);
@@ -65,6 +112,9 @@ $detalle  = optional_param('detalle', '0');
 $tid = esc($conn, $torneoid);
 // // echo "/* Debug: Received request for torneoid=$tid, tipo='$tipo', detalle='$detalle' */\n";
 error_log("competencias.php - Request received: torneoid=$tid, tipo='$tipo', detalle='$detalle'");
+
+// Wrap the entire main flow in try/catch so any thrown error becomes JSON
+try {
 // ============= Get tournament config =============
 $sql = "SELECT oyesnumprem FROM torneo WHERE torneo_id = $tid";
 // // echo $sql;
@@ -356,6 +406,24 @@ usort($competencias, function($a, $b) {
 });
 
 json_response($competencias);
+
+} catch (\Throwable $e) {
+    // Caught by the main try: return JSON with details in debug mode
+    global $DEBUG_MODE;
+    http_response_code(500);
+    $payload = ['error' => 'competencias.php threw an exception'];
+    if (!empty($DEBUG_MODE)) {
+        $payload['_debug'] = [
+            'type'    => get_class($e),
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => array_slice(explode("\n", $e->getTraceAsString()), 0, 15),
+        ];
+    }
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 // ============= Helper Functions =============
 
