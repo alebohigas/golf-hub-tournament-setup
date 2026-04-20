@@ -1,6 +1,9 @@
 /**
  * Patrocinadores Page
  * Displays sponsor grid fetched from the API (base64 logos from DB)
+ * The number of grid columns (and therefore the rendered logo size) is
+ * controlled via the admin "Patrocinadores" tab and persisted server-side
+ * under `site_config.sponsors_config.columns`.
  */
 
 import Layout from '@/components/layout/Layout';
@@ -8,9 +11,45 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
+
+/** Default column count when no admin config is set */
+const DEFAULT_COLUMNS = 4;
+
+/**
+ * Map an admin-configured column count to:
+ *  - a responsive Tailwind grid class (small screens always start at 1–2 cols)
+ *  - a card height (taller when fewer columns ⇒ larger logos)
+ *  - a max logo height inside each card
+ *
+ * Returning fixed mappings keeps Tailwind's JIT happy (no dynamic class names
+ * concatenated at runtime that could be purged).
+ */
+const getGridConfig = (columns: number) => {
+  switch (columns) {
+    case 1:
+      return { gridClass: 'grid-cols-1', cardHeight: 'h-72', logoMax: 'max-h-56' };
+    case 2:
+      return { gridClass: 'grid-cols-1 sm:grid-cols-2', cardHeight: 'h-60', logoMax: 'max-h-44' };
+    case 3:
+      return { gridClass: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3', cardHeight: 'h-52', logoMax: 'max-h-36' };
+    case 5:
+      return { gridClass: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5', cardHeight: 'h-36', logoMax: 'max-h-20' };
+    case 6:
+      return { gridClass: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6', cardHeight: 'h-32', logoMax: 'max-h-16' };
+    case 4:
+    default:
+      return { gridClass: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4', cardHeight: 'h-40', logoMax: 'max-h-24' };
+  }
+};
 
 const Patrocinadores = () => {
   const { data: sponsors = [], isLoading } = useSponsors();
+  const { data: siteConfig } = useSiteConfig();
+
+  /** Resolved column count from server config, falling back to the default */
+  const columns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
+  const { gridClass, cardHeight, logoMax } = getGridConfig(columns);
 
   return (
     <Layout>
@@ -31,10 +70,10 @@ const Patrocinadores = () => {
 
           {/* Sponsor grid - loading skeleton or actual cards */}
           {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 8 }).map((_, i) => (
+            <div className={`grid ${gridClass} gap-6`}>
+              {Array.from({ length: columns * 2 }).map((_, i) => (
                 <Card key={i} className="border-border/50">
-                  <CardContent className="p-8 flex items-center justify-center h-40">
+                  <CardContent className={`p-8 flex items-center justify-center ${cardHeight}`}>
                     <Skeleton className="h-16 w-32" />
                   </CardContent>
                 </Card>
@@ -43,23 +82,23 @@ const Patrocinadores = () => {
           ) : sponsors.length === 0 ? (
             <p className="text-center text-muted-foreground">No hay patrocinadores registrados.</p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className={`grid ${gridClass} gap-6`}>
               {sponsors.map((sponsor) => (
                 <Card key={sponsor.id} className="card-hover border-border/50">
-                  <CardContent className="p-8 flex items-center justify-center h-40">
+                  <CardContent className={`p-8 flex items-center justify-center ${cardHeight}`}>
                     {sponsor.websiteUrl ? (
                       <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer">
                         <img 
                           src={sponsor.logoUrl} 
                           alt={sponsor.name}
-                          className="max-h-20 max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                          className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
                         />
                       </a>
                     ) : (
                       <img 
                         src={sponsor.logoUrl} 
                         alt={sponsor.name}
-                        className="max-h-20 max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                        className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
                       />
                     )}
                   </CardContent>
