@@ -24,6 +24,13 @@ $sql = "SELECT categoria_id, categoria, abreviatura, sistema, formato, salida, p
 $catInfo = query_one($conn, $sql);
 if (!$catInfo) { json_error('Category not found', 404); }
 
+// ── Total scheduled rounds for this category (from caljuego) ──
+// Used to determine when a player has all their cards closed (statlsc=1)
+$sqlRounds = "SELECT COUNT(*) AS total FROM caljuego
+              WHERE torneoid = $tid AND categoriaid = $cid";
+$roundsRow = query_one($conn, $sqlRounds);
+$totalRounds = (int)($roundsRow['total'] ?? 0);
+
 // ── Course info (par, rating, slope) ──
 $salidaid = esc($conn, $catInfo['salida']);
 $sql = "SELECT b.campoid, rating, slope, tee, parcampo
