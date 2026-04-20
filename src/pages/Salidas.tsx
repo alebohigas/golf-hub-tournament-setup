@@ -562,7 +562,7 @@ const Salidas = () => {
                             <tfoot>
                               <tr className="bg-primary">
                                 <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
-                                  {detail.categoryName}
+                                  CATEGORÍA: {detail.categoryName}
                                 </td>
                               </tr>
                             </tfoot>
