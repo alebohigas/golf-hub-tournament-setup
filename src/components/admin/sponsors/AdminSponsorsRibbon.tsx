@@ -66,6 +66,8 @@ const AdminSponsorsRibbon = () => {
   const { data: siteConfig, isLoading } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
+  // Read live page-visibility state to render the eye indicator next to each row.
+  const { isPageVisible } = usePageVisibility();
 
   /** Local draft state — per-route ribbon visibility */
   const [ribbonVisiblePages, setRibbonVisiblePages] = useState<Record<string, boolean>>(
@@ -188,6 +190,8 @@ const AdminSponsorsRibbon = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {RIBBON_PAGES.map((page) => {
                 const checked = ribbonVisiblePages[page.path] ?? true;
+                // A page with no managed pageId is always considered visible.
+                const pageVisibleForUsers = page.pageId ? isPageVisible(page.pageId) : true;
                 return (
                   <label
                     key={page.path}
@@ -197,11 +201,33 @@ const AdminSponsorsRibbon = () => {
                       checked && 'border-primary/40 bg-primary/5'
                     )}
                   >
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-medium truncate">{page.label}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground truncate">
-                        {page.path}
-                      </span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {/* Visibility indicator: open eye when the page is visible to users,
+                          struck-through eye when the page is hidden via Admin → Página → Visibilidad. */}
+                      {pageVisibleForUsers ? (
+                        <Eye
+                          className="h-4 w-4 shrink-0 text-primary"
+                          aria-label="Página visible para usuarios"
+                        />
+                      ) : (
+                        <EyeOff
+                          className="h-4 w-4 shrink-0 text-muted-foreground/60"
+                          aria-label="Página oculta para usuarios"
+                        />
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span
+                          className={cn(
+                            'text-sm font-medium truncate',
+                            !pageVisibleForUsers && 'text-muted-foreground line-through'
+                          )}
+                        >
+                          {page.label}
+                        </span>
+                        <span className="text-[10px] font-mono text-muted-foreground truncate">
+                          {page.path}
+                        </span>
+                      </div>
                     </div>
                     <Switch
                       id={`ribbon-${page.path}`}
