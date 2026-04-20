@@ -130,6 +130,11 @@ export const useSiteConfig = () => {
         localStorage.setItem(LIVE_SCORING_KEY, JSON.stringify(config.live_scoring_config));
       }
 
+      // Sync sponsors config
+      if (config.sponsors_config) {
+        localStorage.setItem(SPONSORS_CONFIG_KEY, JSON.stringify(config.sponsors_config));
+      }
+
       return config;
     },
     staleTime: 30 * 1000, // 30 seconds - keep fresh for admin changes
