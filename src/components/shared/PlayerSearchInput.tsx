@@ -16,6 +16,12 @@ interface PlayerSearchInputProps {
   value: string;
   /** Called whenever the input changes or a suggestion is picked */
   onChange: (value: string) => void;
+  /**
+   * Called only on explicit submission: pressing Enter or clicking a
+   * suggestion. Use this for navigation/side-effects so they don't fire
+   * on every keystroke.
+   */
+  onSubmit?: (value: string) => void;
   /** Full list of unique player names available for autocomplete */
   suggestions: string[];
   /** Placeholder text */
@@ -29,6 +35,7 @@ interface PlayerSearchInputProps {
 const PlayerSearchInput = ({
   value,
   onChange,
+  onSubmit,
   suggestions,
   placeholder = 'Buscar jugador por nombre...',
   className = '',
@@ -60,6 +67,8 @@ const PlayerSearchInput = ({
   const handlePick = (name: string) => {
     onChange(name);
     setOpen(false);
+    /** Notify parent of explicit selection (e.g. for navigation) */
+    onSubmit?.(name);
   };
 
   /** Handle clear button */
@@ -80,6 +89,14 @@ const PlayerSearchInput = ({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          /** Submit on Enter when there is content (no suggestion required) */
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            setOpen(false);
+            onSubmit?.(value);
+          }
+        }}
         className="pl-10 pr-10"
         autoComplete="off"
       />
