@@ -412,7 +412,7 @@ const Live = () => {
             <>
               <Button
                 variant="ghost"
-                onClick={() => { setSelected(null); setExpandedPlayerId(null); setScorecardData(null); }}
+                onClick={() => { setSelected(null); setExpandedPlayerId(null); setScorecardStack([]); }}
                 className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -488,15 +488,15 @@ const Live = () => {
                                   {player.name}
                                 </TableCell>
 
-                                {/* Main score — clickable to expand live scorecard */}
+                                {/* Main score — clickable to expand stacked scorecards (previous rounds + live) */}
                                 <TableCell className="text-center p-0">
-                                  {player.thru > 0 ? (
+                                  {(player.thru > 0 || (player.prevRoundDates && player.prevRoundDates.length > 0)) ? (
                                     <button
                                       onClick={() => handleScoreClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjeta en vivo"
+                                      title="Ver tarjetas (rondas previas + en vivo)"
                                     >
                                       {isStroke ? formatDifPar(player.score) : player.score}
                                     </button>
@@ -521,22 +521,39 @@ const Live = () => {
                                 </TableCell>
                               </TableRow>
 
-                              {/* Expanded live scorecard row */}
+                              {/*
+                                Expanded scorecards block.
+                                Renders each previous closed round plus the in-progress live card,
+                                stacked top-to-bottom, each with its own date label.
+                              */}
                               {expandedPlayerId === player.playerId && (
                                 scorecardLoading ? (
                                   <TableRow className="bg-white hover:bg-white">
                                     <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
-                                      Cargando tarjeta...
+                                      Cargando tarjetas...
                                     </TableCell>
                                   </TableRow>
-                                ) : scorecardData ? (
-                                  <ScorecardRow
-                                    scorecard={scorecardData}
-                                    playerName={player.name}
-                                    roundLabel="En Vivo"
-                                    onClose={() => { setExpandedPlayerId(null); setScorecardData(null); }}
-                                    colSpan={totalCols}
-                                  />
+                                ) : scorecardStack.length > 0 ? (
+                                  scorecardStack.map((sc, idx) => {
+                                    const prevCount = (player.prevRoundDates ?? []).length;
+                                    const isLive = idx >= prevCount;
+                                    const roundLabel = isLive
+                                      ? 'En Vivo'
+                                      : `Ronda ${idx + 1}`;
+                                    return (
+                                      <ScorecardRow
+                                        key={`${player.playerId}-sc-${idx}`}
+                                        scorecard={sc}
+                                        playerName={player.name}
+                                        roundLabel={roundLabel}
+                                        onClose={() => {
+                                          setExpandedPlayerId(null);
+                                          setScorecardStack([]);
+                                        }}
+                                        colSpan={totalCols}
+                                      />
+                                    );
+                                  })
                                 ) : null
                               )}
                             </Fragment>
