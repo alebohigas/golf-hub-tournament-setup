@@ -219,15 +219,12 @@ const Live = () => {
   const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
 
   /**
-   * Handle click on a player's main score to show/hide their scorecards.
-   * Builds a stack of:
-   *   1. Each previous closed scorecard (statlsc=1) by date
-   *      → fetched via resultados_tarjeta.php (date-specific)
-   *   2. The current/in-progress live scorecard
-   *      → fetched via live_tarjeta.php
-   * Renders them stacked, each with its own date label.
+   * Click on the "Total" column.
+   * Shows ONLY the player's previously closed scorecards (statlsc=1),
+   * one per date, stacked top-to-bottom. The in-progress (live) round
+   * is NOT included here — it belongs to the "Hoy" column.
    */
-  const handleScoreClick = async (player: LivePlayer) => {
+  const handleTotalClick = async (player: LivePlayer) => {
     // Toggle off if already expanded
     if (expandedPlayerId === player.playerId) {
       setExpandedPlayerId(null);
@@ -236,8 +233,8 @@ const Live = () => {
     }
 
     const prevDates = player.prevRoundDates ?? [];
-    // Nothing to show: no live progress and no closed cards
-    if (player.thru <= 0 && prevDates.length === 0) return;
+    // Nothing to show if no closed scorecards exist
+    if (prevDates.length === 0) return;
 
     setExpandedPlayerId(player.playerId);
     setScorecardStack([]);
@@ -265,25 +262,45 @@ const Live = () => {
          })
       );
 
-      // Fetch live scorecard if player has started today's round
-      const livePromise = player.thru > 0
-        ? fetchLiveScorecardFromApi(player.playerId, tipo, scoringType)
-            .then(sc => ({ ...sc, round: prevDates.length + 1 }))
-            .catch(err => { console.error('Failed to fetch live scorecard:', err); return null; })
-        : Promise.resolve(null);
-
-      const [prevResults, liveCard] = await Promise.all([
-        Promise.all(prevPromises),
-        livePromise,
-      ]);
-
-      const stack: RoundScorecard[] = [
-        ...prevResults.filter((c): c is RoundScorecard => c !== null),
-        ...(liveCard ? [liveCard] : []),
-      ];
+      const prevResults = await Promise.all(prevPromises);
+      const stack: RoundScorecard[] = prevResults
+        .filter((c): c is RoundScorecard => c !== null);
       setScorecardStack(stack);
     } catch (err) {
-      console.error('Failed to fetch scorecards:', err);
+      console.error('Failed to fetch previous scorecards:', err);
+      setScorecardStack([]);
+    } finally {
+      setScorecardLoading(false);
+    }
+  };
+
+  /**
+   * Click on the "Hoy" column.
+   * Shows the in-progress live scorecard for the current round only,
+   * fetched from live_tarjeta.php.
+   */
+  const handleTodayClick = async (player: LivePlayer) => {
+    // Toggle off if already expanded as "today" (use a sentinel suffix)
+    const expandKey = `${player.playerId}::today`;
+    if (expandedPlayerId === expandKey) {
+      setExpandedPlayerId(null);
+      setScorecardStack([]);
+      return;
+    }
+
+    if (player.thru <= 0) return;
+
+    setExpandedPlayerId(expandKey);
+    setScorecardStack([]);
+    setScorecardLoading(true);
+
+    try {
+      const tipo = selected?.tipo || (isStroke ? 'stroke' : 'stableford');
+      const scoringType = selected?.gross === 1 ? 'GROSS' : 'NETO';
+      const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
+      setScorecardStack([live]);
+    } catch (err) {
+      console.error('Failed to fetch live scorecard:', err);
       setScorecardStack([]);
     } finally {
       setScorecardLoading(false);
@@ -488,15 +505,19 @@ const Live = () => {
                                   {player.name}
                                 </TableCell>
 
-                                {/* Main score — clickable to expand stacked scorecards (previous rounds + live) */}
+                                {/*
+                                  Total column — clickable when player has previously CLOSED scorecards.
+                                  Click expands all previous closed cards (statlsc=1) stacked by date.
+                                  Live/in-progress round is NOT included here (see "Hoy").
+                                */}
                                 <TableCell className="text-center p-0">
-                                  {(player.thru > 0 || (player.prevRoundDates && player.prevRoundDates.length > 0)) ? (
+                                  {(player.prevRoundDates && player.prevRoundDates.length > 0) ? (
                                     <button
-                                      onClick={() => handleScoreClick(player)}
+                                      onClick={() => handleTotalClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjetas (rondas previas + en vivo)"
+                                      title="Ver tarjetas de rondas previas"
                                     >
                                       {isStroke ? formatDifPar(player.score) : player.score}
                                     </button>
@@ -512,21 +533,41 @@ const Live = () => {
                                   {formatThru(player)}
                                 </TableCell>
 
-                                {/* Today's score */}
-                                <TableCell className={`text-center text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
-                                  {isStroke
-                                    ? formatDifPar(player.todayScore ?? 0)
-                                    : (player.todayScore ?? '-')
-                                  }
+                                {/*
+                                  Hoy column — clickable when player has started today's round (thru > 0).
+                                  Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
+                                */}
+                                <TableCell className="text-center p-0">
+                                  {player.thru > 0 ? (
+                                    <button
+                                      onClick={() => handleTodayClick(player)}
+                                      className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
+                                        isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''
+                                      } ${expandedPlayerId === `${player.playerId}::today` ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
+                                      title="Ver tarjeta en vivo (ronda en curso)"
+                                    >
+                                      {isStroke
+                                        ? formatDifPar(player.todayScore ?? 0)
+                                        : (player.todayScore ?? '-')
+                                      }
+                                    </button>
+                                  ) : (
+                                    <span className={`py-3 px-2 inline-block text-sm ${isStroke ? getStrokeScoreClass(player.todayScore ?? 0) : ''}`}>
+                                      {isStroke
+                                        ? formatDifPar(player.todayScore ?? 0)
+                                        : (player.todayScore ?? '-')
+                                      }
+                                    </span>
+                                  )}
                                 </TableCell>
                               </TableRow>
 
                               {/*
                                 Expanded scorecards block.
-                                Renders each previous closed round plus the in-progress live card,
-                                stacked top-to-bottom, each with its own date label.
+                                When triggered from "Total" → renders previous closed rounds (with date labels).
+                                When triggered from "Hoy"   → renders the single in-progress live card.
                               */}
-                              {expandedPlayerId === player.playerId && (
+                              {(expandedPlayerId === player.playerId || expandedPlayerId === `${player.playerId}::today`) && (
                                 scorecardLoading ? (
                                   <TableRow className="bg-white hover:bg-white">
                                     <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
@@ -535,9 +576,8 @@ const Live = () => {
                                   </TableRow>
                                 ) : scorecardStack.length > 0 ? (
                                   scorecardStack.map((sc, idx) => {
-                                    const prevCount = (player.prevRoundDates ?? []).length;
-                                    const isLive = idx >= prevCount;
-                                    const roundLabel = isLive
+                                    const isLiveExpansion = expandedPlayerId === `${player.playerId}::today`;
+                                    const roundLabel = isLiveExpansion
                                       ? 'En Vivo'
                                       : `Ronda ${idx + 1}`;
                                     return (
