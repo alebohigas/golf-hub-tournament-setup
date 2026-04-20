@@ -300,6 +300,11 @@ const Salidas = () => {
                       <p className="text-sm text-muted-foreground text-center mb-4">
                         {searchResults.length} grupo{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
                       </p>
+                      {searchFailures > 0 && (
+                        <p className="text-sm text-destructive text-center mb-2">
+                          ⚠️ {searchFailures} día(s)/categoría(s) no se pudieron cargar — algunos resultados pueden faltar. Revisa la consola.
+                        </p>
+                      )}
                       {searchResults.map((result, rIdx) => (
                         <Card key={rIdx} className="border-border/50 bg-white">
                           <CardContent className="p-0 bg-white">
