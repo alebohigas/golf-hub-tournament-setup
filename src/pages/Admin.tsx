@@ -20,6 +20,7 @@ import AdminMenuGroups from '@/components/admin/AdminMenuGroups';
 import AdminMenuOrder from '@/components/admin/AdminMenuOrder';
 import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
 import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
+import AdminSponsors from '@/components/admin/AdminSponsors';
 import { 
   Shield, 
   LogOut, 
@@ -36,6 +37,7 @@ import {
   Loader2,
   FileText,
   Radio,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -296,7 +298,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -320,6 +322,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="live" className="gap-2">
             <Radio className="h-4 w-4" />
             <span className="hidden sm:inline">Live</span>
+          </TabsTrigger>
+          <TabsTrigger value="sponsors" className="gap-2">
+            <ImageIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Patrocinadores</span>
           </TabsTrigger>
         </TabsList>
 
@@ -488,6 +494,11 @@ const AdminDashboard = () => {
         {/* Live Scoring Tab */}
         <TabsContent value="live">
           <AdminLiveScoring />
+        </TabsContent>
+
+        {/* Sponsors Tab — controls how the Patrocinadores page renders sponsor logos */}
+        <TabsContent value="sponsors">
+          <AdminSponsors />
         </TabsContent>
       </Tabs>
 
