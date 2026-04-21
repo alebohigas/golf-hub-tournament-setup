@@ -126,17 +126,22 @@ const SponsorRibbon = () => {
 
   /**
    * Animation speed.
-   * Base = 30s for 4+ visible logos. With fewer visible logos the loop is
-   * shorter (= faster) so the ribbon doesn't feel sluggish:
-   *   1 visible → ~18s
-   *   2 visible → ~22s
-   *   3 visible → ~26s
-   *   4+ visible → 30s (baseline)
+   * Baseline = 30s when 6+ logos are visible at once. With fewer visible
+   * logos the loop is progressively shorter (= faster) so the ribbon never
+   * feels sluggish when there is little content on screen:
+   *   1 visible → 12s   (fastest)
+   *   2 visible → 15s
+   *   3 visible → 18s
+   *   4 visible → 22s
+   *   5 visible → 26s
+   *   6+ visible → 30s  (baseline)
    */
   const speedSeconds =
-    visibleCount === 1 ? 18 :
-    visibleCount === 2 ? 22 :
-    visibleCount === 3 ? 26 :
+    visibleCount === 1 ? 12 :
+    visibleCount === 2 ? 15 :
+    visibleCount === 3 ? 18 :
+    visibleCount === 4 ? 22 :
+    visibleCount === 5 ? 26 :
     30;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${speedSeconds}s`,
