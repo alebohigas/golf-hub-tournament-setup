@@ -28,6 +28,8 @@ import {
   Save,
   Shuffle,
   CheckCircle2,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
@@ -73,8 +75,14 @@ const AdminSponsorsCarousel = () => {
   const [orderedIds, setOrderedIds] = useState<number[]>([]);
   /** Local draft state — randomize on each page load */
   const [randomize, setRandomize] = useState<boolean>(false);
-  /** Local draft state — max distinct logos visible at any time (0 = all) */
+  /** Local draft state — number of logos FULLY visible in the viewport (0 = auto) */
   const [visibleCount, setVisibleCount] = useState<number>(DEFAULT_VISIBLE_COUNT);
+  /**
+   * Local draft state — set of sponsor IDs the admin has enabled for the ribbon.
+   * The ribbon will only display sponsors whose ID is in this set. Null/undefined
+   * server value is treated as "all enabled" on first load.
+   */
+  const [enabledIds, setEnabledIds] = useState<Set<number>>(new Set());
 
   /**
    * Sponsor IDs whose logo image failed to load. These are hidden from the
@@ -118,6 +126,14 @@ const AdminSponsorsCarousel = () => {
     setOrderedIds([...savedOrder, ...missing]);
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
+    // Enabled list: if the server has no whitelist yet, default to ALL sponsors enabled.
+    const savedEnabled = savedCarousel.enabledIds;
+    if (savedEnabled && Array.isArray(savedEnabled)) {
+      // Keep only IDs that still correspond to a renderable sponsor.
+      setEnabledIds(new Set(savedEnabled.filter((id) => sponsorIds.includes(Number(id))).map(Number)));
+    } else {
+      setEnabledIds(new Set(sponsorIds));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderableSponsors, siteConfig?.sponsors_config?.carousel]);
 
@@ -137,9 +153,12 @@ const AdminSponsorsCarousel = () => {
     [sponsors, brokenIds]
   );
 
-  /** How many logos will be visible on screen in the ribbon at any moment. */
+  /** How many logos the admin has actually enabled (= rotate in the ribbon). */
+  const enabledCount = enabledIds.size;
+
+  /** How many logos will be FULLY visible on screen in the ribbon at any moment. */
   const onScreenLogos =
-    visibleCount > 0 ? Math.min(visibleCount, totalSponsors) : totalSponsors;
+    visibleCount > 0 ? Math.min(visibleCount, Math.max(enabledCount, 1)) : Math.max(enabledCount, 1);
 
   /**
    * Human-readable label for the resulting scroll speed (mirrors the logic
@@ -153,10 +172,15 @@ const AdminSponsorsCarousel = () => {
     'estándar';
 
   /** Detect unsaved changes vs. server-stored config */
+  const savedEnabledArray = Array.isArray(savedCarousel.enabledIds)
+    ? [...savedCarousel.enabledIds].map(Number).sort((a, b) => a - b)
+    : null;
+  const draftEnabledArray = [...enabledIds].sort((a, b) => a - b);
   const hasChanges =
     JSON.stringify(orderedIds) !== JSON.stringify(savedCarousel.order ?? []) ||
     Boolean(savedCarousel.randomize) !== randomize ||
-    (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount;
+    (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount ||
+    JSON.stringify(savedEnabledArray) !== JSON.stringify(draftEnabledArray);
 
   /** DnD callback — applies the new order returned by react-beautiful-dnd */
   const handleDragEnd = (result: DropResult) => {
@@ -179,6 +203,7 @@ const AdminSponsorsCarousel = () => {
             order: orderedIds,
             randomize,
             visibleCount,
+            enabledIds: [...enabledIds],
           },
         },
       },
@@ -307,23 +332,24 @@ const AdminSponsorsCarousel = () => {
               <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-md border border-border bg-background">
                 <div className="flex flex-col min-w-0">
                   <Label htmlFor="carousel-visible-count" className="text-sm font-medium">
-                    Logos visibles a la vez
+                    Cantidad de logos visibles
                   </Label>
                   <span className="text-xs text-muted-foreground">
-                    Cuántos logos caben en pantalla simultáneamente. Con 1–3 el
-                    ribbon se mueve más rápido. 0 = tamaño automático.
+                    Logos completamente visibles en el ribbon a la vez. Logos
+                    entrando/saliendo cuentan como parciales (ej. 0.5 + 2 + 0.5
+                    = 3 visibles). 0 = tamaño automático.
                   </span>
                 </div>
                 <Input
                   id="carousel-visible-count"
                   type="number"
                   min={0}
-                  max={totalSponsors}
+                  max={Math.max(enabledCount, 1)}
                   value={visibleCount}
                   onChange={(e) => {
                     const v = Number(e.target.value);
                     if (Number.isNaN(v)) return;
-                    setVisibleCount(Math.max(0, Math.min(v, totalSponsors)));
+                    setVisibleCount(Math.max(0, Math.min(v, Math.max(enabledCount, 1))));
                   }}
                   className="w-24 text-right font-mono"
                 />
@@ -332,12 +358,43 @@ const AdminSponsorsCarousel = () => {
 
             {/* Drag-and-drop sponsor list */}
             <div className="space-y-2">
-              <Label className="text-sm">Orden del carrusel</Label>
-              <p className="text-xs text-muted-foreground">
-                Arrastra para reordenar. Todos los logos rotan en el ribbon —
-                el campo "Logos visibles a la vez" solo controla cuántos caben
-                simultáneamente en pantalla.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Label className="text-sm">Orden y selección de logos</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Arrastra para reordenar. Activa/desactiva el switch para
+                    incluir o excluir cada logo del ribbon. Los logos
+                    desactivados aparecen en gris y no rotan en el ribbon.
+                  </p>
+                </div>
+                {/* Select all / none toggle */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => {
+                    const allIds = renderableSponsors.map((s) => Number(s.id));
+                    if (enabledIds.size === allIds.length) {
+                      setEnabledIds(new Set());
+                    } else {
+                      setEnabledIds(new Set(allIds));
+                    }
+                  }}
+                >
+                  {enabledIds.size === renderableSponsors.length ? (
+                    <>
+                      <ToggleRight className="h-4 w-4" />
+                      Deseleccionar todos
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="h-4 w-4" />
+                      Seleccionar todos
+                    </>
+                  )}
+                </Button>
+              </div>
 
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="carousel-list">
@@ -350,6 +407,7 @@ const AdminSponsorsCarousel = () => {
                       {orderedIds.map((id, index) => {
                         const sponsor = sponsorById.get(id);
                         if (!sponsor) return null;
+                        const isEnabled = enabledIds.has(id);
                         return (
                           <Draggable
                             key={id}
@@ -364,7 +422,8 @@ const AdminSponsorsCarousel = () => {
                                 className={cn(
                                   'flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-background',
                                   snapshot.isDragging && 'shadow-lg border-primary/40 bg-primary/5',
-                                  randomize && 'opacity-60'
+                                  randomize && 'opacity-60',
+                                  !isEnabled && 'opacity-40 grayscale'
                                 )}
                               >
                                 {/* Drag handle */}
@@ -403,6 +462,20 @@ const AdminSponsorsCarousel = () => {
                                 >
                                   {sponsor.name}
                                 </span>
+
+                                {/* Per-sponsor enable toggle */}
+                                <Switch
+                                  checked={isEnabled}
+                                  onCheckedChange={(checked) => {
+                                    setEnabledIds((prev) => {
+                                      const next = new Set(prev);
+                                      if (checked) next.add(id);
+                                      else next.delete(id);
+                                      return next;
+                                    });
+                                  }}
+                                  aria-label={`Mostrar ${sponsor.name} en el ribbon`}
+                                />
                               </div>
                             )}
                           </Draggable>
