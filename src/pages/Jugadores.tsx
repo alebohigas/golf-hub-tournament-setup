@@ -142,49 +142,46 @@ const Jugadores = () => {
                           <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                           {/* HI, HJ, HN headers with help tooltips */}
                           <TableHead className="text-primary-foreground font-bold text-right">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="inline-flex items-center gap-1 cursor-help">
-                                    HI <HelpCircle className="h-3.5 w-3.5 opacity-70" />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                                  <p className="font-bold">Handicap Índice</p>
-                                  <p>Medida portátil de la habilidad del jugador, calculada a partir de sus mejores 8 de las últimas 20 rondas.</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {/* HI header: Popover so it works on tap (mobile) and click (desktop) */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="inline-flex items-center gap-1 cursor-help font-bold text-primary-foreground">
+                                  HI <HelpCircle className="h-3.5 w-3.5 opacity-70" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="bottom" className="max-w-[240px] w-auto text-xs p-3">
+                                <p className="font-bold mb-1">Handicap Índice</p>
+                                <p>Medida portátil de la habilidad del jugador, calculada a partir de sus mejores 8 de las últimas 20 rondas.</p>
+                              </PopoverContent>
+                            </Popover>
                           </TableHead>
                           <TableHead className="text-primary-foreground font-bold text-right">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="inline-flex items-center gap-1 cursor-help">
-                                    HJ <HelpCircle className="h-3.5 w-3.5 opacity-70" />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                                  <p className="font-bold">Handicap de Juego</p>
-                                  <p>Golpes que el jugador recibe en un campo específico, ajustado por el rating y slope del tee de salida.</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {/* HJ header: Popover for mobile tap support */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="inline-flex items-center gap-1 cursor-help font-bold text-primary-foreground">
+                                  HJ <HelpCircle className="h-3.5 w-3.5 opacity-70" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="bottom" className="max-w-[240px] w-auto text-xs p-3">
+                                <p className="font-bold mb-1">Handicap de Juego</p>
+                                <p>Golpes que el jugador recibe en un campo específico, ajustado por el rating y slope del tee de salida.</p>
+                              </PopoverContent>
+                            </Popover>
                           </TableHead>
                           <TableHead className="text-primary-foreground font-bold text-right">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="inline-flex items-center gap-1 cursor-help">
-                                    HN <HelpCircle className="h-3.5 w-3.5 opacity-70" />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                                  <p className="font-bold">Handicap Neto</p>
-                                  <p>Handicap de juego ajustado por el porcentaje de la categoría, usado para calcular el score neto del torneo.</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {/* HN header: Popover for mobile tap support */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="inline-flex items-center gap-1 cursor-help font-bold text-primary-foreground">
+                                  HN <HelpCircle className="h-3.5 w-3.5 opacity-70" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="bottom" className="max-w-[240px] w-auto text-xs p-3">
+                                <p className="font-bold mb-1">Handicap Neto</p>
+                                <p>Handicap de juego ajustado por el porcentaje de la categoría, usado para calcular el score neto del torneo.</p>
+                              </PopoverContent>
+                            </Popover>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
