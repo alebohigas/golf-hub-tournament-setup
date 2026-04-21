@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
  * SponsorRibbon
@@ -32,6 +33,14 @@ const SponsorRibbon = () => {
   const { data: sponsors = [] } = useSponsors();
   const { data: siteConfig } = useSiteConfig();
   const { pathname } = useLocation();
+  /**
+   * Mobile override:
+   * En vista mobile el `visibleCount` configurado por el admin (pensado para
+   * desktop) provoca logos diminutos. Forzamos un slot ancho (1 logo "page"
+   * por viewport) para que el patrocinador llene el alto disponible (h-20)
+   * sin escalarse hacia abajo, y aceleramos el desplazamiento del ribbon.
+   */
+  const isMobile = useIsMobile();
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
@@ -113,7 +122,11 @@ const SponsorRibbon = () => {
    *        partial (the spec the admin asked for).
    *  - 0/undefined: legacy behavior (natural slot width with `mx-8` margins).
    */
-  const visibleCount = carousel?.visibleCount ?? 0;
+  const configuredVisibleCount = carousel?.visibleCount ?? 0;
+  // En mobile ignoramos la configuración del admin y mostramos 1 logo a la
+  // vez (slot a 100% del ancho del contenedor) para que la imagen pueda usar
+  // todo el alto del ribbon. En desktop respetamos la configuración.
+  const visibleCount = isMobile ? 1 : configuredVisibleCount;
   // When visibleCount > 0, stretch each slot to `100% / visibleCount` of the
   // container so exactly N logos fit fully in the viewport at any time.
   // When 0, fall back to legacy fixed-margin sizing.
@@ -133,11 +146,14 @@ const SponsorRibbon = () => {
    *   3 visible → ~26s
    *   4+ visible → 30s (baseline)
    */
-  const speedSeconds =
-    visibleCount === 1 ? 18 :
-    visibleCount === 2 ? 22 :
-    visibleCount === 3 ? 26 :
-    30;
+  // Velocidad del ribbon. En mobile aceleramos (~12s) porque mostramos menos
+  // logos por pantalla y un movimiento lento se siente estancado.
+  const speedSeconds = isMobile
+    ? 12
+    : visibleCount === 1 ? 18 :
+      visibleCount === 2 ? 22 :
+      visibleCount === 3 ? 26 :
+      30;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${speedSeconds}s`,
   };
