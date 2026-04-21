@@ -154,8 +154,10 @@
   }
 
   .fade-edge-left {
-    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    /* Subtle fade only at the very edges (~4%) so sponsor logos keep their
+       original color across most of the ribbon width. */
+    mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
   }
 }
 
