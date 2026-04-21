@@ -172,6 +172,8 @@ const Header = () => {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
+  /** Tracks the right-side reserved slot (Admin link/badge), if any */
+  const rightSlotRef = useRef<HTMLDivElement>(null);
   
   // Get visible menu items and groups from context
   const { 
@@ -259,7 +261,7 @@ const Header = () => {
   const navItems = buildNavItems();
 
   // Overflow detection: determine how many items fit in the header
-  const visibleCount = useOverflowMenu(navRef, logoRef, navItems.length);
+  const visibleCount = useOverflowMenu(navRef, logoRef, rightSlotRef, navItems.length);
   const visibleNavItems = navItems.slice(0, visibleCount);
   const overflowNavItems = navItems.slice(visibleCount);
 
