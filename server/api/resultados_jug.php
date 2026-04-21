@@ -31,39 +31,21 @@ $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
 // ============= Get category info (includes per-scoring medal counts) =============
-// Base category info comes from `categorias`. Medal counts (numganadorneto /
-// numganadorgross) are stored in `caljuego` per torneo+categoría and are
-// fetched separately. We probe INFORMATION_SCHEMA so missing columns on
-// legacy databases fall back to defaults (3 neto, 1 gross) instead of
-// causing a fatal SQL error.
-$sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
-               a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
-               COUNT(b.id) as playerCount
-        FROM categorias a
-        JOIN jugadores b ON (a.categoria_id = b.categoriaid)
-        WHERE a.categoria_id = $cid
-        GROUP BY a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
-                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar";
-
-$catInfo = query_one($conn, $sql);
-debug_log_query('Category info', $sql);
-if (!$catInfo) {
-    json_error('Category not found', 404);
-}
-
-$sistema = strtoupper($catInfo['sistema']);
-$formato = strtoupper($catInfo['formato']);
+// Medal counts (numganadorneto / numganadorgross) live in `categorias`.
+// We probe INFORMATION_SCHEMA so missing columns on legacy databases fall
+// back to defaults (3 neto, 1 gross) instead of causing a fatal SQL error.
+// numjugprem is kept as legacy fallback for the net count.
 
 /**
- * Checks whether a column exists in a given table for the active database.
- * Used to gracefully degrade when legacy schemas are missing optional columns.
+ * Checks whether a column exists in `categorias` for the active database.
+ * Lets us gracefully degrade when legacy schemas miss optional columns.
  */
-function caljuego_has_column($conn, $col) {
+function categorias_has_column($conn, $col) {
     $colEsc = esc($conn, $col);
     $res = @$conn->query(
         "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
          WHERE TABLE_SCHEMA = DATABASE()
-           AND TABLE_NAME = 'caljuego'
+           AND TABLE_NAME = 'categorias'
            AND COLUMN_NAME = '$colEsc'
          LIMIT 1"
     );
@@ -73,30 +55,50 @@ function caljuego_has_column($conn, $col) {
     return $exists;
 }
 
-/**
- * Medal counts live in caljuego per (torneoid, categoriaid). A category may
- * have multiple caljuego rows (one per round), so we take MAX to get a
- * single representative value. If the columns are missing, defaults apply.
- */
-$hasCalNeto  = caljuego_has_column($conn, 'numganadorneto');
-$hasCalGross = caljuego_has_column($conn, 'numganadorgross');
+$hasNeto   = categorias_has_column($conn, 'numganadorneto');
+$hasGross  = categorias_has_column($conn, 'numganadorgross');
+$hasLegacy = categorias_has_column($conn, 'numjugprem');
 
-$medalCountNeto  = 3;
-$medalCountGross = 1;
-
-if ($hasCalNeto || $hasCalGross) {
-    $netoSel  = $hasCalNeto  ? "MAX(numganadorneto)"  : "NULL";
-    $grossSel = $hasCalGross ? "MAX(numganadorgross)" : "NULL";
-    $medalSql = "SELECT $netoSel as nneto, $grossSel as ngross
-                 FROM caljuego
-                 WHERE categoriaid = $cid AND torneoid = $tid";
-    debug_log_query('Medal counts (caljuego)', $medalSql);
-    $medalRow = query_one($conn, $medalSql);
-    if ($medalRow) {
-        if ($hasCalNeto  && $medalRow['nneto']  !== null) $medalCountNeto  = (int)$medalRow['nneto'];
-        if ($hasCalGross && $medalRow['ngross'] !== null) $medalCountGross = (int)$medalRow['ngross'];
-    }
+/** SELECT expression for net medal count, with safe fallbacks */
+if ($hasNeto) {
+    $netoExpr = $hasLegacy
+        ? "IFNULL(a.numganadorneto, IFNULL(a.numjugprem, 3))"
+        : "IFNULL(a.numganadorneto, 3)";
+} else {
+    $netoExpr = $hasLegacy ? "IFNULL(a.numjugprem, 3)" : "3";
 }
+
+/** SELECT expression for gross medal count, with safe fallback */
+$grossExpr = $hasGross ? "IFNULL(a.numganadorgross, 1)" : "1";
+
+/** GROUP BY additions only for columns that actually exist */
+$groupExtras = '';
+if ($hasNeto)   $groupExtras .= ', a.numganadorneto';
+if ($hasGross)  $groupExtras .= ', a.numganadorgross';
+if ($hasLegacy) $groupExtras .= ', a.numjugprem';
+
+$sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
+               a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
+               $netoExpr as numganadorneto,
+               $grossExpr as numganadorgross,
+               COUNT(b.id) as playerCount
+        FROM categorias a
+        JOIN jugadores b ON (a.categoria_id = b.categoriaid)
+        WHERE a.categoria_id = $cid
+        GROUP BY a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
+                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar"
+        . $groupExtras;
+
+$catInfo = query_one($conn, $sql);
+debug_log_query('Category info', $sql);
+if (!$catInfo) {
+    json_error('Category not found', 404);
+}
+
+$sistema = strtoupper($catInfo['sistema']);
+$formato = strtoupper($catInfo['formato']);
+$medalCountNeto  = (int)$catInfo['numganadorneto'];
+$medalCountGross = (int)$catInfo['numganadorgross'];
 
 /** Active medal count for the requested scoring type (back-compat field) */
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
