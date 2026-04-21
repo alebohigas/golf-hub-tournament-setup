@@ -128,6 +128,25 @@ const Competencias = () => {
     return selectedCompetencia?.groups || [];
   }, [selectedCompetencia]);
 
+  /**
+   * Keep `selectedGroup` in sync with the latest fetched data.
+   * Without this, when the polling refetch updates player positions
+   * (e.g., a player drops from 1st to 4th place in putt while still
+   * leading approach), the local `selectedGroup` reference holds stale
+   * data and can cause render errors or show outdated standings.
+   * Re-resolve by group id from the fresh `groups` array on each update.
+   */
+  useEffect(() => {
+    if (!selectedGroup) return;
+    const fresh = groups.find(g => g.id === selectedGroup.id);
+    if (fresh && fresh !== selectedGroup) {
+      setSelectedGroup(fresh);
+    } else if (!fresh && groups.length > 0) {
+      // Group no longer exists in the new data — drop back to group list
+      setSelectedGroup(null);
+    }
+  }, [groups, selectedGroup]);
+
   // Handle competition type selection
   const handleCompetenciaSelect = (id: string | null) => {
     setSelectedCompetenciaId(id);
