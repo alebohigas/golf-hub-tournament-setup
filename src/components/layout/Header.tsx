@@ -309,10 +309,14 @@ const Header = () => {
             "px-4 py-3 text-sm font-medium rounded-lg transition-colors",
             location.pathname === item.path
               ? "bg-primary text-primary-foreground"
-              : "text-foreground/80 hover:bg-muted"
+              : "text-foreground/80 hover:bg-muted",
+            item.hidden && "opacity-50 italic",
           )}
         >
-          {item.label}
+          <span className="inline-flex items-center gap-2">
+            {item.label}
+            {item.hidden && <EyeOff className="h-3.5 w-3.5" />}
+          </span>
         </Link>
       );
     }
@@ -328,10 +332,14 @@ const Header = () => {
               "w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors",
               isGroupActive(item.children!)
                 ? "bg-primary/10 text-primary"
-                : "text-foreground/80 hover:bg-muted"
+                : "text-foreground/80 hover:bg-muted",
+              item.hidden && "opacity-50 italic",
             )}
           >
-            <span>{item.label}</span>
+            <span className="inline-flex items-center gap-2">
+              {item.label}
+              {item.hidden && <EyeOff className="h-3.5 w-3.5" />}
+            </span>
             <ChevronDown className={cn(
               "h-4 w-4 transition-transform",
               openMobileGroup === item.id && "rotate-180"
@@ -349,10 +357,14 @@ const Header = () => {
                   "px-3 py-2 text-sm rounded-lg transition-colors",
                   location.pathname === child.path
                     ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:bg-muted"
+                    : "text-foreground/70 hover:bg-muted",
+                  child.hidden && "opacity-50 italic",
                 )}
               >
-                {child.label}
+                <span className="inline-flex items-center gap-2">
+                  {child.label}
+                  {child.hidden && <EyeOff className="h-3 w-3" />}
+                </span>
               </Link>
             ))}
           </div>
