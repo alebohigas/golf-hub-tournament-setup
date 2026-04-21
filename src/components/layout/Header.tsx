@@ -207,7 +207,20 @@ const Header = () => {
     const processedPages = new Set<string>();
     const processedGroups = new Set<string>();
 
-    const sortedItems = [...sourceItems].sort((a, b) => a.order - b.order);
+    /*
+     * IMPORTANT: do NOT re-sort by `item.order` here.
+     *
+     * `sourceItems` already comes from the context (`getAllMenuItems` /
+     * `getVisibleMenuItems`), which applies the admin's custom
+     * `menuItemOrder` overrides on top of the default order. The MenuItem
+     * objects themselves still carry their ORIGINAL `.order` value from
+     * `menuConfig`, so re-sorting by `.order` would discard the admin's
+     * custom drag-and-drop order and revert to the static defaults.
+     *
+     * Trusting the array order keeps groups positioned at the slot of
+     * their first ordered child page, exactly like the admin sees it.
+     */
+    const sortedItems = sourceItems;
 
     for (const item of sortedItems) {
       if (processedPages.has(item.id)) continue;
