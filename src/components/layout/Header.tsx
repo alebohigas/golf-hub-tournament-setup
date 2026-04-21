@@ -443,17 +443,25 @@ const Header = () => {
                                   className={cn(
                                     "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors",
                                     "hover:bg-accent hover:text-accent-foreground",
-                                    location.pathname === item.path && "bg-accent text-accent-foreground"
+                                    location.pathname === item.path && "bg-accent text-accent-foreground",
+                                    item.hidden && "opacity-50 italic",
                                   )}
                                 >
-                                  {item.label}
+                                  <span className="inline-flex items-center gap-1">
+                                    {item.label}
+                                    {item.hidden && <EyeOff className="h-3 w-3" />}
+                                  </span>
                                 </Link>
                               </NavigationMenuLink>
                             </li>
                           ) : (
                             <li key={item.id} className="space-y-1">
-                              <span className="block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <span className={cn(
+                                "block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider inline-flex items-center gap-1",
+                                item.hidden && "opacity-50 italic",
+                              )}>
                                 {item.label}
+                                {item.hidden && <EyeOff className="h-3 w-3" />}
                               </span>
                               {item.children!.map((child) => (
                                 <NavigationMenuLink key={child.id} asChild>
@@ -462,10 +470,14 @@ const Header = () => {
                                     className={cn(
                                       "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors pl-5",
                                       "hover:bg-accent hover:text-accent-foreground",
-                                      location.pathname === child.path && "bg-accent text-accent-foreground"
+                                      location.pathname === child.path && "bg-accent text-accent-foreground",
+                                      child.hidden && "opacity-50 italic",
                                     )}
                                   >
-                                    {child.label}
+                                    <span className="inline-flex items-center gap-1">
+                                      {child.label}
+                                      {child.hidden && <EyeOff className="h-3 w-3" />}
+                                    </span>
                                   </Link>
                                 </NavigationMenuLink>
                               ))}
