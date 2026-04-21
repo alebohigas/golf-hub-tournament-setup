@@ -156,6 +156,8 @@ const AdminPagina = ({
           onOrderChange={onSetMenuOrder}
           pageGroupAssignments={pageGroupAssignments}
           menuGroups={menuGroups}
+          onGroupsChange={onSetMenuGroups}
+          onPageGroupChange={onSetPageGroupAssignment}
         />
       </TabsContent>
 
