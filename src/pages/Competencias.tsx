@@ -18,7 +18,7 @@ import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
-import { useAllCompetenciasWithPlayers, collectUniquePlayerNames } from '@/hooks/useAllCompetenciasData';
+import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
@@ -45,6 +45,8 @@ const Competencias = () => {
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
+  /** Error state for the search input (player not found) */
+  const [searchError, setSearchError] = useState(false);
   const navigate = useNavigate();
   
   // Context for admin visibility control
@@ -62,21 +64,43 @@ const Competencias = () => {
 
   /**
    * Handle local typing in the search input.
-   * IMPORTANT: This only updates the local query — it does NOT navigate.
-   * Navigation is reserved for explicit submit (Enter) or suggestion pick.
+   * Only updates local query; clears any previous error so the user
+   * can try again without a stale red state. Never navigates.
    */
   const handlePlayerSearch = (name: string) => {
     setSearchQuery(name);
+    if (searchError) setSearchError(false);
   };
 
   /**
    * Handle explicit submission (Enter key or suggestion click).
-   * Only here do we navigate to /premios with the selected name.
+   * Searches for the player within the already-loaded competencias data
+   * and drills down to the first matching group. If no match is found,
+   * flags the input with an error state (red + shake) and stays on page.
+   * Never navigates away from /competencias.
    */
   const handlePlayerSubmit = (name: string) => {
     const trimmed = name.trim();
-    if (trimmed.length > 0) {
-      navigate(`/premios?q=${encodeURIComponent(trimmed)}`);
+    if (trimmed.length === 0) {
+      setSearchError(false);
+      return;
+    }
+    // Search across all loaded competencias for this player name
+    const matches = searchPlayerAcrossCompetencias(allWithPlayers, trimmed);
+    if (matches.length === 0) {
+      setSearchError(true);
+      return;
+    }
+    // Found: drill down to the first matching competition/group in-page
+    const first = matches[0];
+    const targetComp = allWithPlayers.find(c => c.id === first.competenciaId);
+    const targetGroup = targetComp?.groups?.find(g => g.id === first.groupId);
+    if (targetComp && targetGroup) {
+      setSelectedCompetenciaId(targetComp.id);
+      setSelectedGroup(targetGroup);
+      setSearchError(false);
+    } else {
+      setSearchError(true);
     }
   };
 
