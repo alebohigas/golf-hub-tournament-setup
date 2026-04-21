@@ -100,40 +100,19 @@ const SponsorRibbon = () => {
 
   /**
    * On-screen logo density.
-   *  - >0: each slot is `100% / visibleCount` wide so exactly that many logo
-   *        slots fit in the viewport at once.
-   *  - 0/undefined: legacy auto sizing (logos use their natural width).
+   *  - >0: target number of distinct sponsor logos visible in the viewport
+   *        at any given moment. Slots keep their natural (legacy) width
+   *        — we just repeat the sponsor list enough times to fill the
+   *        viewport with a continuous, interleaved stream of logos.
+   *  - 0/undefined: legacy behavior (single pass of sponsors, repeated 2× for the loop).
    *
-   * To avoid huge empty space when only 1–3 sponsor slots are visible, the
-   * same logo is repeated inside each slot (`logoRepeats`) so the ribbon
-   * stays as visually dense as the legacy 4+ layout. Repeats roughly mirror
-   * how many logos used to fit in that same width:
-   *   1 visible slot → 4 repeats per slot
-   *   2 visible slots → 2 repeats per slot
-   *   3 visible slots → 1.x → use 2 to comfortably fill
-   *   4+              → 1   (no internal repetition)
+   * Repetitions are interleaved (round-robin) so e.g. with sponsors [A, B]
+   * you get [A, B, A, B, A, B, ...] instead of [A, A, A, B, B, B].
    */
   const visibleCount = carousel?.visibleCount ?? 0;
-  const slotStyle: React.CSSProperties | undefined =
-    visibleCount > 0
-      ? { flex: `0 0 ${100 / visibleCount}%`, width: `${100 / visibleCount}%` }
-      : undefined;
-  const slotClass =
-    visibleCount > 0
-      ? 'flex items-center justify-center px-4 opacity-60 hover:opacity-100 transition-opacity duration-300'
-      : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
-  /**
-   * How many times each sponsor appears in the rotation. Higher values keep
-   * the ribbon visually dense when only 1–3 slots are visible at a time.
-   * Repetitions are interleaved (round-robin) — NOT grouped — so e.g.
-   * with sponsors [A, B] and 4 repeats you get [A, B, A, B, A, B, A, B]
-   * instead of [A, A, A, A, B, B, B, B].
-   */
-  const sponsorRepeats =
-    visibleCount === 1 ? 4 :
-    visibleCount === 2 ? 2 :
-    visibleCount === 3 ? 2 :
-    1;
+  // Slots always use the legacy fixed-margin layout so logos keep their
+  // natural size — there is no `100%/visibleCount` slot stretching anymore.
+  const slotClass = 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
 
   /**
    * Animation speed.
@@ -154,23 +133,34 @@ const SponsorRibbon = () => {
   };
 
   /**
-   * Build the visible sequence:
-   *   1) Interleave sponsors `sponsorRepeats` times (round-robin distribution)
-   *      so the same logo never appears back-to-back.
-   *   2) If we still don't have enough slots to cover ≥2× the visible count
-   *      (needed for a seamless infinite loop), repeat the interleaved
-   *      sequence further.
-   *   3) Finally, duplicate once more for the CSS infinite-scroll trick.
+   * Build the visible sequence by repeating the sponsor list enough times
+   * so the ribbon always shows ≥`visibleCount` logos on screen at once,
+   * with the same logo never appearing back-to-back.
+   *
+   * The legacy ribbon comfortably fits ≈4 logos in the viewport. So when
+   * the admin asks for `visibleCount = N`, we need each base "page" of
+   * sponsors repeated enough times to fill ≥N logos per viewport width.
+   * Concretely: `sponsorRepeats = ceil(N / sponsors.length) * baseFactor`
+   * where `baseFactor` lifts low values so 1 sponsor with N=2 → 4 copies
+   * per loop (interleaved becomes A A A A — but with multiple sponsors it
+   * round-robins, e.g. [A,B] × 4 → A,B,A,B,A,B,A,B).
    */
+  // Each sponsor logo (incl. its mx-8 margins) takes ~160 px in the legacy
+  // layout; the container is roughly 1200 px wide on desktop, so ≈7–8 logos
+  // fit in the viewport. We use 8 as the on-screen capacity baseline.
+  const ON_SCREEN_CAPACITY = 8;
+  // How many copies of EACH sponsor we want per viewport pass. With 2
+  // sponsors and visibleCount=2 → ceil(8/2)=4 copies per loop, which
+  // round-robins to [A,B,A,B,A,B,A,B].
+  const copiesPerSponsor =
+    orderedSponsors.length === 0
+      ? 1
+      : Math.max(1, Math.ceil(ON_SCREEN_CAPACITY / orderedSponsors.length));
   const interleaved = orderedSponsors.length === 0
     ? []
-    : Array.from({ length: sponsorRepeats }).flatMap(() => orderedSponsors);
-  const minRepeats =
-    visibleCount > 0 && interleaved.length > 0
-      ? Math.max(2, Math.ceil((visibleCount * 2) / interleaved.length))
-      : 2;
-  const filled = Array.from({ length: minRepeats }).flatMap(() => interleaved);
-  const duplicatedSponsors = [...filled, ...filled];
+    : Array.from({ length: copiesPerSponsor }).flatMap(() => orderedSponsors);
+  // Duplicate once more for the seamless CSS infinite-scroll loop.
+  const duplicatedSponsors = [...interleaved, ...interleaved];
 
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
@@ -183,7 +173,6 @@ const SponsorRibbon = () => {
               <div
                 key={`${sponsor.id}-${index}`}
                 className={slotClass}
-                style={slotStyle}
               >
                 {sponsor.websiteUrl ? (
                   <a
