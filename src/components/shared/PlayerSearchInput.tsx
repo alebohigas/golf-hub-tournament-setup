@@ -30,6 +30,13 @@ interface PlayerSearchInputProps {
   className?: string;
   /** Max suggestions to display */
   maxSuggestions?: number;
+  /**
+   * Error state: when true, the input gets a red tint + shake animation
+   * and the errorMessage (if given) is shown below. Parent controls reset.
+   */
+  error?: boolean;
+  /** Optional message displayed below the input while `error` is true */
+  errorMessage?: string;
 }
 
 const PlayerSearchInput = ({
@@ -40,6 +47,8 @@ const PlayerSearchInput = ({
   placeholder = 'Buscar jugador por nombre...',
   className = '',
   maxSuggestions = 8,
+  error = false,
+  errorMessage,
 }: PlayerSearchInputProps) => {
   /** Whether the suggestion dropdown is open */
   const [open, setOpen] = useState(false);
