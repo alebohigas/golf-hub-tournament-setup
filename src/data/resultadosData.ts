@@ -83,8 +83,15 @@ export interface ResultCategory {
   system?: string;
   /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
   days?: string[];
-  /** Number of medal winners from DB (numjugprem) */
+  /**
+   * Number of medal winners for the active scoring type (back-compat).
+   * Prefer `medalCountNeto` / `medalCountGross` when picking dynamically.
+   */
   medalCount?: number;
+  /** Medal winners on the NETO leaderboard (categorias.numganadorneto, default 3) */
+  medalCountNeto?: number;
+  /** Medal winners on the GROSS leaderboard (categorias.numganadorgross, default 1) */
+  medalCountGross?: number;
   /** Players who did not complete (NO SHOW, RETIRO, DQ) */
   cutPlayers?: CutPlayer[];
   scoringTypes: CategoryScoring[];

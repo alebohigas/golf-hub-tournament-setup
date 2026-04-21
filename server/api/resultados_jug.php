@@ -12,7 +12,10 @@
  *
  * Returns two arrays: 'players' (estatus=NORMAL) and 'cutPlayers'
  * (non-NORMAL: NO SHOW, RETIRO, DESCALIFICADO, etc.)
- * Also returns 'medalCount' from categorias.numjugprem for dynamic medal assignment.
+ * Also returns 'medalCountNeto' (categorias.numganadorneto, default 3) and
+ * 'medalCountGross' (categorias.numganadorgross, default 1) for dynamic medal
+ * assignment per scoring type. 'medalCount' is preserved for backward
+ * compatibility and reflects the count for the requested scoring (?gross=0|1).
  */
 require_once 'config.php';
 
@@ -27,16 +30,64 @@ $gross    = optional_param('gross', '0');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
-// ============= Get category info (includes numjugprem for medal count) =============
+// ============= Get category info (includes per-scoring medal counts) =============
+// Medal counts (numganadorneto / numganadorgross) live in `categorias`.
+// We probe INFORMATION_SCHEMA so missing columns on legacy databases fall
+// back to defaults (3 neto, 1 gross) instead of causing a fatal SQL error.
+// numjugprem is kept as legacy fallback for the net count.
+
+/**
+ * Checks whether a column exists in `categorias` for the active database.
+ * Lets us gracefully degrade when legacy schemas miss optional columns.
+ */
+function categorias_has_column($conn, $col) {
+    $colEsc = esc($conn, $col);
+    $res = @$conn->query(
+        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'categorias'
+           AND COLUMN_NAME = '$colEsc'
+         LIMIT 1"
+    );
+    if (!$res) return false;
+    $exists = $res->num_rows > 0;
+    $res->free();
+    return $exists;
+}
+
+$hasNeto   = categorias_has_column($conn, 'numganadorneto');
+$hasGross  = categorias_has_column($conn, 'numganadorgross');
+$hasLegacy = categorias_has_column($conn, 'numjugprem');
+
+/** SELECT expression for net medal count, with safe fallbacks */
+if ($hasNeto) {
+    $netoExpr = $hasLegacy
+        ? "IFNULL(a.numganadorneto, IFNULL(a.numjugprem, 3))"
+        : "IFNULL(a.numganadorneto, 3)";
+} else {
+    $netoExpr = $hasLegacy ? "IFNULL(a.numjugprem, 3)" : "3";
+}
+
+/** SELECT expression for gross medal count, with safe fallback */
+$grossExpr = $hasGross ? "IFNULL(a.numganadorgross, 1)" : "1";
+
+/** GROUP BY additions only for columns that actually exist */
+$groupExtras = '';
+if ($hasNeto)   $groupExtras .= ', a.numganadorneto';
+if ($hasGross)  $groupExtras .= ', a.numganadorgross';
+if ($hasLegacy) $groupExtras .= ', a.numjugprem';
+
 $sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
                a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
-               IFNULL(a.numjugprem, 3) as numjugprem,
+               $netoExpr as numganadorneto,
+               $grossExpr as numganadorgross,
                COUNT(b.id) as playerCount
         FROM categorias a
         JOIN jugadores b ON (a.categoria_id = b.categoriaid)
         WHERE a.categoria_id = $cid
         GROUP BY a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
-                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar, a.numjugprem";
+                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar"
+        . $groupExtras;
 
 $catInfo = query_one($conn, $sql);
 debug_log_query('Category info', $sql);
@@ -46,7 +97,11 @@ if (!$catInfo) {
 
 $sistema = strtoupper($catInfo['sistema']);
 $formato = strtoupper($catInfo['formato']);
-$medalCount = (int)$catInfo['numjugprem'];
+$medalCountNeto  = (int)$catInfo['numganadorneto'];
+$medalCountGross = (int)$catInfo['numganadorgross'];
+
+/** Active medal count for the requested scoring type (back-compat field) */
+$medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
 // ============= Get play dates =============
 $sql = "SELECT fecha FROM caljuego
@@ -286,6 +341,8 @@ json_response([
     'format'       => $catInfo['formato'],
     'gross'        => (int)$gross,
     'medalCount'   => $medalCount,
+    'medalCountNeto'  => $medalCountNeto,
+    'medalCountGross' => $medalCountGross,
     'course'       => $courseInfo ? [
         'rating'   => (float)($courseInfo['rating'] ?? 0),
         'slope'    => (int)($courseInfo['slope'] ?? 0),
