@@ -1,24 +1,59 @@
 /**
  * AdminMenuOrder Component
- * Drag-and-drop interface to reorder menu items in the navigation
- * Uses @hello-pangea/dnd for drag-and-drop functionality
+ * Hierarchical drag-and-drop interface to reorder menu items in the navigation.
+ *
+ * Top-level rows can be either:
+ *   - A standalone page (not assigned to any group), or
+ *   - A group (rendered as a folder with its assigned pages nested inside).
+ *
+ * The admin can:
+ *   - Reorder standalone pages and groups at the top level.
+ *   - Reorder pages WITHIN a group.
+ *   - Move a page OUT of a group by dragging it to the top-level list.
+ *   - Move a page INTO a group by dragging it onto the group's drop zone.
+ *   - Toggle a group's visibility (synced via onGroupsChange).
+ *
+ * The hierarchical state is flattened into a per-page `menuItemOrder` map
+ * (pageId → sequential order number) on every change, which keeps the
+ * existing Header rendering logic (which positions groups at their first
+ * child's order) fully compatible with no backend changes.
+ *
+ * Uses @hello-pangea/dnd for drag-and-drop functionality.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   DragDropContext,
   Droppable,
   Draggable,
   type DropResult,
 } from '@hello-pangea/dnd';
-import { GripVertical, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import {
+  GripVertical,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { MenuItem } from '@/data/mockData';
+import type { MenuGroup } from './AdminMenuGroups';
 
 // ============= Types =============
+
+/**
+ * A top-level row in the order UI. Either a standalone page or a group
+ * containing an ordered list of pages.
+ */
+type TopLevelRow =
+  | { kind: 'page'; pageId: string }
+  | { kind: 'group'; groupId: string; pageIds: string[] };
 
 interface AdminMenuOrderProps {
   /** All menu items */
@@ -29,10 +64,14 @@ interface AdminMenuOrderProps {
   menuItemOrder: Record<string, number>;
   /** Callback when order changes */
   onOrderChange: (order: Record<string, number>) => void;
-  /** Group assignments for display */
+  /** Group assignments (pageId → groupId) — used to build hierarchy */
   pageGroupAssignments: Record<string, string>;
-  /** Groups for label lookup */
-  menuGroups: { id: string; name: string }[];
+  /** Defined groups (with visibility flag) */
+  menuGroups: MenuGroup[];
+  /** Callback when groups change (e.g. visibility toggle) */
+  onGroupsChange?: (groups: MenuGroup[]) => void;
+  /** Callback when a page's group assignment changes via drag-and-drop */
+  onPageGroupChange?: (pageId: string, groupId: string | null) => void;
 }
 
 // ============= Component =============
@@ -44,43 +83,241 @@ const AdminMenuOrder = ({
   onOrderChange,
   pageGroupAssignments,
   menuGroups,
+  onGroupsChange,
+  onPageGroupChange,
 }: AdminMenuOrderProps) => {
+  // --------- Lookup maps ---------
+  const pagesById = useMemo(() => {
+    const m = new Map<string, MenuItem>();
+    menuItems.forEach((p) => m.set(p.id, p));
+    return m;
+  }, [menuItems]);
+
   /**
-   * Build sorted list of items using custom order or default order
+   * Build the hierarchical TopLevelRow[] from the current flat order +
+   * group assignments. Groups are placed at the position of their
+   * first-ordered member; pages inside a group are sorted among themselves
+   * by their per-page order.
    */
-  const getSortedItems = (): MenuItem[] => {
-    return [...menuItems].sort((a, b) => {
-      const orderA = menuItemOrder[a.id] ?? a.order;
-      const orderB = menuItemOrder[b.id] ?? b.order;
-      return orderA - orderB;
+  const buildHierarchy = (): TopLevelRow[] => {
+    const sorted = [...menuItems].sort((a, b) => {
+      const oa = menuItemOrder[a.id] ?? a.order;
+      const ob = menuItemOrder[b.id] ?? b.order;
+      return oa - ob;
+    });
+
+    const rows: TopLevelRow[] = [];
+    const seenGroups = new Set<string>();
+    const seenPages = new Set<string>();
+
+    for (const item of sorted) {
+      if (seenPages.has(item.id)) continue;
+      const groupId = pageGroupAssignments[item.id];
+
+      if (groupId) {
+        if (seenGroups.has(groupId)) continue;
+        // Collect ALL pages assigned to this group, sorted by their order
+        const groupPages = sorted
+          .filter((p) => pageGroupAssignments[p.id] === groupId)
+          .map((p) => p.id);
+        rows.push({ kind: 'group', groupId, pageIds: groupPages });
+        seenGroups.add(groupId);
+        groupPages.forEach((pid) => seenPages.add(pid));
+      } else {
+        rows.push({ kind: 'page', pageId: item.id });
+        seenPages.add(item.id);
+      }
+    }
+
+    // Append any defined groups that have no pages yet (so admin can still see them)
+    for (const g of menuGroups) {
+      if (!seenGroups.has(g.id)) {
+        rows.push({ kind: 'group', groupId: g.id, pageIds: [] });
+        seenGroups.add(g.id);
+      }
+    }
+
+    return rows;
+  };
+
+  const [rows, setRows] = useState<TopLevelRow[]>(buildHierarchy);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(menuGroups.map((g) => g.id)),
+  );
+
+  /** Re-sync hierarchy when external state changes */
+  useEffect(() => {
+    setRows(buildHierarchy());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuItemOrder, menuItems, pageGroupAssignments, menuGroups]);
+
+  /**
+   * Flatten the hierarchical rows into a sequential per-page order map and
+   * notify the parent. Pages inside a group get consecutive numbers, so the
+   * Header's "group at first-child position" logic renders the desired layout.
+   */
+  const commitOrder = (next: TopLevelRow[]) => {
+    const order: Record<string, number> = {};
+    let counter = 1;
+    for (const row of next) {
+      if (row.kind === 'page') {
+        order[row.pageId] = counter++;
+      } else {
+        for (const pid of row.pageIds) {
+          order[pid] = counter++;
+        }
+      }
+    }
+    onOrderChange(order);
+  };
+
+  /** Toggle expand/collapse for a group row */
+  const toggleGroupExpansion = (groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
     });
   };
 
-  const [items, setItems] = useState<MenuItem[]>(getSortedItems);
-
-  /** Sync when menuItemOrder changes externally */
-  useEffect(() => {
-    setItems(getSortedItems());
-  }, [menuItemOrder, menuItems]);
+  /** Toggle a group's `visible` flag and notify parent */
+  const toggleGroupVisibility = (groupId: string) => {
+    if (!onGroupsChange) return;
+    onGroupsChange(
+      menuGroups.map((g) =>
+        g.id === groupId ? { ...g, visible: g.visible === false ? true : false } : g,
+      ),
+    );
+  };
 
   /**
-   * Handle drag end - recalculate order numbers
+   * Handle drag end across the hierarchy.
+   *
+   * Droppable IDs:
+   *   - "top-level"           → the top-level list (pages + groups)
+   *   - "group:<groupId>"     → the page list inside a specific group
+   *
+   * Draggable IDs:
+   *   - "row:<index>"         → top-level row (page or group)
+   *   - "page:<pageId>"       → a page inside a group
    */
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+    const { source, destination, draggableId } = result;
+    if (!destination) return;
 
-    const reordered = Array.from(items);
-    const [moved] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, moved);
+    const srcId = source.droppableId;
+    const dstId = destination.droppableId;
 
-    setItems(reordered);
+    // -------- Case 1: Reorder within top-level --------
+    if (srcId === 'top-level' && dstId === 'top-level') {
+      const next = [...rows];
+      const [moved] = next.splice(source.index, 1);
+      next.splice(destination.index, 0, moved);
+      setRows(next);
+      commitOrder(next);
+      return;
+    }
 
-    // Build new order map (1-indexed)
-    const newOrder: Record<string, number> = {};
-    reordered.forEach((item, index) => {
-      newOrder[item.id] = index + 1;
-    });
-    onOrderChange(newOrder);
+    // -------- Case 2: Reorder within the same group --------
+    if (srcId.startsWith('group:') && srcId === dstId) {
+      const groupId = srcId.slice('group:'.length);
+      const next = rows.map((r) => {
+        if (r.kind === 'group' && r.groupId === groupId) {
+          const ids = [...r.pageIds];
+          const [moved] = ids.splice(source.index, 1);
+          ids.splice(destination.index, 0, moved);
+          return { ...r, pageIds: ids };
+        }
+        return r;
+      });
+      setRows(next);
+      commitOrder(next);
+      return;
+    }
+
+    // -------- Case 3: Move a page OUT of a group → top-level --------
+    if (srcId.startsWith('group:') && dstId === 'top-level') {
+      const fromGroupId = srcId.slice('group:'.length);
+      const pageId = draggableId.startsWith('page:')
+        ? draggableId.slice('page:'.length)
+        : null;
+      if (!pageId) return;
+
+      // Remove from source group
+      let next: TopLevelRow[] = rows.map((r) => {
+        if (r.kind === 'group' && r.groupId === fromGroupId) {
+          return { ...r, pageIds: r.pageIds.filter((id) => id !== pageId) };
+        }
+        return r;
+      });
+      // Insert as standalone page at destination index
+      next = [
+        ...next.slice(0, destination.index),
+        { kind: 'page', pageId },
+        ...next.slice(destination.index),
+      ];
+      setRows(next);
+      commitOrder(next);
+      onPageGroupChange?.(pageId, null);
+      return;
+    }
+
+    // -------- Case 4: Move a page INTO a group --------
+    if (srcId === 'top-level' && dstId.startsWith('group:')) {
+      const toGroupId = dstId.slice('group:'.length);
+      const moving = rows[source.index];
+      if (!moving || moving.kind !== 'page') return; // only pages can join groups
+      const pageId = moving.pageId;
+
+      // Remove from top-level
+      let next: TopLevelRow[] = rows.filter((_, i) => i !== source.index);
+      // Insert into target group at destination index
+      next = next.map((r) => {
+        if (r.kind === 'group' && r.groupId === toGroupId) {
+          const ids = [...r.pageIds];
+          ids.splice(destination.index, 0, pageId);
+          return { ...r, pageIds: ids };
+        }
+        return r;
+      });
+      setRows(next);
+      commitOrder(next);
+      onPageGroupChange?.(pageId, toGroupId);
+      // Auto-expand the target group so the user sees the result
+      setExpandedGroups((prev) => new Set(prev).add(toGroupId));
+      return;
+    }
+
+    // -------- Case 5: Move a page from one group to another --------
+    if (
+      srcId.startsWith('group:') &&
+      dstId.startsWith('group:') &&
+      srcId !== dstId
+    ) {
+      const fromGroupId = srcId.slice('group:'.length);
+      const toGroupId = dstId.slice('group:'.length);
+      const pageId = draggableId.startsWith('page:')
+        ? draggableId.slice('page:'.length)
+        : null;
+      if (!pageId) return;
+
+      const next = rows.map((r) => {
+        if (r.kind === 'group' && r.groupId === fromGroupId) {
+          return { ...r, pageIds: r.pageIds.filter((id) => id !== pageId) };
+        }
+        if (r.kind === 'group' && r.groupId === toGroupId) {
+          const ids = [...r.pageIds];
+          ids.splice(destination.index, 0, pageId);
+          return { ...r, pageIds: ids };
+        }
+        return r;
+      });
+      setRows(next);
+      commitOrder(next);
+      onPageGroupChange?.(pageId, toGroupId);
+      setExpandedGroups((prev) => new Set(prev).add(toGroupId));
+    }
   };
 
   /**
@@ -90,13 +327,32 @@ const AdminMenuOrder = ({
     onOrderChange({});
   };
 
-  /**
-   * Get group name for a page
-   */
-  const getGroupName = (pageId: string): string | undefined => {
-    const groupId = pageGroupAssignments[pageId];
-    if (!groupId) return undefined;
-    return menuGroups.find(g => g.id === groupId)?.name;
+  // --------- Render helpers ---------
+
+  /** Render a single page row (used both at top level and inside a group) */
+  const renderPageRow = (pageId: string, isInsideGroup: boolean) => {
+    const page = pagesById.get(pageId);
+    if (!page) return null;
+    const isVisible = visibilitySettings[pageId] ?? true;
+
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-3 p-3 rounded-lg border transition-all',
+          'bg-card hover:bg-accent/10',
+          !isVisible && 'opacity-50',
+          isInsideGroup && 'border-dashed',
+        )}
+      >
+        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="font-medium flex-1 truncate">{page.label}</span>
+        {isVisible ? (
+          <Eye className="h-4 w-4 text-primary" />
+        ) : (
+          <EyeOff className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -109,7 +365,8 @@ const AdminMenuOrder = ({
               Orden del Menú
             </CardTitle>
             <CardDescription>
-              Arrastra los elementos para cambiar el orden en que aparecen en la navegación.
+              Arrastra grupos y páginas para reordenarlos. Las páginas dentro de un grupo
+              también pueden reordenarse y moverse entre grupos.
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-1">
@@ -120,75 +377,203 @@ const AdminMenuOrder = ({
       </CardHeader>
       <CardContent>
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="menu-order">
+          <Droppable droppableId="top-level">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className={cn(
-                  "space-y-1 rounded-lg transition-colors",
-                  snapshot.isDraggingOver && "bg-accent/30"
+                  'space-y-2 rounded-lg transition-colors p-1',
+                  snapshot.isDraggingOver && 'bg-accent/30',
                 )}
               >
-                {items.map((item, index) => {
-                  const isVisible = visibilitySettings[item.id] ?? true;
-                  const groupName = getGroupName(item.id);
-
-                  return (
-                    <Draggable key={item.id} draggableId={item.id} index={index}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-lg border transition-all",
-                            "bg-card hover:bg-accent/10",
-                            snapshot.isDragging && "shadow-lg ring-2 ring-primary/30 bg-card",
-                            !isVisible && "opacity-50"
-                          )}
-                        >
-                          {/* Drag handle */}
-                          <div
-                            {...provided.dragHandleProps}
-                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
-                          >
-                            <GripVertical className="h-5 w-5" />
+                {rows.map((row, index) => (
+                  <Draggable
+                    key={row.kind === 'page' ? `row-page-${row.pageId}` : `row-group-${row.groupId}`}
+                    draggableId={`row:${index}`}
+                    index={index}
+                  >
+                    {(dragProvided, dragSnapshot) => (
+                      <div
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        className={cn(
+                          'rounded-lg transition-shadow',
+                          dragSnapshot.isDragging && 'shadow-lg ring-2 ring-primary/30',
+                        )}
+                      >
+                        {row.kind === 'page' ? (
+                          // -------- Standalone page row --------
+                          <div className="flex items-center gap-2">
+                            <div
+                              {...dragProvided.dragHandleProps}
+                              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-2"
+                            >
+                              <GripVertical className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1">{renderPageRow(row.pageId, false)}</div>
                           </div>
-
-                          {/* Order number */}
-                          <span className="text-xs font-mono text-muted-foreground w-6 text-center">
-                            {index + 1}
-                          </span>
-
-                          {/* Item label */}
-                          <span className="font-medium flex-1">{item.label}</span>
-
-                          {/* Group badge */}
-                          {groupName && (
-                            <Badge variant="secondary" className="text-xs">
-                              {groupName}
-                            </Badge>
-                          )}
-
-                          {/* Visibility indicator */}
-                          {isVisible ? (
-                            <Eye className="h-4 w-4 text-primary" />
-                          ) : (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
+                        ) : (
+                          // -------- Group row (with nested droppable) --------
+                          <GroupRow
+                            row={row}
+                            group={menuGroups.find((g) => g.id === row.groupId)}
+                            isExpanded={expandedGroups.has(row.groupId)}
+                            onToggleExpand={() => toggleGroupExpansion(row.groupId)}
+                            onToggleVisibility={() => toggleGroupVisibility(row.groupId)}
+                            dragHandleProps={dragProvided.dragHandleProps}
+                            renderPageRow={renderPageRow}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
                 {provided.placeholder}
               </div>
             )}
           </Droppable>
         </DragDropContext>
+
+        {rows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No hay páginas ni grupos para ordenar.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
 };
 
 export default AdminMenuOrder;
+
+// ============= GroupRow Subcomponent =============
+
+interface GroupRowProps {
+  row: Extract<TopLevelRow, { kind: 'group' }>;
+  group: MenuGroup | undefined;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onToggleVisibility: () => void;
+  dragHandleProps: any;
+  renderPageRow: (pageId: string, isInsideGroup: boolean) => React.ReactNode;
+}
+
+/**
+ * GroupRow
+ * Renders a group as a top-level row containing a header (drag handle,
+ * expand toggle, visibility toggle, name, page count) and an inner
+ * Droppable list of its assigned pages when expanded.
+ */
+const GroupRow = ({
+  row,
+  group,
+  isExpanded,
+  onToggleExpand,
+  onToggleVisibility,
+  dragHandleProps,
+  renderPageRow,
+}: GroupRowProps) => {
+  const isVisible = group?.visible !== false;
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border bg-card overflow-hidden',
+        !isVisible && 'opacity-60',
+      )}
+    >
+      {/* Group header */}
+      <div className="flex items-center gap-2 p-3 bg-muted/40">
+        <div
+          {...dragHandleProps}
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onToggleExpand}
+          title={isExpanded ? 'Colapsar' : 'Expandir'}
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </Button>
+        <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+        <span className="font-semibold flex-1 truncate">
+          {group?.name ?? 'Grupo sin nombre'}
+        </span>
+        <Badge variant="secondary" className="text-xs">
+          {row.pageIds.length} {row.pageIds.length === 1 ? 'página' : 'páginas'}
+        </Badge>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onToggleVisibility}
+          title={isVisible ? 'Ocultar grupo' : 'Mostrar grupo'}
+        >
+          {isVisible ? (
+            <Eye className="h-4 w-4 text-primary" />
+          ) : (
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
+          )}
+        </Button>
+      </div>
+
+      {/* Nested droppable for pages inside the group */}
+      {isExpanded && (
+        <Droppable droppableId={`group:${row.groupId}`} type="DEFAULT">
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={cn(
+                'p-2 pl-8 space-y-1 min-h-[44px] transition-colors',
+                snapshot.isDraggingOver && 'bg-accent/20',
+              )}
+            >
+              {row.pageIds.length === 0 && !snapshot.isDraggingOver && (
+                <p className="text-xs text-muted-foreground italic py-2 px-2">
+                  Arrastra páginas aquí para añadirlas al grupo.
+                </p>
+              )}
+              {row.pageIds.map((pageId, idx) => (
+                <Draggable
+                  key={pageId}
+                  draggableId={`page:${pageId}`}
+                  index={idx}
+                >
+                  {(dragProvided, dragSnapshot) => (
+                    <div
+                      ref={dragProvided.innerRef}
+                      {...dragProvided.draggableProps}
+                      className={cn(
+                        'flex items-center gap-2 rounded-lg',
+                        dragSnapshot.isDragging && 'shadow-md ring-2 ring-primary/30',
+                      )}
+                    >
+                      <div
+                        {...dragProvided.dragHandleProps}
+                        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-2"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">{renderPageRow(pageId, true)}</div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      )}
+    </div>
+  );
+};

@@ -77,7 +77,20 @@ const NavigationMenuViewport = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
 >(({ className, ...props }, ref) => (
-  <div className={cn("absolute right-0 top-full flex justify-end")}>
+  /*
+   * Wrapper for the Radix viewport.
+   *
+   * We use the CSS variable `--radix-navigation-menu-viewport-left` exposed
+   * by Radix to align the dropdown horizontally with the active trigger,
+   * instead of pinning it to the right edge (`right-0 + justify-end`),
+   * which is the shadcn default. This makes each group's dropdown open
+   * directly beneath its own chevron, regardless of the group's position
+   * inside the navigation list.
+   */
+  <div
+    className={cn("absolute top-full flex")}
+    style={{ left: "var(--radix-navigation-menu-viewport-left, 0)" }}
+  >
     <NavigationMenuPrimitive.Viewport
       className={cn(
         "origin-top-center relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 md:w-[var(--radix-navigation-menu-viewport-width)]",

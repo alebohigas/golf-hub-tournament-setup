@@ -4,12 +4,19 @@
  * Supports grouped navigation with dropdown menus
  * Implements dynamic overflow detection: when menu items exceed
  * available space, excess items are collapsed into the hamburger menu
- * Respects page visibility settings from admin context
+ * Respects page visibility settings from admin context.
+ *
+ * Admin preview mode:
+ *   When the current user is admin, the header reflects the EXACT order
+ *   and visibility configured in /admin → Página → Orden / Visibilidad.
+ *   Hidden pages and hidden groups remain navigable but are rendered with
+ *   a dimmed style and an "EyeOff" icon, so the admin can preview the
+ *   real menu structure without losing access to hidden routes.
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Menu, X, Shield, ChevronDown, MoreHorizontal, EyeOff } from 'lucide-react';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { cn } from '@/lib/utils';
@@ -38,52 +45,98 @@ interface NavItem {
   id: string;
   label: string;
   path?: string;
-  children?: MenuItem[];
+  /** Children of a group; each child carries a per-page hidden flag for admin preview */
+  children?: (MenuItem & { hidden?: boolean })[];
   /** Whether to wrap text (display words stacked) */
   wrapText?: boolean;
+  /**
+   * Admin-only flag. True when this item (page or group) is configured as
+   * hidden in the admin panel but is still rendered because the user is
+   * admin (preview mode). Triggers dimmed styling.
+   */
+  hidden?: boolean;
 }
 
 // ============= Hook: useOverflowMenu =============
 
 /**
- * Custom hook that measures nav items and determines how many fit
- * in the available space. Returns the split index for visible vs overflow.
+ * Custom hook that measures nav items and determines how many fit in the
+ * available horizontal space.
+ *
+ * Strategy:
+ *   1. We render an INVISIBLE measurement copy of every nav item using the
+ *      EXACT same markup the visible nav uses (so groups include their
+ *      chevron, hidden icons are accounted for, etc.). Each measurement
+ *      element carries `data-nav-item`.
+ *   2. On every relevant change we recompute available width:
+ *        availableWidth = headerInnerWidth - logoWidth - rightReservedWidth
+ *      where `rightReservedWidth` is the live-measured admin badge (or 0)
+ *      plus a small safety gap (just enough to not visually overlap).
+ *   3. We greedily fit items left → right. The overflow "..." button is
+ *      only reserved AFTER we know at least one item is being dropped,
+ *      avoiding the agressive early-cutoff that previously left a lot of
+ *      empty space on the right.
+ *
+ * Returns the number of items that fit (split index for visible vs overflow).
  */
 const useOverflowMenu = (
   navRef: React.RefObject<HTMLDivElement>,
   logoRef: React.RefObject<HTMLDivElement>,
+  rightSlotRef: React.RefObject<HTMLDivElement>,
   itemCount: number,
 ) => {
   const [visibleCount, setVisibleCount] = useState(itemCount);
+
+  /** Approximate width of the "..." overflow trigger (icon + chevron + padding) */
+  const OVERFLOW_BTN_WIDTH = 56;
+  /** Tiny safety gap so the rightmost item never visually touches the next slot */
+  const SAFETY_GAP = 8;
 
   const measure = useCallback(() => {
     const nav = navRef.current;
     const logo = logoRef.current;
     if (!nav || !logo) return;
 
-    const headerWidth = nav.parentElement?.clientWidth ?? window.innerWidth;
-    const logoWidth = logo.offsetWidth + 24; // logo + gap
-    const adminBtnWidth = 80; // reserve space for admin badge
-    const overflowBtnWidth = 48; // "..." button width
-    const availableWidth = headerWidth - logoWidth - adminBtnWidth - 32; // padding
+    // Use the header's full inner width (the .container > .flex parent)
+    const headerInner =
+      nav.closest<HTMLElement>('.container')?.clientWidth ??
+      nav.parentElement?.clientWidth ??
+      window.innerWidth;
 
-    // Measure each nav item's width
-    const items = nav.querySelectorAll<HTMLElement>('[data-nav-item]');
-    let totalWidth = 0;
-    let fitCount = 0;
+    const logoWidth = logo.offsetWidth;
+    const rightReserved = rightSlotRef.current?.offsetWidth ?? 0;
 
-    for (let i = 0; i < items.length; i++) {
-      const itemWidth = items[i].offsetWidth + 4; // + gap
-      if (totalWidth + itemWidth + (i < items.length - 1 ? overflowBtnWidth : 0) <= availableWidth) {
-        totalWidth += itemWidth;
-        fitCount++;
+    // Space the nav can actually consume before overlapping logo on the left
+    // or the admin/right slot on the right.
+    const availableWidth = headerInner - logoWidth - rightReserved - SAFETY_GAP;
+
+    const items = Array.from(
+      nav.querySelectorAll<HTMLElement>('[data-nav-item]'),
+    );
+    const widths = items.map((el) => el.offsetWidth + 4); // +4 = gap-1 between items
+    const total = widths.reduce((a, b) => a + b, 0);
+
+    // If everything fits, no overflow button needed → render all items.
+    if (total <= availableWidth) {
+      setVisibleCount(items.length);
+      return;
+    }
+
+    // Otherwise, fit as many as possible while reserving room for "..."
+    const budget = availableWidth - OVERFLOW_BTN_WIDTH;
+    let used = 0;
+    let fit = 0;
+    for (let i = 0; i < widths.length; i++) {
+      if (used + widths[i] <= budget) {
+        used += widths[i];
+        fit++;
       } else {
         break;
       }
     }
-
-    setVisibleCount(fitCount);
-  }, [navRef, logoRef, itemCount]);
+    // Always show at least 1 item so the bar isn't empty on tiny widths
+    setVisibleCount(Math.max(1, fit));
+  }, [navRef, logoRef, rightSlotRef]);
 
   useEffect(() => {
     measure();
@@ -91,12 +144,21 @@ const useOverflowMenu = (
     return () => window.removeEventListener('resize', measure);
   }, [measure]);
 
-  // Re-measure when item count changes
+  // Re-measure when item count or label content changes
   useEffect(() => {
-    // Small delay to let DOM render
-    const t = setTimeout(measure, 100);
+    const t = setTimeout(measure, 50);
     return () => clearTimeout(t);
   }, [itemCount, measure]);
+
+  // Observe the measurement container for any size change (e.g. async logo load)
+  useEffect(() => {
+    if (!navRef.current) return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(navRef.current);
+    if (logoRef.current) ro.observe(logoRef.current);
+    if (rightSlotRef.current) ro.observe(rightSlotRef.current);
+    return () => ro.disconnect();
+  }, [navRef, logoRef, rightSlotRef, measure]);
 
   return visibleCount;
 };
@@ -110,16 +172,31 @@ const Header = () => {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
+  /** Tracks the right-side reserved slot (Admin link/badge), if any */
+  const rightSlotRef = useRef<HTMLDivElement>(null);
   
   // Get visible menu items and groups from context
   const { 
     getVisibleMenuItems, 
+    getAllMenuItems,
     isAdmin, 
     menuGroups, 
     pageGroupAssignments,
     isPageVisible,
+    visibilitySettings,
   } = usePageVisibility();
-  const allVisibleItems = getVisibleMenuItems();
+  /**
+   * In admin preview mode we want the header to mirror the configured
+   * order/visibility exactly — including hidden items (rendered dimmed).
+   * For regular users we keep the legacy behavior: only visible items.
+   */
+  const sourceItems = isAdmin ? getAllMenuItems() : getVisibleMenuItems();
+
+  /** Per-page hidden flag (admin preview only) */
+  const isPageHiddenForAdmin = (pageId: string): boolean => {
+    if (!isAdmin) return false;
+    return visibilitySettings[pageId] === false;
+  };
 
   /**
    * Build navigation structure with groups and standalone items
@@ -130,7 +207,20 @@ const Header = () => {
     const processedPages = new Set<string>();
     const processedGroups = new Set<string>();
 
-    const sortedItems = [...allVisibleItems].sort((a, b) => a.order - b.order);
+    /*
+     * IMPORTANT: do NOT re-sort by `item.order` here.
+     *
+     * `sourceItems` already comes from the context (`getAllMenuItems` /
+     * `getVisibleMenuItems`), which applies the admin's custom
+     * `menuItemOrder` overrides on top of the default order. The MenuItem
+     * objects themselves still carry their ORIGINAL `.order` value from
+     * `menuConfig`, so re-sorting by `.order` would discard the admin's
+     * custom drag-and-drop order and revert to the static defaults.
+     *
+     * Trusting the array order keeps groups positioned at the slot of
+     * their first ordered child page, exactly like the admin sees it.
+     */
+    const sortedItems = sourceItems;
 
     for (const item of sortedItems) {
       if (processedPages.has(item.id)) continue;
@@ -139,12 +229,20 @@ const Header = () => {
       
       if (groupId && !processedGroups.has(groupId)) {
         const group = menuGroups.find(g => g.id === groupId);
-        
-        if (group && group.visible !== false) {
-          const groupPages = sortedItems.filter(
-            p => pageGroupAssignments[p.id] === groupId && isPageVisible(p.id)
-          );
-          
+
+        // In admin mode: include groups even if hidden (dimmed). For users:
+        // skip groups marked invisible.
+        const groupIsHidden = !group || group.visible === false;
+        const includeGroup = isAdmin || !groupIsHidden;
+
+        if (group && includeGroup) {
+          // Pages in this group. In admin preview, include hidden pages too
+          // (annotated with `hidden: true`); for users, filter them out.
+          const groupPages = sortedItems
+            .filter((p) => pageGroupAssignments[p.id] === groupId)
+            .filter((p) => isAdmin || isPageVisible(p.id))
+            .map((p) => ({ ...p, hidden: isPageHiddenForAdmin(p.id) }));
+
           if (groupPages.length > 0) {
             navItems.push({
               type: 'group',
@@ -152,8 +250,9 @@ const Header = () => {
               label: group.name,
               children: groupPages,
               wrapText: group.wrapText,
+              hidden: isAdmin && groupIsHidden,
             });
-            groupPages.forEach(p => processedPages.add(p.id));
+            groupPages.forEach((p) => processedPages.add(p.id));
           }
         }
         processedGroups.add(groupId);
@@ -163,6 +262,7 @@ const Header = () => {
           id: item.id,
           label: item.label,
           path: item.path,
+          hidden: isPageHiddenForAdmin(item.id),
         });
         processedPages.add(item.id);
       }
@@ -174,7 +274,7 @@ const Header = () => {
   const navItems = buildNavItems();
 
   // Overflow detection: determine how many items fit in the header
-  const visibleCount = useOverflowMenu(navRef, logoRef, navItems.length);
+  const visibleCount = useOverflowMenu(navRef, logoRef, rightSlotRef, navItems.length);
   const visibleNavItems = navItems.slice(0, visibleCount);
   const overflowNavItems = navItems.slice(visibleCount);
 
@@ -191,10 +291,16 @@ const Header = () => {
           to={item.path!}
           className={cn(
             "nav-link text-foreground/80 hover:text-primary px-3 py-2 text-sm whitespace-nowrap",
-            location.pathname === item.path && "text-primary active"
+            location.pathname === item.path && "text-primary active",
+            // Admin preview: dim hidden pages
+            item.hidden && "opacity-50 italic",
           )}
+          title={item.hidden ? 'Página oculta (visible solo para admin)' : undefined}
         >
-          {item.label}
+          <span className="inline-flex items-center gap-1">
+            {item.label}
+            {item.hidden && <EyeOff className="h-3 w-3" />}
+          </span>
         </Link>
       );
     }
@@ -205,17 +311,24 @@ const Header = () => {
             "bg-transparent hover:bg-transparent data-[state=open]:bg-transparent",
             "text-foreground/80 hover:text-primary data-[state=open]:text-primary text-sm",
             isGroupActive(item.children!) && "text-primary",
-            item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]"
+            item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]",
+            // Admin preview: dim hidden groups
+            item.hidden && "opacity-50 italic",
           )}
+          title={item.hidden ? 'Grupo oculto (visible solo para admin)' : undefined}
         >
           {item.wrapText ? (
             <span className="flex flex-col items-center text-xs">
               {item.label.split(' ').map((word, i) => (
                 <span key={i}>{word}</span>
               ))}
+              {item.hidden && <EyeOff className="h-3 w-3 mt-0.5" />}
             </span>
           ) : (
-            item.label
+            <span className="inline-flex items-center gap-1">
+              {item.label}
+              {item.hidden && <EyeOff className="h-3 w-3" />}
+            </span>
           )}
         </NavigationMenuTrigger>
         <NavigationMenuContent>
@@ -228,10 +341,15 @@ const Header = () => {
                     className={cn(
                       "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors",
                       "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                      location.pathname === child.path && "bg-accent text-accent-foreground"
+                      location.pathname === child.path && "bg-accent text-accent-foreground",
+                      child.hidden && "opacity-50 italic",
                     )}
+                    title={child.hidden ? 'Página oculta (visible solo para admin)' : undefined}
                   >
-                    {child.label}
+                    <span className="inline-flex items-center gap-1">
+                      {child.label}
+                      {child.hidden && <EyeOff className="h-3 w-3" />}
+                    </span>
                   </Link>
                 </NavigationMenuLink>
               </li>
@@ -254,10 +372,14 @@ const Header = () => {
             "px-4 py-3 text-sm font-medium rounded-lg transition-colors",
             location.pathname === item.path
               ? "bg-primary text-primary-foreground"
-              : "text-foreground/80 hover:bg-muted"
+              : "text-foreground/80 hover:bg-muted",
+            item.hidden && "opacity-50 italic",
           )}
         >
-          {item.label}
+          <span className="inline-flex items-center gap-2">
+            {item.label}
+            {item.hidden && <EyeOff className="h-3.5 w-3.5" />}
+          </span>
         </Link>
       );
     }
@@ -273,10 +395,14 @@ const Header = () => {
               "w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors",
               isGroupActive(item.children!)
                 ? "bg-primary/10 text-primary"
-                : "text-foreground/80 hover:bg-muted"
+                : "text-foreground/80 hover:bg-muted",
+              item.hidden && "opacity-50 italic",
             )}
           >
-            <span>{item.label}</span>
+            <span className="inline-flex items-center gap-2">
+              {item.label}
+              {item.hidden && <EyeOff className="h-3.5 w-3.5" />}
+            </span>
             <ChevronDown className={cn(
               "h-4 w-4 transition-transform",
               openMobileGroup === item.id && "rotate-180"
@@ -294,10 +420,14 @@ const Header = () => {
                   "px-3 py-2 text-sm rounded-lg transition-colors",
                   location.pathname === child.path
                     ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:bg-muted"
+                    : "text-foreground/70 hover:bg-muted",
+                  child.hidden && "opacity-50 italic",
                 )}
               >
-                {child.label}
+                <span className="inline-flex items-center gap-2">
+                  {child.label}
+                  {child.hidden && <EyeOff className="h-3 w-3" />}
+                </span>
               </Link>
             ))}
           </div>
@@ -335,15 +465,31 @@ const Header = () => {
 
           {/* Desktop Navigation with overflow detection */}
           <div className="hidden lg:flex items-center gap-1 flex-1 justify-end min-w-0">
-            {/* Invisible measurement container - renders all items to measure widths */}
+            {/*
+              Invisible measurement container.
+              Renders each nav item with the SAME shape it has when visible,
+              so widths are accurate:
+                - Links: same px-3 py-2 text-sm.
+                - Groups: same trigger padding + ChevronDown icon (added by
+                  NavigationMenuTrigger). We approximate it here with the
+                  same paddings + a chevron-sized spacer so the measurement
+                  matches the real <NavigationMenuTrigger> rendering.
+                - Hidden items include the EyeOff icon spacer.
+            */}
             <div
               ref={navRef}
               className="absolute opacity-0 pointer-events-none flex items-center gap-1"
               aria-hidden="true"
             >
               {navItems.map((item) => (
-                <div key={item.id} data-nav-item className="px-3 py-2 text-sm whitespace-nowrap">
+                <div
+                  key={item.id}
+                  data-nav-item
+                  className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium whitespace-nowrap"
+                >
                   {item.label}
+                  {item.hidden && <EyeOff className="h-3 w-3" />}
+                  {item.type === 'group' && <ChevronDown className="h-4 w-4" />}
                 </div>
               ))}
             </div>
@@ -376,17 +522,25 @@ const Header = () => {
                                   className={cn(
                                     "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors",
                                     "hover:bg-accent hover:text-accent-foreground",
-                                    location.pathname === item.path && "bg-accent text-accent-foreground"
+                                    location.pathname === item.path && "bg-accent text-accent-foreground",
+                                    item.hidden && "opacity-50 italic",
                                   )}
                                 >
-                                  {item.label}
+                                  <span className="inline-flex items-center gap-1">
+                                    {item.label}
+                                    {item.hidden && <EyeOff className="h-3 w-3" />}
+                                  </span>
                                 </Link>
                               </NavigationMenuLink>
                             </li>
                           ) : (
                             <li key={item.id} className="space-y-1">
-                              <span className="block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <span className={cn(
+                                "block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider inline-flex items-center gap-1",
+                                item.hidden && "opacity-50 italic",
+                              )}>
                                 {item.label}
+                                {item.hidden && <EyeOff className="h-3 w-3" />}
                               </span>
                               {item.children!.map((child) => (
                                 <NavigationMenuLink key={child.id} asChild>
@@ -395,10 +549,14 @@ const Header = () => {
                                     className={cn(
                                       "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors pl-5",
                                       "hover:bg-accent hover:text-accent-foreground",
-                                      location.pathname === child.path && "bg-accent text-accent-foreground"
+                                      location.pathname === child.path && "bg-accent text-accent-foreground",
+                                      child.hidden && "opacity-50 italic",
                                     )}
                                   >
-                                    {child.label}
+                                    <span className="inline-flex items-center gap-1">
+                                      {child.label}
+                                      {child.hidden && <EyeOff className="h-3 w-3" />}
+                                    </span>
                                   </Link>
                                 </NavigationMenuLink>
                               ))}
@@ -413,18 +571,20 @@ const Header = () => {
                 {/* Admin indicator and link */}
                 {isAdmin && (
                   <NavigationMenuItem>
-                    <Link
-                      to="/admin"
-                      className={cn(
-                        "nav-link flex items-center gap-1 px-3 py-2 text-sm",
-                        location.pathname === '/admin' 
-                          ? "text-primary" 
-                          : "text-foreground/80 hover:text-primary"
-                      )}
-                    >
-                      <Shield className="h-4 w-4" />
-                      <span>Admin</span>
-                    </Link>
+                    <div ref={rightSlotRef}>
+                      <Link
+                        to="/admin"
+                        className={cn(
+                          "nav-link flex items-center gap-1 px-3 py-2 text-sm",
+                          location.pathname === '/admin'
+                            ? "text-primary"
+                            : "text-foreground/80 hover:text-primary"
+                        )}
+                      >
+                        <Shield className="h-4 w-4" />
+                        <span>Admin</span>
+                      </Link>
+                    </div>
                   </NavigationMenuItem>
                 )}
               </NavigationMenuList>
