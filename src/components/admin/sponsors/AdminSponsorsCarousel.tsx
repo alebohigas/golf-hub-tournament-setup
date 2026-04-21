@@ -28,6 +28,8 @@ import {
   Save,
   Shuffle,
   CheckCircle2,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
@@ -73,8 +75,14 @@ const AdminSponsorsCarousel = () => {
   const [orderedIds, setOrderedIds] = useState<number[]>([]);
   /** Local draft state — randomize on each page load */
   const [randomize, setRandomize] = useState<boolean>(false);
-  /** Local draft state — max distinct logos visible at any time (0 = all) */
+  /** Local draft state — number of logos FULLY visible in the viewport (0 = auto) */
   const [visibleCount, setVisibleCount] = useState<number>(DEFAULT_VISIBLE_COUNT);
+  /**
+   * Local draft state — set of sponsor IDs the admin has enabled for the ribbon.
+   * The ribbon will only display sponsors whose ID is in this set. Null/undefined
+   * server value is treated as "all enabled" on first load.
+   */
+  const [enabledIds, setEnabledIds] = useState<Set<number>>(new Set());
 
   /**
    * Sponsor IDs whose logo image failed to load. These are hidden from the
@@ -118,6 +126,14 @@ const AdminSponsorsCarousel = () => {
     setOrderedIds([...savedOrder, ...missing]);
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
+    // Enabled list: if the server has no whitelist yet, default to ALL sponsors enabled.
+    const savedEnabled = savedCarousel.enabledIds;
+    if (savedEnabled && Array.isArray(savedEnabled)) {
+      // Keep only IDs that still correspond to a renderable sponsor.
+      setEnabledIds(new Set(savedEnabled.filter((id) => sponsorIds.includes(Number(id))).map(Number)));
+    } else {
+      setEnabledIds(new Set(sponsorIds));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderableSponsors, siteConfig?.sponsors_config?.carousel]);
 
@@ -137,9 +153,12 @@ const AdminSponsorsCarousel = () => {
     [sponsors, brokenIds]
   );
 
-  /** How many logos will be visible on screen in the ribbon at any moment. */
+  /** How many logos the admin has actually enabled (= rotate in the ribbon). */
+  const enabledCount = enabledIds.size;
+
+  /** How many logos will be FULLY visible on screen in the ribbon at any moment. */
   const onScreenLogos =
-    visibleCount > 0 ? Math.min(visibleCount, totalSponsors) : totalSponsors;
+    visibleCount > 0 ? Math.min(visibleCount, Math.max(enabledCount, 1)) : Math.max(enabledCount, 1);
 
   /**
    * Human-readable label for the resulting scroll speed (mirrors the logic
@@ -153,10 +172,15 @@ const AdminSponsorsCarousel = () => {
     'estándar';
 
   /** Detect unsaved changes vs. server-stored config */
+  const savedEnabledArray = Array.isArray(savedCarousel.enabledIds)
+    ? [...savedCarousel.enabledIds].map(Number).sort((a, b) => a - b)
+    : null;
+  const draftEnabledArray = [...enabledIds].sort((a, b) => a - b);
   const hasChanges =
     JSON.stringify(orderedIds) !== JSON.stringify(savedCarousel.order ?? []) ||
     Boolean(savedCarousel.randomize) !== randomize ||
-    (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount;
+    (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount ||
+    JSON.stringify(savedEnabledArray) !== JSON.stringify(draftEnabledArray);
 
   /** DnD callback — applies the new order returned by react-beautiful-dnd */
   const handleDragEnd = (result: DropResult) => {
@@ -179,6 +203,7 @@ const AdminSponsorsCarousel = () => {
             order: orderedIds,
             randomize,
             visibleCount,
+            enabledIds: [...enabledIds],
           },
         },
       },
