@@ -119,8 +119,8 @@ const SponsorRibbon = () => {
   // When 0, fall back to legacy fixed-margin sizing.
   const slotClass =
     visibleCount > 0
-      ? 'flex-shrink-0 px-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
-      : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
+      ? 'flex-shrink-0 px-4 flex items-center justify-center'
+      : 'flex-shrink-0 mx-8';
   const slotStyle: React.CSSProperties =
     visibleCount > 0 ? { width: `${100 / visibleCount}%` } : {};
 
