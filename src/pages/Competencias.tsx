@@ -46,6 +46,22 @@ const Competencias = () => {
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
   const [searchError, setSearchError] = useState(false);
+  /**
+   * Active multi-match search results. When set, the page renders the
+   * "search results" view: a list of unique player names found, each
+   * clickable to drill down into that player's individual results.
+   * `searchTerm` is the literal query that produced these results
+   * (used in the header text and to derive a stable suggestion list).
+   */
+  const [searchResults, setSearchResults] = useState<PlayerCompetitionResult[] | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  /**
+   * Currently inspected player from within the search-results view.
+   * When non-null the UI shows that player's results across every
+   * competition/group where they appear, with a "back to search"
+   * button at the top.
+   */
+  const [focusedPlayerName, setFocusedPlayerName] = useState<string | null>(null);
 
   // Context for admin visibility control
   const { isPageVisible } = usePageVisibility();
