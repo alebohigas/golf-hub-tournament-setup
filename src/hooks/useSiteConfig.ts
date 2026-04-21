@@ -37,13 +37,20 @@ export interface SponsorsConfig {
    *                   (server default) and are appended after the configured ones.
    *  - randomize:     When true, the displayed order is shuffled on every page load.
    *                   The custom `order` is ignored in this case.
-   *  - visibleCount:  Maximum number of distinct sponsor logos to keep "visible"
-   *                   (i.e. included in the ribbon set). 0 / undefined = show all.
+   *  - visibleCount:  Number of logos that should be FULLY visible in the ribbon
+   *                   viewport at any moment. Each slot occupies `100% / visibleCount`
+   *                   of the container width, so logos entering/leaving on the edges
+   *                   are partial (not counted). 0 / undefined = legacy auto sizing.
+   *  - enabledIds:    Whitelist of sponsor IDs allowed to appear in the ribbon.
+   *                   When undefined, all sponsors with a working logo are shown
+   *                   (legacy behavior). When defined (even empty), only the listed
+   *                   IDs are rendered.
    */
   carousel?: {
     order?: number[];
     randomize?: boolean;
     visibleCount?: number;
+    enabledIds?: number[];
   };
 }
 

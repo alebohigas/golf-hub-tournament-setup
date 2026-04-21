@@ -67,6 +67,13 @@ const SponsorRibbon = () => {
     // additionally filtered via `brokenIds` after render.
     let list = sponsors.filter((s) => Boolean(s.logoUrl) && !brokenIds.has(String(s.id)));
 
+    // Admin whitelist: when `enabledIds` is defined, only render those sponsors.
+    // When undefined (legacy / never configured), show every sponsor with a logo.
+    if (carousel?.enabledIds) {
+      const allow = new Set(carousel.enabledIds.map((n) => Number(n)));
+      list = list.filter((s) => allow.has(Number(s.id)));
+    }
+
     if (carousel?.randomize) {
       // Fisher–Yates shuffle for an unbiased random order
       for (let i = list.length - 1; i > 0; i--) {
@@ -86,7 +93,7 @@ const SponsorRibbon = () => {
     }
 
     return list;
-  }, [sponsors, brokenIds, carousel?.randomize, carousel?.order]);
+  }, [sponsors, brokenIds, carousel?.randomize, carousel?.order, carousel?.enabledIds]);
 
   // Per-page visibility map from server config — undefined = legacy default (show everywhere)
   const ribbonVisiblePages = siteConfig?.sponsors_config?.ribbonVisiblePages;
