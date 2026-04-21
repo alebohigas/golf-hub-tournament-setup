@@ -4,12 +4,19 @@
  * Supports grouped navigation with dropdown menus
  * Implements dynamic overflow detection: when menu items exceed
  * available space, excess items are collapsed into the hamburger menu
- * Respects page visibility settings from admin context
+ * Respects page visibility settings from admin context.
+ *
+ * Admin preview mode:
+ *   When the current user is admin, the header reflects the EXACT order
+ *   and visibility configured in /admin → Página → Orden / Visibilidad.
+ *   Hidden pages and hidden groups remain navigable but are rendered with
+ *   a dimmed style and an "EyeOff" icon, so the admin can preview the
+ *   real menu structure without losing access to hidden routes.
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Menu, X, Shield, ChevronDown, MoreHorizontal, EyeOff } from 'lucide-react';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { cn } from '@/lib/utils';
@@ -38,9 +45,16 @@ interface NavItem {
   id: string;
   label: string;
   path?: string;
-  children?: MenuItem[];
+  /** Children of a group; each child carries a per-page hidden flag for admin preview */
+  children?: (MenuItem & { hidden?: boolean })[];
   /** Whether to wrap text (display words stacked) */
   wrapText?: boolean;
+  /**
+   * Admin-only flag. True when this item (page or group) is configured as
+   * hidden in the admin panel but is still rendered because the user is
+   * admin (preview mode). Triggers dimmed styling.
+   */
+  hidden?: boolean;
 }
 
 // ============= Hook: useOverflowMenu =============
@@ -114,12 +128,25 @@ const Header = () => {
   // Get visible menu items and groups from context
   const { 
     getVisibleMenuItems, 
+    getAllMenuItems,
     isAdmin, 
     menuGroups, 
     pageGroupAssignments,
     isPageVisible,
+    visibilitySettings,
   } = usePageVisibility();
-  const allVisibleItems = getVisibleMenuItems();
+  /**
+   * In admin preview mode we want the header to mirror the configured
+   * order/visibility exactly — including hidden items (rendered dimmed).
+   * For regular users we keep the legacy behavior: only visible items.
+   */
+  const sourceItems = isAdmin ? getAllMenuItems() : getVisibleMenuItems();
+
+  /** Per-page hidden flag (admin preview only) */
+  const isPageHiddenForAdmin = (pageId: string): boolean => {
+    if (!isAdmin) return false;
+    return visibilitySettings[pageId] === false;
+  };
 
   /**
    * Build navigation structure with groups and standalone items
@@ -130,7 +157,7 @@ const Header = () => {
     const processedPages = new Set<string>();
     const processedGroups = new Set<string>();
 
-    const sortedItems = [...allVisibleItems].sort((a, b) => a.order - b.order);
+    const sortedItems = [...sourceItems].sort((a, b) => a.order - b.order);
 
     for (const item of sortedItems) {
       if (processedPages.has(item.id)) continue;
@@ -139,12 +166,20 @@ const Header = () => {
       
       if (groupId && !processedGroups.has(groupId)) {
         const group = menuGroups.find(g => g.id === groupId);
-        
-        if (group && group.visible !== false) {
-          const groupPages = sortedItems.filter(
-            p => pageGroupAssignments[p.id] === groupId && isPageVisible(p.id)
-          );
-          
+
+        // In admin mode: include groups even if hidden (dimmed). For users:
+        // skip groups marked invisible.
+        const groupIsHidden = !group || group.visible === false;
+        const includeGroup = isAdmin || !groupIsHidden;
+
+        if (group && includeGroup) {
+          // Pages in this group. In admin preview, include hidden pages too
+          // (annotated with `hidden: true`); for users, filter them out.
+          const groupPages = sortedItems
+            .filter((p) => pageGroupAssignments[p.id] === groupId)
+            .filter((p) => isAdmin || isPageVisible(p.id))
+            .map((p) => ({ ...p, hidden: isPageHiddenForAdmin(p.id) }));
+
           if (groupPages.length > 0) {
             navItems.push({
               type: 'group',
@@ -152,8 +187,9 @@ const Header = () => {
               label: group.name,
               children: groupPages,
               wrapText: group.wrapText,
+              hidden: isAdmin && groupIsHidden,
             });
-            groupPages.forEach(p => processedPages.add(p.id));
+            groupPages.forEach((p) => processedPages.add(p.id));
           }
         }
         processedGroups.add(groupId);
@@ -163,6 +199,7 @@ const Header = () => {
           id: item.id,
           label: item.label,
           path: item.path,
+          hidden: isPageHiddenForAdmin(item.id),
         });
         processedPages.add(item.id);
       }
@@ -191,10 +228,16 @@ const Header = () => {
           to={item.path!}
           className={cn(
             "nav-link text-foreground/80 hover:text-primary px-3 py-2 text-sm whitespace-nowrap",
-            location.pathname === item.path && "text-primary active"
+            location.pathname === item.path && "text-primary active",
+            // Admin preview: dim hidden pages
+            item.hidden && "opacity-50 italic",
           )}
+          title={item.hidden ? 'Página oculta (visible solo para admin)' : undefined}
         >
-          {item.label}
+          <span className="inline-flex items-center gap-1">
+            {item.label}
+            {item.hidden && <EyeOff className="h-3 w-3" />}
+          </span>
         </Link>
       );
     }
@@ -205,17 +248,24 @@ const Header = () => {
             "bg-transparent hover:bg-transparent data-[state=open]:bg-transparent",
             "text-foreground/80 hover:text-primary data-[state=open]:text-primary text-sm",
             isGroupActive(item.children!) && "text-primary",
-            item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]"
+            item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]",
+            // Admin preview: dim hidden groups
+            item.hidden && "opacity-50 italic",
           )}
+          title={item.hidden ? 'Grupo oculto (visible solo para admin)' : undefined}
         >
           {item.wrapText ? (
             <span className="flex flex-col items-center text-xs">
               {item.label.split(' ').map((word, i) => (
                 <span key={i}>{word}</span>
               ))}
+              {item.hidden && <EyeOff className="h-3 w-3 mt-0.5" />}
             </span>
           ) : (
-            item.label
+            <span className="inline-flex items-center gap-1">
+              {item.label}
+              {item.hidden && <EyeOff className="h-3 w-3" />}
+            </span>
           )}
         </NavigationMenuTrigger>
         <NavigationMenuContent>
@@ -228,10 +278,15 @@ const Header = () => {
                     className={cn(
                       "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors",
                       "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                      location.pathname === child.path && "bg-accent text-accent-foreground"
+                      location.pathname === child.path && "bg-accent text-accent-foreground",
+                      child.hidden && "opacity-50 italic",
                     )}
+                    title={child.hidden ? 'Página oculta (visible solo para admin)' : undefined}
                   >
-                    {child.label}
+                    <span className="inline-flex items-center gap-1">
+                      {child.label}
+                      {child.hidden && <EyeOff className="h-3 w-3" />}
+                    </span>
                   </Link>
                 </NavigationMenuLink>
               </li>
@@ -254,10 +309,14 @@ const Header = () => {
             "px-4 py-3 text-sm font-medium rounded-lg transition-colors",
             location.pathname === item.path
               ? "bg-primary text-primary-foreground"
-              : "text-foreground/80 hover:bg-muted"
+              : "text-foreground/80 hover:bg-muted",
+            item.hidden && "opacity-50 italic",
           )}
         >
-          {item.label}
+          <span className="inline-flex items-center gap-2">
+            {item.label}
+            {item.hidden && <EyeOff className="h-3.5 w-3.5" />}
+          </span>
         </Link>
       );
     }
@@ -273,10 +332,14 @@ const Header = () => {
               "w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors",
               isGroupActive(item.children!)
                 ? "bg-primary/10 text-primary"
-                : "text-foreground/80 hover:bg-muted"
+                : "text-foreground/80 hover:bg-muted",
+              item.hidden && "opacity-50 italic",
             )}
           >
-            <span>{item.label}</span>
+            <span className="inline-flex items-center gap-2">
+              {item.label}
+              {item.hidden && <EyeOff className="h-3.5 w-3.5" />}
+            </span>
             <ChevronDown className={cn(
               "h-4 w-4 transition-transform",
               openMobileGroup === item.id && "rotate-180"
@@ -294,10 +357,14 @@ const Header = () => {
                   "px-3 py-2 text-sm rounded-lg transition-colors",
                   location.pathname === child.path
                     ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:bg-muted"
+                    : "text-foreground/70 hover:bg-muted",
+                  child.hidden && "opacity-50 italic",
                 )}
               >
-                {child.label}
+                <span className="inline-flex items-center gap-2">
+                  {child.label}
+                  {child.hidden && <EyeOff className="h-3 w-3" />}
+                </span>
               </Link>
             ))}
           </div>
@@ -376,17 +443,25 @@ const Header = () => {
                                   className={cn(
                                     "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors",
                                     "hover:bg-accent hover:text-accent-foreground",
-                                    location.pathname === item.path && "bg-accent text-accent-foreground"
+                                    location.pathname === item.path && "bg-accent text-accent-foreground",
+                                    item.hidden && "opacity-50 italic",
                                   )}
                                 >
-                                  {item.label}
+                                  <span className="inline-flex items-center gap-1">
+                                    {item.label}
+                                    {item.hidden && <EyeOff className="h-3 w-3" />}
+                                  </span>
                                 </Link>
                               </NavigationMenuLink>
                             </li>
                           ) : (
                             <li key={item.id} className="space-y-1">
-                              <span className="block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <span className={cn(
+                                "block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider inline-flex items-center gap-1",
+                                item.hidden && "opacity-50 italic",
+                              )}>
                                 {item.label}
+                                {item.hidden && <EyeOff className="h-3 w-3" />}
                               </span>
                               {item.children!.map((child) => (
                                 <NavigationMenuLink key={child.id} asChild>
@@ -395,10 +470,14 @@ const Header = () => {
                                     className={cn(
                                       "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors pl-5",
                                       "hover:bg-accent hover:text-accent-foreground",
-                                      location.pathname === child.path && "bg-accent text-accent-foreground"
+                                      location.pathname === child.path && "bg-accent text-accent-foreground",
+                                      child.hidden && "opacity-50 italic",
                                     )}
                                   >
-                                    {child.label}
+                                    <span className="inline-flex items-center gap-1">
+                                      {child.label}
+                                      {child.hidden && <EyeOff className="h-3 w-3" />}
+                                    </span>
                                   </Link>
                                 </NavigationMenuLink>
                               ))}
