@@ -84,6 +84,15 @@ const Competencias = () => {
   const handlePlayerSearch = (name: string) => {
     setSearchQuery(name);
     if (searchError) setSearchError(false);
+    /**
+     * If the user clears the input entirely, also dismiss any active
+     * search-results view so they return to the default landing.
+     */
+    if (name.trim() === '') {
+      setSearchResults(null);
+      setFocusedPlayerName(null);
+      setSearchTerm('');
+    }
   };
 
   /**
@@ -97,25 +106,33 @@ const Competencias = () => {
     const trimmed = name.trim();
     if (trimmed.length === 0) {
       setSearchError(false);
+      setSearchResults(null);
+      setFocusedPlayerName(null);
+      setSearchTerm('');
       return;
     }
     // Search across all loaded competencias for this player name
     const matches = searchPlayerAcrossCompetencias(allWithPlayers, trimmed);
     if (matches.length === 0) {
       setSearchError(true);
+      setSearchResults(null);
+      setFocusedPlayerName(null);
       return;
     }
-    // Found: drill down to the first matching competition/group in-page
-    const first = matches[0];
-    const targetComp = allWithPlayers.find(c => c.id === first.competenciaId);
-    const targetGroup = targetComp?.groups?.find(g => g.id === first.groupId);
-    if (targetComp && targetGroup) {
-      setSelectedCompetenciaId(targetComp.id);
-      setSelectedGroup(targetGroup);
-      setSearchError(false);
-    } else {
-      setSearchError(true);
-    }
+    /**
+     * Group matches by unique player name to detect whether the query
+     * resolves to a single person or multiple. We always show the
+     * search-results view (titled list of players found, each with
+     * their results below) so the user can pick which player to
+     * inspect — even if only one matches.
+     */
+    setSearchError(false);
+    setSearchResults(matches);
+    setSearchTerm(trimmed);
+    setFocusedPlayerName(null);
+    // Exit any drill-down so the search view takes over the page
+    setSelectedCompetenciaId(null);
+    setSelectedGroup(null);
   };
 
   // Fetch detail data when a competition is selected (includes players)
