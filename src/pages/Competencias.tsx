@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
@@ -18,7 +17,7 @@ import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
-import { useAllCompetenciasWithPlayers, collectUniquePlayerNames } from '@/hooks/useAllCompetenciasData';
+import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
@@ -45,8 +44,25 @@ const Competencias = () => {
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
-  
+  /** Error state for the search input (player not found) */
+  const [searchError, setSearchError] = useState(false);
+  /**
+   * Active multi-match search results. When set, the page renders the
+   * "search results" view: a list of unique player names found, each
+   * clickable to drill down into that player's individual results.
+   * `searchTerm` is the literal query that produced these results
+   * (used in the header text and to derive a stable suggestion list).
+   */
+  const [searchResults, setSearchResults] = useState<PlayerCompetitionResult[] | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  /**
+   * Currently inspected player from within the search-results view.
+   * When non-null the UI shows that player's results across every
+   * competition/group where they appear, with a "back to search"
+   * button at the top.
+   */
+  const [focusedPlayerName, setFocusedPlayerName] = useState<string | null>(null);
+
   // Context for admin visibility control
   const { isPageVisible } = usePageVisibility();
 
@@ -62,22 +78,61 @@ const Competencias = () => {
 
   /**
    * Handle local typing in the search input.
-   * IMPORTANT: This only updates the local query — it does NOT navigate.
-   * Navigation is reserved for explicit submit (Enter) or suggestion pick.
+   * Only updates local query; clears any previous error so the user
+   * can try again without a stale red state. Never navigates.
    */
   const handlePlayerSearch = (name: string) => {
     setSearchQuery(name);
+    if (searchError) setSearchError(false);
+    /**
+     * If the user clears the input entirely, also dismiss any active
+     * search-results view so they return to the default landing.
+     */
+    if (name.trim() === '') {
+      setSearchResults(null);
+      setFocusedPlayerName(null);
+      setSearchTerm('');
+    }
   };
 
   /**
    * Handle explicit submission (Enter key or suggestion click).
-   * Only here do we navigate to /premios with the selected name.
+   * Searches for the player within the already-loaded competencias data
+   * and drills down to the first matching group. If no match is found,
+   * flags the input with an error state (red + shake) and stays on page.
+   * Never navigates away from /competencias.
    */
   const handlePlayerSubmit = (name: string) => {
     const trimmed = name.trim();
-    if (trimmed.length > 0) {
-      navigate(`/premios?q=${encodeURIComponent(trimmed)}`);
+    if (trimmed.length === 0) {
+      setSearchError(false);
+      setSearchResults(null);
+      setFocusedPlayerName(null);
+      setSearchTerm('');
+      return;
     }
+    // Search across all loaded competencias for this player name
+    const matches = searchPlayerAcrossCompetencias(allWithPlayers, trimmed);
+    if (matches.length === 0) {
+      setSearchError(true);
+      setSearchResults(null);
+      setFocusedPlayerName(null);
+      return;
+    }
+    /**
+     * Group matches by unique player name to detect whether the query
+     * resolves to a single person or multiple. We always show the
+     * search-results view (titled list of players found, each with
+     * their results below) so the user can pick which player to
+     * inspect — even if only one matches.
+     */
+    setSearchError(false);
+    setSearchResults(matches);
+    setSearchTerm(trimmed);
+    setFocusedPlayerName(null);
+    // Exit any drill-down so the search view takes over the page
+    setSelectedCompetenciaId(null);
+    setSelectedGroup(null);
   };
 
   // Fetch detail data when a competition is selected (includes players)
@@ -106,6 +161,25 @@ const Competencias = () => {
     return selectedCompetencia?.groups || [];
   }, [selectedCompetencia]);
 
+  /**
+   * Keep `selectedGroup` in sync with the latest fetched data.
+   * Without this, when the polling refetch updates player positions
+   * (e.g., a player drops from 1st to 4th place in putt while still
+   * leading approach), the local `selectedGroup` reference holds stale
+   * data and can cause render errors or show outdated standings.
+   * Re-resolve by group id from the fresh `groups` array on each update.
+   */
+  useEffect(() => {
+    if (!selectedGroup) return;
+    const fresh = groups.find(g => g.id === selectedGroup.id);
+    if (fresh && fresh !== selectedGroup) {
+      setSelectedGroup(fresh);
+    } else if (!fresh && groups.length > 0) {
+      // Group no longer exists in the new data — drop back to group list
+      setSelectedGroup(null);
+    }
+  }, [groups, selectedGroup]);
+
   // Handle competition type selection
   const handleCompetenciaSelect = (id: string | null) => {
     setSelectedCompetenciaId(id);
@@ -124,6 +198,73 @@ const Competencias = () => {
     } else if (selectedCompetenciaId) {
       setSelectedCompetenciaId(null);
     }
+  };
+
+  /**
+   * Live-recompute search results from the latest `allWithPlayers` data
+   * whenever polling refreshes. Keeps the search-results view and the
+   * focused-player view in sync with the backend (e.g., a player's
+   * position in putt changing from 1st to 4th).
+   */
+  const liveSearchResults = useMemo(() => {
+    if (!searchTerm) return null;
+    return searchPlayerAcrossCompetencias(allWithPlayers, searchTerm);
+  }, [allWithPlayers, searchTerm]);
+
+  /** Active results to render — prefer live-recomputed list if available. */
+  const activeResults = liveSearchResults ?? searchResults;
+
+  /**
+   * Unique player names found by the current search, sorted
+   * alphabetically (Spanish locale-aware via localeCompare).
+   */
+  const uniqueFoundPlayers = useMemo(() => {
+    if (!activeResults) return [];
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const r of activeResults) {
+      const cleaned = r.playerName;
+      if (!seen.has(cleaned)) {
+        seen.add(cleaned);
+        names.push(cleaned);
+      }
+    }
+    return names.sort((a, b) => a.localeCompare(b, 'es'));
+  }, [activeResults]);
+
+  /** Results limited to the focused player (one row per competition/group). */
+  const focusedPlayerResults = useMemo(() => {
+    if (!focusedPlayerName || !activeResults) return [];
+    return activeResults.filter(r => r.playerName === focusedPlayerName);
+  }, [activeResults, focusedPlayerName]);
+
+  /**
+   * If the user lands directly on a single matching player, auto-focus
+   * them so they don't have to click the only available name in the list.
+   * Triggered only on first render of the search-results view.
+   */
+  useEffect(() => {
+    if (
+      activeResults &&
+      focusedPlayerName === null &&
+      uniqueFoundPlayers.length === 1
+    ) {
+      setFocusedPlayerName(uniqueFoundPlayers[0]);
+    }
+  }, [activeResults, focusedPlayerName, uniqueFoundPlayers]);
+
+  /** Clear search entirely and return to the default landing view. */
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+    setSearchTerm('');
+    setFocusedPlayerName(null);
+    setSearchError(false);
+  };
+
+  /** Return from focused-player detail back to the search-results list. */
+  const handleBackToSearchResults = () => {
+    setFocusedPlayerName(null);
   };
 
   // Get icon component for a competition
@@ -154,8 +295,172 @@ const Competencias = () => {
             </div>
           )}
 
-          {/* View: Competition Types (no selection) */}
-          {!isLoading && !selectedCompetenciaId && (
+          {/*
+            View: Search results (multi-match list)
+            Triggered when the user presses Enter without picking an
+            autocomplete suggestion and the query matches one or more
+            players. Lists unique player names; clicking a name focuses
+            on that player and shows all their competition results.
+          */}
+          {!isLoading && activeResults && !focusedPlayerName && (
+            <>
+              {/* Search input remains available for refinement */}
+              {playerSuggestions.length > 0 && (
+                <PlayerSearchInput
+                  className="max-w-md mx-auto mb-6"
+                  value={searchQuery}
+                  onChange={handlePlayerSearch}
+                  onSubmit={handlePlayerSubmit}
+                  suggestions={playerSuggestions}
+                  placeholder="Buscar jugador en competencias..."
+                  error={searchError}
+                  errorMessage="Jugador no encontrado"
+                />
+              )}
+
+              {/* Action bar: clear search */}
+              <div className="flex justify-center mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleClearSearch}
+                  className="gap-2 bg-primary/10 hover:bg-primary/20"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Limpiar búsqueda
+                </Button>
+              </div>
+
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                  <span className="text-primary">{uniqueFoundPlayers.length}</span>{' '}
+                  {uniqueFoundPlayers.length === 1 ? 'jugador encontrado' : 'jugadores encontrados'}
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  Búsqueda: "{searchTerm}"
+                </p>
+              </div>
+
+              {/* Player list — clickable cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                {uniqueFoundPlayers.map((name) => {
+                  /** Count of competition entries for this player */
+                  const count = (activeResults || []).filter(r => r.playerName === name).length;
+                  return (
+                    <Card
+                      key={name}
+                      className="border-border/50 hover:border-primary/50 transition-all hover:shadow-md cursor-pointer"
+                      onClick={() => setFocusedPlayerName(name)}
+                    >
+                      <CardContent className="p-4 flex items-center justify-between gap-3">
+                        <span className="font-semibold text-foreground">{name}</span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium whitespace-nowrap">
+                          {count} {count === 1 ? 'resultado' : 'resultados'}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/*
+            View: Focused player results
+            Shows every competition/group where the focused player ranks,
+            grouped by competition title with their position(s) below.
+          */}
+          {!isLoading && activeResults && focusedPlayerName && (
+            <>
+              {/* Action bar: back to search results + clear search */}
+              <div className="flex flex-wrap justify-center gap-3 mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleBackToSearchResults}
+                  className="gap-2 bg-primary/10 hover:bg-primary/20"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Regresar a resultados de búsqueda
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleClearSearch}
+                  className="gap-2 bg-primary/10 hover:bg-primary/20"
+                >
+                  Limpiar búsqueda
+                </Button>
+              </div>
+
+              {/* Header — focused player name */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-foreground">
+                  {focusedPlayerName}
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  {focusedPlayerResults.length}{' '}
+                  {focusedPlayerResults.length === 1
+                    ? 'resultado encontrado'
+                    : 'resultados encontrados'}
+                </p>
+              </div>
+
+              {/* Per-competition results */}
+              <div className="max-w-3xl mx-auto space-y-6">
+                {focusedPlayerResults.map((result, idx) => {
+                  /** Look up the live competition object so we can use its config (icon, etc.) */
+                  const comp = allWithPlayers.find(c => c.id === result.competenciaId);
+                  return (
+                    <Card
+                      key={`${result.competenciaId}-${result.groupId}-${idx}`}
+                      className="border-border/50 cursor-pointer hover:border-primary/50 transition-all"
+                      onClick={() => {
+                        /** Drill down into the full group standings for context. */
+                        const targetGroup = comp?.groups?.find(g => g.id === result.groupId);
+                        if (comp && targetGroup) {
+                          setSelectedCompetenciaId(comp.id);
+                          setSelectedGroup(targetGroup);
+                          // Keep search state intact so user can return via header back-buttons
+                        }
+                      }}
+                    >
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            {getIcon(result.competenciaIcon)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-foreground">
+                              {result.competenciaName}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {result.groupName}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-primary leading-none">
+                              {result.position}°
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              lugar
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+
+                {focusedPlayerResults.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    Este jugador ya no aparece en los resultados.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* View: Competition Types (no selection, no active search) */}
+          {!isLoading && !selectedCompetenciaId && !activeResults && (
             <>
               {/* Player search bar with autocomplete — jumps to /premios on pick */}
               {playerSuggestions.length > 0 && (
@@ -166,6 +471,8 @@ const Competencias = () => {
                   onSubmit={handlePlayerSubmit}
                   suggestions={playerSuggestions}
                   placeholder="Buscar jugador en competencias..."
+                  error={searchError}
+                  errorMessage="Jugador no encontrado"
                 />
               )}
 
