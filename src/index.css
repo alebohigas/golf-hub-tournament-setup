@@ -138,7 +138,12 @@
   }
 
   .sponsor-scroll {
+    /* The animated track must size itself to the full logo sequence width,
+       otherwise translateX(-50%) is calculated from the viewport/container
+       width and the loop visually jumps when it restarts. */
+    width: max-content;
     animation: scroll-sponsors 30s linear infinite;
+    will-change: transform;
   }
 
   .sponsor-scroll:hover {
