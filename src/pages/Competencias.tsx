@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
@@ -47,8 +46,7 @@ const Competencias = () => {
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
   const [searchError, setSearchError] = useState(false);
-  const navigate = useNavigate();
-  
+
   // Context for admin visibility control
   const { isPageVisible } = usePageVisibility();
 
