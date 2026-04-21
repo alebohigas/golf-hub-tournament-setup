@@ -295,8 +295,8 @@ const Competencias = () => {
             </div>
           )}
 
-          {/* View: Competition Types (no selection) */}
-          {!isLoading && !selectedCompetenciaId && (
+          {/* View: Competition Types (no selection, no active search) */}
+          {!isLoading && !selectedCompetenciaId && !activeResults && (
             <>
               {/* Player search bar with autocomplete — jumps to /premios on pick */}
               {playerSuggestions.length > 0 && (
