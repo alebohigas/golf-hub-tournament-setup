@@ -39,9 +39,10 @@ if (!$result) {
 $players = [];
 /**
  * fechaHandicap: Tournament-wide handicap effective date.
- * Source: torneo.fecha_hand (PK: torneo_id), looked up by current $torneoid.
- * NOTE: Previously read from jugadores.fechahandicap (per-player). Changed
- * per requirement to use the single tournament-level value.
+ * Source: categorias.fechaHandicap (PK: categoria_id), looked up by the
+ * current $catid. Per requirement, the handicap effective date is now stored
+ * per category instead of at the tournament level (torneo.fecha_hand) or
+ * per player (jugadores.fechahandicap).
  */
 $fechaHandicap = '';
 while ($row = $result->fetch_assoc()) {
@@ -61,20 +62,21 @@ while ($row = $result->fetch_assoc()) {
 $result->free();
 
 /**
- * Fetch fecha_hand from torneo table (PK: torneo_id).
- * Uses prepared-style escaped value; safely returns empty string if not found
- * or if value is the MySQL zero-date placeholder.
+ * Fetch fechaHandicap from categorias table (PK: categoria_id).
+ * Uses escaped category id; safely returns empty string if not found,
+ * if the value is empty, or if it equals known placeholder dates
+ * ('0000-00-00' or the legacy default '1900-01-01').
  */
-$tnSql = "SELECT fecha_hand FROM torneo WHERE torneo_id = $tid LIMIT 1";
-$tnRes = $conn->query($tnSql);
-if ($tnRes) {
-    if ($tnRow = $tnRes->fetch_assoc()) {
-        $val = $tnRow['fecha_hand'] ?? '';
-        if (!empty($val) && $val !== '0000-00-00') {
+$catSql = "SELECT fechaHandicap FROM categorias WHERE categoria_id = '$cid' LIMIT 1";
+$catRes = $conn->query($catSql);
+if ($catRes) {
+    if ($catRow = $catRes->fetch_assoc()) {
+        $val = $catRow['fechaHandicap'] ?? '';
+        if (!empty($val) && $val !== '0000-00-00' && $val !== '1900-01-01') {
             $fechaHandicap = $val;
         }
     }
-    $tnRes->free();
+    $catRes->free();
 }
 
 json_response(['players' => $players, 'fechaHandicap' => $fechaHandicap]);
