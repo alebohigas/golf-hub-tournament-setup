@@ -190,6 +190,8 @@ const Competencias = () => {
                   onSubmit={handlePlayerSubmit}
                   suggestions={playerSuggestions}
                   placeholder="Buscar jugador en competencias..."
+                  error={searchError}
+                  errorMessage="Jugador no encontrado"
                 />
               )}
 
