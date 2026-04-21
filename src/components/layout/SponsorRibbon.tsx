@@ -119,24 +119,29 @@ const SponsorRibbon = () => {
   // When 0, fall back to legacy fixed-margin sizing.
   const slotClass =
     visibleCount > 0
-      ? 'flex-shrink-0 px-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
-      : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
+      ? 'flex-shrink-0 px-4 flex items-center justify-center'
+      : 'flex-shrink-0 mx-8';
   const slotStyle: React.CSSProperties =
     visibleCount > 0 ? { width: `${100 / visibleCount}%` } : {};
 
   /**
    * Animation speed.
-   * Base = 30s for 4+ visible logos. With fewer visible logos the loop is
-   * shorter (= faster) so the ribbon doesn't feel sluggish:
-   *   1 visible → ~18s
-   *   2 visible → ~22s
-   *   3 visible → ~26s
-   *   4+ visible → 30s (baseline)
+   * Baseline = 30s when 6+ logos are visible at once. With fewer visible
+   * logos the loop is progressively shorter (= faster) so the ribbon never
+   * feels sluggish when there is little content on screen:
+   *   1 visible → 12s   (fastest)
+   *   2 visible → 15s
+   *   3 visible → 18s
+   *   4 visible → 22s
+   *   5 visible → 26s
+   *   6+ visible → 30s  (baseline)
    */
   const speedSeconds =
-    visibleCount === 1 ? 18 :
-    visibleCount === 2 ? 22 :
-    visibleCount === 3 ? 26 :
+    visibleCount === 1 ? 12 :
+    visibleCount === 2 ? 15 :
+    visibleCount === 3 ? 18 :
+    visibleCount === 4 ? 22 :
+    visibleCount === 5 ? 26 :
     30;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${speedSeconds}s`,
@@ -155,12 +160,14 @@ const SponsorRibbon = () => {
    * per loop (interleaved becomes A A A A — but with multiple sponsors it
    * round-robins, e.g. [A,B] × 4 → A,B,A,B,A,B,A,B).
    */
-  // Repeat the sponsor list enough times so the ribbon always contains more
-  // logos than fit in a single viewport (otherwise the CSS infinite-scroll
-  // animation would stutter). With slot width = 100%/visibleCount, we need at
-  // least `visibleCount + 1` logos per pass; we use a 2× safety multiplier so
-  // even with 1 sponsor the ribbon stays continuous.
-  const targetPerPass = Math.max(visibleCount > 0 ? visibleCount * 2 : 8, 4);
+  // Repeat the sponsor list enough times so a SINGLE pass (`interleaved`) is
+  // already wider than the viewport. The CSS animation translates the strip
+  // by -50% (one full pass), so if a single pass is narrower than the screen
+  // the ribbon visibly "jumps back" when the loop wraps. Targeting at least
+  // 2× visibleCount logos per pass — and never fewer than 12 — keeps the
+  // scroll continuous even when the admin selected only 1–3 sponsors and
+  // the viewport is wide enough to show 6+ slots simultaneously.
+  const targetPerPass = Math.max(visibleCount > 0 ? visibleCount * 3 : 12, 12);
   const copiesPerSponsor =
     orderedSponsors.length === 0
       ? 1
@@ -195,7 +202,7 @@ const SponsorRibbon = () => {
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
                       onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                      className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      className="h-20 md:h-24 w-auto object-contain transition-transform duration-300 hover:scale-105"
                     />
                   </a>
                 ) : (
@@ -203,7 +210,7 @@ const SponsorRibbon = () => {
                     url={sponsor.logoUrl}
                     alt={sponsor.name}
                     onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                    className="h-20 md:h-24 w-auto object-contain transition-transform duration-300 hover:scale-105"
                   />
                 )}
               </div>
