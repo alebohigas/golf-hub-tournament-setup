@@ -228,10 +228,16 @@ const Header = () => {
           to={item.path!}
           className={cn(
             "nav-link text-foreground/80 hover:text-primary px-3 py-2 text-sm whitespace-nowrap",
-            location.pathname === item.path && "text-primary active"
+            location.pathname === item.path && "text-primary active",
+            // Admin preview: dim hidden pages
+            item.hidden && "opacity-50 italic",
           )}
+          title={item.hidden ? 'Página oculta (visible solo para admin)' : undefined}
         >
-          {item.label}
+          <span className="inline-flex items-center gap-1">
+            {item.label}
+            {item.hidden && <EyeOff className="h-3 w-3" />}
+          </span>
         </Link>
       );
     }
@@ -242,17 +248,24 @@ const Header = () => {
             "bg-transparent hover:bg-transparent data-[state=open]:bg-transparent",
             "text-foreground/80 hover:text-primary data-[state=open]:text-primary text-sm",
             isGroupActive(item.children!) && "text-primary",
-            item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]"
+            item.wrapText && "flex-col leading-tight text-center h-auto py-1 min-h-[40px]",
+            // Admin preview: dim hidden groups
+            item.hidden && "opacity-50 italic",
           )}
+          title={item.hidden ? 'Grupo oculto (visible solo para admin)' : undefined}
         >
           {item.wrapText ? (
             <span className="flex flex-col items-center text-xs">
               {item.label.split(' ').map((word, i) => (
                 <span key={i}>{word}</span>
               ))}
+              {item.hidden && <EyeOff className="h-3 w-3 mt-0.5" />}
             </span>
           ) : (
-            item.label
+            <span className="inline-flex items-center gap-1">
+              {item.label}
+              {item.hidden && <EyeOff className="h-3 w-3" />}
+            </span>
           )}
         </NavigationMenuTrigger>
         <NavigationMenuContent>
@@ -265,10 +278,15 @@ const Header = () => {
                     className={cn(
                       "block select-none rounded-md px-3 py-2 text-sm leading-none no-underline outline-none transition-colors",
                       "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                      location.pathname === child.path && "bg-accent text-accent-foreground"
+                      location.pathname === child.path && "bg-accent text-accent-foreground",
+                      child.hidden && "opacity-50 italic",
                     )}
+                    title={child.hidden ? 'Página oculta (visible solo para admin)' : undefined}
                   >
-                    {child.label}
+                    <span className="inline-flex items-center gap-1">
+                      {child.label}
+                      {child.hidden && <EyeOff className="h-3 w-3" />}
+                    </span>
                   </Link>
                 </NavigationMenuLink>
               </li>
