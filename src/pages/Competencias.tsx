@@ -200,6 +200,73 @@ const Competencias = () => {
     }
   };
 
+  /**
+   * Live-recompute search results from the latest `allWithPlayers` data
+   * whenever polling refreshes. Keeps the search-results view and the
+   * focused-player view in sync with the backend (e.g., a player's
+   * position in putt changing from 1st to 4th).
+   */
+  const liveSearchResults = useMemo(() => {
+    if (!searchTerm) return null;
+    return searchPlayerAcrossCompetencias(allWithPlayers, searchTerm);
+  }, [allWithPlayers, searchTerm]);
+
+  /** Active results to render — prefer live-recomputed list if available. */
+  const activeResults = liveSearchResults ?? searchResults;
+
+  /**
+   * Unique player names found by the current search, sorted
+   * alphabetically (Spanish locale-aware via localeCompare).
+   */
+  const uniqueFoundPlayers = useMemo(() => {
+    if (!activeResults) return [];
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const r of activeResults) {
+      const cleaned = r.playerName;
+      if (!seen.has(cleaned)) {
+        seen.add(cleaned);
+        names.push(cleaned);
+      }
+    }
+    return names.sort((a, b) => a.localeCompare(b, 'es'));
+  }, [activeResults]);
+
+  /** Results limited to the focused player (one row per competition/group). */
+  const focusedPlayerResults = useMemo(() => {
+    if (!focusedPlayerName || !activeResults) return [];
+    return activeResults.filter(r => r.playerName === focusedPlayerName);
+  }, [activeResults, focusedPlayerName]);
+
+  /**
+   * If the user lands directly on a single matching player, auto-focus
+   * them so they don't have to click the only available name in the list.
+   * Triggered only on first render of the search-results view.
+   */
+  useEffect(() => {
+    if (
+      activeResults &&
+      focusedPlayerName === null &&
+      uniqueFoundPlayers.length === 1
+    ) {
+      setFocusedPlayerName(uniqueFoundPlayers[0]);
+    }
+  }, [activeResults, focusedPlayerName, uniqueFoundPlayers]);
+
+  /** Clear search entirely and return to the default landing view. */
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+    setSearchTerm('');
+    setFocusedPlayerName(null);
+    setSearchError(false);
+  };
+
+  /** Return from focused-player detail back to the search-results list. */
+  const handleBackToSearchResults = () => {
+    setFocusedPlayerName(null);
+  };
+
   // Get icon component for a competition
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName as keyof typeof iconMap];
