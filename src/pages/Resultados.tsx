@@ -83,8 +83,19 @@ const Resultados = () => {
   /** Find the selected category object from the list (metadata only) */
   const selectedCategory = categories.find(c => c.categoryId === selectedCategoryId) || null;
 
-  /** Medal count from API (defaults to 3) */
-  const medalCount = categoryDetail?.medalCount ?? 3;
+  /**
+   * Medal count for the currently selected scoring type.
+   * NETO uses categorias.numganadorneto (default 3).
+   * GROSS uses categorias.numganadorgross (default 1).
+   * Falls back to the legacy `medalCount` field for back-compat.
+   */
+  const medalCount = (() => {
+    if (!categoryDetail) return 3;
+    if (selectedScoringType === 'GROSS') {
+      return categoryDetail.medalCountGross ?? categoryDetail.medalCount ?? 1;
+    }
+    return categoryDetail.medalCountNeto ?? categoryDetail.medalCount ?? 3;
+  })();
 
   /** Cut players (non-NORMAL status) from API */
   const cutPlayers: CutPlayer[] = categoryDetail?.cutPlayers || [];
