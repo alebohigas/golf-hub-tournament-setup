@@ -160,12 +160,14 @@ const SponsorRibbon = () => {
    * per loop (interleaved becomes A A A A — but with multiple sponsors it
    * round-robins, e.g. [A,B] × 4 → A,B,A,B,A,B,A,B).
    */
-  // Repeat the sponsor list enough times so the ribbon always contains more
-  // logos than fit in a single viewport (otherwise the CSS infinite-scroll
-  // animation would stutter). With slot width = 100%/visibleCount, we need at
-  // least `visibleCount + 1` logos per pass; we use a 2× safety multiplier so
-  // even with 1 sponsor the ribbon stays continuous.
-  const targetPerPass = Math.max(visibleCount > 0 ? visibleCount * 2 : 8, 4);
+  // Repeat the sponsor list enough times so a SINGLE pass (`interleaved`) is
+  // already wider than the viewport. The CSS animation translates the strip
+  // by -50% (one full pass), so if a single pass is narrower than the screen
+  // the ribbon visibly "jumps back" when the loop wraps. Targeting at least
+  // 2× visibleCount logos per pass — and never fewer than 12 — keeps the
+  // scroll continuous even when the admin selected only 1–3 sponsors and
+  // the viewport is wide enough to show 6+ slots simultaneously.
+  const targetPerPass = Math.max(visibleCount > 0 ? visibleCount * 3 : 12, 12);
   const copiesPerSponsor =
     orderedSponsors.length === 0
       ? 1
