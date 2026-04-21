@@ -100,9 +100,18 @@ const SponsorRibbon = () => {
 
   /**
    * On-screen logo density.
-   *  - >0: each slot is `100% / visibleCount` wide so exactly that many logos
-   *        fit in the viewport at once.
+   *  - >0: each slot is `100% / visibleCount` wide so exactly that many logo
+   *        slots fit in the viewport at once.
    *  - 0/undefined: legacy auto sizing (logos use their natural width).
+   *
+   * To avoid huge empty space when only 1–3 sponsor slots are visible, the
+   * same logo is repeated inside each slot (`logoRepeats`) so the ribbon
+   * stays as visually dense as the legacy 4+ layout. Repeats roughly mirror
+   * how many logos used to fit in that same width:
+   *   1 visible slot → 4 repeats per slot
+   *   2 visible slots → 2 repeats per slot
+   *   3 visible slots → 1.x → use 2 to comfortably fill
+   *   4+              → 1   (no internal repetition)
    */
   const visibleCount = carousel?.visibleCount ?? 0;
   const slotStyle: React.CSSProperties | undefined =
@@ -111,8 +120,13 @@ const SponsorRibbon = () => {
       : undefined;
   const slotClass =
     visibleCount > 0
-      ? 'flex items-center justify-center px-4 opacity-60 hover:opacity-100 transition-opacity duration-300'
+      ? 'flex items-center justify-center gap-8 px-4 opacity-60 hover:opacity-100 transition-opacity duration-300'
       : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
+  const logoRepeats =
+    visibleCount === 1 ? 4 :
+    visibleCount === 2 ? 2 :
+    visibleCount === 3 ? 2 :
+    1;
 
   /**
    * Animation speed.
@@ -154,28 +168,34 @@ const SponsorRibbon = () => {
                 className={slotClass}
                 style={slotStyle}
               >
-                {sponsor.websiteUrl ? (
-                  <a
-                    href={sponsor.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
+                {/* Repeat the same logo inside the slot so wide slots
+                    (low visibleCount) don't show empty space. */}
+                {Array.from({ length: logoRepeats }).map((_, repeatIdx) => {
+                  const onStatus = (s: SponsorLogoStatus) => handleStatus(String(sponsor.id), s);
+                  const logoEl = (
                     <SponsorLogoImage
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
-                      onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
+                      onStatusChange={onStatus}
                       className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
                     />
-                  </a>
-                ) : (
-                  <SponsorLogoImage
-                    url={sponsor.logoUrl}
-                    alt={sponsor.name}
-                    onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                )}
+                  );
+                  return sponsor.websiteUrl ? (
+                    <a
+                      key={repeatIdx}
+                      href={sponsor.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      {logoEl}
+                    </a>
+                  ) : (
+                    <span key={repeatIdx} className="block">
+                      {logoEl}
+                    </span>
+                  );
+                })}
               </div>
             ))}
             {/* Hidden probes: detect broken logos for sponsors not yet rendered
