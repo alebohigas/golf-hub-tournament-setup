@@ -452,15 +452,31 @@ const Header = () => {
 
           {/* Desktop Navigation with overflow detection */}
           <div className="hidden lg:flex items-center gap-1 flex-1 justify-end min-w-0">
-            {/* Invisible measurement container - renders all items to measure widths */}
+            {/*
+              Invisible measurement container.
+              Renders each nav item with the SAME shape it has when visible,
+              so widths are accurate:
+                - Links: same px-3 py-2 text-sm.
+                - Groups: same trigger padding + ChevronDown icon (added by
+                  NavigationMenuTrigger). We approximate it here with the
+                  same paddings + a chevron-sized spacer so the measurement
+                  matches the real <NavigationMenuTrigger> rendering.
+                - Hidden items include the EyeOff icon spacer.
+            */}
             <div
               ref={navRef}
               className="absolute opacity-0 pointer-events-none flex items-center gap-1"
               aria-hidden="true"
             >
               {navItems.map((item) => (
-                <div key={item.id} data-nav-item className="px-3 py-2 text-sm whitespace-nowrap">
+                <div
+                  key={item.id}
+                  data-nav-item
+                  className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium whitespace-nowrap"
+                >
                   {item.label}
+                  {item.hidden && <EyeOff className="h-3 w-3" />}
+                  {item.type === 'group' && <ChevronDown className="h-4 w-4" />}
                 </div>
               ))}
             </div>
@@ -542,18 +558,20 @@ const Header = () => {
                 {/* Admin indicator and link */}
                 {isAdmin && (
                   <NavigationMenuItem>
-                    <Link
-                      to="/admin"
-                      className={cn(
-                        "nav-link flex items-center gap-1 px-3 py-2 text-sm",
-                        location.pathname === '/admin' 
-                          ? "text-primary" 
-                          : "text-foreground/80 hover:text-primary"
-                      )}
-                    >
-                      <Shield className="h-4 w-4" />
-                      <span>Admin</span>
-                    </Link>
+                    <div ref={rightSlotRef}>
+                      <Link
+                        to="/admin"
+                        className={cn(
+                          "nav-link flex items-center gap-1 px-3 py-2 text-sm",
+                          location.pathname === '/admin'
+                            ? "text-primary"
+                            : "text-foreground/80 hover:text-primary"
+                        )}
+                      >
+                        <Shield className="h-4 w-4" />
+                        <span>Admin</span>
+                      </Link>
+                    </div>
                   </NavigationMenuItem>
                 )}
               </NavigationMenuList>
