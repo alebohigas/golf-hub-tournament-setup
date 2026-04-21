@@ -77,11 +77,13 @@ export const apiFetch = async <T>(url: string): Promise<T> => {
     throw new ApiError('API returned malformed JSON/HTML response', response.status, url, trimmedText);
   }
 
-  // if we expected an array but got something else, log a warning
-  // caller might rely on arrays (e.g. resultados endpoints)
-  if (url.includes('resultados') && parsed != null && !Array.isArray(parsed)) {
-    console.warn('apiFetch: resultados endpoint returned non-array', url, parsed);
-  }
-
+  /**
+   * Note: we intentionally do NOT enforce array-vs-object shape here.
+   * Different `resultados*` endpoints legitimately return different shapes:
+   *   - resultados.php          → { strokePlay, matchPlay } (object)
+   *   - resultados_jug.php      → { categoryId, players, ... } (object)
+   *   - resultados_tarjeta.php  → object with hole-by-hole data
+   * Each React Query hook is responsible for typing its own response.
+   */
   return parsed as T;
 };
