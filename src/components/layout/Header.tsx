@@ -4,12 +4,19 @@
  * Supports grouped navigation with dropdown menus
  * Implements dynamic overflow detection: when menu items exceed
  * available space, excess items are collapsed into the hamburger menu
- * Respects page visibility settings from admin context
+ * Respects page visibility settings from admin context.
+ *
+ * Admin preview mode:
+ *   When the current user is admin, the header reflects the EXACT order
+ *   and visibility configured in /admin → Página → Orden / Visibilidad.
+ *   Hidden pages and hidden groups remain navigable but are rendered with
+ *   a dimmed style and an "EyeOff" icon, so the admin can preview the
+ *   real menu structure without losing access to hidden routes.
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Menu, X, Shield, ChevronDown, MoreHorizontal, EyeOff } from 'lucide-react';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { cn } from '@/lib/utils';
@@ -38,9 +45,16 @@ interface NavItem {
   id: string;
   label: string;
   path?: string;
-  children?: MenuItem[];
+  /** Children of a group; each child carries a per-page hidden flag for admin preview */
+  children?: (MenuItem & { hidden?: boolean })[];
   /** Whether to wrap text (display words stacked) */
   wrapText?: boolean;
+  /**
+   * Admin-only flag. True when this item (page or group) is configured as
+   * hidden in the admin panel but is still rendered because the user is
+   * admin (preview mode). Triggers dimmed styling.
+   */
+  hidden?: boolean;
 }
 
 // ============= Hook: useOverflowMenu =============
