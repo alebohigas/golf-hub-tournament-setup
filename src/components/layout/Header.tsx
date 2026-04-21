@@ -128,12 +128,25 @@ const Header = () => {
   // Get visible menu items and groups from context
   const { 
     getVisibleMenuItems, 
+    getAllMenuItems,
     isAdmin, 
     menuGroups, 
     pageGroupAssignments,
     isPageVisible,
+    visibilitySettings,
   } = usePageVisibility();
-  const allVisibleItems = getVisibleMenuItems();
+  /**
+   * In admin preview mode we want the header to mirror the configured
+   * order/visibility exactly — including hidden items (rendered dimmed).
+   * For regular users we keep the legacy behavior: only visible items.
+   */
+  const sourceItems = isAdmin ? getAllMenuItems() : getVisibleMenuItems();
+
+  /** Per-page hidden flag (admin preview only) */
+  const isPageHiddenForAdmin = (pageId: string): boolean => {
+    if (!isAdmin) return false;
+    return visibilitySettings[pageId] === false;
+  };
 
   /**
    * Build navigation structure with groups and standalone items
@@ -144,7 +157,7 @@ const Header = () => {
     const processedPages = new Set<string>();
     const processedGroups = new Set<string>();
 
-    const sortedItems = [...allVisibleItems].sort((a, b) => a.order - b.order);
+    const sortedItems = [...sourceItems].sort((a, b) => a.order - b.order);
 
     for (const item of sortedItems) {
       if (processedPages.has(item.id)) continue;
@@ -153,12 +166,20 @@ const Header = () => {
       
       if (groupId && !processedGroups.has(groupId)) {
         const group = menuGroups.find(g => g.id === groupId);
-        
-        if (group && group.visible !== false) {
-          const groupPages = sortedItems.filter(
-            p => pageGroupAssignments[p.id] === groupId && isPageVisible(p.id)
-          );
-          
+
+        // In admin mode: include groups even if hidden (dimmed). For users:
+        // skip groups marked invisible.
+        const groupIsHidden = !group || group.visible === false;
+        const includeGroup = isAdmin || !groupIsHidden;
+
+        if (group && includeGroup) {
+          // Pages in this group. In admin preview, include hidden pages too
+          // (annotated with `hidden: true`); for users, filter them out.
+          const groupPages = sortedItems
+            .filter((p) => pageGroupAssignments[p.id] === groupId)
+            .filter((p) => isAdmin || isPageVisible(p.id))
+            .map((p) => ({ ...p, hidden: isPageHiddenForAdmin(p.id) }));
+
           if (groupPages.length > 0) {
             navItems.push({
               type: 'group',
@@ -166,8 +187,9 @@ const Header = () => {
               label: group.name,
               children: groupPages,
               wrapText: group.wrapText,
+              hidden: isAdmin && groupIsHidden,
             });
-            groupPages.forEach(p => processedPages.add(p.id));
+            groupPages.forEach((p) => processedPages.add(p.id));
           }
         }
         processedGroups.add(groupId);
@@ -177,6 +199,7 @@ const Header = () => {
           id: item.id,
           label: item.label,
           path: item.path,
+          hidden: isPageHiddenForAdmin(item.id),
         });
         processedPages.add(item.id);
       }
