@@ -12,7 +12,10 @@
  *
  * Returns two arrays: 'players' (estatus=NORMAL) and 'cutPlayers'
  * (non-NORMAL: NO SHOW, RETIRO, DESCALIFICADO, etc.)
- * Also returns 'medalCount' from categorias.numjugprem for dynamic medal assignment.
+ * Also returns 'medalCountNeto' (categorias.numganadorneto, default 3) and
+ * 'medalCountGross' (categorias.numganadorgross, default 1) for dynamic medal
+ * assignment per scoring type. 'medalCount' is preserved for backward
+ * compatibility and reflects the count for the requested scoring (?gross=0|1).
  */
 require_once 'config.php';
 
@@ -27,16 +30,21 @@ $gross    = optional_param('gross', '0');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
-// ============= Get category info (includes numjugprem for medal count) =============
+// ============= Get category info (includes per-scoring medal counts) =============
+// numganadorneto = winners with medals on NETO leaderboard (default 3)
+// numganadorgross = winners with medals on GROSS leaderboard (default 1)
+// numjugprem kept as legacy fallback when the new columns are missing/null.
 $sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
                a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
-               IFNULL(a.numjugprem, 3) as numjugprem,
+               IFNULL(a.numganadorneto, IFNULL(a.numjugprem, 3)) as numganadorneto,
+               IFNULL(a.numganadorgross, 1) as numganadorgross,
                COUNT(b.id) as playerCount
         FROM categorias a
         JOIN jugadores b ON (a.categoria_id = b.categoriaid)
         WHERE a.categoria_id = $cid
         GROUP BY a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
-                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar, a.numjugprem";
+                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
+                 a.numganadorneto, a.numganadorgross, a.numjugprem";
 
 $catInfo = query_one($conn, $sql);
 debug_log_query('Category info', $sql);
@@ -46,7 +54,10 @@ if (!$catInfo) {
 
 $sistema = strtoupper($catInfo['sistema']);
 $formato = strtoupper($catInfo['formato']);
-$medalCount = (int)$catInfo['numjugprem'];
+$medalCountNeto  = (int)$catInfo['numganadorneto'];
+$medalCountGross = (int)$catInfo['numganadorgross'];
+/** Active medal count for the requested scoring type (back-compat field) */
+$medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
 // ============= Get play dates =============
 $sql = "SELECT fecha FROM caljuego
@@ -286,6 +297,8 @@ json_response([
     'format'       => $catInfo['formato'],
     'gross'        => (int)$gross,
     'medalCount'   => $medalCount,
+    'medalCountNeto'  => $medalCountNeto,
+    'medalCountGross' => $medalCountGross,
     'course'       => $courseInfo ? [
         'rating'   => (float)($courseInfo['rating'] ?? 0),
         'slope'    => (int)($courseInfo['slope'] ?? 0),
