@@ -34,17 +34,64 @@ $tid = esc($conn, $torneoid);
 // numganadorneto = winners with medals on NETO leaderboard (default 3)
 // numganadorgross = winners with medals on GROSS leaderboard (default 1)
 // numjugprem kept as legacy fallback when the new columns are missing/null.
+//
+// Resiliency: some legacy databases do not yet have the columns
+// numganadorneto / numganadorgross. We probe INFORMATION_SCHEMA first and
+// only reference the columns when they exist; otherwise we fall back to
+// hardcoded defaults (3 neto, 1 gross) and the legacy numjugprem column.
+
+/**
+ * Returns true when a column exists in the current database for `categorias`.
+ * Avoids fatal SQL errors on legacy schemas missing the medal-count columns.
+ */
+function categorias_has_column($conn, $col) {
+    $colEsc = esc($conn, $col);
+    $res = @$conn->query(
+        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'categorias'
+           AND COLUMN_NAME = '$colEsc'
+         LIMIT 1"
+    );
+    if (!$res) return false;
+    $exists = $res->num_rows > 0;
+    $res->free();
+    return $exists;
+}
+
+$hasNeto    = categorias_has_column($conn, 'numganadorneto');
+$hasGross   = categorias_has_column($conn, 'numganadorgross');
+$hasLegacy  = categorias_has_column($conn, 'numjugprem');
+
+/** SELECT expression for net medal count, with safe fallbacks */
+if ($hasNeto) {
+    $netoExpr = $hasLegacy
+        ? "IFNULL(a.numganadorneto, IFNULL(a.numjugprem, 3))"
+        : "IFNULL(a.numganadorneto, 3)";
+} else {
+    $netoExpr = $hasLegacy ? "IFNULL(a.numjugprem, 3)" : "3";
+}
+
+/** SELECT expression for gross medal count, with safe fallback */
+$grossExpr = $hasGross ? "IFNULL(a.numganadorgross, 1)" : "1";
+
+/** GROUP BY additions only for columns that actually exist */
+$groupExtras = '';
+if ($hasNeto)   $groupExtras .= ', a.numganadorneto';
+if ($hasGross)  $groupExtras .= ', a.numganadorgross';
+if ($hasLegacy) $groupExtras .= ', a.numjugprem';
+
 $sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
                a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
-               IFNULL(a.numganadorneto, IFNULL(a.numjugprem, 3)) as numganadorneto,
-               IFNULL(a.numganadorgross, 1) as numganadorgross,
+               $netoExpr as numganadorneto,
+               $grossExpr as numganadorgross,
                COUNT(b.id) as playerCount
         FROM categorias a
         JOIN jugadores b ON (a.categoria_id = b.categoriaid)
         WHERE a.categoria_id = $cid
         GROUP BY a.categoria_id, a.categoria, a.abreviatura, a.sistema, a.formato,
-                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar,
-                 a.numganadorneto, a.numganadorgross, a.numjugprem";
+                 a.estilo, a.gross, a.porcentaje, a.salida, a.hoyosajugar"
+        . $groupExtras;
 
 $catInfo = query_one($conn, $sql);
 debug_log_query('Category info', $sql);
