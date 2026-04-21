@@ -60,44 +60,83 @@ interface NavItem {
 // ============= Hook: useOverflowMenu =============
 
 /**
- * Custom hook that measures nav items and determines how many fit
- * in the available space. Returns the split index for visible vs overflow.
+ * Custom hook that measures nav items and determines how many fit in the
+ * available horizontal space.
+ *
+ * Strategy:
+ *   1. We render an INVISIBLE measurement copy of every nav item using the
+ *      EXACT same markup the visible nav uses (so groups include their
+ *      chevron, hidden icons are accounted for, etc.). Each measurement
+ *      element carries `data-nav-item`.
+ *   2. On every relevant change we recompute available width:
+ *        availableWidth = headerInnerWidth - logoWidth - rightReservedWidth
+ *      where `rightReservedWidth` is the live-measured admin badge (or 0)
+ *      plus a small safety gap (just enough to not visually overlap).
+ *   3. We greedily fit items left → right. The overflow "..." button is
+ *      only reserved AFTER we know at least one item is being dropped,
+ *      avoiding the agressive early-cutoff that previously left a lot of
+ *      empty space on the right.
+ *
+ * Returns the number of items that fit (split index for visible vs overflow).
  */
 const useOverflowMenu = (
   navRef: React.RefObject<HTMLDivElement>,
   logoRef: React.RefObject<HTMLDivElement>,
+  rightSlotRef: React.RefObject<HTMLDivElement>,
   itemCount: number,
 ) => {
   const [visibleCount, setVisibleCount] = useState(itemCount);
+
+  /** Approximate width of the "..." overflow trigger (icon + chevron + padding) */
+  const OVERFLOW_BTN_WIDTH = 56;
+  /** Tiny safety gap so the rightmost item never visually touches the next slot */
+  const SAFETY_GAP = 8;
 
   const measure = useCallback(() => {
     const nav = navRef.current;
     const logo = logoRef.current;
     if (!nav || !logo) return;
 
-    const headerWidth = nav.parentElement?.clientWidth ?? window.innerWidth;
-    const logoWidth = logo.offsetWidth + 24; // logo + gap
-    const adminBtnWidth = 80; // reserve space for admin badge
-    const overflowBtnWidth = 48; // "..." button width
-    const availableWidth = headerWidth - logoWidth - adminBtnWidth - 32; // padding
+    // Use the header's full inner width (the .container > .flex parent)
+    const headerInner =
+      nav.closest<HTMLElement>('.container')?.clientWidth ??
+      nav.parentElement?.clientWidth ??
+      window.innerWidth;
 
-    // Measure each nav item's width
-    const items = nav.querySelectorAll<HTMLElement>('[data-nav-item]');
-    let totalWidth = 0;
-    let fitCount = 0;
+    const logoWidth = logo.offsetWidth;
+    const rightReserved = rightSlotRef.current?.offsetWidth ?? 0;
 
-    for (let i = 0; i < items.length; i++) {
-      const itemWidth = items[i].offsetWidth + 4; // + gap
-      if (totalWidth + itemWidth + (i < items.length - 1 ? overflowBtnWidth : 0) <= availableWidth) {
-        totalWidth += itemWidth;
-        fitCount++;
+    // Space the nav can actually consume before overlapping logo on the left
+    // or the admin/right slot on the right.
+    const availableWidth = headerInner - logoWidth - rightReserved - SAFETY_GAP;
+
+    const items = Array.from(
+      nav.querySelectorAll<HTMLElement>('[data-nav-item]'),
+    );
+    const widths = items.map((el) => el.offsetWidth + 4); // +4 = gap-1 between items
+    const total = widths.reduce((a, b) => a + b, 0);
+
+    // If everything fits, no overflow button needed → render all items.
+    if (total <= availableWidth) {
+      setVisibleCount(items.length);
+      return;
+    }
+
+    // Otherwise, fit as many as possible while reserving room for "..."
+    const budget = availableWidth - OVERFLOW_BTN_WIDTH;
+    let used = 0;
+    let fit = 0;
+    for (let i = 0; i < widths.length; i++) {
+      if (used + widths[i] <= budget) {
+        used += widths[i];
+        fit++;
       } else {
         break;
       }
     }
-
-    setVisibleCount(fitCount);
-  }, [navRef, logoRef, itemCount]);
+    // Always show at least 1 item so the bar isn't empty on tiny widths
+    setVisibleCount(Math.max(1, fit));
+  }, [navRef, logoRef, rightSlotRef]);
 
   useEffect(() => {
     measure();
@@ -105,12 +144,21 @@ const useOverflowMenu = (
     return () => window.removeEventListener('resize', measure);
   }, [measure]);
 
-  // Re-measure when item count changes
+  // Re-measure when item count or label content changes
   useEffect(() => {
-    // Small delay to let DOM render
-    const t = setTimeout(measure, 100);
+    const t = setTimeout(measure, 50);
     return () => clearTimeout(t);
   }, [itemCount, measure]);
+
+  // Observe the measurement container for any size change (e.g. async logo load)
+  useEffect(() => {
+    if (!navRef.current) return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(navRef.current);
+    if (logoRef.current) ro.observe(logoRef.current);
+    if (rightSlotRef.current) ro.observe(rightSlotRef.current);
+    return () => ro.disconnect();
+  }, [navRef, logoRef, rightSlotRef, measure]);
 
   return visibleCount;
 };
