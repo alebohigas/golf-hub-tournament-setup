@@ -153,6 +153,8 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         system: raw.system || '',
         days: raw.days || [],
         medalCount: raw.medalCount ?? 3,
+        medalCountNeto: raw.medalCountNeto ?? raw.medalCount ?? 3,
+        medalCountGross: raw.medalCountGross ?? 1,
         cutPlayers,
         scoringTypes,
       } as ResultCategory;
