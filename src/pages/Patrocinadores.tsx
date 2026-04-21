@@ -126,7 +126,7 @@ const Patrocinadores = () => {
                             url={sponsor.logoUrl}
                             alt={sponsor.name}
                             onStatusChange={(s) => handleStatus(sponsor.id, s)}
-                            className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
+                            className={`${logoMax} max-w-full object-contain transition-all duration-300`}
                           />
                         </a>
                       ) : (
@@ -134,19 +134,13 @@ const Patrocinadores = () => {
                           url={sponsor.logoUrl}
                           alt={sponsor.name}
                           onStatusChange={(s) => handleStatus(sponsor.id, s)}
-                          className={`${logoMax} max-w-full object-contain grayscale hover:grayscale-0 transition-all duration-300`}
+                          className={`${logoMax} max-w-full object-contain transition-all duration-300`}
                         />
                       )}
                     </div>
-                    {/* logo_nombre label — helps identify each sponsor at a glance */}
-                    {sponsor.logoName && (
-                      <p
-                        className="text-xs text-muted-foreground text-center font-mono break-all line-clamp-2 w-full"
-                        title={sponsor.logoName}
-                      >
-                        {sponsor.logoName}
-                      </p>
-                    )}
+                    {/* Public view: sponsor name intentionally hidden — it remains
+                        available via the image alt text for accessibility. The
+                        admin panel still surfaces logoName for identification. */}
                   </CardContent>
                 </Card>
                 );

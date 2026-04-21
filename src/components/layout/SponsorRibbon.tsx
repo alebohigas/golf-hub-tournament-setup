@@ -211,7 +211,7 @@ const SponsorRibbon = () => {
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
                       onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                      className="h-20 md:h-24 w-auto max-w-none object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      className="h-20 md:h-24 w-auto max-w-none object-contain transition-all duration-300"
                     />
                   </a>
                 ) : (
@@ -219,7 +219,7 @@ const SponsorRibbon = () => {
                     url={sponsor.logoUrl}
                     alt={sponsor.name}
                     onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-20 md:h-24 w-auto max-w-none object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                    className="h-20 md:h-24 w-auto max-w-none object-contain transition-all duration-300"
                   />
                 )}
               </div>
