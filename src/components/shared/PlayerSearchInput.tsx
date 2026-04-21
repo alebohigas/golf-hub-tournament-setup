@@ -30,6 +30,13 @@ interface PlayerSearchInputProps {
   className?: string;
   /** Max suggestions to display */
   maxSuggestions?: number;
+  /**
+   * Error state: when true, the input gets a red tint + shake animation
+   * and the errorMessage (if given) is shown below. Parent controls reset.
+   */
+  error?: boolean;
+  /** Optional message displayed below the input while `error` is true */
+  errorMessage?: string;
 }
 
 const PlayerSearchInput = ({
@@ -40,6 +47,8 @@ const PlayerSearchInput = ({
   placeholder = 'Buscar jugador por nombre...',
   className = '',
   maxSuggestions = 8,
+  error = false,
+  errorMessage,
 }: PlayerSearchInputProps) => {
   /** Whether the suggestion dropdown is open */
   const [open, setOpen] = useState(false);
@@ -79,7 +88,8 @@ const PlayerSearchInput = ({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+      <div className={error ? 'animate-shake' : ''}>
+      <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 ${error ? 'text-destructive' : 'text-muted-foreground'}`} />
       <Input
         type="text"
         placeholder={placeholder}
@@ -97,22 +107,30 @@ const PlayerSearchInput = ({
             onSubmit?.(value);
           }
         }}
-        className="pl-10 pr-10"
+        className={`pl-10 pr-10 ${error ? 'border-destructive bg-destructive/10 focus-visible:ring-destructive' : ''}`}
         autoComplete="off"
       />
       {value && (
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10"
+          className={`absolute right-3 top-1/2 -translate-y-1/2 z-10 hover:text-foreground ${error ? 'text-destructive' : 'text-muted-foreground'}`}
           aria-label="Limpiar búsqueda"
         >
           <X className="h-4 w-4" />
         </button>
       )}
+      </div>
+
+      {/* Error message below input */}
+      {error && errorMessage && (
+        <p className="mt-1 text-xs text-destructive font-medium" role="alert">
+          {errorMessage}
+        </p>
+      )}
 
       {/* Suggestions dropdown */}
-      {open && filtered.length > 0 && (
+      {open && !error && filtered.length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-1 z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
           {filtered.map((name) => (
             <button
