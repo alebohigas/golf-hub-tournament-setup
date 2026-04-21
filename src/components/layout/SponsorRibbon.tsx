@@ -120,9 +120,16 @@ const SponsorRibbon = () => {
       : undefined;
   const slotClass =
     visibleCount > 0
-      ? 'flex items-center justify-center gap-8 px-4 opacity-60 hover:opacity-100 transition-opacity duration-300'
+      ? 'flex items-center justify-center px-4 opacity-60 hover:opacity-100 transition-opacity duration-300'
       : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
-  const logoRepeats =
+  /**
+   * How many times each sponsor appears in the rotation. Higher values keep
+   * the ribbon visually dense when only 1–3 slots are visible at a time.
+   * Repetitions are interleaved (round-robin) — NOT grouped — so e.g.
+   * with sponsors [A, B] and 4 repeats you get [A, B, A, B, A, B, A, B]
+   * instead of [A, A, A, A, B, B, B, B].
+   */
+  const sponsorRepeats =
     visibleCount === 1 ? 4 :
     visibleCount === 2 ? 2 :
     visibleCount === 3 ? 2 :
@@ -146,14 +153,24 @@ const SponsorRibbon = () => {
     animationDuration: `${speedSeconds}s`,
   };
 
-  // Duplicate sponsors so the loop wraps seamlessly. If the number of visible
-  // slots is greater than the unique sponsor set, repeat enough times to fill
-  // the viewport AND keep the seamless loop (need ≥2x the visible count).
+  /**
+   * Build the visible sequence:
+   *   1) Interleave sponsors `sponsorRepeats` times (round-robin distribution)
+   *      so the same logo never appears back-to-back.
+   *   2) If we still don't have enough slots to cover ≥2× the visible count
+   *      (needed for a seamless infinite loop), repeat the interleaved
+   *      sequence further.
+   *   3) Finally, duplicate once more for the CSS infinite-scroll trick.
+   */
+  const interleaved = orderedSponsors.length === 0
+    ? []
+    : Array.from({ length: sponsorRepeats }).flatMap(() => orderedSponsors);
   const minRepeats =
-    visibleCount > 0 && orderedSponsors.length > 0
-      ? Math.max(2, Math.ceil((visibleCount * 2) / orderedSponsors.length))
+    visibleCount > 0 && interleaved.length > 0
+      ? Math.max(2, Math.ceil((visibleCount * 2) / interleaved.length))
       : 2;
-  const duplicatedSponsors = Array.from({ length: minRepeats }).flatMap(() => orderedSponsors);
+  const filled = Array.from({ length: minRepeats }).flatMap(() => interleaved);
+  const duplicatedSponsors = [...filled, ...filled];
 
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
@@ -168,34 +185,28 @@ const SponsorRibbon = () => {
                 className={slotClass}
                 style={slotStyle}
               >
-                {/* Repeat the same logo inside the slot so wide slots
-                    (low visibleCount) don't show empty space. */}
-                {Array.from({ length: logoRepeats }).map((_, repeatIdx) => {
-                  const onStatus = (s: SponsorLogoStatus) => handleStatus(String(sponsor.id), s);
-                  const logoEl = (
+                {sponsor.websiteUrl ? (
+                  <a
+                    href={sponsor.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
                     <SponsorLogoImage
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
-                      onStatusChange={onStatus}
+                      onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
                       className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
                     />
-                  );
-                  return sponsor.websiteUrl ? (
-                    <a
-                      key={repeatIdx}
-                      href={sponsor.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      {logoEl}
-                    </a>
-                  ) : (
-                    <span key={repeatIdx} className="block">
-                      {logoEl}
-                    </span>
-                  );
-                })}
+                  </a>
+                ) : (
+                  <SponsorLogoImage
+                    url={sponsor.logoUrl}
+                    alt={sponsor.name}
+                    onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
+                    className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                  />
+                )}
               </div>
             ))}
             {/* Hidden probes: detect broken logos for sponsors not yet rendered
