@@ -138,7 +138,9 @@ const Patrocinadores = () => {
                         />
                       )}
                     </div>
-                    {/* Logo name label removed as per user request */}
+                    {/* Public view: sponsor name intentionally hidden — it remains
+                        available via the image alt text for accessibility. The
+                        admin panel still surfaces logoName for identification. */}
                   </CardContent>
                 </Card>
                 );

@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
  * SponsorRibbon
@@ -32,6 +33,14 @@ const SponsorRibbon = () => {
   const { data: sponsors = [] } = useSponsors();
   const { data: siteConfig } = useSiteConfig();
   const { pathname } = useLocation();
+  /**
+   * Mobile override:
+   * En vista mobile el `visibleCount` configurado por el admin (pensado para
+   * desktop) provoca logos diminutos. Forzamos un slot ancho (1 logo "page"
+   * por viewport) para que el patrocinador llene el alto disponible (h-20)
+   * sin escalarse hacia abajo, y aceleramos el desplazamiento del ribbon.
+   */
+  const isMobile = useIsMobile();
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
@@ -107,20 +116,24 @@ const SponsorRibbon = () => {
 
   /**
    * On-screen logo density.
-   *  - >0: number of logos that should be FULLY visible on screen at any
-   *        instant. Each slot occupies `100% / visibleCount` of the container
-   *        width, so logos entering on the right and leaving on the left are
-   *        partial (the spec the admin asked for).
-   *  - 0/undefined: legacy behavior (natural slot width with `mx-8` margins).
+   *  - Desktop: respects the admin-configured `visibleCount`.
+   *  - Mobile: ignores `visibleCount` entirely so the ribbon can pack as many
+   *    logos as possible using each image's natural width.
    */
-  const visibleCount = carousel?.visibleCount ?? 0;
-  // When visibleCount > 0, stretch each slot to `100% / visibleCount` of the
-  // container so exactly N logos fit fully in the viewport at any time.
-  // When 0, fall back to legacy fixed-margin sizing.
+  const configuredVisibleCount = carousel?.visibleCount ?? 0;
+  const visibleCount = isMobile ? 0 : configuredVisibleCount;
+  /**
+   * Slot sizing:
+   *  - Desktop with visibleCount > 0: fixed fractional width per logo.
+   *  - Mobile / auto mode: natural width with minimal horizontal spacing so
+   *    logos fill the ribbon without large empty gaps.
+   */
   const slotClass =
     visibleCount > 0
-      ? 'flex-shrink-0 px-4 flex items-center justify-center'
-      : 'flex-shrink-0 mx-8';
+      ? 'flex-shrink-0 px-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
+      : isMobile
+        ? 'flex-shrink-0 px-2 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
+        : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
   const slotStyle: React.CSSProperties =
     visibleCount > 0 ? { width: `${100 / visibleCount}%` } : {};
 
@@ -136,13 +149,14 @@ const SponsorRibbon = () => {
    *   5 visible → 26s
    *   6+ visible → 30s  (baseline)
    */
-  const speedSeconds =
-    visibleCount === 1 ? 12 :
-    visibleCount === 2 ? 15 :
-    visibleCount === 3 ? 18 :
-    visibleCount === 4 ? 22 :
-    visibleCount === 5 ? 26 :
-    30;
+  // Velocidad del ribbon. En mobile siempre usamos la velocidad "rápida"
+  // descrita en el panel admin, ignorando la densidad configurada.
+  const speedSeconds = isMobile
+    ? 18
+    : visibleCount === 1 ? 18 :
+      visibleCount === 2 ? 22 :
+      visibleCount === 3 ? 26 :
+      30;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${speedSeconds}s`,
   };
@@ -202,7 +216,7 @@ const SponsorRibbon = () => {
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
                       onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                      className="h-20 md:h-24 w-auto object-contain transition-transform duration-300 hover:scale-105"
+                      className="h-20 md:h-24 w-auto max-w-none object-contain transition-all duration-300"
                     />
                   </a>
                 ) : (
@@ -210,7 +224,7 @@ const SponsorRibbon = () => {
                     url={sponsor.logoUrl}
                     alt={sponsor.name}
                     onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-20 md:h-24 w-auto object-contain transition-transform duration-300 hover:scale-105"
+                    className="h-20 md:h-24 w-auto max-w-none object-contain transition-all duration-300"
                   />
                 )}
               </div>
