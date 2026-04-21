@@ -116,24 +116,24 @@ const SponsorRibbon = () => {
 
   /**
    * On-screen logo density.
-   *  - >0: number of logos that should be FULLY visible on screen at any
-   *        instant. Each slot occupies `100% / visibleCount` of the container
-   *        width, so logos entering on the right and leaving on the left are
-   *        partial (the spec the admin asked for).
-   *  - 0/undefined: legacy behavior (natural slot width with `mx-8` margins).
+   *  - Desktop: respects the admin-configured `visibleCount`.
+   *  - Mobile: ignores `visibleCount` entirely so the ribbon can pack as many
+   *    logos as possible using each image's natural width.
    */
   const configuredVisibleCount = carousel?.visibleCount ?? 0;
-  // En mobile ignoramos la configuración del admin y mostramos 1 logo a la
-  // vez (slot a 100% del ancho del contenedor) para que la imagen pueda usar
-  // todo el alto del ribbon. En desktop respetamos la configuración.
-  const visibleCount = isMobile ? 1 : configuredVisibleCount;
-  // When visibleCount > 0, stretch each slot to `100% / visibleCount` of the
-  // container so exactly N logos fit fully in the viewport at any time.
-  // When 0, fall back to legacy fixed-margin sizing.
+  const visibleCount = isMobile ? 0 : configuredVisibleCount;
+  /**
+   * Slot sizing:
+   *  - Desktop with visibleCount > 0: fixed fractional width per logo.
+   *  - Mobile / auto mode: natural width with minimal horizontal spacing so
+   *    logos fill the ribbon without large empty gaps.
+   */
   const slotClass =
     visibleCount > 0
       ? 'flex-shrink-0 px-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
-      : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
+      : isMobile
+        ? 'flex-shrink-0 px-2 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
+        : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
   const slotStyle: React.CSSProperties =
     visibleCount > 0 ? { width: `${100 / visibleCount}%` } : {};
 
@@ -146,10 +146,10 @@ const SponsorRibbon = () => {
    *   3 visible → ~26s
    *   4+ visible → 30s (baseline)
    */
-  // Velocidad del ribbon. En mobile aceleramos (~12s) porque mostramos menos
-  // logos por pantalla y un movimiento lento se siente estancado.
+  // Velocidad del ribbon. En mobile siempre usamos la velocidad "rápida"
+  // descrita en el panel admin, ignorando la densidad configurada.
   const speedSeconds = isMobile
-    ? 12
+    ? 18
     : visibleCount === 1 ? 18 :
       visibleCount === 2 ? 22 :
       visibleCount === 3 ? 26 :
@@ -211,7 +211,7 @@ const SponsorRibbon = () => {
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
                       onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                      className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      className="h-20 md:h-24 w-auto max-w-none object-contain grayscale hover:grayscale-0 transition-all duration-300"
                     />
                   </a>
                 ) : (
@@ -219,7 +219,7 @@ const SponsorRibbon = () => {
                     url={sponsor.logoUrl}
                     alt={sponsor.name}
                     onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-20 md:h-24 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                    className="h-20 md:h-24 w-auto max-w-none object-contain grayscale hover:grayscale-0 transition-all duration-300"
                   />
                 )}
               </div>
