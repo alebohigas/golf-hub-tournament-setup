@@ -331,13 +331,42 @@ const AdminEventos = () => {
 
   /** Detect unsaved changes vs. server state */
   const savedConfig = siteConfig?.eventos_config ?? DEFAULT_EVENTOS_CONFIG;
+
+  /**
+   * Resolve desktop/mobile orders against the static poster list. When the
+   * server has no order saved, this returns the identity order (0..n-1) so
+   * the preview always renders all posters in a stable, draggable list.
+   */
+  const desktopOrder = useMemo(
+    () => resolveOrder(PREVIEW_POSTERS.length, draft.desktopOrder),
+    [draft.desktopOrder]
+  );
+  const mobileOrder = useMemo(
+    () => resolveOrder(PREVIEW_POSTERS.length, draft.mobileOrder),
+    [draft.mobileOrder]
+  );
+  const savedDesktopOrder = useMemo(
+    () => resolveOrder(PREVIEW_POSTERS.length, savedConfig.desktopOrder),
+    [savedConfig.desktopOrder]
+  );
+  const savedMobileOrder = useMemo(
+    () => resolveOrder(PREVIEW_POSTERS.length, savedConfig.mobileOrder),
+    [savedConfig.mobileOrder]
+  );
+
+  /** Compare two number arrays for equality (used to detect order changes) */
+  const arraysEqual = (a: number[], b: number[]) =>
+    a.length === b.length && a.every((v, i) => v === b[i]);
+
   const hasChanges = useMemo(
     () =>
       draft.desktopColumns !== savedConfig.desktopColumns ||
       draft.mobileColumns !== savedConfig.mobileColumns ||
       draft.desktopGap !== savedConfig.desktopGap ||
-      draft.mobileGap !== savedConfig.mobileGap,
-    [draft, savedConfig]
+      draft.mobileGap !== savedConfig.mobileGap ||
+      !arraysEqual(desktopOrder, savedDesktopOrder) ||
+      !arraysEqual(mobileOrder, savedMobileOrder),
+    [draft, savedConfig, desktopOrder, mobileOrder, savedDesktopOrder, savedMobileOrder]
   );
 
   /** Persist current draft to the server */
@@ -345,7 +374,12 @@ const AdminEventos = () => {
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
-        eventos_config: draft,
+        // Always send fully-resolved orders so partial drafts don't drift.
+        eventos_config: {
+          ...draft,
+          desktopOrder,
+          mobileOrder,
+        },
       },
       {
         onSuccess: () => {
@@ -435,9 +469,11 @@ const AdminEventos = () => {
 
             {/* Dual preview */}
             <div className="space-y-4">
-              <Label className="text-sm text-muted-foreground">
-                Vista previa en vivo
-              </Label>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <Label className="text-sm text-muted-foreground">
+                  Vista previa en vivo · arrastra los pósters para reordenarlos
+                </Label>
+              </div>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <PreviewFrame
                   frameWidth={1100}
@@ -445,6 +481,17 @@ const AdminEventos = () => {
                   gap={draft.desktopGap}
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
+                  droppableId="eventos-desktop-preview"
+                  order={desktopOrder}
+                  onOrderChange={(next) =>
+                    setDraft((d) => ({ ...d, desktopOrder: next }))
+                  }
+                  onReset={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      desktopOrder: identityOrder(PREVIEW_POSTERS.length),
+                    }))
+                  }
                 />
                 <PreviewFrame
                   frameWidth={390}
@@ -452,6 +499,17 @@ const AdminEventos = () => {
                   gap={draft.mobileGap}
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
+                  droppableId="eventos-mobile-preview"
+                  order={mobileOrder}
+                  onOrderChange={(next) =>
+                    setDraft((d) => ({ ...d, mobileOrder: next }))
+                  }
+                  onReset={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      mobileOrder: identityOrder(PREVIEW_POSTERS.length),
+                    }))
+                  }
                 />
               </div>
             </div>
