@@ -309,52 +309,27 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Reglas y notas — V Torneo Anual Terralta 2026 */
+/** Reglas locales y términos de la competencia — LXX Anual Valle Alto 2026. */
 export const reglasData: ReglaItem[] = [
   {
-    titulo: 'Brazalete y Acceso',
+    titulo: 'Reglas Aplicables',
     contenido:
-      'Será indispensable el registro diario en la recepción del Club para contar con el brazalete que da acceso al servicio de alimentos y bebidas. Deberá portarse sin excepción en la muñeca durante todo el torneo.',
+      'Se jugará bajo las Reglas de la USGA adoptadas por la Federación Mexicana de Golf, así como las reglas locales y términos de la competencia que se publicarán para el torneo. Las controversias serán resueltas por el Oficial de Reglas y/o el Comité Organizador, su fallo será definitivo e inapelable. Las rondas de juego estipuladas para este torneo son de 9 hoyos.',
   },
   {
-    titulo: 'Cancelaciones',
+    titulo: 'Desempates para Corte',
     contenido:
-      'No se aceptan bonificaciones por cancelación posterior al 25 de Mayo. La cancelación debe realizarse a través de https://terralta.speitour.com sin excepción. La inscripción no es transferible. Posterior a la fecha de cancelación no habrá bonificación, incluso por causa mayor, médica, personal o laboral.',
+      'Primer término: ganará el jugador con mejor score del último día.\nSegundo término: se tomará la tarjeta del último día para desempatar por el sistema de comparación de tarjetas (9-6-3-1), de la vuelta del hoyo 10 al 18. Si persiste el empate, se aplicará lo mismo a la 1ª vuelta.',
   },
   {
-    titulo: 'Corte (Caballeros)',
+    titulo: 'Desempates para Trofeos',
     contenido:
-      'Habrá corte en todas las categorías después de la 2ª ronda. Si por causas climatológicas no se logran jugar dos rondas de 18 hoyos, el comité organizador decidirá a cuántos hoyos se hará el corte. En las 5 categorías de Damas no habrá corte.',
+      'Sólo para el primer lugar de todas las categorías Gross o Neto se jugará a muerte súbita sin ventajas. El resto de los empates se definirá primero por el mejor score del último día y, en segundo término, por comparación de tarjetas del último día (hoyos 10 al 18) bajo el sistema 9-6-3-1.',
   },
   {
-    titulo: 'Cupo de Categoría',
+    titulo: 'Nota Importante — Corte y Doble Categoría',
     contenido:
-      'Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores que se queden fuera entrarán en lista de espera. Si hay alguna cancelación o espacio se llamará al jugador para que se inscriba.',
-  },
-  {
-    titulo: 'Desempate por el Primer Lugar',
-    contenido:
-      '1) Se jugará en el campo, iniciando en el hoyo que designe el Comité.\n2) Si hay triple empate o más: el desempate por 1er lugar será por juego en el campo (solo un ganador absoluto). El desempate por 2°, 3° y demás se realiza por comparación de tarjetas.\n3) Si no hay luz natural o el clima impide jugar, el desempate por 1er lugar se decide por comparación de tarjetas.\n4) Si la competencia es Gross y Neto, solo el trofeo Gross procede a desempate por juego en el campo. El 1° Neto se define por comparación de tarjetas.',
-  },
-  {
-    titulo: 'Desempate por 2° Lugar y Demás Posiciones (Trofeo y Corte)',
-    contenido:
-      'Aplicando la Regla 5A (Método de comparación de tarjetas):\n1) Mejor ronda del último día.\n2) Si persiste: mejor score hoyos 10–18 → 13–18 → 16–18 → hoyo 18 → mismo procedimiento en la vuelta 1–9 → hoyo por hoyo del 18 al 1.\n3) Si la ronda oficial es de 9 hoyos, se aplica el mismo método sobre esos 9 hoyos.\nNota: en categorías con hándicap los desempates Neto se definen con score Neto, los Gross con score Gross. Se utiliza la misma modalidad de juego (Stroke Play o Stableford).',
-  },
-  {
-    titulo: 'Notas para Categorías',
-    contenido:
-      '• Se declarará desierta una categoría si tiene menos de 9 participantes; la fecha límite para definir esto será el jueves 25 de junio 2026.\n• El Comité Organizador podrá fusionar la categoría con otra o declararla desierta si no hay mínimo de jugadores.\n• La ronda estipulada será de 9 hoyos cuando aplique.\n• Ningún jugador podrá solicitar cambio de horario o día de juego.',
-  },
-  {
-    titulo: 'Notas para Cortes',
-    contenido:
-      '• El jugador que no pueda asistir a la ronda final por cualquier motivo deberá avisar a la oficina de golf inmediatamente al terminar su 2ª ronda para asignarle su retiro y permitir el ingreso del siguiente jugador en lista.\n• Un jugador que no pasó el corte oficialmente, una vez publicadas las listas, no podrá participar en la ronda final por ningún motivo.\n• Quien no avise, el Comité le asignará la categoría según su hándicap original o, si es mayor de 50, jugará en la categoría senior correspondiente.',
-  },
-  {
-    titulo: 'Restricción a Menores de Edad',
-    contenido:
-      'Durante el desarrollo del Torneo Anual queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación. Solo está autorizado el acceso a menores que jueguen en categoría Premier de Caballeros y 1ª categoría de Damas.',
+      'El jugador que no pasó el corte oficialmente una vez publicadas las listas de resultados no podrá participar en la ronda final por ningún motivo. En el caso de jugadores participando en dos categorías que pasen el corte en ambas, el jugador deberá avisar al final cuál de las dos categorías quiere jugar para la ronda final.',
   },
 ];
 
@@ -364,8 +339,9 @@ export interface ReglamentoLocalItem {
   contenido: string;
 }
 
-/** Reglamento local - Semana Santa Chilchota 2026 */
-export const reglamentoLocalData: ReglamentoLocalItem[] = [
+/** Reglamento local — Valle Alto 2026 (no se publica en el PDF). */
+export const reglamentoLocalData: ReglamentoLocalItem[] = [];
+const _reglamentoLocalDataArchived: ReglamentoLocalItem[] = [
   {
     titulo: 'Responsabilidad del Jugador',
     contenido: 'ES RESPONSABILIDAD DEL JUGADOR CONOCER LAS REGLAS DE GOLF, LAS CONDICIONES DE LA COMPETENCIA Y LAS REGLAS LOCALES.'
