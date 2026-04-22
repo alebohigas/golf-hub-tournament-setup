@@ -189,6 +189,26 @@ const SponsorRibbon = () => {
   // Duplicate once more for the seamless CSS infinite-scroll loop.
   const duplicatedSponsors = [...interleaved, ...interleaved];
 
+  /**
+   * Compute the animation duration so the ribbon advances at a constant
+   * perceived speed (≈ one viewport width every `secondsPerViewport` seconds)
+   * regardless of `visibleCount` or sponsor count.
+   *
+   *   passWidthVw = interleaved.length * (100 / visibleCount)
+   *   duration    = (passWidthVw / 100) * secondsPerViewport
+   *
+   * Mobile uses natural-width slots (visibleCount = 0) — fall back to a
+   * fixed 18s loop which felt right in QA.
+   */
+  const SECONDS_PER_VIEWPORT = 7;
+  const animationDurationSec =
+    visibleCount > 0 && interleaved.length > 0
+      ? (interleaved.length / visibleCount) * SECONDS_PER_VIEWPORT
+      : 18;
+  const animationStyle: React.CSSProperties = {
+    animationDuration: `${animationDurationSec}s`,
+  };
+
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
   return (
