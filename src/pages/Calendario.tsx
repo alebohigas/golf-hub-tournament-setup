@@ -241,7 +241,13 @@ const Calendario = () => {
                           legend height (~2.5rem) so it sits flush below the
                           legend on both mobile (~6.5rem) and desktop (~7.5rem). */}
                       <tr>
-                        <th className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
+                        {/* Top-left corner cell: sticky on BOTH axes so it
+                            stays pinned at the intersection of the sticky
+                            month-header row and the sticky Categoría column.
+                            Higher z-index (z-30) than the regular sticky
+                            header cells (z-20) so it overlays them when
+                            they slide underneath while scrolling horizontally. */}
+                        <th className="sticky top-[6.5rem] md:top-[7.5rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
@@ -260,7 +266,7 @@ const Calendario = () => {
                           (`bg-primary/10` look) while remaining fully solid. */}
                       <tr>
                         <th
-                          className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-left text-foreground font-bold"
+                          className="sticky top-[8.75rem] md:top-[9.75rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
