@@ -436,7 +436,8 @@ const Resultados = () => {
 
                               {/* Non-NORMAL players (S/R/D) */}
                               {cutPlayers.map((cp) => (
-                                <TableRow key={cp.playerId} className="bg-muted/20">
+                                <Fragment key={cp.playerId}>
+                                <TableRow className="bg-muted/20">
                                   {/* Status code instead of position */}
                                   <TableCell className="font-semibold text-center">
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
@@ -459,18 +460,77 @@ const Resultados = () => {
                                       <span className="text-xs text-muted-foreground">{cp.club}</span>
                                     )}
                                   </TableCell>
-                                  {/* Player name + status label */}
+                                  {/*
+                                   * Player name + status label.
+                                   * Status is rendered as a block under the name so on
+                                   * mobile the long status text (e.g. "(descalificado)")
+                                   * never sits beside the surname and never widens the
+                                   * column / scrolls the table horizontally.
+                                   */}
                                   <TableCell className="font-medium text-muted-foreground player-name-cell">
-                                    {cp.name}
-                                    <span className="ml-2 text-xs text-muted-foreground/70">({cp.statusLabel})</span>
+                                    <span className="block leading-tight">{cp.name}</span>
+                                    <span className="block text-[11px] leading-tight text-muted-foreground/70 lowercase">
+                                      ({cp.statusLabel})
+                                    </span>
                                   </TableCell>
-                                  {/* Empty round cells */}
-                                  {(categoryDetail?.days || []).map((_, i) => (
-                                    <TableCell key={i} className="text-center text-muted-foreground">—</TableCell>
-                                  ))}
-                                  {/* Empty total */}
-                                  <TableCell className="text-center text-muted-foreground font-medium">—</TableCell>
+                                  {/*
+                                   * Round score cells for cut players.
+                                   * If a round was completed (closed scorecard) we still
+                                   * show the score and allow expanding the scorecard,
+                                   * just like NORMAL players. Otherwise we render a dash.
+                                   */}
+                                  {(categoryDetail?.days || []).map((_, i) => {
+                                    const round = i + 1;
+                                    const score = round === 1 ? cp.r1 : round === 2 ? cp.r2 : cp.r3;
+                                    const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
+                                    if (score === undefined || score === null) {
+                                      return (
+                                        <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
+                                      );
+                                    }
+                                    return (
+                                      <TableCell key={round} className="text-center p-0">
+                                        <button
+                                          onClick={() => handleRoundClick(
+                                            // Reuse PlayerResult-shaped object so handler signature stays the same
+                                            { id: cp.playerId, position: 0, name: cp.name, club: cp.club, clubLogo: cp.clubLogo, r1: cp.r1 ?? undefined, r2: cp.r2 ?? undefined, r3: cp.r3 ?? undefined, total: cp.total ?? 0 } as PlayerResult,
+                                            round,
+                                          )}
+                                          className={`w-full py-3 px-2 font-medium transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
+                                            isExpanded ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''
+                                          }`}
+                                          title={`Ver tarjeta R${round}`}
+                                        >
+                                          {score}
+                                        </button>
+                                      </TableCell>
+                                    );
+                                  })}
+                                  {/* Total: show accumulated total when player has at least one closed round */}
+                                  <TableCell className="text-center font-bold text-muted-foreground">
+                                    {cp.total && cp.total > 0 ? cp.total : '—'}
+                                  </TableCell>
                                 </TableRow>
+
+                                {/* Expanded scorecard row for cut players (same UX as NORMAL players) */}
+                                {expandedScorecard?.startsWith(`${cp.playerId}-`) && (
+                                  scorecardLoading ? (
+                                    <TableRow className="bg-white hover:bg-white">
+                                      <TableCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
+                                        Cargando tarjeta...
+                                      </TableCell>
+                                    </TableRow>
+                                  ) : scorecardData ? (
+                                    <ScorecardRow
+                                      scorecard={scorecardData}
+                                      playerName={cp.name}
+                                      roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
+                                      colSpan={totalCols}
+                                    />
+                                  ) : null
+                                )}
+                                </Fragment>
                               ))}
                             </>
                           )}
