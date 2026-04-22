@@ -13,6 +13,8 @@ import PageSubmenu from '@/components/convocatoria/PageSubmenu';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
 import { Calendar } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Section components
 import DescripcionSection from '@/components/convocatoria/DescripcionSection';
@@ -218,6 +220,25 @@ const Convocatoria = () => {
 
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
+          {/* PDF download button — opens the original convocatoria PDF in a new tab */}
+          <div className="flex justify-center mb-8">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <a
+                href="/convocatoria.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Ver convocatoria en PDF"
+              >
+                <FileText className="h-5 w-5" />
+                Ver en PDF
+              </a>
+            </Button>
+          </div>
+
           {/* Tournament header */}
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-4 mb-6">
