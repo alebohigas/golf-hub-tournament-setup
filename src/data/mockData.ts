@@ -271,6 +271,9 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'calendario', label: 'Calendario y Horario', enabled: false, order: 6 },
   { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
+  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: true, order: 9 },
+  { id: 'calendarioJuego', label: 'Calendario y Horarios de Juego', enabled: true, order: 10 },
+  { id: 'patrocinadoresOficiales', label: 'Patrocinadores Oficiales', enabled: true, order: 11 },
 ];
 
 /** Description text - V Torneo Anual Terralta 2026 */
