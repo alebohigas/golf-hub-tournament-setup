@@ -163,7 +163,10 @@ const Calendario = () => {
                   Sticky so it stays visible while the user scrolls the long
                   calendar matrix. Uses a blurred background so content
                   underneath remains slightly visible without losing contrast. */}
-              <div className="sticky top-16 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
+              {/* Sticky offset matches the Header height: h-16 (64px) on
+                  mobile and h-20 (80px) on desktop. Without `md:top-20`
+                  the legend would slide under the desktop header. */}
+              <div className="sticky top-16 md:top-20 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-4 rounded-sm bg-accent border border-border/30" />
                   <span className="text-muted-foreground">Salida AM</span>
@@ -200,12 +203,15 @@ const Calendario = () => {
                           `top-[6.5rem]` clears the sticky legend (top-16 +
                           its height). Solid bg required so cells underneath
                           do not bleed through while scrolling. */}
+                      {/* Sticky months row. Offset = header (h-16/h-20) +
+                          legend height (~2.5rem) so it sits flush below the
+                          legend on both mobile (~6.5rem) and desktop (~7.5rem). */}
                       <tr>
-                        <th className="sticky top-[6.5rem] z-20 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
+                        <th className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
-                            className="sticky top-[6.5rem] z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
+                            className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
                           >
                             {formatMonthHeader(d)}
                           </th>
@@ -220,7 +226,7 @@ const Calendario = () => {
                           (`bg-primary/10` look) while remaining fully solid. */}
                       <tr>
                         <th
-                          className="sticky top-[8.75rem] z-20 border border-border/40 p-2 text-left text-foreground font-bold"
+                          className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-left text-foreground font-bold"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -232,7 +238,7 @@ const Calendario = () => {
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="sticky top-[8.75rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold"
+                            className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold"
                             style={{
                               backgroundColor: 'hsl(var(--background))',
                               backgroundImage:
