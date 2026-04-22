@@ -14,6 +14,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useState, useCallback } from 'react';
 import SponsorLogoImage, { SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
+// Hero background image dedicated to the Patrocinadores section.
+// Lives in src/assets and is imported as an ES6 module so Vite hashes it.
+import patrocinadoresHero from '@/assets/patrocinadores-hero.jpg';
 
 /** Default column count when no admin config is set */
 const DEFAULT_COLUMNS = 4;
@@ -81,6 +84,7 @@ const Patrocinadores = () => {
       <PageHero 
         title="Patrocinadores"
         subtitle="Empresas que hacen posible este torneo"
+        backgroundImage={patrocinadoresHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
