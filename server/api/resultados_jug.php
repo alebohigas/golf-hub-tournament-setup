@@ -307,8 +307,40 @@ foreach ($rows as $row) {
 
 // ============= Fetch non-NORMAL players (cut players: NO SHOW, RETIRO, DQ, etc.) =============
 $cutPlayers = [];
+
+/**
+ * Build per-day score expressions for cut players using the same scoring
+ * functions as the active leaderboard so that any closed scorecards
+ * (statlsc = 1) for these players still show up below the cut line.
+ * - GROSS uses f_score_dia_sox (gross strokes / stableford gross points)
+ * - NETO  uses f_score_dia_sax (neto strokes / stableford points)
+ */
+$cutDayCols = '';
+foreach ($dias as $i => $fecha) {
+    if ($gross == '1') {
+        $cutDayCols .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
+    } else {
+        $cutDayCols .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
+    }
+}
+
+/**
+ * Total expression for cut players: pick the same closed-card aggregate
+ * used for the active leaderboard so a partially-played cut player still
+ * shows their accumulated total.
+ */
+if ($sistema === 'STABLEFORD' && $gross == '1') {
+    $cutTotalExpr = "$closedSTBGross as total_score";
+} elseif ($gross == '1') {
+    $cutTotalExpr = "$closedSO as total_score";
+} else {
+    $cutTotalExpr = "$closedSA as total_score";
+}
+
 $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
+                  $cutTotalExpr
+                  $cutDayCols,
                   c.abr, c.logo
            FROM jugadores j
            JOIN clubs c ON (j.clubid = c.id)
@@ -322,7 +354,15 @@ $cutRows = query_all($conn, $cutSql);
 
 foreach ($cutRows as $row) {
     $statusCode = mapEstatus($row['estatus']);
-    $cutPlayers[] = [
+    /** Extract per-round scores (null when round was not played) */
+    $cutRounds = [];
+    foreach ($dias as $i => $fecha) {
+        $val = $row["d{$i}"] ?? null;
+        $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
+    }
+    $cutTotal = isset($row['total_score']) ? (int)$row['total_score'] : 0;
+
+    $cutPlayers[] = array_merge([
         'playerId'    => $row['jugadorid'],
         'number'      => $row['numjugador'],
         'name'        => $row['jugador'],
@@ -330,7 +370,8 @@ foreach ($cutRows as $row) {
         'clubLogo'    => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'statusCode'  => $statusCode ?? 'D',
         'statusLabel' => statusLabel($statusCode ?? 'D'),
-    ];
+        'total'       => $cutTotal,
+    ], $cutRounds);
 }
 
 json_response([

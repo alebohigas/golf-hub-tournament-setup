@@ -64,6 +64,14 @@ export interface CutPlayer {
   statusCode: 'S' | 'R' | 'D';
   /** Human-readable status label */
   statusLabel: string;
+  /** Round 1 score (closed scorecard only). Null if not played/closed. */
+  r1?: number | null;
+  /** Round 2 score (closed scorecard only). Null if not played/closed. */
+  r2?: number | null;
+  /** Round 3 score (closed scorecard only). Null if not played/closed. */
+  r3?: number | null;
+  /** Accumulated total from closed scorecards (0 if no rounds completed) */
+  total?: number;
 }
 
 export interface CategoryScoring {
