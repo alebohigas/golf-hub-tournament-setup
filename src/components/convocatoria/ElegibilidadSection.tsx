@@ -13,6 +13,11 @@ interface ElegibilidadSectionProps {
 }
 
 const ElegibilidadSection = ({ eligibilityText, notesText, inscripcionesText }: ElegibilidadSectionProps) => {
+  // Hide section when nothing meaningful to show.
+  const hasEligibility = eligibilityText && eligibilityText.trim() !== '';
+  const hasNotes = notesText && notesText.length > 0;
+  const hasInscripciones = inscripcionesText && inscripcionesText.trim() !== '';
+  if (!hasEligibility && !hasNotes && !hasInscripciones) return null;
   return (
     <div className="space-y-8">
       <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground text-center">

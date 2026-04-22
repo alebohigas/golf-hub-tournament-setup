@@ -43,6 +43,9 @@ import {
   serviciosHorariosData,
   patrocinadoresOficialesData,
 } from '@/data/mockData';
+import { useCalendarioData } from '@/hooks/useCalendarioData';
+import { useHorariosData } from '@/hooks/useHorariosData';
+import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
 // ============= Helpers =============
 
@@ -116,8 +119,57 @@ const Convocatoria = () => {
   const { sections } = useConvocatoriaSections();
   const parsed = tournamentData?.name ? parseTournamentName(tournamentData.name) : null;
 
-  /** Enabled sections for rendering and submenu */
-  const enabledSections = sections.filter((s) => s.enabled);
+  // ----- Auto-hide sections that have no content -----
+  // Each section maps to a data source; we drop the section (and its
+  // submenu entry) when the corresponding source is empty so the page
+  // never shows blank/placeholder blocks for the current torneo.
+  const { data: calData } = useCalendarioData();
+  const { data: horData } = useHorariosData();
+  const { isPageVisible } = usePageVisibility();
+
+  const hasCalendarioJuego =
+    (isPageVisible('calendario') && (calData?.entries?.length ?? 0) > 0) ||
+    (isPageVisible('horarios')   && (horData?.entries?.length ?? 0) > 0);
+
+  /** Returns true when the section has data worth rendering. */
+  const sectionHasContent = (id: string): boolean => {
+    switch (id) {
+      case 'descripcion':
+        return !!convocatoriaDescripcion && convocatoriaDescripcion.trim() !== '';
+      case 'elegibilidad':
+        return (
+          (!!eligibilityText && eligibilityText.trim() !== '') ||
+          (notesText && notesText.length > 0) ||
+          (!!inscripcionesText && inscripcionesText.trim() !== '')
+        );
+      case 'costos':
+        return (
+          (sociosPricing && sociosPricing.length > 0) ||
+          (foraneosPricing && foraneosPricing.length > 0) ||
+          !!(contactInfo && (contactInfo.clabe || contactInfo.cuenta))
+        );
+      case 'categorias':
+        // Driven by API; assume present (CategoryTable shows its own empty state).
+        return true;
+      case 'premiacion':
+        return premiacionData && premiacionData.length > 0;
+      case 'reglas':
+        return reglasData && reglasData.length > 0;
+      case 'competencias':
+        return competenciasEspecialesData && competenciasEspecialesData.length > 0;
+      case 'servicios':
+        return serviciosHorariosData && serviciosHorariosData.length > 0;
+      case 'calendarioJuego':
+        return hasCalendarioJuego;
+      case 'patrocinadoresOficiales':
+        return patrocinadoresOficialesData && patrocinadoresOficialesData.length > 0;
+      default:
+        return true;
+    }
+  };
+
+  /** Enabled sections, additionally filtered by content presence. */
+  const enabledSections = sections.filter((s) => s.enabled && sectionHasContent(s.id));
 
   /** Scroll-based active section tracking */
   useEffect(() => {
