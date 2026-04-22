@@ -147,27 +147,16 @@ const SponsorRibbon = () => {
 
   /**
    * Animation speed.
-   * Baseline = 30s when 6+ logos are visible at once. With fewer visible
-   * logos the loop is progressively shorter (= faster) so the ribbon never
-   * feels sluggish when there is little content on screen:
-   *   1 visible → 12s   (fastest)
-   *   2 visible → 15s
-   *   3 visible → 18s
-   *   4 visible → 22s
-   *   5 visible → 26s
-   *   6+ visible → 30s  (baseline)
+   * The animation translates the track by `-50%` (= one full pass of
+   * `interleaved`). When slots are sized in `vw`, a pass measures
+   *   passWidthVw = interleaved.length * (100 / visibleCount)
+   * To keep a constant perceived speed (~one viewport every `secondsPerViewport`
+   * seconds) regardless of how many logos are visible at once or how many
+   * sponsors exist, we scale the animation duration with the track width:
+   *   duration = (passWidthVw / 100) * secondsPerViewport
+   * This way visibleCount=5 with many logos doesn't feel like a freight train,
+   * and visibleCount=1 with few logos doesn't feel sluggish.
    */
-  // Velocidad del ribbon. En mobile siempre usamos la velocidad "rápida"
-  // descrita en el panel admin, ignorando la densidad configurada.
-  const speedSeconds = isMobile
-    ? 18
-    : visibleCount === 1 ? 18 :
-      visibleCount === 2 ? 22 :
-      visibleCount === 3 ? 26 :
-      30;
-  const animationStyle: React.CSSProperties = {
-    animationDuration: `${speedSeconds}s`,
-  };
 
   /**
    * Build the visible sequence by repeating the sponsor list enough times
