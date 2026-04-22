@@ -9,10 +9,14 @@ import { apiFetch } from '@/lib/apiClient';
 import { getCalendarioUrl, POLL_SLOW } from '@/config/api';
 import type { CalendarDate, CalendarEntry, TournamentDay, CategorySchedule } from '@/data/calendarioData';
 
-/** API response shape from calendario.php */
+/** API response shape from calendario.php.
+ *  amTotals/pmTotals are { 'YYYY-MM-DD': groupCount } maps used in the
+ *  bottom summary rows of the calendar matrix. */
 interface CalendarioResponse {
   dates: CalendarDate[];
   entries: CalendarEntry[];
+  amTotals?: Record<string, number>;
+  pmTotals?: Record<string, number>;
 }
 
 /** Fetch full calendario data (dates + entries) from caljuego table */
