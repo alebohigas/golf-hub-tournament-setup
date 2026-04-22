@@ -384,7 +384,8 @@ const AdminSponsorsCarousel = () => {
                   size="sm"
                   className="gap-2"
                   onClick={() => {
-                    const allIds = renderableSponsors.map((s) => Number(s.id));
+                    // Only WORKING sponsors can be in the whitelist.
+                    const allIds = workingSponsors.map((s) => Number(s.id));
                     if (enabledIds.size === allIds.length) {
                       setEnabledIds(new Set());
                     } else {
@@ -392,7 +393,7 @@ const AdminSponsorsCarousel = () => {
                     }
                   }}
                 >
-                  {enabledIds.size === renderableSponsors.length ? (
+                  {enabledIds.size === workingSponsors.length && workingSponsors.length > 0 ? (
                     <>
                       <ToggleRight className="h-4 w-4" />
                       Deseleccionar todos
