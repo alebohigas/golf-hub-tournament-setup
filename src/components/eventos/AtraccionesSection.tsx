@@ -17,6 +17,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 
 // ---------- Asset imports (ES6 modules, optimized by Vite) ----------
 import dia24 from '@/assets/eventos/dia-24-viernes.webp';
@@ -52,11 +53,72 @@ const ATRACCIONES: AtraccionCard[] = [
   { src: dia02, alt: 'Atracciones del sábado 2 de mayo' },
 ];
 
+// ============= Layout helpers =============
+
+/** Default layout when no admin config is set */
+const DEFAULT_CONFIG: EventosConfig = {
+  desktopColumns: 4,
+  mobileColumns: 2,
+  desktopGap: 'md',
+  mobileGap: 'sm',
+};
+
+/**
+ * Static Tailwind class maps. Defined as full class strings so Tailwind's
+ * JIT compiler can detect and include them in the build.
+ */
+const MOBILE_COL_CLASS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+};
+
+const DESKTOP_COL_CLASS: Record<number, string> = {
+  1: 'md:grid-cols-1',
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+  4: 'md:grid-cols-4',
+};
+
+const MOBILE_GAP_CLASS: Record<EventosGap, string> = {
+  sm: 'gap-2',
+  md: 'gap-4',
+  lg: 'gap-6',
+  xl: 'gap-8',
+};
+
+const DESKTOP_GAP_CLASS: Record<EventosGap, string> = {
+  sm: 'md:gap-2',
+  md: 'md:gap-4',
+  lg: 'md:gap-6',
+  xl: 'md:gap-8',
+};
+
 /**
  * AtraccionesSection
  * Displays the poster grid + lightbox modal with keyboard navigation.
  */
 const AtraccionesSection = () => {
+  // Pull admin-configurable layout from site_config (with safe defaults).
+  const { data: siteConfig } = useSiteConfig();
+  const cfg: EventosConfig = {
+    ...DEFAULT_CONFIG,
+    ...(siteConfig?.eventos_config ?? {}),
+  };
+
+  /**
+   * Compose the responsive grid class string from the admin-selected
+   * column counts and gap presets. Mobile = base, desktop = md: prefix.
+   */
+  const gridClass = cn(
+    'grid',
+    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-2',
+    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-4',
+    MOBILE_GAP_CLASS[cfg.mobileGap] ?? 'gap-4',
+    DESKTOP_GAP_CLASS[cfg.desktopGap] ?? 'md:gap-6'
+  );
+
   // Index of the currently open image in the lightbox; null = closed.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -96,7 +158,7 @@ const AtraccionesSection = () => {
         </div>
 
         {/* ---------- Responsive poster grid ---------- */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+        <div className={gridClass}>
           {ATRACCIONES.map((card, idx) => (
             <button
               key={card.src}
