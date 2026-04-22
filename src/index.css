@@ -142,7 +142,14 @@
        otherwise translateX(-50%) is calculated from the viewport/container
        width and the loop visually jumps when it restarts. */
     width: max-content;
-    animation: scroll-sponsors 30s linear infinite;
+    /* Default duration is intentionally slow; SponsorRibbon overrides
+       `animation-duration` inline based on `visibleCount` and sponsor count
+       to keep a constant perceived speed. Use longhands here so the inline
+       `animation-duration` cleanly overrides without shorthand conflicts. */
+    animation-name: scroll-sponsors;
+    animation-duration: 60s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
     will-change: transform;
   }
 
