@@ -54,6 +54,23 @@ export interface SponsorsConfig {
   };
 }
 
+/** Spacing presets between attraction cards on the Eventos page */
+export type EventosGap = 'sm' | 'md' | 'lg' | 'xl';
+
+/**
+ * Configuration for the Eventos page poster grid.
+ * Stored independently per breakpoint so admin can tune desktop vs. mobile.
+ *  - desktopColumns: 1–4
+ *  - mobileColumns:  1–4
+ *  - desktopGap / mobileGap: spacing preset between cards
+ */
+export interface EventosConfig {
+  desktopColumns: number;
+  mobileColumns: number;
+  desktopGap: EventosGap;
+  mobileGap: EventosGap;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -64,6 +81,7 @@ export interface SiteConfig {
   page_group_assignments: Record<string, string> | null;
   live_scoring_config: LiveScoringEntry[] | null;
   sponsors_config: SponsorsConfig | null;
+  eventos_config: EventosConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -76,6 +94,7 @@ export interface SaveConfigPayload {
   page_group_assignments?: Record<string, string> | null;
   live_scoring_config?: LiveScoringEntry[] | null;
   sponsors_config?: SponsorsConfig | null;
+  eventos_config?: EventosConfig | null;
 }
 
 // ============= Constants =============
@@ -87,6 +106,7 @@ const GROUPS_KEY = 'tournament_menu_groups';
 const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
 const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
 const SPONSORS_CONFIG_KEY = 'tournament_sponsors_config';
+const EVENTOS_CONFIG_KEY = 'tournament_eventos_config';
 
 // ============= Fetch Functions =============
 
@@ -161,6 +181,11 @@ export const useSiteConfig = () => {
       // Sync sponsors config
       if (config.sponsors_config) {
         localStorage.setItem(SPONSORS_CONFIG_KEY, JSON.stringify(config.sponsors_config));
+      }
+
+      // Sync eventos config
+      if (config.eventos_config) {
+        localStorage.setItem(EVENTOS_CONFIG_KEY, JSON.stringify(config.eventos_config));
       }
 
       return config;

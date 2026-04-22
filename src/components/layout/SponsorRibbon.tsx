@@ -4,12 +4,33 @@
  * Data fetched from sponsors.php via useSponsors hook
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+/**
+ * localStorage key used to remember which sponsor IDs have a broken logo.
+ * Persisting between sessions avoids re-issuing failing image requests on
+ * every page load (which would otherwise spam the console with 404s).
+ */
+const BROKEN_SPONSORS_LS_KEY = 'sponsor-ribbon-broken-ids';
+
+/** Read the persisted broken-ID set from localStorage (best-effort). */
+const loadPersistedBrokenIds = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(BROKEN_SPONSORS_LS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return new Set(parsed.map(String));
+    return new Set();
+  } catch {
+    return new Set();
+  }
+};
 
 /**
  * SponsorRibbon
@@ -41,6 +62,35 @@ const SponsorRibbon = () => {
    * sin escalarse hacia abajo, y aceleramos el desplazamiento del ribbon.
    */
   const isMobile = useIsMobile();
+  /**
+   * Measured visible width of the ribbon viewport (the masked wrapper inside
+   * the `.container`). We use this instead of `vw` so desktop respects the
+   * exact configured `visibleCount`, even when the content is constrained by
+   * Tailwind's `container` max-width.
+   */
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewportWidth, setViewportWidth] = useState<number>(0);
+
+  /**
+   * Keep `viewportWidth` in sync with the actual rendered ribbon width.
+   * `ResizeObserver` catches desktop resizes, responsive breakpoint changes,
+   * and container width changes without manual polling.
+   */
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      setViewportWidth(el.clientWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
@@ -54,8 +104,24 @@ const SponsorRibbon = () => {
    * of the public Patrocinadores page: broken logos are hidden entirely
    * (no name, no placeholder) so the ribbon never advertises a sponsor we
    * cannot actually display.
+   *
+   * Initialized from localStorage so previously-detected broken logos are
+   * NOT re-requested on page load (avoids repeated 404s in the console).
    */
-  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => loadPersistedBrokenIds());
+
+  /** Persist the broken-ID set whenever it changes so other pages skip them too. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        BROKEN_SPONSORS_LS_KEY,
+        JSON.stringify([...brokenIds])
+      );
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [brokenIds]);
 
   /** Mark/unmark a sponsor as broken based on the image load status. */
   const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
@@ -127,39 +193,41 @@ const SponsorRibbon = () => {
    *  - Desktop with visibleCount > 0: fixed fractional width per logo.
    *  - Mobile / auto mode: natural width with minimal horizontal spacing so
    *    logos fill the ribbon without large empty gaps.
+   *
+   * IMPORTANT: The flex track (`.sponsor-scroll`) uses `width: max-content`
+   * for seamless infinite scrolling. Because of that, percentage-based slot
+   * widths are unreliable there. Instead, we measure the VISIBLE ribbon width
+   * (`viewportWidth`) and assign each slot an exact pixel width:
+   *
+   *   slotWidthPx = viewportWidth / visibleCount
+   *
+   * We also add `box-border` so the horizontal padding is INCLUDED inside that
+   * width. Without `box-border`, padding made each slot wider than expected,
+   * which is why desktop showed fewer logos than the configured count.
    */
   const slotClass =
     visibleCount > 0
-      ? 'flex-shrink-0 px-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
+      ? 'box-border flex-shrink-0 px-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
       : isMobile
-        ? 'flex-shrink-0 px-2 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
-        : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
+        ? 'box-border flex-shrink-0 px-2 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
+        : 'box-border flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
   const slotStyle: React.CSSProperties =
-    visibleCount > 0 ? { width: `${100 / visibleCount}%` } : {};
+    visibleCount > 0 && viewportWidth > 0
+      ? { width: `${viewportWidth / visibleCount}px` }
+      : {};
 
   /**
    * Animation speed.
-   * Baseline = 30s when 6+ logos are visible at once. With fewer visible
-   * logos the loop is progressively shorter (= faster) so the ribbon never
-   * feels sluggish when there is little content on screen:
-   *   1 visible → 12s   (fastest)
-   *   2 visible → 15s
-   *   3 visible → 18s
-   *   4 visible → 22s
-   *   5 visible → 26s
-   *   6+ visible → 30s  (baseline)
+   * The animation translates the track by `-50%` (= one full pass of
+   * `interleaved`). When slots are sized in `vw`, a pass measures
+   *   passWidthVw = interleaved.length * (100 / visibleCount)
+   * To keep a constant perceived speed (~one viewport every `secondsPerViewport`
+   * seconds) regardless of how many logos are visible at once or how many
+   * sponsors exist, we scale the animation duration with the track width:
+   *   duration = (passWidthVw / 100) * secondsPerViewport
+   * This way visibleCount=5 with many logos doesn't feel like a freight train,
+   * and visibleCount=1 with few logos doesn't feel sluggish.
    */
-  // Velocidad del ribbon. En mobile siempre usamos la velocidad "rápida"
-  // descrita en el panel admin, ignorando la densidad configurada.
-  const speedSeconds = isMobile
-    ? 18
-    : visibleCount === 1 ? 18 :
-      visibleCount === 2 ? 22 :
-      visibleCount === 3 ? 26 :
-      30;
-  const animationStyle: React.CSSProperties = {
-    animationDuration: `${speedSeconds}s`,
-  };
 
   /**
    * Build the visible sequence by repeating the sponsor list enough times
@@ -192,12 +260,32 @@ const SponsorRibbon = () => {
   // Duplicate once more for the seamless CSS infinite-scroll loop.
   const duplicatedSponsors = [...interleaved, ...interleaved];
 
+  /**
+   * Compute the animation duration so the ribbon advances at a constant
+   * perceived speed (≈ one viewport width every `secondsPerViewport` seconds)
+   * regardless of `visibleCount` or sponsor count.
+   *
+   *   passWidthVw = interleaved.length * (100 / visibleCount)
+   *   duration    = (passWidthVw / 100) * secondsPerViewport
+   *
+   * Mobile uses natural-width slots (visibleCount = 0) — fall back to a
+   * fixed 18s loop which felt right in QA.
+   */
+  const SECONDS_PER_VIEWPORT = 12;
+  const animationDurationSec =
+    visibleCount > 0 && interleaved.length > 0
+      ? (interleaved.length / visibleCount) * SECONDS_PER_VIEWPORT
+      : 18;
+  const animationStyle: React.CSSProperties = {
+    animationDuration: `${animationDurationSec}s`,
+  };
+
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
   return (
     <div className="bg-muted/50 border-y border-border py-4 overflow-hidden">
       <div className="container mx-auto">
-        <div className="fade-edge-left">
+        <div ref={viewportRef} className="fade-edge-left">
           <div className="flex items-center sponsor-scroll" style={animationStyle}>
             {duplicatedSponsors.map((sponsor, index) => (
               <div

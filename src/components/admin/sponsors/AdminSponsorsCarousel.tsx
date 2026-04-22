@@ -103,13 +103,21 @@ const AdminSponsorsCarousel = () => {
   }, []);
 
   /**
-   * Sponsors that actually have a (working) logo. Sponsors with no `logoUrl`
-   * are excluded immediately; sponsors whose <img> errors are excluded once
-   * the load attempt completes (via `brokenIds`).
+   * Sponsors with at least a `logoUrl` declared. We INCLUDE sponsors whose
+   * image fails to load so the admin can still see and reorder them in the
+   * list; their toggle is force-disabled and they are auto-excluded from the
+   * `enabledIds` whitelist that the ribbon consumes.
+   * Sponsors with no `logoUrl` at all are excluded from the editor entirely.
    */
   const renderableSponsors = useMemo(
-    () => sponsors.filter((s) => Boolean(s.logoUrl) && !brokenIds.has(String(s.id))),
-    [sponsors, brokenIds]
+    () => sponsors.filter((s) => Boolean(s.logoUrl)),
+    [sponsors]
+  );
+
+  /** Subset that has a working logo (not in `brokenIds`). Used for whitelist enforcement. */
+  const workingSponsors = useMemo(
+    () => renderableSponsors.filter((s) => !brokenIds.has(String(s.id))),
+    [renderableSponsors, brokenIds]
   );
 
   /**
@@ -121,23 +129,25 @@ const AdminSponsorsCarousel = () => {
   useEffect(() => {
     if (renderableSponsors.length === 0) return;
     const sponsorIds = renderableSponsors.map((s) => Number(s.id));
+    const workingIds = new Set(workingSponsors.map((s) => Number(s.id)));
     const savedOrder = (savedCarousel.order ?? []).filter((id) => sponsorIds.includes(id));
     const missing = sponsorIds.filter((id) => !savedOrder.includes(id));
     setOrderedIds([...savedOrder, ...missing]);
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
-    // Enabled list: if the server has no whitelist yet, default to ALL sponsors enabled.
+    // Enabled list: if the server has no whitelist yet, default to ALL WORKING sponsors enabled.
+    // Broken-logo sponsors are always force-excluded from the whitelist.
     const savedEnabled = savedCarousel.enabledIds;
     if (savedEnabled && Array.isArray(savedEnabled)) {
-      // Keep only IDs that still correspond to a renderable sponsor.
-      setEnabledIds(new Set(savedEnabled.filter((id) => sponsorIds.includes(Number(id))).map(Number)));
+      // Keep only IDs that still correspond to a WORKING sponsor.
+      setEnabledIds(new Set(savedEnabled.filter((id) => workingIds.has(Number(id))).map(Number)));
     } else {
-      setEnabledIds(new Set(sponsorIds));
+      setEnabledIds(new Set(workingIds));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderableSponsors, siteConfig?.sponsors_config?.carousel]);
+  }, [renderableSponsors, workingSponsors, siteConfig?.sponsors_config?.carousel]);
 
-  /** Quick lookup: sponsor by ID */
+  /** Quick lookup: sponsor by ID (includes broken-logo sponsors) */
   const sponsorById = useMemo(() => {
     const map = new Map<number, (typeof sponsors)[number]>();
     renderableSponsors.forEach((s) => map.set(Number(s.id), s));
@@ -194,6 +204,9 @@ const AdminSponsorsCarousel = () => {
    * fields (columns, ribbonVisiblePages).
    */
   const handleSave = () => {
+    // Defensive filter: never persist a broken-logo sponsor in the whitelist,
+    // even if `enabledIds` somehow contains one (e.g. logo broke after enable).
+    const safeEnabled = [...enabledIds].filter((id) => !brokenIds.has(String(id)));
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
@@ -203,7 +216,7 @@ const AdminSponsorsCarousel = () => {
             order: orderedIds,
             randomize,
             visibleCount,
-            enabledIds: [...enabledIds],
+            enabledIds: safeEnabled,
           },
         },
       },
@@ -374,7 +387,8 @@ const AdminSponsorsCarousel = () => {
                   size="sm"
                   className="gap-2"
                   onClick={() => {
-                    const allIds = renderableSponsors.map((s) => Number(s.id));
+                    // Only WORKING sponsors can be in the whitelist.
+                    const allIds = workingSponsors.map((s) => Number(s.id));
                     if (enabledIds.size === allIds.length) {
                       setEnabledIds(new Set());
                     } else {
@@ -382,7 +396,7 @@ const AdminSponsorsCarousel = () => {
                     }
                   }}
                 >
-                  {enabledIds.size === renderableSponsors.length ? (
+                  {enabledIds.size === workingSponsors.length && workingSponsors.length > 0 ? (
                     <>
                       <ToggleRight className="h-4 w-4" />
                       Deseleccionar todos
@@ -407,7 +421,9 @@ const AdminSponsorsCarousel = () => {
                       {orderedIds.map((id, index) => {
                         const sponsor = sponsorById.get(id);
                         if (!sponsor) return null;
-                        const isEnabled = enabledIds.has(id);
+                        const isBroken = brokenIds.has(String(id));
+                        // Broken-logo sponsors can never be enabled in the ribbon.
+                        const isEnabled = !isBroken && enabledIds.has(id);
                         return (
                           <Draggable
                             key={id}
@@ -423,7 +439,8 @@ const AdminSponsorsCarousel = () => {
                                   'flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-background',
                                   snapshot.isDragging && 'shadow-lg border-primary/40 bg-primary/5',
                                   randomize && 'opacity-60',
-                                  !isEnabled && 'opacity-40 grayscale'
+                                  !isEnabled && 'opacity-40 grayscale',
+                                  isBroken && 'border-destructive/30 bg-destructive/5'
                                 )}
                               >
                                 {/* Drag handle */}
@@ -451,22 +468,32 @@ const AdminSponsorsCarousel = () => {
                                     url={sponsor.logoUrl}
                                     alt={sponsor.name}
                                     showErrorPlaceholder
+                                    onStatusChange={(status) => handleStatus(String(sponsor.id), status)}
                                     className="max-h-full max-w-full object-contain"
                                   />
                                 </div>
 
-                                {/* Sponsor name */}
-                                <span
-                                  className="text-sm font-medium truncate flex-1"
-                                  title={sponsor.name}
-                                >
-                                  {sponsor.name}
-                                </span>
+                                {/* Sponsor name + broken-logo badge */}
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                  <span
+                                    className="text-sm font-medium truncate"
+                                    title={sponsor.name}
+                                  >
+                                    {sponsor.name}
+                                  </span>
+                                  {isBroken && (
+                                    <span className="text-[10px] uppercase tracking-wide font-semibold text-destructive">
+                                      Logo no disponible · oculto del ribbon
+                                    </span>
+                                  )}
+                                </div>
 
-                                {/* Per-sponsor enable toggle */}
+                                {/* Per-sponsor enable toggle — disabled for broken logos. */}
                                 <Switch
                                   checked={isEnabled}
+                                  disabled={isBroken}
                                   onCheckedChange={(checked) => {
+                                    if (isBroken) return; // Hard guard.
                                     setEnabledIds((prev) => {
                                       const next = new Set(prev);
                                       if (checked) next.add(id);
@@ -474,7 +501,11 @@ const AdminSponsorsCarousel = () => {
                                       return next;
                                     });
                                   }}
-                                  aria-label={`Mostrar ${sponsor.name} en el ribbon`}
+                                  aria-label={
+                                    isBroken
+                                      ? `${sponsor.name} no se puede mostrar (logo no disponible)`
+                                      : `Mostrar ${sponsor.name} en el ribbon`
+                                  }
                                 />
                               </div>
                             )}
