@@ -16,6 +16,7 @@ import calendarioHero from '@/assets/calendario-hero.jpg';
 import { scheduleData, salidasText } from '@/data/mockData';
 import ScheduleTable from '@/components/convocatoria/ScheduleTable';
 import { useRowSnap } from '@/hooks/useRowSnap';
+import { compareCategories } from '@/lib/categorySort';
 
 /** Map English day/month names to Spanish */
 const dayNameEs: Record<string, string> = {
@@ -149,7 +150,19 @@ const Calendario = () => {
     cat.byDate.get(entry.date)!.push(entry);
   }
 
-  const categories = Array.from(categoryMap.entries());
+  /**
+   * Categories ordered with the canonical tournament sequence:
+   * Primera → Letras (AA,A,B,...) → Damas → Senior → Novatos → Otros.
+   * `compareCategories` works on { name, shortName } so we adapt the
+   * Map values into that shape before sorting.
+   */
+  const categories = Array.from(categoryMap.entries()).sort(
+    ([, a], [, b]) =>
+      compareCategories(
+        { name: a.name, shortName: a.shortName },
+        { name: b.name, shortName: b.shortName },
+      ),
+  );
 
   /** Check if convocatoria schedule has any data */
   const hasScheduleData = scheduleData.length > 0 && scheduleData.some(
