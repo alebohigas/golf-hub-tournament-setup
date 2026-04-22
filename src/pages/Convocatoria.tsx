@@ -30,7 +30,6 @@ import CalendarioJuegoSection from '@/components/convocatoria/CalendarioJuegoSec
 import {
   eligibilityText,
   notesText,
-  scheduleData,
   inscripcionesText,
   sociosPricing,
   foraneosPricing,
