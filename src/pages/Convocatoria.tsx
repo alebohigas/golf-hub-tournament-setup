@@ -138,9 +138,9 @@ const Convocatoria = () => {
         title="Convocatoria"
         subtitle="Información completa sobre inscripciones, categorías y requisitos"
         backgroundImage={convocatoriaHero}
-        // Shift focal point lower so the table/folders are framed behind
-        // the title instead of the dark ceiling area.
-        backgroundPosition="center 65%"
+        // Shift focal point much lower so the desk surface and the bell
+        // are fully framed instead of the upper/ceiling area of the image.
+        backgroundPosition="center 95%"
       />
 
       {/* Sticky submenu */}
