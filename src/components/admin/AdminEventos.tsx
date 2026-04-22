@@ -16,6 +16,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from '@hello-pangea/dnd';
+import {
   Card,
   CardContent,
   CardDescription,
@@ -31,6 +37,8 @@ import {
   CheckCircle2,
   Monitor,
   Smartphone,
+  GripVertical,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -40,6 +48,7 @@ import {
   type EventosGap,
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
+import { resolveOrder, identityOrder } from '@/lib/posterOrder';
 
 // ---------- Asset imports (same posters used on the public page) ----------
 import dia24 from '@/assets/eventos/dia-24-viernes.webp';
@@ -157,12 +166,32 @@ interface PreviewFrameProps {
   title: string;
   /** Icon component shown next to the title */
   icon: React.ReactNode;
+  /**
+   * Resolved poster order (full list of indices into PREVIEW_POSTERS).
+   * The component renders posters strictly in this order. Drag-and-drop
+   * mutates this list via `onOrderChange`.
+   */
+  order: number[];
+  /** Called with a NEW order array whenever the admin drags a poster. */
+  onOrderChange: (next: number[]) => void;
+  /**
+   * Stable id used to scope this frame's Droppable. Must be unique within
+   * the page so drops aren't accepted across breakpoints (we want desktop
+   * and mobile orderings to stay independent).
+   */
+  droppableId: string;
+  /** Optional handler to restore the default static order. */
+  onReset?: () => void;
 }
 
 /**
  * PreviewFrame
  * Fixed-width container that renders the poster grid exactly as it will
  * appear on the public page for the corresponding breakpoint.
+ *
+ * Drag-and-drop: each poster has a small grip handle in the top-left.
+ * Reordering only updates the local draft state — the admin must press
+ * "Guardar cambios" to persist it to `site_config.eventos_config`.
  */
 const PreviewFrame = ({
   frameWidth,
@@ -170,12 +199,31 @@ const PreviewFrame = ({
   gap,
   title,
   icon,
+  order,
+  onOrderChange,
+  droppableId,
+  onReset,
 }: PreviewFrameProps) => (
   <div className="space-y-2">
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      {icon}
-      <span className="font-medium">{title}</span>
-      <span className="text-xs">({frameWidth}px)</span>
+    <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2">
+        {icon}
+        <span className="font-medium">{title}</span>
+        <span className="text-xs">({frameWidth}px)</span>
+      </div>
+      {onReset && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          className="gap-1 h-7 text-xs"
+          title="Restaurar orden original"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Restablecer
+        </Button>
+      )}
     </div>
 
     {/* Outer scroll container so the desktop frame stays visible on small admin screens */}
@@ -184,27 +232,77 @@ const PreviewFrame = ({
         className="mx-auto bg-background rounded-md p-3 shadow-inner"
         style={{ width: frameWidth, maxWidth: '100%' }}
       >
-        <div
-          className="grid"
-          style={{
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            gap: `${gapToPx(gap)}px`,
+        <DragDropContext
+          onDragEnd={(result: DropResult) => {
+            // No drop target or unchanged position → no-op.
+            if (!result.destination) return;
+            if (result.destination.index === result.source.index) return;
+            const next = order.slice();
+            const [moved] = next.splice(result.source.index, 1);
+            next.splice(result.destination.index, 0, moved);
+            onOrderChange(next);
           }}
         >
-          {PREVIEW_POSTERS.map((src, idx) => (
-            <div
-              key={idx}
-              className="aspect-[9/16] overflow-hidden rounded-md border border-border/50 bg-card"
-            >
-              <img
-                src={src}
-                alt={`Poster ${idx + 1}`}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
+          <Droppable droppableId={droppableId} direction="horizontal">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                  gap: `${gapToPx(gap)}px`,
+                }}
+              >
+                {order.map((posterIdx, position) => {
+                  const src = PREVIEW_POSTERS[posterIdx];
+                  if (!src) return null;
+                  return (
+                    <Draggable
+                      key={posterIdx}
+                      draggableId={`${droppableId}-${posterIdx}`}
+                      index={position}
+                    >
+                      {(dragProvided, snapshot) => (
+                        <div
+                          ref={dragProvided.innerRef}
+                          {...dragProvided.draggableProps}
+                          className={cn(
+                            'relative aspect-[9/16] overflow-hidden rounded-md border bg-card',
+                            snapshot.isDragging
+                              ? 'border-primary ring-2 ring-primary shadow-lg'
+                              : 'border-border/50'
+                          )}
+                        >
+                          {/* Drag handle: small grip overlay in the top-left */}
+                          <div
+                            {...dragProvided.dragHandleProps}
+                            className="absolute top-1 left-1 z-10 p-1 rounded bg-background/80 backdrop-blur-sm text-foreground/80 hover:text-foreground hover:bg-background cursor-grab active:cursor-grabbing"
+                            title="Arrastra para reordenar"
+                            aria-label="Arrastra para reordenar este póster"
+                          >
+                            <GripVertical className="h-3 w-3" />
+                          </div>
+                          {/* Position badge bottom-right for quick visual reference */}
+                          <div className="absolute bottom-1 right-1 z-10 px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm text-[10px] font-mono font-bold text-foreground">
+                            {position + 1}
+                          </div>
+                          <img
+                            src={src}
+                            alt={`Poster ${posterIdx + 1}`}
+                            loading="lazy"
+                            className="h-full w-full object-cover pointer-events-none"
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </div>
     </div>
   </div>
