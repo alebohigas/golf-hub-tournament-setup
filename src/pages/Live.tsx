@@ -494,7 +494,8 @@ const Live = () => {
                                     <img
                                       src={player.clubLogo}
                                       alt={player.club}
-                                      className="w-14 h-9 object-contain rounded inline-block mx-auto"
+                                      // Dimensions reduced 5% (w-14/h-9 → w-[3.325rem]/h-[2.1375rem]) for consistency with other tables
+                                      className="w-[3.325rem] h-[2.1375rem] object-contain rounded inline-block mx-auto"
                                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                     />
                                   ) : null}
