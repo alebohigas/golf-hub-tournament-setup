@@ -159,8 +159,11 @@ const Calendario = () => {
             </div>
           ) : (
             <>
-              {/* Legend explaining the AM/PM color encoding. */}
-              <div className="flex flex-wrap items-center justify-center gap-4 mb-4 text-sm">
+              {/* Legend explaining the AM/PM color encoding.
+                  Sticky so it stays visible while the user scrolls the long
+                  calendar matrix. Uses a blurred background so content
+                  underneath remains slightly visible without losing contrast. */}
+              <div className="sticky top-16 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-4 rounded-sm bg-accent border border-border/30" />
                   <span className="text-muted-foreground">Salida AM</span>
