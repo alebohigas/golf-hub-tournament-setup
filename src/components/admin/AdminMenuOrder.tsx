@@ -339,7 +339,7 @@ const AdminMenuOrder = ({
       </CardHeader>
       <CardContent>
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="top-level">
+          <Droppable droppableId="top-level" type="row">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
