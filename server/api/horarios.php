@@ -44,7 +44,7 @@ $sql = "SELECT cj.fecha,
                sg.categoriaid,
                cat.categoria         AS categoria_nombre,
                cat.abreviatura       AS abreviatura,
-               MIN(sg.horainicio1a)  AS hora_min,
+               MIN(TIME(sg.horainicio1a))  AS hora_min,
                DATE_FORMAT(cj.fecha, '%W') AS dia_semana,
                DATE_FORMAT(cj.fecha, '%e') AS dia_num,
                DATE_FORMAT(cj.fecha, '%M') AS mes_nombre
@@ -53,21 +53,28 @@ $sql = "SELECT cj.fecha,
         JOIN categorias cat ON (sg.categoriaid = cat.categoria_id)
         WHERE cj.torneoid = $tid
           AND sg.horainicio1a IS NOT NULL
-          AND sg.horainicio1a <> '00:00:00'
+          AND TIME(sg.horainicio1a) <> '00:00:00'
         GROUP BY cj.fecha, sg.categoriaid, cat.categoria, cat.abreviatura,
                  dia_semana, dia_num, mes_nombre
         ORDER BY cj.fecha ASC, cat.categoria ASC";
 
 $rows = query_all($conn, $sql);
 
-/** Format HH:MM:SS into 24h short label "HH:MM" (or null when invalid). */
+/**
+ * Extract HH:MM (24h) from any time-bearing string.
+ * Accepts:
+ *   - "HH:MM:SS"           (TIME column)
+ *   - "YYYY-MM-DD HH:MM:SS" (DATETIME/TIMESTAMP column)
+ * Returns null when the value is empty, '00:00:00' or unparseable.
+ */
 function fmt_hhmm($t) {
-    if (!$t || $t === '00:00:00') return null;
-    $parts = explode(':', $t);
-    if (count($parts) < 2) return null;
-    $h = str_pad((string)((int)$parts[0]), 2, '0', STR_PAD_LEFT);
-    $m = str_pad((string)$parts[1],        2, '0', STR_PAD_LEFT);
-    return $h . ':' . $m;
+    if (!$t) return null;
+    // Match the LAST HH:MM in the string so DATETIMEs work too.
+    if (!preg_match('/(\d{1,2}):(\d{2})(?::\d{2})?\s*$/', trim($t), $m)) return null;
+    $h = (int)$m[1];
+    $mn = $m[2];
+    if ($h === 0 && $mn === '00') return null;  // ignore 00:00 placeholders
+    return str_pad((string)$h, 2, '0', STR_PAD_LEFT) . ':' . $mn;
 }
 
 // ============= Build response structure =============
