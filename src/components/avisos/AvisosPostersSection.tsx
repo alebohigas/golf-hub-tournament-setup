@@ -184,12 +184,19 @@ const AvisosPostersSection = () => {
               )}
               aria-label={`Ver ${card.alt} en grande`}
             >
-              <div className="aspect-[9/16] w-full overflow-hidden bg-background">
+              {/*
+                Use `object-contain` (not cover) so posters with slightly
+                different aspect ratios than 9/16 — e.g. the climatological
+                notice at 683x1024 vs the 576x1024 pricing tables — render
+                completely without cropping or zoom-in artifacts. The card
+                background fills any letterbox gap.
+              */}
+              <div className="aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
                 <img
                   src={card.src}
                   alt={card.alt}
                   loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             </button>
