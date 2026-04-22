@@ -336,8 +336,54 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Reglas locales - Semana Santa (no detailed rules in flyer) */
-export const reglasData: ReglaItem[] = [];
+/** Reglas y notas — V Torneo Anual Terralta 2026 */
+export const reglasData: ReglaItem[] = [
+  {
+    titulo: 'Brazalete y Acceso',
+    contenido:
+      'Será indispensable el registro diario en la recepción del Club para contar con el brazalete que da acceso al servicio de alimentos y bebidas. Deberá portarse sin excepción en la muñeca durante todo el torneo.',
+  },
+  {
+    titulo: 'Cancelaciones',
+    contenido:
+      'No se aceptan bonificaciones por cancelación posterior al 25 de Mayo. La cancelación debe realizarse a través de https://terralta.speitour.com sin excepción. La inscripción no es transferible. Posterior a la fecha de cancelación no habrá bonificación, incluso por causa mayor, médica, personal o laboral.',
+  },
+  {
+    titulo: 'Corte (Caballeros)',
+    contenido:
+      'Habrá corte en todas las categorías después de la 2ª ronda. Si por causas climatológicas no se logran jugar dos rondas de 18 hoyos, el comité organizador decidirá a cuántos hoyos se hará el corte. En las 5 categorías de Damas no habrá corte.',
+  },
+  {
+    titulo: 'Cupo de Categoría',
+    contenido:
+      'Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores que se queden fuera entrarán en lista de espera. Si hay alguna cancelación o espacio se llamará al jugador para que se inscriba.',
+  },
+  {
+    titulo: 'Desempate por el Primer Lugar',
+    contenido:
+      '1) Se jugará en el campo, iniciando en el hoyo que designe el Comité.\n2) Si hay triple empate o más: el desempate por 1er lugar será por juego en el campo (solo un ganador absoluto). El desempate por 2°, 3° y demás se realiza por comparación de tarjetas.\n3) Si no hay luz natural o el clima impide jugar, el desempate por 1er lugar se decide por comparación de tarjetas.\n4) Si la competencia es Gross y Neto, solo el trofeo Gross procede a desempate por juego en el campo. El 1° Neto se define por comparación de tarjetas.',
+  },
+  {
+    titulo: 'Desempate por 2° Lugar y Demás Posiciones (Trofeo y Corte)',
+    contenido:
+      'Aplicando la Regla 5A (Método de comparación de tarjetas):\n1) Mejor ronda del último día.\n2) Si persiste: mejor score hoyos 10–18 → 13–18 → 16–18 → hoyo 18 → mismo procedimiento en la vuelta 1–9 → hoyo por hoyo del 18 al 1.\n3) Si la ronda oficial es de 9 hoyos, se aplica el mismo método sobre esos 9 hoyos.\nNota: en categorías con hándicap los desempates Neto se definen con score Neto, los Gross con score Gross. Se utiliza la misma modalidad de juego (Stroke Play o Stableford).',
+  },
+  {
+    titulo: 'Notas para Categorías',
+    contenido:
+      '• Se declarará desierta una categoría si tiene menos de 9 participantes; la fecha límite para definir esto será el jueves 25 de junio 2026.\n• El Comité Organizador podrá fusionar la categoría con otra o declararla desierta si no hay mínimo de jugadores.\n• La ronda estipulada será de 9 hoyos cuando aplique.\n• Ningún jugador podrá solicitar cambio de horario o día de juego.',
+  },
+  {
+    titulo: 'Notas para Cortes',
+    contenido:
+      '• El jugador que no pueda asistir a la ronda final por cualquier motivo deberá avisar a la oficina de golf inmediatamente al terminar su 2ª ronda para asignarle su retiro y permitir el ingreso del siguiente jugador en lista.\n• Un jugador que no pasó el corte oficialmente, una vez publicadas las listas, no podrá participar en la ronda final por ningún motivo.\n• Quien no avise, el Comité le asignará la categoría según su hándicap original o, si es mayor de 50, jugará en la categoría senior correspondiente.',
+  },
+  {
+    titulo: 'Restricción a Menores de Edad',
+    contenido:
+      'Durante el desarrollo del Torneo Anual queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación. Solo está autorizado el acceso a menores que jueguen en categoría Premier de Caballeros y 1ª categoría de Damas.',
+  },
+];
 
 /** Reglamento local - structured local rules with collapsible sections */
 export interface ReglamentoLocalItem {
