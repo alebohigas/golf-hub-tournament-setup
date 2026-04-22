@@ -9,9 +9,17 @@
  * The admin can:
  *   - Reorder standalone pages and groups at the top level.
  *   - Reorder pages WITHIN a group.
- *   - Move a page OUT of a group by dragging it to the top-level list.
- *   - Move a page INTO a group by dragging it onto the group's drop zone.
+ *   - Move a page from one group into another group.
  *   - Toggle a group's visibility (synced via onGroupsChange).
+ *
+ * NOTE: Adding/removing a page to/from a group via drag-and-drop is
+ * intentionally disabled here because it conflicts with intra-group
+ * reordering (the outer "top-level" droppable would steal drops from
+ * pages being reordered inside a nested group). Use the
+ * "Grupos del Menú" tab to assign pages to / unassign pages from groups.
+ * To enforce this, the top-level Droppable uses type "row" while group
+ * Droppables use type "page" — @hello-pangea/dnd only allows a draggable
+ * to drop into a droppable of the same type.
  *
  * The hierarchical state is flattened into a per-page `menuItemOrder` map
  * (pageId → sequential order number) on every change, which keeps the
@@ -195,12 +203,17 @@ const AdminMenuOrder = ({
    * Handle drag end across the hierarchy.
    *
    * Droppable IDs:
-   *   - "top-level"           → the top-level list (pages + groups)
-   *   - "group:<groupId>"     → the page list inside a specific group
+   *   - "top-level"           → the top-level list (type "row")
+   *   - "group:<groupId>"     → the page list inside a group (type "page")
    *
    * Draggable IDs:
    *   - "row:<index>"         → top-level row (page or group)
    *   - "page:<pageId>"       → a page inside a group
+   *
+   * Because top-level uses type "row" and group lists use type "page",
+   * pages dragged inside a group cannot be accidentally dropped into the
+   * top-level area — fixing the bug where intra-group reordering would
+   * eject the page from its group.
    */
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -236,60 +249,9 @@ const AdminMenuOrder = ({
       return;
     }
 
-    // -------- Case 3: Move a page OUT of a group → top-level --------
-    if (srcId.startsWith('group:') && dstId === 'top-level') {
-      const fromGroupId = srcId.slice('group:'.length);
-      const pageId = draggableId.startsWith('page:')
-        ? draggableId.slice('page:'.length)
-        : null;
-      if (!pageId) return;
-
-      // Remove from source group
-      let next: TopLevelRow[] = rows.map((r) => {
-        if (r.kind === 'group' && r.groupId === fromGroupId) {
-          return { ...r, pageIds: r.pageIds.filter((id) => id !== pageId) };
-        }
-        return r;
-      });
-      // Insert as standalone page at destination index
-      next = [
-        ...next.slice(0, destination.index),
-        { kind: 'page', pageId },
-        ...next.slice(destination.index),
-      ];
-      setRows(next);
-      commitOrder(next);
-      onPageGroupChange?.(pageId, null);
-      return;
-    }
-
-    // -------- Case 4: Move a page INTO a group --------
-    if (srcId === 'top-level' && dstId.startsWith('group:')) {
-      const toGroupId = dstId.slice('group:'.length);
-      const moving = rows[source.index];
-      if (!moving || moving.kind !== 'page') return; // only pages can join groups
-      const pageId = moving.pageId;
-
-      // Remove from top-level
-      let next: TopLevelRow[] = rows.filter((_, i) => i !== source.index);
-      // Insert into target group at destination index
-      next = next.map((r) => {
-        if (r.kind === 'group' && r.groupId === toGroupId) {
-          const ids = [...r.pageIds];
-          ids.splice(destination.index, 0, pageId);
-          return { ...r, pageIds: ids };
-        }
-        return r;
-      });
-      setRows(next);
-      commitOrder(next);
-      onPageGroupChange?.(pageId, toGroupId);
-      // Auto-expand the target group so the user sees the result
-      setExpandedGroups((prev) => new Set(prev).add(toGroupId));
-      return;
-    }
-
-    // -------- Case 5: Move a page from one group to another --------
+    // -------- Case 3: Move a page from one group to another --------
+    // (Type isolation prevents cross-type drops, so cases for moving
+    // in/out of groups via the top-level area are intentionally absent.)
     if (
       srcId.startsWith('group:') &&
       dstId.startsWith('group:') &&
@@ -365,8 +327,9 @@ const AdminMenuOrder = ({
               Orden del Menú
             </CardTitle>
             <CardDescription>
-              Arrastra grupos y páginas para reordenarlos. Las páginas dentro de un grupo
-              también pueden reordenarse y moverse entre grupos.
+              Arrastra grupos y páginas para reordenarlos. Dentro de un grupo, las
+              páginas pueden reordenarse y moverse a otro grupo. Para añadir o quitar
+              una página de un grupo, usa la pestaña "Grupos del Menú".
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-1">
@@ -377,7 +340,7 @@ const AdminMenuOrder = ({
       </CardHeader>
       <CardContent>
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="top-level">
+          <Droppable droppableId="top-level" type="row">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
@@ -528,7 +491,7 @@ const GroupRow = ({
 
       {/* Nested droppable for pages inside the group */}
       {isExpanded && (
-        <Droppable droppableId={`group:${row.groupId}`} type="DEFAULT">
+        <Droppable droppableId={`group:${row.groupId}`} type="page">
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
@@ -540,7 +503,7 @@ const GroupRow = ({
             >
               {row.pageIds.length === 0 && !snapshot.isDraggingOver && (
                 <p className="text-xs text-muted-foreground italic py-2 px-2">
-                  Arrastra páginas aquí para añadirlas al grupo.
+                  Asigna páginas a este grupo desde la pestaña "Grupos del Menú".
                 </p>
               )}
               {row.pageIds.map((pageId, idx) => (
