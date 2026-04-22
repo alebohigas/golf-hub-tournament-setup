@@ -224,9 +224,8 @@ const Convocatoria = () => {
           <div className="flex justify-center mb-8">
             <Button
               asChild
-              variant="outline"
               size="lg"
-              className="gap-2"
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               <a
                 href="/convocatoria.pdf"
