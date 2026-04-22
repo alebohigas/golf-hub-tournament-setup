@@ -204,6 +204,9 @@ const AdminSponsorsCarousel = () => {
    * fields (columns, ribbonVisiblePages).
    */
   const handleSave = () => {
+    // Defensive filter: never persist a broken-logo sponsor in the whitelist,
+    // even if `enabledIds` somehow contains one (e.g. logo broke after enable).
+    const safeEnabled = [...enabledIds].filter((id) => !brokenIds.has(String(id)));
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
@@ -213,7 +216,7 @@ const AdminSponsorsCarousel = () => {
             order: orderedIds,
             randomize,
             visibleCount,
-            enabledIds: [...enabledIds],
+            enabledIds: safeEnabled,
           },
         },
       },
