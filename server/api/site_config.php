@@ -15,6 +15,7 @@
  *   page_group_assignments TEXT DEFAULT NULL COMMENT 'JSON object mapping pageId to groupId',
  *   live_scoring_config TEXT DEFAULT NULL COMMENT 'JSON object with live scoring page settings',
  *   sponsors_config TEXT DEFAULT NULL COMMENT 'JSON object with sponsors page display settings (e.g. column count)',
+ *   eventos_config TEXT DEFAULT NULL COMMENT 'JSON object with eventos page display settings (cols/gap per breakpoint)',
  *   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  * );
  */
@@ -66,6 +67,25 @@ function site_config_has_sponsors_config($conn) {
 
 $hasSponsorsConfig = site_config_has_sponsors_config($conn);
 
+/**
+ * Detect whether the eventos_config column exists.
+ * Keeps endpoint backward-compatible if the schema has not been migrated yet.
+ */
+function site_config_has_eventos_config($conn) {
+    static $hasColumn = null;
+
+    if ($hasColumn !== null) {
+        return $hasColumn;
+    }
+
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'eventos_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+
+    return $hasColumn;
+}
+
+$hasEventosConfig = site_config_has_eventos_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -74,6 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if ($hasSponsorsConfig) {
         $selectFields .= ', sponsors_config';
+    }
+    if ($hasEventosConfig) {
+        $selectFields .= ', eventos_config';
     }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
@@ -89,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'page_group_assignments'=> $row['page_group_assignments'] ? json_decode($row['page_group_assignments'], true) : null,
             'live_scoring_config'   => $hasLiveScoringConfig && !empty($row['live_scoring_config']) ? json_decode($row['live_scoring_config'], true) : null,
             'sponsors_config'       => $hasSponsorsConfig && !empty($row['sponsors_config']) ? json_decode($row['sponsors_config'], true) : null,
+            'eventos_config'        => $hasEventosConfig && !empty($row['eventos_config']) ? json_decode($row['eventos_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -100,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'page_group_assignments'=> null,
             'live_scoring_config'   => null,
             'sponsors_config'       => null,
+            'eventos_config'        => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
