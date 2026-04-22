@@ -327,8 +327,9 @@ const AdminMenuOrder = ({
               Orden del Menú
             </CardTitle>
             <CardDescription>
-              Arrastra grupos y páginas para reordenarlos. Las páginas dentro de un grupo
-              también pueden reordenarse y moverse entre grupos.
+              Arrastra grupos y páginas para reordenarlos. Dentro de un grupo, las
+              páginas pueden reordenarse y moverse a otro grupo. Para añadir o quitar
+              una página de un grupo, usa la pestaña "Grupos del Menú".
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-1">
