@@ -163,7 +163,12 @@ const CalendarioJuegoSection = () => {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  <th className="p-3 text-left font-bold w-40">Categoría</th>
+                  {/* Sticky-left Categoría header for the embedded
+                      calendar preview. Solid `bg-primary` matches the rest
+                      of the header bar and keeps the column visible when
+                      the user scrolls horizontally on narrow viewports.
+                      z-20 sits above sticky body cells (z-10). */}
+                  <th className="sticky left-0 z-20 bg-primary p-3 text-left font-bold w-40">Categoría</th>
                   {calData.dates.map((d) => (
                     <th
                       key={`cal-h-${d.date}`}
@@ -201,7 +206,21 @@ const CalendarioJuegoSection = () => {
                   })
                   .map((row, idx) => (
                     <tr key={row.key} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}>
-                      <td className="border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap">
+                      {/* Sticky-left Categoría cell. Inline solid background
+                          re-creates the alternating row tint because sticky
+                          cells render over the page background — without an
+                          explicit color, the body cells underneath would
+                          bleed through during horizontal scroll. */}
+                      <td
+                        className="sticky left-0 z-10 border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'hsl(var(--background))',
+                          backgroundImage:
+                            idx % 2 === 0
+                              ? 'linear-gradient(hsl(var(--card)), hsl(var(--card)))'
+                              : 'linear-gradient(hsl(var(--muted) / 0.3), hsl(var(--muted) / 0.3))',
+                        }}
+                      >
                         {row.name}
                       </td>
                       {calData.dates.map((d) => (
