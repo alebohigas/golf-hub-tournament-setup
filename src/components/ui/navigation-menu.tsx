@@ -76,31 +76,82 @@ const NavigationMenuLink = NavigationMenuPrimitive.Link;
 const NavigationMenuViewport = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
->(({ className, ...props }, ref) => (
+>(({ className, ...props }, ref) => {
   /*
    * Wrapper for the Radix viewport.
    *
-   * We use the CSS variable `--radix-navigation-menu-viewport-left` exposed
-   * by Radix to align the dropdown horizontally with the active trigger,
-   * instead of pinning it to the right edge (`right-0 + justify-end`),
-   * which is the shadcn default. This makes each group's dropdown open
-   * directly beneath its own chevron, regardless of the group's position
-   * inside the navigation list.
+   * Radix DOES NOT expose a CSS variable for the active trigger's horizontal
+   * offset (only `--radix-navigation-menu-viewport-width/height`). To align
+   * each dropdown directly under its own trigger — regardless of how many
+   * triggers exist in the menu — we measure the active trigger's left
+   * position relative to the NavigationMenu Root (the closest element with
+   * `data-orientation`) and apply it to the wrapper.
+   *
+   * The position recalculates whenever:
+   *   - the active trigger changes (MutationObserver on data-state="open"),
+   *   - the wrapper resizes (e.g. content swap),
+   *   - the window resizes.
    */
-  <div
-    className={cn("absolute top-full flex")}
-    style={{ left: "var(--radix-navigation-menu-viewport-left, 0)" }}
-  >
-    <NavigationMenuPrimitive.Viewport
-      className={cn(
-        "origin-top-center relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 md:w-[var(--radix-navigation-menu-viewport-width)]",
-        className,
-      )}
-      ref={ref}
-      {...props}
-    />
-  </div>
-));
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const [offsetLeft, setOffsetLeft] = React.useState<number>(0);
+
+  const updateOffset = React.useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    // The Radix NavigationMenu Root is the closest ancestor with data-orientation.
+    const root = wrapper.closest<HTMLElement>('[data-orientation]');
+    if (!root) return;
+    // Find the currently open trigger inside this root.
+    const activeTrigger = root.querySelector<HTMLElement>(
+      'button[data-state="open"]',
+    );
+    if (!activeTrigger) return;
+    const rootRect = root.getBoundingClientRect();
+    const triggerRect = activeTrigger.getBoundingClientRect();
+    setOffsetLeft(triggerRect.left - rootRect.left);
+  }, []);
+
+  React.useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const root = wrapper.closest<HTMLElement>('[data-orientation]');
+    if (!root) return;
+
+    // Recompute when any trigger inside the root toggles its data-state.
+    const mo = new MutationObserver(() => updateOffset());
+    mo.observe(root, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-state'],
+    });
+
+    // Recompute on resize (layout shifts can move the trigger).
+    window.addEventListener('resize', updateOffset);
+    updateOffset();
+
+    return () => {
+      mo.disconnect();
+      window.removeEventListener('resize', updateOffset);
+    };
+  }, [updateOffset]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={cn("absolute top-full flex")}
+      style={{ left: offsetLeft }}
+    >
+      <NavigationMenuPrimitive.Viewport
+        className={cn(
+          "origin-top-center relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 md:w-[var(--radix-navigation-menu-viewport-width)]",
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    </div>
+  );
+});
 NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport.displayName;
 
 const NavigationMenuIndicator = React.forwardRef<
