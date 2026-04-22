@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useCalendarioData } from '@/hooks/useCalendarioData';
 import { useHorariosData } from '@/hooks/useHorariosData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import type { CalendarEntry } from '@/data/calendarioData';
 
 // ============= Helpers =============
 
@@ -43,6 +44,57 @@ const shortDateLabel = (d: { date: string; dayOfWeek: string; dayNum: string; mo
   return `${day} ${d.dayNum} ${month}`;
 };
 
+/**
+ * Compact AM/PM cell used inside the embedded preview.
+ *
+ * Same visual rules as the main /calendario page:
+ *   - AM only -> solid `accent` (gold) with category label.
+ *   - PM only -> solid `primary` (green) with category label.
+ *   - Both    -> diagonal split (gold top-left / green bottom-right).
+ *
+ * Shorter height than the dedicated page (`h-8`) since this is a preview.
+ */
+const PreviewAmPmCell = ({ entry }: { entry: CalendarEntry }) => {
+  const label = entry.shortName || entry.category;
+  const both = entry.hasAM && entry.hasPM;
+
+  if (both) {
+    return (
+      <div
+        className="flex items-center justify-center h-8 w-full text-[11px] font-semibold text-white"
+        style={{
+          background:
+            'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 50%, hsl(var(--primary)) 100%)',
+        }}
+        title={`AM ${entry.amTime ?? ''} · PM ${entry.pmTime ?? ''}`.trim()}
+      >
+        {label}
+      </div>
+    );
+  }
+  if (entry.hasAM) {
+    return (
+      <div
+        className="flex items-center justify-center h-8 w-full text-[11px] font-semibold bg-accent text-accent-foreground"
+        title={entry.amTime ? `AM ${entry.amTime}` : 'AM'}
+      >
+        {label}
+      </div>
+    );
+  }
+  if (entry.hasPM) {
+    return (
+      <div
+        className="flex items-center justify-center h-8 w-full text-[11px] font-semibold bg-primary text-primary-foreground"
+        title={entry.pmTime ? `PM ${entry.pmTime}` : 'PM'}
+      >
+        {label}
+      </div>
+    );
+  }
+  return null;
+};
+
 // ============= Component =============
 
 /**
@@ -55,14 +107,27 @@ const CalendarioJuegoSection = () => {
   const horariosVisible = isPageVisible('horarios');
 
   /** React Query hooks — only call when the page is visible. */
-  const { data: calData } = useCalendarioData();
-  const { data: horData } = useHorariosData();
+  const { data: calData, isError: calError } = useCalendarioData();
+  const { data: horData, isError: horError } = useHorariosData();
 
-  /** Has-data checks. */
+  /**
+   * Has-data checks. We require BOTH:
+   *   - the page to be marked visible in admin, AND
+   *   - the API to have returned non-empty data without erroring.
+   * On API error we hide the block (rather than showing an empty table)
+   * so the section degrades gracefully — same behaviour the user expects
+   * from the Horarios block already.
+   */
   const hasCalendario =
-    calendarioVisible && (calData?.entries?.length ?? 0) > 0 && (calData?.dates?.length ?? 0) > 0;
+    calendarioVisible &&
+    !calError &&
+    (calData?.entries?.length ?? 0) > 0 &&
+    (calData?.dates?.length ?? 0) > 0;
   const hasHorarios =
-    horariosVisible && (horData?.entries?.length ?? 0) > 0 && (horData?.dates?.length ?? 0) > 0;
+    horariosVisible &&
+    !horError &&
+    (horData?.entries?.length ?? 0) > 0 &&
+    (horData?.dates?.length ?? 0) > 0;
 
   // Hide entire section when neither block is available.
   if (!hasCalendario && !hasHorarios) return null;
@@ -110,13 +175,13 @@ const CalendarioJuegoSection = () => {
               </thead>
               <tbody>
                 {calData.entries
-                  .reduce<Array<{ key: string; name: string; byDate: Map<string, true> }>>((acc, e) => {
+                  .reduce<Array<{ key: string; name: string; byDate: Map<string, CalendarEntry> }>>((acc, e) => {
                     let row = acc.find((r) => r.key === e.category);
                     if (!row) {
                       row = { key: e.category, name: e.categoryName, byDate: new Map() };
                       acc.push(row);
                     }
-                    row.byDate.set(e.date, true);
+                    row.byDate.set(e.date, e);
                     return acc;
                   }, [])
                   .map((row, idx) => (
@@ -127,10 +192,10 @@ const CalendarioJuegoSection = () => {
                       {calData.dates.map((d) => (
                         <td
                           key={`cal-c-${row.key}-${d.date}`}
-                          className="border-b border-l border-border/40 p-2 text-center"
+                          className="border-b border-l border-border/40 p-0 text-center align-middle"
                         >
                           {row.byDate.has(d.date) ? (
-                            <span className="inline-block w-3 h-3 rounded-full bg-primary" aria-label="Juega" />
+                            <PreviewAmPmCell entry={row.byDate.get(d.date)!} />
                           ) : (
                             <span className="text-muted-foreground/40">—</span>
                           )}
