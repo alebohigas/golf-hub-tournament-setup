@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -193,6 +193,15 @@ const AtraccionesSection = () => {
             '[&>button]:hidden' // Hide the default Dialog close button; we render a custom one.
           )}
         >
+          {/* Accessible label for screen readers — Radix requires a DialogTitle
+              even when the dialog is purely visual (image lightbox). The label
+              is hidden visually via Tailwind's `sr-only` utility. */}
+          <DialogTitle className="sr-only">
+            {current ? current.alt : 'Atracción'}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Vista ampliada del póster del evento. Use las flechas para navegar.
+          </DialogDescription>
           {current && (
             <div className="relative">
               {/* Custom close button */}
