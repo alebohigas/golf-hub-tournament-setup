@@ -490,7 +490,7 @@ const GroupRow = ({
 
       {/* Nested droppable for pages inside the group */}
       {isExpanded && (
-        <Droppable droppableId={`group:${row.groupId}`} type="DEFAULT">
+        <Droppable droppableId={`group:${row.groupId}`} type="page">
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
