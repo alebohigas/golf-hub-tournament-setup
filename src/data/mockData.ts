@@ -285,15 +285,48 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación data - Semana Santa Chilchota 2026 */
+/** Premiación data - V Torneo Anual Terralta 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Todas las Categorías',
-    premios: ['1°, 2° y 3° Lugar - Trofeo', 'Primer Gross a la Primera Categoría - Trofeo'],
+    categoria: 'Hole in One',
+    premios: [
+      '$1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3',
+      'Si no se logra durante el torneo, será rifado entre los jugadores inscritos (4 de Julio en la ceremonia de premiación)',
+      'Segundo o más Hole in One — Socio: 1 año de cuotas de mantenimiento sin costo (≈ $226,200)',
+      'Segundo o más Hole in One — Invitado: Membresía anual con cuota de mantenimiento incluida (≈ $226,200, no transferible)',
+    ],
   },
   {
-    categoria: 'Premios Adicionales',
-    premios: ['Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación'],
+    categoria: 'Mejor O\'Yes del Torneo',
+    premios: [
+      'Sistema fotovoltaico de 20 paneles solares — 12,000 watts de potencia',
+      'Incluye paneles, inversor, estructura, instalación, material eléctrico y trámite ante CFE',
+      'No aplica para Hole in One',
+    ],
+  },
+  {
+    categoria: 'Premios de O\'Yes Diarios',
+    premios: ['Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16'],
+  },
+  {
+    categoria: 'Torneo de Long Driver Caballeros',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
+  },
+  {
+    categoria: 'Torneo de Driver de Precisión Damas',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
+  },
+  {
+    categoria: 'Torneo de Driver de Distancia Caballeros',
+    premios: ['Premio: Technogym Connected Dumbbells'],
+  },
+  {
+    categoria: 'Torneo de Putt Caballeros',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
+  },
+  {
+    categoria: 'Torneo de Putt Damas',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
   },
 ];
 
@@ -427,27 +460,47 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Competencias especiales - Semana Santa Chilchota 2026 */
+/** Competencias especiales - V Torneo Anual Terralta 2026 */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
   {
-    nombre: 'Automóvil 2026 - Hole in One',
-    descripcion: 'Hoyo 7. Presentado por Quesos Chilchota. En caso de no caer el Hole in One, será rifado en la premiación.',
-    premios: 'Automóvil 2026.',
+    nombre: 'Hole in One — $1,000,000',
+    descripcion: 'Premio de Un Millón de Pesos al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se logra durante el torneo, el premio será rifado entre los jugadores inscritos el sábado 4 de Julio durante la ceremonia de premiación. Es indispensable estar presente para participar.',
+    premios: '$1,000,000 MXN.',
   },
   {
-    nombre: "Premios O'Yes General",
-    descripcion: "Hoyos 3, 7, 10 y 12.",
-    premios: "1ero: $1,000 USD. 2do: $850 USD. 3ero: $700 USD. 4to: $550 USD. 5to: $400 USD. 6to: $200 USD. 7mo: $100 USD.",
+    nombre: 'Torneo de Driver de Distancia (Caballeros)',
+    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 1. Días de competencia: viernes 26 de Junio al viernes 3 de Julio. Categorías: Seniors, D, C, B, A, AA.',
+    premios: 'Technogym Connected Dumbbells.',
   },
   {
-    nombre: 'Torneo de Putt',
-    descripcion: 'Torneo de Putt para jugadores inscritos.',
-    premios: 'Premio: $200 DLLS.',
+    nombre: 'Torneo de Driver de Precisión (Damas)',
+    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 10 de los tres días de competencia. Días: viernes 26, lunes 29 de Junio y miércoles 1 de Julio.',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
   },
   {
-    nombre: 'Torneo de Approach',
-    descripcion: 'Torneo de Approach para jugadores inscritos.',
-    premios: 'Premio: $200 DLLS.',
+    nombre: 'Torneo de Long Driver (Caballeros)',
+    descripcion: 'Día de competencia: jueves 2 de Julio (17:00 a 19:30 hrs). Lugar: Terraza Bar "La Vista".',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+  },
+  {
+    nombre: 'Torneo de Approach Mixto',
+    descripcion: 'Calificación: viernes 26 de Junio al jueves 2 de Julio (14:00 a 18:00 hrs) en el Tee de Práctica. Cada jugador tendrá 3 oportunidades por día y calificarán los 7 mejores tiros diarios. Final: viernes 3 de Julio a las 20:30 hrs en Terraza Bar "La Vista". Califican a la final 42 caballeros y 10 damas.',
+    premios: 'Se premiará a los 3 mejores lugares. Si hay Hole in One, será el mejor tiro y ganará el primer lugar.',
+  },
+  {
+    nombre: 'Torneo de Putt Caballeros',
+    descripcion: 'Calificación: viernes 26, sábado 27, domingo 28 de Junio y jueves 2 de Julio (14:00 a 18:30 hrs). Final: viernes 3 de Julio a las 18:00 hrs. Lugar: Putting Green.',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+  },
+  {
+    nombre: 'Torneo de Putt Damas',
+    descripcion: 'Fecha: lunes 29 de Junio. Horario: 16:00 hrs. Lugar: Putting Green.',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+  },
+  {
+    nombre: 'Premios de O\'Yes Diarios',
+    descripcion: 'Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16.',
+    premios: 'Premios diarios por hoyo.',
   },
 ];
 // API simulation functions - replace with actual fetch calls
