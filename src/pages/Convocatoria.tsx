@@ -138,6 +138,9 @@ const Convocatoria = () => {
         title="Convocatoria"
         subtitle="Información completa sobre inscripciones, categorías y requisitos"
         backgroundImage={convocatoriaHero}
+        // Midpoint between the previous 65% framing and the lower 95%
+        // framing — keeps the desk and bell visible without cropping them.
+        backgroundPosition="center 80%"
       />
 
       {/* Sticky submenu */}
