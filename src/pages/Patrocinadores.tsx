@@ -12,8 +12,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useState, useCallback } from 'react';
 import SponsorLogoImage, { SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
+// Hero background image dedicated to the Patrocinadores section.
+// Lives in src/assets and is imported as an ES6 module so Vite hashes it.
+import patrocinadoresHero from '@/assets/patrocinadores-hero.jpg';
 
 /** Default column count when no admin config is set */
 const DEFAULT_COLUMNS = 4;
@@ -48,6 +52,35 @@ const getGridConfig = (columns: number) => {
 const Patrocinadores = () => {
   const { data: sponsors = [], isLoading } = useSponsors();
   const { data: siteConfig } = useSiteConfig();
+  const { data: tournamentInfo } = useTournamentInfo();
+
+  /**
+   * Build a prefilled mailto link for the "Contactar" CTA.
+   * - Recipient: tournament email (`torneo.correotorne`) when available.
+   * - Subject: fixed marketing subject for sponsorship inquiries.
+   * - Body: structured request listing the data we want sponsors to receive
+   *   (Opción 2 — profesional con datos solicitados).
+   * `encodeURIComponent` is used on every dynamic part to keep the URL valid
+   * (line breaks become %0A, accented characters are preserved, etc.).
+   */
+  const sponsorEmail = tournamentInfo?.email || '';
+  const mailSubject = 'Información para Patrocinar Torneos';
+  const mailBody = [
+    'Estimado Comité Organizador,',
+    '',
+    'Mi empresa está interesada en evaluar oportunidades de patrocinio para el próximo torneo. Les agradecería poder recibir la siguiente información:',
+    '',
+    '• Paquetes de patrocinio disponibles y sus beneficios',
+    '• Inversión estimada por nivel',
+    '• Visibilidad de marca incluida (logo en cancha, ribbon, página web, etc.)',
+    '• Fechas límite para confirmar participación',
+    '',
+    'Quedo atento a sus comentarios para coordinar una llamada o reunión.',
+    '',
+    'Saludos cordiales,',
+    '[Nombre / Empresa]',
+  ].join('\n');
+  const mailtoHref = `mailto:${sponsorEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
 
   /** Resolved column count from server config, falling back to the default */
   const columns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
@@ -81,6 +114,7 @@ const Patrocinadores = () => {
       <PageHero 
         title="Patrocinadores"
         subtitle="Empresas que hacen posible este torneo"
+        backgroundImage={patrocinadoresHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
@@ -163,7 +197,7 @@ const Patrocinadores = () => {
               Contáctenos para conocer los beneficios de patrocinar el torneo de golf más prestigioso de la región.
             </p>
             <a 
-              href="mailto:patrocinios@torneoanual.com" 
+              href={mailtoHref}
               className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
               Contactar

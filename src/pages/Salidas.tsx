@@ -361,7 +361,8 @@ const Salidas = () => {
                                             src={player.clubLogo}
                                             alt="Club"
                                             className="w-auto object-contain rounded inline-block"
-                                            style={{ height: '2.25rem' }}
+                                            // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
+                                            style={{ height: '2.1375rem' }}
                                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                           />
                                         ) : (
@@ -549,7 +550,8 @@ const Salidas = () => {
                                           src={player.clubLogo}
                                           alt="Club"
                                           className="w-auto object-contain rounded inline-block"
-                                          style={{ height: '2.25rem' }}
+                                          // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
+                                          style={{ height: '2.1375rem' }}
                                           onError={(e) => {
                                             (e.target as HTMLImageElement).style.display = 'none';
                                           }}

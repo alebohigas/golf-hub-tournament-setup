@@ -358,7 +358,8 @@ const Resultados = () => {
                                         src={player.clubLogo}
                                         alt="Club"
                                         className="w-auto object-contain rounded inline-block"
-                                        style={{ height: '2.25rem' }}
+                                        // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
+                                        style={{ height: '2.1375rem' }}
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
                                         }}
@@ -453,7 +454,8 @@ const Resultados = () => {
                                         src={cp.clubLogo}
                                         alt="Club"
                                         className="w-auto object-contain rounded inline-block opacity-60"
-                                        style={{ height: '2.25rem' }}
+                                        // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
+                                        style={{ height: '2.1375rem' }}
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
                                         }}
