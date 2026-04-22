@@ -185,6 +185,20 @@ const CalendarioJuegoSection = () => {
                     row.byDate.set(e.date, e);
                     return acc;
                   }, [])
+                  /**
+                   * Apply the canonical category order shared with /calendario:
+                   * Primera → Letras → Damas → Senior → Novatos → Otros.
+                   * `shortName` is sourced from the first entry of the category
+                   * (all entries within a category share the same shortName).
+                   */
+                  .sort((a, b) => {
+                    const aShort = calData.entries.find((e) => e.category === a.key)?.shortName;
+                    const bShort = calData.entries.find((e) => e.category === b.key)?.shortName;
+                    return compareCategories(
+                      { name: a.name, shortName: aShort },
+                      { name: b.name, shortName: bShort },
+                    );
+                  })
                   .map((row, idx) => (
                     <tr key={row.key} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}>
                       <td className="border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap">
@@ -240,7 +254,14 @@ const CalendarioJuegoSection = () => {
                 </tr>
               </thead>
               <tbody>
-                {horData.entries.map((entry, idx) => (
+                {[...horData.entries]
+                  .sort((a, b) =>
+                    compareCategories(
+                      { name: a.categoryName, shortName: a.shortName },
+                      { name: b.categoryName, shortName: b.shortName },
+                    ),
+                  )
+                  .map((entry, idx) => (
                   <tr
                     key={entry.categoryId}
                     className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}
