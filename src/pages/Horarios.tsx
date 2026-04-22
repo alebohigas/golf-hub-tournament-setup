@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Clock } from 'lucide-react';
 import { useHorariosData, type HorarioDate } from '@/hooks/useHorariosData';
 import horariosHero from '@/assets/horarios-hero.jpg';
+import { compareCategories } from '@/lib/categorySort';
 
 // ============= Date label helpers (ES) =============
 
@@ -58,7 +59,19 @@ const Horarios = () => {
   const { data, isLoading } = useHorariosData();
 
   const dates   = data?.dates   ?? [];
-  const entries = data?.entries ?? [];
+  /**
+   * Sort categories with the canonical tournament order:
+   * Primera → Letras (AA,A,B,...) → Damas → Senior → Novatos → Otros.
+   * Backend currently returns rows alphabetically; we override that here
+   * so all matrix tables (Calendario + Horarios + their previews inside
+   * Convocatoria) keep the same row sequence.
+   */
+  const entries = [...(data?.entries ?? [])].sort((a, b) =>
+    compareCategories(
+      { name: a.categoryName, shortName: a.shortName },
+      { name: b.categoryName, shortName: b.shortName },
+    ),
+  );
 
   return (
     <Layout>

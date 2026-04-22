@@ -23,6 +23,7 @@ import { useCalendarioData } from '@/hooks/useCalendarioData';
 import { useHorariosData } from '@/hooks/useHorariosData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import type { CalendarEntry } from '@/data/calendarioData';
+import { compareCategories } from '@/lib/categorySort';
 
 // ============= Helpers =============
 
