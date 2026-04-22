@@ -321,16 +321,38 @@ $cutPlayers = [];
  * Build per-day score expressions for cut players using the same scoring
  * functions as the active leaderboard so that any closed scorecards
  * (statlsc = 1) for these players still show up below the cut line.
- * - GROSS uses f_score_dia_sox (gross strokes / stableford gross points)
- * - NETO  uses f_score_dia_sax (neto strokes / stableford points)
+ *
+ * IMPORTANT: We query the `tarjetas` table directly instead of using the
+ * legacy f_score_dia_sax/sox functions. Those functions rely on internal
+ * views (v_resultar) that filter by player.estatus and only include
+ * NORMAL or CORTE players, which is why DQ / RETIRO / NO SHOW players
+ * never showed per-round scores even when their scorecards were closed
+ * (statlsc = 1). Reading from `tarjetas` directly bypasses that filter
+ * and exposes any closed scorecard for non-NORMAL players.
+ *
+ * Column choice per scoring system:
+ * - STABLEFORD + GROSS → totstbgross (stableford gross points)
+ * - STABLEFORD + NETO  → SA          (stableford net points)
+ * - STROKE     + GROSS → SO          (gross strokes)
+ * - STROKE     + NETO  → SA          (net strokes)
  */
 $cutDayCols = '';
 foreach ($dias as $i => $fecha) {
-    if ($gross == '1') {
-        $cutDayCols .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
+    if ($sistema === 'STABLEFORD' && $gross == '1') {
+        $scoreCol = 't.totstbgross';
+    } elseif ($gross == '1') {
+        $scoreCol = 't.SO';
     } else {
-        $cutDayCols .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
+        $scoreCol = 't.SA';
     }
+    $fecEsc = esc($conn, $fecha);
+    // Subquery: closed scorecard (statlsc = 1) for this player on this date
+    $cutDayCols .= ", (SELECT IFNULL(SUM($scoreCol), 0)
+                       FROM tarjetas t
+                       WHERE t.jugadorid = j.id
+                         AND t.torneoid  = j.torneoid
+                         AND t.fecha     = '$fecEsc'
+                         AND t.statlsc   = 1) as d{$i}";
 }
 
 /**
