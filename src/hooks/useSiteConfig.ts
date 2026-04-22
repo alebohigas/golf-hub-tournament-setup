@@ -183,6 +183,11 @@ export const useSiteConfig = () => {
         localStorage.setItem(SPONSORS_CONFIG_KEY, JSON.stringify(config.sponsors_config));
       }
 
+      // Sync eventos config
+      if (config.eventos_config) {
+        localStorage.setItem(EVENTOS_CONFIG_KEY, JSON.stringify(config.eventos_config));
+      }
+
       return config;
     },
     staleTime: 30 * 1000, // 30 seconds - keep fresh for admin changes
