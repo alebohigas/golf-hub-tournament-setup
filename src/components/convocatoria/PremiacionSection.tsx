@@ -12,6 +12,8 @@ interface PremiacionSectionProps {
 }
 
 const PremiacionSection = ({ data }: PremiacionSectionProps) => {
+  // Hide entire section when there is no prize info to display.
+  if (!data || data.length === 0) return null;
   return (
     <div className="space-y-6">
       <div className="text-center">

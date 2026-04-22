@@ -12,6 +12,8 @@ interface CompetenciasEspecialesSectionProps {
 }
 
 const CompetenciasEspecialesSection = ({ data }: CompetenciasEspecialesSectionProps) => {
+  // Hide entire section when there are no special competitions to display.
+  if (!data || data.length === 0) return null;
   return (
     <div className="space-y-6">
       <div className="text-center">

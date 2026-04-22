@@ -46,6 +46,11 @@ const CostosSection = ({
   contactWarning,
   inscripcionesText,
 }: CostosSectionProps) => {
+  // Hide entire section when there is no pricing data and no contact info.
+  const hasSocios = sociosPricing && sociosPricing.length > 0;
+  const hasForaneos = foraneosPricing && foraneosPricing.length > 0;
+  const hasContact = contactInfo && (contactInfo.clabe || contactInfo.cuenta);
+  if (!hasSocios && !hasForaneos && !hasContact) return null;
   return (
     <div className="space-y-8">
       {/* Section title */}
