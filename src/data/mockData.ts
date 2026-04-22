@@ -119,16 +119,17 @@ export const tournamentStats: TournamentStats = {
 
 /** Eligibility requirements from convocatoria */
 export const eligibilityText =
-  "Podrán participar Damas y Caballeros mayores de 18 años con estatus de amateur que tengan hándicap GHIN vigente registrado en la FMG, publicado al 15 de mayo del 2026 (el más bajo si pertenece a dos o más clubes). En las categorías Campeonato y Premier se permitirá participar a jugadores de 14 años en adelante con 0.0 de H.I., debiendo contar con registros en torneos juveniles con scores debajo de 85 golpes. En las dos categorías Seniors los jugadores deberán tener 50 años y los Super Seniors 65 años (cumplidos al 15 de mayo del 2026). En la 1ª categoría de Damas se permitirá participar a jugadoras de 14 años en adelante con +5.0 a 14.8 de H.I.";
+  "Podrán participar Damas y Caballeros amateurs mayores de 18 años que tengan hándicap registrado en la FMG o en el sistema interno del club, publicado al 1° de abril de 2026. En las categorías Campeonato y Premier se permitirá jugar a menores de 18 años que cuenten con el hándicap solicitado. Al jugador que no tenga hándicap registrado, los profesionales le podrán calcular uno siempre y cuando tengan un mínimo de 8 scores entregados.";
 
 /** Important notes for eligibility section */
 export const notesText: string[] = [
-  "Inicio de inscripciones — Socios: 16 de Abril de 2026. Invitados: 1 de Mayo de 2026. Cierre de inscripciones: 22 de Junio de 2026.",
-  "Handicap: se jugará con el handicap federado del día 15 de mayo de 2026.",
-  "Habrá corte en todas las categorías de Caballeros después de la 2ª ronda. En las 5 categorías de Damas no habrá corte.",
-  "Si una categoría alcanza el número máximo de jugadores, se cerrará y los jugadores fuera entrarán en lista de espera.",
-  "Durante el desarrollo del Torneo Anual queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación. Solo se autoriza el acceso a menores que jueguen en categoría Premier de caballeros y 1ª categoría de damas.",
-  "El comité organizador se reserva el derecho de aceptar a cualquier jugador o sembrarlo en otra categoría. Jugador sin GHIN deberá firmar carta de aceptación.",
+  "Asociados: inicio de inscripciones miércoles 1 de abril.",
+  "Hijos de socios dependientes: a partir del miércoles 15 de abril.",
+  "Invitados e Hijos no dependientes: a partir del domingo 19 de abril.",
+  "Cierre de inscripciones: domingo 19 de abril o al completar el cupo de cada categoría.",
+  "Cancelaciones: la fecha límite es el martes 21 de abril; después de esta fecha no se aceptan cancelaciones (no hay reembolso).",
+  "Los jugadores que soliciten una categoría que no les corresponda según su hándicap deberán esperar hasta 2 días antes del inicio de juego de la categoría solicitada para asegurar que no se quede fuera otro jugador que sí cumpla con el hándicap requerido.",
+  "Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores fuera entrarán en lista de espera; si hay alguna cancelación se llamará al jugador para inscribirse.",
 ];
 
 export interface ScheduleSlot {
@@ -154,13 +155,13 @@ export const handicapText = "";
 export const desempatesText = "";
 
 /** Premios description */
-export const premiosText = "Premio Hole in One: $1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se logra durante el torneo, será rifado entre los jugadores inscritos durante la ceremonia de premiación del 4 de Julio (es indispensable estar presente para participar).";
+export const premiosText = "";
 
 /** Eventos adicionales */
-export const eventosAdicionalesText = "Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O'Yes.";
+export const eventosAdicionalesText = "";
 
 /** Inscripciones text */
-export const inscripcionesText = "Inscripciones en https://terralta.speitour.com (información del torneo, salidas, programa de juego y resultados). Reservaciones e informes: 81 8093 1078.";
+export const inscripcionesText = "";
 
 export interface PricingTier {
   categoria: string;
