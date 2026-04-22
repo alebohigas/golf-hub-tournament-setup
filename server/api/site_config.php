@@ -202,6 +202,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $insertFields[] = 'sponsors_config';
         $insertValues[] = $val;
     }
+
+    if (array_key_exists('eventos_config', $body)) {
+        if (!$hasEventosConfig) {
+            json_error("Missing DB column eventos_config in site_config. Run: ALTER TABLE site_config ADD COLUMN eventos_config TEXT DEFAULT NULL COMMENT 'JSON object with eventos page display settings';", 500);
+        }
+
+        $val = $body['eventos_config'] !== null ? "'" . esc($conn, json_encode($body['eventos_config'])) . "'" : 'NULL';
+        $fields[] = "eventos_config = $val";
+        $insertFields[] = 'eventos_config';
+        $insertValues[] = $val;
+    }
     
     if (empty($fields)) {
         json_error('No fields to update', 400);
