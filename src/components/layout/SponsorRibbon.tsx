@@ -271,11 +271,16 @@ const SponsorRibbon = () => {
    * Mobile uses natural-width slots (visibleCount = 0) — fall back to a
    * fixed 18s loop which felt right in QA.
    */
-  const SECONDS_PER_VIEWPORT = 12;
+  /**
+   * Desktop scroll speed: how many seconds it takes the ribbon to advance
+   * by one full viewport width. Higher = slower. Bumped from 12s → 25s
+   * because 12s still felt like "top speed" on wide desktop viewports.
+   */
+  const SECONDS_PER_VIEWPORT = 25;
   const animationDurationSec =
     visibleCount > 0 && interleaved.length > 0
       ? (interleaved.length / visibleCount) * SECONDS_PER_VIEWPORT
-      : 18;
+      : 30;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${animationDurationSec}s`,
   };
