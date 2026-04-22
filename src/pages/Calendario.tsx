@@ -292,8 +292,16 @@ const Calendario = () => {
                         </tr>
                       ))}
 
+                      {/* Spacer row that visually separates per-category rows
+                          from the AM/PM group totals below. A neutral
+                          background-colored band (no colored border) reads as
+                          a clean gap without introducing the previous gold
+                          divider line. */}
+                      <tr aria-hidden="true">
+                        <td colSpan={dates.length + 1} className="h-2 p-0 bg-background border-0" />
+                      </tr>
                       {/* Bottom totals: groups starting AM and PM aggregated across categories. */}
-                      <tr className="bg-accent/10 border-t-2 border-t-accent">
+                      <tr className="bg-accent/10">
                         <td className="border border-border/40 p-2 font-bold text-foreground">
                           Grupos <span className="text-accent">AM</span>
                         </td>
