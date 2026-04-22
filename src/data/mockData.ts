@@ -178,12 +178,33 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing - Semana Santa Chilchota 2026 */
+/** Pricing - V Torneo Anual Terralta 2026 */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costo de Inscripción',
+    title: 'Costos de Inscripción — Socios',
     tiers: [
-      { categoria: 'Inscripción General', costo: '$3,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Caballeros Socios (incluye cónyuge en centros de consumo)', costo: '$14,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Socias e hijas', costo: '$8,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Socias (cónyuge juega — 50% aplicado)', costo: '$4,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Caballeros Hijos', costo: '$11,200.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Hijas', costo: '$5,800.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Socios — Menores de 18 años', costo: '$4,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+    ],
+  },
+  {
+    title: 'Costos de Inscripción — Invitados',
+    tiers: [
+      { categoria: 'Caballeros Invitados (incluye cónyuge en centros de consumo)', costo: '$17,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Invitadas', costo: '$9,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Invitadas (cónyuge juega — 50% aplicado)', costo: '$4,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados — Menores de 18 años', costo: '$6,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+    ],
+  },
+  {
+    title: 'Centros de Consumo (No Jugadores)',
+    tiers: [
+      { categoria: 'Acceso por día', costo: '$2,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Acceso toda la semana', costo: '$8,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
@@ -210,21 +231,21 @@ export interface ContactInfo {
 }
 
 /** Pricing note */
-export const pricingNote = "";
+export const pricingNote = "Cargos de inscripción para Socios: si se inscriben en Abril el cargo se realiza en 3 meses (Abril, Mayo y Junio); en Mayo en 2 meses (Mayo y Junio); en Junio en 1 solo mes. Invitados pagan en una sola exhibición. La inscripción no es transferible — no se aceptan cancelaciones posteriores al 25 de Mayo.";
 
 /** Contact/banking info - Gómez Palacio */
 export const contactInfo: ContactInfo = {
-  bankName: '',
-  clabe: '',
-  cuenta: '',
-  nombre: 'Club Campestre de Gómez Palacio',
+  bankName: 'Bancrea',
+  clabe: '152580120000725303',
+  cuenta: '12000072530',
+  nombre: 'Terralta A.C.',
   email: '',
-  telefono: '87 17 14 20 35',
-  telefonoDirecto: '871 158 8744',
+  telefono: '81 8093 1078',
+  telefonoDirecto: '81 8093 1078',
 };
 
 /** Contact warning */
-export const contactWarning = "";
+export const contactWarning = "Será indispensable el registro diario en la recepción del Club para contar con el brazalete que da acceso al servicio de alimentos y bebidas (uso obligatorio en la muñeca durante todo el torneo).";
 
 /** Día de práctica */
 export const diaDePracticaText = "";
@@ -252,8 +273,11 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
 ];
 
-/** Description text - Semana Santa Chilchota 2026 */
-export const convocatoriaDescripcion = "Se convoca a todos los socios e invitados a participar en el Torneo Anual de Golf Semana Santa Chilchota 2026, que se llevará a cabo los días 1, 2, 3 y 4 de abril de 2026 en las instalaciones del Club Campestre de Gómez Palacio.";
+/** Description text - V Torneo Anual Terralta 2026 */
+export const convocatoriaDescripcion =
+  "Terralta A.C. celebra su V Torneo Anual de invitación edición 2026, el cual se llevará a cabo del 26 de Junio al 4 de Julio de 2026.\n\n" +
+  "La inscripción al Torneo Anual incluye: Kit de bienvenida, Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O'Yes y alimentos y bebidas en los centros de consumo (jugador y cónyuge).\n\n" +
+  "Premio Hole in One: $1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se realiza ningún Hole in One durante el torneo, el premio será rifado entre los jugadores inscritos el día 4 de Julio durante la ceremonia de premiación (es indispensable estar presente para participar). En caso de un segundo o más Hole in One, el Socio ganador recibirá un año de cuotas de mantenimiento sin costo; si no es socio, recibirá una membresía anual con cuota de mantenimiento incluida.";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
