@@ -214,14 +214,17 @@ const Calendario = () => {
                       {/* Second header row: day-of-week + day number, plus
                           "Categoría" label. Sticky offset accounts for the
                           first header row height (~2.25rem). */}
+                      {/* Solid background (`bg-secondary`) so the row stays
+                          fully opaque while sticky — semi-transparent tokens
+                          like bg-primary/20 let scrolled content show through. */}
                       <tr>
-                        <th className="sticky top-[9rem] z-20 border border-border/40 p-2 text-left text-foreground font-bold bg-primary/20">
+                        <th className="sticky top-[9rem] z-20 border border-border/40 p-2 text-left text-secondary-foreground font-bold bg-secondary">
                           Categoría
                         </th>
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="sticky top-[9rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold bg-primary/20"
+                            className="sticky top-[9rem] z-20 border border-border/40 p-2 text-center text-secondary-foreground font-bold bg-secondary"
                           >
                             {formatDayHeader(d)}
                           </th>
