@@ -187,28 +187,31 @@ const Calendario = () => {
               <Card className="border-border/50 overflow-hidden max-w-6xl mx-auto">
                 <CardContent className="p-0 overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
-                    <thead>
+                    {/* The thead is sticky so the date row (e.g. "Vie.3")
+                        stays anchored under the legend during vertical scroll.
+                        `top-[6.5rem]` clears the sticky legend (top-16 + its height). */}
+                    <thead className="sticky top-[6.5rem] z-20">
                       {/* Top header row: month abbreviation per date column. */}
-                      <tr className="bg-muted/50">
-                        <th className="border border-border/40 p-2 text-left text-foreground font-semibold w-32" />
+                      <tr className="bg-muted">
+                        <th className="border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
-                            className="border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px]"
+                            className="border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
                           >
                             {formatMonthHeader(d)}
                           </th>
                         ))}
                       </tr>
                       {/* Second header row: day-of-week + day number, plus "Categoría" label. */}
-                      <tr className="bg-primary/10">
-                        <th className="border border-border/40 p-2 text-left text-foreground font-bold">
+                      <tr>
+                        <th className="border border-border/40 p-2 text-left text-foreground font-bold bg-primary/20">
                           Categoría
                         </th>
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="border border-border/40 p-2 text-center text-foreground font-bold"
+                            className="border border-border/40 p-2 text-center text-foreground font-bold bg-primary/20"
                           >
                             {formatDayHeader(d)}
                           </th>
