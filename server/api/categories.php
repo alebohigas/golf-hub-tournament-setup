@@ -20,6 +20,7 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                a.gross, a.catrel, a.sexo,
+               a.maxjugadores, a.hoyosxronda,
                COUNT(b.id) as playerCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
@@ -34,6 +35,7 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                  a.gross, a.catrel, a.sexo,
+                 a.maxjugadores, a.hoyosxronda,
                  s.tee, s.color, ct.rating, ct.slope, ct.parcampo
         ORDER BY a.categoria_id ASC";
 
@@ -58,6 +60,8 @@ $categories = array_map(function($row) {
         'relatedCat'  => $row['catrel'],
         'gender'      => $row['sexo'],
         'playerCount' => (int)$row['playerCount'],
+        'maxPlayers'  => isset($row['maxjugadores']) ? (int)$row['maxjugadores'] : 0,
+        'holesPerRound'=> isset($row['hoyosxronda']) ? (int)$row['hoyosxronda'] : 18,
         'teeName'     => $row['teeName'] ?? '',
         'teeColorName'=> $row['teeColorName'] ?? '',
         'rating'      => $row['rating'] !== null ? (float)$row['rating'] : null,

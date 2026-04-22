@@ -12,6 +12,8 @@ interface DescripcionSectionProps {
 }
 
 const DescripcionSection = ({ descripcion }: DescripcionSectionProps) => {
+  // Hide section when no description is provided.
+  if (!descripcion || descripcion.trim() === '') return null;
   return (
     <Card className="shadow-card border-border/50 bg-primary/5 border-primary/20">
       <CardContent className="py-6 flex items-start gap-4">

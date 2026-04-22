@@ -83,16 +83,16 @@ export const sponsors: Sponsor[] = [
 ];
 
 export const tournamentInfo: TournamentInfo = {
-  id: '51',
-  name: '51° Torneo Anual de Golf',
-  club: 'Club Campestre Torreón',
+  id: '70',
+  name: 'LXX Torneo Anual Valle Alto 2026',
+  club: 'Club de Golf Valle Alto',
   logoUrl: '',
   heroImageUrl: '',
   logoHeaderUrl: '',
-  startDate: '2025-09-30',
-  endDate: '2025-10-04',
-  venue: 'Club Campestre Torreón',
-  phone: '(52) 871 721 2323',
+  startDate: '2026-04-24',
+  endDate: '2026-05-02',
+  venue: 'Club de Golf Valle Alto',
+  phone: '',
   email: '',
   city: '',
   state: '',
@@ -118,10 +118,19 @@ export const tournamentStats: TournamentStats = {
 };
 
 /** Eligibility requirements from convocatoria */
-export const eligibilityText = "";
+export const eligibilityText =
+  "Podrán participar Damas y Caballeros amateurs mayores de 18 años que tengan hándicap registrado en la FMG o en el sistema interno del club, publicado al 1° de abril de 2026. En las categorías Campeonato y Premier se permitirá jugar a menores de 18 años que cuenten con el hándicap solicitado. Al jugador que no tenga hándicap registrado, los profesionales le podrán calcular uno siempre y cuando tengan un mínimo de 8 scores entregados.";
 
 /** Important notes for eligibility section */
-export const notesText: string[] = [];
+export const notesText: string[] = [
+  "Asociados: inicio de inscripciones miércoles 1 de abril.",
+  "Hijos de socios dependientes: a partir del miércoles 15 de abril.",
+  "Invitados e Hijos no dependientes: a partir del domingo 19 de abril.",
+  "Cierre de inscripciones: domingo 19 de abril o al completar el cupo de cada categoría.",
+  "Cancelaciones: la fecha límite es el martes 21 de abril; después de esta fecha no se aceptan cancelaciones (no hay reembolso).",
+  "Los jugadores que soliciten una categoría que no les corresponda según su hándicap deberán esperar hasta 2 días antes del inicio de juego de la categoría solicitada para asegurar que no se quede fuera otro jugador que sí cumpla con el hándicap requerido.",
+  "Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores fuera entrarán en lista de espera; si hay alguna cancelación se llamará al jugador para inscribirse.",
+];
 
 export interface ScheduleSlot {
   turno: string;
@@ -146,13 +155,14 @@ export const handicapText = "";
 export const desempatesText = "";
 
 /** Premios description */
-export const premiosText = "Se entregarán trofeos al 1°, 2° y 3° lugar de cada categoría y primer Gross a la Primera categoría. Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación.";
+export const premiosText = "";
 
 /** Eventos adicionales */
-export const eventosAdicionalesText = "Automóvil 2026 Hole in One, Premios O'Yes General, Torneo de Putt, Torneo de Approach.";
+export const eventosAdicionalesText = "";
 
-/** Inscripciones text */
-export const inscripcionesText = "Informes e inscripciones: Oficinas del Club Campestre de Gómez Palacio. Tel: 87 17 14 20 35. WhatsApp: 871 158 8744.";
+/** Inscripciones text. Typed as string so consumers can call string methods
+ *  even when the current tournament leaves it empty. */
+export const inscripcionesText: string = "";
 
 export interface PricingTier {
   categoria: string;
@@ -170,12 +180,18 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing - Semana Santa Chilchota 2026 */
+/** Pricing — LXX Torneo Anual Valle Alto 2026 (single table, single payment). */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costo de Inscripción',
+    title: 'Costos de Inscripción',
+    subtitle: 'Solamente para jugadores que quieran participar en el Torneo',
     tiers: [
-      { categoria: 'Inscripción General', costo: '$3,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Socios Titulares',           costo: '$6,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Eméritos',                   costo: '$5,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas',                      costo: '$5,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Dependientes',               costo: '$5,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados Caballeros',       costo: '$18,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados Damas y Juveniles',costo: '$10,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
@@ -209,10 +225,10 @@ export const contactInfo: ContactInfo = {
   bankName: '',
   clabe: '',
   cuenta: '',
-  nombre: 'Club Campestre de Gómez Palacio',
+  nombre: '',
   email: '',
-  telefono: '87 17 14 20 35',
-  telefonoDirecto: '871 158 8744',
+  telefono: '',
+  telefonoDirecto: '',
 };
 
 /** Contact warning */
@@ -239,13 +255,18 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'costos', label: 'Costos', enabled: true, order: 3 },
   { id: 'categorias', label: 'Categorías y Sistema de Juego', enabled: true, order: 4 },
   { id: 'premiacion', label: 'Premiación', enabled: true, order: 5 },
-  { id: 'calendario', label: 'Calendario y Horario', enabled: false, order: 6 },
   { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
+  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: true, order: 9 },
+  { id: 'calendarioJuego', label: 'Calendario y Horarios de Juego', enabled: true, order: 10 },
+  { id: 'patrocinadoresOficiales', label: 'Patrocinadores Oficiales', enabled: true, order: 11 },
 ];
 
-/** Description text - Semana Santa Chilchota 2026 */
-export const convocatoriaDescripcion = "Se convoca a todos los socios e invitados a participar en el Torneo Anual de Golf Semana Santa Chilchota 2026, que se llevará a cabo los días 1, 2, 3 y 4 de abril de 2026 en las instalaciones del Club Campestre de Gómez Palacio.";
+/** Description text — LXX Torneo Anual Valle Alto 2026 */
+export const convocatoriaDescripcion =
+  "Se convoca a todos los Asociados del Club de Golf Valle Alto e invitados a participar en su LXX Torneo Anual de Invitación, que se llevará a cabo del 24 de abril al 02 de mayo de 2026 en las instalaciones de nuestro club.\n\n" +
+  "El torneo cuenta con categorías para Caballeros (Campeonato, Premier, AA, A, B, C, D), Seniors (Campeonato Mayores, A y B) y Damas (A, B, C, D, E y Estelares), así como competencias especiales: Tiro Espectacular de Approach, Torneo de Putt y Putt de 35 yardas, Torneo Driver Damas y Torneo Driver Caballeros.\n\n" +
+  "#TORNEOANUAL70";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
@@ -253,15 +274,33 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación data - Semana Santa Chilchota 2026 */
+/** Premiación / Trofeos — LXX Torneo Anual Valle Alto 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Todas las Categorías',
-    premios: ['1°, 2° y 3° Lugar - Trofeo', 'Primer Gross a la Primera Categoría - Trofeo'],
+    categoria: 'Damas',
+    premios: [
+      'A — 1° y 2° Gross',
+      'A — 1°, 2° y 3° Neto',
+      'B — 1°, 2° y 3° Gross',
+      'B — 1°, 2° y 3° Neto',
+      'C — 1°, 2° y 3°',
+      'D — 1°, 2° y 3°',
+      'E — 1°, 2° y 3°',
+      'Estelares — 1°, 2° y 3°',
+    ],
   },
   {
-    categoria: 'Premios Adicionales',
-    premios: ['Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación'],
+    categoria: 'Caballeros',
+    premios: ['Campeonato, Premier, AA, A, B, C y D — 1°, 2° y 3°'],
+  },
+  {
+    categoria: 'Seniors',
+    premios: [
+      'Campeonato Mayores — 1° y 2° Gross',
+      'Campeonato Mayores — 1° y 2° Neto',
+      'A — 1°, 2° y 3°',
+      'B — 1°, 2° y 3°',
+    ],
   },
 ];
 
@@ -271,8 +310,29 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Reglas locales - Semana Santa (no detailed rules in flyer) */
-export const reglasData: ReglaItem[] = [];
+/** Reglas locales y términos de la competencia — LXX Anual Valle Alto 2026. */
+export const reglasData: ReglaItem[] = [
+  {
+    titulo: 'Reglas Aplicables',
+    contenido:
+      'Se jugará bajo las Reglas de la USGA adoptadas por la Federación Mexicana de Golf, así como las reglas locales y términos de la competencia que se publicarán para el torneo. Las controversias serán resueltas por el Oficial de Reglas y/o el Comité Organizador, su fallo será definitivo e inapelable. Las rondas de juego estipuladas para este torneo son de 9 hoyos.',
+  },
+  {
+    titulo: 'Desempates para Corte',
+    contenido:
+      'Primer término: ganará el jugador con mejor score del último día.\nSegundo término: se tomará la tarjeta del último día para desempatar por el sistema de comparación de tarjetas (9-6-3-1), de la vuelta del hoyo 10 al 18. Si persiste el empate, se aplicará lo mismo a la 1ª vuelta.',
+  },
+  {
+    titulo: 'Desempates para Trofeos',
+    contenido:
+      'Sólo para el primer lugar de todas las categorías Gross o Neto se jugará a muerte súbita sin ventajas. El resto de los empates se definirá primero por el mejor score del último día y, en segundo término, por comparación de tarjetas del último día (hoyos 10 al 18) bajo el sistema 9-6-3-1.',
+  },
+  {
+    titulo: 'Nota Importante — Corte y Doble Categoría',
+    contenido:
+      'El jugador que no pasó el corte oficialmente una vez publicadas las listas de resultados no podrá participar en la ronda final por ningún motivo. En el caso de jugadores participando en dos categorías que pasen el corte en ambas, el jugador deberá avisar al final cuál de las dos categorías quiere jugar para la ronda final.',
+  },
+];
 
 /** Reglamento local - structured local rules with collapsible sections */
 export interface ReglamentoLocalItem {
@@ -280,8 +340,9 @@ export interface ReglamentoLocalItem {
   contenido: string;
 }
 
-/** Reglamento local - Semana Santa Chilchota 2026 */
-export const reglamentoLocalData: ReglamentoLocalItem[] = [
+/** Reglamento local — Valle Alto 2026 (no se publica en el PDF). */
+export const reglamentoLocalData: ReglamentoLocalItem[] = [];
+const _reglamentoLocalDataArchived: ReglamentoLocalItem[] = [
   {
     titulo: 'Responsabilidad del Jugador',
     contenido: 'ES RESPONSABILIDAD DEL JUGADOR CONOCER LAS REGLAS DE GOLF, LAS CONDICIONES DE LA COMPETENCIA Y LAS REGLAS LOCALES.'
@@ -395,27 +456,226 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Competencias especiales - Semana Santa Chilchota 2026 */
+/** Competencias especiales — LXX Torneo Anual Valle Alto 2026. */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
   {
-    nombre: 'Automóvil 2026 - Hole in One',
-    descripcion: 'Hoyo 7. Presentado por Quesos Chilchota. En caso de no caer el Hole in One, será rifado en la premiación.',
-    premios: 'Automóvil 2026.',
+    nombre: 'Tiro Espectacular de Approach',
+    descripcion: 'Podrán participar únicamente jugadores inscritos al torneo. Cada participante tendrá derecho a realizar dos tiros en los días de calificación; pasarán a la final los mejores 10 resultados diarios. Calificación: sábado 25, domingo 26, lunes 27 y martes 28 de abril (11:00 a 17:00 hrs) en el área del par 3. Final: miércoles 29 de abril a partir de las 18:30 hrs en el Green del Hoyo 15. El ganador será el primer jugador que meta la pelota en el hoyo o quien deje la pelota más cerca.',
+    premios: '1°: Auto 2026 (sólo se entregará un auto). 2°: Bolsa de Golf.',
   },
   {
-    nombre: "Premios O'Yes General",
-    descripcion: "Hoyos 3, 7, 10 y 12.",
-    premios: "1ero: $1,000 USD. 2do: $850 USD. 3ero: $700 USD. 4to: $550 USD. 5to: $400 USD. 6to: $200 USD. 7mo: $100 USD.",
+    nombre: 'Torneo de Putt y Putt de 35 yardas',
+    descripcion: 'Calificación diaria del sábado 25 al miércoles 29 de abril (11:00 a 17:00 hrs) en el Putting Green; cada jugador podrá participar 1 vez por día con derecho a 2 tiros. Pasan a la final los mejores 64 caballeros y las mejores 32 damas. Final: viernes 1 de mayo — 18:00 hrs damas y 19:30 hrs caballeros. El Putt Espectacular de 35 yardas se jugará el viernes 1 de mayo: el primer participante que la emboque gana 25,000 USD; el segundo en embocar (o el mejor O´Yes) recibe una bolsa de golf.',
+    premios: '1° Damas: $10,000 Vales Back 9. 1° Caballeros: $10,000 Vales Back 9. 2° Damas: $7,000. 2° Caballeros: $7,000. 3° Damas: $5,000. 3° Caballeros: $5,000.',
   },
   {
-    nombre: 'Torneo de Putt',
-    descripcion: 'Torneo de Putt para jugadores inscritos.',
-    premios: 'Premio: $200 DLLS.',
+    nombre: 'Torneo Driver Damas',
+    descripcion: 'Día de juego: lunes 27 de abril en su primera ronda. Lugar: Hoyo 4. Driver de distancia: el más largo dentro del fairway del hoyo 4 entre las categorías A, B, C, D y E. Driver de precisión: la pelota más cercana a la línea marcada en el fairway del hoyo 4 entre A, B, C, D, E y Estelares. Una jugadora no podrá ganar ambos premios.',
+    premios: '1° Distancia: 300 dlls. 1° Precisión: 300 dlls.',
   },
   {
-    nombre: 'Torneo de Approach',
-    descripcion: 'Torneo de Approach para jugadores inscritos.',
-    premios: 'Premio: $200 DLLS.',
+    nombre: 'Torneo Driver Caballeros',
+    descripcion: 'Podrán participar todos los jugadores inscritos con un mínimo de 280 yardas de distancia. Inscripciones el día del evento en la mesa de salida del hoyo 16. Habrá una sola categoría: cada jugador tendrá derecho a 2 tiros, se medirá el más largo dentro del fairway. Gana quien logre la mayor distancia dentro del fairway.',
+    premios: '1°: 400 dlls. 2°: 300 dlls.',
+  },
+  {
+    nombre: 'Premios O´Yes',
+    descripcion: 'Mejor O´Yes general del día: Driver Ping G440. Mejor O´Yes de cada par 3 del día: Putt Scotty Cameron. Mejor O´Yes general del torneo: Certificado de regalo Back 9 por $50,000 MXN.',
+    premios: 'Driver Ping G440 (Mejor O´Yes del día). Putt Scotty Cameron (Mejor O´Yes de cada par 3). $50,000 MXN en Certificado Back 9 (Mejor O´Yes del torneo).',
+  },
+];
+
+// ============= Servicios y Horarios del Club =============
+
+/** Schedule of meals/services for a single tournament day */
+export interface ServicioDia {
+  /** Day label, e.g. "Viernes 26 de Junio" */
+  dia: string;
+  /** Bullet list of meal/service slots */
+  servicios: string[];
+}
+
+/**
+ * Servicios y Horarios del Club — alimentos y bebidas por día.
+ * Vacío para Valle Alto 2026 (no incluido en la convocatoria).
+ * Editable from Admin → Convocatoria.
+ */
+export const serviciosHorariosData: ServicioDia[] = [];
+const _serviciosHorariosArchived: ServicioDia[] = [
+  {
+    dia: 'Viernes 26 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Cocktail de bienvenida — Terraza Bar "La Vista": 20:00 hrs',
+    ],
+  },
+  {
+    dia: 'Sábado 27 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Cena buffet en el Salón Principal: 20:00 – 23:00 hrs',
+    ],
+  },
+  {
+    dia: 'Domingo 28 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Domingo familiar — Asado y música en vivo: 14:00 – 18:00 hrs',
+    ],
+  },
+  {
+    dia: 'Lunes 29 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+    ],
+  },
+  {
+    dia: 'Martes 30 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+    ],
+  },
+  {
+    dia: 'Miércoles 1 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Noche mexicana — Salón Principal: 20:00 hrs',
+    ],
+  },
+  {
+    dia: 'Jueves 2 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Final Long Driver Caballeros — Terraza "La Vista": 17:00 – 19:30 hrs',
+    ],
+  },
+  {
+    dia: 'Viernes 3 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Final Approach Mixto — Terraza "La Vista": 20:30 hrs',
+    ],
+  },
+  {
+    dia: 'Sábado 4 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Ceremonia de Premiación y cena de gala: 21:00 hrs',
+    ],
+  },
+];
+
+// ============= Patrocinadores Oficiales (Hole in One / Mejor O'Yes) =============
+
+/** Single official sponsor card */
+export interface PatrocinadorOficial {
+  /** Premio o categoría que patrocinan, e.g. "Hole in One" */
+  premio: string;
+  /** Nombre del patrocinador */
+  patrocinador: string;
+  /** Descripción del premio aportado */
+  descripcion: string;
+}
+
+/**
+ * Patrocinadores oficiales del Mejor O´Yes — Valle Alto 2026.
+ * No se especifica el patrocinador comercial en el PDF; se listan los
+ * premios anunciados directamente por la marca/club.
+ * Editable from Admin → Convocatoria.
+ */
+export const patrocinadoresOficialesData: PatrocinadorOficial[] = [
+  {
+    premio: 'Mejor O´Yes General del Torneo',
+    patrocinador: 'Back 9',
+    descripcion: 'Certificado de Regalo Back 9 por $50,000 MXN (Cincuenta mil pesos mexicanos).',
+  },
+  {
+    premio: 'Mejor O´Yes General del Día',
+    patrocinador: 'Ping',
+    descripcion: 'Driver Ping modelo G440.',
+  },
+  {
+    premio: 'Mejor O´Yes de cada Par 3 del Día',
+    patrocinador: 'Scotty Cameron',
+    descripcion: 'Putt Scotty Cameron.',
+  },
+];
+
+// ============= Eventos Sociales (Lifestyle) =============
+
+/** Single social/lifestyle event entry */
+export interface EventoSocial {
+  /** Day label, e.g. "Viernes 26 de Junio" */
+  dia: string;
+  /** Time, e.g. "20:00 hrs" */
+  hora: string;
+  /** Event title */
+  titulo: string;
+  /** Optional venue */
+  lugar?: string;
+  /** Optional extra detail */
+  descripcion?: string;
+}
+
+/**
+ * Eventos sociales / lifestyle del torneo.
+ * Vacío para Valle Alto 2026 (no listados en el PDF).
+ * Mostrados en /eventos como subsección "Sociales".
+ */
+export const eventosSocialesData: EventoSocial[] = [];
+const _eventosSocialesArchived: EventoSocial[] = [
+  {
+    dia: 'Viernes 26 de Junio',
+    hora: '20:00 hrs',
+    titulo: 'Cocktail de bienvenida',
+    lugar: 'Terraza Bar "La Vista"',
+    descripcion: 'Inauguración oficial del torneo con cocktail, música en vivo y bocadillos.',
+  },
+  {
+    dia: 'Sábado 27 de Junio',
+    hora: '20:00 hrs',
+    titulo: 'Cena de gala',
+    lugar: 'Salón Principal',
+    descripcion: 'Cena buffet con barra abierta y entretenimiento.',
+  },
+  {
+    dia: 'Domingo 28 de Junio',
+    hora: '14:00 hrs',
+    titulo: 'Domingo familiar',
+    lugar: 'Terraza y Áreas Verdes',
+    descripcion: 'Asado, actividades para niños y música en vivo.',
+  },
+  {
+    dia: 'Miércoles 1 de Julio',
+    hora: '20:00 hrs',
+    titulo: 'Noche mexicana',
+    lugar: 'Salón Principal',
+    descripcion: 'Cena temática con mariachi y folclor mexicano.',
+  },
+  {
+    dia: 'Sábado 4 de Julio',
+    hora: '21:00 hrs',
+    titulo: 'Ceremonia de Premiación y Cena de Gala',
+    lugar: 'Salón Principal',
+    descripcion: 'Entrega de premios, cena de gala y rifa del Hole in One.',
   },
 ];
 // API simulation functions - replace with actual fetch calls
