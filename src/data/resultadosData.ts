@@ -60,8 +60,8 @@ export interface CutPlayer {
   name: string;
   club: string;
   clubLogo?: string;
-  /** Status code: S = No Show, R = Retiro, D = Descalificado */
-  statusCode: 'S' | 'R' | 'D';
+  /** Status code: S = No Show, R = Retiro, D = Descalificado, C = Corte */
+  statusCode: 'S' | 'R' | 'D' | 'C';
   /** Human-readable status label */
   statusLabel: string;
   /** Round 1 score (closed scorecard only). Null if not played/closed. */

@@ -471,7 +471,7 @@ const Resultados = () => {
                                    */}
                                   <TableCell className="font-medium text-muted-foreground player-name-cell">
                                     <span className="block leading-tight">{cp.name}</span>
-                                    <span className="block text-[11px] leading-tight text-muted-foreground/70 lowercase">
+                                    <span className="block text-[11px] leading-tight text-muted-foreground/70">
                                       ({cp.statusLabel})
                                     </span>
                                   </TableCell>
