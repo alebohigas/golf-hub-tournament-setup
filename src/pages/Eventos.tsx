@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Gift, Loader2 } from 'lucide-react';
 import { useEventos } from '@/hooks/useTournamentData';
 import AtraccionesSection from '@/components/eventos/AtraccionesSection';
+// Hero background: terraza de gala con escenario y campo de golf al atardecer.
+import eventosHero from '@/assets/eventos-hero.jpg';
 
 const Eventos = () => {
   const { data: eventos = [], isLoading } = useEventos();
@@ -20,7 +22,7 @@ const Eventos = () => {
       <PageHero 
         title="Calendario de Eventos"
         subtitle="Programa de actividades del torneo"
-        backgroundImage="https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=1920&q=80"
+        backgroundImage={eventosHero}
       />
       {/* Visual posters of daily attractions (concerts, raffles, food, etc.) */}
       <AtraccionesSection />
