@@ -111,7 +111,12 @@ const Horarios = () => {
                           Mirrors the "barra verde" styling of the legacy
                           horarios table (primary background, white text). */}
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="p-3 text-left font-bold w-40 align-middle">
+                        {/* Sticky-left Categoría header. Stays pinned to
+                            the left edge during horizontal scroll, with the
+                            same solid `bg-primary` styling as the rest of
+                            the header row. z-20 keeps it above sticky body
+                            cells (z-10). */}
+                        <th className="sticky left-0 z-20 bg-primary p-3 text-left font-bold w-40 align-middle">
                           Categoría
                         </th>
                         {dates.map((d) => (
@@ -130,7 +135,21 @@ const Horarios = () => {
                           key={entry.categoryId}
                           className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}
                         >
-                          <td className="border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap">
+                          {/* Sticky-left Categoría cell. Inline solid
+                              background recreates the alternating row tint
+                              (`bg-card` / `bg-muted/30`) because sticky
+                              cells render over the page background, not
+                              the <tr> color. */}
+                          <td
+                            className="sticky left-0 z-10 border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap"
+                            style={{
+                              backgroundColor: 'hsl(var(--background))',
+                              backgroundImage:
+                                idx % 2 === 0
+                                  ? 'linear-gradient(hsl(var(--card)), hsl(var(--card)))'
+                                  : 'linear-gradient(hsl(var(--muted) / 0.3), hsl(var(--muted) / 0.3))',
+                            }}
+                          >
                             {entry.categoryName}
                           </td>
                           {dates.map((d) => {
