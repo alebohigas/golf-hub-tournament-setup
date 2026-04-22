@@ -4,12 +4,33 @@
  * Data fetched from sponsors.php via useSponsors hook
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+/**
+ * localStorage key used to remember which sponsor IDs have a broken logo.
+ * Persisting between sessions avoids re-issuing failing image requests on
+ * every page load (which would otherwise spam the console with 404s).
+ */
+const BROKEN_SPONSORS_LS_KEY = 'sponsor-ribbon-broken-ids';
+
+/** Read the persisted broken-ID set from localStorage (best-effort). */
+const loadPersistedBrokenIds = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(BROKEN_SPONSORS_LS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return new Set(parsed.map(String));
+    return new Set();
+  } catch {
+    return new Set();
+  }
+};
 
 /**
  * SponsorRibbon
@@ -54,8 +75,24 @@ const SponsorRibbon = () => {
    * of the public Patrocinadores page: broken logos are hidden entirely
    * (no name, no placeholder) so the ribbon never advertises a sponsor we
    * cannot actually display.
+   *
+   * Initialized from localStorage so previously-detected broken logos are
+   * NOT re-requested on page load (avoids repeated 404s in the console).
    */
-  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => loadPersistedBrokenIds());
+
+  /** Persist the broken-ID set whenever it changes so other pages skip them too. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        BROKEN_SPONSORS_LS_KEY,
+        JSON.stringify([...brokenIds])
+      );
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [brokenIds]);
 
   /** Mark/unmark a sponsor as broken based on the image load status. */
   const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
