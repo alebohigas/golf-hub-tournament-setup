@@ -104,8 +104,15 @@ $medalCountGross = (int)$catInfo['numganadorgross'];
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
 // ============= Get play dates =============
+// Include ALL scheduled rounds with a course assigned (campo > 0), regardless
+// of caljuego.estatus. Per-round score functions (f_score_dia_sax/sox) already
+// filter by closed scorecards (statlsc = 1) via v_resultar, so unplayed rounds
+// return 0 and are hidden client-side by the `$val != 0` check below.
+// Previously this required estatus > 1, which dropped a round (e.g. R3) when
+// the caljuego row hadn't been advanced past "in progress" — even though
+// scorecards for that day were already closed (bug seen in category Primera).
 $sql = "SELECT fecha FROM caljuego
-        WHERE categoriaid = $cid AND campo > 0 AND estatus > 1
+        WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
 $dateRows = query_all($conn, $sql);
 
