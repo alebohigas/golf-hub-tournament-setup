@@ -8,22 +8,12 @@
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CalendarDays, Clock } from 'lucide-react';
+import { Loader2, CalendarDays } from 'lucide-react';
 import { useCalendarioData } from '@/hooks/useCalendarioData';
 import type { CalendarDate, CalendarEntry } from '@/data/calendarioData';
 import calendarioHero from '@/assets/calendario-hero.jpg';
 import { scheduleData, salidasText } from '@/data/mockData';
 import ScheduleTable from '@/components/convocatoria/ScheduleTable';
-
-/** Format time string from HH:MM:SS to h:mm a */
-const formatTime = (timeStr: string): string => {
-  if (!timeStr) return '-';
-  const [h, m] = timeStr.split(':');
-  const hour = parseInt(h, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-  return `${displayHour}:${m} ${ampm}`;
-};
 
 /** Map English day/month names to Spanish */
 const dayNameEs: Record<string, string> = {
@@ -36,11 +26,80 @@ const monthNameEs: Record<string, string> = {
   September: 'Septiembre', October: 'Octubre', November: 'Noviembre', December: 'Diciembre',
 };
 
-/** Format date for column headers — e.g. "Jueves 2 de Abril" */
-const formatDateHeader = (d: CalendarDate): string => {
-  const day = dayNameEs[d.dayOfWeek] || d.dayOfWeek;
-  const month = monthNameEs[d.month] || (d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '');
-  return `${day} ${d.dayNum} de ${month}`;
+/** Spanish 3-letter month abbreviation for column header, e.g. "Abr". */
+const monthShortEs: Record<string, string> = {
+  January: 'Ene', February: 'Feb', March: 'Mar', April: 'Abr',
+  May: 'May', June: 'Jun', July: 'Jul', August: 'Ago',
+  September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dic',
+};
+
+/** Spanish 3-letter day-of-week abbreviation, e.g. "Vie". */
+const dayShortEs: Record<string, string> = {
+  Monday: 'Lun', Tuesday: 'Mar', Wednesday: 'Mie',
+  Thursday: 'Jue', Friday: 'Vie', Saturday: 'Sab', Sunday: 'Dom',
+};
+
+/** Format the upper line of a column header (the month abbreviation). */
+const formatMonthHeader = (d: CalendarDate): string =>
+  monthShortEs[d.month] || (d.month ? d.month.slice(0, 3) : '');
+
+/** Format the lower line of a column header (e.g. "Vie.24"). */
+const formatDayHeader = (d: CalendarDate): string => {
+  const day = dayShortEs[d.dayOfWeek] || d.dayOfWeek?.slice(0, 3) || '';
+  return `${day}.${d.dayNum}`;
+};
+
+/**
+ * Render the AM/PM colored cell for a single category-date intersection.
+ * Visual rules:
+ *   - AM only -> solid `accent` (gold).
+ *   - PM only -> solid `primary` (green).
+ *   - Both    -> diagonal split (gold top-left / green bottom-right).
+ * The category abbreviation is centered with high-contrast foreground.
+ */
+const AmPmCell = ({ entry }: { entry: CalendarEntry }) => {
+  const label = entry.shortName || entry.category;
+  const both = entry.hasAM && entry.hasPM;
+
+  if (both) {
+    // Diagonal gradient using semantic tokens (HSL via design system).
+    return (
+      <div
+        className="flex items-center justify-center h-full w-full text-[11px] sm:text-xs font-semibold text-white"
+        style={{
+          background:
+            'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 50%, hsl(var(--primary)) 100%)',
+        }}
+        title={`AM ${entry.amTime ?? ''} · PM ${entry.pmTime ?? ''}`.trim()}
+      >
+        {label}
+      </div>
+    );
+  }
+
+  if (entry.hasAM) {
+    return (
+      <div
+        className="flex items-center justify-center h-full w-full text-[11px] sm:text-xs font-semibold bg-accent text-accent-foreground"
+        title={entry.amTime ? `AM ${entry.amTime}` : 'AM'}
+      >
+        {label}
+      </div>
+    );
+  }
+
+  if (entry.hasPM) {
+    return (
+      <div
+        className="flex items-center justify-center h-full w-full text-[11px] sm:text-xs font-semibold bg-primary text-primary-foreground"
+        title={entry.pmTime ? `PM ${entry.pmTime}` : 'PM'}
+      >
+        {label}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 const Calendario = () => {
@@ -48,6 +107,8 @@ const Calendario = () => {
 
   const dates = data?.dates ?? [];
   const entries = data?.entries ?? [];
+  const amTotals = data?.amTotals ?? {};
+  const pmTotals = data?.pmTotals ?? {};
 
   /** Group entries by category for the matrix table */
   const categoryMap = new Map<string, { name: string; shortName: string; byDate: Map<string, CalendarEntry[]> }>();
@@ -97,61 +158,113 @@ const Calendario = () => {
               No hay calendario disponible para este torneo.
             </div>
           ) : (
-            <Card className="border-border/50 overflow-hidden max-w-5xl mx-auto">
-              <CardContent className="p-0 overflow-x-auto">
-                <table className="w-full border-collapse">
-                  {/* Column headers: Category + each date */}
-                  <thead>
-                    <tr className="bg-primary">
-                      <th className="border border-border/30 p-3 text-left text-primary-foreground font-bold">
-                        Categoría
-                      </th>
-                      {dates.map(d => (
-                        <th key={d.date} className="border border-border/30 p-3 text-center text-primary-foreground font-bold min-w-[100px]">
-                          <div>{formatDateHeader(d)}</div>
-                          {d.course && (
-                            <div className="text-xs font-normal opacity-80">{d.course}</div>
-                          )}
+            <>
+              {/* Legend explaining the AM/PM color encoding. */}
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-4 rounded-sm bg-accent border border-border/30" />
+                  <span className="text-muted-foreground">Salida AM</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-4 rounded-sm bg-primary border border-border/30" />
+                  <span className="text-muted-foreground">Salida PM</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block w-4 h-4 rounded-sm border border-border/30"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 50%, hsl(var(--primary)) 100%)',
+                    }}
+                  />
+                  <span className="text-muted-foreground">AM y PM</span>
+                </div>
+              </div>
+
+              <Card className="border-border/50 overflow-hidden max-w-6xl mx-auto">
+                <CardContent className="p-0 overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      {/* Top header row: month abbreviation per date column. */}
+                      <tr className="bg-muted/50">
+                        <th className="border border-border/40 p-2 text-left text-foreground font-semibold w-32" />
+                        {dates.map(d => (
+                          <th
+                            key={`m-${d.date}`}
+                            className="border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px]"
+                          >
+                            {formatMonthHeader(d)}
+                          </th>
+                        ))}
+                      </tr>
+                      {/* Second header row: day-of-week + day number, plus "Categoría" label. */}
+                      <tr className="bg-primary/10">
+                        <th className="border border-border/40 p-2 text-left text-foreground font-bold">
+                          Categoría
                         </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {categories.map(([catKey, catData], idx) => (
-                      <tr key={catKey} className={idx % 2 === 0 ? 'bg-white' : 'bg-muted/20'}>
-                        {/* Category name */}
-                        <td className="border border-border/30 p-3 font-medium text-foreground">
-                          {catData.name}
-                        </td>
-                        {/* Time slot per date */}
-                        {dates.map(d => {
-                          const dayEntries = catData.byDate.get(d.date);
-                          if (!dayEntries || dayEntries.length === 0) {
+                        {dates.map(d => (
+                          <th
+                            key={`d-${d.date}`}
+                            className="border border-border/40 p-2 text-center text-foreground font-bold"
+                          >
+                            {formatDayHeader(d)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categories.map(([catKey, catData], idx) => (
+                        <tr key={catKey} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
+                          <td className="border border-border/40 p-2 font-medium text-foreground whitespace-nowrap">
+                            {catData.name}
+                          </td>
+                          {dates.map(d => {
+                            const dayEntries = catData.byDate.get(d.date);
+                            const entry = dayEntries && dayEntries[0];
                             return (
-                              <td key={d.date} className="border border-border/30 p-2 text-center text-muted-foreground/30">
-                                -
+                              <td
+                                key={d.date}
+                                className="border border-border/40 p-0 text-center align-middle h-9"
+                              >
+                                {entry ? <AmPmCell entry={entry} /> : null}
                               </td>
                             );
-                          }
-                          return (
-                            <td key={d.date} className="border border-border/30 p-2 text-center">
-                              {dayEntries.map((entry, i) => (
-                                <div key={entry.id} className={`flex items-center justify-center gap-1 font-medium ${
-                                  i > 0 ? 'mt-1' : ''
-                                }`}>
-                                  <Clock className="h-3 w-3 text-primary" />
-                                  <span className="text-sm text-foreground">{formatTime(entry.startTime)}</span>
-                                </div>
-                              ))}
-                            </td>
-                          );
-                        })}
+                          })}
+                        </tr>
+                      ))}
+
+                      {/* Bottom totals: groups starting AM and PM aggregated across categories. */}
+                      <tr className="bg-accent/10 border-t-2 border-t-accent">
+                        <td className="border border-border/40 p-2 font-bold text-foreground">
+                          Grupos <span className="text-accent">AM</span>
+                        </td>
+                        {dates.map(d => (
+                          <td
+                            key={`am-${d.date}`}
+                            className="border border-border/40 p-2 text-center font-bold text-foreground bg-accent/20"
+                          >
+                            {amTotals[d.date] || 0}
+                          </td>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
+                      <tr className="bg-primary/10">
+                        <td className="border border-border/40 p-2 font-bold text-foreground">
+                          Grupos <span className="text-primary">PM</span>
+                        </td>
+                        {dates.map(d => (
+                          <td
+                            key={`pm-${d.date}`}
+                            className="border border-border/40 p-2 text-center font-bold text-foreground bg-primary/20"
+                          >
+                            {pmTotals[d.date] || 0}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* Convocatoria schedule/horario section */}
