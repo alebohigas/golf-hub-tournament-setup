@@ -58,10 +58,18 @@ const parseTournamentName = (name: string) => {
   return match ? { roman: match[1], rest: match[2] } : { roman: '', rest: name };
 };
 
-/** Format date range in Spanish */
+/**
+ * Format date range in Spanish using timezone-safe parsing.
+ * Decomposes 'YYYY-MM-DD' into local Date components to avoid the UTC offset
+ * shift that previously caused dates to render one day earlier than the
+ * Hero on the home page. This mirrors Hero.tsx so both views share the same
+ * source of truth for tournament dates.
+ */
 const formatDate = (start: string, end: string) => {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
+  const [sy, sm, sd] = start.split('-').map(Number);
+  const [ey, em, ed] = end.split('-').map(Number);
+  const startDate = new Date(sy, sm - 1, sd);
+  const endDate = new Date(ey, em - 1, ed);
   const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
   return `Del ${startDate.toLocaleDateString('es-MX', options)} al ${endDate.toLocaleDateString('es-MX', { ...options, year: 'numeric' })}`;
 };
