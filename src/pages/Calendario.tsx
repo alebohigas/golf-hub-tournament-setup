@@ -241,7 +241,13 @@ const Calendario = () => {
                           legend height (~2.5rem) so it sits flush below the
                           legend on both mobile (~6.5rem) and desktop (~7.5rem). */}
                       <tr>
-                        <th className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
+                        {/* Top-left corner cell: sticky on BOTH axes so it
+                            stays pinned at the intersection of the sticky
+                            month-header row and the sticky Categoría column.
+                            Higher z-index (z-30) than the regular sticky
+                            header cells (z-20) so it overlays them when
+                            they slide underneath while scrolling horizontally. */}
+                        <th className="sticky top-[6.5rem] md:top-[7.5rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
@@ -260,7 +266,7 @@ const Calendario = () => {
                           (`bg-primary/10` look) while remaining fully solid. */}
                       <tr>
                         <th
-                          className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-left text-foreground font-bold"
+                          className="sticky top-[8.75rem] md:top-[9.75rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -287,7 +293,23 @@ const Calendario = () => {
                     <tbody ref={tbodyRef}>
                       {categories.map(([catKey, catData], idx) => (
                         <tr key={catKey} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
-                          <td className="border border-border/40 p-2 font-medium text-foreground whitespace-nowrap">
+                          {/* Sticky-left Categoría cell. The <tr> background
+                              is transparent for sticky cells (they "see
+                              through" to whatever scrolls under), so we must
+                              re-apply the same row tint here as a solid layer
+                              over the page background. z-10 keeps it above
+                              normal body cells but below the sticky headers
+                              (z-20/z-30). */}
+                          <td
+                            className="sticky left-0 z-10 border border-border/40 p-2 font-medium text-foreground whitespace-nowrap"
+                            style={{
+                              backgroundColor: 'hsl(var(--background))',
+                              backgroundImage:
+                                idx % 2 === 0
+                                  ? 'linear-gradient(hsl(var(--card)), hsl(var(--card)))'
+                                  : 'linear-gradient(hsl(var(--muted) / 0.2), hsl(var(--muted) / 0.2))',
+                            }}
+                          >
                             {catData.name}
                           </td>
                           {dates.map(d => {
@@ -315,7 +337,18 @@ const Calendario = () => {
                       </tr>
                       {/* Bottom totals: groups starting AM and PM aggregated across categories. */}
                       <tr className="bg-accent/10">
-                        <td className="border border-border/40 p-2 font-bold text-foreground">
+                        {/* Sticky-left totals label (AM). Inline solid
+                            background recreates the `bg-accent/10` tint
+                            since the <tr>'s own background is invisible
+                            behind sticky cells during horizontal scroll. */}
+                        <td
+                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground"
+                          style={{
+                            backgroundColor: 'hsl(var(--background))',
+                            backgroundImage:
+                              'linear-gradient(hsl(var(--accent) / 0.1), hsl(var(--accent) / 0.1))',
+                          }}
+                        >
                           Grupos <span className="text-accent">AM</span>
                         </td>
                         {dates.map(d => (
@@ -328,7 +361,16 @@ const Calendario = () => {
                         ))}
                       </tr>
                       <tr className="bg-primary/10">
-                        <td className="border border-border/40 p-2 font-bold text-foreground">
+                        {/* Sticky-left totals label (PM). Same solid-tint
+                            trick as the AM row above. */}
+                        <td
+                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground"
+                          style={{
+                            backgroundColor: 'hsl(var(--background))',
+                            backgroundImage:
+                              'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
+                          }}
+                        >
                           Grupos <span className="text-primary">PM</span>
                         </td>
                         {dates.map(d => (
