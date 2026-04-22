@@ -15,15 +15,29 @@ export interface CalendarDate {
   course: string;
 }
 
-/** A single calendar entry (category playing on a date/time) */
+/** A single calendar entry (category playing on a date/time).
+ *  hasAM/hasPM drive the AM/PM color split inside each cell. */
 export interface CalendarEntry {
   id: number;
   date: string;
   category: string;
   categoryName: string;
   shortName: string;
-  startTime: string;
   course: string;
+  /** True when at least one group of this category tees off before 12:00. */
+  hasAM: boolean;
+  /** True when at least one group of this category tees off at/after 12:00. */
+  hasPM: boolean;
+  /** Formatted AM tee time ("7:00 AM") or null. */
+  amTime: string | null;
+  /** Formatted PM tee time ("1:30 PM") or null. */
+  pmTime: string | null;
+  /** Number of groups starting in the AM half. */
+  amGroups: number;
+  /** Number of groups starting in the PM half. */
+  pmGroups: number;
+  /** @deprecated kept for backward compatibility. */
+  startTime?: string;
 }
 
 /** Legacy types kept for backward compatibility */
