@@ -197,7 +197,7 @@ const AtraccionesSection = () => {
               even when the dialog is purely visual (image lightbox). The label
               is hidden visually via Tailwind's `sr-only` utility. */}
           <DialogTitle className="sr-only">
-            {current ? `Atracción: ${current.title}` : 'Atracción'}
+            {current ? current.alt : 'Atracción'}
           </DialogTitle>
           <DialogDescription className="sr-only">
             Vista ampliada del póster del evento. Use las flechas para navegar.
