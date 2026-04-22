@@ -197,7 +197,7 @@ const Patrocinadores = () => {
               Contáctenos para conocer los beneficios de patrocinar el torneo de golf más prestigioso de la región.
             </p>
             <a 
-              href="mailto:patrocinios@torneoanual.com" 
+              href={mailtoHref}
               className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
               Contactar
