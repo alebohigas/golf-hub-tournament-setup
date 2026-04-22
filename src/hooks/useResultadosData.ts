@@ -144,6 +144,12 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         clubLogo: cp.clubLogo || '',
         statusCode: cp.statusCode || 'D',
         statusLabel: cp.statusLabel || 'Descalificado',
+        // Per-round scores (may be null if round not played / scorecard not closed)
+        r1: cp.r1 ?? null,
+        r2: cp.r2 ?? null,
+        r3: cp.r3 ?? null,
+        // Accumulated closed-card total
+        total: typeof cp.total === 'number' ? cp.total : 0,
       }));
 
       return {
