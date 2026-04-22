@@ -179,33 +179,18 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing - V Torneo Anual Terralta 2026 */
+/** Pricing — LXX Torneo Anual Valle Alto 2026 (single table, single payment). */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costos de Inscripción — Socios',
+    title: 'Costos de Inscripción',
+    subtitle: 'Solamente para jugadores que quieran participar en el Torneo',
     tiers: [
-      { categoria: 'Caballeros Socios (incluye cónyuge en centros de consumo)', costo: '$14,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Socias e hijas', costo: '$8,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Socias (cónyuge juega — 50% aplicado)', costo: '$4,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Caballeros Hijos', costo: '$11,200.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Hijas', costo: '$5,800.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Socios — Menores de 18 años', costo: '$4,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-    ],
-  },
-  {
-    title: 'Costos de Inscripción — Invitados',
-    tiers: [
-      { categoria: 'Caballeros Invitados (incluye cónyuge en centros de consumo)', costo: '$17,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Invitadas', costo: '$9,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Invitadas (cónyuge juega — 50% aplicado)', costo: '$4,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitados — Menores de 18 años', costo: '$6,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-    ],
-  },
-  {
-    title: 'Centros de Consumo (No Jugadores)',
-    tiers: [
-      { categoria: 'Acceso por día', costo: '$2,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Acceso toda la semana', costo: '$8,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Socios Titulares',           costo: '$6,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Eméritos',                   costo: '$5,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas',                      costo: '$5,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Dependientes',               costo: '$5,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados Caballeros',       costo: '$18,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados Damas y Juveniles',costo: '$10,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
@@ -232,21 +217,21 @@ export interface ContactInfo {
 }
 
 /** Pricing note */
-export const pricingNote = "Cargos de inscripción para Socios: si se inscriben en Abril el cargo se realiza en 3 meses (Abril, Mayo y Junio); en Mayo en 2 meses (Mayo y Junio); en Junio en 1 solo mes. Invitados pagan en una sola exhibición. La inscripción no es transferible — no se aceptan cancelaciones posteriores al 25 de Mayo.";
+export const pricingNote = "";
 
 /** Contact/banking info - Gómez Palacio */
 export const contactInfo: ContactInfo = {
-  bankName: 'Bancrea',
-  clabe: '152580120000725303',
-  cuenta: '12000072530',
-  nombre: 'Terralta A.C.',
+  bankName: '',
+  clabe: '',
+  cuenta: '',
+  nombre: '',
   email: '',
-  telefono: '81 8093 1078',
-  telefonoDirecto: '81 8093 1078',
+  telefono: '',
+  telefonoDirecto: '',
 };
 
 /** Contact warning */
-export const contactWarning = "Será indispensable el registro diario en la recepción del Club para contar con el brazalete que da acceso al servicio de alimentos y bebidas (uso obligatorio en la muñeca durante todo el torneo).";
+export const contactWarning = "";
 
 /** Día de práctica */
 export const diaDePracticaText = "";
