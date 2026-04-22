@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useSponsors } from '@/hooks/useTournamentData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useState, useCallback } from 'react';
 import SponsorLogoImage, { SponsorLogoStatus } from '@/components/sponsors/SponsorLogoImage';
 // Hero background image dedicated to the Patrocinadores section.
