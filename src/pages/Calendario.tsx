@@ -5,6 +5,7 @@
  * Also shows convocatoria schedule/horario data when available
  */
 
+import { useRef, useCallback } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import type { CalendarDate, CalendarEntry } from '@/data/calendarioData';
 import calendarioHero from '@/assets/calendario-hero.jpg';
 import { scheduleData, salidasText } from '@/data/mockData';
 import ScheduleTable from '@/components/convocatoria/ScheduleTable';
+import { useRowSnap } from '@/hooks/useRowSnap';
 
 /** Map English day/month names to Spanish */
 const dayNameEs: Record<string, string> = {
@@ -109,6 +111,25 @@ const Calendario = () => {
   const entries = data?.entries ?? [];
   const amTotals = data?.amTotals ?? {};
   const pmTotals = data?.pmTotals ?? {};
+
+  /** Ref to the <tbody> whose rows we want to snap to. */
+  const tbodyRef = useRef<HTMLTableSectionElement>(null);
+
+  /**
+   * Live sticky-header offset (in px). Keep this in sync with the `top-*`
+   * Tailwind classes used by the sticky day-of-week row in the table:
+   *   mobile  : top-[8.75rem] -> 8.75 * 16 = 140px
+   *   desktop : top-[9.75rem] -> 9.75 * 16 = 156px
+   * We add a small +1px buffer so the snap aligns flush with the bottom
+   * border of the sticky header.
+   */
+  const getStickyOffset = useCallback(() => {
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    return (isDesktop ? 9.75 : 8.75) * 16 + 1;
+  }, []);
+
+  // Enable snap only when the table actually has rows.
+  useRowSnap(tbodyRef, getStickyOffset, !isLoading && entries.length > 0);
 
   /** Group entries by category for the matrix table */
   const categoryMap = new Map<string, { name: string; shortName: string; byDate: Map<string, CalendarEntry[]> }>();
@@ -250,7 +271,7 @@ const Calendario = () => {
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody ref={tbodyRef}>
                       {categories.map(([catKey, catData], idx) => (
                         <tr key={catKey} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
                           <td className="border border-border/40 p-2 font-medium text-foreground whitespace-nowrap">
