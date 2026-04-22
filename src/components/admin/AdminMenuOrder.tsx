@@ -9,9 +9,17 @@
  * The admin can:
  *   - Reorder standalone pages and groups at the top level.
  *   - Reorder pages WITHIN a group.
- *   - Move a page OUT of a group by dragging it to the top-level list.
- *   - Move a page INTO a group by dragging it onto the group's drop zone.
+ *   - Move a page from one group into another group.
  *   - Toggle a group's visibility (synced via onGroupsChange).
+ *
+ * NOTE: Adding/removing a page to/from a group via drag-and-drop is
+ * intentionally disabled here because it conflicts with intra-group
+ * reordering (the outer "top-level" droppable would steal drops from
+ * pages being reordered inside a nested group). Use the
+ * "Grupos del Menú" tab to assign pages to / unassign pages from groups.
+ * To enforce this, the top-level Droppable uses type "row" while group
+ * Droppables use type "page" — @hello-pangea/dnd only allows a draggable
+ * to drop into a droppable of the same type.
  *
  * The hierarchical state is flattened into a per-page `menuItemOrder` map
  * (pageId → sequential order number) on every change, which keeps the
