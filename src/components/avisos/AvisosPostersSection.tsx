@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type AvisosConfig, type EventosGap } from '@/hooks/useSiteConfig';
+import { applyOrder } from '@/lib/posterOrder';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ---------- Asset imports (ES6 modules, optimized by Vite) ----------
 import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
@@ -111,6 +113,12 @@ const AvisosPostersSection = () => {
     ...(siteConfig?.avisos_config ?? {}),
   };
 
+  // Pick the active poster order based on the current breakpoint. Mobile
+  // and desktop have independent orderings so the admin can tune each.
+  const isMobile = useIsMobile();
+  const activeOrder = isMobile ? cfg.mobileOrder : cfg.desktopOrder;
+  const orderedPosters = applyOrder(AVISOS_POSTERS, activeOrder);
+
   /**
    * Compose the responsive grid class string from the admin-selected
    * column counts and gap presets. Mobile = base, desktop = md: prefix.
@@ -128,12 +136,12 @@ const AvisosPostersSection = () => {
 
   // Navigation helpers (memoized so they're stable for the keydown handler).
   const goPrev = useCallback(() => {
-    setOpenIndex((i) => (i === null ? null : (i - 1 + AVISOS_POSTERS.length) % AVISOS_POSTERS.length));
-  }, []);
+    setOpenIndex((i) => (i === null ? null : (i - 1 + orderedPosters.length) % orderedPosters.length));
+  }, [orderedPosters.length]);
 
   const goNext = useCallback(() => {
-    setOpenIndex((i) => (i === null ? null : (i + 1) % AVISOS_POSTERS.length));
-  }, []);
+    setOpenIndex((i) => (i === null ? null : (i + 1) % orderedPosters.length));
+  }, [orderedPosters.length]);
 
   // Keyboard navigation while the lightbox is open.
   useEffect(() => {
@@ -146,7 +154,7 @@ const AvisosPostersSection = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [openIndex, goPrev, goNext]);
 
-  const current = openIndex !== null ? AVISOS_POSTERS[openIndex] : null;
+  const current = openIndex !== null ? orderedPosters[openIndex] : null;
 
   return (
     <section className="py-16 bg-muted/30">
@@ -163,7 +171,7 @@ const AvisosPostersSection = () => {
 
         {/* ---------- Responsive poster grid ---------- */}
         <div className={gridClass}>
-          {AVISOS_POSTERS.map((card, idx) => (
+          {orderedPosters.map((card, idx) => (
             <button
               key={card.src}
               type="button"
@@ -248,7 +256,7 @@ const AvisosPostersSection = () => {
 
               {/* Counter label */}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-background/80 backdrop-blur text-xs text-foreground font-medium">
-                {(openIndex ?? 0) + 1} / {AVISOS_POSTERS.length}
+                {(openIndex ?? 0) + 1} / {orderedPosters.length}
               </div>
             </div>
           )}

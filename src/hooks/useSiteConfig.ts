@@ -69,6 +69,15 @@ export interface EventosConfig {
   mobileColumns: number;
   desktopGap: EventosGap;
   mobileGap: EventosGap;
+  /**
+   * Optional custom poster order for the desktop layout. Stored as a list
+   * of zero-based indices into the static poster array defined in the
+   * public component. Indices not present in the list fall back to the
+   * default static order and are appended at the end.
+   */
+  desktopOrder?: number[];
+  /** Optional custom poster order for the mobile layout (same semantics). */
+  mobileOrder?: number[];
 }
 
 /**
@@ -81,6 +90,9 @@ export interface AvisosConfig {
   mobileColumns: number;
   desktopGap: EventosGap;
   mobileGap: EventosGap;
+  /** Optional custom poster order per breakpoint (see EventosConfig). */
+  desktopOrder?: number[];
+  mobileOrder?: number[];
 }
 
 /** Full server response for site config */

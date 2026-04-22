@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
+import { applyOrder } from '@/lib/posterOrder';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ---------- Asset imports (ES6 modules, optimized by Vite) ----------
 import dia24 from '@/assets/eventos/dia-24-viernes.webp';
@@ -107,6 +109,12 @@ const AtraccionesSection = () => {
     ...(siteConfig?.eventos_config ?? {}),
   };
 
+  // Pick the active poster order based on the current breakpoint. Mobile
+  // and desktop have independent orderings so the admin can tune each.
+  const isMobile = useIsMobile();
+  const activeOrder = isMobile ? cfg.mobileOrder : cfg.desktopOrder;
+  const orderedAtracciones = applyOrder(ATRACCIONES, activeOrder);
+
   /**
    * Compose the responsive grid class string from the admin-selected
    * column counts and gap presets. Mobile = base, desktop = md: prefix.
@@ -124,12 +132,12 @@ const AtraccionesSection = () => {
 
   // Navigation helpers (memoized so they're stable for the keydown handler).
   const goPrev = useCallback(() => {
-    setOpenIndex((i) => (i === null ? null : (i - 1 + ATRACCIONES.length) % ATRACCIONES.length));
-  }, []);
+    setOpenIndex((i) => (i === null ? null : (i - 1 + orderedAtracciones.length) % orderedAtracciones.length));
+  }, [orderedAtracciones.length]);
 
   const goNext = useCallback(() => {
-    setOpenIndex((i) => (i === null ? null : (i + 1) % ATRACCIONES.length));
-  }, []);
+    setOpenIndex((i) => (i === null ? null : (i + 1) % orderedAtracciones.length));
+  }, [orderedAtracciones.length]);
 
   // Keyboard navigation while the lightbox is open.
   useEffect(() => {
@@ -142,7 +150,7 @@ const AtraccionesSection = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [openIndex, goPrev, goNext]);
 
-  const current = openIndex !== null ? ATRACCIONES[openIndex] : null;
+  const current = openIndex !== null ? orderedAtracciones[openIndex] : null;
 
   return (
     <section className="py-16 bg-muted/30">
@@ -159,7 +167,7 @@ const AtraccionesSection = () => {
 
         {/* ---------- Responsive poster grid ---------- */}
         <div className={gridClass}>
-          {ATRACCIONES.map((card, idx) => (
+          {orderedAtracciones.map((card, idx) => (
             <button
               key={card.src}
               type="button"
@@ -246,7 +254,7 @@ const AtraccionesSection = () => {
 
               {/* Counter label */}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-background/80 backdrop-blur text-xs text-foreground font-medium">
-                {(openIndex ?? 0) + 1} / {ATRACCIONES.length}
+                {(openIndex ?? 0) + 1} / {orderedAtracciones.length}
               </div>
             </div>
           )}
