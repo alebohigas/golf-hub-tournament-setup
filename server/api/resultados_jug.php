@@ -137,7 +137,7 @@ $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t
 /**
  * Maps player estatus to a display code:
  * NORMAL → null (active player), NO SHOW/SHOW-NO → S, 
- * RETIRO/ABANDONO → R, DESCALIFICADO/DQ → D, other → D
+ * RETIRO/ABANDONO → R, DESCALIFICADO/DQ → D, CORTE/CUT → C, other → D
  */
 function mapEstatus($estatus) {
     $e = strtoupper(trim($estatus));
@@ -145,14 +145,16 @@ function mapEstatus($estatus) {
     if ($e === 'NO SHOW' || $e === 'SHOW-NO' || $e === 'NO-SHOW') return 'S';
     if ($e === 'RETIRO' || $e === 'ABANDONO') return 'R';
     if ($e === 'DESCALIFICADO' || $e === 'DQ') return 'D';
+    if ($e === 'CORTE' || $e === 'CUT') return 'C';
     return 'D'; // default for unknown non-NORMAL statuses
 }
 
-/** Map status code to descriptive label */
+/** Map status code to descriptive (capitalized) label */
 function statusLabel($code) {
     if ($code === 'S') return 'No Show';
     if ($code === 'R') return 'Retiro';
     if ($code === 'D') return 'Descalificado';
+    if ($code === 'C') return 'Corte';
     return '';
 }
 

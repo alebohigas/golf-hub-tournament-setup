@@ -51,11 +51,13 @@ const getPositionIcon = (position: number, medalCount: number) => {
 
 /**
  * Returns status badge color classes based on status code
- * S = No Show (muted), R = Retiro (warning), D = Descalificado (destructive)
+ * S = No Show (muted), R = Retiro (warning), D = Descalificado (destructive),
+ * C = Corte (info/blue)
  */
 const getStatusBadgeClasses = (code: string) => {
   if (code === 'S') return 'bg-muted text-muted-foreground';
   if (code === 'R') return 'bg-amber-100 text-amber-800';
+  if (code === 'C') return 'bg-blue-100 text-blue-800';
   return 'bg-red-100 text-red-800'; // D
 };
 
