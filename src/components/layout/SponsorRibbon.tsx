@@ -127,6 +127,14 @@ const SponsorRibbon = () => {
    *  - Desktop with visibleCount > 0: fixed fractional width per logo.
    *  - Mobile / auto mode: natural width with minimal horizontal spacing so
    *    logos fill the ribbon without large empty gaps.
+   *
+   * IMPORTANT: The flex track (`.sponsor-scroll`) is sized with
+   * `width: max-content` so the CSS keyframe `translateX(-50%)` animates the
+   * full sequence smoothly. Because of that, percentage widths on the slots
+   * would create a circular sizing reference (`%` of `max-content` collapses
+   * to 0). We therefore size each slot in viewport units (`vw`) instead of
+   * percent — the ribbon spans the full viewport width, so `100vw / N` is
+   * exactly the desired "N logos fully visible at once".
    */
   const slotClass =
     visibleCount > 0
@@ -135,7 +143,7 @@ const SponsorRibbon = () => {
         ? 'flex-shrink-0 px-2 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity duration-300'
         : 'flex-shrink-0 mx-8 opacity-60 hover:opacity-100 transition-opacity duration-300';
   const slotStyle: React.CSSProperties =
-    visibleCount > 0 ? { width: `${100 / visibleCount}%` } : {};
+    visibleCount > 0 ? { width: `${100 / visibleCount}vw` } : {};
 
   /**
    * Animation speed.
