@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
+import { applyOrder } from '@/lib/posterOrder';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ---------- Asset imports (ES6 modules, optimized by Vite) ----------
 import dia24 from '@/assets/eventos/dia-24-viernes.webp';
