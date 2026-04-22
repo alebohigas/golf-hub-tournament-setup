@@ -52,6 +52,35 @@ const getGridConfig = (columns: number) => {
 const Patrocinadores = () => {
   const { data: sponsors = [], isLoading } = useSponsors();
   const { data: siteConfig } = useSiteConfig();
+  const { data: tournamentInfo } = useTournamentInfo();
+
+  /**
+   * Build a prefilled mailto link for the "Contactar" CTA.
+   * - Recipient: tournament email (`torneo.correotorne`) when available.
+   * - Subject: fixed marketing subject for sponsorship inquiries.
+   * - Body: structured request listing the data we want sponsors to receive
+   *   (Opción 2 — profesional con datos solicitados).
+   * `encodeURIComponent` is used on every dynamic part to keep the URL valid
+   * (line breaks become %0A, accented characters are preserved, etc.).
+   */
+  const sponsorEmail = tournamentInfo?.email || '';
+  const mailSubject = 'Información para Patrocinar Torneos';
+  const mailBody = [
+    'Estimado Comité Organizador,',
+    '',
+    'Mi empresa está interesada en evaluar oportunidades de patrocinio para el próximo torneo. Les agradecería poder recibir la siguiente información:',
+    '',
+    '• Paquetes de patrocinio disponibles y sus beneficios',
+    '• Inversión estimada por nivel',
+    '• Visibilidad de marca incluida (logo en cancha, ribbon, página web, etc.)',
+    '• Fechas límite para confirmar participación',
+    '',
+    'Quedo atento a sus comentarios para coordinar una llamada o reunión.',
+    '',
+    'Saludos cordiales,',
+    '[Nombre / Empresa]',
+  ].join('\n');
+  const mailtoHref = `mailto:${sponsorEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
 
   /** Resolved column count from server config, falling back to the default */
   const columns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
