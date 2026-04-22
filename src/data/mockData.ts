@@ -84,15 +84,15 @@ export const sponsors: Sponsor[] = [
 
 export const tournamentInfo: TournamentInfo = {
   id: '51',
-  name: '51° Torneo Anual de Golf',
-  club: 'Club Campestre Torreón',
+  name: 'V Torneo Anual Terralta 2026',
+  club: 'Terralta Country Club',
   logoUrl: '',
   heroImageUrl: '',
   logoHeaderUrl: '',
-  startDate: '2025-09-30',
-  endDate: '2025-10-04',
-  venue: 'Club Campestre Torreón',
-  phone: '(52) 871 721 2323',
+  startDate: '2026-06-26',
+  endDate: '2026-07-04',
+  venue: 'Terralta Country Club',
+  phone: '81 8093 1078',
   email: '',
   city: '',
   state: '',
@@ -118,10 +118,18 @@ export const tournamentStats: TournamentStats = {
 };
 
 /** Eligibility requirements from convocatoria */
-export const eligibilityText = "";
+export const eligibilityText =
+  "Podrán participar Damas y Caballeros mayores de 18 años con estatus de amateur que tengan hándicap GHIN vigente registrado en la FMG, publicado al 15 de mayo del 2026 (el más bajo si pertenece a dos o más clubes). En las categorías Campeonato y Premier se permitirá participar a jugadores de 14 años en adelante con 0.0 de H.I., debiendo contar con registros en torneos juveniles con scores debajo de 85 golpes. En las dos categorías Seniors los jugadores deberán tener 50 años y los Super Seniors 65 años (cumplidos al 15 de mayo del 2026). En la 1ª categoría de Damas se permitirá participar a jugadoras de 14 años en adelante con +5.0 a 14.8 de H.I.";
 
 /** Important notes for eligibility section */
-export const notesText: string[] = [];
+export const notesText: string[] = [
+  "Inicio de inscripciones — Socios: 16 de Abril de 2026. Invitados: 1 de Mayo de 2026. Cierre de inscripciones: 22 de Junio de 2026.",
+  "Handicap: se jugará con el handicap federado del día 15 de mayo de 2026.",
+  "Habrá corte en todas las categorías de Caballeros después de la 2ª ronda. En las 5 categorías de Damas no habrá corte.",
+  "Si una categoría alcanza el número máximo de jugadores, se cerrará y los jugadores fuera entrarán en lista de espera.",
+  "Durante el desarrollo del Torneo Anual queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación. Solo se autoriza el acceso a menores que jueguen en categoría Premier de caballeros y 1ª categoría de damas.",
+  "El comité organizador se reserva el derecho de aceptar a cualquier jugador o sembrarlo en otra categoría. Jugador sin GHIN deberá firmar carta de aceptación.",
+];
 
 export interface ScheduleSlot {
   turno: string;
@@ -146,13 +154,13 @@ export const handicapText = "";
 export const desempatesText = "";
 
 /** Premios description */
-export const premiosText = "Se entregarán trofeos al 1°, 2° y 3° lugar de cada categoría y primer Gross a la Primera categoría. Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación.";
+export const premiosText = "Premio Hole in One: $1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se logra durante el torneo, será rifado entre los jugadores inscritos durante la ceremonia de premiación del 4 de Julio (es indispensable estar presente para participar).";
 
 /** Eventos adicionales */
-export const eventosAdicionalesText = "Automóvil 2026 Hole in One, Premios O'Yes General, Torneo de Putt, Torneo de Approach.";
+export const eventosAdicionalesText = "Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O'Yes.";
 
 /** Inscripciones text */
-export const inscripcionesText = "Informes e inscripciones: Oficinas del Club Campestre de Gómez Palacio. Tel: 87 17 14 20 35. WhatsApp: 871 158 8744.";
+export const inscripcionesText = "Inscripciones en https://terralta.speitour.com (información del torneo, salidas, programa de juego y resultados). Reservaciones e informes: 81 8093 1078.";
 
 export interface PricingTier {
   categoria: string;
