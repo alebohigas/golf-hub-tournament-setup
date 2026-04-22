@@ -84,15 +84,15 @@ export const sponsors: Sponsor[] = [
 
 export const tournamentInfo: TournamentInfo = {
   id: '51',
-  name: '51° Torneo Anual de Golf',
-  club: 'Club Campestre Torreón',
+  name: 'V Torneo Anual Terralta 2026',
+  club: 'Terralta Country Club',
   logoUrl: '',
   heroImageUrl: '',
   logoHeaderUrl: '',
-  startDate: '2025-09-30',
-  endDate: '2025-10-04',
-  venue: 'Club Campestre Torreón',
-  phone: '(52) 871 721 2323',
+  startDate: '2026-06-26',
+  endDate: '2026-07-04',
+  venue: 'Terralta Country Club',
+  phone: '81 8093 1078',
   email: '',
   city: '',
   state: '',
@@ -118,10 +118,18 @@ export const tournamentStats: TournamentStats = {
 };
 
 /** Eligibility requirements from convocatoria */
-export const eligibilityText = "";
+export const eligibilityText =
+  "Podrán participar Damas y Caballeros mayores de 18 años con estatus de amateur que tengan hándicap GHIN vigente registrado en la FMG, publicado al 15 de mayo del 2026 (el más bajo si pertenece a dos o más clubes). En las categorías Campeonato y Premier se permitirá participar a jugadores de 14 años en adelante con 0.0 de H.I., debiendo contar con registros en torneos juveniles con scores debajo de 85 golpes. En las dos categorías Seniors los jugadores deberán tener 50 años y los Super Seniors 65 años (cumplidos al 15 de mayo del 2026). En la 1ª categoría de Damas se permitirá participar a jugadoras de 14 años en adelante con +5.0 a 14.8 de H.I.";
 
 /** Important notes for eligibility section */
-export const notesText: string[] = [];
+export const notesText: string[] = [
+  "Inicio de inscripciones — Socios: 16 de Abril de 2026. Invitados: 1 de Mayo de 2026. Cierre de inscripciones: 22 de Junio de 2026.",
+  "Handicap: se jugará con el handicap federado del día 15 de mayo de 2026.",
+  "Habrá corte en todas las categorías de Caballeros después de la 2ª ronda. En las 5 categorías de Damas no habrá corte.",
+  "Si una categoría alcanza el número máximo de jugadores, se cerrará y los jugadores fuera entrarán en lista de espera.",
+  "Durante el desarrollo del Torneo Anual queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación. Solo se autoriza el acceso a menores que jueguen en categoría Premier de caballeros y 1ª categoría de damas.",
+  "El comité organizador se reserva el derecho de aceptar a cualquier jugador o sembrarlo en otra categoría. Jugador sin GHIN deberá firmar carta de aceptación.",
+];
 
 export interface ScheduleSlot {
   turno: string;
@@ -146,13 +154,13 @@ export const handicapText = "";
 export const desempatesText = "";
 
 /** Premios description */
-export const premiosText = "Se entregarán trofeos al 1°, 2° y 3° lugar de cada categoría y primer Gross a la Primera categoría. Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación.";
+export const premiosText = "Premio Hole in One: $1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se logra durante el torneo, será rifado entre los jugadores inscritos durante la ceremonia de premiación del 4 de Julio (es indispensable estar presente para participar).";
 
 /** Eventos adicionales */
-export const eventosAdicionalesText = "Automóvil 2026 Hole in One, Premios O'Yes General, Torneo de Putt, Torneo de Approach.";
+export const eventosAdicionalesText = "Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O'Yes.";
 
 /** Inscripciones text */
-export const inscripcionesText = "Informes e inscripciones: Oficinas del Club Campestre de Gómez Palacio. Tel: 87 17 14 20 35. WhatsApp: 871 158 8744.";
+export const inscripcionesText = "Inscripciones en https://terralta.speitour.com (información del torneo, salidas, programa de juego y resultados). Reservaciones e informes: 81 8093 1078.";
 
 export interface PricingTier {
   categoria: string;
@@ -170,12 +178,33 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing - Semana Santa Chilchota 2026 */
+/** Pricing - V Torneo Anual Terralta 2026 */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costo de Inscripción',
+    title: 'Costos de Inscripción — Socios',
     tiers: [
-      { categoria: 'Inscripción General', costo: '$3,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Caballeros Socios (incluye cónyuge en centros de consumo)', costo: '$14,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Socias e hijas', costo: '$8,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Socias (cónyuge juega — 50% aplicado)', costo: '$4,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Caballeros Hijos', costo: '$11,200.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Hijas', costo: '$5,800.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Socios — Menores de 18 años', costo: '$4,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+    ],
+  },
+  {
+    title: 'Costos de Inscripción — Invitados',
+    tiers: [
+      { categoria: 'Caballeros Invitados (incluye cónyuge en centros de consumo)', costo: '$17,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Invitadas', costo: '$9,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Damas Invitadas (cónyuge juega — 50% aplicado)', costo: '$4,500.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Invitados — Menores de 18 años', costo: '$6,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+    ],
+  },
+  {
+    title: 'Centros de Consumo (No Jugadores)',
+    tiers: [
+      { categoria: 'Acceso por día', costo: '$2,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Acceso toda la semana', costo: '$8,000.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
@@ -202,21 +231,21 @@ export interface ContactInfo {
 }
 
 /** Pricing note */
-export const pricingNote = "";
+export const pricingNote = "Cargos de inscripción para Socios: si se inscriben en Abril el cargo se realiza en 3 meses (Abril, Mayo y Junio); en Mayo en 2 meses (Mayo y Junio); en Junio en 1 solo mes. Invitados pagan en una sola exhibición. La inscripción no es transferible — no se aceptan cancelaciones posteriores al 25 de Mayo.";
 
 /** Contact/banking info - Gómez Palacio */
 export const contactInfo: ContactInfo = {
-  bankName: '',
-  clabe: '',
-  cuenta: '',
-  nombre: 'Club Campestre de Gómez Palacio',
+  bankName: 'Bancrea',
+  clabe: '152580120000725303',
+  cuenta: '12000072530',
+  nombre: 'Terralta A.C.',
   email: '',
-  telefono: '87 17 14 20 35',
-  telefonoDirecto: '871 158 8744',
+  telefono: '81 8093 1078',
+  telefonoDirecto: '81 8093 1078',
 };
 
 /** Contact warning */
-export const contactWarning = "";
+export const contactWarning = "Será indispensable el registro diario en la recepción del Club para contar con el brazalete que da acceso al servicio de alimentos y bebidas (uso obligatorio en la muñeca durante todo el torneo).";
 
 /** Día de práctica */
 export const diaDePracticaText = "";
@@ -244,8 +273,11 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
 ];
 
-/** Description text - Semana Santa Chilchota 2026 */
-export const convocatoriaDescripcion = "Se convoca a todos los socios e invitados a participar en el Torneo Anual de Golf Semana Santa Chilchota 2026, que se llevará a cabo los días 1, 2, 3 y 4 de abril de 2026 en las instalaciones del Club Campestre de Gómez Palacio.";
+/** Description text - V Torneo Anual Terralta 2026 */
+export const convocatoriaDescripcion =
+  "Terralta A.C. celebra su V Torneo Anual de invitación edición 2026, el cual se llevará a cabo del 26 de Junio al 4 de Julio de 2026.\n\n" +
+  "La inscripción al Torneo Anual incluye: Kit de bienvenida, Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O'Yes y alimentos y bebidas en los centros de consumo (jugador y cónyuge).\n\n" +
+  "Premio Hole in One: $1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se realiza ningún Hole in One durante el torneo, el premio será rifado entre los jugadores inscritos el día 4 de Julio durante la ceremonia de premiación (es indispensable estar presente para participar). En caso de un segundo o más Hole in One, el Socio ganador recibirá un año de cuotas de mantenimiento sin costo; si no es socio, recibirá una membresía anual con cuota de mantenimiento incluida.";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
@@ -253,15 +285,48 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación data - Semana Santa Chilchota 2026 */
+/** Premiación data - V Torneo Anual Terralta 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Todas las Categorías',
-    premios: ['1°, 2° y 3° Lugar - Trofeo', 'Primer Gross a la Primera Categoría - Trofeo'],
+    categoria: 'Hole in One',
+    premios: [
+      '$1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3',
+      'Si no se logra durante el torneo, será rifado entre los jugadores inscritos (4 de Julio en la ceremonia de premiación)',
+      'Segundo o más Hole in One — Socio: 1 año de cuotas de mantenimiento sin costo (≈ $226,200)',
+      'Segundo o más Hole in One — Invitado: Membresía anual con cuota de mantenimiento incluida (≈ $226,200, no transferible)',
+    ],
   },
   {
-    categoria: 'Premios Adicionales',
-    premios: ['Pantallas, estancias en Mazatlán y muchos premios más en ceremonia de premiación'],
+    categoria: 'Mejor O\'Yes del Torneo',
+    premios: [
+      'Sistema fotovoltaico de 20 paneles solares — 12,000 watts de potencia',
+      'Incluye paneles, inversor, estructura, instalación, material eléctrico y trámite ante CFE',
+      'No aplica para Hole in One',
+    ],
+  },
+  {
+    categoria: 'Premios de O\'Yes Diarios',
+    premios: ['Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16'],
+  },
+  {
+    categoria: 'Torneo de Long Driver Caballeros',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
+  },
+  {
+    categoria: 'Torneo de Driver de Precisión Damas',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
+  },
+  {
+    categoria: 'Torneo de Driver de Distancia Caballeros',
+    premios: ['Premio: Technogym Connected Dumbbells'],
+  },
+  {
+    categoria: 'Torneo de Putt Caballeros',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
+  },
+  {
+    categoria: 'Torneo de Putt Damas',
+    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
   },
 ];
 
@@ -271,8 +336,54 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Reglas locales - Semana Santa (no detailed rules in flyer) */
-export const reglasData: ReglaItem[] = [];
+/** Reglas y notas — V Torneo Anual Terralta 2026 */
+export const reglasData: ReglaItem[] = [
+  {
+    titulo: 'Brazalete y Acceso',
+    contenido:
+      'Será indispensable el registro diario en la recepción del Club para contar con el brazalete que da acceso al servicio de alimentos y bebidas. Deberá portarse sin excepción en la muñeca durante todo el torneo.',
+  },
+  {
+    titulo: 'Cancelaciones',
+    contenido:
+      'No se aceptan bonificaciones por cancelación posterior al 25 de Mayo. La cancelación debe realizarse a través de https://terralta.speitour.com sin excepción. La inscripción no es transferible. Posterior a la fecha de cancelación no habrá bonificación, incluso por causa mayor, médica, personal o laboral.',
+  },
+  {
+    titulo: 'Corte (Caballeros)',
+    contenido:
+      'Habrá corte en todas las categorías después de la 2ª ronda. Si por causas climatológicas no se logran jugar dos rondas de 18 hoyos, el comité organizador decidirá a cuántos hoyos se hará el corte. En las 5 categorías de Damas no habrá corte.',
+  },
+  {
+    titulo: 'Cupo de Categoría',
+    contenido:
+      'Si una categoría alcanza el número máximo de jugadores se cerrará y los jugadores que se queden fuera entrarán en lista de espera. Si hay alguna cancelación o espacio se llamará al jugador para que se inscriba.',
+  },
+  {
+    titulo: 'Desempate por el Primer Lugar',
+    contenido:
+      '1) Se jugará en el campo, iniciando en el hoyo que designe el Comité.\n2) Si hay triple empate o más: el desempate por 1er lugar será por juego en el campo (solo un ganador absoluto). El desempate por 2°, 3° y demás se realiza por comparación de tarjetas.\n3) Si no hay luz natural o el clima impide jugar, el desempate por 1er lugar se decide por comparación de tarjetas.\n4) Si la competencia es Gross y Neto, solo el trofeo Gross procede a desempate por juego en el campo. El 1° Neto se define por comparación de tarjetas.',
+  },
+  {
+    titulo: 'Desempate por 2° Lugar y Demás Posiciones (Trofeo y Corte)',
+    contenido:
+      'Aplicando la Regla 5A (Método de comparación de tarjetas):\n1) Mejor ronda del último día.\n2) Si persiste: mejor score hoyos 10–18 → 13–18 → 16–18 → hoyo 18 → mismo procedimiento en la vuelta 1–9 → hoyo por hoyo del 18 al 1.\n3) Si la ronda oficial es de 9 hoyos, se aplica el mismo método sobre esos 9 hoyos.\nNota: en categorías con hándicap los desempates Neto se definen con score Neto, los Gross con score Gross. Se utiliza la misma modalidad de juego (Stroke Play o Stableford).',
+  },
+  {
+    titulo: 'Notas para Categorías',
+    contenido:
+      '• Se declarará desierta una categoría si tiene menos de 9 participantes; la fecha límite para definir esto será el jueves 25 de junio 2026.\n• El Comité Organizador podrá fusionar la categoría con otra o declararla desierta si no hay mínimo de jugadores.\n• La ronda estipulada será de 9 hoyos cuando aplique.\n• Ningún jugador podrá solicitar cambio de horario o día de juego.',
+  },
+  {
+    titulo: 'Notas para Cortes',
+    contenido:
+      '• El jugador que no pueda asistir a la ronda final por cualquier motivo deberá avisar a la oficina de golf inmediatamente al terminar su 2ª ronda para asignarle su retiro y permitir el ingreso del siguiente jugador en lista.\n• Un jugador que no pasó el corte oficialmente, una vez publicadas las listas, no podrá participar en la ronda final por ningún motivo.\n• Quien no avise, el Comité le asignará la categoría según su hándicap original o, si es mayor de 50, jugará en la categoría senior correspondiente.',
+  },
+  {
+    titulo: 'Restricción a Menores de Edad',
+    contenido:
+      'Durante el desarrollo del Torneo Anual queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación. Solo está autorizado el acceso a menores que jueguen en categoría Premier de Caballeros y 1ª categoría de Damas.',
+  },
+];
 
 /** Reglamento local - structured local rules with collapsible sections */
 export interface ReglamentoLocalItem {
@@ -395,27 +506,47 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Competencias especiales - Semana Santa Chilchota 2026 */
+/** Competencias especiales - V Torneo Anual Terralta 2026 */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
   {
-    nombre: 'Automóvil 2026 - Hole in One',
-    descripcion: 'Hoyo 7. Presentado por Quesos Chilchota. En caso de no caer el Hole in One, será rifado en la premiación.',
-    premios: 'Automóvil 2026.',
+    nombre: 'Hole in One — $1,000,000',
+    descripcion: 'Premio de Un Millón de Pesos al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se logra durante el torneo, el premio será rifado entre los jugadores inscritos el sábado 4 de Julio durante la ceremonia de premiación. Es indispensable estar presente para participar.',
+    premios: '$1,000,000 MXN.',
   },
   {
-    nombre: "Premios O'Yes General",
-    descripcion: "Hoyos 3, 7, 10 y 12.",
-    premios: "1ero: $1,000 USD. 2do: $850 USD. 3ero: $700 USD. 4to: $550 USD. 5to: $400 USD. 6to: $200 USD. 7mo: $100 USD.",
+    nombre: 'Torneo de Driver de Distancia (Caballeros)',
+    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 1. Días de competencia: viernes 26 de Junio al viernes 3 de Julio. Categorías: Seniors, D, C, B, A, AA.',
+    premios: 'Technogym Connected Dumbbells.',
   },
   {
-    nombre: 'Torneo de Putt',
-    descripcion: 'Torneo de Putt para jugadores inscritos.',
-    premios: 'Premio: $200 DLLS.',
+    nombre: 'Torneo de Driver de Precisión (Damas)',
+    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 10 de los tres días de competencia. Días: viernes 26, lunes 29 de Junio y miércoles 1 de Julio.',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
   },
   {
-    nombre: 'Torneo de Approach',
-    descripcion: 'Torneo de Approach para jugadores inscritos.',
-    premios: 'Premio: $200 DLLS.',
+    nombre: 'Torneo de Long Driver (Caballeros)',
+    descripcion: 'Día de competencia: jueves 2 de Julio (17:00 a 19:30 hrs). Lugar: Terraza Bar "La Vista".',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+  },
+  {
+    nombre: 'Torneo de Approach Mixto',
+    descripcion: 'Calificación: viernes 26 de Junio al jueves 2 de Julio (14:00 a 18:00 hrs) en el Tee de Práctica. Cada jugador tendrá 3 oportunidades por día y calificarán los 7 mejores tiros diarios. Final: viernes 3 de Julio a las 20:30 hrs en Terraza Bar "La Vista". Califican a la final 42 caballeros y 10 damas.',
+    premios: 'Se premiará a los 3 mejores lugares. Si hay Hole in One, será el mejor tiro y ganará el primer lugar.',
+  },
+  {
+    nombre: 'Torneo de Putt Caballeros',
+    descripcion: 'Calificación: viernes 26, sábado 27, domingo 28 de Junio y jueves 2 de Julio (14:00 a 18:30 hrs). Final: viernes 3 de Julio a las 18:00 hrs. Lugar: Putting Green.',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+  },
+  {
+    nombre: 'Torneo de Putt Damas',
+    descripcion: 'Fecha: lunes 29 de Junio. Horario: 16:00 hrs. Lugar: Putting Green.',
+    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+  },
+  {
+    nombre: 'Premios de O\'Yes Diarios',
+    descripcion: 'Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16.',
+    premios: 'Premios diarios por hoyo.',
   },
 ];
 // API simulation functions - replace with actual fetch calls
