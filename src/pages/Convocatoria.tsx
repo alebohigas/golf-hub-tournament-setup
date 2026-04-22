@@ -20,7 +20,6 @@ import ElegibilidadSection from '@/components/convocatoria/ElegibilidadSection';
 import CostosSection from '@/components/convocatoria/CostosSection';
 import CategoriasSection from '@/components/convocatoria/CategoriasSection';
 import PremiacionSection from '@/components/convocatoria/PremiacionSection';
-import CalendarioSection from '@/components/convocatoria/CalendarioSection';
 import ReglasSection from '@/components/convocatoria/ReglasSection';
 import CompetenciasEspecialesSection from '@/components/convocatoria/CompetenciasEspecialesSection';
 import ServiciosSection from '@/components/convocatoria/ServiciosSection';
@@ -31,7 +30,6 @@ import CalendarioJuegoSection from '@/components/convocatoria/CalendarioJuegoSec
 import {
   eligibilityText,
   notesText,
-  scheduleData,
   inscripcionesText,
   sociosPricing,
   foraneosPricing,
@@ -95,8 +93,6 @@ const renderSection = (sectionId: string) => {
       return <CategoriasSection />;
     case 'premiacion':
       return <PremiacionSection data={premiacionData} />;
-    case 'calendario':
-      return <CalendarioSection scheduleData={scheduleData} />;
     case 'reglas':
       return <ReglasSection data={reglasData} />;
     case 'competencias':
