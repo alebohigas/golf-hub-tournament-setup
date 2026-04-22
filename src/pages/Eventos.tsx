@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Gift, Loader2 } from 'lucide-react';
 import { useEventos } from '@/hooks/useTournamentData';
+import AtraccionesSection from '@/components/eventos/AtraccionesSection';
 
 const Eventos = () => {
   const { data: eventos = [], isLoading } = useEventos();
@@ -21,6 +22,8 @@ const Eventos = () => {
         subtitle="Programa de actividades del torneo"
         backgroundImage="https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=1920&q=80"
       />
+      {/* Visual posters of daily attractions (concerts, raffles, food, etc.) */}
+      <AtraccionesSection />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
