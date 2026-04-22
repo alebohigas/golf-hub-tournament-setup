@@ -83,16 +83,16 @@ export const sponsors: Sponsor[] = [
 ];
 
 export const tournamentInfo: TournamentInfo = {
-  id: '51',
-  name: 'V Torneo Anual Terralta 2026',
-  club: 'Terralta Country Club',
+  id: '70',
+  name: 'LXX Torneo Anual Valle Alto 2026',
+  club: 'Club de Golf Valle Alto',
   logoUrl: '',
   heroImageUrl: '',
   logoHeaderUrl: '',
-  startDate: '2026-06-26',
-  endDate: '2026-07-04',
-  venue: 'Terralta Country Club',
-  phone: '81 8093 1078',
+  startDate: '2026-04-24',
+  endDate: '2026-05-02',
+  venue: 'Club de Golf Valle Alto',
+  phone: '',
   email: '',
   city: '',
   state: '',
