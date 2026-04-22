@@ -71,6 +71,18 @@ export interface EventosConfig {
   mobileGap: EventosGap;
 }
 
+/**
+ * Configuration for the Avisos page poster grid.
+ * Mirrors EventosConfig (cols + gap per breakpoint) so admins can tune
+ * the visual presentation of the avisos posters independently from eventos.
+ */
+export interface AvisosConfig {
+  desktopColumns: number;
+  mobileColumns: number;
+  desktopGap: EventosGap;
+  mobileGap: EventosGap;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -82,6 +94,7 @@ export interface SiteConfig {
   live_scoring_config: LiveScoringEntry[] | null;
   sponsors_config: SponsorsConfig | null;
   eventos_config: EventosConfig | null;
+  avisos_config: AvisosConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -95,6 +108,7 @@ export interface SaveConfigPayload {
   live_scoring_config?: LiveScoringEntry[] | null;
   sponsors_config?: SponsorsConfig | null;
   eventos_config?: EventosConfig | null;
+  avisos_config?: AvisosConfig | null;
 }
 
 // ============= Constants =============
@@ -107,6 +121,7 @@ const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
 const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
 const SPONSORS_CONFIG_KEY = 'tournament_sponsors_config';
 const EVENTOS_CONFIG_KEY = 'tournament_eventos_config';
+const AVISOS_CONFIG_KEY = 'tournament_avisos_config';
 
 // ============= Fetch Functions =============
 
@@ -186,6 +201,11 @@ export const useSiteConfig = () => {
       // Sync eventos config
       if (config.eventos_config) {
         localStorage.setItem(EVENTOS_CONFIG_KEY, JSON.stringify(config.eventos_config));
+      }
+
+      // Sync avisos config
+      if (config.avisos_config) {
+        localStorage.setItem(AVISOS_CONFIG_KEY, JSON.stringify(config.avisos_config));
       }
 
       return config;
