@@ -503,7 +503,7 @@ const GroupRow = ({
             >
               {row.pageIds.length === 0 && !snapshot.isDraggingOver && (
                 <p className="text-xs text-muted-foreground italic py-2 px-2">
-                  Arrastra páginas aquí para añadirlas al grupo.
+                  Asigna páginas a este grupo desde la pestaña "Grupos del Menú".
                 </p>
               )}
               {row.pageIds.map((pageId, idx) => (
