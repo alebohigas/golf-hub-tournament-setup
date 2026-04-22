@@ -42,6 +42,54 @@ const teeMarkerColors: Record<string, string> = {
   VERDE: 'bg-green-600',
 };
 
+/**
+ * Map of common HEX color codes (uppercase, no spaces) to their Spanish
+ * tee-marker color name. The DB sometimes stores `salidas.color` as a hex
+ * string (e.g. "#FFFFFF") instead of the friendly name; this lookup converts
+ * those codes to the readable label shown in the "MARCAS" column.
+ * Unknown codes fall through and the raw value (uppercased) is shown.
+ */
+const hexToColorName: Record<string, string> = {
+  '#FFFFFF': 'BLANCAS',
+  '#FFF':    'BLANCAS',
+  '#000000': 'NEGRAS',
+  '#000':    'NEGRAS',
+  '#0000FF': 'AZULES',
+  '#1E40AF': 'AZULES',
+  '#2563EB': 'AZULES',
+  '#3B82F6': 'AZULES',
+  '#FF0000': 'ROJAS',
+  '#DC2626': 'ROJAS',
+  '#EF4444': 'ROJAS',
+  '#FFFF00': 'AMARILLAS',
+  '#FACC15': 'AMARILLAS',
+  '#FDE047': 'AMARILLAS',
+  '#FFD700': 'DORADAS',
+  '#D4AF37': 'DORADAS',
+  '#B8860B': 'DORADAS',
+  '#F59E0B': 'DORADAS',
+  '#008000': 'VERDES',
+  '#16A34A': 'VERDES',
+  '#22C55E': 'VERDES',
+  '#15803D': 'VERDES',
+  '#C0C0C0': 'PLATEADAS',
+  '#A0A0A0': 'PLATEADAS',
+};
+
+/**
+ * Resolve any value (hex code or already-named color) into a friendly
+ * Spanish tee marker name. Returns an uppercase string suitable both for
+ * display and as a key into `teeMarkerColors`.
+ */
+const normalizeTeeColor = (raw?: string): string => {
+  if (!raw) return '';
+  const trimmed = raw.trim().toUpperCase();
+  // Hex form: look up in the dictionary; if unknown, hide the raw hex
+  // (we don't want to show "#FFFFFF" in the UI) and fall back to "".
+  if (trimmed.startsWith('#')) return hexToColorName[trimmed] || '';
+  return trimmed;
+};
+
 /** Format the handicap range with proper sign (e.g. "+5.0 A 1.2") */
 const formatHcpRange = (min: number, max: number): string => {
   const fmt = (n: number) => {
@@ -65,9 +113,17 @@ const formatCupo = (maxPlayers?: number): string => {
   return String(maxPlayers);
 };
 
-/** Resolve the tee name to display in the "MARCAS" column */
+/**
+ * Resolve the tee marker name to display in the "MARCAS" column.
+ * Prefers the friendly tee name (e.g. "BLANCAS") and falls back to converting
+ * hex codes coming from `salidas.color` into a readable Spanish name.
+ */
 const resolveTeeName = (teeColorName?: string, teeName?: string): string => {
-  return (teeColorName || teeName || '').toUpperCase();
+  // Try the explicit tee name first (already a label like "BLANCAS").
+  const named = normalizeTeeColor(teeName);
+  if (named) return named;
+  // Otherwise normalize whatever is in `color` (may be hex or name).
+  return normalizeTeeColor(teeColorName);
 };
 
 const CategoryTable = () => {
