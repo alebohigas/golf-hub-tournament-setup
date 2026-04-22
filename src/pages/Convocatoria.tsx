@@ -23,6 +23,9 @@ import PremiacionSection from '@/components/convocatoria/PremiacionSection';
 import CalendarioSection from '@/components/convocatoria/CalendarioSection';
 import ReglasSection from '@/components/convocatoria/ReglasSection';
 import CompetenciasEspecialesSection from '@/components/convocatoria/CompetenciasEspecialesSection';
+import ServiciosSection from '@/components/convocatoria/ServiciosSection';
+import PatrocinadoresOficialesSection from '@/components/convocatoria/PatrocinadoresOficialesSection';
+import CalendarioJuegoSection from '@/components/convocatoria/CalendarioJuegoSection';
 
 // Data
 import {
@@ -39,6 +42,8 @@ import {
   premiacionData,
   reglasData,
   competenciasEspecialesData,
+  serviciosHorariosData,
+  patrocinadoresOficialesData,
 } from '@/data/mockData';
 
 // ============= Helpers =============
@@ -96,6 +101,12 @@ const renderSection = (sectionId: string) => {
       return <ReglasSection data={reglasData} />;
     case 'competencias':
       return <CompetenciasEspecialesSection data={competenciasEspecialesData} />;
+    case 'servicios':
+      return <ServiciosSection data={serviciosHorariosData} />;
+    case 'calendarioJuego':
+      return <CalendarioJuegoSection />;
+    case 'patrocinadoresOficiales':
+      return <PatrocinadoresOficialesSection data={patrocinadoresOficialesData} />;
     default:
       return null;
   }
