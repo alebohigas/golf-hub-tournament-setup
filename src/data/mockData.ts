@@ -271,6 +271,9 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'calendario', label: 'Calendario y Horario', enabled: false, order: 6 },
   { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
+  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: true, order: 9 },
+  { id: 'calendarioJuego', label: 'Calendario y Horarios de Juego', enabled: true, order: 10 },
+  { id: 'patrocinadoresOficiales', label: 'Patrocinadores Oficiales', enabled: true, order: 11 },
 ];
 
 /** Description text - V Torneo Anual Terralta 2026 */
@@ -547,6 +550,194 @@ export const competenciasEspecialesData: CompetenciaEspecial[] = [
     nombre: 'Premios de O\'Yes Diarios',
     descripcion: 'Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16.',
     premios: 'Premios diarios por hoyo.',
+  },
+];
+
+// ============= Servicios y Horarios del Club =============
+
+/** Schedule of meals/services for a single tournament day */
+export interface ServicioDia {
+  /** Day label, e.g. "Viernes 26 de Junio" */
+  dia: string;
+  /** Bullet list of meal/service slots */
+  servicios: string[];
+}
+
+/**
+ * Servicios y Horarios del Club — alimentos y bebidas por día.
+ * Source: V Torneo Anual Terralta 2026 PDF (sección 5).
+ * Editable from Admin → Convocatoria.
+ */
+export const serviciosHorariosData: ServicioDia[] = [
+  {
+    dia: 'Viernes 26 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Cocktail de bienvenida — Terraza Bar "La Vista": 20:00 hrs',
+    ],
+  },
+  {
+    dia: 'Sábado 27 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Cena buffet en el Salón Principal: 20:00 – 23:00 hrs',
+    ],
+  },
+  {
+    dia: 'Domingo 28 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Domingo familiar — Asado y música en vivo: 14:00 – 18:00 hrs',
+    ],
+  },
+  {
+    dia: 'Lunes 29 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+    ],
+  },
+  {
+    dia: 'Martes 30 de Junio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+    ],
+  },
+  {
+    dia: 'Miércoles 1 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Noche mexicana — Salón Principal: 20:00 hrs',
+    ],
+  },
+  {
+    dia: 'Jueves 2 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Final Long Driver Caballeros — Terraza "La Vista": 17:00 – 19:30 hrs',
+    ],
+  },
+  {
+    dia: 'Viernes 3 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Final Approach Mixto — Terraza "La Vista": 20:30 hrs',
+    ],
+  },
+  {
+    dia: 'Sábado 4 de Julio',
+    servicios: [
+      'Desayuno en la Casa Club: 06:00 – 11:00 hrs',
+      'Comida en la Terraza: 13:00 – 18:00 hrs',
+      'Snacks en el campo: 07:00 – 17:00 hrs',
+      'Ceremonia de Premiación y cena de gala: 21:00 hrs',
+    ],
+  },
+];
+
+// ============= Patrocinadores Oficiales (Hole in One / Mejor O'Yes) =============
+
+/** Single official sponsor card */
+export interface PatrocinadorOficial {
+  /** Premio o categoría que patrocinan, e.g. "Hole in One" */
+  premio: string;
+  /** Nombre del patrocinador */
+  patrocinador: string;
+  /** Descripción del premio aportado */
+  descripcion: string;
+}
+
+/**
+ * Patrocinadores oficiales del Hole in One y Mejor O'Yes.
+ * Source: V Torneo Anual Terralta 2026 PDF.
+ * Editable from Admin → Convocatoria.
+ */
+export const patrocinadoresOficialesData: PatrocinadorOficial[] = [
+  {
+    premio: 'Hole in One',
+    patrocinador: 'Terralta Country Club & Patrocinadores Oficiales',
+    descripcion:
+      '$1,000,000 MXN al primer Hole in One en cualquiera de los 5 hoyos par 3. En caso de un segundo Hole in One: 1 año de cuotas de mantenimiento (Socio) o membresía anual (Invitado), valor aproximado $226,200 MXN.',
+  },
+  {
+    premio: 'Mejor O\'Yes del Torneo',
+    patrocinador: 'Solartec Energía Renovable',
+    descripcion:
+      'Sistema fotovoltaico de 20 paneles solares — 12,000 watts de potencia. Incluye paneles, inversor, estructura, instalación, material eléctrico y trámite ante CFE. No aplica para Hole in One.',
+  },
+];
+
+// ============= Eventos Sociales (Lifestyle) =============
+
+/** Single social/lifestyle event entry */
+export interface EventoSocial {
+  /** Day label, e.g. "Viernes 26 de Junio" */
+  dia: string;
+  /** Time, e.g. "20:00 hrs" */
+  hora: string;
+  /** Event title */
+  titulo: string;
+  /** Optional venue */
+  lugar?: string;
+  /** Optional extra detail */
+  descripcion?: string;
+}
+
+/**
+ * Eventos sociales / lifestyle del torneo.
+ * Mostrados en /eventos como subsección "Sociales".
+ * Source: V Torneo Anual Terralta 2026 PDF.
+ */
+export const eventosSocialesData: EventoSocial[] = [
+  {
+    dia: 'Viernes 26 de Junio',
+    hora: '20:00 hrs',
+    titulo: 'Cocktail de bienvenida',
+    lugar: 'Terraza Bar "La Vista"',
+    descripcion: 'Inauguración oficial del torneo con cocktail, música en vivo y bocadillos.',
+  },
+  {
+    dia: 'Sábado 27 de Junio',
+    hora: '20:00 hrs',
+    titulo: 'Cena de gala',
+    lugar: 'Salón Principal',
+    descripcion: 'Cena buffet con barra abierta y entretenimiento.',
+  },
+  {
+    dia: 'Domingo 28 de Junio',
+    hora: '14:00 hrs',
+    titulo: 'Domingo familiar',
+    lugar: 'Terraza y Áreas Verdes',
+    descripcion: 'Asado, actividades para niños y música en vivo.',
+  },
+  {
+    dia: 'Miércoles 1 de Julio',
+    hora: '20:00 hrs',
+    titulo: 'Noche mexicana',
+    lugar: 'Salón Principal',
+    descripcion: 'Cena temática con mariachi y folclor mexicano.',
+  },
+  {
+    dia: 'Sábado 4 de Julio',
+    hora: '21:00 hrs',
+    titulo: 'Ceremonia de Premiación y Cena de Gala',
+    lugar: 'Salón Principal',
+    descripcion: 'Entrega de premios, cena de gala y rifa del Hole in One.',
   },
 ];
 // API simulation functions - replace with actual fetch calls

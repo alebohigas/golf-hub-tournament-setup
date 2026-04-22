@@ -7,6 +7,8 @@
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import AtraccionesSection from '@/components/eventos/AtraccionesSection';
+import SocialesSection from '@/components/eventos/SocialesSection';
+import { eventosSocialesData } from '@/data/mockData';
 // Hero background: terraza de gala con escenario y campo de golf al atardecer.
 import eventosHero from '@/assets/eventos-hero.jpg';
 
@@ -20,6 +22,8 @@ const Eventos = () => {
       />
       {/* Visual posters of daily attractions (concerts, raffles, food, etc.) */}
       <AtraccionesSection />
+      {/* Social/lifestyle events (cocktail, gala, themed nights, ceremony) */}
+      <SocialesSection data={eventosSocialesData} />
     </Layout>
   );
 };
