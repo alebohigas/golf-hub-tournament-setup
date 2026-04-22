@@ -455,47 +455,32 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Competencias especiales - V Torneo Anual Terralta 2026 */
+/** Competencias especiales — LXX Torneo Anual Valle Alto 2026. */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
   {
-    nombre: 'Hole in One — $1,000,000',
-    descripcion: 'Premio de Un Millón de Pesos al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se logra durante el torneo, el premio será rifado entre los jugadores inscritos el sábado 4 de Julio durante la ceremonia de premiación. Es indispensable estar presente para participar.',
-    premios: '$1,000,000 MXN.',
+    nombre: 'Tiro Espectacular de Approach',
+    descripcion: 'Podrán participar únicamente jugadores inscritos al torneo. Cada participante tendrá derecho a realizar dos tiros en los días de calificación; pasarán a la final los mejores 10 resultados diarios. Calificación: sábado 25, domingo 26, lunes 27 y martes 28 de abril (11:00 a 17:00 hrs) en el área del par 3. Final: miércoles 29 de abril a partir de las 18:30 hrs en el Green del Hoyo 15. El ganador será el primer jugador que meta la pelota en el hoyo o quien deje la pelota más cerca.',
+    premios: '1°: Auto 2026 (sólo se entregará un auto). 2°: Bolsa de Golf.',
   },
   {
-    nombre: 'Torneo de Driver de Distancia (Caballeros)',
-    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 1. Días de competencia: viernes 26 de Junio al viernes 3 de Julio. Categorías: Seniors, D, C, B, A, AA.',
-    premios: 'Technogym Connected Dumbbells.',
+    nombre: 'Torneo de Putt y Putt de 35 yardas',
+    descripcion: 'Calificación diaria del sábado 25 al miércoles 29 de abril (11:00 a 17:00 hrs) en el Putting Green; cada jugador podrá participar 1 vez por día con derecho a 2 tiros. Pasan a la final los mejores 64 caballeros y las mejores 32 damas. Final: viernes 1 de mayo — 18:00 hrs damas y 19:30 hrs caballeros. El Putt Espectacular de 35 yardas se jugará el viernes 1 de mayo: el primer participante que la emboque gana 25,000 USD; el segundo en embocar (o el mejor O´Yes) recibe una bolsa de golf.',
+    premios: '1° Damas: $10,000 Vales Back 9. 1° Caballeros: $10,000 Vales Back 9. 2° Damas: $7,000. 2° Caballeros: $7,000. 3° Damas: $5,000. 3° Caballeros: $5,000.',
   },
   {
-    nombre: 'Torneo de Driver de Precisión (Damas)',
-    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 10 de los tres días de competencia. Días: viernes 26, lunes 29 de Junio y miércoles 1 de Julio.',
-    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+    nombre: 'Torneo Driver Damas',
+    descripcion: 'Día de juego: lunes 27 de abril en su primera ronda. Lugar: Hoyo 4. Driver de distancia: el más largo dentro del fairway del hoyo 4 entre las categorías A, B, C, D y E. Driver de precisión: la pelota más cercana a la línea marcada en el fairway del hoyo 4 entre A, B, C, D, E y Estelares. Una jugadora no podrá ganar ambos premios.',
+    premios: '1° Distancia: 300 dlls. 1° Precisión: 300 dlls.',
   },
   {
-    nombre: 'Torneo de Long Driver (Caballeros)',
-    descripcion: 'Día de competencia: jueves 2 de Julio (17:00 a 19:30 hrs). Lugar: Terraza Bar "La Vista".',
-    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
+    nombre: 'Torneo Driver Caballeros',
+    descripcion: 'Podrán participar todos los jugadores inscritos con un mínimo de 280 yardas de distancia. Inscripciones el día del evento en la mesa de salida del hoyo 16. Habrá una sola categoría: cada jugador tendrá derecho a 2 tiros, se medirá el más largo dentro del fairway. Gana quien logre la mayor distancia dentro del fairway.',
+    premios: '1°: 400 dlls. 2°: 300 dlls.',
   },
   {
-    nombre: 'Torneo de Approach Mixto',
-    descripcion: 'Calificación: viernes 26 de Junio al jueves 2 de Julio (14:00 a 18:00 hrs) en el Tee de Práctica. Cada jugador tendrá 3 oportunidades por día y calificarán los 7 mejores tiros diarios. Final: viernes 3 de Julio a las 20:30 hrs en Terraza Bar "La Vista". Califican a la final 42 caballeros y 10 damas.',
-    premios: 'Se premiará a los 3 mejores lugares. Si hay Hole in One, será el mejor tiro y ganará el primer lugar.',
-  },
-  {
-    nombre: 'Torneo de Putt Caballeros',
-    descripcion: 'Calificación: viernes 26, sábado 27, domingo 28 de Junio y jueves 2 de Julio (14:00 a 18:30 hrs). Final: viernes 3 de Julio a las 18:00 hrs. Lugar: Putting Green.',
-    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
-  },
-  {
-    nombre: 'Torneo de Putt Damas',
-    descripcion: 'Fecha: lunes 29 de Junio. Horario: 16:00 hrs. Lugar: Putting Green.',
-    premios: '1°: $10,000. 2°: $6,000. 3°: $4,000. (Certificados Back 9).',
-  },
-  {
-    nombre: 'Premios de O\'Yes Diarios',
-    descripcion: 'Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16.',
-    premios: 'Premios diarios por hoyo.',
+    nombre: 'Premios O´Yes',
+    descripcion: 'Mejor O´Yes general del día: Driver Ping G440. Mejor O´Yes de cada par 3 del día: Putt Scotty Cameron. Mejor O´Yes general del torneo: Certificado de regalo Back 9 por $50,000 MXN.',
+    premios: 'Driver Ping G440 (Mejor O´Yes del día). Putt Scotty Cameron (Mejor O´Yes de cada par 3). $50,000 MXN en Certificado Back 9 (Mejor O´Yes del torneo).',
   },
 ];
 
@@ -511,10 +496,11 @@ export interface ServicioDia {
 
 /**
  * Servicios y Horarios del Club — alimentos y bebidas por día.
- * Source: V Torneo Anual Terralta 2026 PDF (sección 5).
+ * Vacío para Valle Alto 2026 (no incluido en la convocatoria).
  * Editable from Admin → Convocatoria.
  */
-export const serviciosHorariosData: ServicioDia[] = [
+export const serviciosHorariosData: ServicioDia[] = [];
+const _serviciosHorariosArchived: ServicioDia[] = [
   {
     dia: 'Viernes 26 de Junio',
     servicios: [
@@ -609,22 +595,26 @@ export interface PatrocinadorOficial {
 }
 
 /**
- * Patrocinadores oficiales del Hole in One y Mejor O'Yes.
- * Source: V Torneo Anual Terralta 2026 PDF.
+ * Patrocinadores oficiales del Mejor O´Yes — Valle Alto 2026.
+ * No se especifica el patrocinador comercial en el PDF; se listan los
+ * premios anunciados directamente por la marca/club.
  * Editable from Admin → Convocatoria.
  */
 export const patrocinadoresOficialesData: PatrocinadorOficial[] = [
   {
-    premio: 'Hole in One',
-    patrocinador: 'Terralta Country Club & Patrocinadores Oficiales',
-    descripcion:
-      '$1,000,000 MXN al primer Hole in One en cualquiera de los 5 hoyos par 3. En caso de un segundo Hole in One: 1 año de cuotas de mantenimiento (Socio) o membresía anual (Invitado), valor aproximado $226,200 MXN.',
+    premio: 'Mejor O´Yes General del Torneo',
+    patrocinador: 'Back 9',
+    descripcion: 'Certificado de Regalo Back 9 por $50,000 MXN (Cincuenta mil pesos mexicanos).',
   },
   {
-    premio: 'Mejor O\'Yes del Torneo',
-    patrocinador: 'Solartec Energía Renovable',
-    descripcion:
-      'Sistema fotovoltaico de 20 paneles solares — 12,000 watts de potencia. Incluye paneles, inversor, estructura, instalación, material eléctrico y trámite ante CFE. No aplica para Hole in One.',
+    premio: 'Mejor O´Yes General del Día',
+    patrocinador: 'Ping',
+    descripcion: 'Driver Ping modelo G440.',
+  },
+  {
+    premio: 'Mejor O´Yes de cada Par 3 del Día',
+    patrocinador: 'Scotty Cameron',
+    descripcion: 'Putt Scotty Cameron.',
   },
 ];
 
@@ -646,10 +636,11 @@ export interface EventoSocial {
 
 /**
  * Eventos sociales / lifestyle del torneo.
+ * Vacío para Valle Alto 2026 (no listados en el PDF).
  * Mostrados en /eventos como subsección "Sociales".
- * Source: V Torneo Anual Terralta 2026 PDF.
  */
-export const eventosSocialesData: EventoSocial[] = [
+export const eventosSocialesData: EventoSocial[] = [];
+const _eventosSocialesArchived: EventoSocial[] = [
   {
     dia: 'Viernes 26 de Junio',
     hora: '20:00 hrs',
