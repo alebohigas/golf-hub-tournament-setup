@@ -160,8 +160,9 @@ export const premiosText = "";
 /** Eventos adicionales */
 export const eventosAdicionalesText = "";
 
-/** Inscripciones text */
-export const inscripcionesText = "";
+/** Inscripciones text. Typed as string so consumers can call string methods
+ *  even when the current tournament leaves it empty. */
+export const inscripcionesText: string = "";
 
 export interface PricingTier {
   categoria: string;
