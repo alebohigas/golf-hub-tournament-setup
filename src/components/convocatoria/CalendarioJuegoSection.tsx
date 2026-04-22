@@ -261,7 +261,9 @@ const CalendarioJuegoSection = () => {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  <th className="p-3 text-left font-bold w-40">Categoría</th>
+                  {/* Sticky-left Categoría header for the embedded horarios
+                      preview. Same pattern as the calendar table above. */}
+                  <th className="sticky left-0 z-20 bg-primary p-3 text-left font-bold w-40">Categoría</th>
                   {horData.dates.map((d) => (
                     <th
                       key={`hor-h-${d.date}`}
@@ -285,7 +287,19 @@ const CalendarioJuegoSection = () => {
                     key={entry.categoryId}
                     className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}
                   >
-                    <td className="border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap">
+                    {/* Sticky-left Categoría cell with solid alternating
+                        row tint so it remains opaque during horizontal
+                        scroll. */}
+                    <td
+                      className="sticky left-0 z-10 border-b border-border/40 p-3 font-medium text-foreground whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'hsl(var(--background))',
+                        backgroundImage:
+                          idx % 2 === 0
+                            ? 'linear-gradient(hsl(var(--card)), hsl(var(--card)))'
+                            : 'linear-gradient(hsl(var(--muted) / 0.3), hsl(var(--muted) / 0.3))',
+                      }}
+                    >
                       {entry.categoryName}
                     </td>
                     {horData.dates.map((d) => {
