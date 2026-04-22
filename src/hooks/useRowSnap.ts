@@ -69,12 +69,16 @@ export function useRowSnap(
         const rowHeight = rect.height;
         if (rowHeight <= 0) return;
 
-        // Decide direction: <50% hidden -> snap up (reveal row);
-        //                   >=50% hidden -> snap down (skip past row).
+        // Decide direction:
+        //   <50% hidden  -> snap UP (reveal row): scroll the page up by
+        //                   `hidden` so row.top lands exactly at the anchor.
+        //   >=50% hidden -> snap DOWN (skip past row): scroll the page down
+        //                   by `visible` so row.bottom lands at the anchor
+        //                   and the next row sits flush below the header.
         const targetScrollY =
           hidden < rowHeight / 2
-            ? window.scrollY - visible + (rowHeight - visible) // align row.top with anchor
-            : window.scrollY + visible;                        // push row.bottom to anchor
+            ? window.scrollY - hidden    // align row.top with anchor
+            : window.scrollY + visible;  // align row.bottom with anchor
 
         // Only snap if the delta is meaningful (>1px) to avoid jitter.
         if (Math.abs(targetScrollY - window.scrollY) < 1) return;
