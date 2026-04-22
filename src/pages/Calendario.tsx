@@ -211,20 +211,33 @@ const Calendario = () => {
                           </th>
                         ))}
                       </tr>
-                      {/* Second header row: day-of-week + day number, plus
-                          "Categoría" label. Sticky offset accounts for the
-                          first header row height (~2.25rem). */}
-                      {/* Solid background (`bg-secondary`) so the row stays
-                          fully opaque while sticky — semi-transparent tokens
-                          like bg-primary/20 let scrolled content show through. */}
+                      {/* Second sticky row (day-of-week + day number).
+                          Pinned to `top-[8.75rem]` so it sits flush against
+                          the months row above — no gap that would let body
+                          rows peek through during scroll.
+                          Background: opaque mix of primary (10%) layered over
+                          background, preserving the original light-green tint
+                          (`bg-primary/10` look) while remaining fully solid. */}
                       <tr>
-                        <th className="sticky top-[9rem] z-20 border border-border/40 p-2 text-left text-secondary-foreground font-bold bg-secondary">
+                        <th
+                          className="sticky top-[8.75rem] z-20 border border-border/40 p-2 text-left text-foreground font-bold"
+                          style={{
+                            backgroundColor: 'hsl(var(--background))',
+                            backgroundImage:
+                              'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
+                          }}
+                        >
                           Categoría
                         </th>
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="sticky top-[9rem] z-20 border border-border/40 p-2 text-center text-secondary-foreground font-bold bg-secondary"
+                            className="sticky top-[8.75rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold"
+                            style={{
+                              backgroundColor: 'hsl(var(--background))',
+                              backgroundImage:
+                                'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
+                            }}
                           >
                             {formatDayHeader(d)}
                           </th>
