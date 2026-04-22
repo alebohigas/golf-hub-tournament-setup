@@ -103,13 +103,21 @@ const AdminSponsorsCarousel = () => {
   }, []);
 
   /**
-   * Sponsors that actually have a (working) logo. Sponsors with no `logoUrl`
-   * are excluded immediately; sponsors whose <img> errors are excluded once
-   * the load attempt completes (via `brokenIds`).
+   * Sponsors with at least a `logoUrl` declared. We INCLUDE sponsors whose
+   * image fails to load so the admin can still see and reorder them in the
+   * list; their toggle is force-disabled and they are auto-excluded from the
+   * `enabledIds` whitelist that the ribbon consumes.
+   * Sponsors with no `logoUrl` at all are excluded from the editor entirely.
    */
   const renderableSponsors = useMemo(
-    () => sponsors.filter((s) => Boolean(s.logoUrl) && !brokenIds.has(String(s.id))),
-    [sponsors, brokenIds]
+    () => sponsors.filter((s) => Boolean(s.logoUrl)),
+    [sponsors]
+  );
+
+  /** Subset that has a working logo (not in `brokenIds`). Used for whitelist enforcement. */
+  const workingSponsors = useMemo(
+    () => renderableSponsors.filter((s) => !brokenIds.has(String(s.id))),
+    [renderableSponsors, brokenIds]
   );
 
   /**
@@ -121,23 +129,25 @@ const AdminSponsorsCarousel = () => {
   useEffect(() => {
     if (renderableSponsors.length === 0) return;
     const sponsorIds = renderableSponsors.map((s) => Number(s.id));
+    const workingIds = new Set(workingSponsors.map((s) => Number(s.id)));
     const savedOrder = (savedCarousel.order ?? []).filter((id) => sponsorIds.includes(id));
     const missing = sponsorIds.filter((id) => !savedOrder.includes(id));
     setOrderedIds([...savedOrder, ...missing]);
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
-    // Enabled list: if the server has no whitelist yet, default to ALL sponsors enabled.
+    // Enabled list: if the server has no whitelist yet, default to ALL WORKING sponsors enabled.
+    // Broken-logo sponsors are always force-excluded from the whitelist.
     const savedEnabled = savedCarousel.enabledIds;
     if (savedEnabled && Array.isArray(savedEnabled)) {
-      // Keep only IDs that still correspond to a renderable sponsor.
-      setEnabledIds(new Set(savedEnabled.filter((id) => sponsorIds.includes(Number(id))).map(Number)));
+      // Keep only IDs that still correspond to a WORKING sponsor.
+      setEnabledIds(new Set(savedEnabled.filter((id) => workingIds.has(Number(id))).map(Number)));
     } else {
-      setEnabledIds(new Set(sponsorIds));
+      setEnabledIds(new Set(workingIds));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderableSponsors, siteConfig?.sponsors_config?.carousel]);
+  }, [renderableSponsors, workingSponsors, siteConfig?.sponsors_config?.carousel]);
 
-  /** Quick lookup: sponsor by ID */
+  /** Quick lookup: sponsor by ID (includes broken-logo sponsors) */
   const sponsorById = useMemo(() => {
     const map = new Map<number, (typeof sponsors)[number]>();
     renderableSponsors.forEach((s) => map.set(Number(s.id), s));
