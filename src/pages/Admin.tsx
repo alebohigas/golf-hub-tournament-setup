@@ -18,6 +18,7 @@ import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
 import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
 import AdminSponsors from '@/components/admin/AdminSponsors';
 import AdminPagina from '@/components/admin/AdminPagina';
+import AdminEventos from '@/components/admin/AdminEventos';
 import { 
   Shield, 
   LogOut, 
@@ -36,6 +37,7 @@ import {
   Radio,
   Image as ImageIcon,
   LayoutPanelTop,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -296,7 +298,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -308,6 +310,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="convocatoria" className="gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Convocatoria</span>
+          </TabsTrigger>
+          <TabsTrigger value="eventos" className="gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden sm:inline">Eventos</span>
           </TabsTrigger>
           <TabsTrigger value="live" className="gap-2">
             <Radio className="h-4 w-4" />
@@ -433,6 +439,11 @@ const AdminDashboard = () => {
         {/* Convocatoria Tab */}
         <TabsContent value="convocatoria">
           <AdminConvocatoria />
+        </TabsContent>
+
+        {/* Eventos Tab — controls poster grid layout (desktop & mobile) */}
+        <TabsContent value="eventos">
+          <AdminEventos />
         </TabsContent>
 
         {/* Live Scoring Tab */}
