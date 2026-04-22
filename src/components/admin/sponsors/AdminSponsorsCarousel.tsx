@@ -418,7 +418,9 @@ const AdminSponsorsCarousel = () => {
                       {orderedIds.map((id, index) => {
                         const sponsor = sponsorById.get(id);
                         if (!sponsor) return null;
-                        const isEnabled = enabledIds.has(id);
+                        const isBroken = brokenIds.has(String(id));
+                        // Broken-logo sponsors can never be enabled in the ribbon.
+                        const isEnabled = !isBroken && enabledIds.has(id);
                         return (
                           <Draggable
                             key={id}
@@ -434,7 +436,8 @@ const AdminSponsorsCarousel = () => {
                                   'flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-background',
                                   snapshot.isDragging && 'shadow-lg border-primary/40 bg-primary/5',
                                   randomize && 'opacity-60',
-                                  !isEnabled && 'opacity-40 grayscale'
+                                  !isEnabled && 'opacity-40 grayscale',
+                                  isBroken && 'border-destructive/30 bg-destructive/5'
                                 )}
                               >
                                 {/* Drag handle */}
@@ -462,22 +465,32 @@ const AdminSponsorsCarousel = () => {
                                     url={sponsor.logoUrl}
                                     alt={sponsor.name}
                                     showErrorPlaceholder
+                                    onStatusChange={(status) => handleStatus(String(sponsor.id), status)}
                                     className="max-h-full max-w-full object-contain"
                                   />
                                 </div>
 
-                                {/* Sponsor name */}
-                                <span
-                                  className="text-sm font-medium truncate flex-1"
-                                  title={sponsor.name}
-                                >
-                                  {sponsor.name}
-                                </span>
+                                {/* Sponsor name + broken-logo badge */}
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                  <span
+                                    className="text-sm font-medium truncate"
+                                    title={sponsor.name}
+                                  >
+                                    {sponsor.name}
+                                  </span>
+                                  {isBroken && (
+                                    <span className="text-[10px] uppercase tracking-wide font-semibold text-destructive">
+                                      Logo no disponible · oculto del ribbon
+                                    </span>
+                                  )}
+                                </div>
 
-                                {/* Per-sponsor enable toggle */}
+                                {/* Per-sponsor enable toggle — disabled for broken logos. */}
                                 <Switch
                                   checked={isEnabled}
+                                  disabled={isBroken}
                                   onCheckedChange={(checked) => {
+                                    if (isBroken) return; // Hard guard.
                                     setEnabledIds((prev) => {
                                       const next = new Set(prev);
                                       if (checked) next.add(id);
@@ -485,7 +498,11 @@ const AdminSponsorsCarousel = () => {
                                       return next;
                                     });
                                   }}
-                                  aria-label={`Mostrar ${sponsor.name} en el ribbon`}
+                                  aria-label={
+                                    isBroken
+                                      ? `${sponsor.name} no se puede mostrar (logo no disponible)`
+                                      : `Mostrar ${sponsor.name} en el ribbon`
+                                  }
                                 />
                               </div>
                             )}
