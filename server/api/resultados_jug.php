@@ -349,10 +349,10 @@ foreach ($dias as $i => $fecha) {
     // Subquery: closed scorecard (statlsc = 1) for this player on this date
     $cutDayCols .= ", (SELECT IFNULL(SUM($scoreCol), 0)
                        FROM tarjetas t
-                       WHERE t.jugadorid = j.id
-                         AND t.torneoid  = j.torneoid
-                         AND t.fecha     = '$fecEsc'
-                         AND t.statlsc   = 1) as d{$i}";
+                       WHERE t.jugadorid   = j.id
+                         AND t.torneoid    = j.torneoid
+                         AND t.fecha_juego = '$fecEsc'
+                         AND t.statlsc     = 1) as d{$i}";
 }
 
 /**
