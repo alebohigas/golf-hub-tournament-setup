@@ -261,11 +261,11 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'patrocinadoresOficiales', label: 'Patrocinadores Oficiales', enabled: true, order: 11 },
 ];
 
-/** Description text - V Torneo Anual Terralta 2026 */
+/** Description text — LXX Torneo Anual Valle Alto 2026 */
 export const convocatoriaDescripcion =
-  "Terralta A.C. celebra su V Torneo Anual de invitación edición 2026, el cual se llevará a cabo del 26 de Junio al 4 de Julio de 2026.\n\n" +
-  "La inscripción al Torneo Anual incluye: Kit de bienvenida, Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O'Yes y alimentos y bebidas en los centros de consumo (jugador y cónyuge).\n\n" +
-  "Premio Hole in One: $1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3. Si no se realiza ningún Hole in One durante el torneo, el premio será rifado entre los jugadores inscritos el día 4 de Julio durante la ceremonia de premiación (es indispensable estar presente para participar). En caso de un segundo o más Hole in One, el Socio ganador recibirá un año de cuotas de mantenimiento sin costo; si no es socio, recibirá una membresía anual con cuota de mantenimiento incluida.";
+  "Se convoca a todos los Asociados del Club de Golf Valle Alto e invitados a participar en su LXX Torneo Anual de Invitación, que se llevará a cabo del 24 de abril al 02 de mayo de 2026 en las instalaciones de nuestro club.\n\n" +
+  "El torneo cuenta con categorías para Caballeros (Campeonato, Premier, AA, A, B, C, D), Seniors (Campeonato Mayores, A y B) y Damas (A, B, C, D, E y Estelares), así como competencias especiales: Tiro Espectacular de Approach, Torneo de Putt y Putt de 35 yardas, Torneo Driver Damas y Torneo Driver Caballeros.\n\n" +
+  "#TORNEOANUAL70";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
@@ -273,48 +273,33 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación data - V Torneo Anual Terralta 2026 */
+/** Premiación / Trofeos — LXX Torneo Anual Valle Alto 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Hole in One',
+    categoria: 'Damas',
     premios: [
-      '$1,000,000 al primer Hole in One en cualquiera de los 5 hoyos par 3',
-      'Si no se logra durante el torneo, será rifado entre los jugadores inscritos (4 de Julio en la ceremonia de premiación)',
-      'Segundo o más Hole in One — Socio: 1 año de cuotas de mantenimiento sin costo (≈ $226,200)',
-      'Segundo o más Hole in One — Invitado: Membresía anual con cuota de mantenimiento incluida (≈ $226,200, no transferible)',
+      'A — 1° y 2° Gross',
+      'A — 1°, 2° y 3° Neto',
+      'B — 1°, 2° y 3° Gross',
+      'B — 1°, 2° y 3° Neto',
+      'C — 1°, 2° y 3°',
+      'D — 1°, 2° y 3°',
+      'E — 1°, 2° y 3°',
+      'Estelares — 1°, 2° y 3°',
     ],
   },
   {
-    categoria: 'Mejor O\'Yes del Torneo',
+    categoria: 'Caballeros',
+    premios: ['Campeonato, Premier, AA, A, B, C y D — 1°, 2° y 3°'],
+  },
+  {
+    categoria: 'Seniors',
     premios: [
-      'Sistema fotovoltaico de 20 paneles solares — 12,000 watts de potencia',
-      'Incluye paneles, inversor, estructura, instalación, material eléctrico y trámite ante CFE',
-      'No aplica para Hole in One',
+      'Campeonato Mayores — 1° y 2° Gross',
+      'Campeonato Mayores — 1° y 2° Neto',
+      'A — 1°, 2° y 3°',
+      'B — 1°, 2° y 3°',
     ],
-  },
-  {
-    categoria: 'Premios de O\'Yes Diarios',
-    premios: ['Se premiarán los mejores O\'Yes diarios del torneo en los hoyos 3, 5, 7, 12 y 16'],
-  },
-  {
-    categoria: 'Torneo de Long Driver Caballeros',
-    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
-  },
-  {
-    categoria: 'Torneo de Driver de Precisión Damas',
-    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
-  },
-  {
-    categoria: 'Torneo de Driver de Distancia Caballeros',
-    premios: ['Premio: Technogym Connected Dumbbells'],
-  },
-  {
-    categoria: 'Torneo de Putt Caballeros',
-    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
-  },
-  {
-    categoria: 'Torneo de Putt Damas',
-    premios: ['1er Lugar: $10,000', '2do Lugar: $6,000', '3er Lugar: $4,000', '(Certificados de regalo Back 9)'],
   },
 ];
 
