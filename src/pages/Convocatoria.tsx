@@ -13,6 +13,8 @@ import PageSubmenu from '@/components/convocatoria/PageSubmenu';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
 import { Calendar } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Section components
 import DescripcionSection from '@/components/convocatoria/DescripcionSection';
