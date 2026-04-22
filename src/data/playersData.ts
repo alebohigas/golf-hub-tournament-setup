@@ -28,6 +28,10 @@ export interface CategoryDetail {
   slope: number | null;    // Course slope
   par: number | null;      // Course par
   playerCount: number;     // Number of registered players
+  /** Maximum players allowed in the category (99 = unlimited) */
+  maxPlayers?: number;
+  /** Holes per round (e.g. 9 or 18) — used for "RONDA" display */
+  holesPerRound?: number;
 }
 
 // ============= Player Interface =============
