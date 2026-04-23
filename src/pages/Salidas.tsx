@@ -347,7 +347,8 @@ const Salidas = () => {
                                     >
                                       {pIdx === 0 ? (
                                         <>
-                                          <TableCell className="text-center font-bold text-foreground" rowSpan={(result.group.players ?? []).length}>
+                                          {/* H01 matched in size with the tee time below for visual balance */}
+                                          <TableCell className="text-center font-bold text-base text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.tee}
                                           </TableCell>
                                           {/* Tee time emphasized: bold and one size up to match the H01 hole prominence */}
@@ -532,7 +533,8 @@ const Salidas = () => {
                                     {pIdx === 0 ? (
                                       <>
                                         <TableCell
-                                          className="text-center font-bold text-foreground"
+                                          // H01 matched in size with the tee time for visual balance
+                                          className="text-center font-bold text-base text-foreground"
                                           rowSpan={(group.players ?? []).length}
                                         >
                                           {group.tee}
