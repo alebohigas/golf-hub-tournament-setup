@@ -92,3 +92,25 @@ export function resolveOrder(length: number, order?: number[]): number[] {
 
   return result;
 }
+
+/**
+ * Move one item inside an ordered list and return a NEW array.
+ *
+ * The element at `fromIndex` is removed, then inserted at `toIndex`.
+ * Indices are clamped to valid bounds so drag/drop edge cases still
+ * produce a stable order instead of throwing.
+ */
+export function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
+  if (items.length <= 1) return items.slice();
+
+  const safeFrom = Math.max(0, Math.min(fromIndex, items.length - 1));
+  const safeTo = Math.max(0, Math.min(toIndex, items.length));
+
+  if (safeFrom === safeTo || safeFrom + 1 === safeTo) return items.slice();
+
+  const next = items.slice();
+  const [moved] = next.splice(safeFrom, 1);
+  next.splice(safeTo > safeFrom ? safeTo - 1 : safeTo, 0, moved);
+
+  return next;
+}

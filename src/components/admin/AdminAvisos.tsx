@@ -20,12 +20,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  type DropResult,
-} from '@hello-pangea/dnd';
-import {
   Card,
   CardContent,
   CardDescription,
@@ -52,7 +46,7 @@ import {
   type EventosGap,
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
-import { resolveOrder, identityOrder } from '@/lib/posterOrder';
+import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
 
 // ---------- Asset imports (same posters used on the public page) ----------
 import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
@@ -172,8 +166,6 @@ interface PreviewFrameProps {
   order: number[];
   /** Called with a NEW order array whenever the admin drags a poster. */
   onOrderChange: (next: number[]) => void;
-  /** Stable id used to scope this frame's Droppable (per breakpoint). */
-  droppableId: string;
   /** Optional handler to restore the default static order. */
   onReset?: () => void;
 }
@@ -195,9 +187,25 @@ const PreviewFrame = ({
   icon,
   order,
   onOrderChange,
-  droppableId,
   onReset,
-}: PreviewFrameProps) => (
+}: PreviewFrameProps) => {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+
+  /**
+   * Commit a reorder by inserting the dragged poster before the target slot.
+   * Explicit before/after targets solve the multi-row grid limitation of
+   * list-oriented DnD libraries and preserve horizontal placement.
+   */
+  const commitDrop = (targetIndex: number) => {
+    if (dragIndex === null) return;
+    const next = moveItem(order, dragIndex, targetIndex);
+    onOrderChange(next);
+    setDragIndex(null);
+    setDropIndex(null);
+  };
+
+  return (
   <div className="space-y-2">
     <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
       <div className="flex items-center gap-2">
@@ -225,87 +233,94 @@ const PreviewFrame = ({
         className="mx-auto bg-background rounded-md p-3 shadow-inner"
         style={{ width: frameWidth, maxWidth: '100%' }}
       >
-        <DragDropContext
-          onDragEnd={(result: DropResult) => {
-            if (!result.destination) return;
-            if (result.destination.index === result.source.index) return;
-            const next = order.slice();
-            const [moved] = next.splice(result.source.index, 1);
-            next.splice(result.destination.index, 0, moved);
-            onOrderChange(next);
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            gap: `${gapToPx(gap)}px`,
           }}
         >
-          {/*
-            NOTE: We intentionally omit `direction` here. @hello-pangea/dnd
-            does not have a true "grid" mode, but the default (vertical)
-            mode computes drop targets by distance to each draggable's
-            center — which works correctly for multi-row grids. Setting
-            `direction="horizontal"` collapses everything onto a single
-            row, which breaks reordering across rows (drops to row 2 get
-            interpreted as positions inside row 1).
-          */}
-          <Droppable droppableId={droppableId}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="grid"
-                style={{
-                  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                  gap: `${gapToPx(gap)}px`,
-                }}
-              >
-                {order.map((posterIdx, position) => {
-                  const src = PREVIEW_POSTERS[posterIdx];
-                  if (!src) return null;
-                  return (
-                    <Draggable
-                      key={posterIdx}
-                      draggableId={`${droppableId}-${posterIdx}`}
-                      index={position}
-                    >
-                      {(dragProvided, snapshot) => (
-                        <div
-                          ref={dragProvided.innerRef}
-                          {...dragProvided.draggableProps}
-                          className={cn(
-                            'relative aspect-[9/16] overflow-hidden rounded-md border bg-card',
-                            snapshot.isDragging
-                              ? 'border-primary ring-2 ring-primary shadow-lg'
-                              : 'border-border/50'
-                          )}
-                        >
-                          <div
-                            {...dragProvided.dragHandleProps}
-                            className="absolute top-1 left-1 z-10 p-1 rounded bg-background/80 backdrop-blur-sm text-foreground/80 hover:text-foreground hover:bg-background cursor-grab active:cursor-grabbing"
-                            title="Arrastra para reordenar"
-                            aria-label="Arrastra para reordenar este aviso"
-                          >
-                            <GripVertical className="h-3 w-3" />
-                          </div>
-                          <div className="absolute bottom-1 right-1 z-10 px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm text-[10px] font-mono font-bold text-foreground">
-                            {position + 1}
-                          </div>
-                          <img
-                            src={src}
-                            alt={`Aviso ${posterIdx + 1}`}
-                            loading="lazy"
-                            className="h-full w-full object-cover pointer-events-none"
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {provided.placeholder}
+          {order.map((posterIdx, position) => {
+            const src = PREVIEW_POSTERS[posterIdx];
+            if (!src) return null;
+
+            const showBeforeMarker = dropIndex === position;
+            const showAfterMarker = dropIndex === position + 1;
+            const isDragging = dragIndex === position;
+
+            return (
+              <div key={`${title}-${posterIdx}`} className="relative">
+                <div
+                  className="absolute inset-y-0 left-0 z-20 w-1/2"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDropIndex(position);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    commitDrop(position);
+                  }}
+                />
+                <div
+                  className="absolute inset-y-0 right-0 z-20 w-1/2"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDropIndex(position + 1);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    commitDrop(position + 1);
+                  }}
+                />
+
+                {showBeforeMarker && (
+                  <div className="absolute left-[-6px] top-2 bottom-2 z-30 w-[3px] rounded-full bg-primary" />
+                )}
+                {showAfterMarker && position === order.length - 1 && (
+                  <div className="absolute right-[-6px] top-2 bottom-2 z-30 w-[3px] rounded-full bg-primary" />
+                )}
+
+                <div
+                  draggable
+                  onDragStart={() => {
+                    setDragIndex(position);
+                    setDropIndex(position);
+                  }}
+                  onDragEnd={() => {
+                    setDragIndex(null);
+                    setDropIndex(null);
+                  }}
+                  className={cn(
+                    'relative aspect-[9/16] overflow-hidden rounded-md border bg-card transition-opacity',
+                    isDragging ? 'border-primary ring-2 ring-primary shadow-lg opacity-70' : 'border-border/50'
+                  )}
+                >
+                  <div
+                    className="absolute top-1 left-1 z-10 p-1 rounded bg-background/80 backdrop-blur-sm text-foreground/80 hover:text-foreground hover:bg-background cursor-grab active:cursor-grabbing"
+                    title="Arrastra para reordenar"
+                    aria-label="Arrastra para reordenar este aviso"
+                  >
+                    <GripVertical className="h-3 w-3" />
+                  </div>
+                  <div className="absolute bottom-1 right-1 z-10 px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm text-[10px] font-mono font-bold text-foreground">
+                    {position + 1}
+                  </div>
+                  <img
+                    src={src}
+                    alt={`Aviso ${posterIdx + 1}`}
+                    loading="lazy"
+                    className="h-full w-full object-cover pointer-events-none"
+                  />
+                </div>
               </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+            );
+          })}
+        </div>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // ============= Main Component =============
 
@@ -488,7 +503,6 @@ const AdminAvisos = () => {
                   gap={draft.desktopGap}
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
-                  droppableId="avisos-desktop-preview"
                   order={posterOrder}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
@@ -506,7 +520,6 @@ const AdminAvisos = () => {
                   gap={draft.mobileGap}
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
-                  droppableId="avisos-mobile-preview"
                   order={posterOrder}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
