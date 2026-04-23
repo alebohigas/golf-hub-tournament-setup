@@ -123,6 +123,32 @@
   }
 }
 
+@layer base {
+  /**
+   * Global horizontal-overflow guard.
+   * --------------------------------------------------------------
+   * Prevents the whole page from gaining a horizontal scrollbar when
+   * a wide inner element (e.g. the Calendario matrix table on mobile)
+   * tries to expand the document width. Without this guard, scrolling
+   * the page sideways would visually shift the Hero, the sticky
+   * Header / sponsor ribbon and the Footer out of the viewport.
+   *
+   * IMPORTANT: use `overflow-x: clip` instead of `hidden`.
+   *   - `hidden` establishes a new scroll container, which BREAKS any
+   *     descendant `position: sticky` (legend, table headers).
+   *   - `clip` only clips the painted overflow without creating a
+   *     scroll container, so sticky positioning keeps working.
+   *
+   * Inner components that legitimately need horizontal scroll (wide
+   * tables, carousels) must opt-in with their own `overflow-x: auto`
+   * wrapper.
+   */
+  html,
+  body {
+    overflow-x: clip;
+  }
+}
+
 @layer components {
   .nav-link {
     @apply relative px-3 py-2 text-sm font-medium transition-colors duration-200;
