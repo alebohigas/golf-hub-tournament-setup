@@ -440,25 +440,25 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto">
         {/*
-          Header row height. Mobile uses h-28 (112px) to fit the enlarged
-          mobile logo (h-24 = 96px tall, auto width to respect the logo's
-          wide aspect ratio). Desktop reverts to the original h-20 (80px)
-          since the desktop logo is back to its previous size.
+          Header row height.
+          Mobile now uses a flexible minimum height instead of a fixed square
+          logo slot, so the ribbon grows with the rendered logo itself.
+          Desktop stays at the original compact height.
         */}
-        <div className="flex items-center justify-between h-28 md:h-20">
+        <div className="flex items-center justify-between min-h-[7.75rem] md:h-20 py-2 md:py-0">
           {/* Logo */}
-          <div ref={logoRef} className="flex-shrink-0">
-            <Link to="/" className="flex items-center gap-3">
+          <div ref={logoRef} className="flex-shrink-0 overflow-visible">
+            <Link to="/" className="flex items-center gap-3 overflow-visible">
               {(tournamentInfo?.logoHeaderUrl || tournamentInfo?.logoUrl) ? (
                 <img 
                   src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
-                  // Mobile logo: height-driven (h-24 = 96px) with auto width
-                  // so the wide logo (icon + wordmark) renders at its natural
-                  // aspect ratio and actually fills the ribbon — fixing the
-                  // previous "small logo inside a 150x150 box" issue.
-                  // Desktop logo: original w-24 h-24 (96px square) preserved.
-                  className="h-24 w-auto md:w-24 md:h-24 rounded-lg object-contain"
+                  // Mobile logo: height-driven with auto width and no square
+                  // constraint, so wide lockups scale by their real aspect
+                  // ratio and visually fill the ribbon instead of sitting
+                  // inside an oversized box.
+                  // Desktop logo: original 96px square sizing is preserved.
+                  className="block h-[6.5rem] w-auto max-w-[14rem] object-contain object-left md:w-24 md:h-24 md:max-w-none rounded-lg"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
