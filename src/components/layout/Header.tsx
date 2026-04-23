@@ -439,7 +439,12 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        {/*
+          Header row height grows to accommodate the enlarged 150px logo.
+          Mobile keeps a slightly smaller height (h-20) and desktop uses
+          h-[160px] to give the logo breathing room without clipping.
+        */}
+        <div className="flex items-center justify-between h-20 md:h-[160px]">
           {/* Logo */}
           <div ref={logoRef} className="flex-shrink-0">
             <Link to="/" className="flex items-center gap-3">
