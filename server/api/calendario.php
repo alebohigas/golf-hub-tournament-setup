@@ -104,7 +104,9 @@ foreach ($rows as $row) {
     $amGroups = 0;  $pmGroups = 0;
     $amTime = null; $pmTime = null;
 
-    if ($h1Time) {
+    // Skip unconfigured tee times (00:00:00 means the category has not been
+    // scheduled yet, even when other fields like numfoursome are set).
+    if ($h1Time && $h1Time !== '00:00:00') {
         if (is_am_time($h1Time)) {
             $hasAM    = true;
             $amGroups = $numFoursome;
