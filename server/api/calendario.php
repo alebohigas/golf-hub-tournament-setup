@@ -34,7 +34,7 @@ $tid = esc($conn, $torneoid);
 $sql = "SELECT c.id, c.fecha, c.horainicio_1, c.horainicio_10,
                c.categoria, c.campo, c.salhoyos, c.numfoursome,
                ca.campo as campo_nombre,
-               cat.categoria as categoria_nombre, cat.abreviatura,
+               cat.categoria_id, cat.categoria as categoria_nombre, cat.abreviatura,
                DATE_FORMAT(c.fecha, '%W') as dia_semana,
                DATE_FORMAT(c.fecha, '%e') as dia_num,
                DATE_FORMAT(c.fecha, '%M') as mes_nombre
@@ -125,6 +125,9 @@ foreach ($rows as $row) {
         'id'           => (int)$row['id'],
         'date'         => $fecha,
         'category'     => $row['categoria'],
+        // categoriaId from the categorias table — used by the frontend to
+        // sort matrix rows in the canonical DB order (ORDER BY categoria_id ASC).
+        'categoriaId'  => isset($row['categoria_id']) ? (int)$row['categoria_id'] : 0,
         'categoryName' => $row['categoria_nombre'] ?: $row['categoria'],
         'shortName'    => $row['abreviatura'] ?: $row['categoria'],
         'course'       => $row['campo_nombre'],

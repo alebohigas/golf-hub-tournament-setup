@@ -21,6 +21,8 @@ export interface CalendarEntry {
   id: number;
   date: string;
   category: string;
+  /** categoria_id from the categorias DB table — used to sort rows. */
+  categoriaId?: number;
   categoryName: string;
   shortName: string;
   course: string;

@@ -18,6 +18,8 @@ export interface CategoryDetail {
   percentage: number;      // Handicap percentage applied
   holes: number;           // Holes to play
   cutHoles: number;        // Cut holes
+  /** Final cut count (categorias.corte) — number of players advancing. */
+  finalCut?: number;
   teeId: string;           // Tee identifier
   gross: number;           // Gross flag
   relatedCat: string;      // Related category ID

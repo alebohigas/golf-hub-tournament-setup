@@ -19,7 +19,7 @@ $tid = esc($conn, $torneoid);
 $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
-               a.gross, a.catrel, a.sexo,
+               a.gross, a.catrel, a.sexo, a.corte,
                a.maxjugadores, a.hoyosxronda,
                COUNT(b.id) as playerCount,
                s.tee AS teeName, s.color AS teeColorName,
@@ -34,7 +34,7 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
         GROUP BY a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
-                 a.gross, a.catrel, a.sexo,
+                 a.gross, a.catrel, a.sexo, a.corte,
                  a.maxjugadores, a.hoyosxronda,
                  s.tee, s.color, ct.rating, ct.slope, ct.parcampo
         ORDER BY a.categoria_id ASC";
@@ -55,6 +55,8 @@ $categories = array_map(function($row) {
         'percentage'  => (float)$row['porcentaje'],
         'holes'       => (int)$row['hoyosajugar'],
         'cutHoles'    => (int)$row['hoyosacorte'],
+        // Final cut count (categorias.corte) — number of players advancing to the final round.
+        'finalCut'    => isset($row['corte']) ? (int)$row['corte'] : 0,
         'teeId'       => $row['salida'],
         'gross'       => (int)$row['gross'],
         'relatedCat'  => $row['catrel'],
