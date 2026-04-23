@@ -221,64 +221,62 @@ const Calendario = () => {
                 </div>
               </div>
 
-              {/* Card wrapper: NO `overflow-hidden` here — it would create a
-                  new clipping context and break the sticky positioning of
-                  the legend above. */}
+              {/* Card wrapper. NO `overflow-hidden` so the page-level
+                  legend above remains sticky relative to the viewport. */}
               <Card className="border-border/50 max-w-6xl mx-auto">
-                {/* CardContent now uses `overflow-x-auto` so the wide
-                    calendar matrix scrolls horizontally INSIDE its own
-                    container on narrow viewports. Without this, the table
-                    would expand the document width and visually shift the
-                    Hero, Header ribbon and Footer when the user pans
-                    sideways on mobile.
-                    Trade-off: the table's vertical sticky header rows
-                    (`top-[6.5rem]` …) no longer track the page viewport
-                    once `overflow-x` is set; the sticky-LEFT Categoría
-                    column still works because it is anchored to this
-                    wrapper's own scroll axis. */}
-                <CardContent className="p-0 overflow-x-auto">
+                {/*
+                  Scroll container strategy
+                  -----------------------------------------------------
+                  Tournaments can have many categories (tall) AND many
+                  days (wide). To keep BOTH header rows (mes/día) and
+                  the left "Categoría" column visible while scrolling
+                  in either axis, the table needs its own scroll
+                  container in BOTH axes. We bound it with
+                  `max-h: calc(100vh - …)` so vertical scroll happens
+                  inside the wrapper instead of the page once the table
+                  is taller than the viewport. The header rows then use
+                  `position: sticky; top: 0` (relative to this wrapper)
+                  and the Categoría column uses `sticky; left: 0`.
+                  The vertical bound is roughly:
+                    page header (h-16/h-20) + sponsor ribbon
+                    + page padding + sticky legend (~2.5rem)
+                  Conservative ≈ 16rem on mobile / 18rem on desktop.
+                */}
+                <CardContent
+                  className="p-0 overflow-auto max-h-[calc(100vh-16rem)] md:max-h-[calc(100vh-18rem)]"
+                >
                   <table className="w-full border-collapse text-sm">
                     <thead>
-                      {/* Header rows.
-                          NOTE: vertical-sticky (`top-…`) was removed from
-                          these <th> cells. Once the parent CardContent uses
-                          `overflow-x: auto` (required so the wide matrix
-                          scrolls horizontally INSIDE the card on mobile
-                          instead of pushing the whole page width), the
-                          previous `sticky top-[6.5rem]` cells were no longer
-                          tracking the page viewport — they were sticking
-                          against the wrapper's own scroll context, which
-                          made them appear floating in the middle of the
-                          table. The page-level legend above (which IS a
-                          direct child of the page, not of the scroll
-                          wrapper) keeps its vertical sticky behaviour.
-                          The Categoría column below remains sticky-LEFT
-                          inside the horizontal scroller — that axis works
-                          correctly because the wrapper IS its scroll
-                          container. */}
+                      {/* Header rows are sticky against THIS scroll
+                          wrapper (top: 0). Each <th> is sticky
+                          individually because sticky on <thead>/<tr>
+                          is unreliable across browsers. Solid background
+                          required so body cells don't bleed through. */}
                       <tr>
-                        {/* Top-left corner cell: sticky-LEFT only so it
-                            stays pinned to the left edge of the scroll
-                            wrapper while the user pans horizontally. */}
-                        <th className="sticky left-0 z-20 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
+                        {/* Top-left corner cell: sticky on BOTH axes
+                            (top-0 + left-0) so it stays pinned at the
+                            intersection while scrolling either way.
+                            z-30 keeps it above the other sticky headers
+                            (z-20) when they slide underneath. */}
+                        <th className="sticky top-0 left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
-                            className="border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
+                            className="sticky top-0 z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
                           >
                             {formatMonthHeader(d)}
                           </th>
                         ))}
                       </tr>
                       {/* Second header row (day-of-week + day number).
-                          Categoría cell is sticky-LEFT so it remains visible
-                          while horizontally scrolling the matrix; the date
-                          columns scroll with the body. Background uses an
-                          opaque mix of primary (10%) layered over background
-                          to preserve the original light-green tint. */}
+                          Pinned to `top-9` so it sits flush below the
+                          months row above (~h-9 of the first <tr>).
+                          Categoría cell is sticky on BOTH axes so it
+                          remains visible at the column/row intersection
+                          during diagonal scrolling. */}
                       <tr>
                         <th
-                          className="sticky left-0 z-20 border border-border/40 p-2 text-left text-foreground font-bold"
+                          className="sticky top-9 left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -290,7 +288,7 @@ const Calendario = () => {
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="border border-border/40 p-2 text-center text-foreground font-bold"
+                            className="sticky top-9 z-20 border border-border/40 p-2 text-center text-foreground font-bold"
                             style={{
                               backgroundColor: 'hsl(var(--background))',
                               backgroundImage:
