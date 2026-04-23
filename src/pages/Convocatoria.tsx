@@ -228,7 +228,7 @@ const Convocatoria = () => {
               className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               <a
-                href="/convocatoria.pdf"
+                href="/convocatoria-torneo.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Ver convocatoria en PDF"
