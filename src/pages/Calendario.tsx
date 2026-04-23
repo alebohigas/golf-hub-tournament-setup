@@ -411,19 +411,37 @@ const Calendario = () => {
                       ONLY reliable way to make the table overflow the
                       viewport horizontally — `w-max` with min-w on
                       cells gets ignored once the parent shrinks.
-                      Total width = 128 (Categoría) + 64 * dates.length.
+                      Sizing strategy
+                      ---------------
+                      We use `minWidth` (NOT `width`) so the table:
+                        • On narrow viewports (mobile) keeps the
+                          minimum natural width = 128 + 64 * dates.length
+                          and overflows horizontally → horizontal scroll
+                          + sticky Categoría column still work.
+                        • On wide viewports (desktop) expands to fill
+                          100% of the Card so there is no empty white
+                          space on the right of the table.
+                      The <colgroup> uses fractional `minmax`-equivalent
+                      widths via percentage on day columns + fixed px
+                      for Categoría, letting `table-layout: fixed`
+                      distribute extra horizontal space evenly across
+                      day columns once the container is wider than the
+                      minimum. The column-measurement ResizeObserver
+                      reads the rendered widths after layout, so the
+                      sticky header track and snap logic auto-adapt.
                     */}
                     <table
                       className="border-separate border-spacing-0 text-sm"
                       style={{
                         tableLayout: 'fixed',
-                        width: `${128 + 64 * dates.length}px`,
+                        width: '100%',
+                        minWidth: `${128 + 64 * dates.length}px`,
                       }}
                     >
                       <colgroup>
                         <col style={{ width: '128px' }} />
                         {dates.map((d) => (
-                          <col key={`col-${d.date}`} style={{ width: '64px' }} />
+                          <col key={`col-${d.date}`} style={{ width: 'auto' }} />
                         ))}
                       </colgroup>
                     <tbody ref={tbodyRef}>
