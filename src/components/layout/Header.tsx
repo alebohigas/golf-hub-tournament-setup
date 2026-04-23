@@ -454,12 +454,6 @@ const Header = () => {
                   {tournamentInfo?.id || ''}
                 </div>
               )}
-              <div className="hidden sm:block">
-                <span className="text-sm font-display font-semibold text-primary leading-tight block">
-                  {tournamentInfo?.name?.split(' ').slice(0, 2).join(' ') || 'TORNEO'}
-                </span>
-                <span className="text-xs text-muted-foreground">DE GOLF</span>
-              </div>
             </Link>
           </div>
 
