@@ -375,7 +375,6 @@ const Calendario = () => {
                         {dates.map((d, i) => (
                           <div
                             key={`mh-${d.date}`}
-                            data-snap-column="true"
                             className="flex flex-col flex-shrink-0 border-l border-border/40 first:border-l-0"
                             style={{ width: `${columnWidths.days[i] ?? 64}px` }}
                           >
