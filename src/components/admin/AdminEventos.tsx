@@ -342,25 +342,25 @@ const AdminEventos = () => {
   const savedConfig = siteConfig?.eventos_config ?? DEFAULT_EVENTOS_CONFIG;
 
   /**
-   * Resolve desktop/mobile orders against the static poster list. When the
-   * server has no order saved, this returns the identity order (0..n-1) so
-   * the preview always renders all posters in a stable, draggable list.
+   * Single, shared poster order used by BOTH desktop and mobile previews
+   * (and by the public site at every breakpoint). Falls back to the legacy
+   * per-breakpoint fields when reading a config saved before unification.
    */
-  const desktopOrder = useMemo(
-    () => resolveOrder(PREVIEW_POSTERS.length, draft.desktopOrder),
-    [draft.desktopOrder]
+  const posterOrder = useMemo(
+    () =>
+      resolveOrder(
+        PREVIEW_POSTERS.length,
+        draft.posterOrder ?? draft.desktopOrder ?? draft.mobileOrder
+      ),
+    [draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
   );
-  const mobileOrder = useMemo(
-    () => resolveOrder(PREVIEW_POSTERS.length, draft.mobileOrder),
-    [draft.mobileOrder]
-  );
-  const savedDesktopOrder = useMemo(
-    () => resolveOrder(PREVIEW_POSTERS.length, savedConfig.desktopOrder),
-    [savedConfig.desktopOrder]
-  );
-  const savedMobileOrder = useMemo(
-    () => resolveOrder(PREVIEW_POSTERS.length, savedConfig.mobileOrder),
-    [savedConfig.mobileOrder]
+  const savedPosterOrder = useMemo(
+    () =>
+      resolveOrder(
+        PREVIEW_POSTERS.length,
+        savedConfig.posterOrder ?? savedConfig.desktopOrder ?? savedConfig.mobileOrder
+      ),
+    [savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
   );
 
   /** Compare two number arrays for equality (used to detect order changes) */
@@ -373,9 +373,8 @@ const AdminEventos = () => {
       draft.mobileColumns !== savedConfig.mobileColumns ||
       draft.desktopGap !== savedConfig.desktopGap ||
       draft.mobileGap !== savedConfig.mobileGap ||
-      !arraysEqual(desktopOrder, savedDesktopOrder) ||
-      !arraysEqual(mobileOrder, savedMobileOrder),
-    [draft, savedConfig, desktopOrder, mobileOrder, savedDesktopOrder, savedMobileOrder]
+      !arraysEqual(posterOrder, savedPosterOrder),
+    [draft, savedConfig, posterOrder, savedPosterOrder]
   );
 
   /** Persist current draft to the server */
@@ -383,11 +382,14 @@ const AdminEventos = () => {
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
-        // Always send fully-resolved orders so partial drafts don't drift.
+        // Always send a fully-resolved shared order so partial drafts
+        // don't drift. Legacy per-breakpoint fields are dropped on save.
         eventos_config: {
-          ...draft,
-          desktopOrder,
-          mobileOrder,
+          desktopColumns: draft.desktopColumns,
+          mobileColumns: draft.mobileColumns,
+          desktopGap: draft.desktopGap,
+          mobileGap: draft.mobileGap,
+          posterOrder,
         },
       },
       {
@@ -483,6 +485,11 @@ const AdminEventos = () => {
                   Vista previa en vivo · arrastra los pósters para reordenarlos
                 </Label>
               </div>
+              {/*
+                Both previews share the SAME `posterOrder`. Dragging in
+                either frame updates the single shared order, which then
+                applies to desktop and mobile alike on the public page.
+              */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <PreviewFrame
                   frameWidth={1100}
@@ -491,14 +498,14 @@ const AdminEventos = () => {
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
                   droppableId="eventos-desktop-preview"
-                  order={desktopOrder}
+                  order={posterOrder}
                   onOrderChange={(next) =>
-                    setDraft((d) => ({ ...d, desktopOrder: next }))
+                    setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      desktopOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
                     }))
                   }
                 />
@@ -509,14 +516,14 @@ const AdminEventos = () => {
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
                   droppableId="eventos-mobile-preview"
-                  order={mobileOrder}
+                  order={posterOrder}
                   onOrderChange={(next) =>
-                    setDraft((d) => ({ ...d, mobileOrder: next }))
+                    setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      mobileOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
                     }))
                   }
                 />

@@ -70,13 +70,19 @@ export interface EventosConfig {
   desktopGap: EventosGap;
   mobileGap: EventosGap;
   /**
-   * Optional custom poster order for the desktop layout. Stored as a list
-   * of zero-based indices into the static poster array defined in the
-   * public component. Indices not present in the list fall back to the
-   * default static order and are appended at the end.
+   * Custom poster order shared between desktop and mobile. Stored as a
+   * list of zero-based indices into the static poster array defined in
+   * the public component. Indices not present in the list fall back to
+   * the default static order and are appended at the end.
+   */
+  posterOrder?: number[];
+  /**
+   * @deprecated Legacy fields kept for backwards compatibility with
+   * configs saved before order was unified across breakpoints. Read at
+   * runtime as a fallback when `posterOrder` is missing; never written.
    */
   desktopOrder?: number[];
-  /** Optional custom poster order for the mobile layout (same semantics). */
+  /** @deprecated See `desktopOrder`. */
   mobileOrder?: number[];
 }
 
@@ -90,8 +96,11 @@ export interface AvisosConfig {
   mobileColumns: number;
   desktopGap: EventosGap;
   mobileGap: EventosGap;
-  /** Optional custom poster order per breakpoint (see EventosConfig). */
+  /** Shared custom poster order (see EventosConfig.posterOrder). */
+  posterOrder?: number[];
+  /** @deprecated Legacy per-breakpoint orders, kept for backwards compat. */
   desktopOrder?: number[];
+  /** @deprecated See `desktopOrder`. */
   mobileOrder?: number[];
 }
 

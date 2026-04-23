@@ -19,7 +19,6 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 // ---------- Asset imports (ES6 modules, optimized by Vite) ----------
 import dia24 from '@/assets/eventos/dia-24-viernes.webp';
@@ -109,10 +108,10 @@ const AtraccionesSection = () => {
     ...(siteConfig?.eventos_config ?? {}),
   };
 
-  // Pick the active poster order based on the current breakpoint. Mobile
-  // and desktop have independent orderings so the admin can tune each.
-  const isMobile = useIsMobile();
-  const activeOrder = isMobile ? cfg.mobileOrder : cfg.desktopOrder;
+  // Single shared poster order for desktop AND mobile. Falls back to the
+  // legacy per-breakpoint fields (preferring desktopOrder) so previously
+  // saved configs keep working without a migration.
+  const activeOrder = cfg.posterOrder ?? cfg.desktopOrder ?? cfg.mobileOrder;
   const orderedAtracciones = applyOrder(ATRACCIONES, activeOrder);
 
   /**
