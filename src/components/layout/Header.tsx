@@ -445,7 +445,12 @@ const Header = () => {
           the actual rendered logo size, not with an empty square box.
           Desktop stays at the original compact height.
         */}
-        <div className="flex items-center justify-between min-h-[7rem] md:h-20 py-3 md:py-0">
+        {/*
+          Mobile: content-driven height for the enlarged mobile logo.
+          Desktop: ribbon now uses min-h so it grows with the larger desktop
+          logo instead of clipping it inside the previous fixed h-20 (80px).
+        */}
+        <div className="flex items-center justify-between min-h-[7rem] md:min-h-[6.5rem] py-3 md:py-2">
           {/* Logo */}
           <div ref={logoRef} className="flex-shrink-0 overflow-visible">
             <Link to="/" className="flex items-center gap-3 overflow-visible">
@@ -457,9 +462,11 @@ const Header = () => {
                   // slight scale boost so logos with transparent padding still
                   // look materially bigger inside the ribbon.
                   // Desktop logo: original 96px square sizing is preserved.
-                  // 20% reduction applied to mobile (h-[7.25rem] → h-[5.8rem])
-                  // and desktop (h-24/w-24 = 96px → ~77px via h-[4.8rem]).
-                  className="block h-[5.8rem] w-auto max-w-[14rem] origin-left scale-110 object-contain object-left md:h-[4.8rem] md:w-[4.8rem] md:max-w-none md:scale-100 rounded-lg"
+                  // Mobile: keeps the previously tuned size.
+                  // Desktop: enlarged to h-[5.5rem] with auto width so the
+                  // wide lockup (icon + wordmark) renders at its real aspect
+                  // ratio and visually fills the ribbon.
+                  className="block h-[5.8rem] w-auto max-w-[14rem] origin-left scale-110 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
