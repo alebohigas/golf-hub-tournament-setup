@@ -141,7 +141,7 @@ const Jugadores = () => {
                           <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
                           <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                           {/* HI, HJ, HN headers with help tooltips */}
-                          <TableHead className="text-primary-foreground font-bold text-right">
+                          <TableHead className="text-primary-foreground font-bold text-center">
                             {/* HI header: Popover so it works on tap (mobile) and click (desktop) */}
                             <Popover>
                               <PopoverTrigger asChild>
@@ -155,7 +155,7 @@ const Jugadores = () => {
                               </PopoverContent>
                             </Popover>
                           </TableHead>
-                          <TableHead className="text-primary-foreground font-bold text-right">
+                          <TableHead className="text-primary-foreground font-bold text-center">
                             {/* HJ header: Popover for mobile tap support */}
                             <Popover>
                               <PopoverTrigger asChild>
@@ -169,7 +169,7 @@ const Jugadores = () => {
                               </PopoverContent>
                             </Popover>
                           </TableHead>
-                          <TableHead className="text-primary-foreground font-bold text-right">
+                          <TableHead className="text-primary-foreground font-bold text-center">
                             {/* HN header: Popover for mobile tap support */}
                             <Popover>
                               <PopoverTrigger asChild>
@@ -203,10 +203,11 @@ const Jugadores = () => {
                                  />
                                </TableCell>
                                <TableCell className="player-name-cell">{player.name}</TableCell>
-                              <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
-                              <TableCell className="text-right">{player.handicapJuego}</TableCell>
+                              {/* HI/HJ/HN values centered under their respective column headers */}
+                              <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
+                              <TableCell className="text-center">{player.handicapJuego}</TableCell>
                               {/* HN is the most important stat — emphasize with primary color, bolder weight, and larger size */}
-                              <TableCell className="text-right font-extrabold text-base text-primary">{player.handicapNeto}</TableCell>
+                              <TableCell className="text-center font-extrabold text-base text-primary">{player.handicapNeto}</TableCell>
                             </TableRow>
                           ))
                         ) : (
