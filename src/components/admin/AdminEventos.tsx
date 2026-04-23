@@ -485,6 +485,11 @@ const AdminEventos = () => {
                   Vista previa en vivo · arrastra los pósters para reordenarlos
                 </Label>
               </div>
+              {/*
+                Both previews share the SAME `posterOrder`. Dragging in
+                either frame updates the single shared order, which then
+                applies to desktop and mobile alike on the public page.
+              */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <PreviewFrame
                   frameWidth={1100}
@@ -493,14 +498,14 @@ const AdminEventos = () => {
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
                   droppableId="eventos-desktop-preview"
-                  order={desktopOrder}
+                  order={posterOrder}
                   onOrderChange={(next) =>
-                    setDraft((d) => ({ ...d, desktopOrder: next }))
+                    setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      desktopOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
                     }))
                   }
                 />
@@ -511,14 +516,14 @@ const AdminEventos = () => {
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
                   droppableId="eventos-mobile-preview"
-                  order={mobileOrder}
+                  order={posterOrder}
                   onOrderChange={(next) =>
-                    setDraft((d) => ({ ...d, mobileOrder: next }))
+                    setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      mobileOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
                     }))
                   }
                 />
