@@ -447,9 +447,9 @@ const Header = () => {
                 <img 
                   src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
-                  // Logo enlarged another 20% (96px → ~115px) per product request.
+                  // Logo enlarged another 30% (115px → ~150px) per product request.
                   // Uses arbitrary Tailwind values to keep mobile/desktop consistent.
-                  className="w-[115px] h-[115px] md:w-[115px] md:h-[115px] rounded-lg object-contain"
+                  className="w-[150px] h-[150px] md:w-[150px] md:h-[150px] rounded-lg object-contain"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
