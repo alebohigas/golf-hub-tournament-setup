@@ -223,12 +223,20 @@ const Calendario = () => {
 
               {/* Card wrapper: NO `overflow-hidden` here — it would create a
                   new clipping context and break the sticky positioning of
-                  both the legend (above) and the table headers (below). */}
+                  the legend above. */}
               <Card className="border-border/50 max-w-6xl mx-auto">
-                {/* CardContent: NO `overflow-x-auto` for the same reason.
-                    Horizontal scroll is handled at the page level via the
-                    container; the matrix is compact enough on desktop. */}
-                <CardContent className="p-0">
+                {/* CardContent now uses `overflow-x-auto` so the wide
+                    calendar matrix scrolls horizontally INSIDE its own
+                    container on narrow viewports. Without this, the table
+                    would expand the document width and visually shift the
+                    Hero, Header ribbon and Footer when the user pans
+                    sideways on mobile.
+                    Trade-off: the table's vertical sticky header rows
+                    (`top-[6.5rem]` …) no longer track the page viewport
+                    once `overflow-x` is set; the sticky-LEFT Categoría
+                    column still works because it is anchored to this
+                    wrapper's own scroll axis. */}
+                <CardContent className="p-0 overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <thead>
                       {/* Top header row: month abbreviation per date column.
