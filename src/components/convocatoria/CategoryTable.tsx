@@ -134,17 +134,23 @@ const CategoryTable = () => {
   return (
     <div className="overflow-x-auto rounded-xl border border-border shadow-card">
       <Table>
-        <TableHeader>
+        {/*
+          Sticky header: keeps the column titles visible while users scroll
+          long category lists. `sticky top-0 z-10` pins the header row to the
+          top of the scroll container, and the bg-primary background prevents
+          row content from showing through.
+        */}
+        <TableHeader className="sticky top-0 z-10">
           <TableRow className="bg-primary hover:bg-primary">
-            <TableHead className="text-primary-foreground font-semibold">CATEGORÍAS</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">RANGO DE HÁNDICAP</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">FORMATO</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">VENTAJAS</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">CUPO</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">RONDA</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">HOYOS A CORTE</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">CORTE FINAL</TableHead>
-            <TableHead className="text-primary-foreground font-semibold text-center">MARCAS</TableHead>
+            <TableHead className="text-primary-foreground font-semibold bg-primary">CATEGORÍAS</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">RANGO DE HÁNDICAP</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">FORMATO</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">VENTAJAS</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">CUPO</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">RONDA</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">HOYOS A CORTE</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">CORTE FINAL</TableHead>
+            <TableHead className="text-primary-foreground font-semibold text-center bg-primary">MARCAS</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
