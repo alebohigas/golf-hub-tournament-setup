@@ -235,7 +235,16 @@ const PreviewFrame = ({
             onOrderChange(next);
           }}
         >
-          <Droppable droppableId={droppableId} direction="horizontal">
+          {/*
+            NOTE: We intentionally omit `direction` here. @hello-pangea/dnd
+            does not have a true "grid" mode, but the default (vertical)
+            mode computes drop targets by distance to each draggable's
+            center — which works correctly for multi-row grids. Setting
+            `direction="horizontal"` collapses everything onto a single
+            row, which breaks reordering across rows (drops to row 2 get
+            interpreted as positions inside row 1).
+          */}
+          <Droppable droppableId={droppableId}>
             {(provided) => (
               <div
                 ref={provided.innerRef}
