@@ -375,7 +375,6 @@ const Calendario = () => {
                         {dates.map((d, i) => (
                           <div
                             key={`mh-${d.date}`}
-                            data-snap-column="true"
                             className="flex flex-col flex-shrink-0 border-l border-border/40 first:border-l-0"
                             style={{ width: `${columnWidths.days[i] ?? 64}px` }}
                           >
@@ -407,14 +406,26 @@ const Calendario = () => {
                     className="overflow-x-auto overscroll-x-contain"
                   >
                     {/*
-                      `w-max` lets the table grow to its natural width
-                      (sum of every min-w-[64px] column + the 128px
-                      Categoría column), which is what triggers the
-                      horizontal scroll. With `w-full` the browser
-                      compressed every column to fit the viewport,
-                      defeating the scroll entirely.
+                      Force the table to its natural total width via
+                      `table-layout: fixed` + a <colgroup>. This is the
+                      ONLY reliable way to make the table overflow the
+                      viewport horizontally — `w-max` with min-w on
+                      cells gets ignored once the parent shrinks.
+                      Total width = 128 (Categoría) + 64 * dates.length.
                     */}
-                    <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
+                    <table
+                      className="border-separate border-spacing-0 text-sm"
+                      style={{
+                        tableLayout: 'fixed',
+                        width: `${128 + 64 * dates.length}px`,
+                      }}
+                    >
+                      <colgroup>
+                        <col style={{ width: '128px' }} />
+                        {dates.map((d) => (
+                          <col key={`col-${d.date}`} style={{ width: '64px' }} />
+                        ))}
+                      </colgroup>
                     <tbody ref={tbodyRef}>
                       {categories.map(([catKey, catData], idx) => (
                         <tr key={catKey} data-snap-row="true" className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
@@ -444,6 +455,7 @@ const Calendario = () => {
                             return (
                               <td
                                 key={d.date}
+                                data-snap-column="true"
                                 className="border border-border/40 p-0 text-center align-middle h-9"
                               >
                                 {entry ? <AmPmCell entry={entry} /> : null}
