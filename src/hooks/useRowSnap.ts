@@ -1,112 +1,183 @@
 /**
  * useRowSnap
  * -----------------------------------------------------------------------------
- * Snaps the WINDOW scroll position to whole rows of a target element after the
- * user stops scrolling. Designed for tables with sticky headers: when the user
- * leaves a row partially hidden behind the sticky header, this hook nudges the
- * page so the row is fully visible (or fully scrolled past, depending on which
- * half of the row is currently above the header).
+ * Bidirectional snap helper for large matrix tables.
  *
- * Behavior:
- *   - More than 50% of the row is hidden under the header  -> snap DOWN
- *     (scroll past the row so the next row is the first visible).
- *   - Less than 50% hidden                                  -> snap UP
- *     (reveal the row entirely just below the header).
+ * It coordinates TWO independent scroll contexts:
+ *   1) Vertical scroll on the WINDOW
+ *      - Snaps the first visible table row so it lands cleanly under the
+ *        sticky calendar header stack.
+ *   2) Horizontal scroll on an inner container
+ *      - Snaps the table to full date columns so no column is left half cut.
  *
- * The snap fires after the user stops scrolling for `idleMs` ms, so it does
- * not fight the user's active gesture (works on desktop wheel and mobile
- * inertia scroll).
- *
- * @param ref           Ref to the element whose direct children are the rows
- *                      to snap to (typically a <tbody>).
- * @param stickyOffset  Function returning current sticky-header offset (px)
- *                      from the top of the viewport. Returning the live value
- *                      lets the hook adapt to responsive header heights.
- * @param enabled       When false, the hook is a no-op (lets us disable
- *                      snapping while loading or on small datasets).
- * @param idleMs        Idle time before the snap fires. Default 140ms.
+ * Vertical and horizontal snapping are intentionally decoupled because the
+ * Calendario page uses page scroll for Y and an isolated table wrapper for X.
  */
 import { useEffect, useRef } from 'react';
+
+/** Optional configuration for horizontal snapping inside a scroll container. */
+interface HorizontalSnapOptions {
+  /** Ref to the element that owns horizontal scrolling (overflow-x-auto). */
+  scrollRef?: React.RefObject<HTMLElement>;
+  /** CSS selector used to discover column anchors inside `scrollRef`. */
+  selector?: string;
+  /** Width of the pinned left column that must remain visible while snapping. */
+  offset?: () => number;
+}
 
 export function useRowSnap(
   ref: React.RefObject<HTMLElement>,
   stickyOffset: () => number,
   enabled: boolean = true,
   idleMs: number = 140,
+  horizontal?: HorizontalSnapOptions,
 ) {
-  // Tracks the in-flight idle timeout so we can reset it on every scroll tick.
-  const timeoutRef = useRef<number | null>(null);
-  // True while we are programmatically scrolling — prevents feedback loops
-  // where our own scrollTo() retriggers the snap logic.
-  const programmaticRef = useRef<boolean>(false);
+  /** Idle timer for WINDOW vertical scroll snapping. */
+  const verticalTimeoutRef = useRef<number | null>(null);
+  /** Idle timer for inner horizontal scroll snapping. */
+  const horizontalTimeoutRef = useRef<number | null>(null);
+  /** Guards against feedback loops caused by our own window.scrollTo(). */
+  const programmaticVerticalRef = useRef<boolean>(false);
+  /** Guards against feedback loops caused by our own scrollRef.scrollTo(). */
+  const programmaticHorizontalRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!enabled) return;
     const container = ref.current;
     if (!container) return;
 
-    /** Compute target scrollY and trigger a smooth snap if needed. */
-    const performSnap = () => {
+    /**
+     * Return the rows eligible for vertical snap.
+     * When explicit `data-snap-row="true"` markers exist we use only those;
+     * otherwise we fall back to the container's direct children.
+     */
+    const getRows = () => {
+      const markedRows = Array.from(
+        container.querySelectorAll<HTMLElement>('[data-snap-row="true"]'),
+      );
+      return markedRows.length > 0
+        ? markedRows
+        : (Array.from(container.children) as HTMLElement[]);
+    };
+
+    /** Compute target window scrollY and trigger a smooth vertical snap. */
+    const performVerticalSnap = () => {
       const offset = stickyOffset();
-      const rows = Array.from(container.children) as HTMLElement[];
+      const rows = getRows();
       if (rows.length === 0) return;
 
-      // The "anchor line" is the first pixel of viewport content that is NOT
-      // hidden under the sticky header. A row is "fully visible" when its
-      // top is at or below this line.
       const anchorY = offset;
 
-      // Find the row that straddles the anchor line.
       for (const row of rows) {
         const rect = row.getBoundingClientRect();
-        // Skip rows entirely above or below the anchor.
-        if (rect.bottom <= anchorY) continue;        // fully above
-        if (rect.top >= anchorY) return;             // fully below — nothing to snap
+        if (rect.bottom <= anchorY) continue;
+        if (rect.top >= anchorY) return;
 
-        // This row straddles the anchor line. Compute how much is hidden.
-        const hidden = anchorY - rect.top;            // px of the row above anchor
-        const visible = rect.bottom - anchorY;        // px of the row below anchor
+        const hidden = anchorY - rect.top;
+        const visible = rect.bottom - anchorY;
         const rowHeight = rect.height;
         if (rowHeight <= 0) return;
 
-        // Decide direction:
-        //   <50% hidden  -> snap UP (reveal row): scroll the page up by
-        //                   `hidden` so row.top lands exactly at the anchor.
-        //   >=50% hidden -> snap DOWN (skip past row): scroll the page down
-        //                   by `visible` so row.bottom lands at the anchor
-        //                   and the next row sits flush below the header.
         const targetScrollY =
           hidden < rowHeight / 2
-            ? window.scrollY - hidden    // align row.top with anchor
-            : window.scrollY + visible;  // align row.bottom with anchor
+            ? window.scrollY - hidden
+            : window.scrollY + visible;
 
-        // Only snap if the delta is meaningful (>1px) to avoid jitter.
         if (Math.abs(targetScrollY - window.scrollY) < 1) return;
 
-        programmaticRef.current = true;
+        programmaticVerticalRef.current = true;
         window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-        // Release the programmatic flag after the smooth scroll likely ended.
-        window.setTimeout(() => { programmaticRef.current = false; }, 400);
+        window.setTimeout(() => {
+          programmaticVerticalRef.current = false;
+        }, 400);
         return;
       }
     };
 
-    /** Reset the idle timer on every scroll event. */
-    const onScroll = () => {
-      if (programmaticRef.current) return;
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
+    /** Reset the vertical idle timer on every page scroll event. */
+    const onWindowScroll = () => {
+      if (programmaticVerticalRef.current) return;
+      if (verticalTimeoutRef.current !== null) {
+        window.clearTimeout(verticalTimeoutRef.current);
       }
-      timeoutRef.current = window.setTimeout(() => {
-        timeoutRef.current = null;
-        performSnap();
+      verticalTimeoutRef.current = window.setTimeout(() => {
+        verticalTimeoutRef.current = null;
+        performVerticalSnap();
       }, idleMs);
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+
+    const scrollEl = horizontal?.scrollRef?.current;
+    const selector = horizontal?.selector;
+
+    /**
+     * Compute the nearest full-column position and snap the horizontal scroll.
+     * We derive candidate targets from the actual DOM offsets of date cells,
+     * then subtract the pinned left-column width so the chosen column lands
+     * exactly next to the sticky Categoría column.
+     */
+    const performHorizontalSnap = () => {
+      if (!scrollEl || !selector) return;
+
+      const anchors = Array.from(scrollEl.querySelectorAll<HTMLElement>(selector));
+      if (anchors.length === 0) return;
+
+      const pinnedOffset = horizontal?.offset?.() ?? 0;
+      const maxScrollLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+
+      const targets = Array.from(
+        new Set(
+          anchors.map((anchor) => {
+            const rawLeft = Math.round(anchor.offsetLeft - pinnedOffset);
+            return Math.min(maxScrollLeft, Math.max(0, rawLeft));
+          }),
+        ),
+      ).sort((a, b) => a - b);
+
+      if (targets.length === 0) return;
+
+      const current = scrollEl.scrollLeft;
+      const nearest = targets.reduce((best, candidate) =>
+        Math.abs(candidate - current) < Math.abs(best - current) ? candidate : best,
+      );
+
+      if (Math.abs(nearest - current) < 1) return;
+
+      programmaticHorizontalRef.current = true;
+      scrollEl.scrollTo({ left: nearest, behavior: 'smooth' });
+      window.setTimeout(() => {
+        programmaticHorizontalRef.current = false;
+      }, 300);
     };
-  }, [ref, stickyOffset, enabled, idleMs]);
+
+    /** Reset the horizontal idle timer on every inner X scroll event. */
+    const onHorizontalScroll = () => {
+      if (programmaticHorizontalRef.current) return;
+      if (horizontalTimeoutRef.current !== null) {
+        window.clearTimeout(horizontalTimeoutRef.current);
+      }
+      horizontalTimeoutRef.current = window.setTimeout(() => {
+        horizontalTimeoutRef.current = null;
+        performHorizontalSnap();
+      }, idleMs);
+    };
+
+    if (scrollEl && selector) {
+      scrollEl.addEventListener('scroll', onHorizontalScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('scroll', onWindowScroll);
+      if (scrollEl && selector) {
+        scrollEl.removeEventListener('scroll', onHorizontalScroll);
+      }
+      if (verticalTimeoutRef.current !== null) {
+        window.clearTimeout(verticalTimeoutRef.current);
+      }
+      if (horizontalTimeoutRef.current !== null) {
+        window.clearTimeout(horizontalTimeoutRef.current);
+      }
+    };
+  }, [ref, stickyOffset, enabled, idleMs, horizontal]);
 }

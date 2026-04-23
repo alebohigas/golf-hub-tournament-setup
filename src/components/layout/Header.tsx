@@ -447,19 +447,13 @@ const Header = () => {
                 <img 
                   src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-contain"
+                  className="w-24 h-24 md:w-24 md:h-24 rounded-lg object-contain"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
                   {tournamentInfo?.id || ''}
                 </div>
               )}
-              <div className="hidden sm:block">
-                <span className="text-sm font-display font-semibold text-primary leading-tight block">
-                  {tournamentInfo?.name?.split(' ').slice(0, 2).join(' ') || 'TORNEO'}
-                </span>
-                <span className="text-xs text-muted-foreground">DE GOLF</span>
-              </div>
             </Link>
           </div>
 

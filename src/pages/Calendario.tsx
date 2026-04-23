@@ -5,7 +5,7 @@
  * Also shows convocatoria schedule/horario data when available
  */
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,22 +115,107 @@ const Calendario = () => {
 
   /** Ref to the <tbody> whose rows we want to snap to. */
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  /** Ref to the horizontal table scroller (X axis only). */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  /** Ref to the sticky header bar that mirrors the table columns. */
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  /** Ref to the inner track of the sticky header (the div we translate). */
+  const stickyHeaderTrackRef = useRef<HTMLDivElement>(null);
+  /** Ref to the sticky AM/PM legend above the table. */
+  const legendRef = useRef<HTMLDivElement>(null);
+  /** Live header offsets and column geometry needed to render the floating
+   *  sticky header that mirrors the actual table columns. */
+  const [stickyTopPx, setStickyTopPx] = useState<number>(104);
+  const [columnWidths, setColumnWidths] = useState<{ category: number; days: number[] }>({
+    category: 128,
+    days: [],
+  });
+  /** Total header bar height (months row + days row) for vertical snapping. */
+  const [stickyHeaderHeight, setStickyHeaderHeight] = useState<number>(80);
 
   /**
-   * Live sticky-header offset (in px). Keep this in sync with the `top-*`
-   * Tailwind classes used by the sticky day-of-week row in the table:
-   *   mobile  : top-[8.75rem] -> 8.75 * 16 = 140px
-   *   desktop : top-[9.75rem] -> 9.75 * 16 = 156px
-   * We add a small +1px buffer so the snap aligns flush with the bottom
-   * border of the sticky header.
+   * Sync the sticky header's vertical position so it sits immediately under
+   * the page header + legend, regardless of responsive size changes.
    */
-  const getStickyOffset = useCallback(() => {
-    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-    return (isDesktop ? 9.75 : 8.75) * 16 + 1;
+  useEffect(() => {
+    const measure = () => {
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+      const headerHeight = isDesktop ? 80 : 64;
+      const legendHeight = legendRef.current?.getBoundingClientRect().height ?? 40;
+      setStickyTopPx(headerHeight + legendHeight);
+    };
+    measure();
+    const obs = new ResizeObserver(measure);
+    if (legendRef.current) obs.observe(legendRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, []);
 
+  /**
+   * Measure each visible table column so the floating sticky header can
+   * render with identical widths and stay aligned during horizontal scroll.
+   */
+  useEffect(() => {
+    const measureColumns = () => {
+      const wrapper = scrollRef.current;
+      if (!wrapper) return;
+      const headerCells = wrapper.querySelectorAll<HTMLElement>(
+        'tbody tr[data-snap-row="true"]:first-of-type > td',
+      );
+      if (headerCells.length === 0) return;
+      const widths = Array.from(headerCells).map((c) => c.getBoundingClientRect().width);
+      setColumnWidths({ category: widths[0] ?? 128, days: widths.slice(1) });
+      const headerEl = stickyHeaderRef.current;
+      if (headerEl) setStickyHeaderHeight(headerEl.getBoundingClientRect().height);
+    };
+    measureColumns();
+    const obs = new ResizeObserver(measureColumns);
+    if (scrollRef.current) obs.observe(scrollRef.current);
+    window.addEventListener('resize', measureColumns);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener('resize', measureColumns);
+    };
+  }, [dates.length, entries.length]);
+
+  /**
+   * Mirror the inner horizontal scroll into the floating sticky header
+   * via translateX(), so the header always shows the same date columns.
+   */
+  useEffect(() => {
+    const wrapper = scrollRef.current;
+    const track = stickyHeaderTrackRef.current;
+    if (!wrapper || !track) return;
+    const sync = () => {
+      track.style.transform = `translateX(${-wrapper.scrollLeft}px)`;
+    };
+    sync();
+    wrapper.addEventListener('scroll', sync, { passive: true });
+    return () => wrapper.removeEventListener('scroll', sync);
+  }, [columnWidths.days.length]);
+
+  /**
+   * Anchor line for vertical row snapping = bottom edge of the floating
+   * sticky header (page header + legend + header bar height).
+   */
+  const getStickyOffset = useCallback(() => {
+    return stickyTopPx + stickyHeaderHeight + 1;
+  }, [stickyTopPx, stickyHeaderHeight]);
+
+  /** Width of the pinned left category column used by horizontal snap. */
+  const getPinnedColumnOffset = useCallback(() => {
+    return columnWidths.category;
+  }, [columnWidths.category]);
+
   // Enable snap only when the table actually has rows.
-  useRowSnap(tbodyRef, getStickyOffset, !isLoading && entries.length > 0);
+  useRowSnap(tbodyRef, getStickyOffset, !isLoading && entries.length > 0, 140, {
+    scrollRef,
+    selector: '[data-snap-column="true"]',
+    offset: getPinnedColumnOffset,
+  });
 
   /** Group entries by category for the matrix table */
   const categoryMap = new Map<string, { name: string; shortName: string; byDate: Map<string, CalendarEntry[]> }>();
@@ -200,7 +285,7 @@ const Calendario = () => {
               {/* Sticky offset matches the Header height: h-16 (64px) on
                   mobile and h-20 (80px) on desktop. Without `md:top-20`
                   the legend would slide under the desktop header. */}
-              <div className="sticky top-16 md:top-20 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
+               <div ref={legendRef} className="sticky top-16 md:top-20 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-4 rounded-sm bg-accent border border-border/30" />
                   <span className="text-muted-foreground">Salida AM</span>
@@ -221,78 +306,147 @@ const Calendario = () => {
                 </div>
               </div>
 
-              {/* Card wrapper: NO `overflow-hidden` here — it would create a
-                  new clipping context and break the sticky positioning of
-                  both the legend (above) and the table headers (below). */}
+              {/* Card wrapper. NO `overflow-hidden` so the page-level
+                  legend above remains sticky relative to the viewport. */}
               <Card className="border-border/50 max-w-6xl mx-auto">
-                {/* CardContent: NO `overflow-x-auto` for the same reason.
-                    Horizontal scroll is handled at the page level via the
-                    container; the matrix is compact enough on desktop. */}
-                <CardContent className="p-0">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      {/* Top header row: month abbreviation per date column.
-                          Each <th> is sticky individually because sticky on
-                          <thead>/<tr> is unreliable across browsers.
-                          `top-[6.5rem]` clears the sticky legend (top-16 +
-                          its height). Solid bg required so cells underneath
-                          do not bleed through while scrolling. */}
-                      {/* Sticky months row. Offset = header (h-16/h-20) +
-                          legend height (~2.5rem) so it sits flush below the
-                          legend on both mobile (~6.5rem) and desktop (~7.5rem). */}
-                      <tr>
-                        {/* Top-left corner cell: sticky on BOTH axes so it
-                            stays pinned at the intersection of the sticky
-                            month-header row and the sticky Categoría column.
-                            Higher z-index (z-30) than the regular sticky
-                            header cells (z-20) so it overlays them when
-                            they slide underneath while scrolling horizontally. */}
-                        <th className="sticky top-[6.5rem] md:top-[7.5rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
-                        {dates.map(d => (
-                          <th
-                            key={`m-${d.date}`}
-                            className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
-                          >
-                            {formatMonthHeader(d)}
-                          </th>
-                        ))}
-                      </tr>
-                      {/* Second sticky row (day-of-week + day number).
-                          Pinned to `top-[8.75rem]` so it sits flush against
-                          the months row above — no gap that would let body
-                          rows peek through during scroll.
-                          Background: opaque mix of primary (10%) layered over
-                          background, preserving the original light-green tint
-                          (`bg-primary/10` look) while remaining fully solid. */}
-                      <tr>
-                        <th
-                          className="sticky top-[8.75rem] md:top-[9.75rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
+                {/*
+                  Scroll container strategy
+                  -----------------------------------------------------
+                  Tournaments can have many categories (tall) AND many
+                  days (wide). To make sticky headers work with the
+                  PAGE scroll (not a separate inner scroll that creates
+                  two scrollbars), we only allow HORIZONTAL scroll
+                  inside this wrapper (`overflow-x: auto`, `overflow-y:
+                  visible`). Vertical sticky positioning is then
+                  computed relative to the viewport, so the month/day
+                  header rows stay pinned just under the page header
+                  while the user scrolls down the page. Horizontal
+                  sticky (`left-0`) for the Categoría column still
+                  works because the only scroll axis inside the
+                  wrapper is horizontal.
+                */}
+                <CardContent
+                  className="p-0"
+                >
+                  {/*
+                    Floating sticky header bar.
+                    -------------------------------------------------
+                    The actual table is wrapped in a horizontal-scroll
+                    container (`overflow-x: auto`) which by CSS spec
+                    becomes a y-scroll context as well — that breaks
+                    `position: sticky` on the inner <thead>. To avoid
+                    that, the <thead> is replaced by this DIV which
+                    lives OUTSIDE the scroll container. It is sticky
+                    relative to the viewport (its parent has no
+                    overflow), and its inner track is translated by
+                    `-scrollLeft` to mirror the table's horizontal
+                    pan, while the leftmost "Categoría" column stays
+                    pinned and overlays the track.
+                  */}
+                  <div
+                    ref={stickyHeaderRef}
+                    className="sticky z-40 bg-background border-b border-border/40 overflow-hidden"
+                    style={{ top: `${stickyTopPx}px` }}
+                  >
+                    <div className="relative" style={{ height: '5rem' }}>
+                      {/* Pinned Categoría column overlay (covers the moving
+                          track for the leftmost slot). */}
+                      <div
+                        className="absolute top-0 left-0 z-10 h-full flex flex-col bg-muted"
+                        style={{ width: `${columnWidths.category}px` }}
+                      >
+                        <div className="h-1/2 border-b border-border/40" />
+                        <div
+                          className="h-1/2 px-2 flex items-center text-foreground font-bold"
                           style={{
-                            backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
                               'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
                           }}
                         >
                           Categoría
-                        </th>
-                        {dates.map(d => (
-                          <th
-                            key={`d-${d.date}`}
-                            className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold"
-                            style={{
-                              backgroundColor: 'hsl(var(--background))',
-                              backgroundImage:
-                                'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
-                            }}
+                        </div>
+                      </div>
+                      {/* Scrollable track mirroring the table's date columns. */}
+                      <div
+                        ref={stickyHeaderTrackRef}
+                        className="absolute top-0 left-0 h-full flex"
+                        style={{ paddingLeft: `${columnWidths.category}px`, willChange: 'transform' }}
+                      >
+                        {dates.map((d, i) => (
+                          <div
+                            key={`mh-${d.date}`}
+                            className="flex flex-col flex-shrink-0 border-l border-border/40 first:border-l-0"
+                            style={{ width: `${columnWidths.days[i] ?? 64}px` }}
                           >
-                            {formatDayHeader(d)}
-                          </th>
+                            <div className="h-1/2 flex items-center justify-center text-muted-foreground font-medium bg-muted text-xs">
+                              {formatMonthHeader(d)}
+                            </div>
+                            <div
+                              className="h-1/2 flex items-center justify-center text-foreground font-bold text-xs"
+                              style={{
+                                backgroundImage:
+                                  'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
+                              }}
+                            >
+                              {formatDayHeader(d)}
+                            </div>
+                          </div>
                         ))}
-                      </tr>
-                    </thead>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/*
+                    Horizontal-scroll wrapper for the table body.
+                    The original <thead> is removed because the floating
+                    sticky header above replaces it visually.
+                  */}
+                  <div
+                    ref={scrollRef}
+                    className="overflow-x-auto overscroll-x-contain"
+                  >
+                    {/*
+                      Force the table to its natural total width via
+                      `table-layout: fixed` + a <colgroup>. This is the
+                      ONLY reliable way to make the table overflow the
+                      viewport horizontally — `w-max` with min-w on
+                      cells gets ignored once the parent shrinks.
+                      Sizing strategy
+                      ---------------
+                      We use `minWidth` (NOT `width`) so the table:
+                        • On narrow viewports (mobile) keeps the
+                          minimum natural width = 128 + 64 * dates.length
+                          and overflows horizontally → horizontal scroll
+                          + sticky Categoría column still work.
+                        • On wide viewports (desktop) expands to fill
+                          100% of the Card so there is no empty white
+                          space on the right of the table.
+                      The <colgroup> uses fractional `minmax`-equivalent
+                      widths via percentage on day columns + fixed px
+                      for Categoría, letting `table-layout: fixed`
+                      distribute extra horizontal space evenly across
+                      day columns once the container is wider than the
+                      minimum. The column-measurement ResizeObserver
+                      reads the rendered widths after layout, so the
+                      sticky header track and snap logic auto-adapt.
+                    */}
+                    <table
+                      className="border-separate border-spacing-0 text-sm"
+                      style={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: `${128 + 64 * dates.length}px`,
+                      }}
+                    >
+                      <colgroup>
+                        <col style={{ width: '128px' }} />
+                        {dates.map((d) => (
+                          <col key={`col-${d.date}`} style={{ width: 'auto' }} />
+                        ))}
+                      </colgroup>
                     <tbody ref={tbodyRef}>
                       {categories.map(([catKey, catData], idx) => (
-                        <tr key={catKey} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
+                        <tr key={catKey} data-snap-row="true" className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
                           {/* Sticky-left Categoría cell. The <tr> background
                               is transparent for sticky cells (they "see
                               through" to whatever scrolls under), so we must
@@ -301,7 +455,8 @@ const Calendario = () => {
                               normal body cells but below the sticky headers
                               (z-20/z-30). */}
                           <td
-                            className="sticky left-0 z-10 border border-border/40 p-2 font-medium text-foreground whitespace-nowrap"
+                            data-sticky-category="true"
+                            className="sticky left-0 z-10 border border-border/40 p-2 font-medium text-foreground whitespace-nowrap w-32 min-w-32"
                             style={{
                               backgroundColor: 'hsl(var(--background))',
                               backgroundImage:
@@ -318,6 +473,7 @@ const Calendario = () => {
                             return (
                               <td
                                 key={d.date}
+                                data-snap-column="true"
                                 className="border border-border/40 p-0 text-center align-middle h-9"
                               >
                                 {entry ? <AmPmCell entry={entry} /> : null}
@@ -342,7 +498,8 @@ const Calendario = () => {
                             since the <tr>'s own background is invisible
                             behind sticky cells during horizontal scroll. */}
                         <td
-                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground"
+                          data-sticky-category="true"
+                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground w-32 min-w-32"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -364,7 +521,8 @@ const Calendario = () => {
                         {/* Sticky-left totals label (PM). Same solid-tint
                             trick as the AM row above. */}
                         <td
-                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground"
+                          data-sticky-category="true"
+                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground w-32 min-w-32"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -384,6 +542,7 @@ const Calendario = () => {
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </CardContent>
               </Card>
             </>
