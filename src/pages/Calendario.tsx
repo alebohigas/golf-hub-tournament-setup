@@ -5,7 +5,7 @@
  * Also shows convocatoria schedule/horario data when available
  */
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,22 +115,68 @@ const Calendario = () => {
 
   /** Ref to the <tbody> whose rows we want to snap to. */
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  /** Ref to the horizontal table scroller (X axis only). */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  /** Ref to the sticky AM/PM legend above the table. */
+  const legendRef = useRef<HTMLDivElement>(null);
+  /** Ref to the first header row so we can measure its actual rendered height. */
+  const monthRowRef = useRef<HTMLTableRowElement>(null);
+  /** Live sticky offsets derived from actual rendered element heights. */
+  const [stickyTops, setStickyTops] = useState({ monthTop: 104, dayTop: 140 });
 
   /**
-   * Live sticky-header offset (in px). Keep this in sync with the `top-*`
-   * Tailwind classes used by the sticky day-of-week row in the table:
-   *   mobile  : top-[8.75rem] -> 8.75 * 16 = 140px
-   *   desktop : top-[9.75rem] -> 9.75 * 16 = 156px
-   * We add a small +1px buffer so the snap aligns flush with the bottom
-   * border of the sticky header.
+   * Keep sticky offsets in sync with real UI heights.
+   * This avoids fragile hardcoded `top-*` values on mobile when the legend,
+   * fonts, or responsive spacing change. The table header rows then stick
+   * immediately below: Header + Legend + prior sticky row height.
+   */
+  useEffect(() => {
+    const measureStickyTops = () => {
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+      const headerHeight = isDesktop ? 80 : 64;
+      const legendHeight = legendRef.current?.getBoundingClientRect().height ?? 40;
+      const monthRowHeight = monthRowRef.current?.getBoundingClientRect().height ?? 36;
+
+      setStickyTops({
+        monthTop: headerHeight + legendHeight,
+        dayTop: headerHeight + legendHeight + monthRowHeight,
+      });
+    };
+
+    measureStickyTops();
+
+    const observer = new ResizeObserver(() => measureStickyTops());
+    if (legendRef.current) observer.observe(legendRef.current);
+    if (monthRowRef.current) observer.observe(monthRowRef.current);
+    window.addEventListener('resize', measureStickyTops);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measureStickyTops);
+    };
+  }, []);
+
+  /**
+   * Live sticky-header offset for the FIRST body row.
+   * Uses the measured bottom edge of the day header row so vertical snapping
+   * always aligns a full category row just below the sticky title stack.
    */
   const getStickyOffset = useCallback(() => {
-    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-    return (isDesktop ? 9.75 : 8.75) * 16 + 1;
+    return stickyTops.dayTop + 1;
+  }, [stickyTops.dayTop]);
+
+  /** Width of the pinned left category column used by horizontal snap. */
+  const getPinnedColumnOffset = useCallback(() => {
+    const pinnedCell = scrollRef.current?.querySelector<HTMLElement>('[data-sticky-category="true"]');
+    return pinnedCell?.getBoundingClientRect().width ?? 128;
   }, []);
 
   // Enable snap only when the table actually has rows.
-  useRowSnap(tbodyRef, getStickyOffset, !isLoading && entries.length > 0);
+  useRowSnap(tbodyRef, getStickyOffset, !isLoading && entries.length > 0, 140, {
+    scrollRef,
+    selector: '[data-snap-column="true"]',
+    offset: getPinnedColumnOffset,
+  });
 
   /** Group entries by category for the matrix table */
   const categoryMap = new Map<string, { name: string; shortName: string; byDate: Map<string, CalendarEntry[]> }>();
@@ -200,7 +246,7 @@ const Calendario = () => {
               {/* Sticky offset matches the Header height: h-16 (64px) on
                   mobile and h-20 (80px) on desktop. Without `md:top-20`
                   the legend would slide under the desktop header. */}
-              <div className="sticky top-16 md:top-20 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
+               <div ref={legendRef} className="sticky top-16 md:top-20 z-30 flex flex-wrap items-center justify-center gap-4 mb-4 py-2 px-3 text-sm rounded-md border border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-4 rounded-sm bg-accent border border-border/30" />
                   <span className="text-muted-foreground">Salida AM</span>
@@ -241,9 +287,10 @@ const Calendario = () => {
                   wrapper is horizontal.
                 */}
                 <CardContent
-                  className="p-0 overflow-x-auto overflow-y-visible"
+                  ref={scrollRef}
+                  className="relative p-0 overflow-x-auto overflow-y-visible overscroll-x-contain"
                 >
-                  <table className="w-full border-collapse text-sm">
+                  <table className="w-full border-separate border-spacing-0 text-sm">
                     <thead>
                       {/* Header rows are sticky against the VIEWPORT.
                           We pin them just below the page header
@@ -256,7 +303,7 @@ const Calendario = () => {
                           sticky on <thead>/<tr> is unreliable across
                           browsers. Solid background required so body
                           cells don't bleed through. */}
-                      <tr>
+                      <tr ref={monthRowRef}>
                         {/* Top-left corner cell: sticky on BOTH axes
                             so it stays pinned at the intersection
                             while scrolling either way. Vertical offset
@@ -265,11 +312,12 @@ const Calendario = () => {
                               desktop : 80 (h-20) + ~40 (legend) ≈ 7.5rem
                             z-30 keeps it above the other sticky headers
                             (z-20) when they slide underneath. */}
-                        <th className="sticky top-[6.5rem] md:top-[7.5rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
+                        <th className="sticky left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 min-w-32 bg-muted" style={{ top: `${stickyTops.monthTop}px` }} />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
-                            className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
+                            className="sticky z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
+                            style={{ top: `${stickyTops.monthTop}px` }}
                           >
                             {formatMonthHeader(d)}
                           </th>
@@ -285,8 +333,10 @@ const Calendario = () => {
                           during diagonal scrolling. */}
                       <tr>
                         <th
-                          className="sticky top-[8.75rem] md:top-[9.75rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
+                          data-sticky-category="true"
+                          className="sticky left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold w-32 min-w-32"
                           style={{
+                            top: `${stickyTops.dayTop}px`,
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
                               'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
@@ -297,8 +347,10 @@ const Calendario = () => {
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold"
+                            data-snap-column="true"
+                            className="sticky z-20 border border-border/40 p-2 text-center text-foreground font-bold min-w-[64px]"
                             style={{
+                              top: `${stickyTops.dayTop}px`,
                               backgroundColor: 'hsl(var(--background))',
                               backgroundImage:
                                 'linear-gradient(hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.1))',
@@ -311,7 +363,7 @@ const Calendario = () => {
                     </thead>
                     <tbody ref={tbodyRef}>
                       {categories.map(([catKey, catData], idx) => (
-                        <tr key={catKey} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
+                        <tr key={catKey} data-snap-row="true" className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
                           {/* Sticky-left Categoría cell. The <tr> background
                               is transparent for sticky cells (they "see
                               through" to whatever scrolls under), so we must
@@ -320,7 +372,8 @@ const Calendario = () => {
                               normal body cells but below the sticky headers
                               (z-20/z-30). */}
                           <td
-                            className="sticky left-0 z-10 border border-border/40 p-2 font-medium text-foreground whitespace-nowrap"
+                            data-sticky-category="true"
+                            className="sticky left-0 z-10 border border-border/40 p-2 font-medium text-foreground whitespace-nowrap w-32 min-w-32"
                             style={{
                               backgroundColor: 'hsl(var(--background))',
                               backgroundImage:
@@ -361,7 +414,8 @@ const Calendario = () => {
                             since the <tr>'s own background is invisible
                             behind sticky cells during horizontal scroll. */}
                         <td
-                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground"
+                          data-sticky-category="true"
+                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground w-32 min-w-32"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -383,7 +437,8 @@ const Calendario = () => {
                         {/* Sticky-left totals label (PM). Same solid-tint
                             trick as the AM row above. */}
                         <td
-                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground"
+                          data-sticky-category="true"
+                          className="sticky left-0 z-10 border border-border/40 p-2 font-bold text-foreground w-32 min-w-32"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
