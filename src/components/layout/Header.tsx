@@ -441,11 +441,11 @@ const Header = () => {
       <div className="container mx-auto">
         {/*
           Header row height.
-          Mobile now uses a flexible minimum height instead of a fixed square
-          logo slot, so the ribbon grows with the rendered logo itself.
+          Mobile uses content-driven vertical space so the ribbon expands with
+          the actual rendered logo size, not with an empty square box.
           Desktop stays at the original compact height.
         */}
-        <div className="flex items-center justify-between min-h-[7.75rem] md:h-20 py-2 md:py-0">
+        <div className="flex items-center justify-between min-h-[8.5rem] md:h-20 py-3 md:py-0">
           {/* Logo */}
           <div ref={logoRef} className="flex-shrink-0 overflow-visible">
             <Link to="/" className="flex items-center gap-3 overflow-visible">
@@ -453,12 +453,11 @@ const Header = () => {
                 <img 
                   src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
-                  // Mobile logo: height-driven with auto width and no square
-                  // constraint, so wide lockups scale by their real aspect
-                  // ratio and visually fill the ribbon instead of sitting
-                  // inside an oversized box.
+                  // Mobile logo: larger visible height, auto width, and a
+                  // slight scale boost so logos with transparent padding still
+                  // look materially bigger inside the ribbon.
                   // Desktop logo: original 96px square sizing is preserved.
-                  className="block h-[6.5rem] w-auto max-w-[14rem] object-contain object-left md:w-24 md:h-24 md:max-w-none rounded-lg"
+                  className="block h-[7.25rem] w-auto max-w-[17rem] origin-left scale-110 object-contain object-left md:h-24 md:w-24 md:max-w-none md:scale-100 rounded-lg"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
