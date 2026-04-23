@@ -142,7 +142,7 @@ const CategoryTable = () => {
         */}
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="bg-primary hover:bg-primary">
-            <TableHead className="text-primary-foreground font-semibold bg-primary">CATEGORÍAS</TableHead>
+            <TableHead className="text-primary-foreground font-semibold bg-primary sticky left-0 z-20">CATEGORÍAS</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center bg-primary">RANGO DE HÁNDICAP</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center bg-primary">FORMATO</TableHead>
             <TableHead className="text-primary-foreground font-semibold text-center bg-primary">VENTAJAS</TableHead>
@@ -186,7 +186,16 @@ const CategoryTable = () => {
                   index % 2 === 0 ? 'bg-card' : 'bg-muted/30'
                 )}
               >
-                <TableCell className="font-medium text-foreground">
+                {/* Sticky first column: keeps the category name visible while
+                    horizontally scrolling wide tables. Background must match
+                    the row's zebra stripe so underlying cells don't bleed
+                    through the sticky cell. */}
+                <TableCell
+                  className={cn(
+                    'font-medium text-foreground sticky left-0 z-10',
+                    index % 2 === 0 ? 'bg-card' : 'bg-[hsl(var(--muted))]'
+                  )}
+                >
                   {category.name}
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">
