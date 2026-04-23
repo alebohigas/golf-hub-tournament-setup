@@ -181,20 +181,15 @@ const CategoryTable = () => {
             return (
               <TableRow
                 key={category.id}
-                className={cn(
-                  'transition-colors',
-                  index % 2 === 0 ? 'bg-card' : 'bg-muted/30'
-                )}
+                className="transition-colors bg-card"
               >
                 {/* Sticky first column: keeps the category name visible while
                     horizontally scrolling wide tables. Background must match
-                    the row's zebra stripe so underlying cells don't bleed
-                    through the sticky cell. */}
+                    the row background so underlying cells don't bleed
+                    through the sticky cell. All rows share `bg-card` for a
+                    uniform look (no zebra striping). */}
                 <TableCell
-                  className={cn(
-                    'font-medium text-foreground sticky left-0 z-10',
-                    index % 2 === 0 ? 'bg-card' : 'bg-[hsl(var(--muted))]'
-                  )}
+                  className="font-medium text-foreground sticky left-0 z-10 bg-card"
                 >
                   {category.name}
                 </TableCell>
