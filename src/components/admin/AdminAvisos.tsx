@@ -503,7 +503,6 @@ const AdminAvisos = () => {
                   gap={draft.desktopGap}
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
-                  droppableId="avisos-desktop-preview"
                   order={posterOrder}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
@@ -521,7 +520,6 @@ const AdminAvisos = () => {
                   gap={draft.mobileGap}
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
-                  droppableId="avisos-mobile-preview"
                   order={posterOrder}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
