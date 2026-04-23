@@ -382,11 +382,14 @@ const AdminEventos = () => {
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
-        // Always send fully-resolved orders so partial drafts don't drift.
+        // Always send a fully-resolved shared order so partial drafts
+        // don't drift. Legacy per-breakpoint fields are dropped on save.
         eventos_config: {
-          ...draft,
-          desktopOrder,
-          mobileOrder,
+          desktopColumns: draft.desktopColumns,
+          mobileColumns: draft.mobileColumns,
+          desktopGap: draft.desktopGap,
+          mobileGap: draft.mobileGap,
+          posterOrder,
         },
       },
       {
