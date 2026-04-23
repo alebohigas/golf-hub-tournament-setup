@@ -254,11 +254,15 @@ const PreviewFrame = ({
             return (
               <div key={`${title}-${posterIdx}`} className="relative">
                 {/*
-                  Left insertion zone = place BEFORE this card.
-                  This makes horizontal drops between columns explicit.
+                  Insertion zones: only "live" while a drag is active so
+                  they don't intercept the initial mousedown that starts a
+                  new drag (which would block the native draggable below).
                 */}
                 <div
-                  className="absolute inset-y-0 left-0 z-20 w-1/2"
+                  className={cn(
+                    'absolute inset-y-0 left-0 z-20 w-1/2',
+                    dragIndex !== null ? 'pointer-events-auto' : 'pointer-events-none'
+                  )}
                   onDragOver={(e) => {
                     e.preventDefault();
                     setDropIndex(position);
@@ -268,9 +272,11 @@ const PreviewFrame = ({
                     commitDrop(position);
                   }}
                 />
-                {/* Right insertion zone = place AFTER this card. */}
                 <div
-                  className="absolute inset-y-0 right-0 z-20 w-1/2"
+                  className={cn(
+                    'absolute inset-y-0 right-0 z-20 w-1/2',
+                    dragIndex !== null ? 'pointer-events-auto' : 'pointer-events-none'
+                  )}
                   onDragOver={(e) => {
                     e.preventDefault();
                     setDropIndex(position + 1);
