@@ -179,7 +179,7 @@ const Calendario = () => {
       obs.disconnect();
       window.removeEventListener('resize', measureColumns);
     };
-  }, [dates.length, categories.length]);
+  }, [dates.length, entries.length]);
 
   /**
    * Mirror the inner horizontal scroll into the floating sticky header
