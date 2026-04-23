@@ -406,7 +406,15 @@ const Calendario = () => {
                     ref={scrollRef}
                     className="overflow-x-auto overscroll-x-contain"
                   >
-                    <table className="w-full border-separate border-spacing-0 text-sm">
+                    {/*
+                      `w-max` lets the table grow to its natural width
+                      (sum of every min-w-[64px] column + the 128px
+                      Categoría column), which is what triggers the
+                      horizontal scroll. With `w-full` the browser
+                      compressed every column to fit the viewport,
+                      defeating the scroll entirely.
+                    */}
+                    <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
                     <tbody ref={tbodyRef}>
                       {categories.map(([catKey, catData], idx) => (
                         <tr key={catKey} data-snap-row="true" className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
