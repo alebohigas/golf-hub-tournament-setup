@@ -69,6 +69,39 @@ export interface EventosConfig {
   mobileColumns: number;
   desktopGap: EventosGap;
   mobileGap: EventosGap;
+  /**
+   * Custom poster order shared between desktop and mobile. Stored as a
+   * list of zero-based indices into the static poster array defined in
+   * the public component. Indices not present in the list fall back to
+   * the default static order and are appended at the end.
+   */
+  posterOrder?: number[];
+  /**
+   * @deprecated Legacy fields kept for backwards compatibility with
+   * configs saved before order was unified across breakpoints. Read at
+   * runtime as a fallback when `posterOrder` is missing; never written.
+   */
+  desktopOrder?: number[];
+  /** @deprecated See `desktopOrder`. */
+  mobileOrder?: number[];
+}
+
+/**
+ * Configuration for the Avisos page poster grid.
+ * Mirrors EventosConfig (cols + gap per breakpoint) so admins can tune
+ * the visual presentation of the avisos posters independently from eventos.
+ */
+export interface AvisosConfig {
+  desktopColumns: number;
+  mobileColumns: number;
+  desktopGap: EventosGap;
+  mobileGap: EventosGap;
+  /** Shared custom poster order (see EventosConfig.posterOrder). */
+  posterOrder?: number[];
+  /** @deprecated Legacy per-breakpoint orders, kept for backwards compat. */
+  desktopOrder?: number[];
+  /** @deprecated See `desktopOrder`. */
+  mobileOrder?: number[];
 }
 
 /** Full server response for site config */
@@ -82,6 +115,7 @@ export interface SiteConfig {
   live_scoring_config: LiveScoringEntry[] | null;
   sponsors_config: SponsorsConfig | null;
   eventos_config: EventosConfig | null;
+  avisos_config: AvisosConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -95,6 +129,7 @@ export interface SaveConfigPayload {
   live_scoring_config?: LiveScoringEntry[] | null;
   sponsors_config?: SponsorsConfig | null;
   eventos_config?: EventosConfig | null;
+  avisos_config?: AvisosConfig | null;
 }
 
 // ============= Constants =============
@@ -107,6 +142,7 @@ const PAGE_GROUPS_KEY = 'tournament_page_group_assignments';
 const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
 const SPONSORS_CONFIG_KEY = 'tournament_sponsors_config';
 const EVENTOS_CONFIG_KEY = 'tournament_eventos_config';
+const AVISOS_CONFIG_KEY = 'tournament_avisos_config';
 
 // ============= Fetch Functions =============
 
@@ -186,6 +222,11 @@ export const useSiteConfig = () => {
       // Sync eventos config
       if (config.eventos_config) {
         localStorage.setItem(EVENTOS_CONFIG_KEY, JSON.stringify(config.eventos_config));
+      }
+
+      // Sync avisos config
+      if (config.avisos_config) {
+        localStorage.setItem(AVISOS_CONFIG_KEY, JSON.stringify(config.avisos_config));
       }
 
       return config;

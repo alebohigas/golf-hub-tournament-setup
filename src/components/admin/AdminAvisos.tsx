@@ -1,16 +1,20 @@
 /**
- * AdminEventos Component
+ * AdminAvisos Component
  * -------------------------------------------------------------
- * Admin tab for configuring the Eventos page poster grid.
+ * Admin tab for configuring the Avisos page poster grid.
+ *
+ * Mirrors AdminEventos in structure and behavior, but persists to a
+ * separate `avisos_config` field on `site_config` so the Avisos page
+ * can be tuned independently from Eventos.
  *
  * Features:
  *  - Independent column count (1–4) for desktop and mobile.
  *  - Independent gap preset (sm/md/lg/xl) for desktop and mobile.
- *  - Live preview frames simulating both desktop (~1280px) and mobile
- *    (~390px) widths, mirroring the AdminSponsorsPreview pattern.
- *  - Persists settings server-side via `site_config.eventos_config`.
+ *  - Live preview frames simulating both desktop (~1100px) and mobile
+ *    (~390px) widths, mirroring the AdminEventos pattern.
+ *  - Persists settings server-side via `site_config.avisos_config`.
  *
- * The public Eventos page (`AtraccionesSection`) reads this config from
+ * The public Avisos page (`AvisosPostersSection`) reads this config from
  * `useSiteConfig` and applies the appropriate columns/gap per breakpoint.
  */
 
@@ -26,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Loader2,
-  CalendarDays,
+  Bell,
   Save,
   CheckCircle2,
   Monitor,
@@ -38,26 +42,23 @@ import { cn } from '@/lib/utils';
 import {
   useSiteConfig,
   useSaveSiteConfig,
-  type EventosConfig,
+  type AvisosConfig,
   type EventosGap,
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
 
 // ---------- Asset imports (same posters used on the public page) ----------
-import dia24 from '@/assets/eventos/dia-24-viernes.webp';
-import dia25 from '@/assets/eventos/dia-25-sabado.webp';
-import dia26 from '@/assets/eventos/dia-26-domingo.webp';
-import dia27 from '@/assets/eventos/dia-27-lunes.webp';
-import dia28 from '@/assets/eventos/dia-28-martes.webp';
-import dia29 from '@/assets/eventos/dia-29-miercoles.webp';
-import dia30 from '@/assets/eventos/dia-30-jueves.webp';
-import dia01 from '@/assets/eventos/dia-01-viernes.webp';
-import dia02 from '@/assets/eventos/dia-02-sabado.webp';
+import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
+import tabla1 from '@/assets/avisos/tabla1-torneo-anual.webp';
+import tabla2 from '@/assets/avisos/tabla2-asociados.webp';
+import tabla3 from '@/assets/avisos/tabla3-dependientes.webp';
+import tabla4 from '@/assets/avisos/tabla4-invitados.webp';
+import tabla5 from '@/assets/avisos/tabla5-info-adicional.webp';
 
 // ============= Constants =============
 
-/** Allowed column counts (per the user-confirmed range 1–4) */
+/** Allowed column counts (1–4 to match Eventos) */
 const COLUMN_OPTIONS = [1, 2, 3, 4] as const;
 
 /** Gap preset options: label + Tailwind-equivalent pixel value used in preview */
@@ -69,17 +70,15 @@ const GAP_OPTIONS: { value: EventosGap; label: string; px: number }[] = [
 ];
 
 /** Default config when nothing is stored on the server yet */
-export const DEFAULT_EVENTOS_CONFIG: EventosConfig = {
-  desktopColumns: 4,
-  mobileColumns: 2,
+export const DEFAULT_AVISOS_CONFIG: AvisosConfig = {
+  desktopColumns: 3,
+  mobileColumns: 1,
   desktopGap: 'md',
   mobileGap: 'sm',
 };
 
-/** Posters used in the live preview (mirrors AtraccionesSection) */
-const PREVIEW_POSTERS = [
-  dia24, dia25, dia26, dia27, dia28, dia29, dia30, dia01, dia02,
-];
+/** Posters used in the live preview (mirrors AvisosPostersSection) */
+const PREVIEW_POSTERS = [avisoClima, tabla1, tabla2, tabla3, tabla4, tabla5];
 
 // ============= Helpers =============
 
@@ -162,8 +161,7 @@ interface PreviewFrameProps {
   icon: React.ReactNode;
   /**
    * Resolved poster order (full list of indices into PREVIEW_POSTERS).
-   * The component renders posters strictly in this order. Drag-and-drop
-   * mutates this list via `onOrderChange`.
+   * Drag-and-drop mutates this list via `onOrderChange`.
    */
   order: number[];
   /** Called with a NEW order array whenever the admin drags a poster. */
@@ -177,9 +175,9 @@ interface PreviewFrameProps {
  * Fixed-width container that renders the poster grid exactly as it will
  * appear on the public page for the corresponding breakpoint.
  *
- * Drag-and-drop: each poster has a small grip handle in the top-left.
- * Reordering only updates the local draft state — the admin must press
- * "Guardar cambios" to persist it to `site_config.eventos_config`.
+ * Drag-and-drop: each poster has a small grip handle. Reordering only
+ * updates the local draft state — the admin must press "Guardar cambios"
+ * to persist it to `site_config.avisos_config`.
  */
 const PreviewFrame = ({
   frameWidth,
@@ -197,8 +195,8 @@ const PreviewFrame = ({
   /**
    * Resolve the insertion slot from the cursor position inside a card.
    * Left half = insert before the card, right half = insert after it.
-   * Reading directly from the hovered card is more reliable than using
-   * overlay hit-zones when dragging upward across multiple grid rows.
+   * This avoids the upward-drag blind spot caused by separate overlay zones
+   * in a wrapped grid layout.
    */
   const getDropSlot = (event: DragEvent<HTMLDivElement>, position: number) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -208,8 +206,8 @@ const PreviewFrame = ({
 
   /**
    * Commit a reorder by inserting the dragged poster before the target slot.
-   * Using explicit before/after targets solves the multi-row grid limitation
-   * of list-oriented DnD libraries and gives correct horizontal placement.
+   * Explicit before/after targets solve the multi-row grid limitation of
+   * list-oriented DnD libraries and preserve horizontal placement.
    */
   const commitDrop = (targetIndex: number) => {
     if (dragIndex === null) return;
@@ -242,7 +240,6 @@ const PreviewFrame = ({
       )}
     </div>
 
-    {/* Outer scroll container so the desktop frame stays visible on small admin screens */}
     <div className="overflow-x-auto rounded-lg border border-border bg-muted/30 p-3">
       <div
         className="mx-auto bg-background rounded-md p-3 shadow-inner"
@@ -300,23 +297,21 @@ const PreviewFrame = ({
                     isDragging ? 'border-primary ring-2 ring-primary shadow-lg opacity-70' : 'border-border/50'
                   )}
                 >
-                  {/* Drag handle: small grip overlay in the top-left */}
                   <div
                     className="absolute top-1 left-1 z-10 p-1 rounded bg-background/80 backdrop-blur-sm text-foreground/80 hover:text-foreground hover:bg-background cursor-grab active:cursor-grabbing"
                     title="Arrastra para reordenar"
-                    aria-label="Arrastra para reordenar este póster"
+                    aria-label="Arrastra para reordenar este aviso"
                   >
                     <GripVertical className="h-3 w-3" />
                   </div>
-                  {/* Position badge bottom-right for quick visual reference */}
                   <div className="absolute bottom-1 right-1 z-10 px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm text-[10px] font-mono font-bold text-foreground">
                     {position + 1}
                   </div>
                   <img
                     src={src}
-                    alt={`Poster ${posterIdx + 1}`}
+                    alt={`Aviso ${posterIdx + 1}`}
                     loading="lazy"
-                    className="h-full w-full object-cover pointer-events-none"
+                    className="h-full w-full object-contain pointer-events-none"
                   />
                 </div>
               </div>
@@ -332,31 +327,32 @@ const PreviewFrame = ({
 // ============= Main Component =============
 
 /**
- * AdminEventos
+ * AdminAvisos
  * Top-level admin section: selectors + dual preview + save action.
  */
-const AdminEventos = () => {
+const AdminAvisos = () => {
   const { data: siteConfig, isLoading } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
 
   /** Local draft state — starts from server value or defaults */
-  const [draft, setDraft] = useState<EventosConfig>(DEFAULT_EVENTOS_CONFIG);
+  const [draft, setDraft] = useState<AvisosConfig>(DEFAULT_AVISOS_CONFIG);
 
   // Sync local draft whenever the server config (re)loads
   useEffect(() => {
-    if (siteConfig?.eventos_config) {
-      setDraft({ ...DEFAULT_EVENTOS_CONFIG, ...siteConfig.eventos_config });
+    if (siteConfig?.avisos_config) {
+      setDraft({ ...DEFAULT_AVISOS_CONFIG, ...siteConfig.avisos_config });
     }
-  }, [siteConfig?.eventos_config]);
+  }, [siteConfig?.avisos_config]);
 
   /** Detect unsaved changes vs. server state */
-  const savedConfig = siteConfig?.eventos_config ?? DEFAULT_EVENTOS_CONFIG;
+  const savedConfig = siteConfig?.avisos_config ?? DEFAULT_AVISOS_CONFIG;
 
   /**
    * Single, shared poster order used by BOTH desktop and mobile previews
    * (and by the public site at every breakpoint). Falls back to the legacy
-   * per-breakpoint fields when reading a config saved before unification.
+   * per-breakpoint fields when reading a config saved before unification,
+   * so admins don't lose their previous customization.
    */
   const posterOrder = useMemo(
     () =>
@@ -396,7 +392,7 @@ const AdminEventos = () => {
         password: 'admin2025',
         // Always send a fully-resolved shared order so partial drafts
         // don't drift. Legacy per-breakpoint fields are dropped on save.
-        eventos_config: {
+        avisos_config: {
           desktopColumns: draft.desktopColumns,
           mobileColumns: draft.mobileColumns,
           desktopGap: draft.desktopGap,
@@ -408,7 +404,7 @@ const AdminEventos = () => {
         onSuccess: () => {
           toast({
             title: 'Configuración guardada',
-            description: `Eventos: Desktop ${draft.desktopColumns} col / Mobile ${draft.mobileColumns} col.`,
+            description: `Avisos: Desktop ${draft.desktopColumns} col / Mobile ${draft.mobileColumns} col.`,
           });
         },
         onError: (err) => {
@@ -426,11 +422,11 @@ const AdminEventos = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-primary" />
-          Configuración de Eventos
+          <Bell className="h-5 w-5 text-primary" />
+          Configuración de Avisos
         </CardTitle>
         <CardDescription>
-          Define la cantidad de columnas y el espaciado del grid de atracciones.
+          Define la cantidad de columnas y el espaciado del grid de avisos.
           Desktop y móvil se configuran por separado. Menos columnas = imágenes más grandes.
         </CardDescription>
       </CardHeader>
@@ -546,4 +542,4 @@ const AdminEventos = () => {
   );
 };
 
-export default AdminEventos;
+export default AdminAvisos;

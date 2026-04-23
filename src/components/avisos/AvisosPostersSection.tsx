@@ -1,15 +1,22 @@
 /**
- * AtraccionesSection
+ * AvisosPostersSection
  * -------------------------------------------------------------
- * Renders a responsive grid of attraction cards (one per tournament day).
- * Each card displays a vertical poster (.webp) imported from src/assets/eventos.
- * Clicking a card opens a lightbox dialog showing the full image, with
- * keyboard (← →) and on-screen navigation between images.
+ * Renders a responsive grid of aviso poster cards (climatological notice,
+ * pricing tables, etc.). Mirrors `AtraccionesSection` (Eventos page) in
+ * structure and behavior so the Avisos page shares the same visual
+ * language and lightbox UX.
+ *
+ * Each card displays a vertical poster (.webp) imported from
+ * `src/assets/avisos`. Clicking a card opens a lightbox dialog showing
+ * the full image, with keyboard (← →) and on-screen navigation between
+ * images.
  *
  * Design notes:
  *  - Uses semantic tokens only (bg-card, border-border, text-foreground...).
  *  - Aspect ratio is locked to 9/16 to match the source posters.
  *  - Lazy-loaded images for performance.
+ *  - Layout (columns + gap per breakpoint) is controlled by the admin via
+ *    `site_config.avisos_config` and read through `useSiteConfig`.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -17,49 +24,46 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
+import { useSiteConfig, type AvisosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
 
 // ---------- Asset imports (ES6 modules, optimized by Vite) ----------
-import dia24 from '@/assets/eventos/dia-24-viernes.webp';
-import dia25 from '@/assets/eventos/dia-25-sabado.webp';
-import dia26 from '@/assets/eventos/dia-26-domingo.webp';
-import dia27 from '@/assets/eventos/dia-27-lunes.webp';
-import dia28 from '@/assets/eventos/dia-28-martes.webp';
-import dia29 from '@/assets/eventos/dia-29-miercoles.webp';
-import dia30 from '@/assets/eventos/dia-30-jueves.webp';
-import dia01 from '@/assets/eventos/dia-01-viernes.webp';
-import dia02 from '@/assets/eventos/dia-02-sabado.webp';
+import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
+import tabla1 from '@/assets/avisos/tabla1-torneo-anual.webp';
+import tabla2 from '@/assets/avisos/tabla2-asociados.webp';
+import tabla3 from '@/assets/avisos/tabla3-dependientes.webp';
+import tabla4 from '@/assets/avisos/tabla4-invitados.webp';
+import tabla5 from '@/assets/avisos/tabla5-info-adicional.webp';
 
 /**
- * AtraccionCard - shape describing one poster card.
- * `src`   : imported image module (string URL after Vite processing).
- * `alt`   : accessibility label.
+ * AvisoCard - shape describing one poster card.
+ * `src` : imported image module (string URL after Vite processing).
+ * `alt` : accessibility label.
  */
-interface AtraccionCard {
+interface AvisoCard {
   src: string;
   alt: string;
 }
 
-// Ordered list of posters (chronological day order).
-const ATRACCIONES: AtraccionCard[] = [
-  { src: dia24, alt: 'Atracciones del viernes 24 de abril' },
-  { src: dia25, alt: 'Atracciones del sábado 25 de abril' },
-  { src: dia26, alt: 'Atracciones del domingo 26 de abril' },
-  { src: dia27, alt: 'Atracciones del lunes 27 de abril' },
-  { src: dia28, alt: 'Atracciones del martes 28 de abril' },
-  { src: dia29, alt: 'Atracciones del miércoles 29 de abril' },
-  { src: dia30, alt: 'Atracciones del jueves 30 de abril' },
-  { src: dia01, alt: 'Atracciones del viernes 1 de mayo' },
-  { src: dia02, alt: 'Atracciones del sábado 2 de mayo' },
+/**
+ * Ordered list of aviso posters. Order matters: the climatological notice
+ * is shown first as it is the most time-sensitive communication.
+ */
+export const AVISOS_POSTERS: AvisoCard[] = [
+  { src: avisoClima, alt: 'Aviso climatológico a jugadores' },
+  { src: tabla1, alt: 'Torneo Anual (Obligatorio) - Costos' },
+  { src: tabla2, alt: 'Inscripción Torneo de Golf Asociados (Opcional)' },
+  { src: tabla3, alt: 'Acceso diario para dependientes registrados' },
+  { src: tabla4, alt: 'Inscripción Torneo de Golf Invitados' },
+  { src: tabla5, alt: 'Información adicional, Family Day y reglas de invitados' },
 ];
 
 // ============= Layout helpers =============
 
 /** Default layout when no admin config is set */
-const DEFAULT_CONFIG: EventosConfig = {
-  desktopColumns: 4,
-  mobileColumns: 2,
+const DEFAULT_CONFIG: AvisosConfig = {
+  desktopColumns: 3,
+  mobileColumns: 1,
   desktopGap: 'md',
   mobileGap: 'sm',
 };
@@ -97,22 +101,22 @@ const DESKTOP_GAP_CLASS: Record<EventosGap, string> = {
 };
 
 /**
- * AtraccionesSection
+ * AvisosPostersSection
  * Displays the poster grid + lightbox modal with keyboard navigation.
  */
-const AtraccionesSection = () => {
+const AvisosPostersSection = () => {
   // Pull admin-configurable layout from site_config (with safe defaults).
   const { data: siteConfig } = useSiteConfig();
-  const cfg: EventosConfig = {
+  const cfg: AvisosConfig = {
     ...DEFAULT_CONFIG,
-    ...(siteConfig?.eventos_config ?? {}),
+    ...(siteConfig?.avisos_config ?? {}),
   };
 
   // Single shared poster order for desktop AND mobile. Falls back to the
   // legacy per-breakpoint fields (preferring desktopOrder) so previously
   // saved configs keep working without a migration.
   const activeOrder = cfg.posterOrder ?? cfg.desktopOrder ?? cfg.mobileOrder;
-  const orderedAtracciones = applyOrder(ATRACCIONES, activeOrder);
+  const orderedPosters = applyOrder(AVISOS_POSTERS, activeOrder);
 
   /**
    * Compose the responsive grid class string from the admin-selected
@@ -120,8 +124,8 @@ const AtraccionesSection = () => {
    */
   const gridClass = cn(
     'grid',
-    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-2',
-    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-4',
+    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-1',
+    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-3',
     MOBILE_GAP_CLASS[cfg.mobileGap] ?? 'gap-4',
     DESKTOP_GAP_CLASS[cfg.desktopGap] ?? 'md:gap-6'
   );
@@ -131,12 +135,12 @@ const AtraccionesSection = () => {
 
   // Navigation helpers (memoized so they're stable for the keydown handler).
   const goPrev = useCallback(() => {
-    setOpenIndex((i) => (i === null ? null : (i - 1 + orderedAtracciones.length) % orderedAtracciones.length));
-  }, [orderedAtracciones.length]);
+    setOpenIndex((i) => (i === null ? null : (i - 1 + orderedPosters.length) % orderedPosters.length));
+  }, [orderedPosters.length]);
 
   const goNext = useCallback(() => {
-    setOpenIndex((i) => (i === null ? null : (i + 1) % orderedAtracciones.length));
-  }, [orderedAtracciones.length]);
+    setOpenIndex((i) => (i === null ? null : (i + 1) % orderedPosters.length));
+  }, [orderedPosters.length]);
 
   // Keyboard navigation while the lightbox is open.
   useEffect(() => {
@@ -149,7 +153,7 @@ const AtraccionesSection = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [openIndex, goPrev, goNext]);
 
-  const current = openIndex !== null ? orderedAtracciones[openIndex] : null;
+  const current = openIndex !== null ? orderedPosters[openIndex] : null;
 
   return (
     <section className="py-16 bg-muted/30">
@@ -157,16 +161,16 @@ const AtraccionesSection = () => {
         {/* ---------- Section header ---------- */}
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-            Atracciones del Torneo
+            Comunicados y Costos del Torneo
           </h2>
           <p className="text-muted-foreground">
-            Conciertos, rifas, comida y experiencias especiales día a día
+            Avisos importantes, tablas de inscripción y accesos para participantes
           </p>
         </div>
 
         {/* ---------- Responsive poster grid ---------- */}
         <div className={gridClass}>
-          {orderedAtracciones.map((card, idx) => (
+          {orderedPosters.map((card, idx) => (
             <button
               key={card.src}
               type="button"
@@ -179,12 +183,19 @@ const AtraccionesSection = () => {
               )}
               aria-label={`Ver ${card.alt} en grande`}
             >
-              <div className="aspect-[9/16] w-full overflow-hidden bg-background">
+              {/*
+                Use `object-contain` (not cover) so posters with slightly
+                different aspect ratios than 9/16 — e.g. the climatological
+                notice at 683x1024 vs the 576x1024 pricing tables — render
+                completely without cropping or zoom-in artifacts. The card
+                background fills any letterbox gap.
+              */}
+              <div className="aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
                 <img
                   src={card.src}
                   alt={card.alt}
                   loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             </button>
@@ -200,14 +211,12 @@ const AtraccionesSection = () => {
             '[&>button]:hidden' // Hide the default Dialog close button; we render a custom one.
           )}
         >
-          {/* Accessible label for screen readers — Radix requires a DialogTitle
-              even when the dialog is purely visual (image lightbox). The label
-              is hidden visually via Tailwind's `sr-only` utility. */}
+          {/* Accessible label for screen readers */}
           <DialogTitle className="sr-only">
-            {current ? current.alt : 'Atracción'}
+            {current ? current.alt : 'Aviso'}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Vista ampliada del póster del evento. Use las flechas para navegar.
+            Vista ampliada del aviso. Use las flechas para navegar.
           </DialogDescription>
           {current && (
             <div className="relative">
@@ -253,7 +262,7 @@ const AtraccionesSection = () => {
 
               {/* Counter label */}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-background/80 backdrop-blur text-xs text-foreground font-medium">
-                {(openIndex ?? 0) + 1} / {orderedAtracciones.length}
+                {(openIndex ?? 0) + 1} / {orderedPosters.length}
               </div>
             </div>
           )}
@@ -263,4 +272,4 @@ const AtraccionesSection = () => {
   );
 };
 
-export default AtraccionesSection;
+export default AvisosPostersSection;
