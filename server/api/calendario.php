@@ -92,50 +92,28 @@ foreach ($rows as $row) {
         $pmTotals[$fecha] = 0;
     }
 
-    // Parse salhoyos -> count groups starting at hole 1 vs hole 10.
-    $sal = trim((string)$row['salhoyos']);
-    $holes = $sal === '' ? [] : array_filter(array_map('trim', explode(',', $sal)), function($v){ return $v !== ''; });
-    $countH1  = 0;
-    $countH10 = 0;
-    foreach ($holes as $h) {
-        if ((int)$h === 10) $countH10++;
-        else                $countH1++;
-    }
-
-    // Total foursomes for this category/date as authoritative group count.
+    // Use ONLY horainicio_1 as the single tee time for the category/date.
+    // Per business rule: horainicio_10 is intentionally ignored — every
+    // group is treated as starting at the time recorded in horainicio_1.
+    // This means each cell will show a single AM or PM half (never both),
+    // even when the database has split-tee data in horainicio_10/salhoyos.
     $numFoursome = (int)$row['numfoursome'];
-    $totalSplit  = $countH1 + $countH10;
-    if ($totalSplit === 0) {
-        // No salhoyos info: assume every group starts at hole 1.
-        $countH1 = $numFoursome;
-    } elseif ($totalSplit !== $numFoursome && $numFoursome > 0) {
-        // Scale the split proportionally to honor numfoursome as ground truth.
-        $countH1  = (int)round($numFoursome * ($countH1  / $totalSplit));
-        $countH10 = $numFoursome - $countH1;
-    }
-
-    // Decide which tee time is AM vs PM. A given starting hole maps to its
-    // own tee time (hole 1 -> horainicio_1, hole 10 -> horainicio_10).
-    $h1Time  = $row['horainicio_1'];
-    $h10Time = $row['horainicio_10'];
+    $h1Time      = $row['horainicio_1'];
 
     $hasAM = false; $hasPM = false;
     $amGroups = 0;  $pmGroups = 0;
     $amTime = null; $pmTime = null;
 
-    if ($countH1 > 0 && $h1Time) {
-        if (is_am_time($h1Time)) { $hasAM = true; $amGroups += $countH1; $amTime = $h1Time; }
-        else                     { $hasPM = true; $pmGroups += $countH1; $pmTime = $h1Time; }
-    }
-    if ($countH10 > 0 && $h10Time) {
-        if (is_am_time($h10Time)) { $hasAM = true; $amGroups += $countH10; $amTime = $amTime ?: $h10Time; }
-        else                      { $hasPM = true; $pmGroups += $countH10; $pmTime = $pmTime ?: $h10Time; }
-    }
-
-    // Fallback if no salhoyos/horainicio_10 info: use horainicio_1 only.
-    if (!$hasAM && !$hasPM && $h1Time) {
-        if (is_am_time($h1Time)) { $hasAM = true; $amGroups = $numFoursome; $amTime = $h1Time; }
-        else                     { $hasPM = true; $pmGroups = $numFoursome; $pmTime = $h1Time; }
+    if ($h1Time) {
+        if (is_am_time($h1Time)) {
+            $hasAM    = true;
+            $amGroups = $numFoursome;
+            $amTime   = $h1Time;
+        } else {
+            $hasPM    = true;
+            $pmGroups = $numFoursome;
+            $pmTime   = $h1Time;
+        }
     }
 
     $amTotals[$fecha] += $amGroups;
