@@ -47,6 +47,7 @@ const RIBBON_PAGES: { path: string; label: string; pageId: string | null }[] = [
   { path: '/resultados', label: 'Resultados', pageId: 'resultados' },
   { path: '/competicion', label: 'Competición', pageId: 'competicion' },
   { path: '/calendario', label: 'Calendario', pageId: 'calendario' },
+  { path: '/horarios', label: 'Horarios de Salidas', pageId: 'horarios' },
   { path: '/avisos', label: 'Avisos', pageId: 'avisos' },
   { path: '/premios', label: 'Premios', pageId: 'premios' },
   { path: '/patrocinadores', label: 'Patrocinadores', pageId: 'patrocinadores' },
