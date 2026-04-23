@@ -504,6 +504,7 @@ const Calendario = () => {
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </CardContent>
               </Card>
             </>
