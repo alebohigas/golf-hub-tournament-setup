@@ -350,7 +350,8 @@ const Salidas = () => {
                                           <TableCell className="text-center font-bold text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.tee}
                                           </TableCell>
-                                          <TableCell className="text-center font-medium text-foreground" rowSpan={(result.group.players ?? []).length}>
+                                          {/* Tee time emphasized: bold and one size up to match the H01 hole prominence */}
+                                          <TableCell className="text-center font-bold text-base text-foreground" rowSpan={(result.group.players ?? []).length}>
                                             {result.group.time}
                                           </TableCell>
                                         </>
@@ -537,7 +538,8 @@ const Salidas = () => {
                                           {group.tee}
                                         </TableCell>
                                         <TableCell
-                                          className="text-center font-medium text-foreground"
+                                          // Tee time emphasized: bold and one size up to match the H01 hole prominence
+                                          className="text-center font-bold text-base text-foreground"
                                           rowSpan={(group.players ?? []).length}
                                         >
                                           {group.time}

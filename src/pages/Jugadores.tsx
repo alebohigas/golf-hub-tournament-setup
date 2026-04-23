@@ -205,7 +205,8 @@ const Jugadores = () => {
                                <TableCell className="player-name-cell">{player.name}</TableCell>
                               <TableCell className="text-right">{player.handicapIndex.toFixed(1)}</TableCell>
                               <TableCell className="text-right">{player.handicapJuego}</TableCell>
-                              <TableCell className="text-right">{player.handicapNeto}</TableCell>
+                              {/* HN is the most important stat — emphasize with primary color, bolder weight, and larger size */}
+                              <TableCell className="text-right font-extrabold text-base text-primary">{player.handicapNeto}</TableCell>
                             </TableRow>
                           ))
                         ) : (
