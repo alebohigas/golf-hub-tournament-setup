@@ -18,7 +18,7 @@
  * `useSiteConfig` and applies the appropriate columns/gap per breakpoint.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { type DragEvent, useEffect, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -193,6 +193,18 @@ const PreviewFrame = ({
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   /**
+   * Resolve the insertion slot from the cursor position inside a card.
+   * Left half = insert before the card, right half = insert after it.
+   * This avoids the upward-drag blind spot caused by separate overlay zones
+   * in a wrapped grid layout.
+   */
+  const getDropSlot = (event: DragEvent<HTMLDivElement>, position: number) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const isRightHalf = event.clientX >= bounds.left + bounds.width / 2;
+    return isRightHalf ? position + 1 : position;
+  };
+
+  /**
    * Commit a reorder by inserting the dragged poster before the target slot.
    * Explicit before/after targets solve the multi-row grid limitation of
    * list-oriented DnD libraries and preserve horizontal placement.
@@ -249,41 +261,20 @@ const PreviewFrame = ({
             const isDragging = dragIndex === position;
 
             return (
-              <div key={`${title}-${posterIdx}`} className="relative">
-                {/*
-                  Insertion zones: only "live" while a drag is active so
-                  they don't intercept the initial mousedown that starts a
-                  new drag (which would block the native draggable below).
-                */}
-                <div
-                  className={cn(
-                    'absolute inset-y-0 left-0 z-20 w-1/2',
-                    dragIndex !== null ? 'pointer-events-auto' : 'pointer-events-none'
-                  )}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDropIndex(position);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    commitDrop(position);
-                  }}
-                />
-                <div
-                  className={cn(
-                    'absolute inset-y-0 right-0 z-20 w-1/2',
-                    dragIndex !== null ? 'pointer-events-auto' : 'pointer-events-none'
-                  )}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDropIndex(position + 1);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    commitDrop(position + 1);
-                  }}
-                />
-
+              <div
+                key={`${title}-${posterIdx}`}
+                className="relative"
+                onDragOver={(e) => {
+                  if (dragIndex === null) return;
+                  e.preventDefault();
+                  setDropIndex(getDropSlot(e, position));
+                }}
+                onDrop={(e) => {
+                  if (dragIndex === null) return;
+                  e.preventDefault();
+                  commitDrop(getDropSlot(e, position));
+                }}
+              >
                 {showBeforeMarker && (
                   <div className="absolute left-[-6px] top-2 bottom-2 z-30 w-[3px] rounded-full bg-primary" />
                 )}
