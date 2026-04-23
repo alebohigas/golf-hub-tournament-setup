@@ -450,7 +450,8 @@ const Header = () => {
           Desktop: ribbon now uses min-h so it grows with the larger desktop
           logo instead of clipping it inside the previous fixed h-20 (80px).
         */}
-        <div className="flex items-center justify-between min-h-[7rem] md:min-h-[6.5rem] py-3 md:py-2">
+        {/* Mobile min-h reduced ~5% (7rem → 6.65rem) to match smaller logo. */}
+        <div className="flex items-center justify-between min-h-[6.65rem] md:min-h-[6.5rem] py-3 md:py-2">
           {/* Logo */}
           <div ref={logoRef} className="flex-shrink-0 overflow-visible">
             <Link to="/" className="flex items-center gap-3 overflow-visible">
@@ -466,7 +467,9 @@ const Header = () => {
                   // Desktop: enlarged to h-[5.5rem] with auto width so the
                   // wide lockup (icon + wordmark) renders at its real aspect
                   // ratio and visually fills the ribbon.
-                  className="block h-[5.8rem] w-auto max-w-[14rem] origin-left scale-110 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
+                  // Mobile logo height reduced 5% (5.8rem → 5.51rem); max-w
+                  // proportionally reduced (14rem → 13.3rem). Desktop unchanged.
+                  className="block h-[5.51rem] w-auto max-w-[13.3rem] origin-left scale-110 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
