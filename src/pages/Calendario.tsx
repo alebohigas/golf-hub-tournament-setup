@@ -228,55 +228,64 @@ const Calendario = () => {
                   Scroll container strategy
                   -----------------------------------------------------
                   Tournaments can have many categories (tall) AND many
-                  days (wide). To keep BOTH header rows (mes/día) and
-                  the left "Categoría" column visible while scrolling
-                  in either axis, the table needs its own scroll
-                  container in BOTH axes. We bound it with
-                  `max-h: calc(100vh - …)` so vertical scroll happens
-                  inside the wrapper instead of the page once the table
-                  is taller than the viewport. The header rows then use
-                  `position: sticky; top: 0` (relative to this wrapper)
-                  and the Categoría column uses `sticky; left: 0`.
-                  The vertical bound is roughly:
-                    page header (h-16/h-20) + sponsor ribbon
-                    + page padding + sticky legend (~2.5rem)
-                  Conservative ≈ 16rem on mobile / 18rem on desktop.
+                  days (wide). To make sticky headers work with the
+                  PAGE scroll (not a separate inner scroll that creates
+                  two scrollbars), we only allow HORIZONTAL scroll
+                  inside this wrapper (`overflow-x: auto`, `overflow-y:
+                  visible`). Vertical sticky positioning is then
+                  computed relative to the viewport, so the month/day
+                  header rows stay pinned just under the page header
+                  while the user scrolls down the page. Horizontal
+                  sticky (`left-0`) for the Categoría column still
+                  works because the only scroll axis inside the
+                  wrapper is horizontal.
                 */}
                 <CardContent
-                  className="p-0 overflow-auto max-h-[calc(100vh-16rem)] md:max-h-[calc(100vh-18rem)]"
+                  className="p-0 overflow-x-auto overflow-y-visible"
                 >
                   <table className="w-full border-collapse text-sm">
                     <thead>
-                      {/* Header rows are sticky against THIS scroll
-                          wrapper (top: 0). Each <th> is sticky
-                          individually because sticky on <thead>/<tr>
-                          is unreliable across browsers. Solid background
-                          required so body cells don't bleed through. */}
+                      {/* Header rows are sticky against the VIEWPORT.
+                          We pin them just below the page header
+                          (h-16 mobile / h-20 desktop) AND below the
+                          sticky legend above (~2.5rem). Using viewport-
+                          relative offsets requires `overflow-y: visible`
+                          on the wrapper so the sticky context isn't
+                          captured by the inner scroll container.
+                          Each <th> is sticky individually because
+                          sticky on <thead>/<tr> is unreliable across
+                          browsers. Solid background required so body
+                          cells don't bleed through. */}
                       <tr>
                         {/* Top-left corner cell: sticky on BOTH axes
-                            (top-0 + left-0) so it stays pinned at the
-                            intersection while scrolling either way.
+                            so it stays pinned at the intersection
+                            while scrolling either way. Vertical offset
+                            matches the page header + legend stack:
+                              mobile  : 64 (h-16) + ~40 (legend) ≈ 6.5rem
+                              desktop : 80 (h-20) + ~40 (legend) ≈ 7.5rem
                             z-30 keeps it above the other sticky headers
                             (z-20) when they slide underneath. */}
-                        <th className="sticky top-0 left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
+                        <th className="sticky top-[6.5rem] md:top-[7.5rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-semibold w-32 bg-muted" />
                         {dates.map(d => (
                           <th
                             key={`m-${d.date}`}
-                            className="sticky top-0 z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
+                            className="sticky top-[6.5rem] md:top-[7.5rem] z-20 border border-border/40 p-2 text-center text-muted-foreground font-medium min-w-[64px] bg-muted"
                           >
                             {formatMonthHeader(d)}
                           </th>
                         ))}
                       </tr>
                       {/* Second header row (day-of-week + day number).
-                          Pinned to `top-9` so it sits flush below the
-                          months row above (~h-9 of the first <tr>).
+                          Pinned just below the months row (~h-9 of the
+                          first <tr> = 2.25rem). Total offset:
+                            mobile  : 6.5rem + 2.25rem = 8.75rem
+                            desktop : 7.5rem + 2.25rem = 9.75rem
                           Categoría cell is sticky on BOTH axes so it
                           remains visible at the column/row intersection
                           during diagonal scrolling. */}
                       <tr>
                         <th
-                          className="sticky top-9 left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
+                          className="sticky top-[8.75rem] md:top-[9.75rem] left-0 z-30 border border-border/40 p-2 text-left text-foreground font-bold"
                           style={{
                             backgroundColor: 'hsl(var(--background))',
                             backgroundImage:
@@ -288,7 +297,7 @@ const Calendario = () => {
                         {dates.map(d => (
                           <th
                             key={`d-${d.date}`}
-                            className="sticky top-9 z-20 border border-border/40 p-2 text-center text-foreground font-bold"
+                            className="sticky top-[8.75rem] md:top-[9.75rem] z-20 border border-border/40 p-2 text-center text-foreground font-bold"
                             style={{
                               backgroundColor: 'hsl(var(--background))',
                               backgroundImage:
