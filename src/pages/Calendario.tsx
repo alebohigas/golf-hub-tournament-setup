@@ -16,7 +16,6 @@ import calendarioHero from '@/assets/calendario-hero.jpg';
 import { scheduleData, salidasText } from '@/data/mockData';
 import ScheduleTable from '@/components/convocatoria/ScheduleTable';
 import { useRowSnap } from '@/hooks/useRowSnap';
-import { compareCategories } from '@/lib/categorySort';
 
 /** Map English day/month names to Spanish */
 const dayNameEs: Record<string, string> = {
@@ -217,14 +216,20 @@ const Calendario = () => {
     offset: getPinnedColumnOffset,
   });
 
-  /** Group entries by category for the matrix table */
-  const categoryMap = new Map<string, { name: string; shortName: string; byDate: Map<string, CalendarEntry[]> }>();
-  
+  /** Group entries by category for the matrix table.
+   *  We track the lowest `categoriaId` seen for each category key so the
+   *  rows can be sorted by the database's canonical ID order. */
+  const categoryMap = new Map<
+    string,
+    { name: string; shortName: string; categoriaId: number; byDate: Map<string, CalendarEntry[]> }
+  >();
+
   for (const entry of entries) {
     if (!categoryMap.has(entry.category)) {
       categoryMap.set(entry.category, {
         name: entry.categoryName,
         shortName: entry.shortName,
+        categoriaId: entry.categoriaId ?? Number.MAX_SAFE_INTEGER,
         byDate: new Map(),
       });
     }
@@ -236,17 +241,12 @@ const Calendario = () => {
   }
 
   /**
-   * Categories ordered with the canonical tournament sequence:
-   * Primera → Letras (AA,A,B,...) → Damas → Senior → Novatos → Otros.
-   * `compareCategories` works on { name, shortName } so we adapt the
-   * Map values into that shape before sorting.
+   * Sort categories by `categoria_id` ascending — the canonical DB order
+   * configured by the tournament admin. Replaces the previous heuristic
+   * (Primera → Letras → Damas → ...) per product request.
    */
   const categories = Array.from(categoryMap.entries()).sort(
-    ([, a], [, b]) =>
-      compareCategories(
-        { name: a.name, shortName: a.shortName },
-        { name: b.name, shortName: b.shortName },
-      ),
+    ([, a], [, b]) => a.categoriaId - b.categoriaId,
   );
 
   /** Check if convocatoria schedule has any data */
