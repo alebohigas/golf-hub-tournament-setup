@@ -440,11 +440,12 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto">
         {/*
-          Header row height. Mobile uses h-[160px] to accommodate the
-          enlarged 150px mobile logo; desktop reverts to the original
-          h-20 (80px) since the desktop logo is back to its previous size.
+          Header row height. Mobile uses h-28 (112px) to fit the enlarged
+          mobile logo (h-24 = 96px tall, auto width to respect the logo's
+          wide aspect ratio). Desktop reverts to the original h-20 (80px)
+          since the desktop logo is back to its previous size.
         */}
-        <div className="flex items-center justify-between h-[160px] md:h-20">
+        <div className="flex items-center justify-between h-28 md:h-20">
           {/* Logo */}
           <div ref={logoRef} className="flex-shrink-0">
             <Link to="/" className="flex items-center gap-3">
@@ -452,10 +453,12 @@ const Header = () => {
                 <img 
                   src={tournamentInfo.logoHeaderUrl || tournamentInfo.logoUrl} 
                   alt={tournamentInfo.name}
-                  // Mobile logo: 150px (enlarged +30% per product request).
-                  // Desktop logo: reverted to original w-24 h-24 (96px) so the
-                  // top menu ribbon keeps its compact desktop layout.
-                  className="w-[150px] h-[150px] md:w-24 md:h-24 rounded-lg object-contain"
+                  // Mobile logo: height-driven (h-24 = 96px) with auto width
+                  // so the wide logo (icon + wordmark) renders at its natural
+                  // aspect ratio and actually fills the ribbon — fixing the
+                  // previous "small logo inside a 150x150 box" issue.
+                  // Desktop logo: original w-24 h-24 (96px square) preserved.
+                  className="h-24 w-auto md:w-24 md:h-24 rounded-lg object-contain"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
