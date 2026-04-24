@@ -255,6 +255,7 @@ export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'costos', label: 'Costos', enabled: true, order: 3 },
   { id: 'categorias', label: 'Categorías y Sistema de Juego', enabled: true, order: 4 },
   { id: 'premiacion', label: 'Premiación', enabled: true, order: 5 },
+  { id: 'desempates', label: 'Desempates para Corte', enabled: true, order: 6 },
   { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
   { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: true, order: 9 },
