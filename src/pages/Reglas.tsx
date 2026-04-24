@@ -35,7 +35,7 @@ const Reglas = () => {
                 rel="noopener noreferrer"
               >
                 <FileText className="h-5 w-5" />
-                Ver Reglas y Código de Conducta (PDF)
+                Ver Reglas y T. de Competencia (PDF)
               </a>
             </Button>
           </div>
