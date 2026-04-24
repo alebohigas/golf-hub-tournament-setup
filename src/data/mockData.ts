@@ -391,7 +391,90 @@ export interface ReglamentoLocalItem {
 }
 
 /** Reglamento local — Valle Alto 2026 (no se publica en el PDF). */
-export const reglamentoLocalData: ReglamentoLocalItem[] = [];
+export const reglamentoLocalData: ReglamentoLocalItem[] = [
+  {
+    titulo: 'Sistemas de Juego — Stroke Play',
+    contenido:
+      'CAMPEONATO, Premier y AA: 54 hoyos sin hándicap. Pasan el corte 12 jugadores (sin empates) después de 36 hoyos.\n\nCATEGORÍA A: 72 hoyos sin hándicap. Habrá 2 cortes: el primero a los 36 hoyos jugados pasando los mejores 24 jugadores sin empates y, el segundo corte, a 54 hoyos jugados pasando a la final los primeros 12 jugadores sin empates.\n\nCAMPEONATO MAYORES: 54 hoyos con hándicap al 80%. Pasan el corte los mejores 4 gross y los mejores 4 neto después de 36 hoyos. Los jugadores deberán tener 50 años o más cumplidos el primer día de juego.\n\nDAMAS A y B: 54 hoyos con el 80% de hándicap. Pasan el corte las mejores 4 gross y las mejores 4 neto después de 36 hoyos. En caso de que alguna jugadora pase a la final Gross y también a la final Neto, deberá jugar únicamente por el trofeo Gross; en este caso la quinta mejor jugadora en Neto, jugará por el trofeo Neto.',
+  },
+  {
+    titulo: 'Sistemas de Juego — Stableford (acumulado)',
+    contenido:
+      'DAMAS C, D y E: 54 hoyos con el 80% de hándicap. Habrá corte a los 36 hoyos jugados. Las mejores 8 jugadoras sin empates pasarán a la final conservando el acumulado de puntos.\n\nB, C y D: 72 hoyos con hándicap al 80%. Habrá 2 cortes: el primero a los 36 hoyos jugados pasando los mejores 24 jugadores sin empates y, el segundo corte, a 54 hoyos jugados pasando a la final los primeros 12 jugadores sin empates.\n\nSENIORS A y B: 54 hoyos con hándicap al 80%. Pasan el corte los mejores 12 jugadores de cada categoría después de 36 hoyos. Los jugadores deberán tener 60 o más años cumplidos al primer día de juego.\n\nDAMAS ESTELARES: 27 hoyos sin hándicap con corte a los 18 hoyos jugados pasando las mejores 6 jugadoras sin empates.',
+  },
+  {
+    titulo: 'Marcas de Salida',
+    contenido:
+      'CAMPEONATO: Negras.\nPremier y AA: Azules.\nA, B, C, D y CAMPEONATO MAYORES: Blancas.\nDAMAS: Rojas.\nDAMAS ESTELARES: Naranjas.',
+  },
+  {
+    titulo: 'Hora de Salida',
+    contenido:
+      'Tanto en stroke play como en stableford, los jugadores deberán estar en su mesa de salida, listos para jugar, a la hora estipulada independientemente del orden en que les toque salir. Si el jugador se presenta hasta con cinco minutos de retraso a su mesa de salida, tendrá 2 golpes de penalidad en el primer hoyo. Después de estos 5 minutos, será descalificado.',
+  },
+  {
+    titulo: 'Ronda Estipulada',
+    contenido: '9 hoyos.',
+  },
+  {
+    titulo: 'Vestimenta',
+    contenido: 'Según el código interno del Reglamento de Golf.',
+  },
+  {
+    titulo: 'Transportación Automotriz',
+    contenido:
+      'Los jugadores podrán utilizar transportación automotriz para ellos mismos, su equipo y su caddie.',
+  },
+  {
+    titulo: 'Caddie',
+    contenido:
+      'Es obligatorio para todos los jugadores contratar los servicios de un caddie (siempre y cuando el club pueda proporcionarles uno), el cual puede ser compartido con otro jugador.',
+  },
+  {
+    titulo: 'Puntuación Stableford',
+    contenido:
+      '• 2 golpes más que el par (doble bogey): sin puntos\n• 1 golpe más que el par (bogey): un punto\n• Par: dos puntos\n• 1 golpe menos que par (birdie): tres puntos\n• 2 golpes menos que par (águila): cuatro puntos\n• 3 golpes menos que par (albatros): cinco puntos',
+  },
+  {
+    titulo: 'Suspensión de Juego',
+    contenido:
+      '• Suspensión inmediata del juego: una nota prolongada de sirena.\n• Suspensión del juego: tres notas consecutivas de sirena.\n• Reanudación del juego: dos notas consecutivas de sirena.\n\nCuando el juego ha sido suspendido por el Comité por una situación peligrosa (una nota prolongada de sirena), todos los jugadores deberán SUSPENDER DE INMEDIATO SU JUEGO. Si un jugador no interrumpe de inmediato su juego en esta circunstancia, será DESCALIFICADO.',
+  },
+  {
+    titulo: 'Entrega de Scores',
+    contenido:
+      'Es responsabilidad del jugador que su tarjeta sea entregada. Ésta deberá entregarse en un lapso no mayor a 15 minutos a partir del momento en el que el grupo haya terminado de jugar el último hoyo de la ronda. Las tarjetas se entregarán en la mesa de recepción ubicada junto a la caseta del starter. Si el jugador no entrega su tarjeta de score en el tiempo indicado será descalificado.',
+  },
+  {
+    titulo: 'Cómo Decidir Empates — Para el Corte',
+    contenido:
+      'Se tomará como primer criterio el mejor score de la última ronda. Si persistiera el empate, el segundo criterio será comparar el score de los hoyos del 10 al 18 de la última ronda, continuando con los hoyos del 13 al 18, 16 al 18 y por último el hoyo 18. En caso de persistir el empate se hará lo mismo con los hoyos del 1 al 9.',
+  },
+  {
+    titulo: 'Cómo Decidir Empates — Para Trofeos',
+    contenido:
+      'Sólo para el primer lugar en todas las categorías Gross o Neto se jugará a muerte súbita SIN VENTAJAS (en caso de no poder iniciar o continuar con un desempate a muerte súbita por oscuridad o mal clima, el desempate se llevará a cabo como lo señalado para desempatar para el corte). Para decidir el resto de los empates se utilizarán los mismos criterios que para el corte. Cualquier empate en el campo iniciará a la hora y por el hoyo establecidos por el Comité.',
+  },
+  {
+    titulo: 'Premios de O\u2019yes por Día',
+    contenido:
+      'Importante: un jugador no podrá ganar más de un O\u2019yes por día.',
+  },
+  {
+    titulo: 'Cierre de la Competencia',
+    contenido: 'Al iniciarse la ceremonia de premiación.',
+  },
+  {
+    titulo: 'Recomendaciones',
+    contenido:
+      '• Marcar la bola antes de levantarla para identificarla (penalidad: 1 golpe si no se marca).\n• No hay "dadas", se debe embocar en todos los hoyos. En Stableford deberá embocarse toda bola que cuente para obtener puntos, de lo contrario podrá ser levantada sin embocar.\n• No se debe cambiar bola en green (penalidad: un golpe).\n• Máximo 14 bastones.\n• No se puede dar ni pedir consejo.\n• Presentarse en su hoyo de salida 5 minutos antes.',
+  },
+  {
+    titulo: 'Aviso General',
+    contenido:
+      'ESTAS REGLAS LOCALES Y TÉRMINOS DE LA COMPETENCIA DEJAN SIN EFECTO CUALQUIER REGLA LOCAL O TÉRMINO DE LA COMPETENCIA QUE EL CLUB UTILIZA PARA EL JUEGO NORMAL DE SUS SOCIOS, SE ENCUENTREN O NO PUBLICADAS EN CUALQUIER PARTE.',
+  },
+];
 const _reglamentoLocalDataArchived: ReglamentoLocalItem[] = [
   {
     titulo: 'Responsabilidad del Jugador',
