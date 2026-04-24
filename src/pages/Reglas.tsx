@@ -99,7 +99,7 @@ const Reglas = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display">
                   <ScrollText className="h-5 w-5 text-primary" />
-                  Reglamento Local
+                  Términos de la Competencia
                 </CardTitle>
               </CardHeader>
               <CardContent>
