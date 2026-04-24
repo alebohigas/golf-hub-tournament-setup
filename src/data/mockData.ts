@@ -305,6 +305,41 @@ export const premiacionData: PremioCategoria[] = [
   },
 ];
 
+/**
+ * Desempates para Corte — criterios oficiales de desempate
+ * tomados de los Términos de la Competencia (LXX Anual Valle Alto 2026).
+ */
+export interface DesempatesData {
+  /** Intro / encabezado mostrado arriba de las listas */
+  intro: string;
+  /** Criterios para desempate del corte (orden importa) */
+  paraCorte: string[];
+  /** Criterios para desempate de trofeos */
+  paraTrofeos: string[];
+  /** Nota final mostrada debajo */
+  nota?: string;
+}
+
+/** Cómo decidir empates — Valle Alto 2026 */
+export const desempatesData: DesempatesData = {
+  intro:
+    'Estos son los criterios oficiales que el Comité utiliza para resolver empates, tanto para definir el corte como para decidir trofeos.',
+  paraCorte: [
+    'Mejor score de la última ronda.',
+    'Score de los hoyos 10 al 18 de la última ronda.',
+    'Score de los hoyos 13 al 18 de la última ronda.',
+    'Score de los hoyos 16 al 18 de la última ronda.',
+    'Score del hoyo 18 de la última ronda.',
+    'Si persistiera el empate, se aplica el mismo procedimiento con los hoyos 1 al 9.',
+  ],
+  paraTrofeos: [
+    'Solo para el primer lugar en todas las categorías Gross o Neto se jugará a muerte súbita SIN VENTAJAS.',
+    'Si por oscuridad o mal clima no se puede iniciar o continuar la muerte súbita, el desempate se resolverá con los mismos criterios usados para el corte.',
+    'Para el resto de los empates se utilizan los mismos criterios que para el corte.',
+  ],
+  nota: 'Cualquier empate en el campo iniciará a la hora y por el hoyo establecidos por el Comité.',
+};
+
 /** Reglas locales - structured rules */
 export interface ReglaItem {
   titulo: string;
