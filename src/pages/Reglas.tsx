@@ -7,7 +7,8 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } from 'lucide-react';
 import { reglasData, reglamentoLocalData } from '@/data/mockData';
 import reglasHero from '@/assets/reglas-hero.jpg';
 
@@ -21,6 +22,24 @@ const Reglas = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
+          {/* CTA: Download/View full Reglas y CC PDF document */}
+          <div className="mb-10 flex justify-center">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2"
+            >
+              <a
+                href="/reglas-y-cc.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FileText className="h-5 w-5" />
+                Ver Reglas y Código de Conducta (PDF)
+              </a>
+            </Button>
+          </div>
+
           {/* General rules cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <Card className="border-border/50">
