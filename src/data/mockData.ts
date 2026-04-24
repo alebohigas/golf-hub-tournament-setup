@@ -313,24 +313,74 @@ export interface ReglaItem {
 /** Reglas locales y términos de la competencia — LXX Anual Valle Alto 2026. */
 export const reglasData: ReglaItem[] = [
   {
-    titulo: 'Reglas Aplicables',
+    titulo: 'Aviso a los Jugadores',
     contenido:
-      'Se jugará bajo las Reglas de la USGA adoptadas por la Federación Mexicana de Golf, así como las reglas locales y términos de la competencia que se publicarán para el torneo. Las controversias serán resueltas por el Oficial de Reglas y/o el Comité Organizador, su fallo será definitivo e inapelable. Las rondas de juego estipuladas para este torneo son de 9 hoyos.',
+      'Regirán las Reglas de Golf de la USGA adoptadas por la Federación Mexicana de Golf y las siguientes Reglas Locales mismas que dejan sin efecto las del club sede, se encuentren o no publicadas en cualquier parte, y cualquier versión anterior de este documento (24 de abril, 2026). Es responsabilidad de los jugadores conocer las Reglas de golf, las Reglas Locales y los Términos de la Competencia. La penalidad por violar una Regla Local es penalidad general, a menos que se indique otra cosa.\n\nComité de Reglas: Eduardo Topete Seňkowski (33 3100 1191 todos los días), Gina Mendoza (55 4393 5084 jueves 30 de abril, viernes 1 de mayo y sábado 2 de mayo) y cualquier persona designada por el Comité. Las decisiones del Comité son inapelables.',
   },
   {
-    titulo: 'Desempates para Corte',
+    titulo: '1. Fuera de Límites',
     contenido:
-      'Primer término: ganará el jugador con mejor score del último día.\nSegundo término: se tomará la tarjeta del último día para desempatar por el sistema de comparación de tarjetas (9-6-3-1), de la vuelta del hoyo 10 al 18. Si persiste el empate, se aplicará lo mismo a la 1ª vuelta.',
+      'Señalado por estacas y líneas blancas, bardas y contornos de caminos así señalados. El fuera de límites del lado izquierdo del Hoyo 2 se aplica únicamente al juego del Hoyo 2.',
   },
   {
-    titulo: 'Desempates para Trofeos',
+    titulo: '2. Objetos Integrales (sin alivio sin penalidad)',
     contenido:
-      'Sólo para el primer lugar de todas las categorías Gross o Neto se jugará a muerte súbita sin ventajas. El resto de los empates se definirá primero por el mejor score del último día y, en segundo término, por comparación de tarjetas del último día (hoyos 10 al 18) bajo el sistema 9-6-3-1.',
+      'Los muros de contención de lagos, ríos, canales y plataformas de salida; jardineras y plantas de ornato no marcadas como terreno en reparación o no indicadas como obstrucciones; cajetes de los árboles; cualquier objeto unido a un árbol, esté atado o no. Además, los liners (o plástico) debajo de la arena en bunkers y del mulch alrededor de los árboles (no hay alivio sin penalidad de estos liners o plástico).\n\nExcepción: Los muros de contención de las áreas de salida en los Hoyos 11 y 13 NO son objetos integrales, son obstrucciones inamovibles (alivio sin penalidad de acuerdo con la Regla 16.1b).',
   },
   {
-    titulo: 'Nota Importante — Corte y Doble Categoría',
+    titulo: '3. Áreas de Penalidad Rojas',
     contenido:
-      'El jugador que no pasó el corte oficialmente una vez publicadas las listas de resultados no podrá participar en la ronda final por ningún motivo. En el caso de jugadores participando en dos categorías que pasen el corte en ambas, el jugador deberá avisar al final cuál de las dos categorías quiere jugar para la ronda final.',
+      'Identificadas con estacas y/o líneas rojas. Existen círculos de dropeo adicionales y opcionales en los hoyos 3 y 4; si el jugador decide dropear en un círculo, deberá hacerlo en el que corresponda de acuerdo a las líneas blancas que así lo indican.',
+  },
+  {
+    titulo: '4. Condiciones Anormales del Campo (alivio sin penalidad)',
+    contenido:
+      'Terreno en Reparación:\n• Áreas identificadas con líneas blancas o estacas azules.\n• Zona Prohibida Para Jugar (alivio obligatorio sin penalidad, dropear dentro del largo de un bastón del punto de alivio completo más cercano sin acercarse al hoyo): el vivero (línea blanca) entre los hoyos 12, 13 y 14; y el vivero (línea blanca) entre los hoyos 5 y 13.\n• Ranuras alrededor de los greenes: está en efecto el MRL F-19. El alivio bajo esta Regla está permitido SOLO SI LA BOLA REPOSA SOBRE LA RANURA (dropear la bola dentro de un bastón del punto de alivio más cercano y no en green). No existe alivio por interferencia de la ranura por swing, stance o línea de juego.\n• Los tensores que sostienen algunos árboles son obstrucciones.\n• En los hoyos 12 y 18 los nuevos bunkers de fairway están en juego: si una bola reposa en ellos se deberá jugar desde ahí o tomar los alivios con penalidad de acuerdo a las Reglas. Las áreas marcadas fuera y junto a estos bunkers son terreno en reparación, por lo que se puede tomar alivio sin penalidad de acuerdo a la Regla 16.1b.\n\nObstrucciones Inamovibles:\n• Hoyo 6: el snack, el kiosko y las jardineras son una sola obstrucción. Si el jugador decide dropear en un círculo, deberá usar el que corresponda de acuerdo al hoyo que se esté jugando.\n• El área de la pizarra de yardaje definida con liner de plástico en la salida de cada hoyo.\n• El área de máquinas en el hoyo 14 (existe un círculo de dropeo como opción adicional de alivio).\n• Cuando una obstrucción inamovible se junta con otra condición anormal del campo, se considera como la misma (una sola) cuando se está tomando alivio bajo la Regla 16.1. Está en efecto el MRL 8F-3.\n• Las jardineras circundadas por caminos se consideran parte del camino.\n• Los muros de contención al lado izquierdo del hoyo 1, en las mesas de salida de los hoyos 11 y 13, y atrás del green del hoyo 16.\n\nObstrucciones inamovibles cerca del Green: está en efecto el MRL 8F-5. Alivio bajo la Regla 16.1. Adicionalmente, si una bola reposa en el área general y una obstrucción inamovible dentro del largo de dos bastones del green, y dentro de dos bastones de la bola, interviene con la línea de juego, el jugador podrá tomar alivio como sigue: levantar la bola y dropearla dentro del largo de un bastón del punto más cercano de alivio completo que (a) no se acerque al hoyo, (b) evite la intervención, y (c) no esté en un área de penalidad ni en un green.\n\nObstrucciones temporales inamovibles (TIO\u2019s): está en efecto el MRL 8F-23. Se consideran TIO\u2019s todas las carpas de promoción y recepción de scores, todos los automóviles de exhibición dentro o fuera del campo, todos los anuncios de publicidad, las cámaras de video en los greenes de los pares 3 y cualquier otra obstrucción que se encuentre temporalmente en el campo y no pueda ser removida con facilidad. Alivio a ambos lados de la obstrucción bajo la Regla correspondiente.',
+  },
+  {
+    titulo: '5. Uniones de Pasto Recién Plantado',
+    contenido:
+      'Está en efecto el MRL 8F-7. Si la bola reposa en una unión de pasto recién plantado el jugador puede dropear la bola sin castigo dentro del largo de un bastón del punto de alivio completo más cercano sin acercarse al hoyo. Todas las uniones de pasto se consideran la misma para efectos del alivio. No hay alivio por interferencia solo por el stance.',
+  },
+  {
+    titulo: '6. Zonas de Dropeo',
+    contenido:
+      'Son una opción adicional a la Regla aplicable. Además de los mencionados en el siguiente punto, existen dos círculos de dropeo en el hoyo 4, como opción adicional para una bola injugable en la jardinera atrás de green que colinda con la barda de "fuera de límites". Si una bola reposa en esta jardinera, el jugador puede, sin penalidad, tomar el alivio de acuerdo a la Regla 16.1b o utilizar uno de los círculos (el más cercano).\n\nÁreas de Penalidad Rojas: identificadas con estacas y/o líneas rojas. Existen círculos de dropeo adicionales y opcionales en los hoyos 3 y 4; si el jugador decide dropear en un círculo, deberá hacerlo en el que corresponda de acuerdo a las líneas blancas que así lo indican.',
+  },
+  {
+    titulo: '7. Bastones Dañados',
+    contenido:
+      'Está en efecto el MRL 8F G-9. La Regla 4.1b(3) se modifica de la siguiente manera: el jugador podrá reemplazar un bastón dañado sólo si se quebró o se dañó significativamente durante la ronda ya sea por el jugador o su caddie, excepto que haya sido quebrado o dañado por abuso.',
+  },
+  {
+    titulo: '8. Equipos para Medir Distancia',
+    contenido:
+      'Permitidos. Otras funciones como medir la velocidad del viento, slope, etc., no deben utilizarse (ver Regla 4.3a).',
+  },
+  {
+    titulo: '9. Teléfonos Celulares',
+    contenido:
+      'Se permite el uso de teléfonos celulares siempre y cuando se haga con discreción, sin retrasar el juego y sin distraer a los demás jugadores; en caso de no cumplir con lo anterior el jugador podrá ser penalizado de acuerdo con la Regla 4.3.',
+  },
+  {
+    titulo: '10. Música',
+    contenido:
+      'Durante cualquier ronda, está prohibido escuchar música.\n• Primera infracción: amonestación.\n• Segunda infracción: penalidad general.\n• Tercera infracción: descalificación.',
+  },
+  {
+    titulo: '11. Política de Ritmo de Juego',
+    contenido:
+      'Los jugadores deberán jugar de acuerdo al Ritmo de Juego establecido por el Comité, el cual se indica en cada tarjeta de score del jugador (4 hrs 40 min en 18 hoyos). Si cualquier grupo está arriba del tiempo establecido y "fuera de posición", los jugadores serán cronometrados teniendo un máximo de 40 segundos para ejecutar su golpe.\n\nPenalidad: 1er mal tiempo, un golpe de castigo; 2do mal tiempo, penalidad general; 3er mal tiempo, descalificación.',
+  },
+  {
+    titulo: '12. Cierre de la Competencia',
+    contenido:
+      'Se considera cerrada la competencia al iniciar la ceremonia de premiación.',
+  },
+  {
+    titulo: 'Importante',
+    contenido:
+      'Las líneas verdes en el campo NO TIENEN NINGÚN SIGNIFICADO.',
   },
 ];
 
