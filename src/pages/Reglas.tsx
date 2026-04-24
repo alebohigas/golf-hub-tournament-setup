@@ -115,7 +115,7 @@ const Reglas = () => {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Los jugadores deberán presentarse en el tee de salida 10 minutos antes de su hora programada. La penalización por llegar tarde será de 2 golpes en stroke play o pérdida del primer hoyo en match play.
+                    Los jugadores deberán presentarse en su hoyo de salida 5 minutos antes de la hora programada y estar listos para jugar a la hora estipulada. Si el jugador se presenta hasta con cinco minutos de retraso a su mesa de salida, tendrá 2 golpes de penalidad en el primer hoyo. Después de estos 5 minutos será descalificado.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -127,7 +127,7 @@ const Reglas = () => {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    El tiempo máximo para completar 18 hoyos será de 4 horas y 30 minutos. Los grupos que excedan este tiempo podrán ser penalizados conforme al reglamento de ritmo de juego.
+                    El tiempo máximo para completar 18 hoyos será de 4 horas y 40 minutos. Los grupos fuera de posición serán cronometrados con un máximo de 40 segundos por golpe. Penalidad: 1er mal tiempo, un golpe de castigo; 2do mal tiempo, penalidad general; 3er mal tiempo, descalificación.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -136,7 +136,7 @@ const Reglas = () => {
                     Código de Vestimenta
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Se requiere vestimenta apropiada de golf: playera con cuello, pantalón o bermuda de vestir, y zapatos de golf. No se permiten jeans, playeras sin cuello o sandalias.
+                    Vestimenta según el código interno del Reglamento de Golf del club: playera con cuello, pantalón o bermuda de vestir, y zapatos de golf. No se permiten jeans, playeras sin cuello o sandalias.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -145,16 +145,16 @@ const Reglas = () => {
                     Dispositivos Electrónicos
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Se permite el uso de dispositivos de medición de distancia. Queda prohibido el uso de dispositivos que midan el viento, elevación o que den consejos de juego.
+                    Se permite el uso de dispositivos de medición de distancia. Queda prohibido utilizar funciones que midan velocidad del viento, slope u otros parámetros (Regla 4.3a). El uso de teléfonos celulares está permitido siempre que sea con discreción, sin retrasar el juego ni distraer a los demás jugadores. Durante la ronda está prohibido escuchar música (1ª infracción: amonestación; 2ª: penalidad general; 3ª: descalificación).
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="item-5">
                   <AccordionTrigger className="hover:no-underline">
-                    Carros de Golf
+                    Transportación y Caddie
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    El uso de carros de golf está permitido. Se debe respetar la regla de 90 grados y las áreas marcadas como "solo carros".
+                    Los jugadores podrán utilizar transportación automotriz para ellos mismos, su equipo y su caddie. Es obligatorio contratar los servicios de un caddie (siempre y cuando el club pueda proporcionarlo), el cual puede ser compartido con otro jugador.
                   </AccordionContent>
                 </AccordionItem>
 
