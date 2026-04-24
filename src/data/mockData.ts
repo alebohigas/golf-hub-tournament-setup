@@ -325,12 +325,10 @@ export const desempatesData: DesempatesData = {
   intro:
     'Estos son los criterios oficiales que el Comité utiliza para resolver empates, tanto para definir el corte como para decidir trofeos. En Stroke Play se considera el menor score; en Stableford se considera la menor cantidad de puntos en la segunda vuelta para definir la mejor posición en la tabla.',
   paraCorte: [
-    'Stroke Play: mejor (menor) score de la última ronda. Stableford: menor cantidad de puntos en la última ronda.',
-    'Stroke Play: menor score de los hoyos 10 al 18 de la última ronda. Stableford: menor cantidad de puntos de los hoyos 10 al 18 de la última ronda — quien tenga menos puntos en la segunda vuelta queda mejor posicionado.',
-    'Score / puntos de los hoyos 13 al 18 de la última ronda (menor gana en ambos sistemas).',
-    'Score / puntos de los hoyos 16 al 18 de la última ronda (menor gana en ambos sistemas).',
-    'Score / puntos del hoyo 18 de la última ronda (menor gana en ambos sistemas).',
-    'Si persistiera el empate, se aplica el mismo procedimiento con los hoyos 1 al 9.',
+    'Mejor score de los hoyos 10 al 18 de la ronda 1.',
+    'Si persiste el empate: mejor score de los hoyos 13 al 18 de la ronda 1.',
+    'Si persiste el empate: mejor score de los hoyos 16 al 18 de la ronda 1.',
+    'Si persiste el empate: mejor score del hoyo 18 de la ronda 1.',
   ],
   paraTrofeos: [
     'Solo para el primer lugar en todas las categorías Gross o Neto se jugará a muerte súbita SIN VENTAJAS.',
