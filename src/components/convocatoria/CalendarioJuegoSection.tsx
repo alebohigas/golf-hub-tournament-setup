@@ -181,29 +181,35 @@ const CalendarioJuegoSection = () => {
               </thead>
               <tbody>
                 {calData.entries
-                  .reduce<Array<{ key: string; name: string; byDate: Map<string, CalendarEntry> }>>((acc, e) => {
+                  .reduce<Array<{ key: string; name: string; categoriaId: number; byDate: Map<string, CalendarEntry> }>>((acc, e) => {
                     let row = acc.find((r) => r.key === e.category);
                     if (!row) {
-                      row = { key: e.category, name: e.categoryName, byDate: new Map() };
+                      row = {
+                        key: e.category,
+                        name: e.categoryName,
+                        // Track the lowest `categoriaId` for this category so
+                        // we can sort rows by the canonical DB ID order
+                        // (matches the `/calendario` page exactly).
+                        categoriaId: e.categoriaId ?? Number.MAX_SAFE_INTEGER,
+                        byDate: new Map(),
+                      };
                       acc.push(row);
+                    } else if (
+                      typeof e.categoriaId === 'number' &&
+                      e.categoriaId < row.categoriaId
+                    ) {
+                      row.categoriaId = e.categoriaId;
                     }
                     row.byDate.set(e.date, e);
                     return acc;
                   }, [])
                   /**
-                   * Apply the canonical category order shared with /calendario:
-                   * Primera → Letras → Damas → Senior → Novatos → Otros.
-                   * `shortName` is sourced from the first entry of the category
-                   * (all entries within a category share the same shortName).
+                   * Sort rows by `categoria_id` ascending — the canonical
+                   * DB order configured by the tournament admin. This
+                   * matches the order shown on the dedicated /calendario
+                   * page (per product request).
                    */
-                  .sort((a, b) => {
-                    const aShort = calData.entries.find((e) => e.category === a.key)?.shortName;
-                    const bShort = calData.entries.find((e) => e.category === b.key)?.shortName;
-                    return compareCategories(
-                      { name: a.name, shortName: aShort },
-                      { name: b.name, shortName: bShort },
-                    );
-                  })
+                  .sort((a, b) => a.categoriaId - b.categoriaId)
                   .map((row, idx) => (
                     <tr key={row.key} className={idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}>
                       {/* Sticky-left Categoría cell. Inline solid background
