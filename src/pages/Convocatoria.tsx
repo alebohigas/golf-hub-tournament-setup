@@ -22,6 +22,7 @@ import ElegibilidadSection from '@/components/convocatoria/ElegibilidadSection';
 import CostosSection from '@/components/convocatoria/CostosSection';
 import CategoriasSection from '@/components/convocatoria/CategoriasSection';
 import PremiacionSection from '@/components/convocatoria/PremiacionSection';
+import DesempatesSection from '@/components/convocatoria/DesempatesSection';
 import ReglasSection from '@/components/convocatoria/ReglasSection';
 import CompetenciasEspecialesSection from '@/components/convocatoria/CompetenciasEspecialesSection';
 import ServiciosSection from '@/components/convocatoria/ServiciosSection';
@@ -40,6 +41,7 @@ import {
   contactWarning,
   convocatoriaDescripcion,
   premiacionData,
+  desempatesData,
   reglasData,
   competenciasEspecialesData,
   serviciosHorariosData,
@@ -106,6 +108,8 @@ const renderSection = (sectionId: string) => {
       return <CategoriasSection />;
     case 'premiacion':
       return <PremiacionSection data={premiacionData} />;
+    case 'desempates':
+      return <DesempatesSection data={desempatesData} />;
     case 'reglas':
       return <ReglasSection data={reglasData} />;
     case 'competencias':
@@ -163,6 +167,11 @@ const Convocatoria = () => {
         return true;
       case 'premiacion':
         return premiacionData && premiacionData.length > 0;
+      case 'desempates':
+        return !!desempatesData && (
+          (desempatesData.paraCorte?.length ?? 0) > 0 ||
+          (desempatesData.paraTrofeos?.length ?? 0) > 0
+        );
       case 'reglas':
         return reglasData && reglasData.length > 0;
       case 'competencias':
