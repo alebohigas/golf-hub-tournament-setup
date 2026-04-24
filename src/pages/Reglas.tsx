@@ -16,7 +16,7 @@ const Reglas = () => {
   return (
     <Layout>
       <PageHero 
-        title="Reglas y Código de Conducta"
+        title="Reglas y Términos de la Competencia"
         subtitle="Reglamento oficial del torneo"
         backgroundImage={reglasHero}
       />
