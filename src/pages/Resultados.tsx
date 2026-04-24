@@ -327,9 +327,19 @@ const Resultados = () => {
                       <Table className="bg-white tournament-table">
                         <TableHeader>
                           <TableRow className="bg-primary hover:bg-primary">
-                            <TableHead className="text-primary-foreground font-bold w-16">Pos</TableHead>
-                            <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
-                            <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                            {/*
+                             * Sticky leading columns (Pos · Club · Jugador).
+                             * The user requested Pos and Jugador to be sticky;
+                             * because Club sits between them we also pin Club so
+                             * the three columns stay glued together when the
+                             * user scrolls horizontally on narrow viewports.
+                             * Left offsets must match each column's rendered
+                             * width: Pos = 4rem (w-16), Club ≈ 3.5rem.
+                             * z-20 keeps headers above sticky body cells (z-10).
+                             */}
+                            <TableHead className="text-primary-foreground font-bold w-16 sticky left-0 z-20 bg-primary">Pos</TableHead>
+                            <TableHead className="text-primary-foreground font-bold text-center sticky z-20 bg-primary" style={{ left: '4rem' }}>Club</TableHead>
+                            <TableHead className="text-primary-foreground font-bold sticky z-20 bg-primary" style={{ left: '7.5rem' }}>Jugador</TableHead>
                             {/* Dynamic round columns based on days array */}
                             {(categoryDetail?.days || []).map((_, i) => (
                               <TableHead key={`r${i+1}`} className="text-primary-foreground font-bold text-center">R{i + 1}</TableHead>
@@ -343,7 +353,7 @@ const Resultados = () => {
                               <Fragment key={player.id}>
                                 <TableRow className="bg-white hover:bg-white">
                                   {/* Position with dynamic medal */}
-                                  <TableCell className="font-semibold">
+                                  <TableCell className="font-semibold sticky left-0 z-10 bg-white">
                                     <div className="flex items-center gap-2">
                                       {getPositionIcon(player.position, medalCount)}
                                       <span className={player.position <= medalCount ? getMedalStyle(player.position) : ''}>
@@ -352,7 +362,7 @@ const Resultados = () => {
                                     </div>
                                   </TableCell>
                                   {/* Club Logo */}
-                                  <TableCell className="p-1 text-center align-middle">
+                                  <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
                                     {player.clubLogo ? (
                                       <img
                                         src={player.clubLogo}
@@ -368,7 +378,7 @@ const Resultados = () => {
                                       <span className="text-xs text-muted-foreground">{player.club}</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="font-medium player-name-cell">{player.name}</TableCell>
+                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>{player.name}</TableCell>
                                   {/* Dynamic round score cells */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
@@ -442,13 +452,13 @@ const Resultados = () => {
                                 <Fragment key={cp.playerId}>
                                 <TableRow className="bg-muted/20">
                                   {/* Status code instead of position */}
-                                  <TableCell className="font-semibold text-center">
+                                  <TableCell className="font-semibold text-center sticky left-0 z-10 bg-muted/20" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
                                       {cp.statusCode}
                                     </span>
                                   </TableCell>
                                   {/* Club Logo */}
-                                  <TableCell className="p-1 text-center align-middle">
+                                  <TableCell className="p-1 text-center align-middle sticky z-10" style={{ left: '4rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     {cp.clubLogo ? (
                                       <img
                                         src={cp.clubLogo}
@@ -471,7 +481,7 @@ const Resultados = () => {
                                    * never sits beside the surname and never widens the
                                    * column / scrolls the table horizontally.
                                    */}
-                                  <TableCell className="font-medium text-muted-foreground player-name-cell">
+                                  <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className="block leading-tight">{cp.name}</span>
                                     <span className="block text-[11px] leading-tight text-muted-foreground/70">
                                       ({cp.statusLabel})
