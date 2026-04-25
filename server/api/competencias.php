@@ -410,42 +410,66 @@ if ($tipo === '' || $tipo === 'putt') {
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
-                FROM puttjug
-                WHERE torneoid = $tid
-                ORDER BY premio ASC";
+        // Pull each Putt prize with its OWN values from the master `premios`
+        // table:
+        //   - premios.descripcion -> displayed name
+        //   - premios.lugares     -> per-prize cut size (number of winners)
+        // We LEFT JOIN so a puttjug premio missing from `premios` still
+        // appears (with name from puttjug.premiosjugcol and a null lugares
+        // that falls back to oyesnumprem below).
+        $sql = "SELECT pj.premio as id,
+                       COALESCE(NULLIF(TRIM(p.descripcion), ''), pj.premiosjugcol) as name,
+                       MAX(p.lugares) as lugares,
+                       LEFT(f_ultfechaputt(pj.premiosjugcol, pj.torneoid), 16) AS ultact
+                FROM puttjug pj
+                LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
+                WHERE pj.torneoid = $tid
+                GROUP BY pj.premio, pj.premiosjugcol
+                ORDER BY pj.premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
         if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
             // Fallback if f_ultfechaputt() doesn't exist on this DB
-            $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, NULL AS ultact
-                    FROM puttjug
-                    WHERE torneoid = $tid
-                    ORDER BY premio ASC";
+            $sql = "SELECT pj.premio as id,
+                           COALESCE(NULLIF(TRIM(p.descripcion), ''), pj.premiosjugcol) as name,
+                           MAX(p.lugares) as lugares,
+                           NULL AS ultact
+                    FROM puttjug pj
+                    LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
+                    WHERE pj.torneoid = $tid
+                    GROUP BY pj.premio, pj.premiosjugcol
+                    ORDER BY pj.premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
         }
         $groups = [];
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-            $descripcion = esc($conn, $p['name']);            
+            $descripcion = esc($conn, $p['name']);
+
+            // Per-prize cut: use `lugares` from premios; fall back to oyesnumprem
+            // when the prize is missing from the master table.
+            $lugares = (int)($p['lugares'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
 
             $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
             $countRow = safe_query_one($conn, $sql);
-            $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
+            $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
 
             $group = [
                 'id'          => 'putt-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
               #  'hoyo'        => (int)$p['hoyo'],
-                'maxPlayers'  => $numPrem,
+                'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
             ];
 
             if ($detalle === '1') {
-                // Cap the player list by $numPrem (oyesnumprem / "lugares")
-                // so the displayed list never exceeds the number shown on the card.
-                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
+                // Cap the player list by THIS prize's `lugares` so the
+                // displayed list matches the number shown on the card
+                // (different prizes — e.g. Damas vs Caballeros — can have
+                // different cut sizes).
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $lugares);
                 $group['lastUpdated'] = $p['ultact'] ?? null;
             }
 
