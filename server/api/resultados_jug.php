@@ -277,6 +277,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSO ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
+        // Stroke Play GROSS → fewer strokes wins, so ASC.
+        $sql .= prev_rounds_tiebreaker($dias, 'ASC');
         // R1 tiebreaker (Stroke Play GROSS): lower strokes wins each chunk.
         // Progression: H10-18 → H13-18 → H16-18 → H18 from Round 1.
         $sql .= ", " . r1_chunk('h', range(10, 18), $r1Date) . " ASC";
@@ -307,6 +310,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
+        // Stroke Play NETO → fewer net strokes wins, so ASC.
+        $sql .= prev_rounds_tiebreaker($dias, 'ASC');
         // R1 tiebreaker (Stroke Play NETO): lower net strokes wins each chunk.
         $sql .= ", " . r1_chunk('h_a', range(10, 18), $r1Date) . " ASC";
         $sql .= ", " . r1_chunk('h_a', range(13, 18), $r1Date) . " ASC";
@@ -338,6 +344,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSTBGross DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
+        // Stableford GROSS → more points wins, so DESC.
+        $sql .= prev_rounds_tiebreaker($dias, 'DESC');
         // R1 tiebreaker (Stableford GROSS): FEWER points wins each chunk
         // (special tournament rule: lower stableford total in the back nine
         // breaks the tie in favor of the lower-scoring player).
@@ -369,6 +378,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
+        // Stableford NETO → more points wins, so DESC.
+        $sql .= prev_rounds_tiebreaker($dias, 'DESC');
         // R1 tiebreaker (Stableford NETO): FEWER points wins each chunk
         // (special tournament rule). Per-hole stableford neto points come
         // from CSV column arsa.
