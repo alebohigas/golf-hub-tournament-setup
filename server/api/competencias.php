@@ -208,6 +208,18 @@ if ($tipo === '' || $tipo === 'oyes') {
                 ORDER BY p.premio ASC";
 
         $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes');
+        // Fallback: if the `premios` table has no matching rows for this
+        // torneo (or the join produced nothing), build prize list directly
+        // from `premiosjug` so O'Yes is never silently dropped.
+        if (empty($prizes)) {
+            $sql = "SELECT DISTINCT pj.premio as id,
+                           TRIM(pj.descripcion) as name,
+                           pj.hoyo
+                    FROM premiosjug pj
+                    WHERE pj.torneoid = $tid
+                    ORDER BY pj.premio ASC";
+            $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes_fallback_premiosjug');
+        }
         // Final fallback in PHP for any null/empty descriptions
         foreach ($prizes as &$pr) {
             if (empty($pr['name'])) {
