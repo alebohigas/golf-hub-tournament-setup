@@ -429,8 +429,10 @@ if ($tipo === '' || $tipo === 'putt') {
             ];
 
             if ($detalle === '1') {
-                $group['players'] = get_putt_players($conn, $tid, $premioId);
-                 $group['lastUpdated'] = $p['ultact'] ?? null;
+                // Cap the player list by $numPrem (oyesnumprem / "lugares")
+                // so the displayed list never exceeds the number shown on the card.
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
+                $group['lastUpdated'] = $p['ultact'] ?? null;
             }
 
             $groups[] = $group;
@@ -683,9 +685,22 @@ function get_oyesx_last_updated($conn, $descName, $tid) {
     return $row['lastUpdated'] ?? null;
 }
 
-/** Get Putt players for a prize group */
-function get_putt_players($conn, $tid, $premioId) {
+/**
+ * Get Putt players for a prize group, capped by the number of available spots ("lugares").
+ *
+ * @param mysqli $conn      Database connection.
+ * @param int    $tid       Active tournament id.
+ * @param int    $premioId  Prize id within puttjug.
+ * @param int    $limit     Max number of players to return (defaults to 3).
+ *                          Comes from torneo.oyesnumprem and matches the
+ *                          card's `playerCount`/`maxPlayers` so the rendered
+ *                          list never exceeds the displayed cut value.
+ */
+function get_putt_players($conn, $tid, $premioId, $limit = 3) {
     global $LOGOS_BASE_URL;
+
+    // Defensive: ensure a sane positive integer LIMIT
+    $limit = max(1, (int)$limit);
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
@@ -695,7 +710,8 @@ function get_putt_players($conn, $tid, $premioId) {
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia ASC";
+            ORDER BY a.distancia ASC
+            LIMIT $limit";
 
 
     $winners = safe_query_all($conn, $sql);
