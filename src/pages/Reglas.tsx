@@ -7,7 +7,8 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } from 'lucide-react';
 import { reglasData, reglamentoLocalData } from '@/data/mockData';
 import reglasHero from '@/assets/reglas-hero.jpg';
 
@@ -15,12 +16,30 @@ const Reglas = () => {
   return (
     <Layout>
       <PageHero 
-        title="Reglas y Código de Conducta"
+        title="Reglas y Términos de la Competencia"
         subtitle="Reglamento oficial del torneo"
         backgroundImage={reglasHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
+          {/* CTA: Download/View full Reglas y CC PDF document */}
+          <div className="mb-10 flex justify-center">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2"
+            >
+              <a
+                href="/reglas-y-cc.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FileText className="h-5 w-5" />
+                Ver Reglas y T. de Competencia (PDF)
+              </a>
+            </Button>
+          </div>
+
           {/* General rules cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <Card className="border-border/50">
@@ -80,7 +99,7 @@ const Reglas = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display">
                   <ScrollText className="h-5 w-5 text-primary" />
-                  Reglamento Local
+                  Términos de la Competencia
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -115,7 +134,7 @@ const Reglas = () => {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Los jugadores deberán presentarse en el tee de salida 10 minutos antes de su hora programada. La penalización por llegar tarde será de 2 golpes en stroke play o pérdida del primer hoyo en match play.
+                    Los jugadores deberán presentarse en su hoyo de salida 5 minutos antes de la hora programada y estar listos para jugar a la hora estipulada. Si el jugador se presenta hasta con cinco minutos de retraso a su mesa de salida, tendrá 2 golpes de penalidad en el primer hoyo. Después de estos 5 minutos será descalificado.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -127,7 +146,7 @@ const Reglas = () => {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    El tiempo máximo para completar 18 hoyos será de 4 horas y 30 minutos. Los grupos que excedan este tiempo podrán ser penalizados conforme al reglamento de ritmo de juego.
+                    El tiempo máximo para completar 18 hoyos será de 4 horas y 40 minutos. Los grupos fuera de posición serán cronometrados con un máximo de 40 segundos por golpe. Penalidad: 1er mal tiempo, un golpe de castigo; 2do mal tiempo, penalidad general; 3er mal tiempo, descalificación.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -136,7 +155,7 @@ const Reglas = () => {
                     Código de Vestimenta
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Se requiere vestimenta apropiada de golf: playera con cuello, pantalón o bermuda de vestir, y zapatos de golf. No se permiten jeans, playeras sin cuello o sandalias.
+                    Vestimenta según el código interno del Reglamento de Golf del club: playera con cuello, pantalón o bermuda de vestir, y zapatos de golf. No se permiten jeans, playeras sin cuello o sandalias.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -145,16 +164,16 @@ const Reglas = () => {
                     Dispositivos Electrónicos
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Se permite el uso de dispositivos de medición de distancia. Queda prohibido el uso de dispositivos que midan el viento, elevación o que den consejos de juego.
+                    Se permite el uso de dispositivos de medición de distancia. Queda prohibido utilizar funciones que midan velocidad del viento, slope u otros parámetros (Regla 4.3a). El uso de teléfonos celulares está permitido siempre que sea con discreción, sin retrasar el juego ni distraer a los demás jugadores. Durante la ronda está prohibido escuchar música (1ª infracción: amonestación; 2ª: penalidad general; 3ª: descalificación).
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="item-5">
                   <AccordionTrigger className="hover:no-underline">
-                    Carros de Golf
+                    Transportación y Caddie
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    El uso de carros de golf está permitido. Se debe respetar la regla de 90 grados y las áreas marcadas como "solo carros".
+                    Los jugadores podrán utilizar transportación automotriz para ellos mismos, su equipo y su caddie. Es obligatorio contratar los servicios de un caddie (siempre y cuando el club pueda proporcionarlo), el cual puede ser compartido con otro jugador.
                   </AccordionContent>
                 </AccordionItem>
 

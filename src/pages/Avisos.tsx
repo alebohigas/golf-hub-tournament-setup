@@ -12,6 +12,9 @@
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import AvisosPostersSection, { AVISOS_POSTERS } from '@/components/avisos/AvisosPostersSection';
+// Hero banner image for the Avisos page (golf course at golden hour with a
+// notice board) — mirrors the per-section hero pattern used across the app.
+import avisosHero from '@/assets/avisos-hero.jpg';
 
 const Avisos = () => {
   // Section visibility: posters are bundled in the build, so as long as the
@@ -24,6 +27,7 @@ const Avisos = () => {
       <PageHero
         title="Avisos"
         subtitle="Comunicados y noticias importantes del torneo"
+        backgroundImage={avisosHero}
       />
 
       {/* Poster grid + lightbox (mirrors Eventos visual style). */}

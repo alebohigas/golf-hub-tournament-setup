@@ -51,13 +51,13 @@ $rows = query_all($conn, $sql);
 
 /**
  * Decide if a HH:MM:SS tee time falls in the AM half of the day.
- * Treats anything strictly before 12:00:00 as AM.
+ * Treats anything strictly before 11:00:00 as AM.
  */
 function is_am_time($t) {
     if (!$t) return false;
     $parts = explode(':', $t);
     $h = isset($parts[0]) ? (int)$parts[0] : 0;
-    return $h < 12;
+    return $h < 11;
 }
 
 /** Format HH:MM:SS into a short label like "7:00 AM" / "1:30 PM". */
