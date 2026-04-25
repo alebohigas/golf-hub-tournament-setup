@@ -299,12 +299,14 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSTBGross DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        // R1 tiebreaker (Stableford GROSS): MORE points wins each chunk.
+        // R1 tiebreaker (Stableford GROSS): FEWER points wins each chunk
+        // (special tournament rule: lower stableford total in the back nine
+        // breaks the tie in favor of the lower-scoring player).
         // Per-hole stableford gross points come from CSV column arstbgross.
-        $sql .= ", " . r1_chunk('arstbgross', range(10, 18), $r1Date) . " DESC";
-        $sql .= ", " . r1_chunk('arstbgross', range(13, 18), $r1Date) . " DESC";
-        $sql .= ", " . r1_chunk('arstbgross', range(16, 18), $r1Date) . " DESC";
-        $sql .= ", " . r1_chunk('arstbgross', [18],          $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arstbgross', range(10, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('arstbgross', range(13, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('arstbgross', range(16, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('arstbgross', [18],          $r1Date) . " ASC";
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
@@ -328,12 +330,13 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        // R1 tiebreaker (Stableford NETO): MORE points wins each chunk.
-        // Per-hole stableford neto points come from CSV column arsa.
-        $sql .= ", " . r1_chunk('arsa', range(10, 18), $r1Date) . " DESC";
-        $sql .= ", " . r1_chunk('arsa', range(13, 18), $r1Date) . " DESC";
-        $sql .= ", " . r1_chunk('arsa', range(16, 18), $r1Date) . " DESC";
-        $sql .= ", " . r1_chunk('arsa', [18],          $r1Date) . " DESC";
+        // R1 tiebreaker (Stableford NETO): FEWER points wins each chunk
+        // (special tournament rule). Per-hole stableford neto points come
+        // from CSV column arsa.
+        $sql .= ", " . r1_chunk('arsa', range(10, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('arsa', range(13, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('arsa', range(16, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('arsa', [18],          $r1Date) . " ASC";
     }
 }
 
