@@ -186,35 +186,26 @@ if ($tipo === '' || $tipo === 'oyes') {
     $DEBUG_SECTIONS['oyes']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // Resolve prize descriptions directly from the `premios` table,
-        // mirroring the legacy report query:
-        //   SELECT premio, descripcion FROM premios
+        // Mirror the legacy report query EXACTLY (do not filter by premiosjug
+        // intersection — legacy code lists every active premio and then
+        // joins to premiosjug + jugadores when fetching winners):
+        //   SELECT premio, descripcion
+        //   FROM premios
         //   WHERE torneoid = $tid AND premio > 0
         //   GROUP BY premio, descripcion
-        // Only premios that actually have player assignments (premiosjug)
-        // are surfaced, by intersecting with the distinct premio ids found
-        // for this torneo.
-        $sql = "SELECT p.premio as id,
-                       TRIM(p.descripcion) as name
-                FROM premios p
-                WHERE p.torneoid = $tid
-                  AND p.premio > 0
-                  AND p.premio IN (
-                      SELECT DISTINCT pj.premio
-                      FROM premiosjug pj
-                      WHERE pj.torneoid = $tid
-                  )
-                GROUP BY p.premio, p.descripcion
-                ORDER BY p.premio ASC";
+        $sql = "SELECT premio as id, TRIM(descripcion) as name
+                FROM premios
+                WHERE torneoid = $tid
+                  AND premio > 0
+                GROUP BY premio, descripcion
+                ORDER BY premio ASC";
+        $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes_legacy');
 
-        $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes');
-        // Fallback: if the `premios` table has no matching rows for this
-        // torneo (or the join produced nothing), build prize list directly
-        // from `premiosjug` so O'Yes is never silently dropped.
+        // Fallback: if the `premios` table is empty for this torneo,
+        // build prize list from premiosjug so O'Yes is never silently dropped.
         if (empty($prizes)) {
             $sql = "SELECT DISTINCT pj.premio as id,
-                           TRIM(pj.descripcion) as name,
-                           pj.hoyo
+                           TRIM(pj.descripcion) as name
                     FROM premiosjug pj
                     WHERE pj.torneoid = $tid
                     ORDER BY pj.premio ASC";
@@ -593,15 +584,21 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
                   WHERE a.torneoid = $tid", 'oyes set orden');
 
 
+    // Legacy winner query — joins premios on (fecha, campo, hoyo, categoriaid)
+    // so a player only counts for the premio that matches THEIR category and
+    // the hole/course where the shot was recorded.
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   a.distancia, a.hoyo,
-                   c.logo, c.nombre as club
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   a.hoyo,
+                   cl.logo, cl.nombre as club
             FROM premiosjug a
-            JOIN jugadores j ON (a.jugadorid = j.id)
-            JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia ASC
+            JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
+            JOIN clubs cl ON (j.clubid = cl.id)
+            JOIN premios c ON (a.fecha = c.fecha AND a.campo = c.campo
+                               AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
+            WHERE a.torneoid = $tid AND c.premio = $premioId
+            ORDER BY c.premio, a.distancia ASC
             LIMIT $numPrem";
 
     $winners = safe_query_all($conn, $sql);
