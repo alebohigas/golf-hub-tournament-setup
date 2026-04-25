@@ -429,7 +429,9 @@ if ($tipo === '' || $tipo === 'putt') {
             ];
 
             if ($detalle === '1') {
-                $group['players'] = get_putt_players($conn, $tid, $premioId);
+                // Pass the same cap that drives playerCount on the card
+                // so the rendered list never exceeds the count badge.
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
                  $group['lastUpdated'] = $p['ultact'] ?? null;
             }
 
@@ -683,9 +685,24 @@ function get_oyesx_last_updated($conn, $descName, $tid) {
     return $row['lastUpdated'] ?? null;
 }
 
-/** Get Putt players for a prize group */
-function get_putt_players($conn, $tid, $premioId) {
+/**
+ * Get Putt players for a prize group.
+ *
+ * Returns the winners (orden = 1) for a given prize, capped to $limit so the
+ * displayed list always matches the count shown on the competition card
+ * (which is min(rows with orden=1, oyesnumprem)).
+ *
+ * @param mysqli $conn      Active MySQLi connection
+ * @param int    $tid       Tournament id (already escaped)
+ * @param int    $premioId  Prize id (already escaped)
+ * @param int    $limit     Maximum number of players to return (oyesnumprem)
+ * @return array<int, array<string, mixed>> Ordered list of winners
+ */
+function get_putt_players($conn, $tid, $premioId, $limit = 3) {
     global $LOGOS_BASE_URL;
+
+    // Defensive: ensure positive integer LIMIT (avoid SQL injection / 0)
+    $limit = max(1, (int)$limit);
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
@@ -695,7 +712,8 @@ function get_putt_players($conn, $tid, $premioId) {
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia ASC";
+            ORDER BY a.distancia ASC
+            LIMIT $limit";
 
 
     $winners = safe_query_all($conn, $sql);
