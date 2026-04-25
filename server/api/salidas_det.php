@@ -65,54 +65,60 @@ $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
 
-    // Build player query based on system and gross
+    // Build player query based on system and gross.
+    // ORDER BY clauses mirror the legacy logic exactly:
+    //   - STABLEFORD GROSS: acumstbgross DESC, orden ASC, f_score_dia_satblU DESC, tarjetaid DESC
+    //   - STABLEFORD NETO : acumsa       DESC, orden ASC, f_score_dia_saxU   DESC, tarjetaid DESC
+    //   - STROKE GROSS    : acumso       ASC,  orden DESC, f_score_dia_soxU   ASC,  tarjetaid DESC
+    //   - STROKE NETO     : acumsa       ASC,  orden DESC, f_score_dia_saxU   ASC,  tarjetaid DESC
     if ($sistema === 'STABLEFORD') {
         if ($gross == 1 || $grossstb == 1) {
-            // Stableford Gross
+            // Stableford Gross — higher points first, then orden ASC, then last-card stableford gross score, then tarjetaid DESC
             if ($isParejas) {
                 $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
                                acumstbgross as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumstbgross DESC";
+                        ORDER BY salidagrupoid, acumstbgross DESC, orden ASC, f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumstbgross as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumstbgross DESC";
+                        ORDER BY salidagrupoid, acumstbgross DESC, orden ASC, f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
             }
         } else {
-            // Stableford Neto - display and order by net total strokes, not points
+            // Stableford Neto — higher net stableford points first, then orden ASC, then last-card neto stableford score, then tarjetaid DESC
             if ($isParejas) {
                 $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
                                acumsa as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumsa DESC";
+                        ORDER BY salidagrupoid, acumsa DESC, orden ASC, f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumsa as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY acumsa DESC";
+                        ORDER BY salidagrupoid, acumsa DESC, orden ASC, f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
             }
         }
     } else {
-        // Stroke Play - use gross (acumso) or net (acumsa) based on category config
+        // Stroke Play — lower strokes first (ASC), then orden DESC, then last-card score ASC, then tarjetaid DESC
         $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
+        $tieFn    = ($gross == 1) ? 'f_score_dia_soxU' : 'f_score_dia_saxU';
         if ($isParejas) {
             $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY $scoreCol ASC";
+                    ORDER BY salidagrupoid, $scoreCol ASC, orden DESC, $tieFn(jugadorid) ASC, tarjetaid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY $scoreCol ASC";
+                    ORDER BY salidagrupoid, $scoreCol ASC, orden DESC, $tieFn(jugadorid) ASC, tarjetaid DESC";
         }
     }
 
