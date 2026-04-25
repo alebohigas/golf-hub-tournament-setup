@@ -254,10 +254,13 @@ function prev_rounds_tiebreaker(array $dias, $direction) {
  * Returns a SQL fragment to append to ORDER BY (starts with ", ").
  */
 function legacy_r1_chunks($direction) {
-    return ", (j.c1+j.c2+j.c3+j.c4+j.c5) {$direction}"
-         . ", (j.c1+j.c2+j.c3+j.c4) {$direction}"
-         . ", (j.c1+j.c2+j.c3) {$direction}"
-         . ", j.c1 {$direction}";
+    // Columns c1..c6 come from views v_cd_ulttar_sa (NETO) / v_cd_ulttar_so (GROSS),
+    // joined as alias `u`. They represent Round-1 hole groupings:
+    //   c1=h18, c2=h17, c3=h16, c4=h15+h14+h13, c5=h12+h11+h10, c6=front nine.
+    return ", (u.c1+u.c2+u.c3+u.c4+u.c5) {$direction}"
+         . ", (u.c1+u.c2+u.c3+u.c4) {$direction}"
+         . ", (u.c1+u.c2+u.c3) {$direction}"
+         . ", u.c1 {$direction}";
 }
 
 // ============= Legacy "ultima tarjeta" (latest closed round) tiebreaker =============
@@ -342,7 +345,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
         $sql .= ", c.abr, c.logo
                  FROM jugadores j
-                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
@@ -404,7 +407,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
         $sql .= ", c.abr, c.logo
                  FROM jugadores j
-                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
