@@ -193,7 +193,14 @@ if ($tipo === '' || $tipo === 'oyes') {
         //   FROM premios
         //   WHERE torneoid = $tid AND premio > 0
         //   GROUP BY premio, descripcion
-        $sql = "SELECT premio as id, TRIM(descripcion) as name
+        // Pull per-prize values from `premios`:
+        //   - `descripcion` -> displayed prize/group name
+        //   - `lugares`     -> number of winners (cut size) for THIS prize
+        // Each prize defines its own cut size, so we no longer rely on the
+        // global torneo.oyesnumprem ($numPrem) for the per-card limit.
+        $sql = "SELECT premio as id,
+                       TRIM(descripcion) as name,
+                       MAX(lugares) as lugares
                 FROM premios
                 WHERE torneoid = $tid
                   AND premio > 0
@@ -205,7 +212,8 @@ if ($tipo === '' || $tipo === 'oyes') {
         // build prize list from premiosjug so O'Yes is never silently dropped.
         if (empty($prizes)) {
             $sql = "SELECT DISTINCT pj.premio as id,
-                           TRIM(pj.descripcion) as name
+                           TRIM(pj.descripcion) as name,
+                           NULL as lugares
                     FROM premiosjug pj
                     WHERE pj.torneoid = $tid
                     ORDER BY pj.premio ASC";
@@ -229,13 +237,19 @@ if ($tipo === '' || $tipo === 'oyes') {
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-            
+
+            // Per-prize cut: use `lugares` from the premios row.
+            // Falls back to torneo.oyesnumprem when lugares is null/0
+            // (e.g. when the prize came from the premiosjug fallback list).
+            $lugares = (int)($p['lugares'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
+
             // Count players using the SAME join logic as get_oyes_players()
             // (premios joined on fecha/campo/hoyo/categoriaid). The previous
             // count relied on `orden = 1`, but the orden flag is only set
             // inside get_oyes_players() — when the card list is fetched
             // without ?detalle=1 those UPDATEs never run, so the count
-            // would always return 0. Capped by $numPrem (oyesnumprem).
+            // would always return 0. Capped by this prize's `lugares`.
             $sql = "SELECT COUNT(*) as cnt
                     FROM premiosjug a
                     JOIN jugadores j ON (a.jugadorid = j.id)
@@ -243,22 +257,22 @@ if ($tipo === '' || $tipo === 'oyes') {
                                        AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
                     WHERE a.torneoid = $tid AND c.premio = $premioId";
             $countRow = safe_query_one($conn, $sql);
-            $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
-            
+            $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
+
             $group = [
                 'id'          => 'oyes-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
                # 'hoyo'        => (int)$p['hoyo'],
-                'maxPlayers'  => $numPrem,
+                'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
             ];
 
 
             // Include full player data if requested
             if ($detalle === '1') {
-       
-                $group['players'] = get_oyes_players($conn, $tid, $premioId, $numPrem);
+                // Use the per-prize lugares so the player list matches the card.
+                $group['players'] = get_oyes_players($conn, $tid, $premioId, $lugares);
                 $group['lastUpdated'] = get_oyes_last_updated($conn, $tid, $premioId);
                 
             }
@@ -396,42 +410,66 @@ if ($tipo === '' || $tipo === 'putt') {
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
-                FROM puttjug
-                WHERE torneoid = $tid
-                ORDER BY premio ASC";
+        // Pull each Putt prize with its OWN values from the master `premios`
+        // table:
+        //   - premios.descripcion -> displayed name
+        //   - premios.lugares     -> per-prize cut size (number of winners)
+        // We LEFT JOIN so a puttjug premio missing from `premios` still
+        // appears (with name from puttjug.premiosjugcol and a null lugares
+        // that falls back to oyesnumprem below).
+        $sql = "SELECT pj.premio as id,
+                       COALESCE(NULLIF(TRIM(p.descripcion), ''), pj.premiosjugcol) as name,
+                       MAX(p.lugares) as lugares,
+                       LEFT(f_ultfechaputt(pj.premiosjugcol, pj.torneoid), 16) AS ultact
+                FROM puttjug pj
+                LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
+                WHERE pj.torneoid = $tid
+                GROUP BY pj.premio, pj.premiosjugcol
+                ORDER BY pj.premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
         if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
             // Fallback if f_ultfechaputt() doesn't exist on this DB
-            $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, NULL AS ultact
-                    FROM puttjug
-                    WHERE torneoid = $tid
-                    ORDER BY premio ASC";
+            $sql = "SELECT pj.premio as id,
+                           COALESCE(NULLIF(TRIM(p.descripcion), ''), pj.premiosjugcol) as name,
+                           MAX(p.lugares) as lugares,
+                           NULL AS ultact
+                    FROM puttjug pj
+                    LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
+                    WHERE pj.torneoid = $tid
+                    GROUP BY pj.premio, pj.premiosjugcol
+                    ORDER BY pj.premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
         }
         $groups = [];
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-            $descripcion = esc($conn, $p['name']);            
+            $descripcion = esc($conn, $p['name']);
+
+            // Per-prize cut: use `lugares` from premios; fall back to oyesnumprem
+            // when the prize is missing from the master table.
+            $lugares = (int)($p['lugares'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
 
             $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
             $countRow = safe_query_one($conn, $sql);
-            $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
+            $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
 
             $group = [
                 'id'          => 'putt-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
               #  'hoyo'        => (int)$p['hoyo'],
-                'maxPlayers'  => $numPrem,
+                'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
             ];
 
             if ($detalle === '1') {
-                // Cap the player list by $numPrem (oyesnumprem / "lugares")
-                // so the displayed list never exceeds the number shown on the card.
-                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
+                // Cap the player list by THIS prize's `lugares` so the
+                // displayed list matches the number shown on the card
+                // (different prizes — e.g. Damas vs Caballeros — can have
+                // different cut sizes).
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $lugares);
                 $group['lastUpdated'] = $p['ultact'] ?? null;
             }
 
