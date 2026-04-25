@@ -734,16 +734,19 @@ function get_oyesx_last_updated($conn, $descName, $tid) {
  * @param mysqli $conn      Database connection.
  * @param int    $tid       Active tournament id.
  * @param int    $premioId  Prize id within puttjug.
+ * @param string $descripcion Configured prize description used to separate
+ *                            groups like Damas/Caballeros under same premio.
  * @param int    $limit     Max number of players to return (defaults to 3).
  *                          Comes from torneo.oyesnumprem and matches the
  *                          card's `playerCount`/`maxPlayers` so the rendered
  *                          list never exceeds the displayed cut value.
  */
-function get_putt_players($conn, $tid, $premioId, $limit = 3) {
+function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
 
     // Defensive: ensure a sane positive integer LIMIT
     $limit = max(1, (int)$limit);
+    $descripcionEsc = esc($conn, $descripcion);
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
@@ -752,7 +755,7 @@ function get_putt_players($conn, $tid, $premioId, $limit = 3) {
             FROM puttjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
+            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.premiosjugcol = '$descripcionEsc' AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $limit";
 
