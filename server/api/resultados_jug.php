@@ -186,6 +186,45 @@ function r1_chunk($col, $holes, $r1) {
 /** Round 1 date (first scheduled round). Empty string disables R1 tiebreakers. */
 $r1Date = isset($dias[1]) ? esc($conn, $dias[1]) : '';
 
+// ============= Previous-rounds tiebreaker builder =============
+/**
+ * Build the per-round tiebreaker ORDER BY fragment.
+ *
+ * Rule extension (rounds 2+): when two players are tied on the cumulative
+ * total, look at the score of the most recent completed round first, then
+ * the previous one, and so on back to round 1. The player who scored
+ * better in the latest round wins the tie; if still tied, compare the
+ * round before, etc. This is applied BEFORE the R1 hole-chunk progression
+ * (H10-18 → H13-18 → H16-18 → H18) which remains the final fallback.
+ *
+ * Direction:
+ *   - Stroke Play  → ASC  (fewer strokes wins)
+ *   - Stableford   → DESC (more points wins, standard golf rule for prior
+ *                    rounds; the special "fewer points wins" rule applies
+ *                    only to the R1 hole-chunk progression as defined by
+ *                    the tournament's printed terms).
+ *
+ * Each per-round score uses the same f_score_dia_sax/sox alias (d{i})
+ * already SELECTed in the main query, so no extra subquery is needed.
+ *
+ * @param array  $dias       1-indexed map of round number → date.
+ * @param string $direction  'ASC' or 'DESC'.
+ * @return string SQL fragment to append to ORDER BY (starts with ", ").
+ */
+function prev_rounds_tiebreaker(array $dias, $direction) {
+    if (count($dias) < 2) return '';
+    // Iterate from the most recent round down to round 1.
+    $rounds = array_keys($dias);
+    rsort($rounds);
+    $parts = [];
+    foreach ($rounds as $i) {
+        // d{i} is the per-round score alias from the main SELECT.
+        // Wrap with IFNULL so unplayed rounds (NULL/0) don't poison ordering.
+        $parts[] = "IFNULL(d{$i}, 0) {$direction}";
+    }
+    return ', ' . implode(', ', $parts);
+}
+
 // ============= Helper: map estatus to short code =============
 /**
  * Maps player estatus to a display code:
