@@ -584,15 +584,21 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
                   WHERE a.torneoid = $tid", 'oyes set orden');
 
 
+    // Legacy winner query — joins premios on (fecha, campo, hoyo, categoriaid)
+    // so a player only counts for the premio that matches THEIR category and
+    // the hole/course where the shot was recorded.
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   a.distancia, a.hoyo,
-                   c.logo, c.nombre as club
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   a.hoyo,
+                   cl.logo, cl.nombre as club
             FROM premiosjug a
-            JOIN jugadores j ON (a.jugadorid = j.id)
-            JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia ASC
+            JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
+            JOIN clubs cl ON (j.clubid = cl.id)
+            JOIN premios c ON (a.fecha = c.fecha AND a.campo = c.campo
+                               AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
+            WHERE a.torneoid = $tid AND c.premio = $premioId
+            ORDER BY c.premio, a.distancia ASC
             LIMIT $numPrem";
 
     $winners = safe_query_all($conn, $sql);
