@@ -230,8 +230,18 @@ if ($tipo === '' || $tipo === 'oyes') {
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
             
-            // Count players
-            $sql = "SELECT COUNT(*) as cnt FROM premiosjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
+            // Count players using the SAME join logic as get_oyes_players()
+            // (premios joined on fecha/campo/hoyo/categoriaid). The previous
+            // count relied on `orden = 1`, but the orden flag is only set
+            // inside get_oyes_players() — when the card list is fetched
+            // without ?detalle=1 those UPDATEs never run, so the count
+            // would always return 0. Capped by $numPrem (oyesnumprem).
+            $sql = "SELECT COUNT(*) as cnt
+                    FROM premiosjug a
+                    JOIN jugadores j ON (a.jugadorid = j.id)
+                    JOIN premios c ON (a.fecha = c.fecha AND a.campo = c.campo
+                                       AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
+                    WHERE a.torneoid = $tid AND c.premio = $premioId";
             $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
             
