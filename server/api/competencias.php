@@ -186,15 +186,26 @@ if ($tipo === '' || $tipo === 'oyes') {
     $DEBUG_SECTIONS['oyes']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // Get groups (prizes) - prize descriptions live in `premios` table, not `premiosjug`
+        // Get groups (prizes). Prize descriptions are resolved via the legacy
+        // stored function `f_premio(torneoid, premio)` which mirrors the
+        // original report logic (returns first matching `premios.descripcion`
+        // for the torneo+premio, or 'NO TIENE PREMIO' when missing).
+        // We trim and fall back to a generic label only when the resolved
+        // value is empty/whitespace.
         $sql = "SELECT DISTINCT pj.premio as id,
-                       COALESCE(p.descripcion, CONCAT('Premio ', pj.premio)) as name
+                       NULLIF(TRIM(f_premio(pj.torneoid, pj.premio)), '') as name
                 FROM premiosjug pj
-                LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
                 WHERE pj.torneoid = $tid
                 ORDER BY pj.premio ASC";
-               
+
         $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes');
+        // Final fallback in PHP for any null/empty descriptions
+        foreach ($prizes as &$pr) {
+            if (empty($pr['name']) || strtoupper($pr['name']) === 'NO TIENE PREMIO') {
+                $pr['name'] = 'Premio ' . $pr['id'];
+            }
+        }
+        unset($pr);
         $groups = [];
     } else {
         $DEBUG_SECTIONS['oyes']['reason'] = 'no rows in premiosjug for this torneoid';
