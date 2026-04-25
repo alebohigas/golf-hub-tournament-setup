@@ -101,21 +101,20 @@ foreach ($groupRows as $group) {
             }
         }
     } else {
-        // Stroke Play — lower strokes first (ASC), then orden DESC, then last-card score ASC, then tarjetaid DESC
+        // Stroke Play — preserve tee-sheet player position inside the group.
         $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
-        $tieFn    = ($gross == 1) ? 'f_score_dia_soxU' : 'f_score_dia_saxU';
         if ($isParejas) {
             $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY salidagrupoid, $scoreCol ASC, orden DESC, $tieFn(jugadorid) ASC, tarjetaid DESC";
+                    ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY salidagrupoid, $scoreCol ASC, orden DESC, $tieFn(jugadorid) ASC, tarjetaid DESC";
+                    ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
         }
     }
 
