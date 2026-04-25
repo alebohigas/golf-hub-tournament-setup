@@ -140,6 +140,52 @@ $closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j
 /** Sum totstbgross (stableford gross points) from CLOSED cards only */
 $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
 
+// ============= Round 1 tiebreaker chunk builders =============
+/**
+ * Build a subquery that returns the sum of a hole-range from the player's
+ * ROUND 1 closed scorecard. Used for tie-breaking the position order with
+ * the official progression: H10-18 → H13-18 → H16-18 → H18.
+ *
+ * @param string $col   Per-hole column to sum:
+ *                        - 'h{n}'         → gross strokes (Stroke Play GROSS)
+ *                        - 'h{n}_a'       → net strokes  (Stroke Play NETO)
+ *                        - 'arsa[n]'      → stableford NETO  points (parsed from CSV)
+ *                        - 'arstbgross[n]'→ stableford GROSS points (parsed from CSV)
+ * @param array  $holes Holes (1..18) included in the range.
+ * @param string $r1    Quoted/escaped round-1 date (YYYY-MM-DD).
+ * @return string SQL scalar subquery.
+ */
+function r1_chunk($col, $holes, $r1) {
+    if (!$r1) return '0';
+    $parts = [];
+    foreach ($holes as $h) {
+        if ($col === 'h') {
+            // Gross stroke columns per hole: h1..h18
+            $parts[] = "IFNULL(t.h{$h}, 0)";
+        } elseif ($col === 'h_a') {
+            // Net stroke columns per hole: h1_a..h18_a
+            $parts[] = "IFNULL(t.h{$h}_a, 0)";
+        } elseif ($col === 'arsa' || $col === 'arstbgross') {
+            // CSV columns: 18 comma-separated points; index $h is 1-based.
+            // SUBSTRING_INDEX trick to extract the n-th element.
+            $parts[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.{$col}, ',', {$h}), ',', -1) AS SIGNED)";
+        } else {
+            $parts[] = '0';
+        }
+    }
+    $sum = implode(' + ', $parts);
+    // statlsc=1 ensures the round was closed; otherwise tiebreaker contributes 0.
+    return "(SELECT IFNULL($sum, 0) FROM tarjetas t
+             WHERE t.jugadorid = j.id
+               AND t.torneoid = j.torneoid
+               AND t.fecha_juego = '$r1'
+               AND t.statlsc = 1
+             LIMIT 1)";
+}
+
+/** Round 1 date (first scheduled round). Empty string disables R1 tiebreakers. */
+$r1Date = isset($dias[1]) ? esc($conn, $dias[1]) : '';
+
 // ============= Helper: map estatus to short code =============
 /**
  * Maps player estatus to a display code:
@@ -192,11 +238,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSO ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $lastDayGross = end($dias);
-        if ($lastDayGross) {
-            $sql .= ", f_score_dia_sox(j.id, '$lastDayGross') ASC";
-        }
-        $sql .= ", u.c1 ASC, u.c2 ASC, u.c3 ASC";
+        // R1 tiebreaker (Stroke Play GROSS): lower strokes wins each chunk.
+        // Progression: H10-18 → H13-18 → H16-18 → H18 from Round 1.
+        $sql .= ", " . r1_chunk('h', range(10, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('h', range(13, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('h', range(16, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('h', [18],          $r1Date) . " ASC";
 
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
@@ -221,11 +268,11 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $lastDayNeto = end($dias);
-        if ($lastDayNeto) {
-            $sql .= ", f_score_dia_sax(j.id, '$lastDayNeto') ASC";
-        }
-        $sql .= ", u.c1 ASC, u.c2 ASC, u.c3 ASC";
+        // R1 tiebreaker (Stroke Play NETO): lower net strokes wins each chunk.
+        $sql .= ", " . r1_chunk('h_a', range(10, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('h_a', range(13, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('h_a', range(16, 18), $r1Date) . " ASC";
+        $sql .= ", " . r1_chunk('h_a', [18],          $r1Date) . " ASC";
     }
 
 } elseif ($sistema === 'STABLEFORD') {
@@ -252,11 +299,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSTBGross DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $lastDayGross = end($dias);
-        if ($lastDayGross) {
-            $sql .= ", f_score_dia_sox(j.id, '$lastDayGross') DESC";
-        }
-        $sql .= ", u.c1 DESC, u.c2 DESC, u.c3 DESC";
+        // R1 tiebreaker (Stableford GROSS): MORE points wins each chunk.
+        // Per-hole stableford gross points come from CSV column arstbgross.
+        $sql .= ", " . r1_chunk('arstbgross', range(10, 18), $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arstbgross', range(13, 18), $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arstbgross', range(16, 18), $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arstbgross', [18],          $r1Date) . " DESC";
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
@@ -280,11 +328,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $lastDay = end($dias);
-        if ($lastDay) {
-            $sql .= ", f_score_dia_sax(j.id, '$lastDay') DESC";
-        }
-        $sql .= ", u.c1 DESC, u.c2 DESC, u.c3 DESC";
+        // R1 tiebreaker (Stableford NETO): MORE points wins each chunk.
+        // Per-hole stableford neto points come from CSV column arsa.
+        $sql .= ", " . r1_chunk('arsa', range(10, 18), $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arsa', range(13, 18), $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arsa', range(16, 18), $r1Date) . " DESC";
+        $sql .= ", " . r1_chunk('arsa', [18],          $r1Date) . " DESC";
     }
 }
 
