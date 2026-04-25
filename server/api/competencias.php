@@ -404,10 +404,23 @@ if ($tipo === '' || $tipo === 'putt') {
     if ($row && (int)$row['cnt'] > 0) {
         // Pre-update marks (safe - won't crash on failure)
         safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
+        // Mark the best Putt per player WITHIN each configured prize group.
+        // The legacy v_puttunico view groups only by tournament/player, which
+        // can make Damas/Caballeros use the wrong best shot when the same
+        // player has entries in multiple premio/descripcion groups.
         safe_exec($conn, "UPDATE puttjug a
-                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.distancia = b.mindistancia)
+                      JOIN (
+                          SELECT torneoid, premio, premiosjugcol, jugadorid, MIN(distancia) as mindistancia
+                          FROM puttjug
+                          WHERE torneoid = $tid
+                          GROUP BY torneoid, premio, premiosjugcol, jugadorid
+                      ) b ON (a.torneoid = b.torneoid
+                              AND a.premio = b.premio
+                              AND a.premiosjugcol <=> b.premiosjugcol
+                              AND a.jugadorid = b.jugadorid
+                              AND a.distancia = b.mindistancia)
                       SET a.orden = 1
-                      WHERE a.torneoid = $tid", 'putt set orden');
+                      WHERE a.torneoid = $tid", 'putt set orden by prize group');
 
         // Pull each configured Putt prize from `putt`:
         //   - putt.descripcion -> displayed name and matching player group
