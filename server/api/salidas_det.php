@@ -76,13 +76,13 @@ foreach ($groupRows as $group) {
                                acumstbgross as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
+                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumstbgross as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
+                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
             }
         } else {
             // Stableford Neto — higher net stableford points first, then orden ASC, then last-card neto stableford score, then tarjetaid DESC
@@ -91,13 +91,13 @@ foreach ($groupRows as $group) {
                                acumsa as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
+                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumsa as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
+                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
             }
         }
     } else {
