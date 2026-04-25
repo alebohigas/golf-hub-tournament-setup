@@ -159,11 +159,11 @@ function r1_chunk($col, $holes, $r1) {
     if (!$r1) return '0';
     $parts = [];
     foreach ($holes as $h) {
-        if (preg_match('/^h(\d+)$/', $col, $m)) {
-            // Gross stroke columns: h1..h18
+        if ($col === 'h') {
+            // Gross stroke columns per hole: h1..h18
             $parts[] = "IFNULL(t.h{$h}, 0)";
-        } elseif (preg_match('/^h(\d+)_a$/', $col, $m)) {
-            // Net stroke columns: h1_a..h18_a
+        } elseif ($col === 'h_a') {
+            // Net stroke columns per hole: h1_a..h18_a
             $parts[] = "IFNULL(t.h{$h}_a, 0)";
         } elseif ($col === 'arsa' || $col === 'arstbgross') {
             // CSV columns: 18 comma-separated points; index $h is 1-based.
