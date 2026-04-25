@@ -186,22 +186,31 @@ if ($tipo === '' || $tipo === 'oyes') {
     $DEBUG_SECTIONS['oyes']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // Get groups (prizes). Prize descriptions are resolved via the legacy
-        // stored function `f_premio(torneoid, premio)` which mirrors the
-        // original report logic (returns first matching `premios.descripcion`
-        // for the torneo+premio, or 'NO TIENE PREMIO' when missing).
-        // We trim and fall back to a generic label only when the resolved
-        // value is empty/whitespace.
-        $sql = "SELECT DISTINCT pj.premio as id,
-                       NULLIF(TRIM(f_premio(pj.torneoid, pj.premio)), '') as name
-                FROM premiosjug pj
-                WHERE pj.torneoid = $tid
-                ORDER BY pj.premio ASC";
+        // Resolve prize descriptions directly from the `premios` table,
+        // mirroring the legacy report query:
+        //   SELECT premio, descripcion FROM premios
+        //   WHERE torneoid = $tid AND premio > 0
+        //   GROUP BY premio, descripcion
+        // Only premios that actually have player assignments (premiosjug)
+        // are surfaced, by intersecting with the distinct premio ids found
+        // for this torneo.
+        $sql = "SELECT p.premio as id,
+                       TRIM(p.descripcion) as name
+                FROM premios p
+                WHERE p.torneoid = $tid
+                  AND p.premio > 0
+                  AND p.premio IN (
+                      SELECT DISTINCT pj.premio
+                      FROM premiosjug pj
+                      WHERE pj.torneoid = $tid
+                  )
+                GROUP BY p.premio, p.descripcion
+                ORDER BY p.premio ASC";
 
         $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes');
         // Final fallback in PHP for any null/empty descriptions
         foreach ($prizes as &$pr) {
-            if (empty($pr['name']) || strtoupper($pr['name']) === 'NO TIENE PREMIO') {
+            if (empty($pr['name'])) {
                 $pr['name'] = 'Premio ' . $pr['id'];
             }
         }
