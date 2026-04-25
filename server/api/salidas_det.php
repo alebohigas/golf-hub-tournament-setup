@@ -66,11 +66,8 @@ foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
 
     // Build player query based on system and gross.
-    // ORDER BY clauses mirror the legacy logic exactly:
-    //   - STABLEFORD GROSS: acumstbgross DESC, orden ASC, f_score_dia_satblU DESC, tarjetaid DESC
-    //   - STABLEFORD NETO : acumsa       DESC, orden ASC, f_score_dia_saxU   DESC, tarjetaid DESC
-    //   - STROKE GROSS    : acumso       ASC,  orden DESC, f_score_dia_soxU   ASC,  tarjetaid DESC
-    //   - STROKE NETO     : acumsa       ASC,  orden DESC, f_score_dia_saxU   ASC,  tarjetaid DESC
+    // Salidas is a tee-sheet view, so the order inside each group must follow
+    // the explicit tarjeta.orden position instead of leaderboard/tiebreak sort.
     if ($sistema === 'STABLEFORD') {
         if ($gross == 1 || $grossstb == 1) {
             // Stableford Gross — higher points first, then orden ASC, then last-card stableford gross score, then tarjetaid DESC
@@ -79,13 +76,13 @@ foreach ($groupRows as $group) {
                                acumstbgross as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, acumstbgross DESC, orden ASC, f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
+                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumstbgross as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, acumstbgross DESC, orden ASC, f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
+                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
             }
         } else {
             // Stableford Neto — higher net stableford points first, then orden ASC, then last-card neto stableford score, then tarjetaid DESC
@@ -94,31 +91,30 @@ foreach ($groupRows as $group) {
                                acumsa as sa, sistema
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, acumsa DESC, orden ASC, f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
+                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
             } else {
                 $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                                acumsa as sa, sistema, grupoid
                         FROM $viewName
                         WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, acumsa DESC, orden ASC, f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
+                        ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
             }
         }
     } else {
-        // Stroke Play — lower strokes first (ASC), then orden DESC, then last-card score ASC, then tarjetaid DESC
+        // Stroke Play — preserve tee-sheet player position inside the group.
         $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
-        $tieFn    = ($gross == 1) ? 'f_score_dia_soxU' : 'f_score_dia_saxU';
         if ($isParejas) {
             $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY salidagrupoid, $scoreCol ASC, orden DESC, $tieFn(jugadorid) ASC, tarjetaid DESC";
+                    ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY salidagrupoid, $scoreCol ASC, orden DESC, $tieFn(jugadorid) ASC, tarjetaid DESC";
+                    ORDER BY salidagrupoid, orden ASC, tarjetaid ASC";
         }
     }
 
