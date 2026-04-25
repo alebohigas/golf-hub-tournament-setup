@@ -193,14 +193,13 @@ if ($tipo === '' || $tipo === 'oyes') {
         //   FROM premios
         //   WHERE torneoid = $tid AND premio > 0
         //   GROUP BY premio, descripcion
-        // Pull per-prize values from `premios`:
-        //   - `descripcion` -> displayed prize/group name
-        //   - `lugares`     -> number of winners (cut size) for THIS prize
-        // Each prize defines its own cut size, so we no longer rely on the
-        // global torneo.oyesnumprem ($numPrem) for the per-card limit.
+        // Pull O'Yes prize descriptions from `premios`. In this legacy schema
+        // O'Yes winner slots are global (`torneo.oyesnumprem`); per-prize slots
+        // are stored as `hoyo` in side-game tables like `putt`/`approach`, not
+        // as a `lugares` column on `premios`.
         $sql = "SELECT premio as id,
                        TRIM(descripcion) as name,
-                       MAX(lugares) as lugares
+                       NULL as lugares
                 FROM premios
                 WHERE torneoid = $tid
                   AND premio > 0
@@ -405,53 +404,72 @@ if ($tipo === '' || $tipo === 'putt') {
     if ($row && (int)$row['cnt'] > 0) {
         // Pre-update marks (safe - won't crash on failure)
         safe_exec($conn, "UPDATE puttjug SET orden = 0 WHERE torneoid = $tid", 'putt reset orden');
+        // Mark the best Putt per player WITHIN each configured prize group.
+        // The legacy v_puttunico view groups only by tournament/player, which
+        // can make Damas/Caballeros use the wrong best shot when the same
+        // player has entries in multiple premio/descripcion groups.
         safe_exec($conn, "UPDATE puttjug a
-                      JOIN v_puttunico b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.distancia = b.mindistancia)
+                      JOIN (
+                          SELECT torneoid, premio, premiosjugcol, jugadorid, MIN(distancia) as mindistancia
+                          FROM puttjug
+                          WHERE torneoid = $tid
+                          GROUP BY torneoid, premio, premiosjugcol, jugadorid
+                      ) b ON (a.torneoid = b.torneoid
+                              AND a.premio = b.premio
+                              AND a.premiosjugcol <=> b.premiosjugcol
+                              AND a.jugadorid = b.jugadorid
+                              AND a.distancia = b.mindistancia)
                       SET a.orden = 1
-                      WHERE a.torneoid = $tid", 'putt set orden');
+                      WHERE a.torneoid = $tid", 'putt set orden by prize group');
 
-        // Pull each Putt prize with its OWN values from the master `premios`
-        // table:
-        //   - premios.descripcion -> displayed name
-        //   - premios.lugares     -> per-prize cut size (number of winners)
-        // We LEFT JOIN so a puttjug premio missing from `premios` still
-        // appears (with name from puttjug.premiosjugcol and a null lugares
-        // that falls back to oyesnumprem below).
-        $sql = "SELECT pj.premio as id,
-                       COALESCE(NULLIF(TRIM(p.descripcion), ''), pj.premiosjugcol) as name,
-                       MAX(p.lugares) as lugares,
-                       LEFT(f_ultfechaputt(pj.premiosjugcol, pj.torneoid), 16) AS ultact
-                FROM puttjug pj
-                LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
-                WHERE pj.torneoid = $tid
-                GROUP BY pj.premio, pj.premiosjugcol
-                ORDER BY pj.premio ASC";
+        // Pull each configured Putt prize from `putt`:
+        //   - putt.descripcion -> displayed name and matching player group
+        //   - putt.hoyo        -> per-prize winner slots ("lugares")
+        // This keeps Damas/Caballeros and any other prize using its own cut.
+        $sql = "SELECT p.premio as id,
+                       TRIM(p.descripcion) as name,
+                       MIN(NULLIF(p.hoyo, 0)) as lugares,
+                       LEFT(f_ultfechaputt(p.descripcion, p.torneoid), 16) AS ultact
+                FROM putt p
+                WHERE p.torneoid = $tid AND p.premio > 0
+                GROUP BY p.premio, p.descripcion
+                ORDER BY p.premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
         if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
             // Fallback if f_ultfechaputt() doesn't exist on this DB
-            $sql = "SELECT pj.premio as id,
-                           COALESCE(NULLIF(TRIM(p.descripcion), ''), pj.premiosjugcol) as name,
-                           MAX(p.lugares) as lugares,
+            $sql = "SELECT p.premio as id,
+                           TRIM(p.descripcion) as name,
+                           MIN(NULLIF(p.hoyo, 0)) as lugares,
+                           NULL AS ultact
+                    FROM putt p
+                    WHERE p.torneoid = $tid AND p.premio > 0
+                    GROUP BY p.premio, p.descripcion
+                    ORDER BY p.premio ASC";
+            $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
+        }
+        if (empty($prizes)) {
+            $sql = "SELECT DISTINCT pj.premio as id,
+                           TRIM(pj.premiosjugcol) as name,
+                           NULL as lugares,
                            NULL AS ultact
                     FROM puttjug pj
-                    LEFT JOIN premios p ON (p.torneoid = pj.torneoid AND p.premio = pj.premio)
                     WHERE pj.torneoid = $tid
-                    GROUP BY pj.premio, pj.premiosjugcol
                     ORDER BY pj.premio ASC";
-            $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
+            $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_fallback_puttjug');
         }
         $groups = [];
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-            $descripcion = esc($conn, $p['name']);
+            $descripcion = trim((string)($p['name'] ?? ''));
+            $descripcionEsc = esc($conn, $descripcion);
 
             // Per-prize cut: use `lugares` from premios; fall back to oyesnumprem
             // when the prize is missing from the master table.
             $lugares = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
 
-            $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
+            $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND premiosjugcol = '$descripcionEsc' AND orden = 1";
             $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
 
@@ -469,7 +487,7 @@ if ($tipo === '' || $tipo === 'putt') {
                 // displayed list matches the number shown on the card
                 // (different prizes — e.g. Damas vs Caballeros — can have
                 // different cut sizes).
-                $group['players'] = get_putt_players($conn, $tid, $premioId, $lugares);
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $descripcion, $lugares);
                 $group['lastUpdated'] = $p['ultact'] ?? null;
             }
 
@@ -729,16 +747,19 @@ function get_oyesx_last_updated($conn, $descName, $tid) {
  * @param mysqli $conn      Database connection.
  * @param int    $tid       Active tournament id.
  * @param int    $premioId  Prize id within puttjug.
+ * @param string $descripcion Configured prize description used to separate
+ *                            groups like Damas/Caballeros under same premio.
  * @param int    $limit     Max number of players to return (defaults to 3).
  *                          Comes from torneo.oyesnumprem and matches the
  *                          card's `playerCount`/`maxPlayers` so the rendered
  *                          list never exceeds the displayed cut value.
  */
-function get_putt_players($conn, $tid, $premioId, $limit = 3) {
+function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
 
     // Defensive: ensure a sane positive integer LIMIT
     $limit = max(1, (int)$limit);
+    $descripcionEsc = esc($conn, $descripcion);
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
@@ -747,7 +768,7 @@ function get_putt_players($conn, $tid, $premioId, $limit = 3) {
             FROM puttjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
+            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.premiosjugcol = '$descripcionEsc' AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $limit";
 
