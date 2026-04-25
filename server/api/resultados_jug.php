@@ -345,7 +345,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
         $sql .= ", c.abr, c.logo
                  FROM jugadores j
-                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
@@ -407,7 +407,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
         $sql .= ", c.abr, c.logo
                  FROM jugadores j
-                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
