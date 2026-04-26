@@ -104,7 +104,7 @@ const SECTIONS: SectionMeta[] = [
     label: 'Convocatoria',
     Icon: ScrollText,
     description:
-      'Imágenes y PDF para la página de Convocatoria. Las imágenes se reservan para una galería futura. El primer PDF que subas se usará como "Ver en PDF" en la página pública (no importa el nombre del archivo).',
+      'Dos botones independientes: "Subir imágenes" para una galería complementaria (uso futuro) y "Subir PDF" para el documento oficial. El primer PDF subido es el que aparece en el botón "Ver en PDF" de la página pública — el nombre del archivo no importa.',
     accept: 'image/webp,image/jpeg,image/png,image/gif,application/pdf',
     kind: 'mixed',
   },
@@ -148,15 +148,24 @@ interface SectionPanelProps {
  */
 const SectionPanel = ({ meta }: SectionPanelProps) => {
   const { toast } = useToast();
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Separate refs for the two upload modes so a `mixed` section (Convocatoria)
+  // can offer two distinct buttons — one strictly for images, one strictly
+  // for PDFs — each with its own `accept` attribute. Single-mode sections
+  // only use `imageInputRef` OR `pdfInputRef`.
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const [confirmDelete, setConfirmDelete] = useState<UploadedFile | null>(null);
 
   const { data, isLoading, error, refetch } = useUploadsList(meta.id);
   const uploadMutation = useUploadFiles(meta.id);
   const deleteMutation = useDeleteFile(meta.id);
 
-  /** Handle file selection — uploads immediately. */
-  const handleFiles = (filesList: FileList | null) => {
+  /**
+   * Handle file selection — uploads immediately.
+   * `inputEl` is the originating <input>; we reset its value on completion
+   * so re-selecting the same filename re-fires the change event.
+   */
+  const handleFiles = (filesList: FileList | null, inputEl: HTMLInputElement | null) => {
     if (!filesList || filesList.length === 0) return;
     const files = Array.from(filesList);
     uploadMutation.mutate(
@@ -179,7 +188,7 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
             });
           }
           // Reset native input so re-selecting the same file re-triggers change.
-          if (inputRef.current) inputRef.current.value = '';
+          if (inputEl) inputEl.value = '';
         },
         onError: (err) => {
           toast({
@@ -219,6 +228,12 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
 
   const files = data?.files ?? [];
 
+  // Determine which buttons to render. `mixed` shows BOTH; single-mode
+  // sections show only the relevant one. This keeps the UI honest about
+  // what each button does (no ambiguous "subir cualquier cosa").
+  const showImageButton = meta.kind === 'image' || meta.kind === 'mixed';
+  const showPdfButton = meta.kind === 'pdf' || meta.kind === 'mixed';
+
   return (
     <div className="space-y-6">
       {/* ---------- Section header + uploader ---------- */}
@@ -231,41 +246,73 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
           <CardDescription>{meta.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Hidden native input — triggered by the visible button below */}
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept={meta.accept}
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
+          {/*
+            Hidden inputs — one per accepted media type. The visible buttons
+            below trigger the matching input via ref. Two inputs (instead of
+            a single multi-accept one) let the OS file picker pre-filter to
+            the exact type the admin asked for, and let us label each button
+            unambiguously.
+          */}
+          {showImageButton && (
+            <input
+              ref={imageInputRef}
+              type="file"
+              multiple
+              accept="image/webp,image/jpeg,image/png,image/gif"
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files, imageInputRef.current)}
+            />
+          )}
+          {showPdfButton && (
+            <input
+              ref={pdfInputRef}
+              type="file"
+              multiple
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files, pdfInputRef.current)}
+            />
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={uploadMutation.isPending}
-              className="gap-2"
-            >
-              {uploadMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {meta.kind === 'pdf'
-                ? 'Subir PDF'
-                : meta.kind === 'mixed'
-                  ? 'Subir imágenes o PDF'
-                  : 'Subir imágenes'}
-            </Button>
+            {showImageButton && (
+              <Button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadMutation.isPending}
+                className="gap-2"
+              >
+                {uploadMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileImage className="h-4 w-4" />
+                )}
+                Subir imágenes
+              </Button>
+            )}
+            {showPdfButton && (
+              <Button
+                type="button"
+                // Use a distinct visual style on `mixed` sections so the two
+                // buttons read as separate actions, not a default + variant.
+                variant={meta.kind === 'mixed' ? 'secondary' : 'default'}
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={uploadMutation.isPending}
+                className="gap-2"
+              >
+                {uploadMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
+                Subir PDF
+              </Button>
+            )}
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Info className="h-3 w-3" />
-              Máx. 15 MB por archivo · Tipos permitidos:{' '}
-              {meta.kind === 'pdf'
-                ? 'PDF'
-                : meta.kind === 'mixed'
-                  ? 'WebP, JPG, PNG, GIF, PDF'
-                  : 'WebP, JPG, PNG, GIF'}
+              Máx. 15 MB por archivo
+              {meta.kind === 'mixed' &&
+                ' · El PDF que subas se mostrará en el botón "Ver en PDF" de la página pública'}
             </p>
           </div>
         </CardContent>
