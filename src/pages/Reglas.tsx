@@ -14,14 +14,18 @@ import reglasHero from '@/assets/reglas-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 
 const Reglas = () => {
-  // Look for an uploaded "reglas-y-cc.pdf" on the server. If found, use
-  // it instead of the legacy public/reglas-y-cc.pdf so the admin can
-  // replace the document via /admin → Archivos → PDFs without re-deploy.
-  const { data: pdfsData } = useUploadsList('pdfs');
-  const uploadedReglas = pdfsData?.files.find(
+  // Resolve the reglas PDF URL with a 3-tier fallback chain:
+  //   1. First PDF uploaded to the `reglas` section via /admin (any filename).
+  //   2. Legacy: a file literally named `reglas-y-cc.pdf` left in the old
+  //      `pdfs` bucket from before sections were split.
+  //   3. Build-time fallback shipped at /reglas-y-cc.pdf in public/.
+  const { data: reglasUploads } = useUploadsList('reglas');
+  const { data: legacyPdfs } = useUploadsList('pdfs');
+  const firstSectionPdf = reglasUploads?.files.find((f) => /\.pdf$/i.test(f.name));
+  const legacyReglasPdf = legacyPdfs?.files.find(
     (f) => f.name.toLowerCase() === 'reglas-y-cc.pdf'
   );
-  const reglasPdfUrl = uploadedReglas?.url ?? '/reglas-y-cc.pdf';
+  const reglasPdfUrl = firstSectionPdf?.url ?? legacyReglasPdf?.url ?? '/reglas-y-cc.pdf';
 
   return (
     <Layout>

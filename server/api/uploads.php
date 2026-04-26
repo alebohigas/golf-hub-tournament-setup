@@ -11,9 +11,11 @@
  * Sections (subfolders under /api/uploads/):
  *   - eventos       (images: poster grid for Eventos page)
  *   - avisos        (images: poster grid for Avisos page)
- *   - convocatoria  (images: reserved poster grid for Convocatoria page)
- *   - reglas        (images: reserved poster grid for Reglas page)
- *   - pdfs          (PDFs: convocatoria-torneo.pdf, reglas-y-cc.pdf, etc.)
+ *   - convocatoria  (images + PDF: poster grid + downloadable convocatoria document)
+ *   - reglas        (PDF only: downloadable reglas y CC document)
+ *   - pdfs          (legacy bucket — kept for backwards compatibility with
+ *                    files uploaded before the per-section split; new
+ *                    uploads should target convocatoria/reglas directly)
  *
  * Files are scoped per active domain (Host header) to keep multi-tenant
  * deployments separated. The on-disk layout is:
@@ -57,16 +59,22 @@ $SECTION_RULES = [
         'kind'  => 'imagen',
     ],
     'convocatoria' => [
-        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
-        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
-        'kind'  => 'imagen',
+        // Convocatoria mixes a poster gallery (images) with the official
+        // tournament PDF — both upload through the same section so admins
+        // see one cohesive panel.
+        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif', 'pdf'],
+        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
+        'kind'  => 'imagen o PDF',
     ],
     'reglas' => [
-        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
-        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
-        'kind'  => 'imagen',
+        // Reglas only carries the downloadable rulebook PDF — no gallery.
+        'exts'  => ['pdf'],
+        'mimes' => ['application/pdf'],
+        'kind'  => 'PDF',
     ],
     'pdfs' => [
+        // Legacy bucket — still listable/deletable so admins can clean up
+        // pre-existing files, but no new uploads are routed here from the UI.
         'exts'  => ['pdf'],
         'mimes' => ['application/pdf'],
         'kind'  => 'PDF',

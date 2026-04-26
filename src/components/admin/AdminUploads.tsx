@@ -6,9 +6,11 @@
  *
  *   - Eventos       (images for the Eventos page poster grid)
  *   - Avisos        (images for the Avisos page poster grid)
- *   - Convocatoria  (images reserved for the Convocatoria page)
- *   - Reglas        (images reserved for the Reglas page)
- *   - PDFs          (PDF documents — convocatoria-torneo.pdf, reglas-y-cc.pdf, etc.)
+ *   - Convocatoria  (images for the Convocatoria gallery + the downloadable
+ *                    convocatoria PDF — first PDF in this section is what
+ *                    the public page links to, regardless of filename)
+ *   - Reglas        (the downloadable Reglas y CC PDF — first PDF in this
+ *                    section is what the public page links to)
  *
  * The component is purely presentational/admin — it never alters
  * tournament data and only talks to the uploads endpoint. Data fetching
@@ -68,8 +70,14 @@ interface SectionMeta {
   description: string;
   /** `accept` attribute for the file input */
   accept: string;
-  /** Whether files are images (renders thumbnails) or PDFs (renders link) */
-  kind: 'image' | 'pdf';
+  /**
+   * Render hint for the listing UI:
+   *   - 'image': only images, renders a thumbnail grid.
+   *   - 'pdf'  : only PDFs, renders a row list.
+   *   - 'mixed': both can coexist; each file is rendered per its own
+   *              extension (PDFs as rows, images as thumbnails).
+   */
+  kind: 'image' | 'pdf' | 'mixed';
 }
 
 const SECTIONS: SectionMeta[] = [
@@ -96,25 +104,16 @@ const SECTIONS: SectionMeta[] = [
     label: 'Convocatoria',
     Icon: ScrollText,
     description:
-      'Imágenes reservadas para la página de Convocatoria (uso futuro como galería complementaria).',
-    accept: 'image/webp,image/jpeg,image/png,image/gif',
-    kind: 'image',
+      'Imágenes y PDF para la página de Convocatoria. Las imágenes se reservan para una galería futura. El primer PDF que subas se usará como "Ver en PDF" en la página pública (no importa el nombre del archivo).',
+    accept: 'image/webp,image/jpeg,image/png,image/gif,application/pdf',
+    kind: 'mixed',
   },
   {
     id: 'reglas',
     label: 'Reglas',
     Icon: BookOpen,
     description:
-      'Imágenes reservadas para la página de Reglas (uso futuro como galería complementaria).',
-    accept: 'image/webp,image/jpeg,image/png,image/gif',
-    kind: 'image',
-  },
-  {
-    id: 'pdfs',
-    label: 'PDFs',
-    Icon: FileText,
-    description:
-      'PDFs descargables. Para reemplazar el PDF visible en Convocatoria, sube uno con nombre "convocatoria-torneo.pdf". Para Reglas, usa "reglas-y-cc.pdf".',
+      'PDF de Reglas y Términos de Competencia. El primer PDF que subas se usará como "Ver Reglas y T. de Competencia" en la página pública (no importa el nombre del archivo).',
     accept: 'application/pdf',
     kind: 'pdf',
   },
@@ -129,6 +128,12 @@ const formatBytes = (bytes: number): string => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
+
+/**
+ * Decide whether a single file is a PDF based on its extension.
+ * Used to split mixed sections (Convocatoria) into PDF rows + image grid.
+ */
+const isPdfFile = (name: string): boolean => /\.pdf$/i.test(name);
 
 // ============= Per-section uploader panel =============
 
@@ -247,12 +252,20 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              Subir {meta.kind === 'pdf' ? 'PDF' : 'imágenes'}
+              {meta.kind === 'pdf'
+                ? 'Subir PDF'
+                : meta.kind === 'mixed'
+                  ? 'Subir imágenes o PDF'
+                  : 'Subir imágenes'}
             </Button>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Info className="h-3 w-3" />
               Máx. 15 MB por archivo · Tipos permitidos:{' '}
-              {meta.kind === 'pdf' ? 'PDF' : 'WebP, JPG, PNG, GIF'}
+              {meta.kind === 'pdf'
+                ? 'PDF'
+                : meta.kind === 'mixed'
+                  ? 'WebP, JPG, PNG, GIF, PDF'
+                  : 'WebP, JPG, PNG, GIF'}
             </p>
           </div>
         </CardContent>
@@ -287,52 +300,83 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
             <p className="text-sm text-muted-foreground py-8 text-center">
               No hay archivos en esta sección todavía. Usa el botón "Subir" para agregar.
             </p>
-          ) : meta.kind === 'image' ? (
-            // ---------- Image grid: thumbnail + name + delete ----------
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {files.map((file) => (
-                <FileCard
-                  key={file.name}
-                  file={file}
-                  onDelete={() => setConfirmDelete(file)}
-                  isDeleting={deleteMutation.isPending && deleteMutation.variables?.name === file.name}
-                />
-              ))}
-            </div>
-          ) : (
-            // ---------- PDF list: simple rows ----------
-            <ul className="divide-y divide-border rounded-md border border-border">
-              {files.map((file) => (
-                <li
-                  key={file.name}
-                  className="flex items-center justify-between gap-3 px-3 py-2"
-                >
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 min-w-0 flex-1 hover:text-primary"
-                  >
-                    <FileText className="h-4 w-4 shrink-0 text-primary" />
-                    <span className="truncate text-sm font-medium">{file.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {formatBytes(file.size)}
-                    </span>
-                  </a>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setConfirmDelete(file)}
-                    aria-label={`Eliminar ${file.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
+          ) : (() => {
+            // Split files by type so mixed sections (Convocatoria) can show
+            // PDFs as rows AND images as thumbnails simultaneously.
+            const pdfFiles = files.filter((f) => isPdfFile(f.name));
+            const imageFiles = files.filter((f) => !isPdfFile(f.name));
+            return (
+              <div className="space-y-6">
+                {/* PDF list (only when at least one PDF exists) */}
+                {pdfFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {meta.kind === 'mixed' && (
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        PDF descargable {pdfFiles.length > 1 && '(la página pública usa el primero)'}
+                      </p>
+                    )}
+                    <ul className="divide-y divide-border rounded-md border border-border">
+                      {pdfFiles.map((file, idx) => (
+                        <li
+                          key={file.name}
+                          className="flex items-center justify-between gap-3 px-3 py-2"
+                        >
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 min-w-0 flex-1 hover:text-primary"
+                          >
+                            <FileText className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="truncate text-sm font-medium">{file.name}</span>
+                            {idx === 0 && pdfFiles.length > 1 && (
+                              <Badge variant="outline" className="shrink-0 text-[10px]">
+                                en uso
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground shrink-0 ml-auto">
+                              {formatBytes(file.size)}
+                            </span>
+                          </a>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setConfirmDelete(file)}
+                            aria-label={`Eliminar ${file.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Image grid (only when at least one image exists) */}
+                {imageFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {meta.kind === 'mixed' && (
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Imágenes
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {imageFiles.map((file) => (
+                        <FileCard
+                          key={file.name}
+                          file={file}
+                          onDelete={() => setConfirmDelete(file)}
+                          isDeleting={deleteMutation.isPending && deleteMutation.variables?.name === file.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
@@ -441,7 +485,7 @@ const AdminUploads = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="eventos" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             {SECTIONS.map((s) => (
               <TabsTrigger key={s.id} value={s.id} className="gap-2">
                 <s.Icon className="h-4 w-4" />
