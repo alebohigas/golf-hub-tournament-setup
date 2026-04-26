@@ -162,10 +162,16 @@ interface PreviewFrameProps {
   /** Icon component shown next to the title */
   icon: React.ReactNode;
   /**
-   * Resolved poster order (full list of indices into PREVIEW_POSTERS).
+   * Resolved poster order (full list of indices into `posters`).
    * Drag-and-drop mutates this list via `onOrderChange`.
    */
   order: number[];
+  /**
+   * Source poster URLs the `order` indices refer to. Provided by the
+   * parent so the preview can switch between server-uploaded files and
+   * the build-time fallback without code duplication.
+   */
+  posters: string[];
   /** Called with a NEW order array whenever the admin drags a poster. */
   onOrderChange: (next: number[]) => void;
   /** Optional handler to restore the default static order. */
@@ -188,6 +194,7 @@ const PreviewFrame = ({
   title,
   icon,
   order,
+  posters,
   onOrderChange,
   onReset,
 }: PreviewFrameProps) => {
@@ -255,7 +262,7 @@ const PreviewFrame = ({
           }}
         >
           {order.map((posterIdx, position) => {
-            const src = PREVIEW_POSTERS[posterIdx];
+            const src = posters[posterIdx];
             if (!src) return null;
 
             const showBeforeMarker = dropIndex === position;
