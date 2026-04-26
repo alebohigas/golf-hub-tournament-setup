@@ -528,13 +528,14 @@ const AdminAvisos = () => {
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
                   order={posterOrder}
+                  posters={previewPosters}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(previewPosters.length),
                     }))
                   }
                 />
@@ -545,13 +546,14 @@ const AdminAvisos = () => {
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
                   order={posterOrder}
+                  posters={previewPosters}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(previewPosters.length),
                     }))
                   }
                 />
