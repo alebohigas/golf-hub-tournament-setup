@@ -70,8 +70,14 @@ interface SectionMeta {
   description: string;
   /** `accept` attribute for the file input */
   accept: string;
-  /** Whether files are images (renders thumbnails) or PDFs (renders link) */
-  kind: 'image' | 'pdf';
+  /**
+   * Render hint for the listing UI:
+   *   - 'image': only images, renders a thumbnail grid.
+   *   - 'pdf'  : only PDFs, renders a row list.
+   *   - 'mixed': both can coexist; each file is rendered per its own
+   *              extension (PDFs as rows, images as thumbnails).
+   */
+  kind: 'image' | 'pdf' | 'mixed';
 }
 
 const SECTIONS: SectionMeta[] = [
