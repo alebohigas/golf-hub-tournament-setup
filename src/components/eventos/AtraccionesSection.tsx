@@ -19,17 +19,10 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
-
-// ---------- Asset imports (ES6 modules, optimized by Vite) ----------
-import dia24 from '@/assets/eventos/dia-24-viernes.webp';
-import dia25 from '@/assets/eventos/dia-25-sabado.webp';
-import dia26 from '@/assets/eventos/dia-26-domingo.webp';
-import dia27 from '@/assets/eventos/dia-27-lunes.webp';
-import dia28 from '@/assets/eventos/dia-28-martes.webp';
-import dia29 from '@/assets/eventos/dia-29-miercoles.webp';
-import dia30 from '@/assets/eventos/dia-30-jueves.webp';
-import dia01 from '@/assets/eventos/dia-01-viernes.webp';
-import dia02 from '@/assets/eventos/dia-02-sabado.webp';
+// Auto-discovered poster list — anything dropped into `src/assets/eventos/`
+// is picked up automatically (sorted alphabetically by file name). See
+// `src/lib/posterAssets.ts` for the discovery rules.
+import { EVENTOS_POSTERS as DISCOVERED_EVENTOS_POSTERS } from '@/lib/posterAssets';
 
 /**
  * AtraccionCard - shape describing one poster card.
@@ -41,18 +34,14 @@ interface AtraccionCard {
   alt: string;
 }
 
-// Ordered list of posters (chronological day order).
-const ATRACCIONES: AtraccionCard[] = [
-  { src: dia24, alt: 'Atracciones del viernes 24 de abril' },
-  { src: dia25, alt: 'Atracciones del sábado 25 de abril' },
-  { src: dia26, alt: 'Atracciones del domingo 26 de abril' },
-  { src: dia27, alt: 'Atracciones del lunes 27 de abril' },
-  { src: dia28, alt: 'Atracciones del martes 28 de abril' },
-  { src: dia29, alt: 'Atracciones del miércoles 29 de abril' },
-  { src: dia30, alt: 'Atracciones del jueves 30 de abril' },
-  { src: dia01, alt: 'Atracciones del viernes 1 de mayo' },
-  { src: dia02, alt: 'Atracciones del sábado 2 de mayo' },
-];
+// Auto-discovered list of posters from `src/assets/eventos/`.
+// Sorted alphabetically by file name (use numeric prefixes like
+// `dia-01-...`, `dia-02-...` to control chronological order).
+// Admin panel can still override the order at runtime.
+const ATRACCIONES: AtraccionCard[] = DISCOVERED_EVENTOS_POSTERS.map((p) => ({
+  src: p.src,
+  alt: p.alt,
+}));
 
 // ============= Layout helpers =============
 

@@ -43,17 +43,10 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
-
-// ---------- Asset imports (same posters used on the public page) ----------
-import dia24 from '@/assets/eventos/dia-24-viernes.webp';
-import dia25 from '@/assets/eventos/dia-25-sabado.webp';
-import dia26 from '@/assets/eventos/dia-26-domingo.webp';
-import dia27 from '@/assets/eventos/dia-27-lunes.webp';
-import dia28 from '@/assets/eventos/dia-28-martes.webp';
-import dia29 from '@/assets/eventos/dia-29-miercoles.webp';
-import dia30 from '@/assets/eventos/dia-30-jueves.webp';
-import dia01 from '@/assets/eventos/dia-01-viernes.webp';
-import dia02 from '@/assets/eventos/dia-02-sabado.webp';
+// Auto-discovered Eventos posters from `src/assets/eventos/`.
+// Mirrors what AtraccionesSection renders on the public page so the
+// admin preview always matches the live site.
+import { EVENTOS_POSTERS } from '@/lib/posterAssets';
 
 // ============= Constants =============
 
@@ -76,10 +69,12 @@ export const DEFAULT_EVENTOS_CONFIG: EventosConfig = {
   mobileGap: 'sm',
 };
 
-/** Posters used in the live preview (mirrors AtraccionesSection) */
-const PREVIEW_POSTERS = [
-  dia24, dia25, dia26, dia27, dia28, dia29, dia30, dia01, dia02,
-];
+/**
+ * Posters used in the live preview (mirrors AtraccionesSection).
+ * Derived from the auto-discovered list so adding/removing files in
+ * `src/assets/eventos/` automatically updates the admin previews.
+ */
+const PREVIEW_POSTERS: string[] = EVENTOS_POSTERS.map((p) => p.src);
 
 // ============= Helpers =============
 
