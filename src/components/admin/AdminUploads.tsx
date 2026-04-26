@@ -6,9 +6,11 @@
  *
  *   - Eventos       (images for the Eventos page poster grid)
  *   - Avisos        (images for the Avisos page poster grid)
- *   - Convocatoria  (images reserved for the Convocatoria page)
- *   - Reglas        (images reserved for the Reglas page)
- *   - PDFs          (PDF documents — convocatoria-torneo.pdf, reglas-y-cc.pdf, etc.)
+ *   - Convocatoria  (images for the Convocatoria gallery + the downloadable
+ *                    convocatoria PDF — first PDF in this section is what
+ *                    the public page links to, regardless of filename)
+ *   - Reglas        (the downloadable Reglas y CC PDF — first PDF in this
+ *                    section is what the public page links to)
  *
  * The component is purely presentational/admin — it never alters
  * tournament data and only talks to the uploads endpoint. Data fetching
@@ -96,25 +98,16 @@ const SECTIONS: SectionMeta[] = [
     label: 'Convocatoria',
     Icon: ScrollText,
     description:
-      'Imágenes reservadas para la página de Convocatoria (uso futuro como galería complementaria).',
-    accept: 'image/webp,image/jpeg,image/png,image/gif',
-    kind: 'image',
+      'Imágenes y PDF para la página de Convocatoria. Las imágenes se reservan para una galería futura. El primer PDF que subas se usará como "Ver en PDF" en la página pública (no importa el nombre del archivo).',
+    accept: 'image/webp,image/jpeg,image/png,image/gif,application/pdf',
+    kind: 'mixed',
   },
   {
     id: 'reglas',
     label: 'Reglas',
     Icon: BookOpen,
     description:
-      'Imágenes reservadas para la página de Reglas (uso futuro como galería complementaria).',
-    accept: 'image/webp,image/jpeg,image/png,image/gif',
-    kind: 'image',
-  },
-  {
-    id: 'pdfs',
-    label: 'PDFs',
-    Icon: FileText,
-    description:
-      'PDFs descargables. Para reemplazar el PDF visible en Convocatoria, sube uno con nombre "convocatoria-torneo.pdf". Para Reglas, usa "reglas-y-cc.pdf".',
+      'PDF de Reglas y Términos de Competencia. El primer PDF que subas se usará como "Ver Reglas y T. de Competencia" en la página pública (no importa el nombre del archivo).',
     accept: 'application/pdf',
     kind: 'pdf',
   },
