@@ -347,6 +347,19 @@ const AdminAvisos = () => {
   /** Local draft state — starts from server value or defaults */
   const [draft, setDraft] = useState<AvisosConfig>(DEFAULT_AVISOS_CONFIG);
 
+  /**
+   * Server-uploaded posters for this section. When present, they are the
+   * source of truth shown by the public `AvisosPostersSection` page, so
+   * the admin preview MUST mirror them — otherwise drag-to-reorder would
+   * generate indices into the wrong list and persisted orders would not
+   * match what visitors see.
+   */
+  const { data: uploadsData } = useUploadsList('avisos');
+  const previewPosters = useMemo<string[]>(() => {
+    const serverUrls = (uploadsData?.files ?? []).map((f) => f.url);
+    return serverUrls.length > 0 ? serverUrls : BUILT_IN_PREVIEW_POSTERS;
+  }, [uploadsData]);
+
   // Sync local draft whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.avisos_config) {
@@ -366,18 +379,18 @@ const AdminAvisos = () => {
   const posterOrder = useMemo(
     () =>
       resolveOrder(
-        PREVIEW_POSTERS.length,
+        previewPosters.length,
         draft.posterOrder ?? draft.desktopOrder ?? draft.mobileOrder
       ),
-    [draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
+    [previewPosters.length, draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
   );
   const savedPosterOrder = useMemo(
     () =>
       resolveOrder(
-        PREVIEW_POSTERS.length,
+        previewPosters.length,
         savedConfig.posterOrder ?? savedConfig.desktopOrder ?? savedConfig.mobileOrder
       ),
-    [savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
+    [previewPosters.length, savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
   );
 
   /** Compare two number arrays for equality (used to detect order changes) */
