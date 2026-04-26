@@ -47,14 +47,10 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
-
-// ---------- Asset imports (same posters used on the public page) ----------
-import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
-import tabla1 from '@/assets/avisos/tabla1-torneo-anual.webp';
-import tabla2 from '@/assets/avisos/tabla2-asociados.webp';
-import tabla3 from '@/assets/avisos/tabla3-dependientes.webp';
-import tabla4 from '@/assets/avisos/tabla4-invitados.webp';
-import tabla5 from '@/assets/avisos/tabla5-info-adicional.webp';
+// Auto-discovered Avisos posters from `src/assets/avisos/`.
+// Mirrors what AvisosPostersSection renders on the public page so the
+// admin preview always matches the live site.
+import { AVISOS_POSTERS } from '@/lib/posterAssets';
 
 // ============= Constants =============
 
@@ -77,8 +73,12 @@ export const DEFAULT_AVISOS_CONFIG: AvisosConfig = {
   mobileGap: 'sm',
 };
 
-/** Posters used in the live preview (mirrors AvisosPostersSection) */
-const PREVIEW_POSTERS = [avisoClima, tabla1, tabla2, tabla3, tabla4, tabla5];
+/**
+ * Posters used in the live preview (mirrors AvisosPostersSection).
+ * Derived from the auto-discovered list so adding/removing files in
+ * `src/assets/avisos/` automatically updates the admin previews.
+ */
+const PREVIEW_POSTERS: string[] = AVISOS_POSTERS.map((p) => p.src);
 
 // ============= Helpers =============
 
