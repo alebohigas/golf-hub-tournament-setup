@@ -132,14 +132,20 @@ const Convocatoria = () => {
   const [activeSection, setActiveSection] = useState('descripcion');
   const { data: tournamentData } = useTournamentInfo();
   const { sections } = useConvocatoriaSections();
-  // Look for an uploaded "convocatoria-torneo.pdf" on the server. If found,
-  // use it instead of the legacy public/convocatoria-torneo.pdf so the admin
-  // can replace the document via /admin → Archivos → PDFs without re-deploy.
-  const { data: pdfsData } = useUploadsList('pdfs');
-  const uploadedConvocatoria = pdfsData?.files.find(
+  // Resolve the convocatoria PDF URL with a 3-tier fallback chain:
+  //   1. First PDF uploaded to the `convocatoria` section via /admin (any
+  //      filename — the admin panel marks the first one as "en uso").
+  //   2. Legacy: a file literally named `convocatoria-torneo.pdf` left in
+  //      the old `pdfs` bucket from before sections were split.
+  //   3. Build-time fallback shipped at /convocatoria-torneo.pdf in public/.
+  const { data: convocatoriaUploads } = useUploadsList('convocatoria');
+  const { data: legacyPdfs } = useUploadsList('pdfs');
+  const firstSectionPdf = convocatoriaUploads?.files.find((f) => /\.pdf$/i.test(f.name));
+  const legacyConvocatoriaPdf = legacyPdfs?.files.find(
     (f) => f.name.toLowerCase() === 'convocatoria-torneo.pdf'
   );
-  const convocatoriaPdfUrl = uploadedConvocatoria?.url ?? '/convocatoria-torneo.pdf';
+  const convocatoriaPdfUrl =
+    firstSectionPdf?.url ?? legacyConvocatoriaPdf?.url ?? '/convocatoria-torneo.pdf';
   const parsed = tournamentData?.name ? parseTournamentName(tournamentData.name) : null;
 
   // ----- Auto-hide sections that have no content -----

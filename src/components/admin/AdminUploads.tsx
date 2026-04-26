@@ -485,7 +485,7 @@ const AdminUploads = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="eventos" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             {SECTIONS.map((s) => (
               <TabsTrigger key={s.id} value={s.id} className="gap-2">
                 <s.Icon className="h-4 w-4" />
