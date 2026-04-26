@@ -51,6 +51,9 @@ import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
 // Mirrors what AvisosPostersSection renders on the public page so the
 // admin preview always matches the live site.
 import { AVISOS_POSTERS } from '@/lib/posterAssets';
+// Server-uploaded posters take precedence over build-time assets so the
+// admin preview matches what visitors actually see on /avisos.
+import { useUploadsList } from '@/hooks/useUploads';
 
 // ============= Constants =============
 
@@ -74,11 +77,10 @@ export const DEFAULT_AVISOS_CONFIG: AvisosConfig = {
 };
 
 /**
- * Posters used in the live preview (mirrors AvisosPostersSection).
- * Derived from the auto-discovered list so adding/removing files in
- * `src/assets/avisos/` automatically updates the admin previews.
+ * Build-time fallback poster URLs from `src/assets/avisos/`. Used only when
+ * no images have been uploaded to the server via `/admin` → tab "Archivos".
  */
-const PREVIEW_POSTERS: string[] = AVISOS_POSTERS.map((p) => p.src);
+const BUILT_IN_PREVIEW_POSTERS: string[] = AVISOS_POSTERS.map((p) => p.src);
 
 // ============= Helpers =============
 
@@ -160,10 +162,16 @@ interface PreviewFrameProps {
   /** Icon component shown next to the title */
   icon: React.ReactNode;
   /**
-   * Resolved poster order (full list of indices into PREVIEW_POSTERS).
+   * Resolved poster order (full list of indices into `posters`).
    * Drag-and-drop mutates this list via `onOrderChange`.
    */
   order: number[];
+  /**
+   * Source poster URLs the `order` indices refer to. Provided by the
+   * parent so the preview can switch between server-uploaded files and
+   * the build-time fallback without code duplication.
+   */
+  posters: string[];
   /** Called with a NEW order array whenever the admin drags a poster. */
   onOrderChange: (next: number[]) => void;
   /** Optional handler to restore the default static order. */
@@ -186,6 +194,7 @@ const PreviewFrame = ({
   title,
   icon,
   order,
+  posters,
   onOrderChange,
   onReset,
 }: PreviewFrameProps) => {
@@ -253,7 +262,7 @@ const PreviewFrame = ({
           }}
         >
           {order.map((posterIdx, position) => {
-            const src = PREVIEW_POSTERS[posterIdx];
+            const src = posters[posterIdx];
             if (!src) return null;
 
             const showBeforeMarker = dropIndex === position;
@@ -338,6 +347,19 @@ const AdminAvisos = () => {
   /** Local draft state — starts from server value or defaults */
   const [draft, setDraft] = useState<AvisosConfig>(DEFAULT_AVISOS_CONFIG);
 
+  /**
+   * Server-uploaded posters for this section. When present, they are the
+   * source of truth shown by the public `AvisosPostersSection` page, so
+   * the admin preview MUST mirror them — otherwise drag-to-reorder would
+   * generate indices into the wrong list and persisted orders would not
+   * match what visitors see.
+   */
+  const { data: uploadsData } = useUploadsList('avisos');
+  const previewPosters = useMemo<string[]>(() => {
+    const serverUrls = (uploadsData?.files ?? []).map((f) => f.url);
+    return serverUrls.length > 0 ? serverUrls : BUILT_IN_PREVIEW_POSTERS;
+  }, [uploadsData]);
+
   // Sync local draft whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.avisos_config) {
@@ -357,18 +379,18 @@ const AdminAvisos = () => {
   const posterOrder = useMemo(
     () =>
       resolveOrder(
-        PREVIEW_POSTERS.length,
+        previewPosters.length,
         draft.posterOrder ?? draft.desktopOrder ?? draft.mobileOrder
       ),
-    [draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
+    [previewPosters.length, draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
   );
   const savedPosterOrder = useMemo(
     () =>
       resolveOrder(
-        PREVIEW_POSTERS.length,
+        previewPosters.length,
         savedConfig.posterOrder ?? savedConfig.desktopOrder ?? savedConfig.mobileOrder
       ),
-    [savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
+    [previewPosters.length, savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
   );
 
   /** Compare two number arrays for equality (used to detect order changes) */
@@ -506,13 +528,14 @@ const AdminAvisos = () => {
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
                   order={posterOrder}
+                  posters={previewPosters}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(previewPosters.length),
                     }))
                   }
                 />
@@ -523,13 +546,14 @@ const AdminAvisos = () => {
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
                   order={posterOrder}
+                  posters={previewPosters}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(previewPosters.length),
                     }))
                   }
                 />
