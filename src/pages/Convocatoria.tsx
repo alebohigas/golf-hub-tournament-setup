@@ -12,6 +12,7 @@ import convocatoriaHero from '@/assets/convocatoria-hero.jpg';
 import PageSubmenu from '@/components/convocatoria/PageSubmenu';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
+import { useUploadsList } from '@/hooks/useUploads';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -131,6 +132,14 @@ const Convocatoria = () => {
   const [activeSection, setActiveSection] = useState('descripcion');
   const { data: tournamentData } = useTournamentInfo();
   const { sections } = useConvocatoriaSections();
+  // Look for an uploaded "convocatoria-torneo.pdf" on the server. If found,
+  // use it instead of the legacy public/convocatoria-torneo.pdf so the admin
+  // can replace the document via /admin → Archivos → PDFs without re-deploy.
+  const { data: pdfsData } = useUploadsList('pdfs');
+  const uploadedConvocatoria = pdfsData?.files.find(
+    (f) => f.name.toLowerCase() === 'convocatoria-torneo.pdf'
+  );
+  const convocatoriaPdfUrl = uploadedConvocatoria?.url ?? '/convocatoria-torneo.pdf';
   const parsed = tournamentData?.name ? parseTournamentName(tournamentData.name) : null;
 
   // ----- Auto-hide sections that have no content -----
@@ -237,7 +246,7 @@ const Convocatoria = () => {
               className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               <a
-                href="/convocatoria-torneo.pdf"
+                href={convocatoriaPdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Ver convocatoria en PDF"
