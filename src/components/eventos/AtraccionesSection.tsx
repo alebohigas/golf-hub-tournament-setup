@@ -19,6 +19,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type EventosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
+import { useUploadsList } from '@/hooks/useUploads';
 // Auto-discovered poster list — anything dropped into `src/assets/eventos/`
 // is picked up automatically (sorted alphabetically by file name). See
 // `src/lib/posterAssets.ts` for the discovery rules.
@@ -34,11 +35,10 @@ interface AtraccionCard {
   alt: string;
 }
 
-// Auto-discovered list of posters from `src/assets/eventos/`.
-// Sorted alphabetically by file name (use numeric prefixes like
-// `dia-01-...`, `dia-02-...` to control chronological order).
-// Admin panel can still override the order at runtime.
-const ATRACCIONES: AtraccionCard[] = DISCOVERED_EVENTOS_POSTERS.map((p) => ({
+// Build-time auto-discovered fallback list (from `src/assets/eventos/`).
+// Used when the server has no uploaded images — keeps the page working
+// even on a fresh deployment with empty `/api/uploads/{domain}/eventos/`.
+const BUILT_IN_ATRACCIONES: AtraccionCard[] = DISCOVERED_EVENTOS_POSTERS.map((p) => ({
   src: p.src,
   alt: p.alt,
 }));
@@ -96,6 +96,17 @@ const AtraccionesSection = () => {
     ...DEFAULT_CONFIG,
     ...(siteConfig?.eventos_config ?? {}),
   };
+
+  // Server-side uploaded posters. Take precedence over build-time assets so
+  // editors can replace/extend the grid via /admin without a re-deploy.
+  const { data: uploadsData } = useUploadsList('eventos');
+  const serverPosters: AtraccionCard[] = (uploadsData?.files ?? []).map((f) => ({
+    src: f.url,
+    alt: f.alt,
+  }));
+  const ATRACCIONES: AtraccionCard[] = serverPosters.length > 0
+    ? serverPosters
+    : BUILT_IN_ATRACCIONES;
 
   // Single shared poster order for desktop AND mobile. Falls back to the
   // legacy per-breakpoint fields (preferring desktopOrder) so previously

@@ -26,6 +26,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type AvisosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
+import { useUploadsList } from '@/hooks/useUploads';
 // Auto-discovered poster list — anything dropped into `src/assets/avisos/`
 // is picked up automatically (sorted alphabetically by file name). See
 // `src/lib/posterAssets.ts` for the discovery rules.
@@ -52,10 +53,17 @@ interface AvisoCard {
  * (e.g. `01-clima.webp`, `02-tabla.webp`) to control the default order.
  * The admin panel can still override the order at runtime.
  */
-export const AVISOS_POSTERS: AvisoCard[] = DISCOVERED_AVISOS_POSTERS.map((p) => ({
+/**
+ * Build-time fallback list. Used when no images have been uploaded to the
+ * server yet — keeps the page functional out of the box.
+ */
+const BUILT_IN_AVISOS_POSTERS: AvisoCard[] = DISCOVERED_AVISOS_POSTERS.map((p) => ({
   src: p.src,
   alt: p.alt,
 }));
+
+/** @deprecated Kept for backward-compat with any external imports. */
+export const AVISOS_POSTERS: AvisoCard[] = BUILT_IN_AVISOS_POSTERS;
 
 // ============= Layout helpers =============
 
@@ -111,11 +119,22 @@ const AvisosPostersSection = () => {
     ...(siteConfig?.avisos_config ?? {}),
   };
 
+  // Server-side uploaded posters. Take precedence over build-time assets so
+  // editors can replace/extend the grid via /admin without a re-deploy.
+  const { data: uploadsData } = useUploadsList('avisos');
+  const serverPosters: AvisoCard[] = (uploadsData?.files ?? []).map((f) => ({
+    src: f.url,
+    alt: f.alt,
+  }));
+  const sourcePosters: AvisoCard[] = serverPosters.length > 0
+    ? serverPosters
+    : BUILT_IN_AVISOS_POSTERS;
+
   // Single shared poster order for desktop AND mobile. Falls back to the
   // legacy per-breakpoint fields (preferring desktopOrder) so previously
   // saved configs keep working without a migration.
   const activeOrder = cfg.posterOrder ?? cfg.desktopOrder ?? cfg.mobileOrder;
-  const orderedPosters = applyOrder(AVISOS_POSTERS, activeOrder);
+  const orderedPosters = applyOrder(sourcePosters, activeOrder);
 
   /**
    * Compose the responsive grid class string from the admin-selected

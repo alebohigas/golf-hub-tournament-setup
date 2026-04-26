@@ -11,8 +11,18 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } from 'lucide-react';
 import { reglasData, reglamentoLocalData } from '@/data/mockData';
 import reglasHero from '@/assets/reglas-hero.jpg';
+import { useUploadsList } from '@/hooks/useUploads';
 
 const Reglas = () => {
+  // Look for an uploaded "reglas-y-cc.pdf" on the server. If found, use
+  // it instead of the legacy public/reglas-y-cc.pdf so the admin can
+  // replace the document via /admin → Archivos → PDFs without re-deploy.
+  const { data: pdfsData } = useUploadsList('pdfs');
+  const uploadedReglas = pdfsData?.files.find(
+    (f) => f.name.toLowerCase() === 'reglas-y-cc.pdf'
+  );
+  const reglasPdfUrl = uploadedReglas?.url ?? '/reglas-y-cc.pdf';
+
   return (
     <Layout>
       <PageHero 
@@ -30,7 +40,7 @@ const Reglas = () => {
               className="gap-2"
             >
               <a
-                href="/reglas-y-cc.pdf"
+                href={reglasPdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
