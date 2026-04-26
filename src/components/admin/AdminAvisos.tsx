@@ -51,6 +51,9 @@ import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
 // Mirrors what AvisosPostersSection renders on the public page so the
 // admin preview always matches the live site.
 import { AVISOS_POSTERS } from '@/lib/posterAssets';
+// Server-uploaded posters take precedence over build-time assets so the
+// admin preview matches what visitors actually see on /avisos.
+import { useUploadsList } from '@/hooks/useUploads';
 
 // ============= Constants =============
 
@@ -74,11 +77,10 @@ export const DEFAULT_AVISOS_CONFIG: AvisosConfig = {
 };
 
 /**
- * Posters used in the live preview (mirrors AvisosPostersSection).
- * Derived from the auto-discovered list so adding/removing files in
- * `src/assets/avisos/` automatically updates the admin previews.
+ * Build-time fallback poster URLs from `src/assets/avisos/`. Used only when
+ * no images have been uploaded to the server via `/admin` → tab "Archivos".
  */
-const PREVIEW_POSTERS: string[] = AVISOS_POSTERS.map((p) => p.src);
+const BUILT_IN_PREVIEW_POSTERS: string[] = AVISOS_POSTERS.map((p) => p.src);
 
 // ============= Helpers =============
 
