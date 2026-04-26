@@ -26,14 +26,10 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type AvisosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
-
-// ---------- Asset imports (ES6 modules, optimized by Vite) ----------
-import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
-import tabla1 from '@/assets/avisos/tabla1-torneo-anual.webp';
-import tabla2 from '@/assets/avisos/tabla2-asociados.webp';
-import tabla3 from '@/assets/avisos/tabla3-dependientes.webp';
-import tabla4 from '@/assets/avisos/tabla4-invitados.webp';
-import tabla5 from '@/assets/avisos/tabla5-info-adicional.webp';
+// Auto-discovered poster list — anything dropped into `src/assets/avisos/`
+// is picked up automatically (sorted alphabetically by file name). See
+// `src/lib/posterAssets.ts` for the discovery rules.
+import { AVISOS_POSTERS as DISCOVERED_AVISOS_POSTERS } from '@/lib/posterAssets';
 
 /**
  * AvisoCard - shape describing one poster card.
@@ -46,17 +42,20 @@ interface AvisoCard {
 }
 
 /**
- * Ordered list of aviso posters. Order matters: the climatological notice
- * is shown first as it is the most time-sensitive communication.
+ * Ordered list of aviso posters.
+ *
+ * The list is **auto-discovered** from `src/assets/avisos/` via
+ * `posterAssets.ts`, then mapped to the local `AvisoCard` shape. To add
+ * or remove a poster, simply drop / delete a `.webp` (or `.jpg`/`.png`)
+ * file in that folder — no code edit required. Files are sorted in
+ * case-insensitive natural order, so prefix names with numeric tokens
+ * (e.g. `01-clima.webp`, `02-tabla.webp`) to control the default order.
+ * The admin panel can still override the order at runtime.
  */
-export const AVISOS_POSTERS: AvisoCard[] = [
-  { src: avisoClima, alt: 'Aviso climatológico a jugadores' },
-  { src: tabla1, alt: 'Torneo Anual (Obligatorio) - Costos' },
-  { src: tabla2, alt: 'Inscripción Torneo de Golf Asociados (Opcional)' },
-  { src: tabla3, alt: 'Acceso diario para dependientes registrados' },
-  { src: tabla4, alt: 'Inscripción Torneo de Golf Invitados' },
-  { src: tabla5, alt: 'Información adicional, Family Day y reglas de invitados' },
-];
+export const AVISOS_POSTERS: AvisoCard[] = DISCOVERED_AVISOS_POSTERS.map((p) => ({
+  src: p.src,
+  alt: p.alt,
+}));
 
 // ============= Layout helpers =============
 
