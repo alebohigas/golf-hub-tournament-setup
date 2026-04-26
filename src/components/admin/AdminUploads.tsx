@@ -104,7 +104,7 @@ const SECTIONS: SectionMeta[] = [
     label: 'Convocatoria',
     Icon: ScrollText,
     description:
-      'Imágenes y PDF para la página de Convocatoria. Las imágenes se reservan para una galería futura. El primer PDF que subas se usará como "Ver en PDF" en la página pública (no importa el nombre del archivo).',
+      'Dos botones independientes: "Subir imágenes" para una galería complementaria (uso futuro) y "Subir PDF" para el documento oficial. El primer PDF subido es el que aparece en el botón "Ver en PDF" de la página pública — el nombre del archivo no importa.',
     accept: 'image/webp,image/jpeg,image/png,image/gif,application/pdf',
     kind: 'mixed',
   },
