@@ -151,8 +151,14 @@ const isPlayerFinished = (player: LivePlayer): boolean => {
 };
 
 /** Check if the player's latest card is open and can be viewed from "Hoy" */
+/**
+ * canOpenTodayScorecard
+ * Allows opening the "Hoy" scorecard whenever the player has a current card,
+ * regardless of statlsc value (1 = closed, other values may exist with unknown
+ * meaning — we still allow viewing the card).
+ */
 const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-  return player.hasCurrentCard === 1 && !isPlayerFinished(player);
+  return player.hasCurrentCard === 1;
 };
 
 /**
