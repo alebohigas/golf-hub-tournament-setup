@@ -29,8 +29,6 @@ interface ApiCategory {
   name: string;
   shortName?: string;
   system?: string;
-  /** Gross flag from DB (categorias.gross) — 1 = supports gross scoring */
-  gross?: number;
 }
 
 /**
@@ -70,7 +68,6 @@ const AdminLiveScoring = () => {
           name: raw?.name ?? raw?.categoryName ?? raw?.categoria ?? categoryId,
           shortName: raw?.shortName ?? raw?.abreviatura ?? raw?.short_name,
           system: raw?.system ?? raw?.sistema,
-          gross: Number(raw?.gross ?? 0) || 0,
         };
       };
 
@@ -110,7 +107,7 @@ const AdminLiveScoring = () => {
         categoryId: cat.categoryId,
         categoryName: cat.name,
         tipo: mapSystemToTipo(cat.system),
-        gross: (cat.gross === 1 ? 1 : 0) as 0 | 1,
+        gross: 0 as const,
         enabled: true,
         order: prev.length,
       }];
@@ -141,7 +138,7 @@ const AdminLiveScoring = () => {
         categoryId: cat.categoryId,
         categoryName: cat.name,
         tipo: mapSystemToTipo(cat.system),
-        gross: (cat.gross === 1 ? 1 : 0) as 0 | 1,
+        gross: 0 as const,
         enabled: true,
         order: idx,
       }));
