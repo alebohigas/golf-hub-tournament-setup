@@ -241,6 +241,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     } else {
@@ -269,6 +270,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     }
