@@ -29,7 +29,20 @@ interface ApiCategory {
   name: string;
   shortName?: string;
   system?: string;
+  /** Gross flag from DB (categorias.gross) — 1 = supports gross scoring */
+  gross?: number;
 }
+
+/**
+ * Map a category's `sistema` string from the DB (e.g. "STROKE PLAY", "STABLEFORD")
+ * into the Live Scoring `tipo` value used by the public /live page.
+ * Defaults to 'stableford' when the system is unknown/empty (matches prior default).
+ */
+const mapSystemToTipo = (system?: string): 'stroke' | 'stableford' => {
+  const s = (system || '').toUpperCase();
+  if (s.includes('STROKE') || s.includes('MEDAL')) return 'stroke';
+  return 'stableford';
+};
 
 // ============= Component =============
 
@@ -57,6 +70,7 @@ const AdminLiveScoring = () => {
           name: raw?.name ?? raw?.categoryName ?? raw?.categoria ?? categoryId,
           shortName: raw?.shortName ?? raw?.abreviatura ?? raw?.short_name,
           system: raw?.system ?? raw?.sistema,
+          gross: Number(raw?.gross ?? 0) || 0,
         };
       };
 
@@ -95,8 +109,8 @@ const AdminLiveScoring = () => {
       return [...prev, {
         categoryId: cat.categoryId,
         categoryName: cat.name,
-        tipo: 'stableford' as const,
-        gross: 0 as const,
+        tipo: mapSystemToTipo(cat.system),
+        gross: (cat.gross === 1 ? 1 : 0) as 0 | 1,
         enabled: true,
         order: prev.length,
       }];
@@ -126,8 +140,8 @@ const AdminLiveScoring = () => {
       setOrderedEntries(sorted.map((cat, idx) => existing.get(cat.categoryId) || {
         categoryId: cat.categoryId,
         categoryName: cat.name,
-        tipo: 'stableford' as const,
-        gross: 0 as const,
+        tipo: mapSystemToTipo(cat.system),
+        gross: (cat.gross === 1 ? 1 : 0) as 0 | 1,
         enabled: true,
         order: idx,
       }));
