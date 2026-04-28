@@ -1172,45 +1172,42 @@ function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
 /**
  * Get Driver Distancia players for a prize group.
  *
- * Mirrors legacy SQL exactly:
- *   SELECT * FROM (
- *     SELECT ... FROM driverjug a
- *     JOIN jugadores b ON (a.jugadorid = b.id)
- *     JOIN v_driver  c ON (a.campo = c.campo
- *                          AND b.categoriaid = c.categoriaid
- *                          AND a.premio = c.premio)
- *     WHERE a.torneoid = $tid AND c.premio = '$premio'
- *     ORDER BY a.distancia DESC
- *     LIMIT $oyesnumprem
- *   ) AS x
- *   ORDER BY distancia ASC
+ * Mirrors legacy SQL (driver-5.php) EXACTLY:
+ *   SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
+ *          ROUND(TRUNCATE(a.distancia,3),2) distancia,
+ *          CONCAT(nombre,' ',apellido) jugador,
+ *          b.club, b.categoriaid, c.descripcion, f_logo(b.club) logo
+ *   FROM driverjug a
+ *   JOIN jugadores b ON (a.jugadorid = b.id)
+ *   JOIN v_driver  c ON (a.campo = c.campo
+ *                        AND b.categoriaid = c.categoriaid
+ *                        AND a.premiosjugcol = c.descripcion)
+ *   WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+ *   ORDER BY c.descripcion, a.distancia DESC
+ *   LIMIT $hoyo
  *
- * Inner query takes the top-N longest drives; outer reorder ASC matches
- * the legacy report's display order (shortest of the winners shown first).
- * We then renumber positions DESC-wise so #1 = longest drive.
+ * Sorted DESC (longest drive wins). The orden=0/1 pre-update has already
+ * run once per request in the section block above.
  */
-function get_driverd_players($conn, $tid, $premioId, $limit = 3) {
+function get_driverd_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
     $limit = max(1, (int)$limit);
 
-    $sql = "SELECT * FROM (
-                SELECT a.jugadorid,
-                       a.fecha, a.campo, a.hoyo,
-                       ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
-                       CONCAT(b.nombre, ' ', b.apellido) as jugador,
-                       cl.nombre as club, cl.logo as logo,
-                       b.categoriaid, c.descripcion
-                FROM driverjug a
-                JOIN jugadores b ON (a.jugadorid = b.id)
-                JOIN clubs    cl ON (b.clubid = cl.id)
-                JOIN v_driver c  ON (a.campo = c.campo
-                                     AND b.categoriaid = c.categoriaid
-                                     AND a.premio = c.premio)
-                WHERE a.torneoid = $tid AND c.premio = $premioId
-                ORDER BY a.distancia DESC
-                LIMIT $limit
-            ) AS x
-            ORDER BY distancia DESC";
+    $sql = "SELECT a.jugadorid,
+                   a.fecha, a.campo, a.hoyo,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   b.categoriaid, c.descripcion
+            FROM driverjug a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs    cl ON (b.clubid = cl.id)
+            JOIN v_driver c  ON (a.campo = c.campo
+                                 AND b.categoriaid = c.categoriaid
+                                 AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia DESC
+            LIMIT $limit";
 
     $winners = safe_query_all($conn, $sql);
 
