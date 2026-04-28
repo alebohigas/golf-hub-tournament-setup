@@ -127,6 +127,28 @@ foreach ($prevRows as $pr) {
 }
 
 /**
+ * Current/live card status per player.
+ * This must mirror live_tarjeta.php, which reads the latest card via
+ * v_ult_tarjeta0. The frontend uses statlsc as the source of truth:
+ *   statlsc <> 1 → the live card can be opened from "Hoy"
+ *   statlsc  = 1 → "Thru" shows F and "Hoy" is not clickable
+ */
+$currentCardStatusByPlayer = [];
+$hasCurrentCardByPlayer = [];
+$sqlCurrentStatus = "SELECT t.jugadorid, t.statlsc
+                     FROM tarjetas t
+                     JOIN v_ult_tarjeta0 u ON (u.tarjetaid = t.id)
+                     JOIN jugadores j ON (j.id = t.jugadorid)
+                     WHERE t.torneoid = $tid
+                       AND j.categoriaid = $cid";
+$currentStatusRows = query_all($conn, $sqlCurrentStatus);
+foreach ($currentStatusRows as $csr) {
+    $pid = (string)$csr['jugadorid'];
+    $currentCardStatusByPlayer[$pid] = (int)$csr['statlsc'];
+    $hasCurrentCardByPlayer[$pid] = true;
+}
+
+/**
  * Closed-only Total per player.
  * The leaderboard "Total" column must reflect ONLY scorecards that are
  * already registered/closed (statlsc=1). The in-progress round is shown
@@ -204,6 +226,7 @@ foreach ($rows as $row) {
          */
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
+        $todayStatus = $currentCardStatusByPlayer[$pid] ?? null;
         $players[] = [
             'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
@@ -220,6 +243,9 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => ($todayStatus === 1) ? 1 : 0,
+            'todayStatlsc'    => $todayStatus,
+            'hasCurrentCard' => !empty($hasCurrentCardByPlayer[$pid]) ? 1 : 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     } else {
@@ -233,6 +259,7 @@ foreach ($rows as $row) {
         $playerName = trim(($row['nombre'] ?? '') . ' ' . ($row['apellido'] ?? ''));
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
+        $todayStatus = $currentCardStatusByPlayer[$pid] ?? null;
         $players[] = [
             'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
@@ -248,6 +275,9 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => ($todayStatus === 1) ? 1 : 0,
+            'todayStatlsc'    => $todayStatus,
+            'hasCurrentCard' => !empty($hasCurrentCardByPlayer[$pid]) ? 1 : 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     }
