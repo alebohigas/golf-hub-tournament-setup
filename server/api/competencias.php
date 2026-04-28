@@ -536,10 +536,9 @@ if ($tipo === '' || $tipo === 'putt') {
 //   FROM driverp
 //   WHERE torneoid = $tid AND premio > 0
 //   GROUP BY premio, descripcion, hoyo
-// Per-prize cut (winners shown): `driverp.hoyo` — in this legacy schema each
-// side-game table (approach/putt/driverp) stores the number of winner slots
-// in its own `hoyo` column. The `premios` master table has no `lugares`
-// column. When `hoyo` is zero/null we fall back to torneo.oyesnumprem.
+// Per-prize cut (winners shown): `premios.lugares` for this torneo+premio.
+// We LEFT JOIN `premios` so the section still works if the master row is
+// missing; in that case we fall back to torneo.oyesnumprem.
 // ============================================================================
 if ($tipo === '' || $tipo === 'driverp') {
     $DEBUG_SECTIONS['driverp']['enabled'] = true;
@@ -549,26 +548,29 @@ if ($tipo === '' || $tipo === 'driverp') {
 
     if ($row && (int)$row['cnt'] > 0) {
         // Try with optional last-update function first; fall back if missing.
-        // Cut comes from `driverp.hoyo` (per-prize slots) just like Approach/Putt.
-        $sql = "SELECT premio as id,
-                       descripcion as name,
-                       hoyo,
-                       LEFT(f_ultfechadriverp(descripcion, torneoid), 16) AS ultact
-                FROM driverp
-                WHERE torneoid = $tid AND premio > 0
-                GROUP BY premio, descripcion, hoyo
-                ORDER BY premio ASC";
+        // `lugares` comes from the master `premios` table (per torneo+premio).
+        $sql = "SELECT dp.premio as id,
+                       dp.descripcion as name,
+                       dp.hoyo,
+                       MAX(pr.lugares) as lugares,
+                       LEFT(f_ultfechadriverp(dp.descripcion, dp.torneoid), 16) AS ultact
+                FROM driverp dp
+                LEFT JOIN premios pr ON (pr.torneoid = dp.torneoid AND pr.premio = dp.premio)
+                WHERE dp.torneoid = $tid AND dp.premio > 0
+                GROUP BY dp.premio, dp.descripcion, dp.hoyo
+                ORDER BY dp.premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'driverp', 'list_prizes_with_fn');
         if (empty($prizes) && !empty($DEBUG_SECTIONS['driverp']['errors'])) {
-            // Function may be missing — retry without it
-            $sql = "SELECT premio as id,
-                           descripcion as name,
-                           hoyo,
+            $sql = "SELECT dp.premio as id,
+                           dp.descripcion as name,
+                           dp.hoyo,
+                           MAX(pr.lugares) as lugares,
                            NULL AS ultact
-                    FROM driverp
-                    WHERE torneoid = $tid AND premio > 0
-                    GROUP BY premio, descripcion, hoyo
-                    ORDER BY premio ASC";
+                    FROM driverp dp
+                    LEFT JOIN premios pr ON (pr.torneoid = dp.torneoid AND pr.premio = dp.premio)
+                    WHERE dp.torneoid = $tid AND dp.premio > 0
+                    GROUP BY dp.premio, dp.descripcion, dp.hoyo
+                    ORDER BY dp.premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'driverp', 'list_prizes_no_fn');
         }
 
@@ -576,8 +578,8 @@ if ($tipo === '' || $tipo === 'driverp') {
         foreach ($prizes as $p) {
             $premioId    = esc($conn, $p['id']);
             $descripcion = esc($conn, $p['name']);
-            // Winners cut: per-prize `hoyo` from driverp; fall back to oyesnumprem.
-            $lugares     = (int)($p['hoyo'] ?? 0);
+            // Winners cut: prefer premios.lugares; fall back to oyesnumprem.
+            $lugares     = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
 
             $group = [
@@ -640,11 +642,9 @@ if ($tipo === '' || $tipo === 'driverp') {
 // Detection: any driverjug row for this torneoid enables the section.
 // Prizes (groups) come from v_driver since that view defines which
 // premio/categoria/campo combinations are configured for distance.
-// Per-prize cut (winners shown): torneo.oyesnumprem — matches the legacy
-// SQL which uses `LIMIT $oyesnumprem`. Distance has no per-prize slot
-// column in this schema (driverjug is shot-level, v_driver is the
-// configuration matrix), so the global tournament setting is the only
-// available source of truth.
+// Per-prize cut (winners shown): `premios.lugares` for this torneo+premio.
+// LEFT JOIN to `premios` so a missing master row still renders, falling
+// back to torneo.oyesnumprem.
 // Sorted DESC (longest drive wins).
 // ============================================================================
 if ($tipo === '' || $tipo === 'driverd') {
@@ -656,31 +656,40 @@ if ($tipo === '' || $tipo === 'driverd') {
     if ($row && (int)$row['cnt'] > 0) {
         // Group definitions come from v_driver (premio + descripcion).
         // Each configured prize becomes a single card regardless of how
-        // many categories it covers.
-        $sql = "SELECT DISTINCT premio as id, descripcion as name
-                FROM v_driver
-                WHERE premio IN (
+        // many categories it covers. `lugares` is pulled from the master
+        // `premios` table (per active torneo + premio).
+        $sql = "SELECT vd.premio as id,
+                       vd.descripcion as name,
+                       MAX(pr.lugares) as lugares
+                FROM v_driver vd
+                LEFT JOIN premios pr ON (pr.torneoid = $tid AND pr.premio = vd.premio)
+                WHERE vd.premio IN (
                     SELECT DISTINCT premio FROM driverjug WHERE torneoid = $tid
                 )
-                ORDER BY premio ASC";
+                GROUP BY vd.premio, vd.descripcion
+                ORDER BY vd.premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'driverd', 'list_prizes_v_driver');
 
         // Fallback: if v_driver isn't populated, build prizes from driverjug
         // alone so the section still appears (no descriptive name though).
         if (empty($prizes)) {
-            $sql = "SELECT DISTINCT premio as id,
-                           CONCAT('Premio ', premio) as name
-                    FROM driverjug
-                    WHERE torneoid = $tid
-                    ORDER BY premio ASC";
+            $sql = "SELECT dj.premio as id,
+                           CONCAT('Premio ', dj.premio) as name,
+                           MAX(pr.lugares) as lugares
+                    FROM driverjug dj
+                    LEFT JOIN premios pr ON (pr.torneoid = dj.torneoid AND pr.premio = dj.premio)
+                    WHERE dj.torneoid = $tid
+                    GROUP BY dj.premio
+                    ORDER BY dj.premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'driverd', 'list_prizes_fallback_driverjug');
         }
 
         $groups = [];
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-            // Winners cut: matches legacy `LIMIT $oyesnumprem`.
-            $lugares  = $numPrem;
+            // Winners cut: prefer premios.lugares; fall back to oyesnumprem.
+            $lugares  = (int)($p['lugares'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
 
             $group = [
                 'id'          => 'driverd-' . $p['id'],
