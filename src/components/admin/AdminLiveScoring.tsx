@@ -31,6 +31,17 @@ interface ApiCategory {
   system?: string;
 }
 
+/**
+ * Map a category's `sistema` string from the DB (e.g. "STROKE PLAY", "STABLEFORD")
+ * into the Live Scoring `tipo` value used by the public /live page.
+ * Defaults to 'stableford' when the system is unknown/empty (matches prior default).
+ */
+const mapSystemToTipo = (system?: string): 'stroke' | 'stableford' => {
+  const s = (system || '').toUpperCase();
+  if (s.includes('STROKE') || s.includes('MEDAL')) return 'stroke';
+  return 'stableford';
+};
+
 // ============= Component =============
 
 const AdminLiveScoring = () => {
@@ -95,7 +106,7 @@ const AdminLiveScoring = () => {
       return [...prev, {
         categoryId: cat.categoryId,
         categoryName: cat.name,
-        tipo: 'stableford' as const,
+        tipo: mapSystemToTipo(cat.system),
         gross: 0 as const,
         enabled: true,
         order: prev.length,
@@ -126,7 +137,7 @@ const AdminLiveScoring = () => {
       setOrderedEntries(sorted.map((cat, idx) => existing.get(cat.categoryId) || {
         categoryId: cat.categoryId,
         categoryName: cat.name,
-        tipo: 'stableford' as const,
+        tipo: mapSystemToTipo(cat.system),
         gross: 0 as const,
         enabled: true,
         order: idx,
