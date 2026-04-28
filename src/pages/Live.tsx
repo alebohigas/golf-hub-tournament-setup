@@ -63,6 +63,8 @@ interface StablefordPlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   prevRoundDates?: string[];
 }
@@ -88,6 +90,8 @@ interface StrokePlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   prevRoundDates?: string[];
 }
