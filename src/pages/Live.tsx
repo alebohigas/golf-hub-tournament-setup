@@ -64,6 +64,8 @@ interface StablefordPlayer {
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
   prevRoundDates?: string[];
 }
 
@@ -89,6 +91,8 @@ interface StrokePlayer {
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
   prevRoundDates?: string[];
 }
 
