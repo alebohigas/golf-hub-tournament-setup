@@ -66,6 +66,10 @@ interface StablefordPlayer {
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
   todayClosed?: number;
+  /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
+  todayStatlsc?: number | null;
+  /** 1 when the player has a latest card available for live_tarjeta.php */
+  hasCurrentCard?: number;
   prevRoundDates?: string[];
 }
 
@@ -93,6 +97,10 @@ interface StrokePlayer {
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
   todayClosed?: number;
+  /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
+  todayStatlsc?: number | null;
+  /** 1 when the player has a latest card available for live_tarjeta.php */
+  hasCurrentCard?: number;
   prevRoundDates?: string[];
 }
 
@@ -133,14 +141,18 @@ const getStrokeScoreClass = (difpar: number): string => {
 };
 
 /**
- * Check if a player has finished the tournament.
- * Authoritative source: backend `finished` flag (1 when all scheduled
- * scorecards have statlsc=1 in the `tarjetas` table).
- * Falls back to legacy "thru >= 18" only when the flag is absent.
+ * Check if the player's current/live card is closed.
+ * Authoritative source: latest card statlsc from the backend.
  */
 const isPlayerFinished = (player: LivePlayer): boolean => {
-  if (typeof player.finished === 'number') return player.finished === 1;
-  return player.thru >= 18;
+  if (typeof player.todayClosed === 'number') return player.todayClosed === 1;
+  if (typeof player.todayStatlsc === 'number') return player.todayStatlsc === 1;
+  return false;
+};
+
+/** Check if the player's latest card is open and can be viewed from "Hoy" */
+const canOpenTodayScorecard = (player: LivePlayer): boolean => {
+  return player.hasCurrentCard === 1 && !isPlayerFinished(player);
 };
 
 /**
@@ -292,17 +304,9 @@ const Live = () => {
       return;
     }
 
-    // Allow opening the live scorecard whenever the player has any
-    // activity for the current round: holes played (thru > 0) OR the
-    // round is already marked closed (todayClosed === 1) OR there is a
-    // numeric todayScore reported by the backend. This ensures the
-    // scorecard is reachable even when `thru` hasn't been computed yet
-    // or when the round has just been finalized.
-    const hasActivity =
-      player.thru > 0 ||
-      player.todayClosed === 1 ||
-      (player.todayScore !== null && player.todayScore !== undefined);
-    if (!hasActivity) return;
+    // Only open the live scorecard when the latest card exists and is not closed.
+    // Closed cards (statlsc=1) show F in "Thru" and are intentionally disabled here.
+    if (!canOpenTodayScorecard(player)) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);
@@ -549,11 +553,11 @@ const Live = () => {
                                 </TableCell>
 
                                 {/*
-                                  Hoy column — clickable when player has started today's round (thru > 0).
+                                  Hoy column — clickable only while latest card statlsc <> 1.
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {(player.thru > 0 || player.todayClosed === 1 || (player.todayScore !== null && player.todayScore !== undefined)) ? (
+                                  {canOpenTodayScorecard(player) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
                                       className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
