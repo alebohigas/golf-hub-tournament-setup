@@ -66,6 +66,12 @@ interface StablefordPlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
+  /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
+  todayStatlsc?: number | null;
+  /** 1 when the player has a latest card available for live_tarjeta.php */
+  hasCurrentCard?: number;
   prevRoundDates?: string[];
 }
 
@@ -93,6 +99,12 @@ interface StrokePlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
+  /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
+  todayStatlsc?: number | null;
+  /** 1 when the player has a latest card available for live_tarjeta.php */
+  hasCurrentCard?: number;
   prevRoundDates?: string[];
 }
 
@@ -294,7 +306,9 @@ const Live = () => {
       return;
     }
 
-    if (player.thru <= 0) return;
+    // Only open the live scorecard when the latest card exists and is not closed.
+    // Closed cards (statlsc=1) show F in "Thru" and are intentionally disabled here.
+    if (!canOpenTodayScorecard(player)) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);
@@ -368,7 +382,7 @@ const Live = () => {
                 <p className="text-muted-foreground mt-2">Selecciona una categoría</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto">
                 {enabledEntries.map((entry, idx) => {
                   const isCompleted = completionMap.get(entry.categoryId) ?? false;
 
@@ -541,11 +555,11 @@ const Live = () => {
                                 </TableCell>
 
                                 {/*
-                                  Hoy column — clickable when player has started today's round (thru > 0).
+                                  Hoy column — clickable only while latest card statlsc <> 1.
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {player.thru > 0 ? (
+                                  {canOpenTodayScorecard(player) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
                                       className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
