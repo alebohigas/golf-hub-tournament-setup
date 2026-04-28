@@ -64,6 +64,8 @@ interface StablefordPlayer {
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
   prevRoundDates?: string[];
 }
 
@@ -89,6 +91,8 @@ interface StrokePlayer {
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
   prevRoundDates?: string[];
 }
 
@@ -288,7 +292,17 @@ const Live = () => {
       return;
     }
 
-    if (player.thru <= 0) return;
+    // Allow opening the live scorecard whenever the player has any
+    // activity for the current round: holes played (thru > 0) OR the
+    // round is already marked closed (todayClosed === 1) OR there is a
+    // numeric todayScore reported by the backend. This ensures the
+    // scorecard is reachable even when `thru` hasn't been computed yet
+    // or when the round has just been finalized.
+    const hasActivity =
+      player.thru > 0 ||
+      player.todayClosed === 1 ||
+      (player.todayScore !== null && player.todayScore !== undefined);
+    if (!hasActivity) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);
@@ -539,7 +553,7 @@ const Live = () => {
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {player.thru > 0 ? (
+                                  {(player.thru > 0 || player.todayClosed === 1 || (player.todayScore !== null && player.todayScore !== undefined)) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
                                       className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
