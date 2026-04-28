@@ -1039,4 +1039,115 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
     return $players;
 }
 
-// End of competencias.php - Fixed SQL join error 2026-04-20
+/**
+ * Get Driver Precisión players for a prize group.
+ *
+ * Source: `driverpjug` (player shots) joined to `jugadores` + `clubs`.
+ * Filtered by torneoid, premio, and the configured `descripcion` slot.
+ * Sorted ASC (closest to line wins). Capped by `$limit` (per-prize hoyo
+ * count, falling back to torneo.oyesnumprem).
+ *
+ * @param mysqli $conn        DB connection.
+ * @param int    $tid         Active tournament id.
+ * @param int    $premioId    Prize id from `driverp.premio`.
+ * @param string $descripcion Configured prize description (already escaped).
+ * @param int    $limit       Max winners to return.
+ */
+function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
+    global $LOGOS_BASE_URL;
+    $limit = max(1, (int)$limit);
+
+    $sql = "SELECT a.jugadorid,
+                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   a.hoyo,
+                   c.logo, c.nombre as club
+            FROM driverpjug a
+            JOIN jugadores j ON (a.jugadorid = j.id)
+            JOIN clubs c ON (j.clubid = c.id)
+            WHERE a.torneoid = $tid AND a.premio = $premioId
+            ORDER BY a.distancia ASC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
+        ];
+    }
+    return $players;
+}
+
+/**
+ * Get Driver Distancia players for a prize group.
+ *
+ * Mirrors legacy SQL exactly:
+ *   SELECT * FROM (
+ *     SELECT ... FROM driverjug a
+ *     JOIN jugadores b ON (a.jugadorid = b.id)
+ *     JOIN v_driver  c ON (a.campo = c.campo
+ *                          AND b.categoriaid = c.categoriaid
+ *                          AND a.premio = c.premio)
+ *     WHERE a.torneoid = $tid AND c.premio = '$premio'
+ *     ORDER BY a.distancia DESC
+ *     LIMIT $oyesnumprem
+ *   ) AS x
+ *   ORDER BY distancia ASC
+ *
+ * Inner query takes the top-N longest drives; outer reorder ASC matches
+ * the legacy report's display order (shortest of the winners shown first).
+ * We then renumber positions DESC-wise so #1 = longest drive.
+ */
+function get_driverd_players($conn, $tid, $premioId, $limit = 3) {
+    global $LOGOS_BASE_URL;
+    $limit = max(1, (int)$limit);
+
+    $sql = "SELECT * FROM (
+                SELECT a.jugadorid,
+                       a.fecha, a.campo, a.hoyo,
+                       ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                       CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                       cl.nombre as club, cl.logo as logo,
+                       b.categoriaid, c.descripcion
+                FROM driverjug a
+                JOIN jugadores b ON (a.jugadorid = b.id)
+                JOIN clubs    cl ON (b.clubid = cl.id)
+                JOIN v_driver c  ON (a.campo = c.campo
+                                     AND b.categoriaid = c.categoriaid
+                                     AND a.premio = c.premio)
+                WHERE a.torneoid = $tid AND c.premio = $premioId
+                ORDER BY a.distancia DESC
+                LIMIT $limit
+            ) AS x
+            ORDER BY distancia DESC";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++; // #1 = longest drive (already sorted DESC)
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
+        ];
+    }
+    return $players;
+}
+
+// End of competencias.php - Driver Precisión + Distancia added 2026-04-28
