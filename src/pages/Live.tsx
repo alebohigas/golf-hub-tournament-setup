@@ -63,6 +63,8 @@ interface StablefordPlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
   todayClosed?: number;
@@ -94,6 +96,8 @@ interface StrokePlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
   todayClosed?: number;
@@ -141,24 +145,16 @@ const getStrokeScoreClass = (difpar: number): string => {
 };
 
 /**
- * Check if the player's current/live card is closed.
- * Authoritative source: latest card statlsc from the backend.
+ * Check if a player has finished the tournament.
+ * Shows "F" when EITHER:
+ *   - the player's current/latest scorecard is closed (statlsc=1) → `todayClosed`
+ *   - all scheduled scorecards are closed → `finished`
+ * Falls back to legacy "thru >= 18" only when both flags are absent.
  */
 const isPlayerFinished = (player: LivePlayer): boolean => {
-  if (typeof player.todayClosed === 'number') return player.todayClosed === 1;
-  if (typeof player.todayStatlsc === 'number') return player.todayStatlsc === 1;
-  return false;
-};
-
-/** Check if the player's latest card is open and can be viewed from "Hoy" */
-/**
- * canOpenTodayScorecard
- * Allows opening the "Hoy" scorecard whenever the player has a current card,
- * regardless of statlsc value (1 = closed, other values may exist with unknown
- * meaning — we still allow viewing the card).
- */
-const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-  return player.hasCurrentCard === 1;
+  if (typeof player.todayClosed === 'number' && player.todayClosed === 1) return true;
+  if (typeof player.finished === 'number') return player.finished === 1;
+  return player.thru >= 18;
 };
 
 /**

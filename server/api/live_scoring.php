@@ -127,25 +127,24 @@ foreach ($prevRows as $pr) {
 }
 
 /**
- * Current/live card status per player.
- * This must mirror live_tarjeta.php, which reads the latest card via
- * v_ult_tarjeta0. The frontend uses statlsc as the source of truth:
- *   statlsc <> 1 → the live card can be opened from "Hoy"
- *   statlsc  = 1 → "Thru" shows F and "Hoy" is not clickable
+ * Per-player flag: latest scorecard (most recent fecha_juego) is closed (statlsc=1).
+ * Used by the frontend to display "F" in the Thru column when the player has
+ * finished their CURRENT round, even if the tournament has more rounds pending.
  */
-$currentCardStatusByPlayer = [];
-$hasCurrentCardByPlayer = [];
-$sqlCurrentStatus = "SELECT t.jugadorid, t.statlsc
-                     FROM tarjetas t
-                     JOIN v_ult_tarjeta0 u ON (u.tarjetaid = t.id)
-                     JOIN jugadores j ON (j.id = t.jugadorid)
-                     WHERE t.torneoid = $tid
-                       AND j.categoriaid = $cid";
-$currentStatusRows = query_all($conn, $sqlCurrentStatus);
-foreach ($currentStatusRows as $csr) {
-    $pid = (string)$csr['jugadorid'];
-    $currentCardStatusByPlayer[$pid] = (int)$csr['statlsc'];
-    $hasCurrentCardByPlayer[$pid] = true;
+$todayClosedByPlayer = [];
+$sqlTodayClosed = "SELECT t.jugadorid, t.statlsc
+                   FROM tarjetas t
+                   JOIN jugadores j ON (j.id = t.jugadorid)
+                   JOIN (
+                       SELECT jugadorid, MAX(fecha_juego) AS maxfecha
+                       FROM tarjetas
+                       WHERE torneoid = $tid
+                       GROUP BY jugadorid
+                   ) m ON (m.jugadorid = t.jugadorid AND m.maxfecha = t.fecha_juego)
+                   WHERE t.torneoid = $tid AND j.categoriaid = $cid";
+$todayRows = query_all($conn, $sqlTodayClosed);
+foreach ($todayRows as $tr) {
+    $todayClosedByPlayer[(string)$tr['jugadorid']] = ((int)$tr['statlsc'] === 1) ? 1 : 0;
 }
 
 /**
@@ -243,9 +242,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
-            'todayClosed'    => ($todayStatus === 1) ? 1 : 0,
-            'todayStatlsc'    => $todayStatus,
-            'hasCurrentCard' => !empty($hasCurrentCardByPlayer[$pid]) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     } else {
@@ -275,9 +272,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
-            'todayClosed'    => ($todayStatus === 1) ? 1 : 0,
-            'todayStatlsc'    => $todayStatus,
-            'hasCurrentCard' => !empty($hasCurrentCardByPlayer[$pid]) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     }
