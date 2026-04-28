@@ -530,15 +530,20 @@ if ($tipo === '' || $tipo === 'putt') {
 // ----------------------------------------------------------------------------
 // Source table: `driverp` (one row per configured prize hole/description).
 // Detection: any row with premio > 0 for this torneoid enables the section.
-// Mirrors legacy SQL:
+// Mirrors legacy SQL (driverp-4.php):
 //   SELECT premio, descripcion, hoyo,
 //          LEFT(f_ultfechadriverp(descripcion, torneoid), 16) AS ultact
 //   FROM driverp
 //   WHERE torneoid = $tid AND premio > 0
 //   GROUP BY premio, descripcion, hoyo
-// Per-prize cut (winners shown): `premios.lugares` for this torneo+premio.
-// We LEFT JOIN `premios` so the section still works if the master row is
-// missing; in that case we fall back to torneo.oyesnumprem.
+//
+// IMPORTANT: A single tournament can have MULTIPLE Driver Precisión prizes
+// (e.g. one per hole / category split). Each (premio, descripcion, hoyo)
+// row in `driverp` is its own card.
+//
+// Per-prize cut (winners shown) = `driverp.hoyo` (NOT premios.lugares — in
+// the legacy schema `hoyo` is overloaded to mean "Lugares" for these side
+// games). Falls back to torneo.oyesnumprem if 0/null.
 // ============================================================================
 if ($tipo === '' || $tipo === 'driverp') {
     $DEBUG_SECTIONS['driverp']['enabled'] = true;
@@ -548,42 +553,53 @@ if ($tipo === '' || $tipo === 'driverp') {
 
     if ($row && (int)$row['cnt'] > 0) {
         // Try with optional last-update function first; fall back if missing.
-        // `lugares` comes from the master `premios` table (per torneo+premio).
-        $sql = "SELECT dp.premio as id,
-                       dp.descripcion as name,
-                       dp.hoyo,
-                       MAX(pr.lugares) as lugares,
-                       LEFT(f_ultfechadriverp(dp.descripcion, dp.torneoid), 16) AS ultact
-                FROM driverp dp
-                LEFT JOIN premios pr ON (pr.torneoid = dp.torneoid AND pr.premio = dp.premio)
-                WHERE dp.torneoid = $tid AND dp.premio > 0
-                GROUP BY dp.premio, dp.descripcion, dp.hoyo
-                ORDER BY dp.premio ASC";
+        // EXACT legacy grouping: premio + descripcion + hoyo. This produces
+        // one card per configured prize, supporting multiple prizes inside
+        // the same competition type.
+        $sql = "SELECT premio as id,
+                       descripcion as name,
+                       hoyo,
+                       LEFT(f_ultfechadriverp(descripcion, torneoid), 16) AS ultact
+                FROM driverp
+                WHERE torneoid = $tid AND premio > 0
+                GROUP BY premio, descripcion, hoyo
+                ORDER BY premio ASC, descripcion ASC";
         $prizes = dbg_query_all($conn, $sql, 'driverp', 'list_prizes_with_fn');
         if (empty($prizes) && !empty($DEBUG_SECTIONS['driverp']['errors'])) {
-            $sql = "SELECT dp.premio as id,
-                           dp.descripcion as name,
-                           dp.hoyo,
-                           MAX(pr.lugares) as lugares,
+            $sql = "SELECT premio as id,
+                           descripcion as name,
+                           hoyo,
                            NULL AS ultact
-                    FROM driverp dp
-                    LEFT JOIN premios pr ON (pr.torneoid = dp.torneoid AND pr.premio = dp.premio)
-                    WHERE dp.torneoid = $tid AND dp.premio > 0
-                    GROUP BY dp.premio, dp.descripcion, dp.hoyo
-                    ORDER BY dp.premio ASC";
+                    FROM driverp
+                    WHERE torneoid = $tid AND premio > 0
+                    GROUP BY premio, descripcion, hoyo
+                    ORDER BY premio ASC, descripcion ASC";
             $prizes = dbg_query_all($conn, $sql, 'driverp', 'list_prizes_no_fn');
         }
+
+        // Pre-process orden flags ONCE for the whole section (legacy does
+        // this inside the per-prize loop, but the result is identical and
+        // it's cheaper to run it a single time per request).
+        safe_exec($conn, "UPDATE driverjugp AS a SET a.orden = 0 WHERE a.torneoid = $tid",
+                  'driverp reset orden');
+        safe_exec($conn, "UPDATE driverjugp AS a
+                          JOIN v_driverunicop AS b ON (a.jugadorid = b.jugadorid
+                                                      AND a.distancia = b.mindistancia
+                                                      AND a.torneoid = $tid)
+                          SET a.orden = 1", 'driverp set orden');
 
         $groups = [];
         foreach ($prizes as $p) {
             $premioId    = esc($conn, $p['id']);
             $descripcion = esc($conn, $p['name']);
-            // Winners cut: prefer premios.lugares; fall back to oyesnumprem.
-            $lugares     = (int)($p['lugares'] ?? 0);
+            // Winners cut comes from driverp.hoyo (legacy "Lugares").
+            $lugares     = (int)($p['hoyo'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
 
             $group = [
-                'id'          => 'driverp-' . $p['id'],
+                // Composite id: premio + descripcion slug so each prize
+                // (multiple per type) has a unique route key.
+                'id'          => 'driverp-' . $p['id'] . '-' . preg_replace('/[^a-z0-9]+/i', '-', strtolower((string)$p['name'])),
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
                 'maxPlayers'  => $lugares,
@@ -595,9 +611,13 @@ if ($tipo === '' || $tipo === 'driverp') {
                 $group['playerCount'] = count($group['players']);
                 $group['lastUpdated'] = $p['ultact'] ?? null;
             } else {
-                // Best-effort count without running the full winners query.
-                $sql2 = "SELECT COUNT(*) as cnt FROM driverpjug
-                         WHERE torneoid = $tid AND premio = $premioId";
+                // Best-effort count using same filter as get_driverp_players.
+                $sql2 = "SELECT COUNT(DISTINCT a.jugadorid) as cnt
+                         FROM driverjugp a
+                         WHERE a.torneoid = $tid
+                           AND a.premio = $premioId
+                           AND a.premiosjugcol = '$descripcion'
+                           AND a.orden = 1";
                 $cntRow = safe_query_one($conn, $sql2);
                 $group['playerCount'] = min((int)($cntRow['cnt'] ?? 0), $lugares);
             }
@@ -1066,31 +1086,49 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
 /**
  * Get Driver Precisión players for a prize group.
  *
- * Source: `driverpjug` (player shots) joined to `jugadores` + `clubs`.
- * Filtered by torneoid, premio, and the configured `descripcion` slot.
- * Sorted ASC (closest to line wins). Capped by `$limit` (per-prize hoyo
- * count, falling back to torneo.oyesnumprem).
+ * Mirrors legacy SQL (driverp-4.php) EXACTLY:
+ *   SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
+ *          ROUND(TRUNCATE(a.distancia,3),2) distancia,
+ *          CONCAT(nombre,' ',apellido) jugador,
+ *          b.club, b.categoriaid, c.descripcion, f_logo(b.club) logo
+ *   FROM driverjugp a
+ *   JOIN jugadores b ON (a.jugadorid = b.id)
+ *   JOIN v_driverp c ON (a.campo = c.campo
+ *                        AND b.categoriaid = c.categoriaid
+ *                        AND a.premiosjugcol = c.descripcion)
+ *   WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+ *   ORDER BY c.descripcion, a.distancia ASC
+ *   LIMIT $hoyo
+ *
+ * Sorted ASC (closest to line wins). The orden=0/1 pre-update has already
+ * run once per request in the section block above.
  *
  * @param mysqli $conn        DB connection.
  * @param int    $tid         Active tournament id.
  * @param int    $premioId    Prize id from `driverp.premio`.
  * @param string $descripcion Configured prize description (already escaped).
- * @param int    $limit       Max winners to return.
+ * @param int    $limit       Max winners to return (driverp.hoyo).
  */
 function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
     $limit = max(1, (int)$limit);
 
+    // Join through v_driverp + jugadores + clubs. v_driverp drives which
+    // (campo, categoria, descripcion) shots qualify for this prize slot.
     $sql = "SELECT a.jugadorid,
-                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    a.hoyo,
-                   c.logo, c.nombre as club
-            FROM driverpjug a
-            JOIN jugadores j ON (a.jugadorid = j.id)
-            JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId
-            ORDER BY a.distancia ASC
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   c.descripcion
+            FROM driverjugp a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs    cl ON (b.clubid = cl.id)
+            JOIN v_driverp c ON (a.campo = c.campo
+                                 AND b.categoriaid = c.categoriaid
+                                 AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia ASC
             LIMIT $limit";
 
     $winners = safe_query_all($conn, $sql);
