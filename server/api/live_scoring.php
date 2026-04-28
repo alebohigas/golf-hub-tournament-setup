@@ -127,6 +127,27 @@ foreach ($prevRows as $pr) {
 }
 
 /**
+ * Per-player flag: latest scorecard (most recent fecha_juego) is closed (statlsc=1).
+ * Used by the frontend to display "F" in the Thru column when the player has
+ * finished their CURRENT round, even if the tournament has more rounds pending.
+ */
+$todayClosedByPlayer = [];
+$sqlTodayClosed = "SELECT t.jugadorid, t.statlsc
+                   FROM tarjetas t
+                   JOIN jugadores j ON (j.id = t.jugadorid)
+                   JOIN (
+                       SELECT jugadorid, MAX(fecha_juego) AS maxfecha
+                       FROM tarjetas
+                       WHERE torneoid = $tid
+                       GROUP BY jugadorid
+                   ) m ON (m.jugadorid = t.jugadorid AND m.maxfecha = t.fecha_juego)
+                   WHERE t.torneoid = $tid AND j.categoriaid = $cid";
+$todayRows = query_all($conn, $sqlTodayClosed);
+foreach ($todayRows as $tr) {
+    $todayClosedByPlayer[(string)$tr['jugadorid']] = ((int)$tr['statlsc'] === 1) ? 1 : 0;
+}
+
+/**
  * Closed-only Total per player.
  * The leaderboard "Total" column must reflect ONLY scorecards that are
  * already registered/closed (statlsc=1). The in-progress round is shown
@@ -220,6 +241,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     } else {
@@ -248,6 +270,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     }

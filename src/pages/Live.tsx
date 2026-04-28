@@ -63,6 +63,8 @@ interface StablefordPlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   prevRoundDates?: string[];
 }
@@ -88,6 +90,8 @@ interface StrokePlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
   prevRoundDates?: string[];
 }
@@ -130,11 +134,13 @@ const getStrokeScoreClass = (difpar: number): string => {
 
 /**
  * Check if a player has finished the tournament.
- * Authoritative source: backend `finished` flag (1 when all scheduled
- * scorecards have statlsc=1 in the `tarjetas` table).
- * Falls back to legacy "thru >= 18" only when the flag is absent.
+ * Shows "F" when EITHER:
+ *   - the player's current/latest scorecard is closed (statlsc=1) → `todayClosed`
+ *   - all scheduled scorecards are closed → `finished`
+ * Falls back to legacy "thru >= 18" only when both flags are absent.
  */
 const isPlayerFinished = (player: LivePlayer): boolean => {
+  if (typeof player.todayClosed === 'number' && player.todayClosed === 1) return true;
   if (typeof player.finished === 'number') return player.finished === 1;
   return player.thru >= 18;
 };
