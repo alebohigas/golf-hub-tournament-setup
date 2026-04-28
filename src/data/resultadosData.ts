@@ -49,6 +49,13 @@ export interface PlayerResult {
   r1?: number;
   r2?: number;
   r3?: number;
+  /**
+   * Generic per-round scores indexed by `round - 1` (i.e. rounds[0] is R1).
+   * Backend returns dynamic keys r1, r2, r3, r4, ... — this array lets the
+   * UI render any number of rounds without hardcoding to r1/r2/r3.
+   * `null`/`undefined` means the round was not played / scorecard not closed.
+   */
+  rounds?: Array<number | null | undefined>;
   total: number;
   handicapIndex?: number;
 }
@@ -70,6 +77,11 @@ export interface CutPlayer {
   r2?: number | null;
   /** Round 3 score (closed scorecard only). Null if not played/closed. */
   r3?: number | null;
+  /**
+   * Generic per-round scores indexed by `round - 1`. Mirrors PlayerResult.rounds
+   * so cut-player rows support 4+ rounds without hardcoded fields.
+   */
+  rounds?: Array<number | null | undefined>;
   /** Accumulated total from closed scorecards (0 if no rounds completed) */
   total?: number;
 }
