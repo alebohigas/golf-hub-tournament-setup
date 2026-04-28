@@ -1086,31 +1086,49 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
 /**
  * Get Driver Precisión players for a prize group.
  *
- * Source: `driverpjug` (player shots) joined to `jugadores` + `clubs`.
- * Filtered by torneoid, premio, and the configured `descripcion` slot.
- * Sorted ASC (closest to line wins). Capped by `$limit` (per-prize hoyo
- * count, falling back to torneo.oyesnumprem).
+ * Mirrors legacy SQL (driverp-4.php) EXACTLY:
+ *   SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
+ *          ROUND(TRUNCATE(a.distancia,3),2) distancia,
+ *          CONCAT(nombre,' ',apellido) jugador,
+ *          b.club, b.categoriaid, c.descripcion, f_logo(b.club) logo
+ *   FROM driverjugp a
+ *   JOIN jugadores b ON (a.jugadorid = b.id)
+ *   JOIN v_driverp c ON (a.campo = c.campo
+ *                        AND b.categoriaid = c.categoriaid
+ *                        AND a.premiosjugcol = c.descripcion)
+ *   WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+ *   ORDER BY c.descripcion, a.distancia ASC
+ *   LIMIT $hoyo
+ *
+ * Sorted ASC (closest to line wins). The orden=0/1 pre-update has already
+ * run once per request in the section block above.
  *
  * @param mysqli $conn        DB connection.
  * @param int    $tid         Active tournament id.
  * @param int    $premioId    Prize id from `driverp.premio`.
  * @param string $descripcion Configured prize description (already escaped).
- * @param int    $limit       Max winners to return.
+ * @param int    $limit       Max winners to return (driverp.hoyo).
  */
 function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
     $limit = max(1, (int)$limit);
 
+    // Join through v_driverp + jugadores + clubs. v_driverp drives which
+    // (campo, categoria, descripcion) shots qualify for this prize slot.
     $sql = "SELECT a.jugadorid,
-                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    a.hoyo,
-                   c.logo, c.nombre as club
-            FROM driverpjug a
-            JOIN jugadores j ON (a.jugadorid = j.id)
-            JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId
-            ORDER BY a.distancia ASC
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   c.descripcion
+            FROM driverjugp a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs    cl ON (b.clubid = cl.id)
+            JOIN v_driverp c ON (a.campo = c.campo
+                                 AND b.categoriaid = c.categoriaid
+                                 AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia ASC
             LIMIT $limit";
 
     $winners = safe_query_all($conn, $sql);
