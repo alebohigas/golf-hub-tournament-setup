@@ -157,7 +157,11 @@ const Resultados = () => {
   /** Handle round score click - fetch scorecard from API and toggle expansion */
   const handleRoundClick = async (player: PlayerResult, round: number) => {
     const key = `${player.id}-${round}`;
-    const roundScore = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+    // Use generic `rounds` array when present (supports R4+); fall back to
+    // the legacy r1/r2/r3 fields for older payloads.
+    const roundScore = player.rounds
+      ? player.rounds[round - 1]
+      : round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
     
     if (roundScore === undefined || roundScore === null) return;
 
@@ -382,7 +386,12 @@ const Resultados = () => {
                                   {/* Dynamic round score cells */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
-                                    const score = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+                                    // Read from the generic per-round array so any
+                                    // number of rounds (R4, R5, ...) renders correctly
+                                    // instead of falling back to R3.
+                                    const score = player.rounds
+                                      ? player.rounds[i]
+                                      : round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
                                     const isExpanded = expandedScorecard === `${player.id}-${round}`;
                                     return (
                                       <TableCell key={round} className="text-center p-0">
@@ -495,7 +504,10 @@ const Resultados = () => {
                                    */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
-                                    const score = round === 1 ? cp.r1 : round === 2 ? cp.r2 : cp.r3;
+                                    // Generic per-round access for cut players too.
+                                    const score = cp.rounds
+                                      ? cp.rounds[i]
+                                      : round === 1 ? cp.r1 : round === 2 ? cp.r2 : cp.r3;
                                     const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
                                     if (score === undefined || score === null) {
                                       return (
@@ -507,7 +519,7 @@ const Resultados = () => {
                                         <button
                                           onClick={() => handleRoundClick(
                                             // Reuse PlayerResult-shaped object so handler signature stays the same
-                                            { id: cp.playerId, position: 0, name: cp.name, club: cp.club, clubLogo: cp.clubLogo, r1: cp.r1 ?? undefined, r2: cp.r2 ?? undefined, r3: cp.r3 ?? undefined, total: cp.total ?? 0 } as PlayerResult,
+                                            { id: cp.playerId, position: 0, name: cp.name, club: cp.club, clubLogo: cp.clubLogo, r1: cp.r1 ?? undefined, r2: cp.r2 ?? undefined, r3: cp.r3 ?? undefined, rounds: cp.rounds, total: cp.total ?? 0 } as PlayerResult,
                                             round,
                                           )}
                                           className={`w-full py-3 px-2 font-medium transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
