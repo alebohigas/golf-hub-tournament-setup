@@ -154,6 +154,19 @@ const isPlayerFinished = (player: LivePlayer): boolean => {
 };
 
 /**
+ * Determine whether the "Hoy" (today) live scorecard is openable for a player.
+ * The button is disabled when:
+ *   - There is no current/latest card available (`hasCurrentCard !== 1`)
+ *   - The latest card is already closed (`todayClosed === 1`) — those are
+ *     final scorecards and surface through the per-round drill-down instead.
+ */
+const canOpenTodayScorecard = (player: LivePlayer): boolean => {
+  if (player.hasCurrentCard !== 1) return false;
+  if (player.todayClosed === 1) return false;
+  return true;
+};
+
+/**
  * Format the "Thru" column display
  * Shows "F" for finished players (tournament complete), hole number otherwise, "-" if 0
  */
