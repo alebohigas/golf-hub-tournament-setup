@@ -630,7 +630,11 @@ const Live = () => {
                                 ) : scorecardStack.length > 0 ? (
                                   scorecardStack.map((sc, idx) => {
                                     const isLiveExpansion = expandedPlayerId === `${player.playerId}::today`;
-                                    const roundLabel = isLiveExpansion
+                                    // For "Total" expansion, the live card (if present)
+                                    // is appended LAST. Mark it explicitly as "En Vivo".
+                                    const prevCount = player.prevRoundDates?.length ?? 0;
+                                    const isAppendedLive = !isLiveExpansion && idx >= prevCount;
+                                    const roundLabel = isLiveExpansion || isAppendedLive
                                       ? 'En Vivo'
                                       : `Ronda ${idx + 1}`;
                                     return (
