@@ -226,6 +226,12 @@ foreach ($rows as $row) {
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
         $todayStatus = $currentCardStatusByPlayer[$pid] ?? null;
+        // Per user request: include the in-progress (live) round in the
+        // displayed Total. The latest card's points (`sa`) are already
+        // counted in $closedScore when statlsc=1, so only add when the
+        // current card is still open.
+        $isTodayOpen = (($todayClosedByPlayer[$pid] ?? 0) !== 1);
+        $liveAdd = $isTodayOpen ? (int)($row['sa'] ?? 0) : 0;
         $players[] = [
             'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
@@ -233,8 +239,8 @@ foreach ($rows as $row) {
             'name'           => $row['jugador'],
             'clubLogo'       => $row['juglogoclub'] ? $LOGOS_BASE_URL . $row['juglogoclub'] : '',
             'club'           => $row['club'] ?? '',
-            // Total = sum of CLOSED (statlsc=1) cards only. Live round is excluded.
-            'score'          => $closedScore,
+            // Total = closed cards + in-progress live round (Stableford points).
+            'score'          => $closedScore + $liveAdd,
             'prevRoundScore' => (int)($row['sumsault'] ?? 0),
             'todayScore'     => (int)($row['sa'] ?? 0),
             'thru'           => (int)($row['avance'] ?? 0),
@@ -257,14 +263,19 @@ foreach ($rows as $row) {
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
         $todayStatus = $currentCardStatusByPlayer[$pid] ?? null;
+        // Per user request: include the in-progress live round's diff-to-par
+        // in the displayed Total. Only add when the current card is still open
+        // (closed cards are already in $closedScore).
+        $isTodayOpen = (($todayClosedByPlayer[$pid] ?? 0) !== 1);
+        $liveAdd = $isTodayOpen ? (int)($row['difparulttar'] ?? 0) : 0;
         $players[] = [
             'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
             'name'           => $playerName,
             'clubLogo'       => $row['juglogoclub'] ? $LOGOS_BASE_URL . $row['juglogoclub'] : '',
             'club'           => $row['club'] ?? '',
-            // Total = sum of CLOSED (statlsc=1) cards only. Live round is excluded.
-            'score'          => $closedScore,
+            // Total = closed cards + in-progress live round diff-to-par.
+            'score'          => $closedScore + $liveAdd,
             'todayScore'     => (int)($row['difparulttar'] ?? 0),
             'thru'           => (int)($row['avance_ulttar'] ?? 0),
             'handicap'       => $row['indexjgo'] ?? '',
