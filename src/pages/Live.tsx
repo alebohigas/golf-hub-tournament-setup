@@ -155,15 +155,19 @@ const isPlayerFinished = (player: LivePlayer): boolean => {
 
 /**
  * Determine whether the "Hoy" (today) live scorecard is openable for a player.
- * The button is disabled when:
- *   - There is no current/latest card available (`hasCurrentCard !== 1`)
- *   - The latest card is already closed (`todayClosed === 1`) — those are
- *     final scorecards and surface through the per-round drill-down instead.
+ * Open whenever the latest card is NOT closed AND the player has actually
+ * started playing today (thru > 0 OR todayScore != 0). Closed cards
+ * (todayClosed === 1) surface through the per-round drill-down instead.
+ * Note: backend does not always send `hasCurrentCard`, so we no longer
+ * gate on it — that flag was the source of the regression that hid
+ * current-day scorecards entirely.
  */
 const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-  if (player.hasCurrentCard !== 1) return false;
   if (player.todayClosed === 1) return false;
-  return true;
+  // Player has begun their current round
+  if ((player.thru ?? 0) > 0) return true;
+  if ((player.todayScore ?? 0) !== 0) return true;
+  return false;
 };
 
 /**
@@ -247,9 +251,10 @@ const Live = () => {
 
   /**
    * Click on the "Total" column.
-   * Shows ONLY the player's previously closed scorecards (statlsc=1),
-   * one per date, stacked top-to-bottom. The in-progress (live) round
-   * is NOT included here — it belongs to the "Hoy" column.
+   * Shows the player's previously closed scorecards (statlsc=1) stacked
+   * by date AND appends the in-progress live scorecard at the end (when
+   * available). This reflects the user decision to have the partial
+   * scorecard contribute to the displayed totals view.
    */
   const handleTotalClick = async (player: LivePlayer) => {
     // Toggle off if already expanded
@@ -260,8 +265,9 @@ const Live = () => {
     }
 
     const prevDates = player.prevRoundDates ?? [];
-    // Nothing to show if no closed scorecards exist
-    if (prevDates.length === 0) return;
+    const canOpenLive = canOpenTodayScorecard(player);
+    // Nothing to show if no closed scorecards AND no live card available
+    if (prevDates.length === 0 && !canOpenLive) return;
 
     setExpandedPlayerId(player.playerId);
     setScorecardStack([]);
@@ -292,6 +298,17 @@ const Live = () => {
       const prevResults = await Promise.all(prevPromises);
       const stack: RoundScorecard[] = prevResults
         .filter((c): c is RoundScorecard => c !== null);
+
+      // Append in-progress live scorecard so the partial round contributes
+      // visually to the total stack. Failures are logged but non-fatal.
+      if (canOpenLive) {
+        try {
+          const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
+          stack.push(live);
+        } catch (err) {
+          console.error('Failed to fetch live scorecard for total stack:', err);
+        }
+      }
       setScorecardStack(stack);
     } catch (err) {
       console.error('Failed to fetch previous scorecards:', err);
@@ -547,13 +564,13 @@ const Live = () => {
                                   Live/in-progress round is NOT included here (see "Hoy").
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {(player.prevRoundDates && player.prevRoundDates.length > 0) ? (
+                                  {((player.prevRoundDates && player.prevRoundDates.length > 0) || canOpenTodayScorecard(player)) ? (
                                     <button
                                       onClick={() => handleTotalClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjetas de rondas previas"
+                                      title="Ver tarjetas de rondas previas y ronda en curso"
                                     >
                                       {isStroke ? formatDifPar(player.score) : player.score}
                                     </button>
@@ -613,7 +630,11 @@ const Live = () => {
                                 ) : scorecardStack.length > 0 ? (
                                   scorecardStack.map((sc, idx) => {
                                     const isLiveExpansion = expandedPlayerId === `${player.playerId}::today`;
-                                    const roundLabel = isLiveExpansion
+                                    // For "Total" expansion, the live card (if present)
+                                    // is appended LAST. Mark it explicitly as "En Vivo".
+                                    const prevCount = player.prevRoundDates?.length ?? 0;
+                                    const isAppendedLive = !isLiveExpansion && idx >= prevCount;
+                                    const roundLabel = isLiveExpansion || isAppendedLive
                                       ? 'En Vivo'
                                       : `Ronda ${idx + 1}`;
                                     return (
