@@ -66,8 +66,6 @@ interface StablefordPlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
-  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
-  todayClosed?: number;
   /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
   todayStatlsc?: number | null;
   /** 1 when the player has a latest card available for live_tarjeta.php */
@@ -99,8 +97,6 @@ interface StrokePlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
-  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
-  todayClosed?: number;
   /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
   todayStatlsc?: number | null;
   /** 1 when the player has a latest card available for live_tarjeta.php */
