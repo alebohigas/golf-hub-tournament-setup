@@ -9,6 +9,20 @@ import { apiFetch } from '@/lib/apiClient';
 import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlayer } from '@/data/resultadosData';
 
+/**
+ * Extract every dynamic round key (`r1`, `r2`, ... `rN`) from a raw API player
+ * object into a plain object. The API returns one `r{i}` field per play day,
+ * so the number of rounds is variable and must NOT be hardcoded to 3.
+ */
+const extractRounds = (p: any): Record<string, number | null | undefined> => {
+  const out: Record<string, number | null | undefined> = {};
+  if (!p || typeof p !== 'object') return out;
+  for (const k of Object.keys(p)) {
+    if (/^r\d+$/.test(k)) out[k] = p[k] ?? undefined;
+  }
+  return out;
+};
+
 // ============= All Results =============
 
 /** Fetch all categories with results, including GROSS when enabled */
@@ -44,9 +58,7 @@ export const useAllResults = () => {
               name: p.name || '',
               club: p.club || '',
               clubLogo: p.clubLogo || '',
-              r1: p.r1 ?? undefined,
-              r2: p.r2 ?? undefined,
-              r3: p.r3 ?? undefined,
+              ...extractRounds(p),
               total: p.total ?? p.totalSA ?? 0,
               handicapIndex: p.handicapIndex,
             }));
@@ -64,9 +76,7 @@ export const useAllResults = () => {
                 name: p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
-                r1: p.r1 ?? undefined,
-                r2: p.r2 ?? undefined,
-                r3: p.r3 ?? undefined,
+                ...extractRounds(p),
                 total: p.total ?? p.totalSO ?? 0,
                 handicapIndex: p.handicapIndex,
               }));
@@ -127,9 +137,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
                 name: p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
-                r1: p.r1 ?? undefined,
-                r2: p.r2 ?? undefined,
-                r3: p.r3 ?? undefined,
+                ...extractRounds(p),
                 total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
                 handicapIndex: p.handicapIndex,
               })),
@@ -144,10 +152,9 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         clubLogo: cp.clubLogo || '',
         statusCode: cp.statusCode || 'D',
         statusLabel: cp.statusLabel || 'Descalificado',
-        // Per-round scores (may be null if round not played / scorecard not closed)
-        r1: cp.r1 ?? null,
-        r2: cp.r2 ?? null,
-        r3: cp.r3 ?? null,
+        // Per-round scores (may be null if round not played / scorecard not closed).
+        // Spread ALL r{n} keys so tournaments with >3 rounds render correctly.
+        ...extractRounds(cp),
         // Accumulated closed-card total
         total: typeof cp.total === 'number' ? cp.total : 0,
       }));
