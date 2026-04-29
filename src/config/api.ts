@@ -173,3 +173,33 @@ export const getLiveTarjetaUrl = (
  */
 export const getLogoUrl = (logoFilename: string): string =>
   `${LOGOS_BASE_URL}${logoFilename}`;
+
+// ============= Pre-Registro endpoints =============
+
+/** Form fields configuration (admin + public) */
+export const getRegistroFieldsUrl = (): string =>
+  `${API_BASE_URL}/registro_fields.php${buildQuery()}`;
+
+/** Public submission endpoint (POST multipart) */
+export const getRegistroSubmitUrl = (): string =>
+  `${API_BASE_URL}/registro.php${buildQuery()}`;
+
+/** Admin listing endpoint (requires ?password=) */
+export const getRegistroListUrl = (password: string): string =>
+  `${API_BASE_URL}/registro.php${buildQuery({ password })}`;
+
+/** Admin verify toggle endpoint (POST JSON body) */
+export const getRegistroVerifyUrl = (): string =>
+  `${API_BASE_URL}/registro.php?action=verify`;
+
+/** Stream binary attachment for a single registro row */
+export const getRegistroArchivoUrl = (id: number, password: string): string =>
+  `${API_BASE_URL}/registro_archivo.php?id=${id}&password=${encodeURIComponent(password)}`;
+
+/** Cascading location dropdowns */
+export const getLocationsCountriesUrl = (): string =>
+  `${API_BASE_URL}/locations.php?kind=countries`;
+export const getLocationsStatesUrl = (countryId: number | string): string =>
+  `${API_BASE_URL}/locations.php?kind=states&country_id=${encodeURIComponent(String(countryId))}`;
+export const getLocationsCitiesUrl = (stateId: number | string): string =>
+  `${API_BASE_URL}/locations.php?kind=cities&state_id=${encodeURIComponent(String(stateId))}`;

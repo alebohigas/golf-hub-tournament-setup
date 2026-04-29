@@ -29,6 +29,8 @@ import Premios from "./pages/Premios";
 import Patrocinadores from "./pages/Patrocinadores";
 import Reglas from "./pages/Reglas";
 import Admin from "./pages/Admin";
+import Registro from "./pages/Registro";
+import AdminRegistros from "./pages/AdminRegistros";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -91,6 +93,7 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/registros" element={<AdminRegistros />} />
               
               {/* Protected Routes - visibility controlled by admin */}
               <Route path="/convocatoria" element={<ProtectedRoute pageId="convocatoria"><Convocatoria /></ProtectedRoute>} />
@@ -107,6 +110,7 @@ const App = () => (
               <Route path="/premios" element={<ProtectedRoute pageId="premios"><Premios /></ProtectedRoute>} />
               <Route path="/patrocinadores" element={<ProtectedRoute pageId="patrocinadores"><Patrocinadores /></ProtectedRoute>} />
               <Route path="/reglas" element={<ProtectedRoute pageId="reglas"><Reglas /></ProtectedRoute>} />
+              <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />

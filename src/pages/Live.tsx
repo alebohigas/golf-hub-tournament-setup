@@ -66,8 +66,6 @@ interface StablefordPlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
-  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
-  todayClosed?: number;
   /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
   todayStatlsc?: number | null;
   /** 1 when the player has a latest card available for live_tarjeta.php */
@@ -99,8 +97,6 @@ interface StrokePlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
-  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
-  todayClosed?: number;
   /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
   todayStatlsc?: number | null;
   /** 1 when the player has a latest card available for live_tarjeta.php */
@@ -155,6 +151,19 @@ const isPlayerFinished = (player: LivePlayer): boolean => {
   if (typeof player.todayClosed === 'number' && player.todayClosed === 1) return true;
   if (typeof player.finished === 'number') return player.finished === 1;
   return player.thru >= 18;
+};
+
+/**
+ * Determine whether the "Hoy" (today) live scorecard is openable for a player.
+ * The button is disabled when:
+ *   - There is no current/latest card available (`hasCurrentCard !== 1`)
+ *   - The latest card is already closed (`todayClosed === 1`) — those are
+ *     final scorecards and surface through the per-round drill-down instead.
+ */
+const canOpenTodayScorecard = (player: LivePlayer): boolean => {
+  if (player.hasCurrentCard !== 1) return false;
+  if (player.todayClosed === 1) return false;
+  return true;
 };
 
 /**

@@ -1,0 +1,286 @@
+/**
+ * AdminRegistros Page
+ * --------------------------------------------------------------------
+ * Separate, password-protected dashboard for the Pre-Registro feature.
+ * Lists all submissions for the active tournament, allows toggling a
+ * "verificado" flag, and provides a download link for the comprobante
+ * stored as LONGBLOB in registro.reg_archivo.
+ *
+ * Auth: independent password (`registros2025`) — not tied to /admin.
+ */
+
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import Layout from '@/components/layout/Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import {
+  getRegistroListUrl,
+  getRegistroVerifyUrl,
+  getRegistroArchivoUrl,
+} from '@/config/api';
+
+/** localStorage key for the registros admin session token. */
+const SESSION_KEY = 'registros_admin_session';
+const REGISTROS_PASSWORD = 'registros2025';
+
+/** A single registro row from /api/registro.php */
+interface RegistroRow {
+  id: number;
+  reg_nombre?: string;
+  reg_apellido?: string;
+  reg_correo?: string;
+  reg_telefono?: string;
+  reg_handicap?: string;
+  reg_categoria?: string;
+  reg_es_socio?: string;
+  reg_tipo_socio?: string;
+  reg_club?: string;
+  reg_fecha?: string;
+  created_at?: string;
+  reg_verificado?: number | string;
+  has_archivo?: number | string;
+  reg_archivo_nombre?: string;
+}
+
+// ============= Login form =============
+
+const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => boolean }) => {
+  const [pwd, setPwd] = useState('');
+  const [err, setErr] = useState(false);
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!onLogin(pwd)) { setErr(true); setPwd(''); }
+  };
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Shield className="w-8 h-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl">Pre-Registros</CardTitle>
+          <CardDescription>Acceso para el equipo de verificación</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pwd">Contraseña</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="pwd" type="password" value={pwd}
+                  onChange={e => { setPwd(e.target.value); setErr(false); }}
+                  className={cn('pl-10', err && 'border-destructive focus-visible:ring-destructive')}
+                  placeholder="Ingresa la contraseña"
+                />
+              </div>
+              {err && <p className="text-sm text-destructive">Contraseña incorrecta</p>}
+            </div>
+            <Button type="submit" className="w-full">Entrar</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// ============= Dashboard =============
+
+const Dashboard = ({ password }: { password: string }) => {
+  const [rows, setRows] = useState<RegistroRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'verified'>('all');
+  const [search, setSearch] = useState('');
+  const { toast } = useToast();
+
+  /** Fetch the latest list. */
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(getRegistroListUrl(password));
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error al cargar');
+      setRows(json.rows || []);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
+
+  /** Toggle verification flag on the server. */
+  const toggleVerified = async (row: RegistroRow, verified: boolean) => {
+    try {
+      const res = await fetch(getRegistroVerifyUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, verified: verified ? 1 : 0, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      setRows(prev => prev.map(r => r.id === row.id ? { ...r, reg_verificado: verified ? 1 : 0 } : r));
+    } catch (err: any) {
+      toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  /** Apply client-side filters (status + search). */
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return rows.filter(r => {
+      const v = Number(r.reg_verificado) === 1;
+      if (filter === 'pending' && v) return false;
+      if (filter === 'verified' && !v) return false;
+      if (term) {
+        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [rows, filter, search]);
+
+  const verifiedCount = rows.filter(r => Number(r.reg_verificado) === 1).length;
+
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Pre-Registros</h1>
+          <p className="text-muted-foreground">
+            {rows.length} pre-registros · {verifiedCount} verificados · {rows.length - verifiedCount} pendientes
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={refresh} disabled={loading} className="gap-2">
+            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} /> Actualizar
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6 flex flex-col md:flex-row gap-3">
+          <div className="flex gap-2">
+            <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Todos</Button>
+            <Button variant={filter === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('pending')}>Pendientes</Button>
+            <Button variant={filter === 'verified' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('verified')}>Verificados</Button>
+          </div>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-10" placeholder="Buscar por nombre, correo, club…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No hay registros para mostrar.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3">Jugador</th>
+                    <th className="text-left p-3">Contacto</th>
+                    <th className="text-left p-3">Categoría</th>
+                    <th className="text-left p-3">Club / Hcp</th>
+                    <th className="text-left p-3">Socio</th>
+                    <th className="text-center p-3">Comprobante</th>
+                    <th className="text-center p-3">Verificado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(r => {
+                    const verified = Number(r.reg_verificado) === 1;
+                    const hasFile = Number(r.has_archivo) === 1;
+                    return (
+                      <tr key={r.id} className="border-t">
+                        <td className="p-3">
+                          <div className="font-medium">{[r.reg_nombre, r.reg_apellido].filter(Boolean).join(' ') || '—'}</div>
+                          <div className="text-xs text-muted-foreground">#{r.id} · {r.reg_fecha || r.created_at || ''}</div>
+                        </td>
+                        <td className="p-3">
+                          <div>{r.reg_correo || '—'}</div>
+                          <div className="text-xs text-muted-foreground">{r.reg_telefono || ''}</div>
+                        </td>
+                        <td className="p-3">{r.reg_categoria || '—'}</td>
+                        <td className="p-3">
+                          <div>{r.reg_club || '—'}</div>
+                          <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
+                        </td>
+                        <td className="p-3">
+                          {r.reg_es_socio === 'SI' ? (
+                            <Badge variant="default">Socio · {r.reg_tipo_socio || '—'}</Badge>
+                          ) : (
+                            <Badge variant="secondary">No socio</Badge>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          {hasFile ? (
+                            <Button asChild size="sm" variant="outline" className="gap-1">
+                              <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
+                                <FileDown className="h-4 w-4" /> Ver
+                              </a>
+                            </Button>
+                          ) : <span className="text-muted-foreground text-xs">—</span>}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Switch checked={verified} onCheckedChange={(v) => toggleVerified(r, v)} />
+                            {verified
+                              ? <CheckCircle2 className="h-4 w-4 text-primary" />
+                              : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// ============= Page =============
+
+const AdminRegistros = () => {
+  const [authed, setAuthed] = useState<boolean>(() => sessionStorage.getItem(SESSION_KEY) === '1');
+
+  /** Compare against the local constant; on success persist for the session. */
+  const onLogin = (pwd: string) => {
+    if (pwd === REGISTROS_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      setAuthed(true);
+      return true;
+    }
+    return false;
+  };
+
+  return (
+    <Layout>
+      {authed ? <Dashboard password={REGISTROS_PASSWORD} /> : <LoginForm onLogin={onLogin} />}
+    </Layout>
+  );
+};
+
+export default AdminRegistros;
