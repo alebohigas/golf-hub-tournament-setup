@@ -251,9 +251,10 @@ const Live = () => {
 
   /**
    * Click on the "Total" column.
-   * Shows ONLY the player's previously closed scorecards (statlsc=1),
-   * one per date, stacked top-to-bottom. The in-progress (live) round
-   * is NOT included here — it belongs to the "Hoy" column.
+   * Shows the player's previously closed scorecards (statlsc=1) stacked
+   * by date AND appends the in-progress live scorecard at the end (when
+   * available). This reflects the user decision to have the partial
+   * scorecard contribute to the displayed totals view.
    */
   const handleTotalClick = async (player: LivePlayer) => {
     // Toggle off if already expanded
@@ -264,8 +265,9 @@ const Live = () => {
     }
 
     const prevDates = player.prevRoundDates ?? [];
-    // Nothing to show if no closed scorecards exist
-    if (prevDates.length === 0) return;
+    const canOpenLive = canOpenTodayScorecard(player);
+    // Nothing to show if no closed scorecards AND no live card available
+    if (prevDates.length === 0 && !canOpenLive) return;
 
     setExpandedPlayerId(player.playerId);
     setScorecardStack([]);
@@ -296,6 +298,17 @@ const Live = () => {
       const prevResults = await Promise.all(prevPromises);
       const stack: RoundScorecard[] = prevResults
         .filter((c): c is RoundScorecard => c !== null);
+
+      // Append in-progress live scorecard so the partial round contributes
+      // visually to the total stack. Failures are logged but non-fatal.
+      if (canOpenLive) {
+        try {
+          const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
+          stack.push(live);
+        } catch (err) {
+          console.error('Failed to fetch live scorecard for total stack:', err);
+        }
+      }
       setScorecardStack(stack);
     } catch (err) {
       console.error('Failed to fetch previous scorecards:', err);
