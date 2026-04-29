@@ -564,13 +564,13 @@ const Live = () => {
                                   Live/in-progress round is NOT included here (see "Hoy").
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {(player.prevRoundDates && player.prevRoundDates.length > 0) ? (
+                                  {((player.prevRoundDates && player.prevRoundDates.length > 0) || canOpenTodayScorecard(player)) ? (
                                     <button
                                       onClick={() => handleTotalClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjetas de rondas previas"
+                                      title="Ver tarjetas de rondas previas y ronda en curso"
                                     >
                                       {isStroke ? formatDifPar(player.score) : player.score}
                                     </button>
