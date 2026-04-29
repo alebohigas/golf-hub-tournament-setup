@@ -155,15 +155,19 @@ const isPlayerFinished = (player: LivePlayer): boolean => {
 
 /**
  * Determine whether the "Hoy" (today) live scorecard is openable for a player.
- * The button is disabled when:
- *   - There is no current/latest card available (`hasCurrentCard !== 1`)
- *   - The latest card is already closed (`todayClosed === 1`) — those are
- *     final scorecards and surface through the per-round drill-down instead.
+ * Open whenever the latest card is NOT closed AND the player has actually
+ * started playing today (thru > 0 OR todayScore != 0). Closed cards
+ * (todayClosed === 1) surface through the per-round drill-down instead.
+ * Note: backend does not always send `hasCurrentCard`, so we no longer
+ * gate on it — that flag was the source of the regression that hid
+ * current-day scorecards entirely.
  */
 const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-  if (player.hasCurrentCard !== 1) return false;
   if (player.todayClosed === 1) return false;
-  return true;
+  // Player has begun their current round
+  if ((player.thru ?? 0) > 0) return true;
+  if ((player.todayScore ?? 0) !== 0) return true;
+  return false;
 };
 
 /**
