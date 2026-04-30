@@ -103,22 +103,37 @@ $medalCountGross = (int)$catInfo['numganadorgross'];
 /** Active medal count for the requested scoring type (back-compat field) */
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
-// ============= Get play dates =============
-// Include ALL scheduled rounds with a course assigned (campo > 0), regardless
-// of caljuego.estatus. Per-round score functions (f_score_dia_sax/sox) already
-// filter by closed scorecards (statlsc = 1) via v_resultar, so unplayed rounds
-// return 0 and are hidden client-side by the `$val != 0` check below.
-// Previously this required estatus > 1, which dropped a round (e.g. R3) when
-// the caljuego row hadn't been advanced past "in progress" — even though
-// scorecards for that day were already closed (bug seen in category Primera).
+// ============= Get fully closed play dates =============
+// Resultados must never expose a round column until EVERY eligible NORMAL
+// player in the category has a closed scorecard (`tarjetas.statlsc = 1`) for
+// that scheduled date. This prevents partial live rounds from leaking into
+// Resultados as columns full of dashes or mixed partial scores.
 $sql = "SELECT fecha FROM caljuego
         WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
 $dateRows = query_all($conn, $sql);
 
 $dias = [];
-foreach ($dateRows as $i => $dr) {
-    $dias[$i + 1] = $dr['fecha'];
+$eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
+if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
+
+/** Total players expected to have a closed card before a round is published. */
+$expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
+$expectedPlayers = (int)($expectedRow['total'] ?? 0);
+
+foreach ($dateRows as $dr) {
+    $fecha = $dr['fecha'];
+    $fecEsc = esc($conn, $fecha);
+    $closedRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
+                                   FROM tarjetas t
+                                   JOIN jugadores j ON (j.id = t.jugadorid)
+                                   WHERE $eligibleWhere
+                                     AND t.torneoid = $tid
+                                     AND DATE(t.fecha_juego) = '$fecEsc'
+                                     AND t.statlsc = 1");
+    if ($expectedPlayers > 0 && (int)($closedRow['total'] ?? 0) >= $expectedPlayers) {
+        $dias[count($dias) + 1] = $fecha;
+    }
 }
 
 // ============= Get course info =============
@@ -131,14 +146,20 @@ $courseInfo = query_one($conn, $sql);
 
 // ============= Inline subquery helpers for closed-card totals =============
 
-/** Sum SA (neto/stableford points) from CLOSED cards only */
-$closedSA  = "(SELECT IFNULL(SUM(t.SA), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
+/** SQL date guard: totals only include category-wide fully closed rounds. */
+$closedDates = array_map(function($fecha) use ($conn) { return "'" . esc($conn, $fecha) . "'"; }, array_values($dias));
+$closedDateFilter = count($closedDates) > 0
+    ? " AND DATE(t.fecha_juego) IN (" . implode(',', $closedDates) . ")"
+    : " AND 1 = 0";
 
-/** Sum SO (gross strokes) from CLOSED cards only */
-$closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
+/** Sum SA (neto/stableford points) from CLOSED cards only on fully published rounds */
+$closedSA  = "(SELECT IFNULL(SUM(t.SA), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
 
-/** Sum totstbgross (stableford gross points) from CLOSED cards only */
-$closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
+/** Sum SO (gross strokes) from CLOSED cards only on fully published rounds */
+$closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
+/** Sum totstbgross (stableford gross points) from CLOSED cards only on fully published rounds */
+$closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
 
 // ============= Round 1 tiebreaker chunk builders =============
 /**
@@ -272,7 +293,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSO > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSO ASC";
 
@@ -304,7 +325,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSA > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA ASC";
@@ -339,7 +360,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSTBGross > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSTBGross DESC";
 
@@ -372,7 +393,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSA > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA DESC";
