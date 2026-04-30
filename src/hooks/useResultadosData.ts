@@ -136,14 +136,12 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
           : [{
               scoringType: raw.gross === 1 ? 'GROSS' as const : 'NETO' as const,
               players: (raw.players || []).map((p: any, idx: number) => ({
+                ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
                 name: p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
-                r1: p.r1 ?? undefined,
-                r2: p.r2 ?? undefined,
-                r3: p.r3 ?? undefined,
                 total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
                 handicapIndex: p.handicapIndex,
               })),
@@ -151,6 +149,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
 
       // Map cut players (non-NORMAL status)
       const cutPlayers: CutPlayer[] = (raw.cutPlayers || []).map((cp: any) => ({
+        ...mapCutRoundScores(cp),
         playerId: cp.playerId || '',
         number: cp.number || '',
         name: cp.name || '',
@@ -158,10 +157,6 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         clubLogo: cp.clubLogo || '',
         statusCode: cp.statusCode || 'D',
         statusLabel: cp.statusLabel || 'Descalificado',
-        // Per-round scores (may be null if round not played / scorecard not closed)
-        r1: cp.r1 ?? null,
-        r2: cp.r2 ?? null,
-        r3: cp.r3 ?? null,
         // Accumulated closed-card total
         total: typeof cp.total === 'number' ? cp.total : 0,
       }));
