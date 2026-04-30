@@ -3,8 +3,8 @@
  * Renders an expandable scorecard (hole-by-hole) below a player row
  * Adapts layout based on scorecardType: 'hcp', 'stableford', or 'scratch'
  * 
- * Stableford: Hoyo, Par, Gross, Vtja, Neto, Ptos
- * HCP (Stroke Neto): Hoyo, Par, Gross, Vtja, Neto
+ * Stableford: Hoyo, Par, Gross, Vtja, Hcp., Neto, Ptos
+ * HCP (Stroke Neto): Hoyo, Par, Gross, Vtja, Hcp., Neto
  * Scratch (Gross): Hoyo, Par, Golpes, +/-
  */
 
@@ -90,27 +90,27 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
-          {/* Vtja row - actual handicap strokes received by the player on each hole */}
+          {/* Vtja row - course hole handicap/difficulty ranking from campo_tee.ventajas */}
           {(type === 'hcp' || type === 'stableford') && (
             <tr className="bg-muted/20">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcp ?? 0}</td>
+              ))}
+              <td className="px-2 py-1 text-center text-muted-foreground">-</td>
+            </tr>
+          )}
+
+          {/* Hcp. row - actual handicap strokes received by the player on each hole */}
+          {(type === 'hcp' || type === 'stableford') && (
+            <tr className="bg-muted/10">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Hcp.</td>
               {holes.map(h => (
                 <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcpStrokes ?? 0}</td>
               ))}
               <td className="px-2 py-1 text-center font-semibold text-muted-foreground">
                 {holes.reduce((s, h) => s + (h.hcpStrokes ?? 0), 0)}
               </td>
-            </tr>
-          )}
-
-          {/* Hcp. row - hole difficulty ranking (1 = hardest), from campo_tee.ventajas */}
-          {(type === 'hcp' || type === 'stableford') && (
-            <tr className="bg-muted/10">
-              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Hcp.</td>
-              {holes.map(h => (
-                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcp ?? 0}</td>
-              ))}
-              <td className="px-2 py-1 text-center text-muted-foreground">-</td>
             </tr>
           )}
 
