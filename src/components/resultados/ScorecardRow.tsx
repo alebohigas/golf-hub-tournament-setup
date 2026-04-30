@@ -3,8 +3,8 @@
  * Renders an expandable scorecard (hole-by-hole) below a player row
  * Adapts layout based on scorecardType: 'hcp', 'stableford', or 'scratch'
  * 
- * Stableford: Hoyo, Par, Vtja, Gross, Hcp., Neto, Ptos
- * HCP (Stroke Neto): Hoyo, Par, Vtja, Gross, Hcp., Neto
+ * Stableford: Hoyo, Par, Gross, Vtja, Neto, Ptos
+ * HCP (Stroke Neto): Hoyo, Par, Gross, Vtja, Neto
  * Scratch (Gross): Hoyo, Par, Golpes, +/-
  */
 
@@ -75,17 +75,6 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </td>
           </tr>
 
-          {/* Vtja (Ventaja) row - shown for hcp and stableford */}
-          {(type === 'hcp' || type === 'stableford') && (
-            <tr className="bg-muted/30">
-              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
-              {holes.map(h => (
-                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground text-[11px]">{h.hcp}</td>
-              ))}
-              <td className="px-2 py-1 text-center"></td>
-            </tr>
-          )}
-
           {/* Gross row - shown for hcp and stableford (labeled "Gross") */}
           {(type === 'hcp' || type === 'stableford') && (
             <tr>
@@ -101,10 +90,10 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
-          {/* Hcp. strokes row - shown for hcp and stableford */}
+          {/* Vtja row - actual handicap strokes received by the player on each hole */}
           {(type === 'hcp' || type === 'stableford') && (
             <tr className="bg-muted/20">
-              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Hcp.</td>
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
               {holes.map(h => (
                 <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcpStrokes ?? 0}</td>
               ))}
