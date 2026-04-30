@@ -199,7 +199,11 @@ $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t
  * @return string SQL scalar subquery.
  */
 function r1_chunk($col, $holes, $r1) {
-    if (!$r1) return '(0)';
+    // No R1 date → return a NULL expression. We deliberately avoid '(0)' here
+    // because MySQL interprets a bare integer literal in ORDER BY as a column
+    // ordinal (e.g. `ORDER BY 0` → "Unknown column '0' in 'ORDER BY'"). NULL
+    // is a no-op in ORDER BY and works for both ASC and DESC.
+    if (!$r1) return 'NULL';
     $parts = [];
     foreach ($holes as $h) {
         if ($col === 'h') {
