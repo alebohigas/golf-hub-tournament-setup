@@ -61,6 +61,9 @@ const getStatusBadgeClasses = (code: string) => {
   return 'bg-red-100 text-red-800'; // D
 };
 
+/** Reads the score for any dynamic round key (r1, r2, r3, r4...) without reusing older rounds. */
+const getRoundScore = (player: PlayerResult | CutPlayer, round: number) => player[`r${round}`];
+
 // ============= Component =============
 
 const Resultados = () => {
@@ -157,7 +160,7 @@ const Resultados = () => {
   /** Handle round score click - fetch scorecard from API and toggle expansion */
   const handleRoundClick = async (player: PlayerResult, round: number) => {
     const key = `${player.id}-${round}`;
-    const roundScore = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+    const roundScore = getRoundScore(player, round);
     
     if (roundScore === undefined || roundScore === null) return;
 
@@ -382,7 +385,7 @@ const Resultados = () => {
                                   {/* Dynamic round score cells */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
-                                    const score = round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+                                    const score = getRoundScore(player, round);
                                     const isExpanded = expandedScorecard === `${player.id}-${round}`;
                                     return (
                                       <TableCell key={round} className="text-center p-0">
@@ -495,7 +498,7 @@ const Resultados = () => {
                                    */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
-                                    const score = round === 1 ? cp.r1 : round === 2 ? cp.r2 : cp.r3;
+                                    const score = getRoundScore(cp, round);
                                     const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
                                     if (score === undefined || score === null) {
                                       return (
@@ -507,7 +510,7 @@ const Resultados = () => {
                                         <button
                                           onClick={() => handleRoundClick(
                                             // Reuse PlayerResult-shaped object so handler signature stays the same
-                                            { id: cp.playerId, position: 0, name: cp.name, club: cp.club, clubLogo: cp.clubLogo, r1: cp.r1 ?? undefined, r2: cp.r2 ?? undefined, r3: cp.r3 ?? undefined, total: cp.total ?? 0 } as PlayerResult,
+                                            { ...cp, ...Object.fromEntries((categoryDetail?.days || []).map((_, idx) => [`r${idx + 1}`, getRoundScore(cp, idx + 1) ?? undefined])), id: cp.playerId, position: 0, total: cp.total ?? 0 } as PlayerResult,
                                             round,
                                           )}
                                           className={`w-full py-3 px-2 font-medium transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
