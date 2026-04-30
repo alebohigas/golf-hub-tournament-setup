@@ -651,7 +651,10 @@ foreach ($rows as $row) {
         'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'total'     => $gross == '1' ? (int)$row['so'] : (int)$row['sa'],
         'totalSO'   => (int)($row['so'] ?? 0),
-        'totalSA'   => (int)($row['sa'] ?? 0)
+        'totalSA'   => (int)($row['sa'] ?? 0),
+        // Number of CLOSED scorecards (statlsc=1) for this player on scheduled dates.
+        // Frontend uses this to compute Stroke Play differential: total - parcampo * closedRounds.
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0)
     ];
 
     foreach ($dias as $i => $fecha) {
