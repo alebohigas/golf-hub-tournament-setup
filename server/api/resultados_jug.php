@@ -20,8 +20,8 @@
 require_once 'config.php';
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1'); 
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0'); 
 
 $catid    = require_param('catid');
 $torneoid = require_param('torneoid');
@@ -177,7 +177,7 @@ $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t
  * @return string SQL scalar subquery.
  */
 function r1_chunk($col, $holes, $r1) {
-    if (!$r1) return '0';
+    if (!$r1) return '(0)';
     $parts = [];
     foreach ($holes as $h) {
         if ($col === 'h') {
