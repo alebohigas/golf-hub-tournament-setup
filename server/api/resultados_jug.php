@@ -104,10 +104,10 @@ $medalCountGross = (int)$catInfo['numganadorgross'];
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
 // ============= Get fully closed play dates =============
-// Resultados must never expose a round column until EVERY eligible NORMAL
+// A round is published in Resultados as soon as AT LEAST ONE eligible NORMAL
 // player in the category has a closed scorecard (`tarjetas.statlsc = 1`) for
-// that scheduled date. This prevents partial live rounds from leaking into
-// Resultados as columns full of dashes or mixed partial scores.
+// that scheduled date. Rounds with zero closed cards stay hidden so we never
+// render an empty round column.
 $sql = "SELECT fecha FROM caljuego
         WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
@@ -116,10 +116,6 @@ $dateRows = query_all($conn, $sql);
 $dias = [];
 $eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
 if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
-
-/** Total players expected to have a closed card before a round is published. */
-$expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
-$expectedPlayers = (int)($expectedRow['total'] ?? 0);
 
 foreach ($dateRows as $dr) {
     $fecha = $dr['fecha'];
@@ -131,7 +127,7 @@ foreach ($dateRows as $dr) {
                                      AND t.torneoid = $tid
                                      AND DATE(t.fecha_juego) = '$fecEsc'
                                      AND t.statlsc = 1");
-    if ($expectedPlayers > 0 && (int)($closedRow['total'] ?? 0) >= $expectedPlayers) {
+    if ((int)($closedRow['total'] ?? 0) > 0) {
         $dias[count($dias) + 1] = $fecha;
     }
 }
