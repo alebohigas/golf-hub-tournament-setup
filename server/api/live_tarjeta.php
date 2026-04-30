@@ -20,7 +20,7 @@ $sql = "SELECT a.id,
                h1_a, h2_a, h3_a, h4_a, h5_a, h6_a, h7_a, h8_a, h9_a,
                h10_a, h11_a, h12_a, h13_a, h14_a, h15_a, h16_a, h17_a, h18_a,
                so, sa,
-               ventajas as vtjasjug,
+               COALESCE(NULLIF(ventajasjug, ''), ventajas) as vtjasjug,
                parcampohoyo as parcampo,
                fecha_juego as fecha,
                c.campo";
