@@ -443,7 +443,8 @@ const Resultados = () => {
                                             }`}
                                             title={`Ver tarjeta R${round}`}
                                           >
-                                            {score}
+                                            {/* Show "E" for level par (Stroke Play diff = 0) instead of bare "0" */}
+                                            {Number(score) === 0 ? 'E' : score}
                                           </button>
                                         ) : (
                                           <span className="py-3 px-2 inline-block">-</span>
