@@ -49,6 +49,13 @@ export interface PlayerResult {
   /** Dynamic round scores keyed as r1, r2, r3, r4... from the API. */
   [roundKey: `r${number}`]: number | undefined;
   total: number;
+  /**
+   * Count of CLOSED scorecards (statlsc=1) for this player. Frontend uses it
+   * to convert the raw stroke `total` into a differential vs par for display:
+   *   diff = total - coursePar * closedRounds
+   * 0 means the player has no terminated round yet → UI shows plain "0".
+   */
+  closedRounds?: number;
   handicapIndex?: number;
 }
 
@@ -67,6 +74,8 @@ export interface CutPlayer {
   [roundKey: `r${number}`]: number | null | undefined;
   /** Accumulated total from closed scorecards (0 if no rounds completed) */
   total?: number;
+  /** Count of CLOSED scorecards (statlsc=1) — see PlayerResult.closedRounds. */
+  closedRounds?: number;
 }
 
 export interface CategoryScoring {
