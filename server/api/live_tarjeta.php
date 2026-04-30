@@ -20,7 +20,7 @@ $sql = "SELECT a.id,
                h1_a, h2_a, h3_a, h4_a, h5_a, h6_a, h7_a, h8_a, h9_a,
                h10_a, h11_a, h12_a, h13_a, h14_a, h15_a, h16_a, h17_a, h18_a,
                so, sa,
-               COALESCE(NULLIF(ventajasjug, ''), ventajas) as vtjasjug,
+               COALESCE(NULLIF(s.ventajasjug, ''), a.ventajas) as vtjasjug,
                parcampohoyo as parcampo,
                fecha_juego as fecha,
                c.campo";
@@ -35,6 +35,7 @@ if ($tipo === 'goro_neto') {
 $sql .= " FROM tarjetas a
           JOIN v_ult_tarjeta0 b ON (a.id = b.tarjetaid)
           JOIN campos c ON (a.campoid = c.id)
+          LEFT JOIN v_sal_jug s ON (s.tarjetaid = a.id)
           WHERE a.jugadorid = $jid";
 
 $card = query_one($conn, $sql);
