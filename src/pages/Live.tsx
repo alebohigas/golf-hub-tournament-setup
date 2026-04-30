@@ -150,6 +150,15 @@ const formatThru = (player: LivePlayer): string => {
 };
 
 /**
+ * Check if the Hoy score should open a scorecard.
+ * The live API can report a valid current-day score while `thru` is 0 once the card is closed,
+ * so clickability must be based on the displayed Hoy value instead of only holes-in-progress.
+ */
+const canOpenTodayScorecard = (player: LivePlayer): boolean => (
+  typeof player.todayScore === 'number' && Number.isFinite(player.todayScore)
+);
+
+/**
  * Check if a whole category is finished — every player has all scorecards closed.
  * Uses the backend `finished` flag (statlsc-based) when available.
  */
@@ -288,7 +297,7 @@ const Live = () => {
       return;
     }
 
-    if (player.thru <= 0) return;
+    if (!canOpenTodayScorecard(player)) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);
@@ -539,7 +548,7 @@ const Live = () => {
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {player.thru > 0 ? (
+                                  {canOpenTodayScorecard(player) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
                                       className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
