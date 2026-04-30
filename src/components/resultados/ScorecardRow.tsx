@@ -263,11 +263,11 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
                 {(() => {
                   // Compute total +/- using ONLY played holes (golpes > 0), so unplayed
                   // holes don't subtract par and produce a misleading negative score.
-                  const playedHoles = scorecard.holes.filter(h => h.golpes > 0);
+                  const playedHoles = scorecard.holes.filter(h => (Number(h.golpes) || 0) > 0);
                   if (playedHoles.length === 0) {
-                    return <>+/-: <strong className="font-bold">-</strong></>;
+                    return <>+/-: <strong className="font-bold">0</strong></>;
                   }
-                  const d = playedHoles.reduce((s, h) => s + h.golpes - h.par, 0);
+                  const d = playedHoles.reduce((s, h) => s + (Number(h.golpes) || 0) - h.par, 0);
                   const cls = d < 0 ? 'text-red-600' : d > 0 ? 'text-blue-600' : '';
                   const txt = d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
                   return <>+/-: <strong className={`font-bold ${cls}`}>{txt}</strong></>;
