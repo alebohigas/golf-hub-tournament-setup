@@ -14,20 +14,21 @@ $tipo        = optional_param('tipo', 'stroke');
 $jid = esc($conn, $jugadorid);
 
 // ============= Get latest card for player =============
+// Qualify every tarjetas column because v_sal_jug also exposes score/date fields.
 $sql = "SELECT a.id,
-               h1, h2, h3, h4, h5, h6, h7, h8, h9,
-               h10, h11, h12, h13, h14, h15, h16, h17, h18,
-               h1_a, h2_a, h3_a, h4_a, h5_a, h6_a, h7_a, h8_a, h9_a,
-               h10_a, h11_a, h12_a, h13_a, h14_a, h15_a, h16_a, h17_a, h18_a,
-               so, sa,
+               a.h1, a.h2, a.h3, a.h4, a.h5, a.h6, a.h7, a.h8, a.h9,
+               a.h10, a.h11, a.h12, a.h13, a.h14, a.h15, a.h16, a.h17, a.h18,
+               a.h1_a, a.h2_a, a.h3_a, a.h4_a, a.h5_a, a.h6_a, a.h7_a, a.h8_a, a.h9_a,
+               a.h10_a, a.h11_a, a.h12_a, a.h13_a, a.h14_a, a.h15_a, a.h16_a, a.h17_a, a.h18_a,
+               a.so, a.sa,
                COALESCE(NULLIF(s.ventajasjug, ''), a.ventajas) as vtjasjug,
-               parcampohoyo as parcampo,
-               fecha_juego as fecha,
+               a.parcampohoyo as parcampo,
+               a.fecha_juego as fecha,
                c.campo";
 
 // For Golfista de Oro (GORO) neto, include ventajas de golfista de oro
 if ($tipo === 'goro_neto') {
-    $sql .= ", vtjasgo as vtjasgoro";
+    $sql .= ", a.vtjasgo as vtjasgoro";
 } else {
     $sql .= ", '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0' as vtjasgoro";
 }
