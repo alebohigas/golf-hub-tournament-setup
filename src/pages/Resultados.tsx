@@ -325,7 +325,32 @@ const Resultados = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <Card className="border-border/50 bg-white max-w-5xl mx-auto">
+                <>
+                  {/*
+                   * Disclaimer for in-progress rounds.
+                   * Shown only when at least one round in `daysPartial` is true,
+                   * i.e. there's a live round whose scores are visible in the
+                   * table but NOT counted in Total. The "LIVE" word is a deep
+                   * link to /live?categoria=<currentCategoryId> so the user
+                   * lands directly on the same category they were viewing.
+                   */}
+                  {categoryDetail?.daysPartial?.some(Boolean) && (
+                    <div className="max-w-5xl mx-auto mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      Rondas presentadas y marcadas como{' '}
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-semibold uppercase tracking-wide align-middle">
+                        En vivo
+                      </span>{' '}
+                      no afectan la suma total en los resultados hasta que cierre la tarjeta completamente. Para una mejor visualización de la ronda en vivo dirígete a{' '}
+                      <Link
+                        to={`/live?categoria=${selectedCategory?.categoryId ?? ''}`}
+                        className="font-bold underline text-amber-900 hover:text-amber-700"
+                      >
+                        LIVE
+                      </Link>
+                      .
+                    </div>
+                  )}
+                  <Card className="border-border/50 bg-white max-w-5xl mx-auto">
                   <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto bg-white">
                       <Table className="bg-white tournament-table">
