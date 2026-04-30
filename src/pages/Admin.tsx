@@ -21,6 +21,7 @@ import AdminPagina from '@/components/admin/AdminPagina';
 import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
 import AdminUploads from '@/components/admin/AdminUploads';
+import AdminBrackets from '@/components/admin/AdminBrackets';
 import { 
   Shield, 
   LogOut, 
@@ -42,6 +43,7 @@ import {
   CalendarDays,
   Bell,
   Upload,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -302,7 +304,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -334,6 +336,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="sponsors" className="gap-2">
             <ImageIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Patrocinadores</span>
+          </TabsTrigger>
+          <TabsTrigger value="brackets" className="gap-2">
+            <Trophy className="h-4 w-4" />
+            <span className="hidden sm:inline">Brackets</span>
           </TabsTrigger>
         </TabsList>
 
@@ -476,6 +482,11 @@ const AdminDashboard = () => {
         {/* Sponsors Tab — controls how the Patrocinadores page renders sponsor logos */}
         <TabsContent value="sponsors">
           <AdminSponsors />
+        </TabsContent>
+
+        {/* Brackets Tab — Match Play / Knockout configuration per prize */}
+        <TabsContent value="brackets">
+          <AdminBrackets />
         </TabsContent>
       </Tabs>
 
