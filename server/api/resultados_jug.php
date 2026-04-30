@@ -371,7 +371,11 @@ function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
         $holeParts[] = "CASE WHEN IFNULL($col, 0) > 0 THEN (IFNULL($col, 0) - IFNULL($parH, 0)) ELSE 0 END";
     }
     $diffSum = implode(' + ', $holeParts);
-    return "(SELECT IFNULL($diffSum, 0)
+    // NOTE: we deliberately do NOT wrap with IFNULL(...,0) here. If the player
+    // has no tarjeta for this date the subquery returns NULL, which the PHP
+    // mapper below converts to a missing round. If we returned 0 we couldn't
+    // distinguish "no played yet" from "played and currently at level par".
+    return "(SELECT $diffSum
              FROM tarjetas t
              WHERE t.jugadorid = j.id
                AND t.torneoid  = j.torneoid
