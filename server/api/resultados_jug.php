@@ -371,7 +371,11 @@ function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
         $holeParts[] = "CASE WHEN IFNULL($col, 0) > 0 THEN (IFNULL($col, 0) - IFNULL($parH, 0)) ELSE 0 END";
     }
     $diffSum = implode(' + ', $holeParts);
-    return "(SELECT IFNULL($diffSum, 0)
+    // NOTE: we deliberately do NOT wrap with IFNULL(...,0) here. If the player
+    // has no tarjeta for this date the subquery returns NULL, which the PHP
+    // mapper below converts to a missing round. If we returned 0 we couldn't
+    // distinguish "no played yet" from "played and currently at level par".
+    return "(SELECT $diffSum
              FROM tarjetas t
              WHERE t.jugadorid = j.id
                AND t.torneoid  = j.torneoid
@@ -564,7 +568,22 @@ foreach ($rows as $row) {
 
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
+        // For PARTIAL (in-progress) rounds the partial score expression
+        // returns NULL when the player has no card yet, and a real number
+        // (possibly 0 = "currently at level par") when they're playing.
+        // We must therefore preserve `0` for partial rounds — otherwise the
+        // table cell becomes a non-clickable dash and the user can't open
+        // the scorecard for a player who happens to be even par.
+        //
+        // For CLOSED rounds (legacy f_score_dia_sax/sox) a value of 0
+        // historically means "did not play this round", so we keep treating
+        // 0 as null there to match prior behaviour.
+        $isPartial = !empty($diasPartial[$i]);
+        if ($isPartial) {
+            $player["r{$i}"] = $val !== null ? (int)$val : null;
+        } else {
+            $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
+        }
     }
 
     $players[] = $player;
@@ -665,7 +684,14 @@ foreach ($cutRows as $row) {
     $cutRounds = [];
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
+        // Same partial-vs-closed treatment as NORMAL players: preserve 0
+        // for partial rounds (level par mid-round), drop 0 for closed.
+        $isPartial = !empty($diasPartial[$i]);
+        if ($isPartial) {
+            $cutRounds["r{$i}"] = $val !== null ? (int)$val : null;
+        } else {
+            $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
+        }
     }
     $cutTotal = isset($row['total_score']) ? (int)$row['total_score'] : 0;
 
