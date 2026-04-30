@@ -31,6 +31,35 @@ $sqlRounds = "SELECT COUNT(*) AS total FROM caljuego
 $roundsRow = query_one($conn, $sqlRounds);
 $totalRounds = (int)($roundsRow['total'] ?? 0);
 
+// ── Current live-round closure status ──
+// Live closes a category only when EVERY eligible NORMAL player has a closed
+// tarjeta (`statlsc = 1`) for the latest played/created round date. This is
+// intentionally round-based, not whole-tournament based, so completed rounds
+// move out of Live and become visible in Resultados.
+$eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
+if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
+$expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
+$expectedPlayers = (int)($expectedRow['total'] ?? 0);
+$currentRoundRow = query_one($conn, "SELECT DATE(MAX(t.fecha_juego)) AS fecha
+                                     FROM tarjetas t
+                                     JOIN jugadores j ON (j.id = t.jugadorid)
+                                     WHERE $eligibleWhere
+                                       AND t.torneoid = $tid");
+$currentRoundDate = $currentRoundRow['fecha'] ?? null;
+$currentClosedPlayers = 0;
+if ($currentRoundDate) {
+    $fecEsc = esc($conn, $currentRoundDate);
+    $closedRoundRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
+                                        FROM tarjetas t
+                                        JOIN jugadores j ON (j.id = t.jugadorid)
+                                        WHERE $eligibleWhere
+                                          AND t.torneoid = $tid
+                                          AND DATE(t.fecha_juego) = '$fecEsc'
+                                          AND t.statlsc = 1");
+    $currentClosedPlayers = (int)($closedRoundRow['total'] ?? 0);
+}
+$categoryClosed = ($expectedPlayers > 0 && $currentRoundDate && $currentClosedPlayers >= $expectedPlayers) ? 1 : 0;
+
 // ── Course info (par, rating, slope) ──
 $salidaid = esc($conn, $catInfo['salida']);
 $sql = "SELECT b.campoid, rating, slope, tee, parcampo
@@ -276,6 +305,10 @@ json_response([
     'gross'        => (int)$gross,
     'par'          => $parcampo,
     'totalRounds'  => $totalRounds,
+    'currentRoundDate' => $currentRoundDate,
+    'expectedPlayers' => $expectedPlayers,
+    'currentClosedPlayers' => $currentClosedPlayers,
+    'categoryClosed' => $categoryClosed,
     'course'       => $courseInfo ? [
         'rating' => (float)($courseInfo['rating'] ?? 0),
         'slope'  => (int)($courseInfo['slope'] ?? 0),
