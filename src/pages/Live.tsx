@@ -615,7 +615,7 @@ const Live = () => {
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {canOpenTodayScorecard(player) ? (
+                                  {canOpenTodayScorecard(player, leaderboard?.currentRoundDate) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
                                       className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
