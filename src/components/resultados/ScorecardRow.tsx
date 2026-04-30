@@ -75,6 +75,17 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </td>
           </tr>
 
+          {/* Vtja row - course hole handicap/difficulty ranking from campo_tee.ventajas. Sits between Par and Gross. */}
+          {(type === 'hcp' || type === 'stableford') && (
+            <tr className="bg-muted/20">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcp ?? 0}</td>
+              ))}
+              <td className="px-2 py-1 text-center text-muted-foreground">-</td>
+            </tr>
+          )}
+
           {/* Gross row - shown for hcp and stableford (labeled "Gross") */}
           {(type === 'hcp' || type === 'stableford') && (
             <tr>
@@ -87,17 +98,6 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               <td className="px-2 py-1 text-center font-bold">
                 {holes.reduce((s, h) => s + h.golpes, 0)}
               </td>
-            </tr>
-          )}
-
-          {/* Vtja row - course hole handicap/difficulty ranking from campo_tee.ventajas */}
-          {(type === 'hcp' || type === 'stableford') && (
-            <tr className="bg-muted/20">
-              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
-              {holes.map(h => (
-                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcp ?? 0}</td>
-              ))}
-              <td className="px-2 py-1 text-center text-muted-foreground">-</td>
             </tr>
           )}
 
