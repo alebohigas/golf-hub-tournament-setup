@@ -65,6 +65,31 @@ const getStatusBadgeClasses = (code: string) => {
 /** Reads the score for any dynamic round key (r1, r2, r3, r4...) without reusing older rounds. */
 const getRoundScore = (player: PlayerResult | CutPlayer, round: number) => player[`r${round}`];
 
+/**
+ * Format a Stroke Play score (round or total) for display.
+ *
+ * Stroke Play results in this app are stored as a differential vs par
+ * (e.g. -2, 0, +3). To match the LIVE view convention we render:
+ *   - 0  → "E" (even par)
+ *   - >0 → "+N" (over par, with leading +)
+ *   - <0 → "-N" (under par, native sign)
+ *
+ * Stableford scores are absolute points and never receive a sign prefix —
+ * call sites should skip this helper for STABLEFORD systems.
+ */
+const formatStrokeValue = (value: number | string): string => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  if (n === 0) return 'E';
+  return n > 0 ? `+${n}` : `${n}`;
+};
+
+/** True when the active category uses Stroke Play (so we should sign-prefix scores). */
+const isStrokePlaySystem = (system?: string): boolean => {
+  if (!system) return false;
+  return !system.toUpperCase().includes('STABLEFORD');
+};
+
 // ============= Component =============
 
 const Resultados = () => {
@@ -433,6 +458,9 @@ const Resultados = () => {
                                     const round = i + 1;
                                     const score = getRoundScore(player, round);
                                     const isExpanded = expandedScorecard === `${player.id}-${round}`;
+                                    // Stroke Play: prefix positive scores with "+" and show "E" for 0,
+                                    // mirroring the LIVE leaderboard. Stableford keeps raw points.
+                                    const isStroke = isStrokePlaySystem(categoryDetail?.system);
                                     return (
                                       <TableCell key={round} className="text-center p-0">
                                         {score !== undefined && score !== null ? (
@@ -443,8 +471,8 @@ const Resultados = () => {
                                             }`}
                                             title={`Ver tarjeta R${round}`}
                                           >
-                                            {/* Show "E" for level par (Stroke Play diff = 0) instead of bare "0" */}
-                                            {Number(score) === 0 ? 'E' : score}
+                                            {/* Stroke Play: "E"/"+N"/"-N". Stableford: raw points. */}
+                                            {isStroke ? formatStrokeValue(score as number) : score}
                                           </button>
                                         ) : (
                                           <span className="py-3 px-2 inline-block">-</span>
@@ -453,7 +481,7 @@ const Resultados = () => {
                                     );
                                   })}
                                   <TableCell className="text-center font-bold text-primary text-lg">
-                                    {player.total}
+                                    {isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(player.total) : player.total}
                                   </TableCell>
                                 </TableRow>
 
@@ -547,6 +575,8 @@ const Resultados = () => {
                                     const round = i + 1;
                                     const score = getRoundScore(cp, round);
                                     const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
+                                    // Stroke Play: sign-prefix and "E" for 0; Stableford: raw points.
+                                    const isStroke = isStrokePlaySystem(categoryDetail?.system);
                                     if (score === undefined || score === null) {
                                       return (
                                         <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
@@ -565,14 +595,16 @@ const Resultados = () => {
                                           }`}
                                           title={`Ver tarjeta R${round}`}
                                         >
-                                          {score}
+                                          {isStroke ? formatStrokeValue(score as number) : score}
                                         </button>
                                       </TableCell>
                                     );
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
                                   <TableCell className="text-center font-bold text-muted-foreground">
-                                    {cp.total && cp.total > 0 ? cp.total : '—'}
+                                    {cp.total && cp.total > 0
+                                      ? (isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(cp.total) : cp.total)
+                                      : '—'}
                                   </TableCell>
                                 </TableRow>
 
