@@ -106,6 +106,8 @@ interface LiveScoringResponse {
   par: number;
   /** 1 when every eligible category player has statlsc=1 for the current round */
   categoryClosed?: number;
+  /** YYYY-MM-DD of the current (in-progress or just-closed) round */
+  currentRoundDate?: string | null;
   course: { rating: number; slope: number; tee: string } | null;
   players: LivePlayer[];
 }
@@ -132,11 +134,15 @@ const getStrokeScoreClass = (difpar: number): string => {
 
 /**
  * Check if a player has finished the tournament.
- * Authoritative source: backend `finished` flag (1 when all scheduled
- * scorecards have statlsc=1 in the `tarjetas` table).
- * Falls back to legacy "thru >= 18" only when the flag is absent.
+ * A player is considered "F" (finished for the current round) when their
+ * scorecard for the current round date has been closed (statlsc=1) — i.e.
+ * the current round date appears in their `prevRoundDates` list.
+ * Falls back to:
+ *   - backend `finished` flag (whole-tournament completion), then
+ *   - legacy "thru >= 18" when neither signal is available.
  */
-const isPlayerFinished = (player: LivePlayer): boolean => {
+const isPlayerFinished = (player: LivePlayer, currentRoundDate?: string | null): boolean => {
+  if (currentRoundDate && player.prevRoundDates?.includes(currentRoundDate)) return true;
   if (typeof player.finished === 'number') return player.finished === 1;
   return player.thru >= 18;
 };
@@ -145,8 +151,8 @@ const isPlayerFinished = (player: LivePlayer): boolean => {
  * Format the "Thru" column display
  * Shows "F" for finished players (tournament complete), hole number otherwise, "-" if 0
  */
-const formatThru = (player: LivePlayer): string => {
-  if (isPlayerFinished(player)) return 'F';
+const formatThru = (player: LivePlayer, currentRoundDate?: string | null): string => {
+  if (isPlayerFinished(player, currentRoundDate)) return 'F';
   if (player.thru === 0) return '-';
   return String(player.thru);
 };
