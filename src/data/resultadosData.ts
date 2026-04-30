@@ -102,6 +102,11 @@ export interface ResultCategory {
    */
   daysPartial?: boolean[];
   /**
+   * Course par for this category (e.g. 72). Used to convert the raw stroke
+   * `total` into a differential vs par for Stroke Play leaderboards.
+   */
+  coursePar?: number;
+  /**
    * Number of medal winners for the active scoring type (back-compat).
    * Prefer `medalCountNeto` / `medalCountGross` when picking dynamically.
    */
