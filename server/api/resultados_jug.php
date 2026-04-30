@@ -487,6 +487,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSO as so,
                        $closedSA as sa,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -524,6 +525,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSA as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -562,6 +564,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSTBGross as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -598,6 +601,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSA as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
