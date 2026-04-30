@@ -279,6 +279,56 @@ function prev_rounds_tiebreaker(array $dias, $direction, array $diasPartial = []
     return ', ' . implode(', ', $parts);
 }
 
+// ============= Live (partial-rounds) ordering helper =============
+/**
+ * When the leaderboard has NO fully-closed rounds yet (so the legacy total
+ * column is 0 for every player and the standard ORDER BY collapses into a
+ * meaningless tie), we want the player order to mirror what the user sees
+ * in /live: ranked by the score they currently have in the in-progress
+ * round(s).
+ *
+ * Behaviour:
+ * - Returns an empty string when at least one round is fully closed (the
+ *   regular ORDER BY by accumulated total + prev-rounds tiebreaker is
+ *   already meaningful).
+ * - Returns an empty string when there are no partial rounds either
+ *   (nothing to sort by — keeps the "roster only" fallback intact).
+ * - Otherwise emits a fragment that sorts by the SUM of the partial round
+ *   scores (the d{i} aliases already SELECTed). Players who haven't
+ *   teed off yet (NULL across every partial round) are pushed to the
+ *   bottom regardless of direction.
+ *
+ * @param array  $dias        1-indexed map of round# => date
+ * @param array  $diasPartial 1-indexed map of round# => bool (true = open)
+ * @param string $direction   'ASC' (Stroke) or 'DESC' (Stableford)
+ * @return string SQL fragment to PREPEND inside ORDER BY (starts with ", "
+ *                so callers can append it after the primary column).
+ */
+function partial_round_ordering(array $dias, array $diasPartial, $direction) {
+    // If any round is fully closed, the standard ordering is meaningful.
+    foreach ($dias as $i => $_) {
+        if (empty($diasPartial[$i])) return '';
+    }
+    // Collect partial round indices.
+    $partialIdx = [];
+    foreach ($dias as $i => $_) {
+        if (!empty($diasPartial[$i])) $partialIdx[] = $i;
+    }
+    if (empty($partialIdx)) return '';
+    // "Has played at all in any partial round" → push non-starters last.
+    $playedFlags = [];
+    $sumParts = [];
+    foreach ($partialIdx as $i) {
+        $playedFlags[] = "(d{$i} IS NOT NULL)";
+        $sumParts[]    = "IFNULL(d{$i}, 0)";
+    }
+    $hasPlayed = '(' . implode(' OR ', $playedFlags) . ')';
+    $sum       = implode(' + ', $sumParts);
+    // Non-starters (no card on any partial round) go last; among the rest,
+    // sort by their cumulative live score in the requested direction.
+    return ", $hasPlayed DESC, ($sum) {$direction}";
+}
+
 // ============= Helper: map estatus to short code =============
 /**
  * Maps player estatus to a display code:
@@ -431,6 +481,10 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSO ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering: when no round is fully closed yet, rank by the
+        // current live score so the table mirrors /live instead of being a
+        // big tie broken only by handicap-derived defaults.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'ASC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stroke Play GROSS → fewer strokes wins, so ASC.
         $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
@@ -465,6 +519,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering (Stroke NETO): see GROSS branch above.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'ASC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stroke Play NETO → fewer net strokes wins, so ASC.
         $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
@@ -500,6 +556,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSTBGross DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering (Stableford GROSS): more points wins → DESC.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'DESC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stableford GROSS → more points wins, so DESC.
         $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
@@ -535,6 +593,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering (Stableford NETO): more points wins → DESC.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'DESC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stableford NETO → more points wins, so DESC.
         $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
