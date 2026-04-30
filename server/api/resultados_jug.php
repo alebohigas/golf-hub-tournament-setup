@@ -351,10 +351,27 @@ function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
                    AND DATE(t.fecha_juego) = '$fecEsc'
                  LIMIT 1)";
     }
-    // Stroke Play → diff to par. Subtract category course par × cards played
-    // so a player with no card returns 0 (not -par).
-    $scoreCol = ($gross == '1') ? 't.SO' : 't.SA';
-    return "(SELECT IFNULL(SUM($scoreCol) - ($parcampo * COUNT(*)), 0)
+    // Stroke Play → diff to par computed HOLE BY HOLE.
+    //
+    // Bug fixed: previously this used `SUM(SO|SA) - (parcampo * cards_played)`,
+    // which subtracted the par of the FULL course even when the player had
+    // only completed a few holes. That made in-progress rounds show absurd
+    // negative diffs (e.g. -60 after 3 holes).
+    //
+    // New approach: per hole h{n} (or h{n}_a for NETO), if the hole score is
+    // > 0 (played) we add `score - par_hole`; if it's 0 (not played yet) we
+    // contribute 0. Par per hole is the n-th element of `t.parcampohoyo`
+    // (a CSV with 18 values).
+    $holeCol = ($gross == '1') ? 'h' : 'h_a';
+    $holeParts = [];
+    for ($h = 1; $h <= 18; $h++) {
+        $col = ($holeCol === 'h') ? "t.h{$h}" : "t.h{$h}_a";
+        $parH = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.parcampohoyo, ',', {$h}), ',', -1) AS SIGNED)";
+        // CASE WHEN score > 0 THEN (score - par_hole) ELSE 0 END
+        $holeParts[] = "CASE WHEN IFNULL($col, 0) > 0 THEN (IFNULL($col, 0) - IFNULL($parH, 0)) ELSE 0 END";
+    }
+    $diffSum = implode(' + ', $holeParts);
+    return "(SELECT IFNULL($diffSum, 0)
              FROM tarjetas t
              WHERE t.jugadorid = j.id
                AND t.torneoid  = j.torneoid
