@@ -20,6 +20,7 @@ import AdminSponsors from '@/components/admin/AdminSponsors';
 import AdminPagina from '@/components/admin/AdminPagina';
 import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
+import AdminUploads from '@/components/admin/AdminUploads';
 import { 
   Shield, 
   LogOut, 
@@ -40,6 +41,7 @@ import {
   LayoutPanelTop,
   CalendarDays,
   Bell,
+  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -300,10 +302,14 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
+          </TabsTrigger>
+          <TabsTrigger value="archivos" className="gap-2">
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Archivos</span>
           </TabsTrigger>
           <TabsTrigger value="pagina" className="gap-2">
             <LayoutPanelTop className="h-4 w-4" />
@@ -440,6 +446,11 @@ const AdminDashboard = () => {
             onSetMenuGroups={handleSetMenuGroups}
             onSetPageGroupAssignment={handleSetPageGroupAssignment}
           />
+        </TabsContent>
+
+        {/* Archivos Tab — upload images + PDFs to the server */}
+        <TabsContent value="archivos">
+          <AdminUploads />
         </TabsContent>
 
         {/* Convocatoria Tab */}

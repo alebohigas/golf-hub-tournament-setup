@@ -26,14 +26,11 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, type AvisosConfig, type EventosGap } from '@/hooks/useSiteConfig';
 import { applyOrder } from '@/lib/posterOrder';
-
-// ---------- Asset imports (ES6 modules, optimized by Vite) ----------
-import avisoClima from '@/assets/avisos/aviso-climatologico.webp';
-import tabla1 from '@/assets/avisos/tabla1-torneo-anual.webp';
-import tabla2 from '@/assets/avisos/tabla2-asociados.webp';
-import tabla3 from '@/assets/avisos/tabla3-dependientes.webp';
-import tabla4 from '@/assets/avisos/tabla4-invitados.webp';
-import tabla5 from '@/assets/avisos/tabla5-info-adicional.webp';
+import { useUploadsList } from '@/hooks/useUploads';
+// Auto-discovered poster list — anything dropped into `src/assets/avisos/`
+// is picked up automatically (sorted alphabetically by file name). See
+// `src/lib/posterAssets.ts` for the discovery rules.
+import { AVISOS_POSTERS as DISCOVERED_AVISOS_POSTERS } from '@/lib/posterAssets';
 
 /**
  * AvisoCard - shape describing one poster card.
@@ -46,17 +43,27 @@ interface AvisoCard {
 }
 
 /**
- * Ordered list of aviso posters. Order matters: the climatological notice
- * is shown first as it is the most time-sensitive communication.
+ * Ordered list of aviso posters.
+ *
+ * The list is **auto-discovered** from `src/assets/avisos/` via
+ * `posterAssets.ts`, then mapped to the local `AvisoCard` shape. To add
+ * or remove a poster, simply drop / delete a `.webp` (or `.jpg`/`.png`)
+ * file in that folder — no code edit required. Files are sorted in
+ * case-insensitive natural order, so prefix names with numeric tokens
+ * (e.g. `01-clima.webp`, `02-tabla.webp`) to control the default order.
+ * The admin panel can still override the order at runtime.
  */
-export const AVISOS_POSTERS: AvisoCard[] = [
-  { src: avisoClima, alt: 'Aviso climatológico a jugadores' },
-  { src: tabla1, alt: 'Torneo Anual (Obligatorio) - Costos' },
-  { src: tabla2, alt: 'Inscripción Torneo de Golf Asociados (Opcional)' },
-  { src: tabla3, alt: 'Acceso diario para dependientes registrados' },
-  { src: tabla4, alt: 'Inscripción Torneo de Golf Invitados' },
-  { src: tabla5, alt: 'Información adicional, Family Day y reglas de invitados' },
-];
+/**
+ * Build-time fallback list. Used when no images have been uploaded to the
+ * server yet — keeps the page functional out of the box.
+ */
+const BUILT_IN_AVISOS_POSTERS: AvisoCard[] = DISCOVERED_AVISOS_POSTERS.map((p) => ({
+  src: p.src,
+  alt: p.alt,
+}));
+
+/** @deprecated Kept for backward-compat with any external imports. */
+export const AVISOS_POSTERS: AvisoCard[] = BUILT_IN_AVISOS_POSTERS;
 
 // ============= Layout helpers =============
 
@@ -112,11 +119,22 @@ const AvisosPostersSection = () => {
     ...(siteConfig?.avisos_config ?? {}),
   };
 
+  // Server-side uploaded posters. Take precedence over build-time assets so
+  // editors can replace/extend the grid via /admin without a re-deploy.
+  const { data: uploadsData } = useUploadsList('avisos');
+  const serverPosters: AvisoCard[] = (uploadsData?.files ?? []).map((f) => ({
+    src: f.url,
+    alt: f.alt,
+  }));
+  const sourcePosters: AvisoCard[] = serverPosters.length > 0
+    ? serverPosters
+    : BUILT_IN_AVISOS_POSTERS;
+
   // Single shared poster order for desktop AND mobile. Falls back to the
   // legacy per-breakpoint fields (preferring desktopOrder) so previously
   // saved configs keep working without a migration.
   const activeOrder = cfg.posterOrder ?? cfg.desktopOrder ?? cfg.mobileOrder;
-  const orderedPosters = applyOrder(AVISOS_POSTERS, activeOrder);
+  const orderedPosters = applyOrder(sourcePosters, activeOrder);
 
   /**
    * Compose the responsive grid class string from the admin-selected

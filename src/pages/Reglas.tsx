@@ -11,8 +11,22 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } from 'lucide-react';
 import { reglasData, reglamentoLocalData } from '@/data/mockData';
 import reglasHero from '@/assets/reglas-hero.jpg';
+import { useUploadsList } from '@/hooks/useUploads';
 
 const Reglas = () => {
+  // Resolve the reglas PDF URL with a 3-tier fallback chain:
+  //   1. First PDF uploaded to the `reglas` section via /admin (any filename).
+  //   2. Legacy: a file literally named `reglas-y-cc.pdf` left in the old
+  //      `pdfs` bucket from before sections were split.
+  //   3. Build-time fallback shipped at /reglas-y-cc.pdf in public/.
+  const { data: reglasUploads } = useUploadsList('reglas');
+  const { data: legacyPdfs } = useUploadsList('pdfs');
+  const firstSectionPdf = reglasUploads?.files.find((f) => /\.pdf$/i.test(f.name));
+  const legacyReglasPdf = legacyPdfs?.files.find(
+    (f) => f.name.toLowerCase() === 'reglas-y-cc.pdf'
+  );
+  const reglasPdfUrl = firstSectionPdf?.url ?? legacyReglasPdf?.url ?? '/reglas-y-cc.pdf';
+
   return (
     <Layout>
       <PageHero 
@@ -30,7 +44,7 @@ const Reglas = () => {
               className="gap-2"
             >
               <a
-                href="/reglas-y-cc.pdf"
+                href={reglasPdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
