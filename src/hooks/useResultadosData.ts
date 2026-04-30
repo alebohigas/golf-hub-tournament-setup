@@ -167,6 +167,9 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         shortName: raw.shortName || '',
         system: raw.system || '',
         days: raw.days || [],
+        daysPartial: Array.isArray(raw.daysPartial)
+          ? raw.daysPartial.map((v: unknown) => Boolean(v))
+          : [],
         medalCount: raw.medalCount ?? 3,
         medalCountNeto: raw.medalCountNeto ?? raw.medalCount ?? 3,
         medalCountGross: raw.medalCountGross ?? 1,
