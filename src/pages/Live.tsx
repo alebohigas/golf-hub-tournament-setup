@@ -530,23 +530,41 @@ const Live = () => {
                                   Total column — clickable when player has previously CLOSED scorecards.
                                   Click expands all previous closed cards (statlsc=1) stacked by date.
                                   Live/in-progress round is NOT included here (see "Hoy").
+                                  Special case: when the player has zero closed rounds yet (e.g. the
+                                  very first round in progress), the "Total"/"Dif Par" column would
+                                  otherwise always show "E" (0). To avoid that misleading display we
+                                  mirror the Hoy value here so the leaderboard still reflects current
+                                  standings during R1.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {(player.prevRoundDates && player.prevRoundDates.length > 0) ? (
+                                  {(() => {
+                                    const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
+                                    // Effective Total value to display: closed-only score when there
+                                    // are previous closed rounds, otherwise mirror today's score so
+                                    // R1-in-progress doesn't render as a meaningless "E".
+                                    const displayValue = hasPrevClosed ? player.score : (player.todayScore ?? 0);
+                                    if (hasPrevClosed) {
+                                      return (
                                     <button
                                       onClick={() => handleTotalClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
-                                        isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
+                                        isStroke ? getStrokeScoreClass(displayValue) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
                                       title="Ver tarjetas de rondas previas"
                                     >
-                                      {isStroke ? formatDifPar(player.score) : player.score}
+                                      {isStroke ? formatDifPar(displayValue) : displayValue}
                                     </button>
-                                  ) : (
-                                    <span className={`py-3 px-2 inline-block ${isStroke ? getStrokeScoreClass(player.score) : 'font-bold'}`}>
-                                      {isStroke ? formatDifPar(player.score) : player.score}
-                                    </span>
-                                  )}
+                                      );
+                                    }
+                                    return (
+                                      <span
+                                        className={`py-3 px-2 inline-block ${isStroke ? getStrokeScoreClass(displayValue) : 'font-bold'}`}
+                                        title="Aún sin rondas cerradas — se muestra el score de hoy"
+                                      >
+                                        {isStroke ? formatDifPar(displayValue) : displayValue}
+                                      </span>
+                                    );
+                                  })()}
                                 </TableCell>
 
                                 {/* Holes completed — shows "F" when player has all scorecards closed (statlsc=1) */}
