@@ -12,6 +12,7 @@ $categoriaid = optional_param('categoriaid', '0');
 $tipo        = optional_param('tipo', 'stroke');
 
 $jid = esc($conn, $jugadorid);
+$cid = esc($conn, $categoriaid);
 
 // ============= Get latest card for player =============
 // Qualify every tarjetas column because v_sal_jug also exposes score/date fields.
@@ -42,6 +43,30 @@ $sql .= " FROM tarjetas a
 
 $card = query_one($conn, $sql);
 if (!$card) { json_error('Card not found', 404); }
+
+// ============= Get hole rankings (ventaja) from campo_tee =============
+// Source of truth: torneos.campo_tee keyed by (campoid, salidaid).
+// Different salidas (e.g. 4, 8, 9 used by women's categories) define
+// different per-hole ventaja indexes for the same course, so we MUST
+// resolve salidaid via the player's category before reading campo_tee.
+$campoid = (int)$card['campoid'];
+$holeRanks = array_fill(0, 18, 0);
+if ($cid !== '0' && $cid !== '' && $campoid > 0) {
+    $rankRow = query_one(
+        $conn,
+        "SELECT ct.ventajas
+         FROM categorias cat
+         JOIN campo_tee ct ON (ct.campoid = $campoid AND ct.salidaid = cat.salida)
+         WHERE cat.categoria_id = $cid
+         LIMIT 1"
+    );
+    if ($rankRow && !empty($rankRow['ventajas'])) {
+        $parts = array_map('intval', explode(',', $rankRow['ventajas']));
+        for ($i = 0; $i < 18; $i++) {
+            $holeRanks[$i] = isset($parts[$i]) ? $parts[$i] : 0;
+        }
+    }
+}
 
 // ============= Build holes arrays =============
 $holesSO = []; // Score Original
@@ -94,5 +119,6 @@ json_response([
     'holesSA' => $holesSA,
     'par'     => $parHoles,
     'ventajas'     => $ventajas,
-    'ventajasGoro' => $ventajasGoro
+    'ventajasGoro' => $ventajasGoro,
+    'hcp'          => $holeRanks
 ]);
