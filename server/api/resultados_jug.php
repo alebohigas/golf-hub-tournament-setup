@@ -248,21 +248,28 @@ $r1Date = isset($dias[1]) ? esc($conn, $dias[1]) : '';
  * Each per-round score uses the same f_score_dia_sax/sox alias (d{i})
  * already SELECTed in the main query, so no extra subquery is needed.
  *
- * @param array  $dias       1-indexed map of round number → date.
- * @param string $direction  'ASC' or 'DESC'.
+ * @param array  $dias          1-indexed map of round number → date.
+ * @param string $direction     'ASC' or 'DESC'.
+ * @param array  $diasPartial   1-indexed map of round# => bool. Partial
+ *                              (in-progress) rounds are EXCLUDED from the
+ *                              tiebreaker so live data does not move
+ *                              players around as cards close.
  * @return string SQL fragment to append to ORDER BY (starts with ", ").
  */
-function prev_rounds_tiebreaker(array $dias, $direction) {
+function prev_rounds_tiebreaker(array $dias, $direction, array $diasPartial = []) {
     if (count($dias) < 2) return '';
     // Iterate from the most recent round down to round 1.
     $rounds = array_keys($dias);
     rsort($rounds);
     $parts = [];
     foreach ($rounds as $i) {
+        // Skip partial (in-progress) rounds so they don't sway ordering.
+        if (!empty($diasPartial[$i])) continue;
         // d{i} is the per-round score alias from the main SELECT.
         // Wrap with IFNULL so unplayed rounds (NULL/0) don't poison ordering.
         $parts[] = "IFNULL(d{$i}, 0) {$direction}";
     }
+    if (empty($parts)) return '';
     return ', ' . implode(', ', $parts);
 }
 
@@ -388,7 +395,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stroke Play GROSS → fewer strokes wins, so ASC.
-        $sql .= prev_rounds_tiebreaker($dias, 'ASC');
+        $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
         // R1 tiebreaker (Stroke Play GROSS): lower strokes wins each chunk.
         // Progression: H10-18 → H13-18 → H16-18 → H18 from Round 1.
         $sql .= ", " . r1_chunk('h', range(10, 18), $r1Date) . " ASC";
@@ -422,7 +429,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stroke Play NETO → fewer net strokes wins, so ASC.
-        $sql .= prev_rounds_tiebreaker($dias, 'ASC');
+        $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
         // R1 tiebreaker (Stroke Play NETO): lower net strokes wins each chunk.
         $sql .= ", " . r1_chunk('h_a', range(10, 18), $r1Date) . " ASC";
         $sql .= ", " . r1_chunk('h_a', range(13, 18), $r1Date) . " ASC";
@@ -457,7 +464,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stableford GROSS → more points wins, so DESC.
-        $sql .= prev_rounds_tiebreaker($dias, 'DESC');
+        $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
         // R1 tiebreaker (Stableford GROSS): FEWER points wins each chunk
         // (special tournament rule: lower stableford total in the back nine
         // breaks the tie in favor of the lower-scoring player).
@@ -492,7 +499,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stableford NETO → more points wins, so DESC.
-        $sql .= prev_rounds_tiebreaker($dias, 'DESC');
+        $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
         // R1 tiebreaker (Stableford NETO): FEWER points wins each chunk
         // (special tournament rule). Per-hole stableford neto points come
         // from CSV column arsa.
