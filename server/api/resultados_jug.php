@@ -582,10 +582,12 @@ foreach ($dias as $i => $fecha) {
                     AND DATE(t.fecha_juego) = '$fecEsc'
                     $statFilter)";
     } else {
-        // Stroke Play: report diff to par so the column matches the
-        // leaderboard format. Gross uses SO, neto uses SA.
+        // Stroke Play: raw strokes (preserves prior cut-player semantics).
+        // The leaderboard column shows diff-to-par for Stroke; cut players
+        // historically showed raw strokes here. We keep that to avoid a
+        // silent semantic change for closed-round cut data.
         $scoreCol = ($gross == '1') ? 't.SO' : 't.SA';
-        $expr = "(SELECT IFNULL(SUM($scoreCol) - SUM(IFNULL(t.parcampo, 0)), 0)
+        $expr = "(SELECT IFNULL(SUM($scoreCol), 0)
                   FROM tarjetas t
                   WHERE t.jugadorid   = j.id
                     AND t.torneoid    = j.torneoid
