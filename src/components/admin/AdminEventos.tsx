@@ -43,17 +43,13 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
-
-// ---------- Asset imports (same posters used on the public page) ----------
-import dia24 from '@/assets/eventos/dia-24-viernes.webp';
-import dia25 from '@/assets/eventos/dia-25-sabado.webp';
-import dia26 from '@/assets/eventos/dia-26-domingo.webp';
-import dia27 from '@/assets/eventos/dia-27-lunes.webp';
-import dia28 from '@/assets/eventos/dia-28-martes.webp';
-import dia29 from '@/assets/eventos/dia-29-miercoles.webp';
-import dia30 from '@/assets/eventos/dia-30-jueves.webp';
-import dia01 from '@/assets/eventos/dia-01-viernes.webp';
-import dia02 from '@/assets/eventos/dia-02-sabado.webp';
+// Auto-discovered Eventos posters from `src/assets/eventos/`.
+// Mirrors what AtraccionesSection renders on the public page so the
+// admin preview always matches the live site.
+import { EVENTOS_POSTERS } from '@/lib/posterAssets';
+// Server-uploaded posters take precedence over build-time assets so the
+// admin preview matches what visitors actually see on /eventos.
+import { useUploadsList } from '@/hooks/useUploads';
 
 // ============= Constants =============
 
@@ -76,10 +72,11 @@ export const DEFAULT_EVENTOS_CONFIG: EventosConfig = {
   mobileGap: 'sm',
 };
 
-/** Posters used in the live preview (mirrors AtraccionesSection) */
-const PREVIEW_POSTERS = [
-  dia24, dia25, dia26, dia27, dia28, dia29, dia30, dia01, dia02,
-];
+/**
+ * Build-time fallback poster URLs from `src/assets/eventos/`. Used only
+ * when no images have been uploaded to the server via `/admin` → "Archivos".
+ */
+const BUILT_IN_PREVIEW_POSTERS: string[] = EVENTOS_POSTERS.map((p) => p.src);
 
 // ============= Helpers =============
 
@@ -161,11 +158,17 @@ interface PreviewFrameProps {
   /** Icon component shown next to the title */
   icon: React.ReactNode;
   /**
-   * Resolved poster order (full list of indices into PREVIEW_POSTERS).
+   * Resolved poster order (full list of indices into `posters`).
    * The component renders posters strictly in this order. Drag-and-drop
    * mutates this list via `onOrderChange`.
    */
   order: number[];
+  /**
+   * Source poster URLs the `order` indices refer to. Provided by the
+   * parent so the preview can switch between server-uploaded files and
+   * the build-time fallback without code duplication.
+   */
+  posters: string[];
   /** Called with a NEW order array whenever the admin drags a poster. */
   onOrderChange: (next: number[]) => void;
   /** Optional handler to restore the default static order. */
@@ -188,6 +191,7 @@ const PreviewFrame = ({
   title,
   icon,
   order,
+  posters,
   onOrderChange,
   onReset,
 }: PreviewFrameProps) => {
@@ -256,7 +260,7 @@ const PreviewFrame = ({
           }}
         >
           {order.map((posterIdx, position) => {
-            const src = PREVIEW_POSTERS[posterIdx];
+            const src = posters[posterIdx];
             if (!src) return null;
 
             const showBeforeMarker = dropIndex === position;
@@ -343,6 +347,19 @@ const AdminEventos = () => {
   /** Local draft state — starts from server value or defaults */
   const [draft, setDraft] = useState<EventosConfig>(DEFAULT_EVENTOS_CONFIG);
 
+  /**
+   * Server-uploaded posters for this section. When present, they are the
+   * source of truth shown by the public `AtraccionesSection` page, so the
+   * admin preview MUST mirror them — otherwise drag-to-reorder would
+   * generate indices into the wrong list and persisted orders would not
+   * match what visitors see.
+   */
+  const { data: uploadsData } = useUploadsList('eventos');
+  const previewPosters = useMemo<string[]>(() => {
+    const serverUrls = (uploadsData?.files ?? []).map((f) => f.url);
+    return serverUrls.length > 0 ? serverUrls : BUILT_IN_PREVIEW_POSTERS;
+  }, [uploadsData]);
+
   // Sync local draft whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.eventos_config) {
@@ -361,18 +378,18 @@ const AdminEventos = () => {
   const posterOrder = useMemo(
     () =>
       resolveOrder(
-        PREVIEW_POSTERS.length,
+        previewPosters.length,
         draft.posterOrder ?? draft.desktopOrder ?? draft.mobileOrder
       ),
-    [draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
+    [previewPosters.length, draft.posterOrder, draft.desktopOrder, draft.mobileOrder]
   );
   const savedPosterOrder = useMemo(
     () =>
       resolveOrder(
-        PREVIEW_POSTERS.length,
+        previewPosters.length,
         savedConfig.posterOrder ?? savedConfig.desktopOrder ?? savedConfig.mobileOrder
       ),
-    [savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
+    [previewPosters.length, savedConfig.posterOrder, savedConfig.desktopOrder, savedConfig.mobileOrder]
   );
 
   /** Compare two number arrays for equality (used to detect order changes) */
@@ -510,13 +527,14 @@ const AdminEventos = () => {
                   title="Desktop"
                   icon={<Monitor className="h-4 w-4" />}
                   order={posterOrder}
+                  posters={previewPosters}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(previewPosters.length),
                     }))
                   }
                 />
@@ -527,13 +545,14 @@ const AdminEventos = () => {
                   title="Mobile"
                   icon={<Smartphone className="h-4 w-4" />}
                   order={posterOrder}
+                  posters={previewPosters}
                   onOrderChange={(next) =>
                     setDraft((d) => ({ ...d, posterOrder: next }))
                   }
                   onReset={() =>
                     setDraft((d) => ({
                       ...d,
-                      posterOrder: identityOrder(PREVIEW_POSTERS.length),
+                      posterOrder: identityOrder(previewPosters.length),
                     }))
                   }
                 />

@@ -12,6 +12,7 @@ import convocatoriaHero from '@/assets/convocatoria-hero.jpg';
 import PageSubmenu from '@/components/convocatoria/PageSubmenu';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
+import { useUploadsList } from '@/hooks/useUploads';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -131,6 +132,20 @@ const Convocatoria = () => {
   const [activeSection, setActiveSection] = useState('descripcion');
   const { data: tournamentData } = useTournamentInfo();
   const { sections } = useConvocatoriaSections();
+  // Resolve the convocatoria PDF URL with a 3-tier fallback chain:
+  //   1. First PDF uploaded to the `convocatoria` section via /admin (any
+  //      filename — the admin panel marks the first one as "en uso").
+  //   2. Legacy: a file literally named `convocatoria-torneo.pdf` left in
+  //      the old `pdfs` bucket from before sections were split.
+  //   3. Build-time fallback shipped at /convocatoria-torneo.pdf in public/.
+  const { data: convocatoriaUploads } = useUploadsList('convocatoria');
+  const { data: legacyPdfs } = useUploadsList('pdfs');
+  const firstSectionPdf = convocatoriaUploads?.files.find((f) => /\.pdf$/i.test(f.name));
+  const legacyConvocatoriaPdf = legacyPdfs?.files.find(
+    (f) => f.name.toLowerCase() === 'convocatoria-torneo.pdf'
+  );
+  const convocatoriaPdfUrl =
+    firstSectionPdf?.url ?? legacyConvocatoriaPdf?.url ?? '/convocatoria-torneo.pdf';
   const parsed = tournamentData?.name ? parseTournamentName(tournamentData.name) : null;
 
   // ----- Auto-hide sections that have no content -----
@@ -237,7 +252,7 @@ const Convocatoria = () => {
               className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               <a
-                href="/convocatoria-torneo.pdf"
+                href={convocatoriaPdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Ver convocatoria en PDF"
