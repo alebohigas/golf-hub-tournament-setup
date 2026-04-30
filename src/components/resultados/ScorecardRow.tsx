@@ -258,15 +258,18 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             )}
             {type === 'scratch' && (
               <span className="text-muted-foreground">
-                +/-: <strong className={`font-bold ${
-                  (scorecard.totalGolpes - 72) < 0 ? 'text-red-600' : 
-                  (scorecard.totalGolpes - 72) > 0 ? 'text-blue-600' : ''
-                }`}>
-                  {(() => {
-                    const d = scorecard.totalGolpes - 72;
-                    return d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
-                  })()}
-                </strong>
+                {(() => {
+                  // Compute total +/- using ONLY played holes (golpes > 0), so unplayed
+                  // holes don't subtract par and produce a misleading negative score.
+                  const playedHoles = scorecard.holes.filter(h => h.golpes > 0);
+                  if (playedHoles.length === 0) {
+                    return <>+/-: <strong className="font-bold">-</strong></>;
+                  }
+                  const d = playedHoles.reduce((s, h) => s + h.golpes - h.par, 0);
+                  const cls = d < 0 ? 'text-red-600' : d > 0 ? 'text-blue-600' : '';
+                  const txt = d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
+                  return <>+/-: <strong className={`font-bold ${cls}`}>{txt}</strong></>;
+                })()}
               </span>
             )}
           </div>
