@@ -373,6 +373,15 @@ $hasAnyCard = "EXISTS (SELECT 1 FROM tarjetas t
                        WHERE t.jugadorid = j.id
                          AND t.torneoid  = j.torneoid)";
 
+/**
+ * When there are no rounds with cards yet (`$dias` is empty — e.g. the
+ * tournament hasn't started or no scorecards exist for any scheduled date),
+ * we still want to show the full eligible roster in Resultados so users can
+ * see who's playing in each category, with empty round columns and total=0.
+ * In that case we drop the "must have at least one closed/open card" filter.
+ */
+$rosterFilter = count($dias) === 0 ? '1=1' : '';
+
 // ============= Build main results query (NORMAL players) =============
 $players = [];
 
@@ -396,7 +405,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND ($closedSO > 0 OR $hasAnyCard)
+                   AND (" . ($rosterFilter ?: "$closedSO > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSO ASC";
 
@@ -429,7 +438,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND ($closedSA > 0 OR $hasAnyCard)
+                   AND (" . ($rosterFilter ?: "$closedSA > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA ASC";
@@ -465,7 +474,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND ($closedSTBGross > 0 OR $hasAnyCard)
+                   AND (" . ($rosterFilter ?: "$closedSTBGross > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSTBGross DESC";
 
@@ -499,7 +508,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND ($closedSA > 0 OR $hasAnyCard)
+                   AND (" . ($rosterFilter ?: "$closedSA > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA DESC";
