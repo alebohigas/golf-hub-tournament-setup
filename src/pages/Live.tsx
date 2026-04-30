@@ -174,14 +174,16 @@ const canOpenTodayScorecard = (
   if (!(typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))) {
     return false;
   }
-  // Block opening when the round date is set in the future (or missing).
-  if (!currentRoundDate) return false;
+  // If we don't know the round date, default to allowing the click (legacy behavior).
+  if (!currentRoundDate) return true;
   // Build today's local YYYY-MM-DD without timezone shifts.
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   // currentRoundDate may include time; take the date portion only.
   const roundDateStr = String(currentRoundDate).slice(0, 10);
-  return roundDateStr === todayStr;
+  // Only block when the round date is strictly in the FUTURE (set up for next day).
+  // Today or past dates remain clickable so live categories keep working normally.
+  return roundDateStr <= todayStr;
 };
 
 /**
