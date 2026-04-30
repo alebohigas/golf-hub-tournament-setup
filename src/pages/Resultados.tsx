@@ -517,7 +517,14 @@ const Resultados = () => {
                                     );
                                   })}
                                   <TableCell className="text-center font-bold text-primary text-lg">
-                                    {isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(player.total) : player.total}
+                                    {(() => {
+                                      // Total = sum of CLOSED rounds only (r{n} values).
+                                      // For Stroke Play r{n} is diff vs par → sum is total diff.
+                                      // For Stableford r{n} is points → sum is total points.
+                                      // If no round is closed yet, show 0 (or "E" for Stroke Play).
+                                      const t = computeClosedTotal(player, categoryDetail?.days, categoryDetail?.daysPartial);
+                                      return isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(t) : t;
+                                    })()}
                                   </TableCell>
                                 </TableRow>
 
