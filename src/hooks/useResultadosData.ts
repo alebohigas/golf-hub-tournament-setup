@@ -12,20 +12,20 @@ import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlaye
 // ============= All Results =============
 
 /** Extracts every dynamic round score from an API player object without capping at R3. */
-const mapRoundScores = (p: any): Record<`r${number}`, number | undefined> => {
+const mapRoundScores = (p: Record<string, unknown> | null | undefined): Record<`r${number}`, number | undefined> => {
   return Object.fromEntries(
     Object.entries(p || {})
       .filter(([key]) => /^r\d+$/.test(key))
-      .map(([key, value]) => [key, value ?? undefined])
+      .map(([key, value]) => [key, value == null ? undefined : Number(value)])
   ) as Record<`r${number}`, number | undefined>;
 };
 
 /** Extracts every dynamic cut-player round score, preserving null for unplayed rounds. */
-const mapCutRoundScores = (p: any): Record<`r${number}`, number | null | undefined> => {
+const mapCutRoundScores = (p: Record<string, unknown> | null | undefined): Record<`r${number}`, number | null | undefined> => {
   return Object.fromEntries(
     Object.entries(p || {})
       .filter(([key]) => /^r\d+$/.test(key))
-      .map(([key, value]) => [key, value ?? null])
+      .map(([key, value]) => [key, value == null ? null : Number(value)])
   ) as Record<`r${number}`, number | null | undefined>;
 };
 
