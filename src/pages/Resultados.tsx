@@ -481,12 +481,8 @@ const Resultados = () => {
                                     );
                                   })}
                                   <TableCell className="text-center font-bold text-primary text-lg">
-                                    {(() => {
-                                      // Stroke Play → diff vs par from CLOSED cards (no "+" sign).
-                                      // Stableford  → raw points from CLOSED cards.
-                                      // No closed cards → "0".
-                                      return computeClosedTotal(player, categoryDetail?.system, categoryDetail?.coursePar);
-                                    })()}
+                                    {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
+                                    {player.total ?? 0}
                                   </TableCell>
                                 </TableRow>
 
@@ -607,14 +603,8 @@ const Resultados = () => {
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
                                   <TableCell className="text-center font-bold text-muted-foreground">
-                                    {(() => {
-                                      // Use the per-player closedRounds count from the API.
-                                      // Cut players show "—" when they have NO closed cards
-                                      // (they're out of the tournament — "0" would be misleading).
-                                      const closed = Number(cp.closedRounds) || 0;
-                                      if (closed === 0) return '—';
-                                      return computeClosedTotal(cp, categoryDetail?.system, categoryDetail?.coursePar);
-                                    })()}
+                                    {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
+                                    {cp.total && cp.total > 0 ? cp.total : '—'}
                                   </TableCell>
                                 </TableRow>
 
