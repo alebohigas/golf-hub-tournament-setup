@@ -46,9 +46,8 @@ export interface PlayerResult {
   club: string;
   /** Club logo URL (proxied via logo.php) */
   clubLogo?: string;
-  r1?: number;
-  r2?: number;
-  r3?: number;
+  /** Dynamic round scores keyed as r1, r2, r3, r4... from the API. */
+  [roundKey: `r${number}`]: number | undefined;
   total: number;
   handicapIndex?: number;
 }
@@ -64,12 +63,8 @@ export interface CutPlayer {
   statusCode: 'S' | 'R' | 'D' | 'C';
   /** Human-readable status label */
   statusLabel: string;
-  /** Round 1 score (closed scorecard only). Null if not played/closed. */
-  r1?: number | null;
-  /** Round 2 score (closed scorecard only). Null if not played/closed. */
-  r2?: number | null;
-  /** Round 3 score (closed scorecard only). Null if not played/closed. */
-  r3?: number | null;
+  /** Dynamic round scores keyed as r1, r2, r3, r4...; null if not played/closed. */
+  [roundKey: `r${number}`]: number | null | undefined;
   /** Accumulated total from closed scorecards (0 if no rounds completed) */
   total?: number;
 }
