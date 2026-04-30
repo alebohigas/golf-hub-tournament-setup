@@ -14,7 +14,8 @@
  * expands their live scorecard fetched from live_tarjeta.php
  */
 
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
@@ -181,6 +182,14 @@ const Live = () => {
   /** Currently selected category entry */
   const [selected, setSelected] = useState<LiveScoringEntry | null>(null);
 
+  /**
+   * Deep-link support: when arriving via /live?categoria=<id> (e.g. from the
+   * Resultados disclaimer LIVE link), auto-select that category once the
+   * site config has loaded the enabled entries. Runs only while no category
+   * is selected so it never overrides user navigation.
+   */
+  const [searchParams] = useSearchParams();
+
   /** Expanded scorecard state: playerId or null */
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   /**
@@ -198,6 +207,18 @@ const Live = () => {
   const enabledEntries = (siteConfig?.live_scoring_config || [])
     .filter(e => e.enabled)
     .sort((a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId)));
+
+  useEffect(() => {
+    if (selected) return;
+    const wanted = searchParams.get('categoria');
+    if (!wanted) return;
+    const match = enabledEntries.find(e => String(e.categoryId) === String(wanted));
+    if (match) setSelected(match);
+    // enabledEntries changes identity each render but its content is what
+    // matters; keying on length + the param is enough to trigger once data
+    // arrives.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, enabledEntries.length]);
 
   /** Pre-fetch all category leaderboards to detect completion status on card view */
   const categoryQueries = useQueries({
