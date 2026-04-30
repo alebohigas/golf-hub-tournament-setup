@@ -90,6 +90,42 @@ const isStrokePlaySystem = (system?: string): boolean => {
   return !system.toUpperCase().includes('STABLEFORD');
 };
 
+/**
+ * Compute the leaderboard "Total" column from CLOSED rounds only.
+ *
+ * Why this exists: the API's `total` field is raw stroke count for Stroke
+ * Play (sum of SO/SA), but the UI must display the cumulative differential
+ * to par — the sum of each round's diff (`r1 + r2 + ...`). Per-round values
+ * (`r{n}`) are already diffs for Stroke Play and points for Stableford,
+ * so summing them gives the correct UI total in BOTH systems.
+ *
+ * Rounds still in progress (`daysPartial[i] === true`) are EXCLUDED so the
+ * total only reflects fully terminated rounds. If no round is closed yet,
+ * we return 0 (the user explicitly asked to show 0 in that case).
+ *
+ * @param player        Player whose r{n} keys we sum.
+ * @param days          Array of scheduled round dates (drives iteration count).
+ * @param daysPartial   Aligned booleans — true means round is still open / in-progress.
+ * @returns             Sum of closed-round scores, or 0 when no round is closed.
+ */
+const computeClosedTotal = (
+  player: PlayerResult | CutPlayer,
+  days: string[] | undefined,
+  daysPartial: boolean[] | undefined,
+): number => {
+  if (!days || days.length === 0) return 0;
+  let sum = 0;
+  let counted = 0;
+  for (let i = 0; i < days.length; i++) {
+    if (daysPartial && daysPartial[i]) continue; // skip in-progress rounds
+    const v = player[`r${i + 1}`];
+    if (v === null || v === undefined) continue; // round not played by this player
+    sum += Number(v) || 0;
+    counted++;
+  }
+  return counted === 0 ? 0 : sum;
+};
+
 // ============= Component =============
 
 const Resultados = () => {
@@ -481,7 +517,14 @@ const Resultados = () => {
                                     );
                                   })}
                                   <TableCell className="text-center font-bold text-primary text-lg">
-                                    {isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(player.total) : player.total}
+                                    {(() => {
+                                      // Total = sum of CLOSED rounds only (r{n} values).
+                                      // For Stroke Play r{n} is diff vs par → sum is total diff.
+                                      // For Stableford r{n} is points → sum is total points.
+                                      // If no round is closed yet, show 0 (or "E" for Stroke Play).
+                                      const t = computeClosedTotal(player, categoryDetail?.days, categoryDetail?.daysPartial);
+                                      return isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(t) : t;
+                                    })()}
                                   </TableCell>
                                 </TableRow>
 
