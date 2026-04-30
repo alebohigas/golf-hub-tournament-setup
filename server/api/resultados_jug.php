@@ -560,21 +560,39 @@ $cutPlayers = [];
  */
 $cutDayCols = '';
 foreach ($dias as $i => $fecha) {
-    if ($sistema === 'STABLEFORD' && $gross == '1') {
-        $scoreCol = 't.totstbgross';
-    } elseif ($gross == '1') {
-        $scoreCol = 't.SO';
-    } else {
-        $scoreCol = 't.SA';
-    }
     $fecEsc = esc($conn, $fecha);
-    // Subquery: closed scorecard (statlsc = 1) for this player on this date
-    $cutDayCols .= ", (SELECT IFNULL(SUM($scoreCol), 0)
-                       FROM tarjetas t
-                       WHERE t.jugadorid   = j.id
-                         AND t.torneoid    = j.torneoid
-                         AND t.fecha_juego = '$fecEsc'
-                         AND t.statlsc     = 1) as d{$i}";
+    // For partial rounds, drop the statlsc=1 filter so cut players also
+    // show their in-progress score in the live column. For closed rounds,
+    // keep the statlsc=1 filter (matches the leaderboard semantics).
+    $statFilter = empty($diasPartial[$i]) ? "AND t.statlsc = 1" : '';
+    if ($sistema === 'STABLEFORD' && $gross == '1') {
+        // Stableford GROSS: raw stableford gross points
+        $expr = "(SELECT IFNULL(SUM(t.totstbgross), 0)
+                  FROM tarjetas t
+                  WHERE t.jugadorid   = j.id
+                    AND t.torneoid    = j.torneoid
+                    AND DATE(t.fecha_juego) = '$fecEsc'
+                    $statFilter)";
+    } elseif ($sistema === 'STABLEFORD') {
+        // Stableford NETO: SA points
+        $expr = "(SELECT IFNULL(SUM(t.SA), 0)
+                  FROM tarjetas t
+                  WHERE t.jugadorid   = j.id
+                    AND t.torneoid    = j.torneoid
+                    AND DATE(t.fecha_juego) = '$fecEsc'
+                    $statFilter)";
+    } else {
+        // Stroke Play: report diff to par so the column matches the
+        // leaderboard format. Gross uses SO, neto uses SA.
+        $scoreCol = ($gross == '1') ? 't.SO' : 't.SA';
+        $expr = "(SELECT IFNULL(SUM($scoreCol) - SUM(IFNULL(t.parcampo, 0)), 0)
+                  FROM tarjetas t
+                  WHERE t.jugadorid   = j.id
+                    AND t.torneoid    = j.torneoid
+                    AND DATE(t.fecha_juego) = '$fecEsc'
+                    $statFilter)";
+    }
+    $cutDayCols .= ", $expr as d{$i}";
 }
 
 /**
@@ -644,6 +662,7 @@ json_response([
         'par'      => (int)($courseInfo['parcampo'] ?? 72)
     ] : null,
     'days'         => array_values($dias),
+    'daysPartial'  => array_values($diasPartial),
     'players'      => $players,
     'cutPlayers'   => $cutPlayers,
 ]);
