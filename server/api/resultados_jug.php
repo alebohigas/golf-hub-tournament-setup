@@ -481,6 +481,10 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSO ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering: when no round is fully closed yet, rank by the
+        // current live score so the table mirrors /live instead of being a
+        // big tie broken only by handicap-derived defaults.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'ASC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stroke Play GROSS → fewer strokes wins, so ASC.
         $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
@@ -515,6 +519,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering (Stroke NETO): see GROSS branch above.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'ASC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stroke Play NETO → fewer net strokes wins, so ASC.
         $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
@@ -550,6 +556,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSTBGross DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering (Stableford GROSS): more points wins → DESC.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'DESC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stableford GROSS → more points wins, so DESC.
         $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
@@ -585,6 +593,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
+        // Live ordering (Stableford NETO): more points wins → DESC.
+        $sql .= partial_round_ordering($dias, $diasPartial, 'DESC');
         // Rounds 2+ tiebreaker: compare prior rounds (latest first).
         // Stableford NETO → more points wins, so DESC.
         $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
