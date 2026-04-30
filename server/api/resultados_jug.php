@@ -291,6 +291,73 @@ function statusLabel($code) {
     return '';
 }
 
+// ============= Per-round score expression builder =============
+/**
+ * Build the SQL expression that returns a player's per-round score for
+ * the requested round.
+ *
+ * - For CLOSED rounds (every eligible player has statlsc=1): we keep using
+ *   the legacy `f_score_dia_sax/sox` functions which read from `v_resultar`
+ *   (statlsc=1 only). This preserves identical numbers for finished rounds.
+ *
+ * - For PARTIAL rounds (at least one eligible player has an open card): we
+ *   read from `tarjetas` directly with NO `statlsc` filter so in-progress
+ *   scores show up. The score column matches what each scoring system shows
+ *   in the round column:
+ *     STROKE  GROSS → SO - parcampo (diff to par)
+ *     STROKE  NETO  → SA - parcampo (net diff to par)
+ *     STBLF   GROSS → totstbgross
+ *     STBLF   NETO  → SA
+ *
+ *   `parcampo` for a single round comes from the `tarjetas.parcampo` column
+ *   (sum of par-per-hole stored on the row); when missing we fall back to
+ *   the categoria's course par.
+ *
+ * @param string $sistema  STROKE PLAY | STABLEFORD
+ * @param string $gross    '0' | '1'
+ * @param string $fecEsc   Escaped YYYY-MM-DD round date
+ * @param bool   $partial  Whether the round is in-progress
+ * @return string SQL scalar expression that evaluates to the player's score
+ *                for that round (or 0 if no card).
+ */
+function day_score_expr($sistema, $gross, $fecEsc, $partial) {
+    $isStableford = (strtoupper($sistema) === 'STABLEFORD');
+    if (!$partial) {
+        // Closed round → legacy function (statlsc=1 only). Identical to before.
+        $fn = ($gross == '1') ? 'f_score_dia_sox' : 'f_score_dia_sax';
+        return "$fn(j.id, '$fecEsc')";
+    }
+    // Partial round → direct tarjetas read (open + closed cards count).
+    if ($isStableford) {
+        $col = ($gross == '1') ? 't.totstbgross' : 't.SA';
+        return "(SELECT IFNULL(SUM($col), 0)
+                 FROM tarjetas t
+                 WHERE t.jugadorid = j.id
+                   AND t.torneoid  = j.torneoid
+                   AND DATE(t.fecha_juego) = '$fecEsc'
+                 LIMIT 1)";
+    }
+    // Stroke Play → per-row diff to par. Each tarjeta has its own parcampo.
+    $scoreCol = ($gross == '1') ? 't.SO' : 't.SA';
+    return "(SELECT IFNULL(SUM($scoreCol) - SUM(IFNULL(t.parcampo, 0)), 0)
+             FROM tarjetas t
+             WHERE t.jugadorid = j.id
+               AND t.torneoid  = j.torneoid
+               AND DATE(t.fecha_juego) = '$fecEsc'
+             LIMIT 1)";
+}
+
+// ============= Player eligibility helper =============
+/**
+ * "Has any tarjeta in this tournament" — used to keep a player visible in
+ * Resultados as soon as their first card is opened, even before any round
+ * is fully closed. Without this, the leaderboard would be empty during the
+ * very first in-progress round.
+ */
+$hasAnyCard = "EXISTS (SELECT 1 FROM tarjetas t
+                       WHERE t.jugadorid = j.id
+                         AND t.torneoid  = j.torneoid)";
+
 // ============= Build main results query (NORMAL players) =============
 $players = [];
 
@@ -304,7 +371,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -313,7 +381,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND $closedSO > 0
+                   AND ($closedSO > 0 OR $hasAnyCard)
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSO ASC";
 
@@ -336,7 +404,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -345,7 +414,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND $closedSA > 0
+                   AND ($closedSA > 0 OR $hasAnyCard)
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA ASC";
@@ -371,7 +440,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -380,7 +450,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND $closedSTBGross > 0
+                   AND ($closedSTBGross > 0 OR $hasAnyCard)
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSTBGross DESC";
 
@@ -404,7 +474,8 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -413,7 +484,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND $closedSA > 0
+                   AND ($closedSA > 0 OR $hasAnyCard)
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA DESC";
