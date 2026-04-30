@@ -757,6 +757,7 @@ if ($sistema === 'STABLEFORD' && $gross == '1') {
 $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                   $cutTotalExpr
+                  , $closedRoundCount as closed_rounds
                   $cutDayCols,
                   c.abr, c.logo
            FROM jugadores j
@@ -795,6 +796,7 @@ foreach ($cutRows as $row) {
         'statusCode'  => $statusCode ?? 'D',
         'statusLabel' => statusLabel($statusCode ?? 'D'),
         'total'       => $cutTotal,
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0),
     ], $cutRounds);
 }
 
