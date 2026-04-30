@@ -104,6 +104,8 @@ interface LiveScoringResponse {
   type: 'stroke' | 'stableford';
   gross: number;
   par: number;
+  /** 1 when every eligible category player has statlsc=1 for the current round */
+  categoryClosed?: number;
   course: { rating: number; slope: number; tee: string } | null;
   players: LivePlayer[];
 }
@@ -208,7 +210,10 @@ const Live = () => {
     enabledEntries.forEach((entry, idx) => {
       const data = categoryQueries[idx]?.data;
       if (data && data.players.length > 0) {
-        map.set(entry.categoryId, isCategoryCompleted(data.players));
+        map.set(entry.categoryId, typeof data.categoryClosed === 'number'
+          ? data.categoryClosed === 1
+          : isCategoryCompleted(data.players)
+        );
       }
     });
     return map;
