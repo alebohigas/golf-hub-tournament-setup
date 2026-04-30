@@ -568,7 +568,22 @@ foreach ($rows as $row) {
 
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
+        // For PARTIAL (in-progress) rounds the partial score expression
+        // returns NULL when the player has no card yet, and a real number
+        // (possibly 0 = "currently at level par") when they're playing.
+        // We must therefore preserve `0` for partial rounds — otherwise the
+        // table cell becomes a non-clickable dash and the user can't open
+        // the scorecard for a player who happens to be even par.
+        //
+        // For CLOSED rounds (legacy f_score_dia_sax/sox) a value of 0
+        // historically means "did not play this round", so we keep treating
+        // 0 as null there to match prior behaviour.
+        $isPartial = !empty($diasPartial[$i]);
+        if ($isPartial) {
+            $player["r{$i}"] = $val !== null ? (int)$val : null;
+        } else {
+            $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
+        }
     }
 
     $players[] = $player;
