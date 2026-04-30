@@ -91,39 +91,34 @@ const isStrokePlaySystem = (system?: string): boolean => {
 };
 
 /**
- * Compute the leaderboard "Total" column from CLOSED rounds only.
+ * Compute the leaderboard "Total" column.
  *
- * Why this exists: the API's `total` field is raw stroke count for Stroke
- * Play (sum of SO/SA), but the UI must display the cumulative differential
- * to par — the sum of each round's diff (`r1 + r2 + ...`). Per-round values
- * (`r{n}`) are already diffs for Stroke Play and points for Stableford,
- * so summing them gives the correct UI total in BOTH systems.
+ * Backend semantics:
+ *   - `player.total` is the SUM of the player's CLOSED scorecards (statlsc=1):
+ *       · Stroke Play  → raw strokes (SO for GROSS, SA for NETO)
+ *       · Stableford   → raw points
+ *   - `player.closedRounds` is the COUNT of those closed cards (per-player flag).
  *
- * Rounds still in progress (`daysPartial[i] === true`) are EXCLUDED so the
- * total only reflects fully terminated rounds. If no round is closed yet,
- * we return 0 (the user explicitly asked to show 0 in that case).
- *
- * @param player        Player whose r{n} keys we sum.
- * @param days          Array of scheduled round dates (drives iteration count).
- * @param daysPartial   Aligned booleans — true means round is still open / in-progress.
- * @returns             Sum of closed-round scores, or 0 when no round is closed.
+ * Display rules (per user request):
+ *   - If `closedRounds === 0`, show plain "0" — the player has no terminated
+ *     round yet, so the in-progress score must NOT bleed into Total.
+ *   - Stroke Play  → show differential vs par: `total - coursePar * closedRounds`
+ *     (no "+" sign on the Total column even when positive).
+ *   - Stableford   → show raw points (`total`).
  */
 const computeClosedTotal = (
   player: PlayerResult | CutPlayer,
-  days: string[] | undefined,
-  daysPartial: boolean[] | undefined,
+  system: string | undefined,
+  coursePar: number | undefined,
 ): number => {
-  if (!days || days.length === 0) return 0;
-  let sum = 0;
-  let counted = 0;
-  for (let i = 0; i < days.length; i++) {
-    if (daysPartial && daysPartial[i]) continue; // skip in-progress rounds
-    const v = player[`r${i + 1}`];
-    if (v === null || v === undefined) continue; // round not played by this player
-    sum += Number(v) || 0;
-    counted++;
+  const closed = Number(player.closedRounds) || 0;
+  if (closed === 0) return 0;
+  const total = Number(player.total) || 0;
+  if (isStrokePlaySystem(system)) {
+    const par = Number(coursePar) || 72;
+    return total - par * closed;
   }
-  return counted === 0 ? 0 : sum;
+  return total;
 };
 
 // ============= Component =============
