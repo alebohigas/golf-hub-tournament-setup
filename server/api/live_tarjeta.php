@@ -93,7 +93,6 @@ json_response([
     'holes'   => $holesSO,
     'holesSA' => $holesSA,
     'par'     => $parHoles,
-    'hcp'     => $holeRanks,
     'ventajas'     => $ventajas,
     'ventajasGoro' => $ventajasGoro
 ]);
