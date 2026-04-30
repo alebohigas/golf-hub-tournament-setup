@@ -165,18 +165,24 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             <tr className="bg-muted/20">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">+/-</td>
               {holes.map(h => {
+                // Unplayed hole (golpes=0): show "-" and don't color it.
+                const played = h.golpes > 0;
                 const diff = h.golpes - h.par;
                 return (
                   <td key={h.hoyo} className={`px-2 py-1 text-center font-medium ${
+                    !played ? 'text-muted-foreground' :
                     diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : 'text-muted-foreground'
                   }`}>
-                    {h.resultado}
+                    {played ? h.resultado : '-'}
                   </td>
                 );
               })}
               <td className="px-2 py-1 text-center font-semibold">
                 {(() => {
-                  const total = holes.reduce((s, h) => s + h.golpes, 0) - holes.reduce((s, h) => s + h.par, 0);
+                  // Only sum played holes (golpes > 0) so unplayed holes don't subtract par.
+                  const playedHoles = holes.filter(h => h.golpes > 0);
+                  if (playedHoles.length === 0) return '-';
+                  const total = playedHoles.reduce((s, h) => s + h.golpes - h.par, 0);
                   return total === 0 ? 'E' : total > 0 ? `+${total}` : `${total}`;
                 })()}
               </td>
