@@ -575,6 +575,8 @@ const Resultados = () => {
                                     const round = i + 1;
                                     const score = getRoundScore(cp, round);
                                     const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
+                                    // Stroke Play: sign-prefix and "E" for 0; Stableford: raw points.
+                                    const isStroke = isStrokePlaySystem(categoryDetail?.system);
                                     if (score === undefined || score === null) {
                                       return (
                                         <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
@@ -593,14 +595,16 @@ const Resultados = () => {
                                           }`}
                                           title={`Ver tarjeta R${round}`}
                                         >
-                                          {score}
+                                          {isStroke ? formatStrokeValue(score as number) : score}
                                         </button>
                                       </TableCell>
                                     );
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
                                   <TableCell className="text-center font-bold text-muted-foreground">
-                                    {cp.total && cp.total > 0 ? cp.total : '—'}
+                                    {cp.total && cp.total > 0
+                                      ? (isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(cp.total) : cp.total)
+                                      : '—'}
                                   </TableCell>
                                 </TableRow>
 
