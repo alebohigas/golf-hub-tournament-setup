@@ -316,18 +316,19 @@ function statusLabel($code) {
  *     STBLF   GROSS → totstbgross
  *     STBLF   NETO  → SA
  *
- *   `parcampo` for a single round comes from the `tarjetas.parcampo` column
- *   (sum of par-per-hole stored on the row); when missing we fall back to
- *   the categoria's course par.
+ *   `parcampo` for a single round comes from the categoria's course par
+ *   (`caljuego JOIN campo_tee.parcampo`). Each scorecard row represents one
+ *   played round so the diff is `SUM(score) - parcampo * cards_played`.
  *
  * @param string $sistema  STROKE PLAY | STABLEFORD
  * @param string $gross    '0' | '1'
  * @param string $fecEsc   Escaped YYYY-MM-DD round date
- * @param bool   $partial  Whether the round is in-progress
+ * @param bool   $partial   Whether the round is in-progress
+ * @param int    $parcampo  Course par for this category (default 72)
  * @return string SQL scalar expression that evaluates to the player's score
  *                for that round (or 0 if no card).
  */
-function day_score_expr($sistema, $gross, $fecEsc, $partial) {
+function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
     $isStableford = (strtoupper($sistema) === 'STABLEFORD');
     if (!$partial) {
         // Closed round → legacy function (statlsc=1 only). Identical to before.
@@ -344,9 +345,10 @@ function day_score_expr($sistema, $gross, $fecEsc, $partial) {
                    AND DATE(t.fecha_juego) = '$fecEsc'
                  LIMIT 1)";
     }
-    // Stroke Play → per-row diff to par. Each tarjeta has its own parcampo.
+    // Stroke Play → diff to par. Subtract category course par × cards played
+    // so a player with no card returns 0 (not -par).
     $scoreCol = ($gross == '1') ? 't.SO' : 't.SA';
-    return "(SELECT IFNULL(SUM($scoreCol) - SUM(IFNULL(t.parcampo, 0)), 0)
+    return "(SELECT IFNULL(SUM($scoreCol) - ($parcampo * COUNT(*)), 0)
              FROM tarjetas t
              WHERE t.jugadorid = j.id
                AND t.torneoid  = j.torneoid
