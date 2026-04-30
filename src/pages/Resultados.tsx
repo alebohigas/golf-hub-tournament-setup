@@ -639,15 +639,12 @@ const Resultados = () => {
                                   {/* Total: show accumulated total when player has at least one closed round */}
                                   <TableCell className="text-center font-bold text-muted-foreground">
                                     {(() => {
-                                      // Sum only CLOSED rounds (r{n}), no "+" sign on totals.
-                                      // Cut players keep "—" when nothing is closed (they're out — 0 would be misleading here).
-                                      const t = computeClosedTotal(cp, categoryDetail?.days, categoryDetail?.daysPartial);
-                                      const hasClosed = (categoryDetail?.days || []).some((_, i) => {
-                                        if (categoryDetail?.daysPartial?.[i]) return false;
-                                        const v = cp[`r${i + 1}`];
-                                        return v !== null && v !== undefined;
-                                      });
-                                      return hasClosed ? t : '—';
+                                      // Use the per-player closedRounds count from the API.
+                                      // Cut players show "—" when they have NO closed cards
+                                      // (they're out of the tournament — "0" would be misleading).
+                                      const closed = Number(cp.closedRounds) || 0;
+                                      if (closed === 0) return '—';
+                                      return computeClosedTotal(cp, categoryDetail?.system, categoryDetail?.coursePar);
                                     })()}
                                   </TableCell>
                                 </TableRow>
