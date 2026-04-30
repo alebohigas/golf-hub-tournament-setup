@@ -196,6 +196,17 @@ $closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j
 /** Sum totstbgross (stableford gross points) from CLOSED cards only on fully published rounds */
 $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
 
+/**
+ * Count of CLOSED scorecards (statlsc=1) for this player on scheduled round dates.
+ *
+ * Exposed in the JSON response as `closedRounds` so the frontend can convert
+ * the raw stroke total (`total`) into a differential vs par for Stroke Play
+ * leaderboards: `displayedTotal = total - parcampo * closedRounds`.
+ *
+ * When 0 the UI shows a plain "0" because the player has no terminated round yet.
+ */
+$closedRoundCount = "(SELECT COUNT(*) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
 // ============= Round 1 tiebreaker chunk builders =============
 /**
  * Build a subquery that returns the sum of a hole-range from the player's
@@ -476,6 +487,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSO as so,
                        $closedSA as sa,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -513,6 +525,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSA as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -551,6 +564,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSTBGross as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -587,6 +601,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSA as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
@@ -636,7 +651,10 @@ foreach ($rows as $row) {
         'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'total'     => $gross == '1' ? (int)$row['so'] : (int)$row['sa'],
         'totalSO'   => (int)($row['so'] ?? 0),
-        'totalSA'   => (int)($row['sa'] ?? 0)
+        'totalSA'   => (int)($row['sa'] ?? 0),
+        // Number of CLOSED scorecards (statlsc=1) for this player on scheduled dates.
+        // Frontend uses this to compute Stroke Play differential: total - parcampo * closedRounds.
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0)
     ];
 
     foreach ($dias as $i => $fecha) {
@@ -739,6 +757,7 @@ if ($sistema === 'STABLEFORD' && $gross == '1') {
 $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                   $cutTotalExpr
+                  , $closedRoundCount as closed_rounds
                   $cutDayCols,
                   c.abr, c.logo
            FROM jugadores j
@@ -777,6 +796,7 @@ foreach ($cutRows as $row) {
         'statusCode'  => $statusCode ?? 'D',
         'statusLabel' => statusLabel($statusCode ?? 'D'),
         'total'       => $cutTotal,
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0),
     ], $cutRounds);
 }
 
