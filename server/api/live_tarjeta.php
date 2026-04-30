@@ -12,7 +12,6 @@ $categoriaid = optional_param('categoriaid', '0');
 $tipo        = optional_param('tipo', 'stroke');
 
 $jid = esc($conn, $jugadorid);
-$cid = esc($conn, $categoriaid);
 
 // ============= Get latest card for player =============
 // Qualify every tarjetas column because v_sal_jug also exposes score/date fields.
@@ -43,21 +42,6 @@ $sql .= " FROM tarjetas a
 
 $card = query_one($conn, $sql);
 if (!$card) { json_error('Card not found', 404); }
-
-// ============= Hole handicap ranking =============
-// Use the selected category tee setup to return the hole dificultad/ventaja row.
-$holeRanks = [];
-if ($categoriaid !== '0') {
-    $holeSql = "SELECT h.numero, h.ventaja
-                FROM categorias cat
-                JOIN hoyosxsalida h ON (h.campoid = " . (int)$card['campoid'] . " AND h.salidaid = cat.salida)
-                WHERE cat.categoria_id = $cid
-                ORDER BY h.numero ASC";
-    $holeRows = query_all($conn, $holeSql);
-    foreach ($holeRows as $row) {
-        $holeRanks[(int)$row['numero'] - 1] = (int)$row['ventaja'];
-    }
-}
 
 // ============= Build holes arrays =============
 $holesSO = []; // Score Original
