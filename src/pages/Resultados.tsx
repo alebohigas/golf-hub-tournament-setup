@@ -81,7 +81,8 @@ const formatStrokeValue = (value: number | string): string => {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
   if (n === 0) return 'E';
-  return n > 0 ? `+${n}` : `${n}`;
+  // No prefix for positives — display raw signed value (negatives keep '-').
+  return `${n}`;
 };
 
 /** True when the active category uses Stroke Play (so we should sign-prefix scores). */
