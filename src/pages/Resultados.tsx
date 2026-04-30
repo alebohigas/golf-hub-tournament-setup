@@ -26,6 +26,15 @@ import type {
 } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
 
+/**
+ * Feature flag: muestra/oculta la leyenda amarilla "Rondas presentadas y marcadas
+ * como EN VIVO no afectan la suma total..." que aparece arriba de la tabla de
+ * resultados cuando hay rondas en curso (`daysPartial`).
+ *
+ * Cambiar a `true` para volver a habilitarla sin tocar más código.
+ */
+const SHOW_LIVE_ROUND_DISCLAIMER = false;
+
 // ============= Helper Functions =============
 
 /**
