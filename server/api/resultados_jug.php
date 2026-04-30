@@ -105,21 +105,40 @@ $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
 // ============= Get fully closed play dates =============
 // A round is published in Resultados as soon as AT LEAST ONE eligible NORMAL
-// player in the category has a closed scorecard (`tarjetas.statlsc = 1`) for
-// that scheduled date. Rounds with zero closed cards stay hidden so we never
-// render an empty round column.
+// player in the category has ANY scorecard (open or closed) for that
+// scheduled date. Rounds with zero cards entirely (future rounds) stay
+// hidden so we never render an empty column.
+//
+// `$diasPartial[$i]` flags rounds that exist but have NOT been fully closed
+// by every eligible player yet — these are rendered with an "En vivo"
+// indicator on the frontend. Only fully-closed rounds count toward the
+// accumulated `total` (see `$closedDates` below), so partial in-progress
+// rounds appear in their column but do NOT inflate standings.
 $sql = "SELECT fecha FROM caljuego
         WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
 $dateRows = query_all($conn, $sql);
 
 $dias = [];
+$diasPartial = []; // 1-indexed map: round# => bool (true = partial/in-progress)
 $eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
 if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
+$expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
+$expectedPlayers = (int)($expectedRow['total'] ?? 0);
 
 foreach ($dateRows as $dr) {
     $fecha = $dr['fecha'];
     $fecEsc = esc($conn, $fecha);
+    // Count any scorecards (open or closed) for that date
+    $anyRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
+                                 FROM tarjetas t
+                                 JOIN jugadores j ON (j.id = t.jugadorid)
+                                 WHERE $eligibleWhere
+                                   AND t.torneoid = $tid
+                                   AND DATE(t.fecha_juego) = '$fecEsc'");
+    $anyCount = (int)($anyRow['total'] ?? 0);
+    if ($anyCount === 0) { continue; } // future round, skip
+    // Count CLOSED scorecards (statlsc=1) for that date
     $closedRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
                                    FROM tarjetas t
                                    JOIN jugadores j ON (j.id = t.jugadorid)
@@ -127,9 +146,12 @@ foreach ($dateRows as $dr) {
                                      AND t.torneoid = $tid
                                      AND DATE(t.fecha_juego) = '$fecEsc'
                                      AND t.statlsc = 1");
-    if ((int)($closedRow['total'] ?? 0) > 0) {
-        $dias[count($dias) + 1] = $fecha;
-    }
+    $closedCount = (int)($closedRow['total'] ?? 0);
+    $idx = count($dias) + 1;
+    $dias[$idx] = $fecha;
+    // Round is "partial" if not every eligible player has a closed card yet.
+    // This means the round column will appear but its scores won't roll into Total.
+    $diasPartial[$idx] = ($expectedPlayers === 0 || $closedCount < $expectedPlayers);
 }
 
 // ============= Get course info =============
@@ -143,7 +165,9 @@ $courseInfo = query_one($conn, $sql);
 // ============= Inline subquery helpers for closed-card totals =============
 
 /** SQL date guard: totals only include category-wide fully closed rounds. */
-$closedDates = array_map(function($fecha) use ($conn) { return "'" . esc($conn, $fecha) . "'"; }, array_values($dias));
+$closedOnlyDias = [];
+foreach ($dias as $i => $f) { if (empty($diasPartial[$i])) { $closedOnlyDias[] = $f; } }
+$closedDates = array_map(function($fecha) use ($conn) { return "'" . esc($conn, $fecha) . "'"; }, $closedOnlyDias);
 $closedDateFilter = count($closedDates) > 0
     ? " AND DATE(t.fecha_juego) IN (" . implode(',', $closedDates) . ")"
     : " AND 1 = 0";
