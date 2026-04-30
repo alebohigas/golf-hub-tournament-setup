@@ -550,8 +550,8 @@ const Live = () => {
                                 </TableCell>
 
                                 {/* Holes completed — shows "F" when player has all scorecards closed (statlsc=1) */}
-                                <TableCell className={`text-center text-sm ${isPlayerFinished(player) ? 'font-bold text-green-700' : ''}`}>
-                                  {formatThru(player)}
+                                <TableCell className={`text-center text-sm ${isPlayerFinished(player, leaderboard?.currentRoundDate) ? 'font-bold text-green-700' : ''}`}>
+                                  {formatThru(player, leaderboard?.currentRoundDate)}
                                 </TableCell>
 
                                 {/*
