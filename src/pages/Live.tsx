@@ -162,10 +162,27 @@ const formatThru = (player: LivePlayer, currentRoundDate?: string | null): strin
  * Check if the Hoy score should open a scorecard.
  * The live API can report a valid current-day score while `thru` is 0 once the card is closed,
  * so clickability must be based on the displayed Hoy value instead of only holes-in-progress.
+ *
+ * Additionally, if the category's current round date is in the future (e.g. category being
+ * set up for the next day), the scorecard MUST NOT be openable. Only allow when the round
+ * date matches today's local date (YYYY-MM-DD).
  */
-const canOpenTodayScorecard = (player: LivePlayer): boolean => (
-  typeof player.todayScore === 'number' && Number.isFinite(player.todayScore)
-);
+const canOpenTodayScorecard = (
+  player: LivePlayer,
+  currentRoundDate?: string | null
+): boolean => {
+  if (!(typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))) {
+    return false;
+  }
+  // Block opening when the round date is set in the future (or missing).
+  if (!currentRoundDate) return false;
+  // Build today's local YYYY-MM-DD without timezone shifts.
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // currentRoundDate may include time; take the date portion only.
+  const roundDateStr = String(currentRoundDate).slice(0, 10);
+  return roundDateStr === todayStr;
+};
 
 /**
  * Check if a whole category is finished — every player has all scorecards closed.
