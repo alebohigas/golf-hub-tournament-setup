@@ -289,9 +289,8 @@ export const fetchLiveScorecardFromApi = async (
   const url = getLiveTarjetaUrl(playerId, tipo, categoryId);
   const raw = await apiFetch<any>(url);
 
-  // Parse par and ventajas arrays from the response
+  // Parse par and actual player handicap-stroke arrays from the response
   const parArr: number[] = raw.par || [];
-  const hcpArr: number[] = raw.hcp || [];
   const ventajasArr: number[] = raw.ventajas || [];
   const holesSOArr: (number | null)[] = raw.holes || [];
   const holesSAArr: (number | null)[] = raw.holesSA || [];
@@ -313,7 +312,7 @@ export const fetchLiveScorecardFromApi = async (
     holes.push({
       hoyo: i + 1,
       par,
-      hcp: hcpArr[i] ?? 0,
+      hcp: 0,
       golpes,
       neto,
       hcpStrokes,
