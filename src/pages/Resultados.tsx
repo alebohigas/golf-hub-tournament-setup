@@ -644,9 +644,17 @@ const Resultados = () => {
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
                                   <TableCell className="text-center font-bold text-muted-foreground">
-                                    {cp.total && cp.total > 0
-                                      ? (isStrokePlaySystem(categoryDetail?.system) ? formatStrokeValue(cp.total) : cp.total)
-                                      : '—'}
+                                    {(() => {
+                                      // Sum only CLOSED rounds (r{n}), no "+" sign on totals.
+                                      // Cut players keep "—" when nothing is closed (they're out — 0 would be misleading here).
+                                      const t = computeClosedTotal(cp, categoryDetail?.days, categoryDetail?.daysPartial);
+                                      const hasClosed = (categoryDetail?.days || []).some((_, i) => {
+                                        if (categoryDetail?.daysPartial?.[i]) return false;
+                                        const v = cp[`r${i + 1}`];
+                                        return v !== null && v !== undefined;
+                                      });
+                                      return hasClosed ? t : '—';
+                                    })()}
                                   </TableCell>
                                 </TableRow>
 
