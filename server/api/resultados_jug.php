@@ -161,6 +161,8 @@ $sql = "SELECT b.campoid, b.salidaid, rating, slope, tee, parcampo
         JOIN salidas s ON (b.salidaid = s.id)
         LIMIT 1";
 $courseInfo = query_one($conn, $sql);
+/** Course par used for diff-to-par computation in partial Stroke rounds. */
+$parcampo = (int)($courseInfo['parcampo'] ?? 72);
 
 // ============= Inline subquery helpers for closed-card totals =============
 
@@ -380,7 +382,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
             $sql .= ", $expr as d{$i}";
         }
 
@@ -413,7 +415,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
             $sql .= ", $expr as d{$i}";
         }
 
@@ -449,7 +451,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
             $sql .= ", $expr as d{$i}";
         }
 
@@ -483,7 +485,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]));
+            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
             $sql .= ", $expr as d{$i}";
         }
 
