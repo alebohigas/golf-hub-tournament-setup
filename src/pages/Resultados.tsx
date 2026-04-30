@@ -513,11 +513,10 @@ const Resultados = () => {
                                   })}
                                   <TableCell className="text-center font-bold text-primary text-lg">
                                     {(() => {
-                                      // Total = sum of CLOSED rounds only (r{n} values).
-                                      // Stroke Play: r{n} is diff vs par → total is total diff (raw number, NO "+" sign).
-                                      // Stableford : r{n} is points     → total is total points.
-                                      // If no round is closed for this player yet, show plain "0" (never "E").
-                                      return computeClosedTotal(player, categoryDetail?.days, categoryDetail?.daysPartial);
+                                      // Stroke Play → diff vs par from CLOSED cards (no "+" sign).
+                                      // Stableford  → raw points from CLOSED cards.
+                                      // No closed cards → "0".
+                                      return computeClosedTotal(player, categoryDetail?.system, categoryDetail?.coursePar);
                                     })()}
                                   </TableCell>
                                 </TableRow>
