@@ -166,12 +166,25 @@ $parcampo = (int)($courseInfo['parcampo'] ?? 72);
 
 // ============= Inline subquery helpers for closed-card totals =============
 
-/** SQL date guard: totals only include category-wide fully closed rounds. */
-$closedOnlyDias = [];
-foreach ($dias as $i => $f) { if (empty($diasPartial[$i])) { $closedOnlyDias[] = $f; } }
-$closedDates = array_map(function($fecha) use ($conn) { return "'" . esc($conn, $fecha) . "'"; }, $closedOnlyDias);
-$closedDateFilter = count($closedDates) > 0
-    ? " AND DATE(t.fecha_juego) IN (" . implode(',', $closedDates) . ")"
+/**
+ * SQL date guard for the accumulated `total` column.
+ *
+ * Rule (updated): a player's individually CLOSED scorecard (statlsc = 1)
+ * always rolls into their Total, regardless of whether the rest of the
+ * category has also closed that round. The filter therefore restricts to
+ * the set of scheduled round dates (`$dias`) — so future / unscheduled
+ * dates are excluded — but no longer requires the round to be fully
+ * closed by every eligible player.
+ *
+ * Previously this only included rounds where EVERY eligible player had
+ * closed their card, which meant a player who had already finished
+ * (thru = "F") would see "0" in Total until the slowest player in the
+ * category also signed off. The new behaviour mirrors what the user sees
+ * mid-round: as soon as your card closes, your contribution counts.
+ */
+$allDates = array_map(function($fecha) use ($conn) { return "'" . esc($conn, $fecha) . "'"; }, array_values($dias));
+$closedDateFilter = count($allDates) > 0
+    ? " AND DATE(t.fecha_juego) IN (" . implode(',', $allDates) . ")"
     : " AND 1 = 0";
 
 /** Sum SA (neto/stableford points) from CLOSED cards only on fully published rounds */
