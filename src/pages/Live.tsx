@@ -297,7 +297,7 @@ const Live = () => {
     try {
       const tipo = selected?.tipo || (isStroke ? 'stroke' : 'stableford');
       const scoringType = selected?.gross === 1 ? 'GROSS' : 'NETO';
-      const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType, selected?.categoriaid);
+      const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType, selected?.categoryId);
       setScorecardStack([live]);
     } catch (err) {
       console.error('Failed to fetch live scorecard:', err);
