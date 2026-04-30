@@ -103,6 +103,17 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
+          {/* Hcp. row - hole difficulty ranking (1 = hardest), from campo_tee.ventajas */}
+          {(type === 'hcp' || type === 'stableford') && (
+            <tr className="bg-muted/10">
+              <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Hcp.</td>
+              {holes.map(h => (
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcp ?? 0}</td>
+              ))}
+              <td className="px-2 py-1 text-center text-muted-foreground">-</td>
+            </tr>
+          )}
+
           {/* Neto row - shown for hcp and stableford */}
           {(type === 'hcp' || type === 'stableford') && (
             <tr className="bg-muted/30">

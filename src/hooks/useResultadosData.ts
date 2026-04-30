@@ -292,6 +292,7 @@ export const fetchLiveScorecardFromApi = async (
   // Parse par and actual player handicap-stroke arrays from the response
   const parArr: number[] = raw.par || [];
   const ventajasArr: number[] = raw.ventajas || [];
+  const hcpArr: number[] = raw.hcp || [];
   const holesSOArr: (number | null)[] = raw.holes || [];
   const holesSAArr: (number | null)[] = raw.holesSA || [];
 
@@ -312,7 +313,7 @@ export const fetchLiveScorecardFromApi = async (
     holes.push({
       hoyo: i + 1,
       par,
-      hcp: 0,
+      hcp: hcpArr[i] ?? 0,
       golpes,
       neto,
       hcpStrokes,
