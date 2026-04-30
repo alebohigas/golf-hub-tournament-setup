@@ -87,6 +87,12 @@ export interface ResultCategory {
   /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
   days?: string[];
   /**
+   * Per-round in-progress flag aligned to `days`. `true` means at least one
+   * eligible player still has an open card for that date — the round shows
+   * up in its column with an "En vivo" badge and is NOT counted in `total`.
+   */
+  daysPartial?: boolean[];
+  /**
    * Number of medal winners for the active scoring type (back-compat).
    * Prefer `medalCountNeto` / `medalCountGross` when picking dynamically.
    */
