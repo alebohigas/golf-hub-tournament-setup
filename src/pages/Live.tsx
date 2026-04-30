@@ -66,8 +66,6 @@ interface StablefordPlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
-  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
-  todayClosed?: number;
   /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
   todayStatlsc?: number | null;
   /** 1 when the player has a latest card available for live_tarjeta.php */
@@ -99,8 +97,6 @@ interface StrokePlayer {
   /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
   todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
-  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
-  todayClosed?: number;
   /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
   todayStatlsc?: number | null;
   /** 1 when the player has a latest card available for live_tarjeta.php */
@@ -297,6 +293,19 @@ const Live = () => {
    * Shows the in-progress live scorecard for the current round only,
    * fetched from live_tarjeta.php.
    */
+  /**
+   * Whether the "Hoy" (today) live scorecard column should be clickable
+   * for a given player. The live scorecard is only available when the
+   * player's most recent card exists AND is still open (statlsc != 1).
+   * Closed cards are shown as "F" in the Thru column and are intentionally
+   * non-interactive — historical rounds are reached via the "Total" column.
+   */
+  const canOpenTodayScorecard = (player: LivePlayer): boolean => {
+    if (!player.hasCurrentCard) return false;
+    if (player.todayClosed === 1) return false;
+    return true;
+  };
+
   const handleTodayClick = async (player: LivePlayer) => {
     // Toggle off if already expanded as "today" (use a sentinel suffix)
     const expandKey = `${player.playerId}::today`;
