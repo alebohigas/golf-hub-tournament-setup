@@ -143,6 +143,8 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
                 total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
+                // Number of CLOSED scorecards (statlsc=1) — used to compute Stroke diff total.
+                closedRounds: typeof p.closedRounds === 'number' ? p.closedRounds : 0,
                 handicapIndex: p.handicapIndex,
               })),
             }];
@@ -159,6 +161,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         statusLabel: cp.statusLabel || 'Descalificado',
         // Accumulated closed-card total
         total: typeof cp.total === 'number' ? cp.total : 0,
+        closedRounds: typeof cp.closedRounds === 'number' ? cp.closedRounds : 0,
       }));
 
       return {
@@ -170,6 +173,9 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         daysPartial: Array.isArray(raw.daysPartial)
           ? raw.daysPartial.map((v: unknown) => Boolean(v))
           : [],
+        // Course par (e.g. 72) — needed to compute Stroke Play differential total
+        // from the raw stroke total: diff = total - coursePar * closedRounds.
+        coursePar: raw.course?.par ?? 72,
         medalCount: raw.medalCount ?? 3,
         medalCountNeto: raw.medalCountNeto ?? raw.medalCount ?? 3,
         medalCountGross: raw.medalCountGross ?? 1,
