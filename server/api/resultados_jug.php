@@ -196,6 +196,17 @@ $closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j
 /** Sum totstbgross (stableford gross points) from CLOSED cards only on fully published rounds */
 $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
 
+/**
+ * Count of CLOSED scorecards (statlsc=1) for this player on scheduled round dates.
+ *
+ * Exposed in the JSON response as `closedRounds` so the frontend can convert
+ * the raw stroke total (`total`) into a differential vs par for Stroke Play
+ * leaderboards: `displayedTotal = total - parcampo * closedRounds`.
+ *
+ * When 0 the UI shows a plain "0" because the player has no terminated round yet.
+ */
+$closedRoundCount = "(SELECT COUNT(*) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
 // ============= Round 1 tiebreaker chunk builders =============
 /**
  * Build a subquery that returns the sum of a hole-range from the player's
