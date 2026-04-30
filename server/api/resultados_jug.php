@@ -293,7 +293,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSO > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSO ASC";
 
@@ -325,7 +325,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSA > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA ASC";
@@ -360,7 +360,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSTBGross > 0
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSTBGross DESC";
 
@@ -393,7 +393,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND $closedSA > 0
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA DESC";
