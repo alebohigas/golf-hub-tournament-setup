@@ -602,6 +602,7 @@ const Resultados = () => {
                     </div>
                   </CardContent>
                 </Card>
+                </>
               )}
             </>
           )}
