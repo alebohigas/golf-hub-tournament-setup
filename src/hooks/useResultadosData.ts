@@ -11,6 +11,24 @@ import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlaye
 
 // ============= All Results =============
 
+/** Extracts every dynamic round score from an API player object without capping at R3. */
+const mapRoundScores = (p: any): Record<`r${number}`, number | undefined> => {
+  return Object.fromEntries(
+    Object.entries(p || {})
+      .filter(([key]) => /^r\d+$/.test(key))
+      .map(([key, value]) => [key, value ?? undefined])
+  ) as Record<`r${number}`, number | undefined>;
+};
+
+/** Extracts every dynamic cut-player round score, preserving null for unplayed rounds. */
+const mapCutRoundScores = (p: any): Record<`r${number}`, number | null | undefined> => {
+  return Object.fromEntries(
+    Object.entries(p || {})
+      .filter(([key]) => /^r\d+$/.test(key))
+      .map(([key, value]) => [key, value ?? null])
+  ) as Record<`r${number}`, number | null | undefined>;
+};
+
 /** Fetch all categories with results, including GROSS when enabled */
 export const useAllResults = () => {
   return useQuery<ResultCategory[]>({
@@ -39,14 +57,12 @@ export const useAllResults = () => {
             // Always fetch NETO (gross=0)
             const netoResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '0'));
             const netoPlayers = (netoResp.players || []).map((p: any, idx: number) => ({
+              ...mapRoundScores(p),
               id: p.playerId || String(idx),
               position: p.position ?? idx + 1,
               name: p.name || '',
               club: p.club || '',
               clubLogo: p.clubLogo || '',
-              r1: p.r1 ?? undefined,
-              r2: p.r2 ?? undefined,
-              r3: p.r3 ?? undefined,
               total: p.total ?? p.totalSA ?? 0,
               handicapIndex: p.handicapIndex,
             }));
@@ -59,14 +75,12 @@ export const useAllResults = () => {
             if (cat.gross === 1) {
               const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
               const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
+                ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
                 name: p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
-                r1: p.r1 ?? undefined,
-                r2: p.r2 ?? undefined,
-                r3: p.r3 ?? undefined,
                 total: p.total ?? p.totalSO ?? 0,
                 handicapIndex: p.handicapIndex,
               }));
