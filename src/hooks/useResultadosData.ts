@@ -281,15 +281,17 @@ export const fetchPlayerScorecardFromApi = async (
 export const fetchLiveScorecardFromApi = async (
   playerId: string,
   tipo: string,
-  scoringType: string = 'NETO'
+  scoringType: string = 'NETO',
+  categoryId?: string
 ): Promise<RoundScorecard> => {
   const scType = tipo === 'stableford' ? 'stableford' : (scoringType === 'GROSS' ? 'scratch' : 'hcp');
 
-  const url = getLiveTarjetaUrl(playerId, tipo);
+  const url = getLiveTarjetaUrl(playerId, tipo, categoryId);
   const raw = await apiFetch<any>(url);
 
   // Parse par and ventajas arrays from the response
   const parArr: number[] = raw.par || [];
+  const hcpArr: number[] = raw.hcp || [];
   const ventajasArr: number[] = raw.ventajas || [];
   const holesSOArr: (number | null)[] = raw.holes || [];
   const holesSAArr: (number | null)[] = raw.holesSA || [];
@@ -311,7 +313,7 @@ export const fetchLiveScorecardFromApi = async (
     holes.push({
       hoyo: i + 1,
       par,
-      hcp: 0, // live_tarjeta doesn't return ventaja ranking per hole
+      hcp: hcpArr[i] ?? 0,
       golpes,
       neto,
       hcpStrokes,
