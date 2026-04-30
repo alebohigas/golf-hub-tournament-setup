@@ -66,7 +66,7 @@ const getStatusBadgeClasses = (code: string) => {
 const getRoundScore = (player: PlayerResult | CutPlayer, round: number) => player[`r${round}`];
 
 /**
- * Format a Stroke Play score (round or total) for display.
+ * Format a Stroke Play ROUND score for display.
  *
  * Stroke Play results in this app are stored as a differential vs par
  * (e.g. -2, 0, +3). To match the LIVE view convention we render:
@@ -88,37 +88,6 @@ const formatStrokeValue = (value: number | string): string => {
 const isStrokePlaySystem = (system?: string): boolean => {
   if (!system) return false;
   return !system.toUpperCase().includes('STABLEFORD');
-};
-
-/**
- * Compute the leaderboard "Total" column.
- *
- * Backend semantics:
- *   - `player.total` is the SUM of the player's CLOSED scorecards (statlsc=1):
- *       · Stroke Play  → raw strokes (SO for GROSS, SA for NETO)
- *       · Stableford   → raw points
- *   - `player.closedRounds` is the COUNT of those closed cards (per-player flag).
- *
- * Display rules (per user request):
- *   - If `closedRounds === 0`, show plain "0" — the player has no terminated
- *     round yet, so the in-progress score must NOT bleed into Total.
- *   - Stroke Play  → show differential vs par: `total - coursePar * closedRounds`
- *     (no "+" sign on the Total column even when positive).
- *   - Stableford   → show raw points (`total`).
- */
-const computeClosedTotal = (
-  player: PlayerResult | CutPlayer,
-  system: string | undefined,
-  coursePar: number | undefined,
-): number => {
-  const closed = Number(player.closedRounds) || 0;
-  if (closed === 0) return 0;
-  const total = Number(player.total) || 0;
-  if (isStrokePlaySystem(system)) {
-    const par = Number(coursePar) || 72;
-    return total - par * closed;
-  }
-  return total;
 };
 
 // ============= Component =============
