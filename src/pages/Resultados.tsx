@@ -65,6 +65,31 @@ const getStatusBadgeClasses = (code: string) => {
 /** Reads the score for any dynamic round key (r1, r2, r3, r4...) without reusing older rounds. */
 const getRoundScore = (player: PlayerResult | CutPlayer, round: number) => player[`r${round}`];
 
+/**
+ * Format a Stroke Play score (round or total) for display.
+ *
+ * Stroke Play results in this app are stored as a differential vs par
+ * (e.g. -2, 0, +3). To match the LIVE view convention we render:
+ *   - 0  → "E" (even par)
+ *   - >0 → "+N" (over par, with leading +)
+ *   - <0 → "-N" (under par, native sign)
+ *
+ * Stableford scores are absolute points and never receive a sign prefix —
+ * call sites should skip this helper for STABLEFORD systems.
+ */
+const formatStrokeValue = (value: number | string): string => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  if (n === 0) return 'E';
+  return n > 0 ? `+${n}` : `${n}`;
+};
+
+/** True when the active category uses Stroke Play (so we should sign-prefix scores). */
+const isStrokePlaySystem = (system?: string): boolean => {
+  if (!system) return false;
+  return !system.toUpperCase().includes('STABLEFORD');
+};
+
 // ============= Component =============
 
 const Resultados = () => {
