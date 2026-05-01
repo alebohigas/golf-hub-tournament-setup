@@ -22,7 +22,7 @@ export const distanceColumns: ColumnConfig[] = [
   { key: 'position', label: 'Pos', align: 'center', width: '60px', format: 'medal' },
   { key: 'clubLogo', label: 'Club', align: 'center', width: '60px' },
   { key: 'name', label: 'Jugador', align: 'left' },
-  { key: 'distance', label: 'Distancia', align: 'center', width: '100px', format: 'distance' },
+  { key: 'distance', label: 'Distancia', align: 'center', width: '100px', format: 'yards' },
 ];
 
 /** Columns for precision competitions (e.g., Drive Recto) */

@@ -37,6 +37,8 @@ const formatValue = (
   switch (format) {
     case 'distance':
       return `${value} mts`;
+    case 'yards':
+      return `${value} yds`;
     case 'percentage':
       return `${value}%`;
     case 'number':
