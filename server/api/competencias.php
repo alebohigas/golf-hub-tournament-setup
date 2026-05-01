@@ -839,25 +839,29 @@ function get_oyes_last_updated($conn, $tid, $premioId) {
     return $row['lastUpdated'] ?? null;
 }
 
-/** Get O'Yes-X players for a prize group */
-function get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower) {
+/**
+ * Get Driver Precisión players for a prize group.
+ * Reads `driverjugp` joined to `v_driverp`; lower distance wins.
+ */
+function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
-
-    $sortOrder = (strpos($descLower, 'distancia') !== false || strpos($descLower, 'driver') !== false) ? 'DESC' : 'ASC';
+    $limit = max(1, (int)$limit);
 
     $sql = "SELECT a.jugadorid,
-                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   a.distancia, a.hoyo,
-                   c.logo, c.nombre as club
-            FROM premiosjug a
-            JOIN v_premjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
-            JOIN jugadores j ON (a.jugadorid = j.id)
-            JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia $sortOrder
-            LIMIT $numPrem";
-
-error_log("competencias.php - O'Yes-X players SQL for premioId=$premioId, desc='$descLower'");
+                   a.hoyo,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   c.descripcion
+            FROM driverjugp a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs cl ON (b.clubid = cl.id)
+            JOIN v_driverp c ON (a.campo = c.campo
+                                 AND b.categoriaid = c.categoriaid
+                                 AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia ASC
+            LIMIT $limit";
 
     $winners = safe_query_all($conn, $sql);
 
@@ -869,20 +873,56 @@ error_log("competencias.php - O'Yes-X players SQL for premioId=$premioId, desc='
             'id'        => (string)$w['jugadorid'],
             'position'  => $pos,
             'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
             'distance'  => (float)$w['distancia'],
-            'club'      => $w['club'],
+            'club'      => $w['club'] ?? '',
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
     }
     return $players;
 }
 
-/** Get O'Yes-X last updated timestamp */
-function get_oyesx_last_updated($conn, $descName, $tid) {
-    $descEsc = esc($conn, $descName);
-    $sql = "SELECT f_ultfechaoyesx('$descEsc', $tid) as lastUpdated";
-    $row = safe_query_one($conn, $sql);
-    return $row['lastUpdated'] ?? null;
+/**
+ * Get Driver Distancia players for a prize group.
+ * Reads `driverjug` joined to `v_driver`; higher distance wins.
+ */
+function get_driverd_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
+    global $LOGOS_BASE_URL;
+    $limit = max(1, (int)$limit);
+
+    $sql = "SELECT a.jugadorid,
+                   a.fecha, a.campo, a.hoyo,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   b.categoriaid, c.descripcion
+            FROM driverjug a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs cl ON (b.clubid = cl.id)
+            JOIN v_driver c ON (a.campo = c.campo
+                                AND b.categoriaid = c.categoriaid
+                                AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia DESC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
+        ];
+    }
+    return $players;
 }
 
 /**
