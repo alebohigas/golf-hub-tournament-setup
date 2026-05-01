@@ -658,10 +658,10 @@ $cutPlayers = [];
 $cutDayCols = '';
 foreach ($dias as $i => $fecha) {
     $fecEsc = esc($conn, $fecha);
-    // For partial rounds, drop the statlsc=1 filter so cut players also
-    // show their in-progress score in the live column. For closed rounds,
+    // Partial rounds (no closed cards yet) → no live data shown for cut
+    // players either; force the subquery to return 0/null. Scoring rounds
     // keep the statlsc=1 filter (matches the leaderboard semantics).
-    $statFilter = empty($diasPartial[$i]) ? "AND t.statlsc = 1" : '';
+    $statFilter = empty($diasPartial[$i]) ? "AND t.statlsc = 1" : "AND 1 = 0";
     if ($sistema === 'STABLEFORD' && $gross == '1') {
         // Stableford GROSS: raw stableford gross points
         $expr = "(SELECT IFNULL(SUM(t.totstbgross), 0)
