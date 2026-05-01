@@ -292,8 +292,11 @@ foreach ($rows as $row) {
  */
 foreach ($players as $i => &$player) {
     $player['_originalIndex'] = $i;
-    $hasClosedRounds = !empty($player['prevRoundDates']);
-    $player['_sortScore'] = (int)($hasClosedRounds ? $player['score'] : $player['todayScore']);
+    // Sort by the same combined value displayed in the leaderboard's Dif Par /
+    // Total column: closed-rounds score PLUS the live current-round score.
+    // This keeps order in sync with what the user sees on screen, instead of
+    // sorting only by closed rounds (which made the "Hoy" column look unsorted).
+    $player['_sortScore'] = (int)($player['score'] ?? 0) + (int)($player['todayScore'] ?? 0);
 }
 unset($player);
 
