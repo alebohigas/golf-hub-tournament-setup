@@ -596,16 +596,24 @@ if ($tipo === '' || $tipo === 'putt') {
                       SET a.orden = 1
                       WHERE a.torneoid = $tid", 'putt set orden');
 
-        $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
+        // `hoyo` here is repurposed as "lugares" (number of winners for this prize),
+        // matching the Approach/Driver/DriverP convention. MAX() handles the case
+        // where multiple rows share the same premio with the same hoyo value.
+        $sql = "SELECT premio as id, premiosjugcol as name,
+                       MAX(hoyo) as hoyo,
+                       LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
                 FROM puttjug
                 WHERE torneoid = $tid
+                GROUP BY premio, premiosjugcol
                 ORDER BY premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
         if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
             // Fallback if f_ultfechaputt() doesn't exist on this DB
-            $sql = "SELECT DISTINCT premio as id, premiosjugcol as name, NULL AS ultact
+            $sql = "SELECT premio as id, premiosjugcol as name,
+                           MAX(hoyo) as hoyo, NULL AS ultact
                     FROM puttjug
                     WHERE torneoid = $tid
+                    GROUP BY premio, premiosjugcol
                     ORDER BY premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
         }
@@ -615,23 +623,28 @@ if ($tipo === '' || $tipo === 'putt') {
             $premioId = esc($conn, $p['id']);
             $descripcion = esc($conn, $p['name']);            
 
+            // Per-prize "lugares" lives in puttjug.hoyo (same convention as
+            // approach/driver). Falls back to the tournament-wide oyesnumprem
+            // when the row has no value, so legacy data stays functional.
+            $lugares = (int)($p['hoyo'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
+
             $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
             $countRow = safe_query_one($conn, $sql);
-            $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
+            $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
 
             $group = [
                 'id'          => 'putt-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
-              #  'hoyo'        => (int)$p['hoyo'],
-                'maxPlayers'  => $numPrem,
+                'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
             ];
 
             if ($detalle === '1') {
                 // Pass the same cap that drives playerCount on the card
                 // so the rendered list never exceeds the count badge.
-                $group['players'] = get_putt_players($conn, $tid, $premioId, $numPrem);
+                $group['players'] = get_putt_players($conn, $tid, $premioId, $lugares);
                  $group['lastUpdated'] = $p['ultact'] ?? null;
             }
 
