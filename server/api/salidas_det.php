@@ -65,54 +65,42 @@ $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
 
-    // Build player query based on system and gross
+    // Build player query based on system and gross.
+    // IMPORTANT: Within a tee time group we always preserve the legacy
+    // ordering — players are listed in their assigned slot order (grupoid),
+    // NOT by score. This matches the legacy /salidas display and prevents
+    // the live "en vivo" scoring from reshuffling the group rows.
     if ($sistema === 'STABLEFORD') {
-        if ($gross == 1 || $grossstb == 1) {
-            // Stableford Gross
-            if ($isParejas) {
-                $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                               acumstbgross as sa, sistema
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY acumstbgross DESC";
-            } else {
-                $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                               acumstbgross as sa, sistema, grupoid
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY acumstbgross DESC";
-            }
+        // Pick the displayed score column based on gross flags
+        $scoreCol = ($gross == 1 || $grossstb == 1) ? 'acumstbgross' : 'acumsa';
+        if ($isParejas) {
+            $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
+                           $scoreCol as sa, sistema
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY grupoid ASC";
         } else {
-            // Stableford Neto - display and order by net total strokes, not points
-            if ($isParejas) {
-                $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                               acumsa as sa, sistema
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY acumsa DESC";
-            } else {
-                $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                               acumsa as sa, sistema, grupoid
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY acumsa DESC";
-            }
+            $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
+                           $scoreCol as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY grupoid ASC";
         }
     } else {
-        // Stroke Play - use gross (acumso) or net (acumsa) based on category config
+        // Stroke Play - use gross (acumso) or net (acumsa) for display only
         $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
         if ($isParejas) {
             $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY $scoreCol ASC";
+                    ORDER BY grupoid ASC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY $scoreCol ASC";
+                    ORDER BY grupoid ASC";
         }
     }
 
