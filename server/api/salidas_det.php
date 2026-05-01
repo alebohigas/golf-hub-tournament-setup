@@ -43,52 +43,6 @@ $sistema  = strtoupper($calInfo['sistema']);
 $gross    = (int)$calInfo['gross'];
 $grossstb = (int)($calInfo['grossstb'] ?? 0);
 
-// ============= Last-complete-round tiebreaker helpers =============
-/**
- * Builds a scalar SQL subquery for the player's score in the latest completed
- * round available for this category. It is used only as a tie-breaker after
- * the tee-slot (`grupoid`) and accumulated score (`acumsa/acumso`) ordering.
- */
-function salidas_round_score_expr($playerAlias, $roundDate, $torneoid, $scoreCol) {
-    if (!$roundDate) return 'NULL';
-    $cardScoreCol = ($scoreCol === 'acumso') ? 'SO' : (($scoreCol === 'acumstbgross') ? 'totstbgross' : 'SA');
-    return "(SELECT IFNULL(t.$cardScoreCol, 0)
-             FROM tarjetas t
-             WHERE t.jugadorid = $playerAlias.jugadorid
-               AND t.torneoid = $torneoid
-               AND DATE(t.fecha_juego) = '$roundDate'
-               AND t.statlsc = 1
-             LIMIT 1)";
-}
-
-/**
- * Builds a scalar SQL subquery that sums the official last-round tie-breaker
- * hole ranges: H10-H18, H13-H18, H16-H18 and H18.
- */
-function salidas_hole_chunk_expr($playerAlias, $roundDate, $torneoid, $holeSource, $holes) {
-    if (!$roundDate) return 'NULL';
-    $parts = [];
-    foreach ($holes as $h) {
-        if ($holeSource === 'h') {
-            $parts[] = "IFNULL(t.h{$h}, 0)";
-        } elseif ($holeSource === 'h_a') {
-            $parts[] = "IFNULL(t.h{$h}_a, 0)";
-        } elseif ($holeSource === 'arsa' || $holeSource === 'arstbgross') {
-            $parts[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.{$holeSource}, ',', {$h}), ',', -1) AS SIGNED)";
-        } else {
-            $parts[] = '0';
-        }
-    }
-    $sum = implode(' + ', $parts);
-    return "(SELECT IFNULL($sum, 0)
-             FROM tarjetas t
-             WHERE t.jugadorid = $playerAlias.jugadorid
-               AND t.torneoid = $torneoid
-               AND DATE(t.fecha_juego) = '$roundDate'
-               AND t.statlsc = 1
-             LIMIT 1)";
-}
-
 // ============= Get tee time groups =============
 $sql = "SELECT a.id, LEFT(RIGHT(horainicio1a, 8), 5) as hora,
                c.tee, teesal, b.gross
@@ -106,89 +60,71 @@ $isParejas = ($formato === 'parejas');
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
 
-/** Latest completed round date for this category up to the requested tee sheet date. */
-$catId = esc($conn, $calInfo['categoriaid']);
-$tid = esc($conn, $calInfo['torneoid']);
-$currentDate = esc($conn, $calInfo['fecha']);
-$eligibleWhere = "j.categoriaid = $catId AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
-if ($gross !== 1 && $grossstb !== 1) { $eligibleWhere .= " AND j.campgross = 0"; }
-
-$lastCompleteRow = query_one($conn, "SELECT cj.fecha
-                                     FROM caljuego cj
-                                     JOIN tarjetas t ON (DATE(t.fecha_juego) = DATE(cj.fecha)
-                                                      AND t.torneoid = $tid
-                                                      AND t.statlsc = 1)
-                                     JOIN jugadores j ON (j.id = t.jugadorid)
-                                     WHERE cj.categoriaid = $catId
-                                       AND cj.campo > 0
-                                       AND DATE(cj.fecha) <= DATE('$currentDate')
-                                       AND $eligibleWhere
-                                     GROUP BY cj.fecha
-                                     HAVING COUNT(DISTINCT t.jugadorid) >= (
-                                         SELECT COUNT(*) FROM jugadores j WHERE $eligibleWhere
-                                     )
-                                     ORDER BY cj.fecha DESC
-                                     LIMIT 1");
-$lastCompleteDate = $lastCompleteRow ? esc($conn, $lastCompleteRow['fecha']) : '';
-
-/**
- * Returns the full ORDER BY tail for the requested accumulated-score column:
- * group slot first, accumulated score second, then official last-round tie-breaks.
- */
-function salidas_tiebreaker_order($scoreCol, $lastCompleteDate, $torneoid) {
-    $holeSource = ($scoreCol === 'acumso') ? 'h' : (($scoreCol === 'acumstbgross') ? 'arstbgross' : 'h_a');
-    return "ORDER BY v.grupoid, v.$scoreCol ASC, "
-        . salidas_round_score_expr('v', $lastCompleteDate, $torneoid, $scoreCol) . " ASC, "
-        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, range(10, 18)) . " ASC, "
-        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, range(13, 18)) . " ASC, "
-        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, range(16, 18)) . " ASC, "
-        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, [18]) . " ASC";
-}
-
-//echo $viewName.'  '.$formato.'<br>';
-
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
 
-    // Build player query based on system and gross.
-    // IMPORTANT: legacy /salidas does NOT reorder players by score inside a
-    // tee-time group. Players are listed in their assigned slot order using
-    // grupoid DESC, matching the requested inverted visible player order exactly.
+    // ============= Player query — EXACT legacy ORDER BY =============
+    // Mirrors the legacy PHP source verbatim. Ordering keys (in priority):
+    //   1. salidagrupoid  (tee-time group)
+    //   2. accumulated score (acumstbgross/acumsa/acumso) per modality
+    //   3. orden            (display order field on the view)
+    //   4. f_score_dia_{sat blU|saxU|soxU}(jugadorid)  (last-round score function)
+    //   5. tarjetaid DESC   (final deterministic fallback)
+    //
+    // IMPORTANT: For Stableford the legacy code OVERWRITES the SQL when
+    // grossstb=1, switching the score column to `acumso` and the direction
+    // to ASC. Replicated below with the same control flow.
+    $nameExpr = $isParejas
+        ? "CONCAT(nombre, ' ') as jugador"
+        : "CONCAT(nombre, ' ', apellido) as jugador";
+    $logoCols = $isParejas ? "logo, logo2" : "logo";
+
     if ($sistema === 'STABLEFORD') {
-        // Pick the displayed score column based on gross flags
-        $scoreCol = ($gross == 1 || $grossstb == 1) ? 'acumstbgross' : 'acumsa';
-        if ($isParejas) {
-            $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                           $scoreCol as sa, sistema
+        if ($gross == 1 || $grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumstbgross as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid, $scoreCol ASC";
+                    ORDER BY salidagrupoid, acumstbgross DESC, orden ASC,
+                             f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
         } else {
-            $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                           $scoreCol as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid, $scoreCol ASC";
+                    ORDER BY salidagrupoid, acumsa DESC, orden ASC,
+                             f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
+        }
+        // Legacy override: grossstb=1 swaps to acumso ASC ordering.
+        if ($grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY salidagrupoid, acumso, orden DESC,
+                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
         }
     } else {
-        // Stroke Play - use gross (acumso) or net (acumsa) for display only
-        $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
-        if ($isParejas) {
-            $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                           $scoreCol as sa, sistema
+        if ($gross == 1 || $grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid, $scoreCol ASC";
+                    ORDER BY salidagrupoid, acumso, orden DESC,
+                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
         } else {
-            $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                           $scoreCol as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid, $scoreCol ASC";
+                    ORDER BY salidagrupoid, acumsa, orden DESC,
+                             f_score_dia_saxU(jugadorid), tarjetaid DESC";
+        }
+        // Legacy override: grossstb=1 swaps to acumso ordering.
+        if ($grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY salidagrupoid, acumso, orden DESC,
+                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
         }
     }
 
-//echo $sql.'<br>';
     $playerRows = query_all($conn, $sql);
 
     $players = [];
