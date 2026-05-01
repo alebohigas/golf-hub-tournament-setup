@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Core
+- **🔒 LOCKED (2026-05-01):** App is fully working EXCEPT pre-registros. ONLY modify pre-registros. Never touch any other file/query/component, even for "small" fixes. No refactors, no scope expansion. See [LOCKED rule](mem://constraints/locked-everything-except-preregistros).
 - **Design:** Green/gold palette, functional aesthetic. Pure white (`#FFFFFF`) background for tables/logos; cards use `bg-card`.
 - **Stack:** React SPA frontend (Vite base `/`) deployed to IONOS shared hosting root. PHP JSON API backend in `/api/` querying MySQL DB (`torneos`).
 - **Data Integrity:** No text/HTML output around JSON in PHP endpoints (use `error_log`). 
