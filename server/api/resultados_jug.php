@@ -149,12 +149,14 @@ foreach ($dateRows as $dr) {
                                      AND DATE(t.fecha_juego) = '$fecEsc'
                                      AND t.statlsc = 1");
     $closedCount = (int)($closedRow['total'] ?? 0);
+    // Hide the round column entirely if NO player has closed a card yet
+    // (statlsc=1). Empty/in-progress-only rounds are not shown.
+    if ($closedCount === 0) { continue; }
     $idx = count($dias) + 1;
     $dias[$idx] = $fecha;
-    // Round is "in-progress placeholder" only when NOBODY has closed yet.
-    // Once at least one player has statlsc=1, the round becomes a normal
-    // scoring round (closed cards count, others render as 0/null).
-    $diasPartial[$idx] = ($closedCount === 0);
+    // All published rounds now have at least one closed card, so they are
+    // never "partial". Kept for backward compatibility with downstream code.
+    $diasPartial[$idx] = false;
 }
 
 // ============= Get course info =============
