@@ -68,7 +68,7 @@ foreach ($groupRows as $group) {
     // Build player query based on system and gross.
     // IMPORTANT: legacy /salidas sorts the players inside each tee-time group
     // by the displayed score column, numerically. For stroke-style salidas the
-    // lower score must appear first; ties fall back to the assigned group slot ascending.
+    // lower score must appear first; legacy ties fall back to the assigned group slot descending.
     if ($sistema === 'STABLEFORD') {
         // Pick the displayed score column based on gross flags
         $scoreCol = ($gross == 1 || $grossstb == 1) ? 'acumstbgross' : 'acumsa';
@@ -77,13 +77,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         }
     } else {
         // Stroke Play - use gross (acumso) or net (acumsa) for display only
@@ -93,13 +93,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         }
     }
 
