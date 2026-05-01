@@ -1,44 +1,82 @@
 ---
-name: Resultados partial rounds
-description: /resultados shows in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
+name: Resultados closed-cards-only rule
+description: /resultados only shows rounds with at least one closed card (statlsc=1); never shows partial/in-progress data; reads tarjetas directly bypassing legacy f_score_dia_sax/sox
 type: feature
 ---
 
-# Partial round visibility (Resultados + Live)
+# Resultados — solo tarjetas cerradas (statlsc=1)
+
+**REGLA INVIOLABLE:** En `/resultados` jamás se muestra información parcial. Una tarjeta solo cuenta y se muestra cuando `statlsc = 1`. Si un jugador no ha terminado su ronda (o ni siquiera ha empezado R2), su celda de esa ronda es `NULL` → "—" en el frontend.
 
 ## Backend — `server/api/resultados_jug.php`
 
-- `$dias` now includes EVERY scheduled date that has at least one open
-  scorecard (not just fully-closed rounds). Future rounds with zero cards
-  are still skipped.
-- `$diasPartial[$i]` (1-indexed bool) flags rounds where some eligible
-  player still has an open card (`statlsc != 1`).
-- `day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo)` builds
-  the per-round score expression:
-    - Closed rounds → legacy `f_score_dia_sax/sox` (statlsc=1 only).
-    - Partial rounds → direct `tarjetas` SUM (no `statlsc` filter):
-        - Stableford: `SUM(SA)` (NETO) or `SUM(totstbgross)` (GROSS).
-        - Stroke: `SUM(SO|SA) - parcampo * COUNT(*)` (diff to par).
-- `$closedDates` (used by `$closedSA`/`$closedSO`/`$closedSTBGross` for the
-  Total column) only includes fully-closed dates, so partial rounds do
-  NOT inflate Total.
-- `prev_rounds_tiebreaker(..., $diasPartial)` skips partial rounds so live
-  data does not move players around as cards close.
-- Player WHERE clause: `AND ($closedXX > 0 OR EXISTS tarjetas)` so players
-  with only open cards (e.g. R1 in progress) still appear.
-- Cut-player per-day subqueries drop `AND t.statlsc = 1` for partial dates.
-- Response includes `daysPartial: bool[]` aligned to `days`.
+### 1. Selección de rondas visibles (`$dias`)
+- Itera `caljuego` para la categoría.
+- Cuenta tarjetas CERRADAS por fecha:
+  ```
+  COUNT(DISTINCT t.jugadorid) WHERE t.statlsc = 1 AND DATE(fecha_juego)=fecha
+  ```
+- **Si `closedCount === 0` → `continue` (la columna NO se publica).**
+- Rondas vacías o solo en juego quedan ocultas.
+- `$diasPartial[$idx] = false` siempre (legacy field, ya no se usa para placeholders).
 
-## Frontend
+### 2. Score por ronda — `day_score_expr()`
+**NO usar `f_score_dia_sax/sox`** (devolvían valores parciales para tarjetas abiertas). Se consulta `tarjetas` directamente:
 
-- `ResultCategory.daysPartial?: boolean[]` mirrors the backend flag.
-- `Resultados.tsx` round headers render an amber "En vivo" badge with a
-  pulsing dot for any `daysPartial[i] === true`. Tooltip explains scores
-  may change and don't yet count in Total.
+```sql
+(SELECT CASE WHEN COUNT(*) = 0 THEN NULL ELSE (<col><diff>) END
+   FROM tarjetas t
+   WHERE t.jugadorid = j.id
+     AND t.torneoid  = j.torneoid
+     AND DATE(t.fecha_juego) = '$fecEsc'
+     AND t.statlsc = 1)
+```
 
-## Live page first-round fix — `src/pages/Live.tsx`
+Columnas por sistema:
+| Sistema             | col                  | diff                       |
+|---------------------|----------------------|----------------------------|
+| STABLEFORD GROSS    | `SUM(t.totstbgross)` | —                          |
+| STABLEFORD NETO     | `SUM(t.SA)`          | —                          |
+| STROKE GROSS        | `SUM(t.SO)`          | `- $parcampo * COUNT(*)`   |
+| STROKE NETO         | `SUM(t.SA)`          | `- $parcampo * COUNT(*)`   |
 
-- When `player.prevRoundDates.length === 0` (no closed rounds yet — typical
-  R1 in progress), the Total/Dif Par cell mirrors `player.todayScore`
-  instead of always showing "E" (0). Cell becomes a non-clickable span in
-  that case (no closed cards to expand).
+Si el jugador no tiene tarjeta cerrada para esa fecha → `NULL` → "—".
+
+### 3. Total acumulado
+`$closedSA / $closedSO / $closedSTBGross` ya filtran `t.statlsc = 1` con `$closedDateFilter` (set de `$dias`). El Total nunca incluye datos parciales.
+
+### 4. Cut players
+Mismo patrón: subquery directo a `tarjetas` con `t.statlsc = 1`. (Cuando `$diasPartial[$i]` es true se forzaba `1=0`, pero ahora ese caso ya no existe porque rondas sin cerradas se omiten.)
+
+### 5. Frontend `Resultados.tsx`
+- NO existe disclaimer "En vivo" ni badge pulsante (eliminados).
+- `null` en `r{i}` se renderiza como "—".
+- Lee `r{n}` dinámicamente (ver core rule "Round scores").
+
+## Live page (`src/pages/Live.tsx` + `server/api/live_scoring.php`)
+
+### Orden del leaderboard en Live (dos grupos)
+Implementado en `live_scoring.php`:
+- **Grupo 0 (arriba):** jugadores que NO han empezado hoy (`thru == 0`).
+  - Se ordenan por score acumulado de rondas previas cerradas.
+- **Grupo 1 (abajo):** jugadores jugando o ya terminaron hoy (`thru > 0`).
+  - Se ordenan por `score + todayScore` (Dif Par / Total).
+- Dentro de cada grupo: ASC para stroke play, DESC para stableford.
+
+```php
+$hasStartedToday = ((int)($player['thru'] ?? 0)) > 0;
+$player['_sortGroup'] = $hasStartedToday ? 1 : 0;
+$player['_sortScore'] = $hasStartedToday
+    ? ((int)($player['score'] ?? 0) + (int)($player['todayScore'] ?? 0))
+    : (int)($player['score'] ?? 0);
+```
+
+### Live R1 mirror
+Cuando `player.prevRoundDates.length === 0` (R1 en progreso, sin cerradas), la celda Total/Dif Par muestra `player.todayScore` en lugar de "E"/0. La celda no es clickable (no hay tarjeta cerrada para expandir).
+
+## NO HACER
+- ❌ No volver a usar `f_score_dia_sax/sox` para `day_score_expr`.
+- ❌ No mostrar columnas de ronda sin tarjetas cerradas.
+- ❌ No agregar badges "En vivo" ni disclaimers en `/resultados`.
+- ❌ No sumar tarjetas con `statlsc != 1` al Total ni a las celdas por ronda.
+- ❌ No hardcodear r1/r2/r3 — siempre iterar `days.length`.
