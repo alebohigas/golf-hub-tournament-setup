@@ -554,6 +554,24 @@ const Competencias = () => {
                   </a>
                 </Button>
               </div>
+
+              {/* External link: Putt Finales Damas (Match Play) */}
+              <div className="flex justify-center mt-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gap-2"
+                >
+                  <a
+                    href="https://va.speitour.mx/match-play-putt-damas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Putt Finales Damas
+                  </a>
+                </Button>
+              </div>
             </>
           )}
 
