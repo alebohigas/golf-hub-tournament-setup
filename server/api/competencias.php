@@ -195,11 +195,7 @@ if ($tipo === '' || $tipo === 'oyes') {
         //   FROM premios
         //   WHERE torneoid = $tid AND premio > 0
         //   GROUP BY premio, descripcion
-        // `hoyo` in `premios` is repurposed as "lugares" (number of winners
-        // per prize), matching the Approach/Driver/Putt convention. MAX()
-        // collapses the per-(fecha,campo,categoria) rows into a single value
-        // per premio.
-        $sql = "SELECT premio as id, TRIM(descripcion) as name, MAX(hoyo) as hoyo
+        $sql = "SELECT premio as id, TRIM(descripcion) as name
                 FROM premios
                 WHERE torneoid = $tid
                   AND premio > 0
@@ -210,12 +206,10 @@ if ($tipo === '' || $tipo === 'oyes') {
         // Fallback: if the `premios` table is empty for this torneo,
         // build prize list from premiosjug so O'Yes is never silently dropped.
         if (empty($prizes)) {
-            $sql = "SELECT pj.premio as id,
-                           TRIM(pj.descripcion) as name,
-                           MAX(pj.hoyo) as hoyo
+            $sql = "SELECT DISTINCT pj.premio as id,
+                           TRIM(pj.descripcion) as name
                     FROM premiosjug pj
                     WHERE pj.torneoid = $tid
-                    GROUP BY pj.premio, pj.descripcion
                     ORDER BY pj.premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'oyes', 'list_prizes_fallback_premiosjug');
         }
@@ -237,19 +231,13 @@ if ($tipo === '' || $tipo === 'oyes') {
 
         foreach ($prizes as $p) {
             $premioId = esc($conn, $p['id']);
-
-            // Per-prize "lugares" lives in premios.hoyo (same convention as
-            // approach/driver/putt). Falls back to the tournament-wide
-            // oyesnumprem when the row has no value.
-            $lugares = (int)($p['hoyo'] ?? 0);
-            if ($lugares <= 0) { $lugares = $numPrem; }
-
+            
             // Count players using the SAME join logic as get_oyes_players()
             // (premios joined on fecha/campo/hoyo/categoriaid). The previous
             // count relied on `orden = 1`, but the orden flag is only set
             // inside get_oyes_players() — when the card list is fetched
             // without ?detalle=1 those UPDATEs never run, so the count
-            // would always return 0. Capped by per-prize $lugares.
+            // would always return 0. Capped by $numPrem (oyesnumprem).
             $sql = "SELECT COUNT(*) as cnt
                     FROM premiosjug a
                     JOIN jugadores j ON (a.jugadorid = j.id)
@@ -257,13 +245,14 @@ if ($tipo === '' || $tipo === 'oyes') {
                                        AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
                     WHERE a.torneoid = $tid AND c.premio = $premioId";
             $countRow = safe_query_one($conn, $sql);
-            $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
+            $playerCount = min((int)($countRow['cnt'] ?? 0), $numPrem);
             
             $group = [
                 'id'          => 'oyes-' . $p['id'],
                 'name'        => $p['name'],
                 'shortName'   => $p['name'],
-                'maxPlayers'  => $lugares,
+               # 'hoyo'        => (int)$p['hoyo'],
+                'maxPlayers'  => $numPrem,
                 'playerCount' => $playerCount,
             ];
 
@@ -271,7 +260,7 @@ if ($tipo === '' || $tipo === 'oyes') {
             // Include full player data if requested
             if ($detalle === '1') {
        
-                $group['players'] = get_oyes_players($conn, $tid, $premioId, $lugares);
+                $group['players'] = get_oyes_players($conn, $tid, $premioId, $numPrem);
                 $group['lastUpdated'] = get_oyes_last_updated($conn, $tid, $premioId);
                 
             }
