@@ -138,8 +138,8 @@ $DEBUG_SECTIONS = [
     'oyes'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
     'approach' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
     'putt'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
-    'driver-distancia' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
-    'driver-precision' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'driverp'  => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'driverd'  => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
 ];
 
 /**
@@ -383,99 +383,201 @@ error_log("competencias.php - Completed Approach section, competencias count: " 
 
 
 
-// ============= Driver / O'Yes-X (Distancia & Precisión) =============
-// Reads from `oyesx` (prize catalog) + `oyesxjug` (player results).
-// Each prize description identifies the modality:
-//   - contains "distancia" or "driver" → Driver Distancia (sort by distance DESC)
-//   - otherwise (typically "precision") → Driver Precisión (sort by distance ASC)
-// We emit TWO competencias: 'driver-distancia' and 'driver-precision'.
-// Both ?tipo=driver-distancia and ?tipo=driver-precision filter to a single one.
-foreach ([
-    'driver-distancia' => ['label' => 'Driver Distancia', 'icon' => 'ruler',     'order' => 11, 'match' => 'dist'],
-    'driver-precision' => ['label' => 'Driver Precisión', 'icon' => 'crosshair', 'order' => 12, 'match' => 'prec'],
-] as $secId => $secCfg) {
-    if ($tipo !== '' && $tipo !== $secId) continue;
+// ============================================================================
+// Driver Precisión
+// ----------------------------------------------------------------------------
+// Source tables: `driverp` defines the prizes and `driverjugp` stores results.
+// Uses legacy winner flags from `v_driverunicop`; closest distance wins (ASC).
+// ============================================================================
+if ($tipo === '' || $tipo === 'driverp') {
+    $DEBUG_SECTIONS['driverp']['enabled'] = true;
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM driverp WHERE torneoid = $tid AND premio > 0";
+    $row = dbg_query_one($conn, $sql, 'driverp', 'count_distinct_premio');
+    $DEBUG_SECTIONS['driverp']['count'] = (int)($row['cnt'] ?? 0);
 
-    $DEBUG_SECTIONS[$secId]['enabled'] = true;
-
-    // Pre-update: mark best distances per prize (legacy behavior from oyesx.php)
-    safe_exec($conn, "UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid", "$secId reset orden");
-    safe_exec($conn, "UPDATE oyesxjug a
-                      JOIN v_oyesx b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
-                      SET a.orden = 1
-                      WHERE a.torneoid = $tid", "$secId set orden");
-
-    // List prize groups for this modality
-    $sql = "SELECT DISTINCT premio as id, descripcion as name, hoyo
-            FROM oyesxjug
-            WHERE torneoid = $tid
-            ORDER BY premio ASC";
-    $allPrizes = dbg_query_all($conn, $sql, $secId, 'list_prizes');
-
-    // Filter prizes by modality keyword in description
-    $prizes = [];
-    foreach ($allPrizes as $p) {
-        $d = strtolower($p['name']);
-        $isDist = (strpos($d, 'distancia') !== false || strpos($d, 'driver') !== false) && strpos($d, 'precis') === false;
-        $isPrec = strpos($d, 'precis') !== false;
-        if ($secCfg['match'] === 'dist' && $isDist) $prizes[] = $p;
-        if ($secCfg['match'] === 'prec' && $isPrec) $prizes[] = $p;
-    }
-    $DEBUG_SECTIONS[$secId]['count'] = count($prizes);
-
-    if (count($prizes) === 0) {
-        $DEBUG_SECTIONS[$secId]['reason'] = 'no prizes matched modality in oyesxjug';
-        continue;
-    }
-
-    $groups = [];
-    foreach ($prizes as $p) {
-        $premioId = (int)$p['id'];
-        $hoyo = (int)$p['hoyo'];
-        $descLower = strtolower($p['name']);
-
-        $group = [
-            'id'          => $secId . '-' . $premioId,
-            'name'        => $p['name'],
-            'shortName'   => $p['name'],
-            'maxPlayers'  => $numPrem,
-            'playerCount' => 0,
-        ];
-
-        if ($detalle === '1') {
-            $group['players'] = get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower);
-            $group['lastUpdated'] = get_oyesx_last_updated($conn, $p['name'], $tid);
-            $group['playerCount'] = count($group['players']);
-        } else {
-            $sql2 = "SELECT COUNT(*) as cnt FROM oyesxjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
-            $cntRow = safe_query_one($conn, $sql2);
-            $group['playerCount'] = min((int)($cntRow['cnt'] ?? 0), $numPrem);
+    if ($row && (int)$row['cnt'] > 0) {
+        $sql = "SELECT premio as id, descripcion as name, hoyo,
+                       LEFT(f_ultfechadriverp(descripcion, torneoid), 16) AS ultact
+                FROM driverp
+                WHERE torneoid = $tid AND premio > 0
+                GROUP BY premio, descripcion, hoyo
+                ORDER BY premio ASC, descripcion ASC";
+        $prizes = dbg_query_all($conn, $sql, 'driverp', 'list_prizes_with_fn');
+        if (empty($prizes) && !empty($DEBUG_SECTIONS['driverp']['errors'])) {
+            $sql = "SELECT premio as id, descripcion as name, hoyo, NULL AS ultact
+                    FROM driverp
+                    WHERE torneoid = $tid AND premio > 0
+                    GROUP BY premio, descripcion, hoyo
+                    ORDER BY premio ASC, descripcion ASC";
+            $prizes = dbg_query_all($conn, $sql, 'driverp', 'list_prizes_no_fn');
         }
-        $groups[] = $group;
-    }
-    $DEBUG_SECTIONS[$secId]['group_count'] = count($groups);
 
-    $competencias[] = [
-        'id'          => $secId,
-        'name'        => $secCfg['label'],
-        'shortName'   => $secCfg['label'],
-        'description' => $secCfg['label'],
-        'icon'        => $secCfg['icon'],
-        'endpoint'    => $secId,
-        'order'       => $secCfg['order'],
-        'enabled'     => true,
-        'groupCount'  => count($groups),
-        'groups'      => $groups,
-        'columns'     => [
-            ['key' => 'position', 'label' => 'Pos',     'align' => 'center', 'width' => '50px', 'format' => 'medal'],
-            ['key' => 'clubLogo', 'label' => 'Club',    'align' => 'center', 'width' => '50px'],
-            ['key' => 'name',     'label' => 'Jugador', 'align' => 'left'],
-            ['key' => 'distance', 'label' => $secCfg['match'] === 'dist' ? 'Distancia' : 'Precisión',
-             'align' => 'center', 'width' => '90px', 'format' => 'distance'],
-        ],
-    ];
+        safe_exec($conn, "UPDATE driverjugp AS a SET a.orden = 0 WHERE a.torneoid = $tid", 'driverp reset orden');
+        safe_exec($conn, "UPDATE driverjugp AS a
+                          JOIN v_driverunicop AS b ON (a.jugadorid = b.jugadorid
+                                                      AND a.distancia = b.mindistancia
+                                                      AND a.torneoid = $tid)
+                          SET a.orden = 1", 'driverp set orden');
+
+        $groups = [];
+        foreach ($prizes as $p) {
+            $premioId    = esc($conn, $p['id']);
+            $descripcion = esc($conn, $p['name']);
+            $lugares     = (int)($p['hoyo'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
+
+            $group = [
+                'id'          => 'driverp-' . $p['id'] . '-' . preg_replace('/[^a-z0-9]+/i', '-', strtolower((string)$p['name'])),
+                'name'        => $p['name'],
+                'shortName'   => $p['name'],
+                'maxPlayers'  => $lugares,
+                'playerCount' => 0,
+            ];
+
+            if ($detalle === '1') {
+                $group['players']     = get_driverp_players($conn, $tid, $premioId, $descripcion, $lugares);
+                $group['playerCount'] = count($group['players']);
+                $group['lastUpdated'] = $p['ultact'] ?? null;
+            } else {
+                $sql2 = "SELECT COUNT(DISTINCT a.jugadorid) as cnt
+                         FROM driverjugp a
+                         WHERE a.torneoid = $tid
+                           AND a.premio = $premioId
+                           AND a.premiosjugcol = '$descripcion'
+                           AND a.orden = 1";
+                $cntRow = safe_query_one($conn, $sql2);
+                $group['playerCount'] = min((int)($cntRow['cnt'] ?? 0), $lugares);
+            }
+
+            $groups[] = $group;
+        }
+        $DEBUG_SECTIONS['driverp']['group_count'] = count($groups);
+
+        if (count($groups) > 0) {
+            $competencias[] = [
+                'id'          => 'driverp',
+                'name'        => 'Driver Precisión',
+                'shortName'   => 'Driver Prec.',
+                'description' => 'Driver más cercano a la línea central',
+                'icon'        => 'crosshair',
+                'endpoint'    => 'driverp',
+                'order'       => 4,
+                'enabled'     => true,
+                'groupCount'  => count($groups),
+                'groups'      => $groups,
+                'columns'     => [
+                    ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+                    ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
+                    ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                    ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
+                ],
+            ];
+        } else {
+            $DEBUG_SECTIONS['driverp']['reason'] = 'no groups built';
+        }
+    } else {
+        $DEBUG_SECTIONS['driverp']['reason'] = 'no rows in driverp with premio > 0';
+    }
 }
-error_log("competencias.php - Completed Driver/oyesx section, competencias count: " . count($competencias));
+
+
+// ============================================================================
+// Driver Distancia
+// ----------------------------------------------------------------------------
+// Source tables: `driver` defines the prizes and `driverjug` stores results.
+// Uses legacy winner flags from `v_driverunico`; longest distance wins (DESC).
+// ============================================================================
+if ($tipo === '' || $tipo === 'driverd') {
+    $DEBUG_SECTIONS['driverd']['enabled'] = true;
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM driver WHERE torneoid = $tid AND premio > 0";
+    $row = dbg_query_one($conn, $sql, 'driverd', 'count_distinct_premio');
+    $DEBUG_SECTIONS['driverd']['count'] = (int)($row['cnt'] ?? 0);
+
+    if ($row && (int)$row['cnt'] > 0) {
+        $sql = "SELECT premio as id, descripcion as name, hoyo,
+                       LEFT(f_ultfechadriver(descripcion, torneoid), 16) AS ultact
+                FROM driver
+                WHERE torneoid = $tid AND premio > 0
+                GROUP BY premio, descripcion, hoyo
+                ORDER BY premio ASC, descripcion ASC";
+        $prizes = dbg_query_all($conn, $sql, 'driverd', 'list_prizes_with_fn');
+        if (empty($prizes) && !empty($DEBUG_SECTIONS['driverd']['errors'])) {
+            $sql = "SELECT premio as id, descripcion as name, hoyo, NULL AS ultact
+                    FROM driver
+                    WHERE torneoid = $tid AND premio > 0
+                    GROUP BY premio, descripcion, hoyo
+                    ORDER BY premio ASC, descripcion ASC";
+            $prizes = dbg_query_all($conn, $sql, 'driverd', 'list_prizes_no_fn');
+        }
+
+        safe_exec($conn, "UPDATE driverjug AS a SET a.orden = 0 WHERE a.torneoid = $tid", 'driverd reset orden');
+        safe_exec($conn, "UPDATE driverjug AS a
+                          JOIN v_driverunico AS b ON (a.jugadorid = b.jugadorid
+                                                     AND a.distancia = b.mindistancia
+                                                     AND a.torneoid = $tid)
+                          SET a.orden = 1", 'driverd set orden');
+
+        $groups = [];
+        foreach ($prizes as $p) {
+            $premioId    = esc($conn, $p['id']);
+            $descripcion = esc($conn, $p['name']);
+            $lugares     = (int)($p['hoyo'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
+
+            $group = [
+                'id'          => 'driverd-' . $p['id'] . '-' . preg_replace('/[^a-z0-9]+/i', '-', strtolower((string)$p['name'])),
+                'name'        => $p['name'],
+                'shortName'   => $p['name'],
+                'maxPlayers'  => $lugares,
+                'playerCount' => 0,
+            ];
+
+            if ($detalle === '1') {
+                $group['players']     = get_driverd_players($conn, $tid, $premioId, $descripcion, $lugares);
+                $group['playerCount'] = count($group['players']);
+                $group['lastUpdated'] = $p['ultact'] ?? null;
+            } else {
+                $sql2 = "SELECT COUNT(DISTINCT a.jugadorid) as cnt
+                         FROM driverjug a
+                         WHERE a.torneoid = $tid
+                           AND a.premio = $premioId
+                           AND a.premiosjugcol = '$descripcion'
+                           AND a.orden = 1";
+                $cntRow = safe_query_one($conn, $sql2);
+                $group['playerCount'] = min((int)($cntRow['cnt'] ?? 0), $lugares);
+            }
+
+            $groups[] = $group;
+        }
+        $DEBUG_SECTIONS['driverd']['group_count'] = count($groups);
+
+        if (count($groups) > 0) {
+            $competencias[] = [
+                'id'          => 'driverd',
+                'name'        => 'Driver Distancia',
+                'shortName'   => 'Driver Dist.',
+                'description' => 'Drive más largo',
+                'icon'        => 'ruler',
+                'endpoint'    => 'driverd',
+                'order'       => 5,
+                'enabled'     => true,
+                'groupCount'  => count($groups),
+                'groups'      => $groups,
+                'columns'     => [
+                    ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+                    ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
+                    ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                    ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '100px', 'format' => 'distance'],
+                ],
+            ];
+        } else {
+            $DEBUG_SECTIONS['driverd']['reason'] = 'no groups built';
+        }
+    } else {
+        $DEBUG_SECTIONS['driverd']['reason'] = 'no rows in driver with premio > 0';
+    }
+}
+error_log("competencias.php - Completed Driver section, competencias count: " . count($competencias));
 
 
 
@@ -737,25 +839,29 @@ function get_oyes_last_updated($conn, $tid, $premioId) {
     return $row['lastUpdated'] ?? null;
 }
 
-/** Get O'Yes-X players for a prize group */
-function get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower) {
+/**
+ * Get Driver Precisión players for a prize group.
+ * Reads `driverjugp` joined to `v_driverp`; lower distance wins.
+ */
+function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     global $LOGOS_BASE_URL;
-
-    $sortOrder = (strpos($descLower, 'distancia') !== false || strpos($descLower, 'driver') !== false) ? 'DESC' : 'ASC';
+    $limit = max(1, (int)$limit);
 
     $sql = "SELECT a.jugadorid,
-                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   a.distancia, a.hoyo,
-                   c.logo, c.nombre as club
-            FROM premiosjug a
-            JOIN v_premjug b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
-            JOIN jugadores j ON (a.jugadorid = j.id)
-            JOIN clubs c ON (j.clubid = c.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia $sortOrder
-            LIMIT $numPrem";
-
-error_log("competencias.php - O'Yes-X players SQL for premioId=$premioId, desc='$descLower'");
+                   a.hoyo,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   c.descripcion
+            FROM driverjugp a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs cl ON (b.clubid = cl.id)
+            JOIN v_driverp c ON (a.campo = c.campo
+                                 AND b.categoriaid = c.categoriaid
+                                 AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia ASC
+            LIMIT $limit";
 
     $winners = safe_query_all($conn, $sql);
 
@@ -767,20 +873,56 @@ error_log("competencias.php - O'Yes-X players SQL for premioId=$premioId, desc='
             'id'        => (string)$w['jugadorid'],
             'position'  => $pos,
             'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
             'distance'  => (float)$w['distancia'],
-            'club'      => $w['club'],
+            'club'      => $w['club'] ?? '',
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
     }
     return $players;
 }
 
-/** Get O'Yes-X last updated timestamp */
-function get_oyesx_last_updated($conn, $descName, $tid) {
-    $descEsc = esc($conn, $descName);
-    $sql = "SELECT f_ultfechaoyesx('$descEsc', $tid) as lastUpdated";
-    $row = safe_query_one($conn, $sql);
-    return $row['lastUpdated'] ?? null;
+/**
+ * Get Driver Distancia players for a prize group.
+ * Reads `driverjug` joined to `v_driver`; higher distance wins.
+ */
+function get_driverd_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
+    global $LOGOS_BASE_URL;
+    $limit = max(1, (int)$limit);
+
+    $sql = "SELECT a.jugadorid,
+                   a.fecha, a.campo, a.hoyo,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
+                   cl.nombre as club, cl.logo as logo,
+                   b.categoriaid, c.descripcion
+            FROM driverjug a
+            JOIN jugadores b ON (a.jugadorid = b.id)
+            JOIN clubs cl ON (b.clubid = cl.id)
+            JOIN v_driver c ON (a.campo = c.campo
+                                AND b.categoriaid = c.categoriaid
+                                AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
+            ORDER BY c.descripcion, a.distancia DESC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
+        ];
+    }
+    return $players;
 }
 
 /**
