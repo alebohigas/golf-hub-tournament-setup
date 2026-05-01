@@ -43,6 +43,52 @@ $sistema  = strtoupper($calInfo['sistema']);
 $gross    = (int)$calInfo['gross'];
 $grossstb = (int)($calInfo['grossstb'] ?? 0);
 
+// ============= Last-complete-round tiebreaker helpers =============
+/**
+ * Builds a scalar SQL subquery for the player's score in the latest completed
+ * round available for this category. It is used only as a tie-breaker after
+ * the tee-slot (`grupoid`) and accumulated score (`acumsa/acumso`) ordering.
+ */
+function salidas_round_score_expr($playerAlias, $roundDate, $torneoid, $scoreCol) {
+    if (!$roundDate) return 'NULL';
+    $cardScoreCol = ($scoreCol === 'acumso') ? 'SO' : (($scoreCol === 'acumstbgross') ? 'totstbgross' : 'SA');
+    return "(SELECT IFNULL(t.$cardScoreCol, 0)
+             FROM tarjetas t
+             WHERE t.jugadorid = $playerAlias.jugadorid
+               AND t.torneoid = $torneoid
+               AND DATE(t.fecha_juego) = '$roundDate'
+               AND t.statlsc = 1
+             LIMIT 1)";
+}
+
+/**
+ * Builds a scalar SQL subquery that sums the official last-round tie-breaker
+ * hole ranges: H10-H18, H13-H18, H16-H18 and H18.
+ */
+function salidas_hole_chunk_expr($playerAlias, $roundDate, $torneoid, $holeSource, $holes) {
+    if (!$roundDate) return 'NULL';
+    $parts = [];
+    foreach ($holes as $h) {
+        if ($holeSource === 'h') {
+            $parts[] = "IFNULL(t.h{$h}, 0)";
+        } elseif ($holeSource === 'h_a') {
+            $parts[] = "IFNULL(t.h{$h}_a, 0)";
+        } elseif ($holeSource === 'arsa' || $holeSource === 'arstbgross') {
+            $parts[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.{$holeSource}, ',', {$h}), ',', -1) AS SIGNED)";
+        } else {
+            $parts[] = '0';
+        }
+    }
+    $sum = implode(' + ', $parts);
+    return "(SELECT IFNULL($sum, 0)
+             FROM tarjetas t
+             WHERE t.jugadorid = $playerAlias.jugadorid
+               AND t.torneoid = $torneoid
+               AND DATE(t.fecha_juego) = '$roundDate'
+               AND t.statlsc = 1
+             LIMIT 1)";
+}
+
 // ============= Get tee time groups =============
 $sql = "SELECT a.id, LEFT(RIGHT(horainicio1a, 8), 5) as hora,
                c.tee, teesal, b.gross
@@ -59,6 +105,31 @@ $isParejas = ($formato === 'parejas');
 
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
+
+/** Latest completed round date for this category up to the requested tee sheet date. */
+$catId = esc($conn, $calInfo['categoriaid']);
+$tid = esc($conn, $calInfo['torneoid']);
+$currentDate = esc($conn, $calInfo['fecha']);
+$eligibleWhere = "j.categoriaid = $catId AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
+if ($gross !== 1 && $grossstb !== 1) { $eligibleWhere .= " AND j.campgross = 0"; }
+
+$lastCompleteRow = query_one($conn, "SELECT cj.fecha
+                                     FROM caljuego cj
+                                     JOIN tarjetas t ON (DATE(t.fecha_juego) = DATE(cj.fecha)
+                                                      AND t.torneoid = $tid
+                                                      AND t.statlsc = 1)
+                                     JOIN jugadores j ON (j.id = t.jugadorid)
+                                     WHERE cj.categoriaid = $catId
+                                       AND cj.campo > 0
+                                       AND DATE(cj.fecha) <= DATE('$currentDate')
+                                       AND $eligibleWhere
+                                     GROUP BY cj.fecha
+                                     HAVING COUNT(DISTINCT t.jugadorid) >= (
+                                         SELECT COUNT(*) FROM jugadores j WHERE $eligibleWhere
+                                     )
+                                     ORDER BY cj.fecha DESC
+                                     LIMIT 1");
+$lastCompleteDate = $lastCompleteRow['fecha'] ?? '';
 
 //echo $viewName.'  '.$formato.'<br>';
 
