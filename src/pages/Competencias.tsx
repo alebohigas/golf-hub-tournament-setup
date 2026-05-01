@@ -536,6 +536,24 @@ const Competencias = () => {
                   </p>
                 </div>
               )}
+
+              {/* External link: Putt Finales Caballeros (Match Play) */}
+              <div className="flex justify-center mt-10">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gap-2"
+                >
+                  <a
+                    href="https://va.speitour.mx/match-play-putt-caballeros"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Putt Finales Caballeros
+                  </a>
+                </Button>
+              </div>
             </>
           )}
 
