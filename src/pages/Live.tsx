@@ -569,7 +569,10 @@ const Live = () => {
                                 {/*
                                   Total column — clickable when player has previously CLOSED scorecards.
                                   Click expands all previous closed cards (statlsc=1) stacked by date.
-                                  Live/in-progress round is NOT included here (see "Hoy").
+                                  In Live, the displayed Total INCLUDES the in-progress round
+                                  (player.score from closed cards + player.todayScore from the
+                                  card currently being played). This is intentional and ONLY
+                                  applies to /live — Resultados keeps Total = closed rounds only.
                                   Special case: when the player has zero closed rounds yet (e.g. the
                                   very first round in progress), the "Total"/"Dif Par" column would
                                   otherwise always show "E" (0). To avoid that misleading display we
@@ -579,10 +582,16 @@ const Live = () => {
                                 <TableCell className="text-center p-0">
                                   {(() => {
                                     const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
-                                    // Effective Total value to display: closed-only score when there
-                                    // are previous closed rounds, otherwise mirror today's score so
-                                    // R1-in-progress doesn't render as a meaningless "E".
-                                    const displayValue = hasPrevClosed ? player.score : (player.todayScore ?? 0);
+                                    // Live Total = closed rounds (player.score) + today's in-progress
+                                    // round (player.todayScore). When there are no closed rounds yet,
+                                    // this naturally equals todayScore (since score=0), keeping the
+                                    // R1-in-progress display meaningful.
+                                    const todayVal = (typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))
+                                      ? player.todayScore
+                                      : 0;
+                                    const displayValue = hasPrevClosed
+                                      ? ((player.score ?? 0) + todayVal)
+                                      : todayVal;
                                     if (hasPrevClosed) {
                                       return (
                                     <button
