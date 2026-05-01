@@ -129,7 +129,21 @@ $lastCompleteRow = query_one($conn, "SELECT cj.fecha
                                      )
                                      ORDER BY cj.fecha DESC
                                      LIMIT 1");
-$lastCompleteDate = $lastCompleteRow['fecha'] ?? '';
+$lastCompleteDate = $lastCompleteRow ? esc($conn, $lastCompleteRow['fecha']) : '';
+
+/**
+ * Returns the full ORDER BY tail for the requested accumulated-score column:
+ * group slot first, accumulated score second, then official last-round tie-breaks.
+ */
+function salidas_tiebreaker_order($scoreCol, $lastCompleteDate, $torneoid) {
+    $holeSource = ($scoreCol === 'acumso') ? 'h' : (($scoreCol === 'acumstbgross') ? 'arstbgross' : 'h_a');
+    return "ORDER BY v.grupoid, v.$scoreCol ASC, "
+        . salidas_round_score_expr('v', $lastCompleteDate, $torneoid, $scoreCol) . " ASC, "
+        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, range(10, 18)) . " ASC, "
+        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, range(13, 18)) . " ASC, "
+        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, range(16, 18)) . " ASC, "
+        . salidas_hole_chunk_expr('v', $lastCompleteDate, $torneoid, $holeSource, [18]) . " ASC";
+}
 
 //echo $viewName.'  '.$formato.'<br>';
 
