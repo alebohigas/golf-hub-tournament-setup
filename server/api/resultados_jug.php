@@ -729,14 +729,8 @@ foreach ($cutRows as $row) {
     $cutRounds = [];
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        // Same partial-vs-closed treatment as NORMAL players: preserve 0
-        // for partial rounds (level par mid-round), drop 0 for closed.
-        $isPartial = !empty($diasPartial[$i]);
-        if ($isPartial) {
-            $cutRounds["r{$i}"] = $val !== null ? (int)$val : null;
-        } else {
-            $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
-        }
+        // Same treatment as NORMAL: 0 / null → render as dash placeholder.
+        $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
     }
     $cutTotal = isset($row['total_score']) ? (int)$row['total_score'] : 0;
 
