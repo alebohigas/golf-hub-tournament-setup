@@ -77,13 +77,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         }
     } else {
         // Stroke Play - use gross (acumso) or net (acumsa) for display only
@@ -93,13 +93,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid ASC";
+                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
         }
     }
 
