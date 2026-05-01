@@ -276,6 +276,20 @@ const Competencias = () => {
   // Loading state
   const isLoading = loadingList || (selectedCompetenciaId && loadingDetail);
 
+  /** Display columns for selected competition; Driver Distancia uses yards. */
+  const selectedCompetenciaColumns = useMemo(() => {
+    if (!selectedCompetencia) return [];
+    const isDriverDistancia =
+      selectedCompetencia.id === 'driverd' ||
+      selectedCompetencia.name.toLowerCase().includes('driver distancia');
+
+    if (!isDriverDistancia) return selectedCompetencia.columns;
+
+    return selectedCompetencia.columns.map((col) =>
+      col.key === 'distance' ? { ...col, format: 'yards' as const } : col
+    );
+  }, [selectedCompetencia]);
+
   return (
     <Layout>
       <PageHero 
@@ -606,7 +620,7 @@ const Competencias = () => {
                 <CardContent className="p-0">
                   <CompetenciasTable 
                     players={selectedGroup.players || []}
-                    columns={selectedCompetencia.columns}
+                    columns={selectedCompetenciaColumns}
                   />
                 </CardContent>
               </Card>
