@@ -103,24 +103,26 @@ $medalCountGross = (int)$catInfo['numganadorgross'];
 /** Active medal count for the requested scoring type (back-compat field) */
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
-// ============= Get fully closed play dates =============
-// A round is published in Resultados as soon as AT LEAST ONE eligible NORMAL
-// player in the category has ANY scorecard (open or closed) for that
-// scheduled date. Rounds with zero cards entirely (future rounds) stay
-// hidden so we never render an empty column.
+// ============= Get play dates =============
+// A round column is published in Resultados only when EITHER:
+//   (a) at least one eligible NORMAL player has a CLOSED card (statlsc=1)
+//       for that date — round is "scoring" and its closed cards roll into
+//       Total, OR
+//   (b) the round has only open (in-progress) cards — column is shown as a
+//       placeholder ("—" line per player), does NOT contribute to Total.
+// Rounds with zero cards entirely (future rounds) stay hidden.
 //
-// `$diasPartial[$i]` flags rounds that exist but have NOT been fully closed
-// by every eligible player yet — these are rendered with an "En vivo"
-// indicator on the frontend. Only fully-closed rounds count toward the
-// accumulated `total` (see `$closedDates` below), so partial in-progress
-// rounds appear in their column but do NOT inflate standings.
+// `$diasPartial[$i] = true` now means "in-progress placeholder, no closed
+// cards yet" — the column is rendered empty (dashes) and produces no score.
+// `$diasPartial[$i] = false` means "scoring round" (>=1 closed card) — uses
+// legacy f_score_dia_sax/sox and rolls into the Total via $closedSA/$closedSO.
 $sql = "SELECT fecha FROM caljuego
         WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
 $dateRows = query_all($conn, $sql);
 
 $dias = [];
-$diasPartial = []; // 1-indexed map: round# => bool (true = partial/in-progress)
+$diasPartial = []; // 1-indexed map: round# => bool (true = in-progress placeholder, no closed cards)
 $eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
 if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
 $expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
@@ -149,9 +151,10 @@ foreach ($dateRows as $dr) {
     $closedCount = (int)($closedRow['total'] ?? 0);
     $idx = count($dias) + 1;
     $dias[$idx] = $fecha;
-    // Round is "partial" if not every eligible player has a closed card yet.
-    // This means the round column will appear but its scores won't roll into Total.
-    $diasPartial[$idx] = ($expectedPlayers === 0 || $closedCount < $expectedPlayers);
+    // Round is "in-progress placeholder" only when NOBODY has closed yet.
+    // Once at least one player has statlsc=1, the round becomes a normal
+    // scoring round (closed cards count, others render as 0/null).
+    $diasPartial[$idx] = ($closedCount === 0);
 }
 
 // ============= Get course info =============
