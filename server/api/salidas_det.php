@@ -66,9 +66,9 @@ foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
 
     // Build player query based on system and gross.
-    // IMPORTANT: legacy /salidas sorts the players inside each tee-time group
-    // by the displayed score column, numerically. For stroke-style salidas the
-    // lower score must appear first; legacy ties fall back to the assigned group slot descending.
+    // IMPORTANT: legacy /salidas does NOT reorder players by score inside a
+    // tee-time group. Players are listed in their assigned slot order
+    // (grupoid ASC = slot 1, 2, 3, 4). The score column is only displayed.
     if ($sistema === 'STABLEFORD') {
         // Pick the displayed score column based on gross flags
         $scoreCol = ($gross == 1 || $grossstb == 1) ? 'acumstbgross' : 'acumsa';
@@ -77,13 +77,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
+                    ORDER BY grupoid ASC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
+                    ORDER BY grupoid ASC";
         }
     } else {
         // Stroke Play - use gross (acumso) or net (acumsa) for display only
@@ -93,13 +93,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
+                    ORDER BY grupoid ASC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY ($scoreCol + 0) ASC, grupoid DESC";
+                    ORDER BY grupoid ASC";
         }
     }
 
