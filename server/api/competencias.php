@@ -138,6 +138,8 @@ $DEBUG_SECTIONS = [
     'oyes'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
     'approach' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
     'putt'     => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'driver-distancia' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
+    'driver-precision' => ['enabled' => false, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0],
 ];
 
 /**
@@ -378,6 +380,102 @@ if ($tipo === '' || $tipo === 'approach') {
     }
 }
 error_log("competencias.php - Completed Approach section, competencias count: " . count($competencias));
+
+
+
+// ============= Driver / O'Yes-X (Distancia & Precisión) =============
+// Reads from `oyesx` (prize catalog) + `oyesxjug` (player results).
+// Each prize description identifies the modality:
+//   - contains "distancia" or "driver" → Driver Distancia (sort by distance DESC)
+//   - otherwise (typically "precision") → Driver Precisión (sort by distance ASC)
+// We emit TWO competencias: 'driver-distancia' and 'driver-precision'.
+// Both ?tipo=driver-distancia and ?tipo=driver-precision filter to a single one.
+foreach ([
+    'driver-distancia' => ['label' => 'Driver Distancia', 'icon' => 'ruler',     'order' => 11, 'match' => 'dist'],
+    'driver-precision' => ['label' => 'Driver Precisión', 'icon' => 'crosshair', 'order' => 12, 'match' => 'prec'],
+] as $secId => $secCfg) {
+    if ($tipo !== '' && $tipo !== $secId) continue;
+
+    $DEBUG_SECTIONS[$secId]['enabled'] = true;
+
+    // Pre-update: mark best distances per prize (legacy behavior from oyesx.php)
+    safe_exec($conn, "UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid", "$secId reset orden");
+    safe_exec($conn, "UPDATE oyesxjug a
+                      JOIN v_oyesx b ON (a.jugadorid = b.jugadorid AND a.torneoid = b.torneoid AND a.premio = b.premio)
+                      SET a.orden = 1
+                      WHERE a.torneoid = $tid", "$secId set orden");
+
+    // List prize groups for this modality
+    $sql = "SELECT DISTINCT premio as id, descripcion as name, hoyo
+            FROM oyesxjug
+            WHERE torneoid = $tid
+            ORDER BY premio ASC";
+    $allPrizes = dbg_query_all($conn, $sql, $secId, 'list_prizes');
+
+    // Filter prizes by modality keyword in description
+    $prizes = [];
+    foreach ($allPrizes as $p) {
+        $d = strtolower($p['name']);
+        $isDist = (strpos($d, 'distancia') !== false || strpos($d, 'driver') !== false) && strpos($d, 'precis') === false;
+        $isPrec = strpos($d, 'precis') !== false;
+        if ($secCfg['match'] === 'dist' && $isDist) $prizes[] = $p;
+        if ($secCfg['match'] === 'prec' && $isPrec) $prizes[] = $p;
+    }
+    $DEBUG_SECTIONS[$secId]['count'] = count($prizes);
+
+    if (count($prizes) === 0) {
+        $DEBUG_SECTIONS[$secId]['reason'] = 'no prizes matched modality in oyesxjug';
+        continue;
+    }
+
+    $groups = [];
+    foreach ($prizes as $p) {
+        $premioId = (int)$p['id'];
+        $hoyo = (int)$p['hoyo'];
+        $descLower = strtolower($p['name']);
+
+        $group = [
+            'id'          => $secId . '-' . $premioId,
+            'name'        => $p['name'],
+            'shortName'   => $p['name'],
+            'maxPlayers'  => $numPrem,
+            'playerCount' => 0,
+        ];
+
+        if ($detalle === '1') {
+            $group['players'] = get_oyesx_players($conn, $tid, $premioId, $numPrem, $descLower);
+            $group['lastUpdated'] = get_oyesx_last_updated($conn, $p['name'], $tid);
+            $group['playerCount'] = count($group['players']);
+        } else {
+            $sql2 = "SELECT COUNT(*) as cnt FROM oyesxjug WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
+            $cntRow = safe_query_one($conn, $sql2);
+            $group['playerCount'] = min((int)($cntRow['cnt'] ?? 0), $numPrem);
+        }
+        $groups[] = $group;
+    }
+    $DEBUG_SECTIONS[$secId]['group_count'] = count($groups);
+
+    $competencias[] = [
+        'id'          => $secId,
+        'name'        => $secCfg['label'],
+        'shortName'   => $secCfg['label'],
+        'description' => $secCfg['label'],
+        'icon'        => $secCfg['icon'],
+        'endpoint'    => $secId,
+        'order'       => $secCfg['order'],
+        'enabled'     => true,
+        'groupCount'  => count($groups),
+        'groups'      => $groups,
+        'columns'     => [
+            ['key' => 'position', 'label' => 'Pos',     'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+            ['key' => 'clubLogo', 'label' => 'Club',    'align' => 'center', 'width' => '50px'],
+            ['key' => 'name',     'label' => 'Jugador', 'align' => 'left'],
+            ['key' => 'distance', 'label' => $secCfg['match'] === 'dist' ? 'Distancia' : 'Precisión',
+             'align' => 'center', 'width' => '90px', 'format' => 'distance'],
+        ],
+    ];
+}
+error_log("competencias.php - Completed Driver/oyesx section, competencias count: " . count($competencias));
 
 
 
