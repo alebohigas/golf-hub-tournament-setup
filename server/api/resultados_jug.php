@@ -427,28 +427,27 @@ function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
     // value pulled from in-progress data). Querying tarjetas directly
     // eliminates that risk.
     //
-    // Column choice mirrors the cut-player block below:
+    // RESULTADOS shows the RAW per-round total (golpes for Stroke, points for
+    // Stableford). The diff-vs-par "+N / -N / E" view belongs to /live ONLY.
+    // Therefore we never subtract parcampo here — the round cell mirrors the
+    // signed scorecard total, and the global Total is the straight sum.
     //   STABLEFORD GROSS → SUM(totstbgross)
     //   STABLEFORD NETO  → SUM(SA)
-    //   STROKE     GROSS → SUM(SO) - parcampo (diff to par per closed card)
-    //   STROKE     NETO  → SUM(SA) - parcampo (net diff to par per closed card)
+    //   STROKE     GROSS → SUM(SO)   (raw gross strokes)
+    //   STROKE     NETO  → SUM(SA)   (raw net strokes)
     //
     // Returns NULL when the player has no closed card for that date so the
     // frontend renders a dash instead of a misleading "0".
     if ($sistema === 'STABLEFORD' && $gross == '1') {
         $col = 'SUM(t.totstbgross)';
-        $diff = '';
     } elseif ($sistema === 'STABLEFORD') {
         $col = 'SUM(t.SA)';
-        $diff = '';
     } elseif ($gross == '1') {
         $col = 'SUM(t.SO)';
-        $diff = " - $parcampo * COUNT(*)";
     } else {
         $col = 'SUM(t.SA)';
-        $diff = " - $parcampo * COUNT(*)";
     }
-    return "(SELECT CASE WHEN COUNT(*) = 0 THEN NULL ELSE ($col$diff) END
+    return "(SELECT CASE WHEN COUNT(*) = 0 THEN NULL ELSE $col END
               FROM tarjetas t
               WHERE t.jugadorid = j.id
                 AND t.torneoid  = j.torneoid

@@ -419,9 +419,9 @@ const Resultados = () => {
                                     const round = i + 1;
                                     const score = getRoundScore(player, round);
                                     const isExpanded = expandedScorecard === `${player.id}-${round}`;
-                                    // Stroke Play: prefix positive scores with "+" and show "E" for 0,
-                                    // mirroring the LIVE leaderboard. Stableford keeps raw points.
-                                    const isStroke = isStrokePlaySystem(categoryDetail?.system);
+                                    // RESULTADOS: round shows RAW total (golpes / puntos).
+                                    // The signed diff-vs-par ("+N / -N / E") view is used
+                                    // only on /live — never here.
                                     return (
                                       <TableCell key={round} className="text-center p-0">
                                         {score !== undefined && score !== null ? (
@@ -432,8 +432,8 @@ const Resultados = () => {
                                             }`}
                                             title={`Ver tarjeta R${round}`}
                                           >
-                                            {/* Stroke Play: "E"/"+N"/"-N". Stableford: raw points. */}
-                                            {isStroke ? formatStrokeValue(score as number) : score}
+                                            {/* Raw round total (golpes for Stroke, puntos for Stableford). */}
+                                            {score}
                                           </button>
                                         ) : (
                                           <span className="py-3 px-2 inline-block">-</span>
@@ -537,8 +537,7 @@ const Resultados = () => {
                                     const round = i + 1;
                                     const score = getRoundScore(cp, round);
                                     const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
-                                    // Stroke Play: sign-prefix and "E" for 0; Stableford: raw points.
-                                    const isStroke = isStrokePlaySystem(categoryDetail?.system);
+                                    // RESULTADOS: raw round total — never the diff-vs-par.
                                     if (score === undefined || score === null) {
                                       return (
                                         <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
@@ -557,7 +556,7 @@ const Resultados = () => {
                                           }`}
                                           title={`Ver tarjeta R${round}`}
                                         >
-                                          {isStroke ? formatStrokeValue(score as number) : score}
+                                          {score}
                                         </button>
                                       </TableCell>
                                     );
