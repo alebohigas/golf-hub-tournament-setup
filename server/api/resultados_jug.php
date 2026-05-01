@@ -419,9 +419,41 @@ function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
     if ($partial) {
         return 'NULL';
     }
-    // Scoring round (>=1 closed card) → legacy function (statlsc=1 only).
-    $fn = ($gross == '1') ? 'f_score_dia_sox' : 'f_score_dia_sax';
-    return "$fn(j.id, '$fecEsc')";
+    // Scoring round (>=1 closed card). Read DIRECTLY from `tarjetas` with
+    // an explicit `statlsc = 1` filter to guarantee that only finalized
+    // cards contribute to the round score. The legacy
+    // f_score_dia_sax/sox functions sometimes returned partial values for
+    // players whose card was still open (e.g. R2 not started yet showed a
+    // value pulled from in-progress data). Querying tarjetas directly
+    // eliminates that risk.
+    //
+    // Column choice mirrors the cut-player block below:
+    //   STABLEFORD GROSS → SUM(totstbgross)
+    //   STABLEFORD NETO  → SUM(SA)
+    //   STROKE     GROSS → SUM(SO) - parcampo (diff to par per closed card)
+    //   STROKE     NETO  → SUM(SA) - parcampo (net diff to par per closed card)
+    //
+    // Returns NULL when the player has no closed card for that date so the
+    // frontend renders a dash instead of a misleading "0".
+    if ($sistema === 'STABLEFORD' && $gross == '1') {
+        $col = 'SUM(t.totstbgross)';
+        $diff = '';
+    } elseif ($sistema === 'STABLEFORD') {
+        $col = 'SUM(t.SA)';
+        $diff = '';
+    } elseif ($gross == '1') {
+        $col = 'SUM(t.SO)';
+        $diff = " - $parcampo * COUNT(*)";
+    } else {
+        $col = 'SUM(t.SA)';
+        $diff = " - $parcampo * COUNT(*)";
+    }
+    return "(SELECT CASE WHEN COUNT(*) = 0 THEN NULL ELSE ($col$diff) END
+              FROM tarjetas t
+              WHERE t.jugadorid = j.id
+                AND t.torneoid  = j.torneoid
+                AND DATE(t.fecha_juego) = '$fecEsc'
+                AND t.statlsc = 1)";
 }
 
 // ============= Player eligibility helper =============
