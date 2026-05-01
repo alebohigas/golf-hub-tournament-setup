@@ -609,23 +609,24 @@ if ($tipo === '' || $tipo === 'putt') {
                       WHERE a.torneoid = $tid", 'putt set orden');
 
         // `hoyo` here is repurposed as "lugares" (number of winners for this prize),
-        // matching the Approach/Driver/DriverP convention. MAX() handles the case
-        // where multiple rows share the same premio with the same hoyo value.
-        $sql = "SELECT premio as id, premiosjugcol as name,
+        // matching the Approach/Driver/DriverP convention. The `putt` table uses
+        // `descripcion` as the prize name (NOT `premiosjugcol`, which only exists
+        // in `puttjug`). MAX() collapses duplicate rows per premio.
+        $sql = "SELECT premio as id, descripcion as name,
                        MAX(hoyo) as hoyo,
-                       LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
+                       LEFT(f_ultfechaputt(descripcion, torneoid), 16) AS ultact
                 FROM putt
                 WHERE torneoid = $tid
-                GROUP BY premio, premiosjugcol
+                GROUP BY premio, descripcion
                 ORDER BY premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_with_fn');
-        if (empty($prizes) && !empty($DEBUG_SECTIONS['putt']['errors'])) {
+        if (empty($prizes)) {
             // Fallback if f_ultfechaputt() doesn't exist on this DB
-            $sql = "SELECT premio as id, premiosjugcol as name,
+            $sql = "SELECT premio as id, descripcion as name,
                            MAX(hoyo) as hoyo, NULL AS ultact
                     FROM putt
                     WHERE torneoid = $tid
-                    GROUP BY premio, premiosjugcol
+                    GROUP BY premio, descripcion
                     ORDER BY premio ASC";
             $prizes = dbg_query_all($conn, $sql, 'putt', 'list_prizes_no_fn');
         }
