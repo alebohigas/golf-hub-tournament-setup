@@ -583,14 +583,21 @@ const Live = () => {
                                   {(() => {
                                     const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
                                     // Live Total = closed rounds (player.score) + today's in-progress
-                                    // round (player.todayScore). When there are no closed rounds yet,
-                                    // this naturally equals todayScore (since score=0), keeping the
-                                    // R1-in-progress display meaningful.
+                                    // round (player.todayScore) ONLY while today's card is still open.
+                                    // Once today's card is closed (statlsc=1 → "F" in Thru, and the
+                                    // currentRoundDate appears inside player.prevRoundDates from the
+                                    // backend), its value is already baked into player.score, so we
+                                    // must NOT add todayScore again — otherwise it would be counted twice.
+                                    const todayDate = leaderboard?.currentRoundDate ?? null;
+                                    const todayClosed = !!(todayDate && player.prevRoundDates?.includes(todayDate));
                                     const todayVal = (typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))
                                       ? player.todayScore
                                       : 0;
+                                    // If today is closed, player.score already contains today's value.
+                                    // If today is still open, add the in-progress todayScore on top of
+                                    // the previously-closed total (player.score).
                                     const displayValue = hasPrevClosed
-                                      ? ((player.score ?? 0) + todayVal)
+                                      ? ((player.score ?? 0) + (todayClosed ? 0 : todayVal))
                                       : todayVal;
                                     if (hasPrevClosed) {
                                       return (
