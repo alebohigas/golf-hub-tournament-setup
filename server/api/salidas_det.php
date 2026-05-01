@@ -68,7 +68,7 @@ foreach ($groupRows as $group) {
     // Build player query based on system and gross.
     // IMPORTANT: legacy /salidas does NOT reorder players by score inside a
     // tee-time group. Players are listed in their assigned slot order using
-    // grupoid ASC, matching the legacy visible player order exactly.
+    // grupoid DESC, matching the requested inverted visible player order exactly.
     if ($sistema === 'STABLEFORD') {
         // Pick the displayed score column based on gross flags
         $scoreCol = ($gross == 1 || $grossstb == 1) ? 'acumstbgross' : 'acumsa';
@@ -77,13 +77,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid ASC";
+                    ORDER BY grupoid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid ASC";
+                    ORDER BY grupoid DESC";
         }
     } else {
         // Stroke Play - use gross (acumso) or net (acumsa) for display only
@@ -93,13 +93,13 @@ foreach ($groupRows as $group) {
                            $scoreCol as sa, sistema
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid ASC";
+                    ORDER BY grupoid DESC";
         } else {
             $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
                            $scoreCol as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY grupoid ASC";
+                    ORDER BY grupoid DESC";
         }
     }
 
