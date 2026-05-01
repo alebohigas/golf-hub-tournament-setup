@@ -283,18 +283,33 @@ foreach ($rows as $row) {
 }
 
 /**
- * Re-sort by closed-only Total so the leaderboard reflects what users actually see.
- *   Stableford → DESC (more points = better)
- *   Stroke     → ASC  (lower diff to par = better)
- * Tie-break: keep original order from the SQL (stable sort via usort + index).
+ * Re-sort by the same value shown in the main leaderboard column.
+ *   - With previous closed rounds: use closed-only Total so the live "Hoy"
+ *     column does NOT reshuffle R2/R3 group/leaderboard order.
+ *   - With no closed rounds yet: use today's live value, matching legacy Live.
+ *   - Stroke: lower first. Stableford: higher first.
+ * Tie-break keeps the original SQL order deterministically.
  */
+foreach ($players as $i => &$player) {
+    $player['_originalIndex'] = $i;
+    $hasClosedRounds = !empty($player['prevRoundDates']);
+    $player['_sortScore'] = (int)($hasClosedRounds ? $player['score'] : $player['todayScore']);
+}
+unset($player);
+
 usort($players, function($a, $b) use ($isStableford) {
-    $sa = (int)$a['score'];
-    $sb = (int)$b['score'];
-    if ($sa === $sb) return 0;
-    return $isStableford ? ($sb <=> $sa) : ($sa <=> $sb);
+    if ($a['_sortScore'] !== $b['_sortScore']) {
+        return $isStableford
+            ? ($b['_sortScore'] <=> $a['_sortScore'])
+            : ($a['_sortScore'] <=> $b['_sortScore']);
+    }
+    return $a['_originalIndex'] <=> $b['_originalIndex'];
 });
-foreach ($players as $i => $_) { $players[$i]['position'] = $i + 1; }
+
+foreach ($players as $i => $_) {
+    unset($players[$i]['_originalIndex'], $players[$i]['_sortScore']);
+    $players[$i]['position'] = $i + 1;
+}
 
 json_response([
     'categoryId'   => $catInfo['categoria_id'],
