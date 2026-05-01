@@ -14,7 +14,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
 import { useState, Fragment } from 'react';
-import { Link } from 'react-router-dom';
 import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
 import type { 
   ResultCategory, 
@@ -25,15 +24,6 @@ import type {
   CutPlayer,
 } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
-
-/**
- * Feature flag: muestra/oculta la leyenda amarilla "Rondas presentadas y marcadas
- * como EN VIVO no afectan la suma total..." que aparece arriba de la tabla de
- * resultados cuando hay rondas en curso (`daysPartial`).
- *
- * Cambiar a `true` para volver a habilitarla sin tocar más código.
- */
-const SHOW_LIVE_ROUND_DISCLAIMER = false;
 
 // ============= Helper Functions =============
 
@@ -361,35 +351,6 @@ const Resultados = () => {
                 </div>
               ) : (
                 <>
-                  {/*
-                   * Disclaimer for in-progress rounds.
-                   * Shown only when at least one round in `daysPartial` is true,
-                   * i.e. there's a live round whose scores are visible in the
-                   * table but NOT counted in Total. The "LIVE" word is a deep
-                   * link to /live?categoria=<currentCategoryId> so the user
-                   * lands directly on the same category they were viewing.
-                   *
-                   * NOTE (toggle): Esta leyenda amarilla está oculta por defecto
-                   * porque la encargada pidió quitarla. Para volver a habilitarla
-                   * sin tocar la lógica, cambiar la constante `SHOW_LIVE_ROUND_DISCLAIMER`
-                   * de `false` a `true`. (Flag binario local — no requiere admin UI.)
-                   */}
-                  {SHOW_LIVE_ROUND_DISCLAIMER && categoryDetail?.daysPartial?.some(Boolean) && (
-                    <div className="max-w-5xl mx-auto mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                      Rondas presentadas y marcadas como{' '}
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-semibold uppercase tracking-wide align-middle">
-                        En vivo
-                      </span>{' '}
-                      no afectan la suma total en los resultados hasta que cierre la tarjeta completamente. Para una mejor visualización de la ronda en vivo dirígete a{' '}
-                      <Link
-                        to={`/live?categoria=${selectedCategory?.categoryId ?? ''}`}
-                        className="font-bold underline text-amber-900 hover:text-amber-700"
-                      >
-                        LIVE
-                      </Link>
-                      .
-                    </div>
-                  )}
                   <Card className="border-border/50 bg-white max-w-5xl mx-auto">
                   <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto bg-white">
@@ -410,29 +371,14 @@ const Resultados = () => {
                             <TableHead className="text-primary-foreground font-bold text-center sticky z-20 bg-primary" style={{ left: '4rem' }}>Club</TableHead>
                             <TableHead className="text-primary-foreground font-bold sticky z-20 bg-primary" style={{ left: '7.5rem' }}>Jugador</TableHead>
                             {/* Dynamic round columns based on days array */}
-                            {(categoryDetail?.days || []).map((_, i) => {
-                              // Partial = round in progress; we still render the column
-                              // so users see the live round number, but flag it with a
-                              // small "En vivo" badge so it's clear scores aren't final
-                              // and aren't yet counted in Total.
-                              const isPartial = !!categoryDetail?.daysPartial?.[i];
-                              return (
-                                <TableHead key={`r${i+1}`} className="text-primary-foreground font-bold text-center">
-                                  <div className="flex flex-col items-center gap-1 leading-tight">
-                                    <span>R{i + 1}</span>
-                                    {isPartial && (
-                                      <span
-                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-semibold uppercase tracking-wide"
-                                        title="Ronda en curso — los resultados pueden cambiar y aún no cuentan en el Total"
-                                      >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                        En vivo
-                                      </span>
-                                    )}
-                                  </div>
-                                </TableHead>
-                              );
-                            })}
+                            {(categoryDetail?.days || []).map((_, i) => (
+                              <TableHead
+                                key={`r${i + 1}`}
+                                className="text-primary-foreground font-bold text-center"
+                              >
+                                R{i + 1}
+                              </TableHead>
+                            ))}
                             <TableHead className="text-primary-foreground font-bold text-center">Total</TableHead>
                           </TableRow>
                         </TableHeader>

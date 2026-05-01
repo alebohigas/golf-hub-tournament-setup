@@ -103,24 +103,26 @@ $medalCountGross = (int)$catInfo['numganadorgross'];
 /** Active medal count for the requested scoring type (back-compat field) */
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
-// ============= Get fully closed play dates =============
-// A round is published in Resultados as soon as AT LEAST ONE eligible NORMAL
-// player in the category has ANY scorecard (open or closed) for that
-// scheduled date. Rounds with zero cards entirely (future rounds) stay
-// hidden so we never render an empty column.
+// ============= Get play dates =============
+// A round column is published in Resultados only when EITHER:
+//   (a) at least one eligible NORMAL player has a CLOSED card (statlsc=1)
+//       for that date — round is "scoring" and its closed cards roll into
+//       Total, OR
+//   (b) the round has only open (in-progress) cards — column is shown as a
+//       placeholder ("—" line per player), does NOT contribute to Total.
+// Rounds with zero cards entirely (future rounds) stay hidden.
 //
-// `$diasPartial[$i]` flags rounds that exist but have NOT been fully closed
-// by every eligible player yet — these are rendered with an "En vivo"
-// indicator on the frontend. Only fully-closed rounds count toward the
-// accumulated `total` (see `$closedDates` below), so partial in-progress
-// rounds appear in their column but do NOT inflate standings.
+// `$diasPartial[$i] = true` now means "in-progress placeholder, no closed
+// cards yet" — the column is rendered empty (dashes) and produces no score.
+// `$diasPartial[$i] = false` means "scoring round" (>=1 closed card) — uses
+// legacy f_score_dia_sax/sox and rolls into the Total via $closedSA/$closedSO.
 $sql = "SELECT fecha FROM caljuego
         WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
 $dateRows = query_all($conn, $sql);
 
 $dias = [];
-$diasPartial = []; // 1-indexed map: round# => bool (true = partial/in-progress)
+$diasPartial = []; // 1-indexed map: round# => bool (true = in-progress placeholder, no closed cards)
 $eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
 if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
 $expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
@@ -149,9 +151,10 @@ foreach ($dateRows as $dr) {
     $closedCount = (int)($closedRow['total'] ?? 0);
     $idx = count($dias) + 1;
     $dias[$idx] = $fecha;
-    // Round is "partial" if not every eligible player has a closed card yet.
-    // This means the round column will appear but its scores won't roll into Total.
-    $diasPartial[$idx] = ($expectedPlayers === 0 || $closedCount < $expectedPlayers);
+    // Round is "in-progress placeholder" only when NOBODY has closed yet.
+    // Once at least one player has statlsc=1, the round becomes a normal
+    // scoring round (closed cards count, others render as 0/null).
+    $diasPartial[$idx] = ($closedCount === 0);
 }
 
 // ============= Get course info =============
@@ -409,52 +412,14 @@ function statusLabel($code) {
  *                for that round (or 0 if no card).
  */
 function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
-    $isStableford = (strtoupper($sistema) === 'STABLEFORD');
-    if (!$partial) {
-        // Closed round → legacy function (statlsc=1 only). Identical to before.
-        $fn = ($gross == '1') ? 'f_score_dia_sox' : 'f_score_dia_sax';
-        return "$fn(j.id, '$fecEsc')";
+    // Partial round = nobody has closed yet. We return NULL so the row cell
+    // renders as "—" placeholder on the frontend; no live computation runs.
+    if ($partial) {
+        return 'NULL';
     }
-    // Partial round → direct tarjetas read (open + closed cards count).
-    if ($isStableford) {
-        $col = ($gross == '1') ? 't.totstbgross' : 't.SA';
-        return "(SELECT IFNULL(SUM($col), 0)
-                 FROM tarjetas t
-                 WHERE t.jugadorid = j.id
-                   AND t.torneoid  = j.torneoid
-                   AND DATE(t.fecha_juego) = '$fecEsc'
-                 LIMIT 1)";
-    }
-    // Stroke Play → diff to par computed HOLE BY HOLE.
-    //
-    // Bug fixed: previously this used `SUM(SO|SA) - (parcampo * cards_played)`,
-    // which subtracted the par of the FULL course even when the player had
-    // only completed a few holes. That made in-progress rounds show absurd
-    // negative diffs (e.g. -60 after 3 holes).
-    //
-    // New approach: per hole h{n} (or h{n}_a for NETO), if the hole score is
-    // > 0 (played) we add `score - par_hole`; if it's 0 (not played yet) we
-    // contribute 0. Par per hole is the n-th element of `t.parcampohoyo`
-    // (a CSV with 18 values).
-    $holeCol = ($gross == '1') ? 'h' : 'h_a';
-    $holeParts = [];
-    for ($h = 1; $h <= 18; $h++) {
-        $col = ($holeCol === 'h') ? "t.h{$h}" : "t.h{$h}_a";
-        $parH = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.parcampohoyo, ',', {$h}), ',', -1) AS SIGNED)";
-        // CASE WHEN score > 0 THEN (score - par_hole) ELSE 0 END
-        $holeParts[] = "CASE WHEN IFNULL($col, 0) > 0 THEN (IFNULL($col, 0) - IFNULL($parH, 0)) ELSE 0 END";
-    }
-    $diffSum = implode(' + ', $holeParts);
-    // NOTE: we deliberately do NOT wrap with IFNULL(...,0) here. If the player
-    // has no tarjeta for this date the subquery returns NULL, which the PHP
-    // mapper below converts to a missing round. If we returned 0 we couldn't
-    // distinguish "no played yet" from "played and currently at level par".
-    return "(SELECT $diffSum
-             FROM tarjetas t
-             WHERE t.jugadorid = j.id
-               AND t.torneoid  = j.torneoid
-               AND DATE(t.fecha_juego) = '$fecEsc'
-             LIMIT 1)";
+    // Scoring round (>=1 closed card) → legacy function (statlsc=1 only).
+    $fn = ($gross == '1') ? 'f_score_dia_sox' : 'f_score_dia_sax';
+    return "$fn(j.id, '$fecEsc')";
 }
 
 // ============= Player eligibility helper =============
@@ -659,22 +624,10 @@ foreach ($rows as $row) {
 
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        // For PARTIAL (in-progress) rounds the partial score expression
-        // returns NULL when the player has no card yet, and a real number
-        // (possibly 0 = "currently at level par") when they're playing.
-        // We must therefore preserve `0` for partial rounds — otherwise the
-        // table cell becomes a non-clickable dash and the user can't open
-        // the scorecard for a player who happens to be even par.
-        //
-        // For CLOSED rounds (legacy f_score_dia_sax/sox) a value of 0
-        // historically means "did not play this round", so we keep treating
-        // 0 as null there to match prior behaviour.
-        $isPartial = !empty($diasPartial[$i]);
-        if ($isPartial) {
-            $player["r{$i}"] = $val !== null ? (int)$val : null;
-        } else {
-            $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
-        }
+        // Partial rounds (no closed cards yet) always render as null → "—"
+        // placeholder on the frontend. For scoring rounds, 0 historically
+        // means "did not play this round" and is also rendered as a dash.
+        $player["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
     }
 
     $players[] = $player;
@@ -705,10 +658,10 @@ $cutPlayers = [];
 $cutDayCols = '';
 foreach ($dias as $i => $fecha) {
     $fecEsc = esc($conn, $fecha);
-    // For partial rounds, drop the statlsc=1 filter so cut players also
-    // show their in-progress score in the live column. For closed rounds,
+    // Partial rounds (no closed cards yet) → no live data shown for cut
+    // players either; force the subquery to return 0/null. Scoring rounds
     // keep the statlsc=1 filter (matches the leaderboard semantics).
-    $statFilter = empty($diasPartial[$i]) ? "AND t.statlsc = 1" : '';
+    $statFilter = empty($diasPartial[$i]) ? "AND t.statlsc = 1" : "AND 1 = 0";
     if ($sistema === 'STABLEFORD' && $gross == '1') {
         // Stableford GROSS: raw stableford gross points
         $expr = "(SELECT IFNULL(SUM(t.totstbgross), 0)
@@ -776,14 +729,8 @@ foreach ($cutRows as $row) {
     $cutRounds = [];
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        // Same partial-vs-closed treatment as NORMAL players: preserve 0
-        // for partial rounds (level par mid-round), drop 0 for closed.
-        $isPartial = !empty($diasPartial[$i]);
-        if ($isPartial) {
-            $cutRounds["r{$i}"] = $val !== null ? (int)$val : null;
-        } else {
-            $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
-        }
+        // Same treatment as NORMAL: 0 / null → render as dash placeholder.
+        $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
     }
     $cutTotal = isset($row['total_score']) ? (int)$row['total_score'] : 0;
 
