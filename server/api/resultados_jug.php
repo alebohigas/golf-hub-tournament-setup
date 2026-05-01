@@ -412,52 +412,14 @@ function statusLabel($code) {
  *                for that round (or 0 if no card).
  */
 function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
-    $isStableford = (strtoupper($sistema) === 'STABLEFORD');
-    if (!$partial) {
-        // Closed round → legacy function (statlsc=1 only). Identical to before.
-        $fn = ($gross == '1') ? 'f_score_dia_sox' : 'f_score_dia_sax';
-        return "$fn(j.id, '$fecEsc')";
+    // Partial round = nobody has closed yet. We return NULL so the row cell
+    // renders as "—" placeholder on the frontend; no live computation runs.
+    if ($partial) {
+        return 'NULL';
     }
-    // Partial round → direct tarjetas read (open + closed cards count).
-    if ($isStableford) {
-        $col = ($gross == '1') ? 't.totstbgross' : 't.SA';
-        return "(SELECT IFNULL(SUM($col), 0)
-                 FROM tarjetas t
-                 WHERE t.jugadorid = j.id
-                   AND t.torneoid  = j.torneoid
-                   AND DATE(t.fecha_juego) = '$fecEsc'
-                 LIMIT 1)";
-    }
-    // Stroke Play → diff to par computed HOLE BY HOLE.
-    //
-    // Bug fixed: previously this used `SUM(SO|SA) - (parcampo * cards_played)`,
-    // which subtracted the par of the FULL course even when the player had
-    // only completed a few holes. That made in-progress rounds show absurd
-    // negative diffs (e.g. -60 after 3 holes).
-    //
-    // New approach: per hole h{n} (or h{n}_a for NETO), if the hole score is
-    // > 0 (played) we add `score - par_hole`; if it's 0 (not played yet) we
-    // contribute 0. Par per hole is the n-th element of `t.parcampohoyo`
-    // (a CSV with 18 values).
-    $holeCol = ($gross == '1') ? 'h' : 'h_a';
-    $holeParts = [];
-    for ($h = 1; $h <= 18; $h++) {
-        $col = ($holeCol === 'h') ? "t.h{$h}" : "t.h{$h}_a";
-        $parH = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.parcampohoyo, ',', {$h}), ',', -1) AS SIGNED)";
-        // CASE WHEN score > 0 THEN (score - par_hole) ELSE 0 END
-        $holeParts[] = "CASE WHEN IFNULL($col, 0) > 0 THEN (IFNULL($col, 0) - IFNULL($parH, 0)) ELSE 0 END";
-    }
-    $diffSum = implode(' + ', $holeParts);
-    // NOTE: we deliberately do NOT wrap with IFNULL(...,0) here. If the player
-    // has no tarjeta for this date the subquery returns NULL, which the PHP
-    // mapper below converts to a missing round. If we returned 0 we couldn't
-    // distinguish "no played yet" from "played and currently at level par".
-    return "(SELECT $diffSum
-             FROM tarjetas t
-             WHERE t.jugadorid = j.id
-               AND t.torneoid  = j.torneoid
-               AND DATE(t.fecha_juego) = '$fecEsc'
-             LIMIT 1)";
+    // Scoring round (>=1 closed card) → legacy function (statlsc=1 only).
+    $fn = ($gross == '1') ? 'f_score_dia_sox' : 'f_score_dia_sax';
+    return "$fn(j.id, '$fecEsc')";
 }
 
 // ============= Player eligibility helper =============
