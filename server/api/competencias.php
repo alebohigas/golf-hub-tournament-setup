@@ -593,7 +593,10 @@ error_log("competencias.php - Completed Driver section, competencias count: " . 
 // ============= Putt =============
 if ($tipo === '' || $tipo === 'putt') {
     $DEBUG_SECTIONS['putt']['enabled'] = true;
-    $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM puttjug WHERE torneoid = $tid";
+    // Prize catalog lives in `putt` (one row per prize). `puttjug` only holds
+    // per-player submissions, so the list of prizes (and their `hoyo` =
+    // "lugares") must come from `putt`.
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt FROM putt WHERE torneoid = $tid";
     $row = dbg_query_one($conn, $sql, 'putt', 'count_distinct_premio');
     $DEBUG_SECTIONS['putt']['count'] = (int)($row['cnt'] ?? 0);
 
@@ -611,7 +614,7 @@ if ($tipo === '' || $tipo === 'putt') {
         $sql = "SELECT premio as id, premiosjugcol as name,
                        MAX(hoyo) as hoyo,
                        LEFT(f_ultfechaputt(premiosjugcol, torneoid), 16) AS ultact
-                FROM puttjug
+                FROM putt
                 WHERE torneoid = $tid
                 GROUP BY premio, premiosjugcol
                 ORDER BY premio ASC";
@@ -620,7 +623,7 @@ if ($tipo === '' || $tipo === 'putt') {
             // Fallback if f_ultfechaputt() doesn't exist on this DB
             $sql = "SELECT premio as id, premiosjugcol as name,
                            MAX(hoyo) as hoyo, NULL AS ultact
-                    FROM puttjug
+                    FROM putt
                     WHERE torneoid = $tid
                     GROUP BY premio, premiosjugcol
                     ORDER BY premio ASC";
@@ -684,7 +687,7 @@ if ($tipo === '' || $tipo === 'putt') {
             $DEBUG_SECTIONS['putt']['reason'] = 'no groups built';
         }
     } else {
-        $DEBUG_SECTIONS['putt']['reason'] = 'no rows in puttjug for this torneoid';
+        $DEBUG_SECTIONS['putt']['reason'] = 'no rows in putt for this torneoid';
     }
 }
 
