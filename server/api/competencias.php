@@ -764,10 +764,12 @@ if ($tipo === '' || $tipo === 'putt') {
 // O'Yes 300 (NEW — distinct from regular O'Yes)
 // ----------------------------------------------------------------------------
 // Source tables: `oyesx` (prize catalog) and `oyesxjug` (player results).
-// Difference vs O'Yes regular (which uses premios/premiosjug filtered by
-// player category): O'Yes 300 picks ABSOLUTE winners per hole across ALL
-// players (no category filter). Multiple winners allowed per hole, capped
-// by `oyesx.hoyo` (= "lugares") or oyesnumprem fallback.
+// Each row in `oyesx` defines ONE hole-group:
+//   - `hoyo`   = HOLE NUMBER (e.g. 1, 4, 11) — used to identify the hole
+//                and to filter `oyesxjug` rows for that group's table.
+//   - `premio` = NUMBER OF WINNERS / "Lugares" displayed for that hole.
+// Winners are ABSOLUTE (across all players, no category filter), sorted
+// by distance ASC (closest to pin). Multiple winners allowed per hole.
 //
 // Coexists with /api/oyesx.php which reads the same tables but filters by
 // description containing 'driver' / 'precision' / 'approach'. Here we
@@ -780,9 +782,10 @@ if ($tipo === '' || $tipo === 'oyes300') {
                        AND LOWER(descripcion) NOT LIKE '%precision%'
                        AND LOWER(descripcion) NOT LIKE '%approach%' ";
 
-    $sql = "SELECT COUNT(DISTINCT premio) as cnt
+    // Count distinct holes available
+    $sql = "SELECT COUNT(DISTINCT hoyo) as cnt
             FROM oyesx
-            WHERE torneoid = $tid AND premio > 0 $excludeFilter";
+            WHERE torneoid = $tid AND hoyo > 0 $excludeFilter";
     $row = dbg_query_one($conn, $sql, 'oyes300', 'count_distinct_premio');
     $DEBUG_SECTIONS['oyes300']['count'] = (int)($row['cnt'] ?? 0);
 
@@ -797,41 +800,44 @@ if ($tipo === '' || $tipo === 'oyes300') {
                           SET a.orden = 1
                           WHERE a.torneoid = $tid", 'oyes300 set orden');
 
-        // List prizes — `hoyo` field on oyesx is repurposed as "lugares"
-        // (number of winners). MAX() collapses any duplicate rows per premio.
-        $sql = "SELECT premio as id,
-                       TRIM(descripcion) as name,
-                       MAX(hoyo) as hoyo
+        // List groups — one per HOLE. `premio` column on oyesx = lugares
+        // (number of winners). `hoyo` column = the actual hole number.
+        $sql = "SELECT hoyo as hole,
+                       MAX(premio) as lugares,
+                       TRIM(MAX(descripcion)) as descripcion
                 FROM oyesx
-                WHERE torneoid = $tid AND premio > 0 $excludeFilter
-                GROUP BY premio, descripcion
-                ORDER BY premio ASC";
+                WHERE torneoid = $tid AND hoyo > 0 $excludeFilter
+                GROUP BY hoyo
+                ORDER BY hoyo ASC";
         $prizes = dbg_query_all($conn, $sql, 'oyes300', 'list_prizes');
 
         $groups = [];
         foreach ($prizes as $p) {
-            $premioId = esc($conn, $p['id']);
-            $lugares  = (int)($p['hoyo'] ?? 0);
+            $holeNum = (int)$p['hole'];
+            $lugares = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
+            $holeEsc = esc($conn, $holeNum);
 
-            // Count winners (orden=1) capped at $lugares
+            // Count winners (orden=1) for THIS hole, capped at $lugares
             $sql2 = "SELECT COUNT(*) as cnt
                      FROM oyesxjug
-                     WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
+                     WHERE torneoid = $tid AND hoyo = $holeEsc AND orden = 1";
             $cntRow = safe_query_one($conn, $sql2);
             $playerCount = min((int)($cntRow['cnt'] ?? 0), $lugares);
 
+            $groupName = 'HOYO ' . $holeNum;
             $group = [
-                'id'          => 'oyes300-' . $p['id'],
-                'name'        => $p['name'] ?: ('Premio ' . $p['id']),
-                'shortName'   => $p['name'] ?: ('Premio ' . $p['id']),
+                'id'          => 'oyes300-' . $holeNum,
+                'name'        => $groupName,
+                'shortName'   => $groupName,
+                'hoyo'        => $holeNum,
                 'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
             ];
 
             if ($detalle === '1') {
-                $group['players']     = get_oyes300_players($conn, $tid, $premioId, $lugares);
-                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $p['name']);
+                $group['players']     = get_oyes300_players($conn, $tid, $holeNum, $lugares);
+                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $p['descripcion']);
             }
 
             $groups[] = $group;
@@ -854,7 +860,7 @@ if ($tipo === '' || $tipo === 'oyes300') {
                     ['key' => 'position', 'label' => 'Po', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                     ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                     ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
-                    ['key' => 'hole', 'label' => 'Ho', 'align' => 'center', 'width' => '60px'],
+                    ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '70px'],
                     ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
                 ],
             ];
