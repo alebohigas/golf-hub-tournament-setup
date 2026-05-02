@@ -811,11 +811,12 @@ if ($tipo === '' || $tipo === 'oyes300') {
             $descripcion = $p['descripcion'] ?: ('Hoyo ' . $holeNum);
 
             // Count ALL results recorded for THIS hole, capped at $lugares.
-            // O'Yes 300 does NOT use orden/v_oyesx — every row in oyesxjug
-            // for this hole is a valid entry; we just sort + cap by distance.
+            // IMPORTANT: in `oyesxjug` the hole identifier is stored in the
+            // `premio` column (NOT `hoyo`, which is empty/0 for this comp).
+            // The catalog `oyesx.hoyo` is matched against `oyesxjug.premio`.
             $sql2 = "SELECT COUNT(*) as cnt
                      FROM oyesxjug
-                     WHERE torneoid = $tid AND hoyo = $holeEsc";
+                     WHERE torneoid = $tid AND premio = $holeEsc";
             $cntRow = safe_query_one($conn, $sql2);
             $playerCount = min((int)($cntRow['cnt'] ?? 0), $lugares);
 
@@ -1181,17 +1182,20 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
     $limit  = max(1, (int)$limit);
     $hole   = (int)$holeNum;
 
+    // NOTE: For O'Yes 300, the hole id lives in `oyesxjug.premio` (not `hoyo`,
+    // which is empty for this competition). The category description column in
+    // `categorias` is `nombre` (there is no `descripcion` column).
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
-                   a.hoyo,
-                   COALESCE(cat.descripcion, '') as categoria,
+                   $hole as hoyo,
+                   COALESCE(cat.nombre, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM oyesxjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs cl ON (j.clubid = cl.id)
             LEFT JOIN categorias cat ON (j.categoriaid = cat.id)
-            WHERE a.torneoid = $tid AND a.hoyo = $hole
+            WHERE a.torneoid = $tid AND a.premio = $hole
             ORDER BY a.distancia ASC
             LIMIT $limit";
 
