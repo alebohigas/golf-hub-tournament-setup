@@ -1188,7 +1188,7 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
                    COALESCE(cat.descripcion, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM oyesxjug a
-            JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
+            JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs cl ON (j.clubid = cl.id)
             LEFT JOIN categorias cat ON (j.categoriaid = cat.id)
             WHERE a.torneoid = $tid AND a.hoyo = $hole
