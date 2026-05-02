@@ -782,41 +782,45 @@ if ($tipo === '' || $tipo === 'oyes300') {
                        AND LOWER(descripcion) NOT LIKE '%precision%'
                        AND LOWER(descripcion) NOT LIKE '%approach%' ";
 
-    // Count distinct holes available
-    $sql = "SELECT COUNT(DISTINCT hoyo) as cnt
+    // Count distinct prizes available. In `oyesx`:
+    //   - `premio` = internal prize id (matches `oyesxjug.premio`)
+    //   - `hoyo`   = number of winners (lugares) for that prize
+    //   - `descripcion` = title shown to users (real hole # is embedded here)
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt
             FROM oyesx
-            WHERE torneoid = $tid AND hoyo > 0 $excludeFilter";
+            WHERE torneoid = $tid AND premio > 0 $excludeFilter";
     $row = dbg_query_one($conn, $sql, 'oyes300', 'count_distinct_premio');
     $DEBUG_SECTIONS['oyes300']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // List groups — one per HOLE. `premio` column on oyesx = lugares
-        // (number of winners). `hoyo` column = the actual hole number.
-        // `descripcion` is the prize title shown to users.
-        $sql = "SELECT hoyo as hole,
-                       MAX(premio) as lugares,
+        // List groups — one per prize. Mapping confirmed by the user:
+        //   oyesx.premio => internal prize id (join key for oyesxjug.premio)
+        //   oyesx.hoyo   => number of winners (lugares / LIMIT)
+        //   descripcion  => human title; real hole number is embedded inside.
+        $sql = "SELECT premio as prize_id,
+                       MAX(hoyo) as lugares,
                        TRIM(MAX(descripcion)) as descripcion
                 FROM oyesx
-                WHERE torneoid = $tid AND hoyo > 0 $excludeFilter
-                GROUP BY hoyo
-                ORDER BY hoyo ASC";
+                WHERE torneoid = $tid AND premio > 0 $excludeFilter
+                GROUP BY premio
+                ORDER BY premio ASC";
         $prizes = dbg_query_all($conn, $sql, 'oyes300', 'list_prizes');
 
         $groups = [];
         foreach ($prizes as $p) {
-            // `oyesx.hoyo` is an internal prize id, NOT the actual hole number.
-            // The real hole number is embedded in `descripcion` (e.g. "Mejor
-            // Oyes General... Hoyo 17"). Extract the LAST integer in the text
-            // and fall back to `oyesx.hoyo` if no number is found.
-            $prizeId  = (int)$p['hole'];           // internal id from oyesx.hoyo
+            // Field mapping (confirmed):
+            //   oyesx.premio  -> internal prize id (filters oyesxjug.premio)
+            //   oyesx.hoyo    -> number of winners for this prize (lugares)
+            //   descripcion   -> real hole number is the LAST integer here
+            $prizeId  = (int)$p['prize_id'];
             $descRaw  = (string)($p['descripcion'] ?? '');
-            $holeNum  = $prizeId;                  // sensible fallback
+            $holeNum  = 0;
             if (preg_match_all('/\d+/', $descRaw, $m) && !empty($m[0])) {
-                $holeNum = (int)end($m[0]);        // last number in the text
+                $holeNum = (int)end($m[0]); // last number in the text
             }
             $lugares = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
-            $prizeIdEsc  = esc($conn, $prizeId);   // used to filter oyesxjug.premio
+            $prizeIdEsc  = esc($conn, $prizeId);   // filters oyesxjug.premio
             $descripcion = $descRaw !== '' ? $descRaw : ('Hoyo ' . $holeNum);
 
             // Count results for THIS prize. `oyesxjug.premio` matches the
