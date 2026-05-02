@@ -1161,3 +1161,66 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
 }
 
 // End of competencias.php - Fixed SQL join error 2026-04-20
+
+/**
+ * Get O'Yes 300 winners for a prize group.
+ *
+ * Reads `oyesxjug` (results) and joins jugadores+clubs. Picks ABSOLUTE
+ * winners per prize without any category filter (key difference vs the
+ * regular O'Yes endpoint, which joins to premios on categoriaid). Sort
+ * by distance ASC (closest to pin wins). Capped to $limit ("lugares").
+ *
+ * @param mysqli $conn      Active MySQLi connection
+ * @param int    $tid       Tournament id (already escaped)
+ * @param int    $premioId  Prize id (already escaped)
+ * @param int    $limit     Maximum winners to return (oyesx.hoyo / oyesnumprem)
+ * @return array<int, array<string, mixed>> Ordered list of winners
+ */
+function get_oyes300_players($conn, $tid, $premioId, $limit = 3) {
+    global $LOGOS_BASE_URL;
+    $limit = max(1, (int)$limit);
+
+    $sql = "SELECT a.jugadorid,
+                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   a.hoyo,
+                   cl.logo, cl.nombre as club
+            FROM oyesxjug a
+            JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
+            JOIN clubs cl ON (j.clubid = cl.id)
+            WHERE a.torneoid = $tid AND a.premio = $premioId
+            ORDER BY a.distancia ASC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)$w['hoyo'],
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'],
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
+        ];
+    }
+    return $players;
+}
+
+/**
+ * Get O'Yes 300 last updated timestamp.
+ * Tries the legacy MySQL function f_ultfechaoyesx(descripcion, torneoid)
+ * (same one used by /api/oyesx.php). Returns null if the function or
+ * description is unavailable.
+ */
+function get_oyes300_last_updated($conn, $tid, $descripcion) {
+    if (empty($descripcion)) return null;
+    $desc = esc($conn, $descripcion);
+    $sql = "SELECT LEFT(f_ultfechaoyesx('$desc', $tid), 16) as lastUpdated";
+    $row = safe_query_one($conn, $sql);
+    return $row['lastUpdated'] ?? null;
+}
