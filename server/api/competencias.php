@@ -866,9 +866,9 @@ if ($tipo === '' || $tipo === 'oyes300') {
         if (count($groups) > 0) {
             $competencias[] = [
                 'id'          => 'oyes300',
-                'name'        => "O'Yes 300",
-                'shortName'   => "O'Yes 300",
-                'description' => "O'Yes 300 — Ganadores absolutos por hoyo (sin categoría)",
+                'name'        => "O'Yes X",
+                'shortName'   => "O'Yes X",
+                'description' => "",
                 'icon'        => 'target',
                 'endpoint'    => 'oyes300',
                 'order'       => 8,
