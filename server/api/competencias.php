@@ -1183,18 +1183,18 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
     $hole   = (int)$holeNum;
 
     // NOTE: For O'Yes 300, the hole id lives in `oyesxjug.premio` (not `hoyo`,
-    // which is empty for this competition). The category description column in
-    // `categorias` is `nombre` (there is no `descripcion` column).
+    // which is empty for this competition). The `categorias` table uses
+    // `categoria` for the label and `categoria_id` as the join key.
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
-                   $hole as hoyo,
-                   COALESCE(cat.nombre, '') as categoria,
+                   a.premio as hoyo,
+                   COALESCE(cat.categoria, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM oyesxjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs cl ON (j.clubid = cl.id)
-            LEFT JOIN categorias cat ON (j.categoriaid = cat.id)
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             WHERE a.torneoid = $tid AND a.premio = $hole
             ORDER BY a.distancia ASC
             LIMIT $limit";
