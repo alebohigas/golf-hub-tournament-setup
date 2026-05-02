@@ -1169,32 +1169,35 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
 // End of competencias.php - Fixed SQL join error 2026-04-20
 
 /**
- * Get O'Yes 300 winners for a prize group.
+ * Get O'Yes 300 winners for a HOLE group.
  *
- * Reads `oyesxjug` (results) and joins jugadores+clubs. Picks ABSOLUTE
- * winners per prize without any category filter (key difference vs the
- * regular O'Yes endpoint, which joins to premios on categoriaid). Sort
- * by distance ASC (closest to pin wins). Capped to $limit ("lugares").
+ * Reads `oyesxjug` (results) filtered by hole number and joins jugadores +
+ * clubs (+ categoria for display). Picks ABSOLUTE winners across ALL players
+ * with no category filter — sort by distance ASC (closest to pin). Capped
+ * to $limit ("lugares" = oyesx.premio for this hole).
  *
- * @param mysqli $conn      Active MySQLi connection
- * @param int    $tid       Tournament id (already escaped)
- * @param int    $premioId  Prize id (already escaped)
- * @param int    $limit     Maximum winners to return (oyesx.hoyo / oyesnumprem)
+ * @param mysqli $conn     Active MySQLi connection
+ * @param int    $tid      Tournament id (already escaped)
+ * @param int    $holeNum  Hole number (oyesx.hoyo / oyesxjug.hoyo)
+ * @param int    $limit    Maximum winners to return (oyesx.premio)
  * @return array<int, array<string, mixed>> Ordered list of winners
  */
-function get_oyes300_players($conn, $tid, $premioId, $limit = 3) {
+function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
     global $LOGOS_BASE_URL;
-    $limit = max(1, (int)$limit);
+    $limit  = max(1, (int)$limit);
+    $hole   = (int)$holeNum;
 
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    a.hoyo,
+                   COALESCE(cat.descripcion, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM oyesxjug a
             JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
             JOIN clubs cl ON (j.clubid = cl.id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.id)
+            WHERE a.torneoid = $tid AND a.hoyo = $hole
             ORDER BY a.distancia ASC
             LIMIT $limit";
 
@@ -1209,6 +1212,7 @@ function get_oyes300_players($conn, $tid, $premioId, $limit = 3) {
             'position'  => $pos,
             'name'      => $w['jugador'],
             'hole'      => (int)$w['hoyo'],
+            'category'  => $w['categoria'],
             'distance'  => (float)$w['distancia'],
             'club'      => $w['club'],
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
