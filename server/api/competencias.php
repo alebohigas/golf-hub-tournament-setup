@@ -817,8 +817,15 @@ if ($tipo === '' || $tipo === 'oyes300') {
             $sql2 = "SELECT COUNT(*) as cnt
                      FROM oyesxjug
                      WHERE torneoid = $tid AND premio = $holeEsc";
-            $cntRow = safe_query_one($conn, $sql2);
+            $cntRow = dbg_query_one($conn, $sql2, 'oyes300', "count_hole_$holeNum");
             $playerCount = min((int)($cntRow['cnt'] ?? 0), $lugares);
+            // Also log distinct premio values present in oyesxjug for this tournament
+            // so we can see what the column actually contains (one-time per request).
+            if (!isset($DEBUG_SECTIONS['oyes300']['distinct_premio_logged'])) {
+                dbg_query_all($conn, "SELECT DISTINCT premio, COUNT(*) as n FROM oyesxjug WHERE torneoid = $tid GROUP BY premio ORDER BY premio",
+                              'oyes300', 'distinct_premio_in_oyesxjug');
+                $DEBUG_SECTIONS['oyes300']['distinct_premio_logged'] = true;
+            }
 
             $group = [
                 'id'          => 'oyes300-' . $holeNum,
