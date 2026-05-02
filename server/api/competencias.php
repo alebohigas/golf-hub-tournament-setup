@@ -804,20 +804,28 @@ if ($tipo === '' || $tipo === 'oyes300') {
 
         $groups = [];
         foreach ($prizes as $p) {
-            $holeNum = (int)$p['hole'];
+            // `oyesx.hoyo` is an internal prize id, NOT the actual hole number.
+            // The real hole number is embedded in `descripcion` (e.g. "Mejor
+            // Oyes General... Hoyo 17"). Extract the LAST integer in the text
+            // and fall back to `oyesx.hoyo` if no number is found.
+            $prizeId  = (int)$p['hole'];           // internal id from oyesx.hoyo
+            $descRaw  = (string)($p['descripcion'] ?? '');
+            $holeNum  = $prizeId;                  // sensible fallback
+            if (preg_match_all('/\d+/', $descRaw, $m) && !empty($m[0])) {
+                $holeNum = (int)end($m[0]);        // last number in the text
+            }
             $lugares = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
-            $holeEsc = esc($conn, $holeNum);
-            $descripcion = $p['descripcion'] ?: ('Hoyo ' . $holeNum);
+            $prizeIdEsc  = esc($conn, $prizeId);   // used to filter oyesxjug.premio
+            $descripcion = $descRaw !== '' ? $descRaw : ('Hoyo ' . $holeNum);
 
-            // Count ALL results recorded for THIS hole, capped at $lugares.
-            // IMPORTANT: in `oyesxjug` the hole identifier is stored in the
-            // `premio` column (NOT `hoyo`, which is empty/0 for this comp).
-            // The catalog `oyesx.hoyo` is matched against `oyesxjug.premio`.
+            // Count results for THIS prize. `oyesxjug.premio` matches the
+            // internal prize id stored in `oyesx.hoyo` (NOT the visible hole
+            // number that lives inside the descripcion text).
             $sql2 = "SELECT COUNT(*) as cnt
                      FROM oyesxjug
-                     WHERE torneoid = $tid AND premio = $holeEsc";
-            $cntRow = dbg_query_one($conn, $sql2, 'oyes300', "count_hole_$holeNum");
+                     WHERE torneoid = $tid AND premio = $prizeIdEsc";
+            $cntRow = dbg_query_one($conn, $sql2, 'oyes300', "count_prize_$prizeId");
             $playerCount = min((int)($cntRow['cnt'] ?? 0), $lugares);
             // Also log distinct premio values present in oyesxjug for this tournament
             // so we can see what the column actually contains (one-time per request).
@@ -828,7 +836,7 @@ if ($tipo === '' || $tipo === 'oyes300') {
             }
 
             $group = [
-                'id'          => 'oyes300-' . $holeNum,
+                'id'          => 'oyes300-' . $prizeId,
                 'name'        => $descripcion,
                 'shortName'   => $descripcion,
                 'description' => 'Hoyo ' . $holeNum,
@@ -838,7 +846,9 @@ if ($tipo === '' || $tipo === 'oyes300') {
             ];
 
             if ($detalle === '1') {
-                $group['players']     = get_oyes300_players($conn, $tid, $holeNum, $lugares);
+                // Pass the internal prize id ($prizeId) — that's what the
+                // results table uses for filtering.
+                $group['players']     = get_oyes300_players($conn, $tid, $prizeId, $lugares);
                 $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $descripcion);
             }
 
