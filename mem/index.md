@@ -70,4 +70,6 @@
 - [PHP API safe query pattern](mem://architecture/php-api-safe-query-pattern) — safe_exec logs errors without failing entirely
 - [Resultados scorecard structure](mem://features/resultados-scorecard-structure) — Stableford/Neto vs Scratch rows and labels
 - [Resultados scoring type selection](mem://features/resultados-scoring-type-selection) — Dual NETO/GROSS selection if gross: 1
-- [Dynamic round keys](mem://constraints/dynamic-round-keys) — Never hardcode r1/r2/r3 in Resultados/Live; spread all r{n} from API- [Resultados partial rounds](mem://features/resultados-partial-rounds) — Show in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
+- [Dynamic round keys](mem://constraints/dynamic-round-keys) — Never hardcode r1/r2/r3 in Resultados/Live; spread all r{n} from API
+- [Resultados partial rounds](mem://features/resultados-partial-rounds) — Show in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
+- [O'Yes 300 competition](mem://features/oyes-300-competition) — Premio independiente: usa oyesx/oyesxjug, ganadores absolutos por hoyo sin filtro de categoría. NO confundir con O'Yes regular ni con Driver/Approach

@@ -760,6 +760,113 @@ if ($tipo === '' || $tipo === 'putt') {
 //     }
 // }
 
+// ============================================================================
+// O'Yes 300 (NEW — distinct from regular O'Yes)
+// ----------------------------------------------------------------------------
+// Source tables: `oyesx` (prize catalog) and `oyesxjug` (player results).
+// Difference vs O'Yes regular (which uses premios/premiosjug filtered by
+// player category): O'Yes 300 picks ABSOLUTE winners per hole across ALL
+// players (no category filter). Multiple winners allowed per hole, capped
+// by `oyesx.hoyo` (= "lugares") or oyesnumprem fallback.
+//
+// Coexists with /api/oyesx.php which reads the same tables but filters by
+// description containing 'driver' / 'precision' / 'approach'. Here we
+// EXCLUDE those keywords so we only return true O'Yes 300 prizes.
+// ============================================================================
+if ($tipo === '' || $tipo === 'oyes300') {
+    $DEBUG_SECTIONS['oyes300'] = ['enabled' => true, 'reason' => '', 'queries' => [], 'errors' => [], 'group_count' => 0];
+
+    $excludeFilter = " AND LOWER(descripcion) NOT LIKE '%driver%'
+                       AND LOWER(descripcion) NOT LIKE '%precision%'
+                       AND LOWER(descripcion) NOT LIKE '%approach%' ";
+
+    $sql = "SELECT COUNT(DISTINCT premio) as cnt
+            FROM oyesx
+            WHERE torneoid = $tid AND premio > 0 $excludeFilter";
+    $row = dbg_query_one($conn, $sql, 'oyes300', 'count_distinct_premio');
+    $DEBUG_SECTIONS['oyes300']['count'] = (int)($row['cnt'] ?? 0);
+
+    if ($row && (int)$row['cnt'] > 0) {
+        // Mark winners on oyesxjug using v_oyesx (legacy view that flags
+        // best per (jugador, premio)). Same UPDATE pattern as /api/oyesx.php.
+        safe_exec($conn, "UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid", 'oyes300 reset orden');
+        safe_exec($conn, "UPDATE oyesxjug a
+                          JOIN v_oyesx b ON (a.jugadorid = b.jugadorid
+                                            AND a.torneoid = b.torneoid
+                                            AND a.premio = b.premio)
+                          SET a.orden = 1
+                          WHERE a.torneoid = $tid", 'oyes300 set orden');
+
+        // List prizes — `hoyo` field on oyesx is repurposed as "lugares"
+        // (number of winners). MAX() collapses any duplicate rows per premio.
+        $sql = "SELECT premio as id,
+                       TRIM(descripcion) as name,
+                       MAX(hoyo) as hoyo
+                FROM oyesx
+                WHERE torneoid = $tid AND premio > 0 $excludeFilter
+                GROUP BY premio, descripcion
+                ORDER BY premio ASC";
+        $prizes = dbg_query_all($conn, $sql, 'oyes300', 'list_prizes');
+
+        $groups = [];
+        foreach ($prizes as $p) {
+            $premioId = esc($conn, $p['id']);
+            $lugares  = (int)($p['hoyo'] ?? 0);
+            if ($lugares <= 0) { $lugares = $numPrem; }
+
+            // Count winners (orden=1) capped at $lugares
+            $sql2 = "SELECT COUNT(*) as cnt
+                     FROM oyesxjug
+                     WHERE torneoid = $tid AND premio = $premioId AND orden = 1";
+            $cntRow = safe_query_one($conn, $sql2);
+            $playerCount = min((int)($cntRow['cnt'] ?? 0), $lugares);
+
+            $group = [
+                'id'          => 'oyes300-' . $p['id'],
+                'name'        => $p['name'] ?: ('Premio ' . $p['id']),
+                'shortName'   => $p['name'] ?: ('Premio ' . $p['id']),
+                'maxPlayers'  => $lugares,
+                'playerCount' => $playerCount,
+            ];
+
+            if ($detalle === '1') {
+                $group['players']     = get_oyes300_players($conn, $tid, $premioId, $lugares);
+                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $p['name']);
+            }
+
+            $groups[] = $group;
+        }
+        $DEBUG_SECTIONS['oyes300']['group_count'] = count($groups);
+
+        if (count($groups) > 0) {
+            $competencias[] = [
+                'id'          => 'oyes300',
+                'name'        => "O'Yes 300",
+                'shortName'   => "O'Yes 300",
+                'description' => "O'Yes 300 — Ganadores absolutos por hoyo (sin categoría)",
+                'icon'        => 'target',
+                'endpoint'    => 'oyes300',
+                'order'       => 8,
+                'enabled'     => true,
+                'groupCount'  => count($groups),
+                'groups'      => $groups,
+                'columns'     => [
+                    ['key' => 'position', 'label' => 'Po', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
+                    ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
+                    ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                    ['key' => 'hole', 'label' => 'Ho', 'align' => 'center', 'width' => '60px'],
+                    ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
+                ],
+            ];
+        } else {
+            $DEBUG_SECTIONS['oyes300']['reason'] = 'no groups built';
+        }
+    } else {
+        $DEBUG_SECTIONS['oyes300']['reason'] = 'no rows in oyesx with premio > 0 (excluding driver/precision/approach)';
+    }
+}
+error_log("competencias.php - Completed O'Yes 300 section, competencias count: " . count($competencias));
+
 // Sort by order
 usort($competencias, function($a, $b) {
     return $a['order'] - $b['order'];
@@ -1054,3 +1161,66 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
 }
 
 // End of competencias.php - Fixed SQL join error 2026-04-20
+
+/**
+ * Get O'Yes 300 winners for a prize group.
+ *
+ * Reads `oyesxjug` (results) and joins jugadores+clubs. Picks ABSOLUTE
+ * winners per prize without any category filter (key difference vs the
+ * regular O'Yes endpoint, which joins to premios on categoriaid). Sort
+ * by distance ASC (closest to pin wins). Capped to $limit ("lugares").
+ *
+ * @param mysqli $conn      Active MySQLi connection
+ * @param int    $tid       Tournament id (already escaped)
+ * @param int    $premioId  Prize id (already escaped)
+ * @param int    $limit     Maximum winners to return (oyesx.hoyo / oyesnumprem)
+ * @return array<int, array<string, mixed>> Ordered list of winners
+ */
+function get_oyes300_players($conn, $tid, $premioId, $limit = 3) {
+    global $LOGOS_BASE_URL;
+    $limit = max(1, (int)$limit);
+
+    $sql = "SELECT a.jugadorid,
+                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
+                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   a.hoyo,
+                   cl.logo, cl.nombre as club
+            FROM oyesxjug a
+            JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
+            JOIN clubs cl ON (j.clubid = cl.id)
+            WHERE a.torneoid = $tid AND a.premio = $premioId
+            ORDER BY a.distancia ASC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)$w['hoyo'],
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'],
+            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
+        ];
+    }
+    return $players;
+}
+
+/**
+ * Get O'Yes 300 last updated timestamp.
+ * Tries the legacy MySQL function f_ultfechaoyesx(descripcion, torneoid)
+ * (same one used by /api/oyesx.php). Returns null if the function or
+ * description is unavailable.
+ */
+function get_oyes300_last_updated($conn, $tid, $descripcion) {
+    if (empty($descripcion)) return null;
+    $desc = esc($conn, $descripcion);
+    $sql = "SELECT LEFT(f_ultfechaoyesx('$desc', $tid), 16) as lastUpdated";
+    $row = safe_query_one($conn, $sql);
+    return $row['lastUpdated'] ?? null;
+}
