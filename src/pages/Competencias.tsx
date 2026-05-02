@@ -644,18 +644,11 @@ const Competencias = () => {
                 <span className="inline-block px-4 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
                   {selectedGroup.name}
                 </span>
-                {/* Hole + winners limit, bold and tight to the table below */}
-                {(selectedGroup.hoyo || selectedGroup.maxPlayers) && (
-                  <div className="mt-3 mb-1 text-foreground font-bold">
-                    {selectedGroup.hoyo && (
-                      <p className="text-base">Hoyo {selectedGroup.hoyo}</p>
-                    )}
-                    {selectedGroup.maxPlayers && (
-                      <p className="text-sm font-semibold text-muted-foreground">
-                        Número de Ganadores: {selectedGroup.maxPlayers}
-                      </p>
-                    )}
-                  </div>
+                {/* Hole label, bold and tight to the table below */}
+                {selectedGroup.hoyo && (
+                  <p className="mt-3 mb-1 text-foreground font-bold text-base">
+                    Hoyo {selectedGroup.hoyo}
+                  </p>
                 )}
               </div>
 
