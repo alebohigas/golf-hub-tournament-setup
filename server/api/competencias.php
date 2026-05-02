@@ -843,7 +843,10 @@ if ($tipo === '' || $tipo === 'oyes300') {
                 'id'          => 'oyes300-' . $prizeId,
                 'name'        => $descripcion,
                 'shortName'   => $descripcion,
-                'description' => 'Hoyo ' . $holeNum,
+                // Use the full prize title as description so the card header
+                // shows e.g. "Mejor Oyes General... Hoyo 17" instead of just
+                // "Hoyo X". The hole chip below still shows the hole number.
+                'description' => $descripcion,
                 'hoyo'        => $holeNum,
                 'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
