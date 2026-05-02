@@ -790,18 +790,9 @@ if ($tipo === '' || $tipo === 'oyes300') {
     $DEBUG_SECTIONS['oyes300']['count'] = (int)($row['cnt'] ?? 0);
 
     if ($row && (int)$row['cnt'] > 0) {
-        // Mark winners on oyesxjug using v_oyesx (legacy view that flags
-        // best per (jugador, premio)). Same UPDATE pattern as /api/oyesx.php.
-        safe_exec($conn, "UPDATE oyesxjug SET orden = 0 WHERE torneoid = $tid", 'oyes300 reset orden');
-        safe_exec($conn, "UPDATE oyesxjug a
-                          JOIN v_oyesx b ON (a.jugadorid = b.jugadorid
-                                            AND a.torneoid = b.torneoid
-                                            AND a.premio = b.premio)
-                          SET a.orden = 1
-                          WHERE a.torneoid = $tid", 'oyes300 set orden');
-
         // List groups — one per HOLE. `premio` column on oyesx = lugares
         // (number of winners). `hoyo` column = the actual hole number.
+        // `descripcion` is the prize title shown to users.
         $sql = "SELECT hoyo as hole,
                        MAX(premio) as lugares,
                        TRIM(MAX(descripcion)) as descripcion
@@ -817,19 +808,22 @@ if ($tipo === '' || $tipo === 'oyes300') {
             $lugares = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
             $holeEsc = esc($conn, $holeNum);
+            $descripcion = $p['descripcion'] ?: ('Hoyo ' . $holeNum);
 
-            // Count winners (orden=1) for THIS hole, capped at $lugares
+            // Count ALL results recorded for THIS hole, capped at $lugares.
+            // O'Yes 300 does NOT use orden/v_oyesx — every row in oyesxjug
+            // for this hole is a valid entry; we just sort + cap by distance.
             $sql2 = "SELECT COUNT(*) as cnt
                      FROM oyesxjug
-                     WHERE torneoid = $tid AND hoyo = $holeEsc AND orden = 1";
+                     WHERE torneoid = $tid AND hoyo = $holeEsc";
             $cntRow = safe_query_one($conn, $sql2);
             $playerCount = min((int)($cntRow['cnt'] ?? 0), $lugares);
 
-            $groupName = 'HOYO ' . $holeNum;
             $group = [
                 'id'          => 'oyes300-' . $holeNum,
-                'name'        => $groupName,
-                'shortName'   => $groupName,
+                'name'        => $descripcion,
+                'shortName'   => $descripcion,
+                'description' => 'Hoyo ' . $holeNum,
                 'hoyo'        => $holeNum,
                 'maxPlayers'  => $lugares,
                 'playerCount' => $playerCount,
@@ -837,7 +831,7 @@ if ($tipo === '' || $tipo === 'oyes300') {
 
             if ($detalle === '1') {
                 $group['players']     = get_oyes300_players($conn, $tid, $holeNum, $lugares);
-                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $p['descripcion']);
+                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $descripcion);
             }
 
             $groups[] = $group;
