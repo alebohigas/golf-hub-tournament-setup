@@ -292,26 +292,15 @@ foreach ($rows as $row) {
  */
 foreach ($players as $i => &$player) {
     $player['_originalIndex'] = $i;
-    // Two-tier sort:
-    //   Group 0 = players who have NOT started today's round yet (thru = 0).
-    //             They sort to the TOP, ordered by their accumulated Total/Dif
-    //             Par from previously closed rounds only.
-    //   Group 1 = players currently playing or finished today. They sort
-    //             below group 0, ordered by combined score+todayScore (the
-    //             value displayed in the Dif Par / Total column).
-    // Within each group: stroke ASC (lower first), stableford DESC (higher first).
-    $hasStartedToday = ((int)($player['thru'] ?? 0)) > 0;
-    $player['_sortGroup'] = $hasStartedToday ? 1 : 0;
-    $player['_sortScore'] = $hasStartedToday
-        ? ((int)($player['score'] ?? 0) + (int)($player['todayScore'] ?? 0))
-        : (int)($player['score'] ?? 0);
+    // Single-tier sort by current displayed Total (closed rounds + today's live):
+    //   Stableford → DESC (highest points first)
+    //   Stroke     → ASC  (lowest difpar first: negatives, scratch, positives)
+    // Status / avance / thru are intentionally ignored for ordering.
+    $player['_sortScore'] = (int)($player['score'] ?? 0) + (int)($player['todayScore'] ?? 0);
 }
 unset($player);
 
 usort($players, function($a, $b) use ($isStableford) {
-    if ($a['_sortGroup'] !== $b['_sortGroup']) {
-        return $a['_sortGroup'] <=> $b['_sortGroup'];
-    }
     if ($a['_sortScore'] !== $b['_sortScore']) {
         return $isStableford
             ? ($b['_sortScore'] <=> $a['_sortScore'])
@@ -321,7 +310,7 @@ usort($players, function($a, $b) use ($isStableford) {
 });
 
 foreach ($players as $i => $_) {
-    unset($players[$i]['_originalIndex'], $players[$i]['_sortScore'], $players[$i]['_sortGroup']);
+    unset($players[$i]['_originalIndex'], $players[$i]['_sortScore']);
     $players[$i]['position'] = $i + 1;
 }
 
