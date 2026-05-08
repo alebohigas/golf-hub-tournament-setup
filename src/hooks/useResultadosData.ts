@@ -363,5 +363,7 @@ export const fetchLiveScorecardFromApi = async (
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
     date: raw.date || '',
+    // Last capture timestamp (tarjetas.fecha_cap) for live cards.
+    fechaCap: raw.fechaCap || undefined,
   };
 };
