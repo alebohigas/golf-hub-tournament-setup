@@ -223,8 +223,16 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               </span>
             </div>
 
-            {/* Right section: close button */}
-            <div className="flex items-center">
+            {/* Right section: last-update timestamp (live only) + close button */}
+            <div className="flex items-center gap-3">
+              {scorecard.fechaCap && (
+                <span
+                  className="text-xs text-muted-foreground whitespace-nowrap"
+                  title="Última captura de la tarjeta (fecha_cap)"
+                >
+                  Actualizado: <span className="font-medium text-foreground">{scorecard.fechaCap}</span>
+                </span>
+              )}
               <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="h-4 w-4" />
               </button>
