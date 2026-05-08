@@ -37,6 +37,8 @@ export interface RoundScorecard {
   in: number;
   /** Date of the round (YYYY-MM-DD) */
   date?: string;
+  /** Last capture timestamp from tarjetas.fecha_cap (only set for live cards) */
+  fechaCap?: string;
 }
 
 export interface PlayerResult {
