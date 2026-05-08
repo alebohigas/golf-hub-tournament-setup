@@ -26,6 +26,7 @@ $sql = "SELECT a.id,
                a.parcampohoyo as parcampo,
                a.campoid,
                a.fecha_juego as fecha,
+               a.fecha_cap as fecha_cap,
                c.campo";
 
 // For Golfista de Oro (GORO) neto, include ventajas de golfista de oro
@@ -102,6 +103,8 @@ for ($h = 9; $h < 18; $h++) {
 json_response([
     'cardId'  => $card['id'],
     'date'    => $card['fecha'],
+    /** Last capture timestamp from tarjetas.fecha_cap — shown in Live as "Actualizado" */
+    'fechaCap' => $card['fecha_cap'],
     'course'  => $card['campo'],
     'type'    => $tipo,
     'totals'  => [
