@@ -212,150 +212,43 @@ $closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t
  */
 $closedRoundCount = "(SELECT COUNT(*) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
 
-// ============= Round 1 tiebreaker chunk builders =============
+// ============= Legacy countback tiebreaker =============
+// Replaces the old r1_chunk / prev_rounds_tiebreaker / partial_round_ordering
+// stack with the legacy pattern: JOIN to the helper view that exposes the
+// player's LAST closed scorecard split into c1..c5 buckets:
+//   c1 = H18           c2 = H17           c3 = H16
+//   c4 = H15+H14+H13   c5 = H12+H11+H10
+// And then ORDER BY (c1+c2+c3+c4+c5) → (c1+c2+c3+c4) → (c1+c2+c3) → c1
+// (a.k.a. holes 10-18 → 13-18 → 16-18 → 18). Direction matches the system:
+//   Stroke Play → ASC  (fewer wins)
+//   Stableford  → DESC (more wins; same direction as the primary total)
+//
+// The view used depends on the scoring side:
+//   v_cd_ulttar_sa → buckets built from h{n}_a (net / SA)
+//   v_cd_ulttar_so → buckets built from h{n}   (gross / SO)
+
 /**
- * Build a subquery that returns the sum of a hole-range from the player's
- * ROUND 1 closed scorecard. Used for tie-breaking the position order with
- * the official progression: H10-18 → H13-18 → H16-18 → H18.
+ * Build the legacy countback ORDER BY fragment using the JOINed view's
+ * c1..c5 columns. Returns SQL starting with ", " so it can be appended.
  *
- * @param string $col   Per-hole column to sum:
- *                        - 'h{n}'         → gross strokes (Stroke Play GROSS)
- *                        - 'h{n}_a'       → net strokes  (Stroke Play NETO)
- *                        - 'arsa[n]'      → stableford NETO  points (parsed from CSV)
- *                        - 'arstbgross[n]'→ stableford GROSS points (parsed from CSV)
- * @param array  $holes Holes (1..18) included in the range.
- * @param string $r1    Quoted/escaped round-1 date (YYYY-MM-DD).
- * @return string SQL scalar subquery.
+ * @param string $direction 'ASC' (Stroke Play) or 'DESC' (Stableford).
  */
-function r1_chunk($col, $holes, $r1) {
-    // No R1 date → return a NULL expression. We deliberately avoid '(0)' here
-    // because MySQL interprets a bare integer literal in ORDER BY as a column
-    // ordinal (e.g. `ORDER BY 0` → "Unknown column '0' in 'ORDER BY'"). NULL
-    // is a no-op in ORDER BY and works for both ASC and DESC.
-    if (!$r1) return 'NULL';
-    $parts = [];
-    foreach ($holes as $h) {
-        if ($col === 'h') {
-            // Gross stroke columns per hole: h1..h18
-            $parts[] = "IFNULL(t.h{$h}, 0)";
-        } elseif ($col === 'h_a') {
-            // Net stroke columns per hole: h1_a..h18_a
-            $parts[] = "IFNULL(t.h{$h}_a, 0)";
-        } elseif ($col === 'arsa' || $col === 'arstbgross') {
-            // CSV columns: 18 comma-separated points; index $h is 1-based.
-            // SUBSTRING_INDEX trick to extract the n-th element.
-            $parts[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.{$col}, ',', {$h}), ',', -1) AS SIGNED)";
-        } else {
-            $parts[] = '0';
-        }
-    }
-    $sum = implode(' + ', $parts);
-    // statlsc=1 ensures the round was closed; otherwise tiebreaker contributes 0.
-    return "(SELECT IFNULL($sum, 0) FROM tarjetas t
-             WHERE t.jugadorid = j.id
-               AND t.torneoid = j.torneoid
-               AND t.fecha_juego = '$r1'
-               AND t.statlsc = 1
-             LIMIT 1)";
+function countback_order($direction) {
+    return ", (u.c1 + u.c2 + u.c3 + u.c4 + u.c5) {$direction}"
+         . ", (u.c1 + u.c2 + u.c3 + u.c4) {$direction}"
+         . ", (u.c1 + u.c2 + u.c3) {$direction}"
+         . ", u.c1 {$direction}";
 }
 
-/** Round 1 date (first scheduled round). Empty string disables R1 tiebreakers. */
-$r1Date = isset($dias[1]) ? esc($conn, $dias[1]) : '';
-
-// ============= Previous-rounds tiebreaker builder =============
 /**
- * Build the per-round tiebreaker ORDER BY fragment.
- *
- * Rule extension (rounds 2+): when two players are tied on the cumulative
- * total, look at the score of the most recent completed round first, then
- * the previous one, and so on back to round 1. The player who scored
- * better in the latest round wins the tie; if still tied, compare the
- * round before, etc. This is applied BEFORE the R1 hole-chunk progression
- * (H10-18 → H13-18 → H16-18 → H18) which remains the final fallback.
- *
- * Direction:
- *   - Stroke Play  → ASC  (fewer strokes wins)
- *   - Stableford   → DESC (more points wins, standard golf rule for prior
- *                    rounds; the special "fewer points wins" rule applies
- *                    only to the R1 hole-chunk progression as defined by
- *                    the tournament's printed terms).
- *
- * Each per-round score uses the same f_score_dia_sax/sox alias (d{i})
- * already SELECTed in the main query, so no extra subquery is needed.
- *
- * @param array  $dias          1-indexed map of round number → date.
- * @param string $direction     'ASC' or 'DESC'.
- * @param array  $diasPartial   1-indexed map of round# => bool. Partial
- *                              (in-progress) rounds are EXCLUDED from the
- *                              tiebreaker so live data does not move
- *                              players around as cards close.
- * @return string SQL fragment to append to ORDER BY (starts with ", ").
+ * Last-round score alias used right before the countback. Mirrors legacy
+ * `f_score_dia_saxU(a.id)` (score of player's last published round).
+ * Returns 'NULL' when there are no rounds yet so MySQL skips it cleanly.
  */
-function prev_rounds_tiebreaker(array $dias, $direction, array $diasPartial = []) {
-    if (count($dias) < 2) return '';
-    // Iterate from the most recent round down to round 1.
-    $rounds = array_keys($dias);
-    rsort($rounds);
-    $parts = [];
-    foreach ($rounds as $i) {
-        // Skip partial (in-progress) rounds so they don't sway ordering.
-        if (!empty($diasPartial[$i])) continue;
-        // d{i} is the per-round score alias from the main SELECT.
-        // Wrap with IFNULL so unplayed rounds (NULL/0) don't poison ordering.
-        $parts[] = "IFNULL(d{$i}, 0) {$direction}";
-    }
-    if (empty($parts)) return '';
-    return ', ' . implode(', ', $parts);
-}
-
-// ============= Live (partial-rounds) ordering helper =============
-/**
- * When the leaderboard has NO fully-closed rounds yet (so the legacy total
- * column is 0 for every player and the standard ORDER BY collapses into a
- * meaningless tie), we want the player order to mirror what the user sees
- * in /live: ranked by the score they currently have in the in-progress
- * round(s).
- *
- * Behaviour:
- * - Returns an empty string when at least one round is fully closed (the
- *   regular ORDER BY by accumulated total + prev-rounds tiebreaker is
- *   already meaningful).
- * - Returns an empty string when there are no partial rounds either
- *   (nothing to sort by — keeps the "roster only" fallback intact).
- * - Otherwise emits a fragment that sorts by the SUM of the partial round
- *   scores (the d{i} aliases already SELECTed). Players who haven't
- *   teed off yet (NULL across every partial round) are pushed to the
- *   bottom regardless of direction.
- *
- * @param array  $dias        1-indexed map of round# => date
- * @param array  $diasPartial 1-indexed map of round# => bool (true = open)
- * @param string $direction   'ASC' (Stroke) or 'DESC' (Stableford)
- * @return string SQL fragment to PREPEND inside ORDER BY (starts with ", "
- *                so callers can append it after the primary column).
- */
-function partial_round_ordering(array $dias, array $diasPartial, $direction) {
-    // If any round is fully closed, the standard ordering is meaningful.
-    foreach ($dias as $i => $_) {
-        if (empty($diasPartial[$i])) return '';
-    }
-    // Collect partial round indices.
-    $partialIdx = [];
-    foreach ($dias as $i => $_) {
-        if (!empty($diasPartial[$i])) $partialIdx[] = $i;
-    }
-    if (empty($partialIdx)) return '';
-    // "Has played at all in any partial round" → push non-starters last.
-    $playedFlags = [];
-    $sumParts = [];
-    foreach ($partialIdx as $i) {
-        $playedFlags[] = "(d{$i} IS NOT NULL)";
-        $sumParts[]    = "IFNULL(d{$i}, 0)";
-    }
-    $hasPlayed = '(' . implode(' OR ', $playedFlags) . ')';
-    $sum       = implode(' + ', $sumParts);
-    // Non-starters (no card on any partial round) go last; among the rest,
-    // sort by their cumulative live score in the requested direction.
-    return ", $hasPlayed DESC, ($sum) {$direction}";
+function last_round_alias(array $dias) {
+    if (empty($dias)) return 'NULL';
+    $last = max(array_keys($dias));
+    return "d{$last}";
 }
 
 // ============= Helper: map estatus to short code =============
