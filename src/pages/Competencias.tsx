@@ -16,6 +16,7 @@ import competenciasHero from '@/assets/competencias-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
+import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
@@ -42,6 +43,9 @@ const Competencias = () => {
   // Navigation state
   const [selectedCompetenciaId, setSelectedCompetenciaId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
+  /** When true, the "Mejor Score del Día" report view is rendered instead of the
+   *  standard competencias drill-down. Independent from competencia selection. */
+  const [showMejorScore, setShowMejorScore] = useState(false);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
@@ -193,7 +197,9 @@ const Competencias = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    if (selectedGroup) {
+    if (showMejorScore) {
+      setShowMejorScore(false);
+    } else if (selectedGroup) {
       setSelectedGroup(null);
     } else if (selectedCompetenciaId) {
       setSelectedCompetenciaId(null);
@@ -474,7 +480,7 @@ const Competencias = () => {
           )}
 
           {/* View: Competition Types (no selection, no active search) */}
-          {!isLoading && !selectedCompetenciaId && !activeResults && (
+          {!isLoading && !selectedCompetenciaId && !activeResults && !showMejorScore && (
             <>
               {/* Player search bar with autocomplete — jumps to /premios on pick */}
               {playerSuggestions.length > 0 && (
@@ -525,6 +531,23 @@ const Competencias = () => {
                     </CardContent>
                   </Card>
                 ))}
+                {/* Special card: Mejor Score del Día report */}
+                <Card
+                  className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
+                  onClick={() => setShowMejorScore(true)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Medal className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-bold text-foreground text-lg mb-2">
+                      Mejor Score del Día
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Reporte por día
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Empty state */}
@@ -572,6 +595,26 @@ const Competencias = () => {
                   </a>
                 </Button>
               </div>
+            </>
+          )}
+
+          {/* View: Mejor Score del Día report */}
+          {!isLoading && showMejorScore && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a competencias
+              </Button>
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-foreground">
+                  Mejor Score del Día
+                </h2>
+              </div>
+              <MejorScoreDiarioReport />
             </>
           )}
 
