@@ -228,9 +228,13 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               {scorecard.fechaCap && (
                 <span
                   className="text-xs text-muted-foreground whitespace-nowrap"
-                  title="Última captura de la tarjeta (fecha_cap)"
+                  title="Última captura de la tarjeta (tarjetas.fecha_cap)"
                 >
-                  Actualizado: <span className="font-medium text-foreground">{scorecard.fechaCap}</span>
+                  Fecha de captura:{' '}
+                  <span className="font-medium text-foreground">
+                    {/* MySQL DATETIME comes as "YYYY-MM-DD HH:MM:SS" — trim seconds */}
+                    {String(scorecard.fechaCap).slice(0, 16).replace('T', ' ')}
+                  </span>
                 </span>
               )}
               <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
