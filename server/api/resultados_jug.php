@@ -388,7 +388,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
         $sql .= ", c.abr, c.logo
                  FROM jugadores j
-                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
@@ -397,19 +397,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSO ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        // Live ordering: when no round is fully closed yet, rank by the
-        // current live score so the table mirrors /live instead of being a
-        // big tie broken only by handicap-derived defaults.
-        $sql .= partial_round_ordering($dias, $diasPartial, 'ASC');
-        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
-        // Stroke Play GROSS → fewer strokes wins, so ASC.
-        $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
-        // R1 tiebreaker (Stroke Play GROSS): lower strokes wins each chunk.
-        // Progression: H10-18 → H13-18 → H16-18 → H18 from Round 1.
-        $sql .= ", " . r1_chunk('h', range(10, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('h', range(13, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('h', range(16, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('h', [18],          $r1Date) . " ASC";
+        // Legacy ordering: last round score, then countback c1..c5 (ASC for Stroke).
+        $sql .= ", " . last_round_alias($dias) . " ASC";
+        $sql .= countback_order('ASC');
 
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
@@ -436,16 +426,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA ASC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        // Live ordering (Stroke NETO): see GROSS branch above.
-        $sql .= partial_round_ordering($dias, $diasPartial, 'ASC');
-        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
-        // Stroke Play NETO → fewer net strokes wins, so ASC.
-        $sql .= prev_rounds_tiebreaker($dias, 'ASC', $diasPartial);
-        // R1 tiebreaker (Stroke Play NETO): lower net strokes wins each chunk.
-        $sql .= ", " . r1_chunk('h_a', range(10, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('h_a', range(13, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('h_a', range(16, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('h_a', [18],          $r1Date) . " ASC";
+        // Legacy ordering: last round score, then countback c1..c5 (ASC for Stroke).
+        $sql .= ", " . last_round_alias($dias) . " ASC";
+        $sql .= countback_order('ASC');
     }
 
 } elseif ($sistema === 'STABLEFORD') {
@@ -465,7 +448,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
 
         $sql .= ", c.abr, c.logo
                  FROM jugadores j
-                 LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
+                 LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
@@ -474,19 +457,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSTBGross DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        // Live ordering (Stableford GROSS): more points wins → DESC.
-        $sql .= partial_round_ordering($dias, $diasPartial, 'DESC');
-        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
-        // Stableford GROSS → more points wins, so DESC.
-        $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
-        // R1 tiebreaker (Stableford GROSS): FEWER points wins each chunk
-        // (special tournament rule: lower stableford total in the back nine
-        // breaks the tie in favor of the lower-scoring player).
-        // Per-hole stableford gross points come from CSV column arstbgross.
-        $sql .= ", " . r1_chunk('arstbgross', range(10, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('arstbgross', range(13, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('arstbgross', range(16, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('arstbgross', [18],          $r1Date) . " ASC";
+        // Legacy ordering: last round score, then countback c1..c5 (DESC for Stableford).
+        $sql .= ", " . last_round_alias($dias) . " DESC";
+        $sql .= countback_order('DESC');
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
@@ -512,18 +485,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  ORDER BY $closedSA DESC";
 
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        // Live ordering (Stableford NETO): more points wins → DESC.
-        $sql .= partial_round_ordering($dias, $diasPartial, 'DESC');
-        // Rounds 2+ tiebreaker: compare prior rounds (latest first).
-        // Stableford NETO → more points wins, so DESC.
-        $sql .= prev_rounds_tiebreaker($dias, 'DESC', $diasPartial);
-        // R1 tiebreaker (Stableford NETO): FEWER points wins each chunk
-        // (special tournament rule). Per-hole stableford neto points come
-        // from CSV column arsa.
-        $sql .= ", " . r1_chunk('arsa', range(10, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('arsa', range(13, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('arsa', range(16, 18), $r1Date) . " ASC";
-        $sql .= ", " . r1_chunk('arsa', [18],          $r1Date) . " ASC";
+        // Legacy ordering: last round score, then countback c1..c5 (DESC for Stableford).
+        $sql .= ", " . last_round_alias($dias) . " DESC";
+        $sql .= countback_order('DESC');
     }
 }
 
