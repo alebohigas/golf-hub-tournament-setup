@@ -284,6 +284,9 @@ export const fetchPlayerScorecardFromApi = async (
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
     date: raw.date || '',
+    // Last capture timestamp (tarjetas.fecha_cap) — used in /LIVE to show
+    // the exact moment the scorecard was last updated.
+    fechaCap: raw.fechaCap || undefined,
   };
 };
 
