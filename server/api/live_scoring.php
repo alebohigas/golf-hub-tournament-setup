@@ -292,11 +292,22 @@ foreach ($rows as $row) {
  */
 foreach ($players as $i => &$player) {
     $player['_originalIndex'] = $i;
-    // Single-tier sort by current displayed Total (closed rounds + today's live):
-    //   Stableford → DESC (highest points first)
-    //   Stroke     → ASC  (lowest difpar first: negatives, scratch, positives)
-    // Status / avance / thru are intentionally ignored for ordering.
-    $player['_sortScore'] = (int)($player['score'] ?? 0) + (int)($player['todayScore'] ?? 0);
+    // Match the EXACT value rendered in the frontend "Dif Par / Total" cell:
+    //   - hasPrevClosed && todayClosed → score (today is already inside score)
+    //   - hasPrevClosed && today open  → score + todayScore
+    //   - no prev closed               → todayScore (R1 in progress)
+    // Sorting on this single value (no F/no-F grouping, no thru tiers).
+    //   Stableford → DESC, Stroke → ASC.
+    $prevDates    = $player['prevRoundDates'] ?? [];
+    $hasPrevClosed = is_array($prevDates) && count($prevDates) > 0;
+    $todayClosed  = ($currentRoundDate !== null) && in_array($currentRoundDate, $prevDates, true);
+    $score        = (int)($player['score'] ?? 0);
+    $todayScore   = (int)($player['todayScore'] ?? 0);
+    if ($hasPrevClosed) {
+        $player['_sortScore'] = $score + ($todayClosed ? 0 : $todayScore);
+    } else {
+        $player['_sortScore'] = $todayScore;
+    }
 }
 unset($player);
 
