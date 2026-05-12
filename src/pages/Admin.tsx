@@ -498,6 +498,7 @@ const AdminDashboard = () => {
         {/* Pre-Registro Tab — configures public registration form fields */}
         <TabsContent value="registro">
           <AdminRegistro />
+        </TabsContent>
         {/* Brackets Tab — Match Play / Knockout configuration per prize */}
         <TabsContent value="brackets">
           <AdminBrackets />
