@@ -10,6 +10,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiFetch } from '@/lib/apiClient';
 import { API_BASE_URL, LOGOS_BASE_URL, POLL_ACTIVE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
@@ -37,7 +38,13 @@ const getMejorScoreUrl = (): string => {
   return `${API_BASE_URL}/mejor_score_diario.php${tid ? `?torneoid=${tid}` : ''}`;
 };
 
-/** Renders a single players table (used twice per day: stableford / stroke play) */
+/**
+ * PlayersTable
+ * Renders a single players table styled to match the rest of the site's
+ * tournament tables (primary header, white body rows, standard club logo
+ * sizing). Used twice per day-section: once for Stableford and once for
+ * Stroke Play, with an optional sub-title above each.
+ */
 const PlayersTable = ({
   title,
   players,
@@ -53,40 +60,39 @@ const PlayersTable = ({
           {title}
         </div>
       )}
-      <div className="overflow-x-auto rounded-md border border-border/50 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[#424c59] text-white">
-              <th className="px-3 py-2 text-left font-semibold w-20">Club</th>
-              <th className="px-3 py-2 text-left font-semibold">Jugador</th>
-              <th className="px-3 py-2 text-left font-semibold w-24">Cat.</th>
-              <th className="px-3 py-2 text-center font-semibold w-24">Score</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="overflow-x-auto bg-white rounded-lg">
+        <Table className="tournament-table">
+          <TableHeader>
+            <TableRow className="bg-primary hover:bg-primary">
+              <TableHead className="text-primary-foreground font-bold text-center" style={{ width: '80px' }}>Club</TableHead>
+              <TableHead className="text-primary-foreground font-bold text-left">Jugador</TableHead>
+              <TableHead className="text-primary-foreground font-bold text-left" style={{ width: '90px' }}>Cat.</TableHead>
+              <TableHead className="text-primary-foreground font-bold text-center" style={{ width: '90px' }}>Score</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {players.map((p, i) => (
-              <tr key={i} className="border-t border-border/40">
-                <td className="px-3 py-2">
+              <TableRow key={i} className="bg-white">
+                <TableCell className="p-1 text-center align-middle">
                   {p.clubLogo ? (
                     <img
                       src={`${LOGOS_BASE_URL}${p.clubLogo}`}
-                      alt=""
-                      className="h-6 w-auto object-contain"
+                      alt="Club logo"
+                      className="w-auto object-contain rounded inline-block"
+                      style={{ height: '2.1375rem' }}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   ) : null}
-                </td>
-                <td className="px-3 py-2 text-foreground">{p.jugador}</td>
-                <td className="px-3 py-2 text-foreground">{p.cat}</td>
-                <td className="px-3 py-2 text-center font-bold text-[#900000]">
-                  {p.score}
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell className="player-name-cell">{p.jugador}</TableCell>
+                <TableCell className="text-left">{p.cat}</TableCell>
+                <TableCell className="text-center font-bold text-primary">{p.score}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
