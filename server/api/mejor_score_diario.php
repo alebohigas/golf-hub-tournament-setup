@@ -75,7 +75,8 @@ foreach ($sections as $sec) {
                    ROUND(v.distancia,0) AS score,
                    v.logojug           AS clubLogo,
                    v.categoriaid,
-                   COALESCE(c.formato, c.sistema, '') AS formato,
+                   COALESCE(c.sistema, '')  AS sistema,
+                   COALESCE(c.formato, '')  AS formato,
                    -- Stroke (gross) back-nine partial sums
                    (COALESCE(t.h10,0)+COALESCE(t.h11,0)+COALESCE(t.h12,0)+COALESCE(t.h13,0)+COALESCE(t.h14,0)+COALESCE(t.h15,0)+COALESCE(t.h16,0)+COALESCE(t.h17,0)+COALESCE(t.h18,0)) AS back9_so,
                    (COALESCE(t.h13,0)+COALESCE(t.h14,0)+COALESCE(t.h15,0)+COALESCE(t.h16,0)+COALESCE(t.h17,0)+COALESCE(t.h18,0)) AS back6_so,
@@ -98,7 +99,11 @@ foreach ($sections as $sec) {
     $stableford = [];
     $strokePlay = [];
     foreach ($rows as $r) {
-        $isStableford = stripos($r['formato'] ?? '', 'STABLEFORD') !== false;
+        // Categoria scoring system lives in `sistema` ('STABLEFORD' / 'STROKE PLAY' /
+        // 'MATCH PLAY'). `formato` is the play format (Individual / Parejas / etc.)
+        // and is checked as a safe fallback only.
+        $sysStr = strtoupper(($r['sistema'] ?? '') . ' ' . ($r['formato'] ?? ''));
+        $isStableford = strpos($sysStr, 'STABLEFORD') !== false;
         $player = [
             'jugador'  => $r['jugador'],
             'cat'      => $r['cat'],
