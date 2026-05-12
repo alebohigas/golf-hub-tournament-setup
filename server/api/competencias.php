@@ -1612,6 +1612,8 @@ function get_oyes300_last_updated($conn, $tid, $descripcion) {
     $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
 }
+
+/**
  * Get Driver Distancia players for a prize group.
  *
  * Mirrors legacy SQL (driver-5.php) EXACTLY:
