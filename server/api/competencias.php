@@ -1509,6 +1509,29 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
             LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             WHERE a.torneoid = $tid AND a.premio = $hole
             ORDER BY a.distancia ASC
+            LIMIT $limit";
+
+    $winners = safe_query_all($conn, $sql);
+
+    $players = [];
+    $pos = 0;
+    foreach ($winners as $w) {
+        $pos++;
+        $logoPath = $w['logo'] ?? '';
+        $players[] = [
+            'id'        => (string)$w['jugadorid'],
+            'position'  => $pos,
+            'name'      => $w['jugador'],
+            'hole'      => (int)($w['hoyo'] ?? 0),
+            'category'  => $w['categoria'] ?? '',
+            'distance'  => (float)$w['distancia'],
+            'club'      => $w['club'] ?? '',
+            'clubLogo'  => $logoPath ? $LOGOS_BASE_URL . $logoPath : '',
+        ];
+    }
+    return $players;
+}
+
 /**
  * Get Driver Precisión players for a prize group.
  *
