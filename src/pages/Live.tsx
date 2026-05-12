@@ -64,7 +64,15 @@ interface StablefordPlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
+  /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
+  todayStatlsc?: number | null;
+  /** 1 when the player has a latest card available for live_tarjeta.php */
+  hasCurrentCard?: number;
   prevRoundDates?: string[];
 }
 
@@ -89,7 +97,15 @@ interface StrokePlayer {
   cardsTotal?: number;
   /** 1 when cardsClosed >= cardsTotal — player has completed the tournament */
   finished?: number;
+  /** 1 when the player's latest scorecard is closed (statlsc=1) — current round done */
+  todayClosed?: number;
   /** YYYY-MM-DD dates of player's previous closed scorecards (statlsc=1) */
+  /** 1 when current/most recent round is closed (statlsc=1) — from live_scoring.php */
+  todayClosed?: number;
+  /** Raw statlsc for latest live card; statlsc=1 is closed, any other value is open */
+  todayStatlsc?: number | null;
+  /** 1 when the player has a latest card available for live_tarjeta.php */
+  hasCurrentCard?: number;
   prevRoundDates?: string[];
 }
 
@@ -629,7 +645,7 @@ const Live = () => {
                                 </TableCell>
 
                                 {/*
-                                  Hoy column — clickable when player has started today's round (thru > 0).
+                                  Hoy column — clickable only while latest card statlsc <> 1.
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">

@@ -251,6 +251,70 @@ function last_round_alias(array $dias) {
     return "d{$last}";
 }
 
+// ============= Legacy R1 chunk tiebreaker (c1..c6) =============
+/**
+ * Build the legacy R1 hole-chunk tiebreaker using the per-hole points stored
+ * in `jugadores` columns `c1..c6` (each holds the points for the back-nine
+ * chunks of Round 1 — these are computed/maintained by the legacy system).
+ *
+ * Progression (matches legacy order_by exactly):
+ *   (c1+c2+c3+c4+c5) → (c1+c2+c3+c4) → (c1+c2+c3) → c1
+ *
+ * Direction:
+ *   - Stroke Play  → ASC  (fewer strokes wins)
+ *   - Stableford   → DESC (more points wins, per legacy SQL)
+ *
+ * Returns a SQL fragment to append to ORDER BY (starts with ", ").
+ */
+function legacy_r1_chunks($direction) {
+    // Columns c1..c6 come from views v_cd_ulttar_sa (NETO) / v_cd_ulttar_so (GROSS),
+    // joined as alias `u`. They represent Round-1 hole groupings:
+    //   c1=h18, c2=h17, c3=h16, c4=h15+h14+h13, c5=h12+h11+h10, c6=front nine.
+    return ", (u.c1+u.c2+u.c3+u.c4+u.c5) {$direction}"
+         . ", (u.c1+u.c2+u.c3+u.c4) {$direction}"
+         . ", (u.c1+u.c2+u.c3) {$direction}"
+         . ", u.c1 {$direction}";
+}
+
+// ============= Legacy "ultima tarjeta" (latest closed round) tiebreaker =============
+/**
+ * Mirrors the legacy `f_score_dia_saxU(id)` / `f_score_dia_satblU(id)` /
+ * `f_score_dia_soxU(id)` functions: the score of the player's MOST RECENT
+ * closed scorecard (statlsc = 1). We re-implement it inline as a scalar
+ * subquery to avoid depending on those functions being installed in every
+ * MySQL instance.
+ *
+ * @param string $col Column to read from the latest closed tarjeta:
+ *                    - 'SA'         → stableford net points / stroke net total
+ *                    - 'SO'         → gross strokes
+ *                    - 'totstbgross'→ stableford gross points
+ */
+function latest_card_score($col) {
+    return "(SELECT t.{$col}
+             FROM tarjetas t
+             WHERE t.jugadorid = j.id
+               AND t.torneoid  = j.torneoid
+               AND t.statlsc   = 1
+             ORDER BY t.fecha_juego DESC
+             LIMIT 1)";
+}
+
+// ============= Legacy "diax" per-round score expression =============
+/**
+ * Last legacy tiebreaker: per-round score on the penultimate scheduled day.
+ * Returns empty string when there's only one round (no diax).
+ *
+ * @param string $func Legacy function name:
+ *                     - 'sax' → stableford net / stroke net per-day
+ *                     - 'sox' → stroke gross per-day (also used for stableford gross legacy)
+ * @param string $diax Escaped penultimate round date (YYYY-MM-DD) or '' to skip.
+ * @param string $direction 'ASC' or 'DESC' (legacy uses no explicit dir → defaults to ASC).
+ */
+function diax_tiebreaker($func, $diax, $direction = 'ASC') {
+    if ($diax === '') return '';
+    return ", f_score_dia_{$func}(j.id, '{$diax}') {$direction}";
+}
+
 // ============= Helper: map estatus to short code =============
 /**
  * Maps player estatus to a display code:
@@ -396,6 +460,10 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSO ASC";
 
+        // ===== Legacy ORDER BY (Stroke Play GROSS) =====
+        // f_torneosox ASC, muertesubita DESC, latest-card SO ASC,
+        // (c1+..+c5) ASC, (c1+..+c4) ASC, (c1+..+c3) ASC, c1 ASC,
+        // f_score_dia_sox(diax) ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Legacy ordering: last round score, then countback c1..c5 (ASC for Stroke).
         $sql .= ", " . last_round_alias($dias) . " ASC";
@@ -425,6 +493,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.campgross = 0
                  ORDER BY $closedSA ASC";
 
+        // ===== Legacy ORDER BY (Stroke Play NETO) =====
+        // f_torneosax ASC, muertesubita DESC, latest-card SA ASC,
+        // (c1+..+c5) ASC, (c1+..+c4) ASC, (c1+..+c3) ASC, c1 ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Legacy ordering: last round score, then countback c1..c5 (ASC for Stroke).
         $sql .= ", " . last_round_alias($dias) . " ASC";
@@ -456,6 +527,10 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSTBGross DESC";
 
+        // ===== Legacy ORDER BY (Stableford GROSS) =====
+        // f_stl_gross DESC, muertesubita DESC, latest-card totstbgross DESC,
+        // (c1+..+c5) DESC, (c1+..+c4) DESC, (c1+..+c3) DESC, c1 DESC,
+        // f_score_dia_sox(diax) ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Legacy ordering: last round score, then countback c1..c5 (DESC for Stableford).
         $sql .= ", " . last_round_alias($dias) . " DESC";
@@ -484,6 +559,10 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                    AND j.campgross = 0
                  ORDER BY $closedSA DESC";
 
+        // ===== Legacy ORDER BY (Stableford NETO) =====
+        // f_torneosa DESC, muertesubita DESC, latest-card SA DESC,
+        // (c1+..+c5) DESC, (c1+..+c4) DESC, (c1+..+c3) DESC, c1 DESC,
+        // f_score_dia_sax(diax) ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
         // Legacy ordering: last round score, then countback c1..c5 (DESC for Stableford).
         $sql .= ", " . last_round_alias($dias) . " DESC";

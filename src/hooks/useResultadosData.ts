@@ -9,6 +9,34 @@ import { apiFetch } from '@/lib/apiClient';
 import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlayer } from '@/data/resultadosData';
 
+/**
+ * Build a 1-indexed `rounds` array from any `r1`, `r2`, ... `rN` keys returned
+ * by the backend. Index `i` corresponds to round `i + 1`. Missing rounds are
+ * filled with `null`. `length` is the count of scheduled rounds (`days.length`)
+ * when provided, or the highest `r{N}` key found otherwise. This lets the UI
+ * render any number of rounds without hardcoding to r1/r2/r3.
+ */
+const buildRoundsArray = (
+  raw: Record<string, any>,
+  daysLength?: number,
+): Array<number | null> => {
+  // Collect all r{N} keys present on the row
+  const numericRoundKeys = Object.keys(raw)
+    .map((k) => /^r(\d+)$/.exec(k))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => parseInt(m[1], 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  const maxFromKeys = numericRoundKeys.length ? Math.max(...numericRoundKeys) : 0;
+  const length = Math.max(daysLength ?? 0, maxFromKeys);
+  const out: Array<number | null> = [];
+  for (let i = 1; i <= length; i++) {
+    const v = raw[`r${i}`];
+    out.push(v === undefined || v === null ? null : Number(v));
+  }
+  return out;
+};
+
 // ============= All Results =============
 
 /** Extracts every dynamic round score from an API player object without capping at R3. */
@@ -56,6 +84,7 @@ export const useAllResults = () => {
           try {
             // Always fetch NETO (gross=0)
             const netoResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '0'));
+            const netoDaysLen = Array.isArray(netoResp.days) ? netoResp.days.length : undefined;
             const netoPlayers = (netoResp.players || []).map((p: any, idx: number) => ({
               ...mapRoundScores(p),
               id: p.playerId || String(idx),
@@ -74,6 +103,7 @@ export const useAllResults = () => {
             // If category has gross enabled, also fetch GROSS results
             if (cat.gross === 1) {
               const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
+              const grosDaysLen = Array.isArray(grosResp.days) ? grosResp.days.length : undefined;
               const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
                 ...mapRoundScores(p),
                 id: p.playerId || String(idx),
@@ -127,6 +157,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
     queryKey: ['resultados', categoryId, gross],
     queryFn: async () => {
       const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!, gross));
+      const daysLen = Array.isArray(raw.days) ? raw.days.length : undefined;
 
       // Normalize into ResultCategory with scoringTypes array
       const scoringTypes = Array.isArray(raw.scoringTypes)

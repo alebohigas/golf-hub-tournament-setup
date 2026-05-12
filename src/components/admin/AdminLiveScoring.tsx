@@ -31,6 +31,17 @@ interface ApiCategory {
   system?: string;
 }
 
+/**
+ * Map a category's `sistema` string from the DB (e.g. "STROKE PLAY", "STABLEFORD")
+ * into the Live Scoring `tipo` value used by the public /live page.
+ * Defaults to 'stableford' when the system is unknown/empty (matches prior default).
+ */
+const mapSystemToTipo = (system?: string): 'stroke' | 'stableford' => {
+  const s = (system || '').toUpperCase();
+  if (s.includes('STROKE') || s.includes('MEDAL')) return 'stroke';
+  return 'stableford';
+};
+
 // ============= Component =============
 
 const AdminLiveScoring = () => {
@@ -95,7 +106,7 @@ const AdminLiveScoring = () => {
       return [...prev, {
         categoryId: cat.categoryId,
         categoryName: cat.name,
-        tipo: 'stableford' as const,
+        tipo: mapSystemToTipo(cat.system),
         gross: 0 as const,
         enabled: true,
         order: prev.length,
@@ -126,7 +137,7 @@ const AdminLiveScoring = () => {
       setOrderedEntries(sorted.map((cat, idx) => existing.get(cat.categoryId) || {
         categoryId: cat.categoryId,
         categoryName: cat.name,
-        tipo: 'stableford' as const,
+        tipo: mapSystemToTipo(cat.system),
         gross: 0 as const,
         enabled: true,
         order: idx,
@@ -229,7 +240,13 @@ const AdminLiveScoring = () => {
                 <DragDropContext onDragEnd={onDragEnd}>
                   <Droppable droppableId="live-categories">
                     {(provided) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        // Compact grid: small chips instead of full-width rows so the admin
+                        // can scan every selected category at a glance without horizontal travel.
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"
+                      >
                         {orderedEntries.map((entry, index) => (
                           <Draggable key={entry.categoryId} draggableId={entry.categoryId} index={index}>
                             {(provided, snapshot) => (
@@ -242,46 +259,57 @@ const AdminLiveScoring = () => {
                                     : 'border-primary/50 bg-primary/5'
                                 }`}
                               >
-                                {/* Row: grip + checkbox + name + settings */}
-                                <div className="flex items-center gap-2 p-3">
-                                  {/* Drag handle */}
-                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
-                                    <GripVertical className="h-4 w-4" />
-                                  </div>
-
-                                  {/* Checkbox to deselect */}
-                                  <Checkbox
-                                    checked={true}
-                                    onCheckedChange={() => toggleCategory({ categoryId: entry.categoryId, name: entry.categoryName })}
-                                    onClick={e => e.stopPropagation()}
-                                  />
-
-                                  {/* Category name */}
-                                  <span className="text-sm font-medium flex-1">{entry.categoryName}</span>
-
-                                  {/* Inline tipo selector */}
-                                  <Select
-                                    value={entry.tipo}
-                                    onValueChange={(val) => setCategoryTipo(entry.categoryId, val as 'stroke' | 'stableford')}
-                                  >
-                                    <SelectTrigger className="w-[130px] h-7 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="stroke">Stroke Play</SelectItem>
-                                      <SelectItem value="stableford">Stableford</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-
-                                  {/* Gross toggle */}
-                                  <div className="flex items-center gap-1">
-                                    <Switch
-                                      checked={entry.gross === 1}
-                                      onCheckedChange={(checked) => setCategoryGross(entry.categoryId, checked)}
+                                {/*
+                                 * Compact two-row card layout:
+                                 *   Row 1: drag handle + checkbox + category name + order index badge.
+                                 *   Row 2: tipo selector + gross toggle.
+                                 * Keeps every control visible without stretching across the full page width.
+                                 */}
+                                <div className="p-2 space-y-2">
+                                  {/* Header row */}
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                                      title="Arrastrar para reordenar"
+                                    >
+                                      <GripVertical className="h-4 w-4" />
+                                    </div>
+                                    <Checkbox
+                                      checked={true}
+                                      onCheckedChange={() => toggleCategory({ categoryId: entry.categoryId, name: entry.categoryName })}
+                                      onClick={e => e.stopPropagation()}
                                     />
-                                    <Badge variant={entry.gross === 1 ? 'default' : 'secondary'} className="text-[10px]">
-                                      {entry.gross === 1 ? 'GROSS' : 'NETO'}
+                                    <span className="text-sm font-medium flex-1 truncate" title={entry.categoryName}>
+                                      {entry.categoryName}
+                                    </span>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                                      #{index + 1}
                                     </Badge>
+                                  </div>
+                                  {/* Settings row */}
+                                  <div className="flex items-center gap-2 pl-6">
+                                    <Select
+                                      value={entry.tipo}
+                                      onValueChange={(val) => setCategoryTipo(entry.categoryId, val as 'stroke' | 'stableford')}
+                                    >
+                                      <SelectTrigger className="flex-1 h-7 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="stroke">Stroke Play</SelectItem>
+                                        <SelectItem value="stableford">Stableford</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Switch
+                                        checked={entry.gross === 1}
+                                        onCheckedChange={(checked) => setCategoryGross(entry.categoryId, checked)}
+                                      />
+                                      <Badge variant={entry.gross === 1 ? 'default' : 'secondary'} className="text-[10px]">
+                                        {entry.gross === 1 ? 'GROSS' : 'NETO'}
+                                      </Badge>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

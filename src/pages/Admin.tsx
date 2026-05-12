@@ -427,6 +427,11 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
+        {/* Archivos Tab — upload images + PDFs to the server */}
+        <TabsContent value="archivos">
+          <AdminUploads />
+        </TabsContent>
+
         {/* Página Tab — groups Visibilidad, Orden y Grupos as nested sub-tabs */}
         <TabsContent value="pagina">
           <AdminPagina

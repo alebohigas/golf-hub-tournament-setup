@@ -89,7 +89,7 @@ if ($isStableford) {
                    CONCAT(a.nombre, ' ', a.apellido) AS jugador,
                    IF(c.avance IS NULL, 0, c.avance) AS avance,
                    IF(c.sumsa IS NULL, 0, c.sumsa) AS sumsault,
-                   b.sumsa,
+                   IF(b.sumsa IS NULL, 0, b.sumsa) AS sumsa,
                    a.estatus AS estatjug,
                    club,
                    cl.logo AS juglogoclub,
@@ -98,11 +98,11 @@ if ($isStableford) {
                       WHERE t.jugadorid = a.id AND t.torneoid = $tid AND t.statlsc = 1) AS cardsclosed
             FROM jugadores AS a
             JOIN clubs AS cl ON (a.clubid = cl.id)
-            JOIN v_sumsa AS b ON (a.id = b.jugadorid)
+            LEFT JOIN v_sumsa AS b ON (a.id = b.jugadorid)
             LEFT JOIN v_sumsarr AS c ON (a.id = c.jugadorid)
             LEFT JOIN $ultTarView AS v ON (a.id = v.jugadorid)
             WHERE a.estatus = 'NORMAL' AND a.categoriaid = $cid
-            ORDER BY b.sumsa $orderDir";
+            ORDER BY IF(b.sumsa IS NULL, 0, b.sumsa) $orderDir";
 
 } else {
     /**
@@ -126,10 +126,10 @@ if ($isStableford) {
                       WHERE t.jugadorid = b.id AND t.torneoid = $tid AND t.statlsc = 1) AS cardsclosed
             FROM jugadores AS b
             JOIN clubs AS cl ON (b.clubid = cl.id)
-            JOIN $difView AS dif ON (dif.jugadorid = b.id)
-            JOIN $ultTarView AS v ON (b.id = v.jugadorid)
+            LEFT JOIN $difView AS dif ON (dif.jugadorid = b.id)
+            LEFT JOIN $ultTarView AS v ON (b.id = v.jugadorid)
             WHERE b.ESTATUS = 'NORMAL' AND b.categoriaid = $cid
-            ORDER BY if(v.avance=0,999,dif.difpar) ASC, dif.difpar ASC, v.avance DESC";
+            ORDER BY if(IFNULL(v.avance,0)=0,999,IFNULL(dif.difpar,999)) ASC, IFNULL(dif.difpar,999) ASC, IFNULL(v.avance,0) DESC";
 }
 
 $rows = query_all($conn, $sql);
@@ -153,6 +153,27 @@ foreach ($prevRows as $pr) {
     $pid = (string)$pr['jugadorid'];
     if (!isset($prevDatesByPlayer[$pid])) { $prevDatesByPlayer[$pid] = []; }
     $prevDatesByPlayer[$pid][] = $pr['fecha'];
+}
+
+/**
+ * Per-player flag: latest scorecard (most recent fecha_juego) is closed (statlsc=1).
+ * Used by the frontend to display "F" in the Thru column when the player has
+ * finished their CURRENT round, even if the tournament has more rounds pending.
+ */
+$todayClosedByPlayer = [];
+$sqlTodayClosed = "SELECT t.jugadorid, t.statlsc
+                   FROM tarjetas t
+                   JOIN jugadores j ON (j.id = t.jugadorid)
+                   JOIN (
+                       SELECT jugadorid, MAX(fecha_juego) AS maxfecha
+                       FROM tarjetas
+                       WHERE torneoid = $tid
+                       GROUP BY jugadorid
+                   ) m ON (m.jugadorid = t.jugadorid AND m.maxfecha = t.fecha_juego)
+                   WHERE t.torneoid = $tid AND j.categoriaid = $cid";
+$todayRows = query_all($conn, $sqlTodayClosed);
+foreach ($todayRows as $tr) {
+    $todayClosedByPlayer[(string)$tr['jugadorid']] = ((int)$tr['statlsc'] === 1) ? 1 : 0;
 }
 
 /**
@@ -233,6 +254,7 @@ foreach ($rows as $row) {
          */
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
+        $todayStatus = $currentCardStatusByPlayer[$pid] ?? null;
         $players[] = [
             'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
@@ -249,6 +271,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     } else {
@@ -262,6 +285,7 @@ foreach ($rows as $row) {
         $playerName = trim(($row['nombre'] ?? '') . ' ' . ($row['apellido'] ?? ''));
         $pid = (string)$row['jugadorid'];
         $closedScore = $closedScoreByPlayer[$pid] ?? 0;
+        $todayStatus = $currentCardStatusByPlayer[$pid] ?? null;
         $players[] = [
             'position'       => 0, // re-assigned after sorting by closed-only Total
             'playerId'       => $row['jugadorid'],
@@ -277,6 +301,7 @@ foreach ($rows as $row) {
             'cardsClosed'    => (int)($row['cardsclosed'] ?? 0),
             'cardsTotal'     => $totalRounds,
             'finished'       => ($totalRounds > 0 && (int)($row['cardsclosed'] ?? 0) >= $totalRounds) ? 1 : 0,
+            'todayClosed'    => $todayClosedByPlayer[$pid] ?? 0,
             'prevRoundDates' => $prevDatesByPlayer[$pid] ?? [],
         ];
     }
