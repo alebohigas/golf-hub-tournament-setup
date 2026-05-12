@@ -1532,72 +1532,6 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
     return $players;
 }
 
-/**
- * Get Driver Precisión players for a prize group.
- *
- * Mirrors legacy SQL (driverp-4.php) EXACTLY:
- *   SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
- *          ROUND(TRUNCATE(a.distancia,3),2) distancia,
- *          CONCAT(nombre,' ',apellido) jugador,
- *          b.club, b.categoriaid, c.descripcion, f_logo(b.club) logo
- *   FROM driverjugp a
- *   JOIN jugadores b ON (a.jugadorid = b.id)
- *   JOIN v_driverp c ON (a.campo = c.campo
- *                        AND b.categoriaid = c.categoriaid
- *                        AND a.premiosjugcol = c.descripcion)
- *   WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
- *   ORDER BY c.descripcion, a.distancia ASC
- *   LIMIT $hoyo
- *
- * Sorted ASC (closest to line wins). The orden=0/1 pre-update has already
- * run once per request in the section block above.
- *
- * @param mysqli $conn        DB connection.
- * @param int    $tid         Active tournament id.
- * @param int    $premioId    Prize id from `driverp.premio`.
- * @param string $descripcion Configured prize description (already escaped).
- * @param int    $limit       Max winners to return (driverp.hoyo).
- */
-function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
-    global $LOGOS_BASE_URL;
-    $limit = max(1, (int)$limit);
-
-    // Join through v_driverp + jugadores + clubs. v_driverp drives which
-    // (campo, categoria, descripcion) shots qualify for this prize slot.
-    $sql = "SELECT a.jugadorid,
-                   a.hoyo,
-                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
-                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
-                   cl.nombre as club, cl.logo as logo,
-                   c.descripcion
-            FROM driverjugp a
-            JOIN jugadores b ON (a.jugadorid = b.id)
-            JOIN clubs    cl ON (b.clubid = cl.id)
-            JOIN v_driverp c ON (a.campo = c.campo
-                                 AND b.categoriaid = c.categoriaid
-                                 AND a.premiosjugcol = c.descripcion)
-            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
-            ORDER BY c.descripcion, a.distancia ASC
-            LIMIT $limit";
-
-    $winners = safe_query_all($conn, $sql);
-
-    $players = [];
-    $pos = 0;
-    foreach ($winners as $w) {
-        $pos++;
-        $players[] = [
-            'id'        => (string)$w['jugadorid'],
-            'position'  => $pos,
-            'name'      => $w['jugador'],
-            'hole'      => (int)($w['hoyo'] ?? 0),
-            'distance'  => (float)$w['distancia'],
-            'club'      => $w['club'] ?? '',
-            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
-        ];
-    }
-    return $players;
-}
 
 /**
  * Get O'Yes 300 last updated timestamp.
@@ -1611,65 +1545,6 @@ function get_oyes300_last_updated($conn, $tid, $descripcion) {
     $sql = "SELECT LEFT(f_ultfechaoyesx('$desc', $tid), 16) as lastUpdated";
     $row = safe_query_one($conn, $sql);
     return $row['lastUpdated'] ?? null;
-}
-
-/**
- * Get Driver Distancia players for a prize group.
- *
- * Mirrors legacy SQL (driver-5.php) EXACTLY:
- *   SELECT a.id, a.fecha, a.campo, a.hoyo, a.jugadorid,
- *          ROUND(TRUNCATE(a.distancia,3),2) distancia,
- *          CONCAT(nombre,' ',apellido) jugador,
- *          b.club, b.categoriaid, c.descripcion, f_logo(b.club) logo
- *   FROM driverjug a
- *   JOIN jugadores b ON (a.jugadorid = b.id)
- *   JOIN v_driver  c ON (a.campo = c.campo
- *                        AND b.categoriaid = c.categoriaid
- *                        AND a.premiosjugcol = c.descripcion)
- *   WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
- *   ORDER BY c.descripcion, a.distancia DESC
- *   LIMIT $hoyo
- *
- * Sorted DESC (longest drive wins). The orden=0/1 pre-update has already
- * run once per request in the section block above.
- */
-function get_driverd_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
-    global $LOGOS_BASE_URL;
-    $limit = max(1, (int)$limit);
-
-    $sql = "SELECT a.jugadorid,
-                   a.fecha, a.campo, a.hoyo,
-                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
-                   CONCAT(b.nombre, ' ', b.apellido) as jugador,
-                   cl.nombre as club, cl.logo as logo,
-                   b.categoriaid, c.descripcion
-            FROM driverjug a
-            JOIN jugadores b ON (a.jugadorid = b.id)
-            JOIN clubs    cl ON (b.clubid = cl.id)
-            JOIN v_driver c  ON (a.campo = c.campo
-                                 AND b.categoriaid = c.categoriaid
-                                 AND a.premiosjugcol = c.descripcion)
-            WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
-            ORDER BY c.descripcion, a.distancia DESC
-            LIMIT $limit";
-
-    $winners = safe_query_all($conn, $sql);
-
-    $players = [];
-    $pos = 0;
-    foreach ($winners as $w) {
-        $pos++; // #1 = longest drive (already sorted DESC)
-        $players[] = [
-            'id'        => (string)$w['jugadorid'],
-            'position'  => $pos,
-            'name'      => $w['jugador'],
-            'hole'      => (int)($w['hoyo'] ?? 0),
-            'distance'  => (float)$w['distancia'],
-            'club'      => $w['club'] ?? '',
-            'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
-        ];
-    }
-    return $players;
 }
 
 // End of competencias.php - Driver Precisión + Distancia added 2026-04-28
