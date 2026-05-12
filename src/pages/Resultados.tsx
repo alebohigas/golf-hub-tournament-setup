@@ -61,6 +61,35 @@ const getStatusBadgeClasses = (code: string) => {
   return 'bg-red-100 text-red-800'; // D
 };
 
+/** Reads the score for any dynamic round key (r1, r2, r3, r4...) without reusing older rounds. */
+const getRoundScore = (player: PlayerResult | CutPlayer, round: number) => player[`r${round}`];
+
+/**
+ * Format a Stroke Play ROUND score for display.
+ *
+ * Stroke Play results in this app are stored as a differential vs par
+ * (e.g. -2, 0, +3). To match the LIVE view convention we render:
+ *   - 0  → "E" (even par)
+ *   - >0 → "+N" (over par, with leading +)
+ *   - <0 → "-N" (under par, native sign)
+ *
+ * Stableford scores are absolute points and never receive a sign prefix —
+ * call sites should skip this helper for STABLEFORD systems.
+ */
+const formatStrokeValue = (value: number | string): string => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  if (n === 0) return 'E';
+  // No prefix for positives — display raw signed value (negatives keep '-').
+  return `${n}`;
+};
+
+/** True when the active category uses Stroke Play (so we should sign-prefix scores). */
+const isStrokePlaySystem = (system?: string): boolean => {
+  if (!system) return false;
+  return !system.toUpperCase().includes('STABLEFORD');
+};
+
 // ============= Component =============
 
 const Resultados = () => {
@@ -157,11 +186,7 @@ const Resultados = () => {
   /** Handle round score click - fetch scorecard from API and toggle expansion */
   const handleRoundClick = async (player: PlayerResult, round: number) => {
     const key = `${player.id}-${round}`;
-    // Use generic `rounds` array when present (supports R4+); fall back to
-    // the legacy r1/r2/r3 fields for older payloads.
-    const roundScore = player.rounds
-      ? player.rounds[round - 1]
-      : round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+    const roundScore = getRoundScore(player, round);
     
     if (roundScore === undefined || roundScore === null) return;
 
@@ -325,7 +350,8 @@ const Resultados = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <Card className="border-border/50 bg-white max-w-5xl mx-auto">
+                <>
+                  <Card className="border-border/50 bg-white max-w-5xl mx-auto">
                   <CardContent className="p-0 bg-white">
                     <div className="overflow-x-auto bg-white">
                       <Table className="bg-white tournament-table">
@@ -346,7 +372,12 @@ const Resultados = () => {
                             <TableHead className="text-primary-foreground font-bold sticky z-20 bg-primary" style={{ left: '7.5rem' }}>Jugador</TableHead>
                             {/* Dynamic round columns based on days array */}
                             {(categoryDetail?.days || []).map((_, i) => (
-                              <TableHead key={`r${i+1}`} className="text-primary-foreground font-bold text-center">R{i + 1}</TableHead>
+                              <TableHead
+                                key={`r${i + 1}`}
+                                className="text-primary-foreground font-bold text-center"
+                              >
+                                R{i + 1}
+                              </TableHead>
                             ))}
                             <TableHead className="text-primary-foreground font-bold text-center">Total</TableHead>
                           </TableRow>
@@ -386,13 +417,11 @@ const Resultados = () => {
                                   {/* Dynamic round score cells */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
-                                    // Read from the generic per-round array so any
-                                    // number of rounds (R4, R5, ...) renders correctly
-                                    // instead of falling back to R3.
-                                    const score = player.rounds
-                                      ? player.rounds[i]
-                                      : round === 1 ? player.r1 : round === 2 ? player.r2 : player.r3;
+                                    const score = getRoundScore(player, round);
                                     const isExpanded = expandedScorecard === `${player.id}-${round}`;
+                                    // RESULTADOS: round shows RAW total (golpes / puntos).
+                                    // The signed diff-vs-par ("+N / -N / E") view is used
+                                    // only on /live — never here.
                                     return (
                                       <TableCell key={round} className="text-center p-0">
                                         {score !== undefined && score !== null ? (
@@ -403,6 +432,7 @@ const Resultados = () => {
                                             }`}
                                             title={`Ver tarjeta R${round}`}
                                           >
+                                            {/* Raw round total (golpes for Stroke, puntos for Stableford). */}
                                             {score}
                                           </button>
                                         ) : (
@@ -412,7 +442,8 @@ const Resultados = () => {
                                     );
                                   })}
                                   <TableCell className="text-center font-bold text-primary text-lg">
-                                    {player.total}
+                                    {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
+                                    {player.total ?? 0}
                                   </TableCell>
                                 </TableRow>
 
@@ -504,11 +535,9 @@ const Resultados = () => {
                                    */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
-                                    // Generic per-round access for cut players too.
-                                    const score = cp.rounds
-                                      ? cp.rounds[i]
-                                      : round === 1 ? cp.r1 : round === 2 ? cp.r2 : cp.r3;
+                                    const score = getRoundScore(cp, round);
                                     const isExpanded = expandedScorecard === `${cp.playerId}-${round}`;
+                                    // RESULTADOS: raw round total — never the diff-vs-par.
                                     if (score === undefined || score === null) {
                                       return (
                                         <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
@@ -519,7 +548,7 @@ const Resultados = () => {
                                         <button
                                           onClick={() => handleRoundClick(
                                             // Reuse PlayerResult-shaped object so handler signature stays the same
-                                            { id: cp.playerId, position: 0, name: cp.name, club: cp.club, clubLogo: cp.clubLogo, r1: cp.r1 ?? undefined, r2: cp.r2 ?? undefined, r3: cp.r3 ?? undefined, rounds: cp.rounds, total: cp.total ?? 0 } as PlayerResult,
+                                            { ...cp, ...Object.fromEntries((categoryDetail?.days || []).map((_, idx) => [`r${idx + 1}`, getRoundScore(cp, idx + 1) ?? undefined])), id: cp.playerId, position: 0, total: cp.total ?? 0 } as PlayerResult,
                                             round,
                                           )}
                                           className={`w-full py-3 px-2 font-medium transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
@@ -534,6 +563,7 @@ const Resultados = () => {
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
                                   <TableCell className="text-center font-bold text-muted-foreground">
+                                    {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {cp.total && cp.total > 0 ? cp.total : '—'}
                                   </TableCell>
                                 </TableRow>
@@ -565,6 +595,7 @@ const Resultados = () => {
                     </div>
                   </CardContent>
                 </Card>
+                </>
               )}
             </>
           )}

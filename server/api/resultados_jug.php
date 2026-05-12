@@ -20,8 +20,8 @@
 require_once 'config.php';
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1'); 
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0'); 
 
 $catid    = require_param('catid');
 $torneoid = require_param('torneoid');
@@ -104,21 +104,59 @@ $medalCountGross = (int)$catInfo['numganadorgross'];
 $medalCount = ($gross == '1') ? $medalCountGross : $medalCountNeto;
 
 // ============= Get play dates =============
-// Include ALL scheduled rounds with a course assigned (campo > 0), regardless
-// of caljuego.estatus. Per-round score functions (f_score_dia_sax/sox) already
-// filter by closed scorecards (statlsc = 1) via v_resultar, so unplayed rounds
-// return 0 and are hidden client-side by the `$val != 0` check below.
-// Previously this required estatus > 1, which dropped a round (e.g. R3) when
-// the caljuego row hadn't been advanced past "in progress" — even though
-// scorecards for that day were already closed (bug seen in category Primera).
+// A round column is published in Resultados only when EITHER:
+//   (a) at least one eligible NORMAL player has a CLOSED card (statlsc=1)
+//       for that date — round is "scoring" and its closed cards roll into
+//       Total, OR
+//   (b) the round has only open (in-progress) cards — column is shown as a
+//       placeholder ("—" line per player), does NOT contribute to Total.
+// Rounds with zero cards entirely (future rounds) stay hidden.
+//
+// `$diasPartial[$i] = true` now means "in-progress placeholder, no closed
+// cards yet" — the column is rendered empty (dashes) and produces no score.
+// `$diasPartial[$i] = false` means "scoring round" (>=1 closed card) — uses
+// legacy f_score_dia_sax/sox and rolls into the Total via $closedSA/$closedSO.
 $sql = "SELECT fecha FROM caljuego
         WHERE categoriaid = $cid AND campo > 0
         ORDER BY fecha";
 $dateRows = query_all($conn, $sql);
 
 $dias = [];
-foreach ($dateRows as $i => $dr) {
-    $dias[$i + 1] = $dr['fecha'];
+$diasPartial = []; // 1-indexed map: round# => bool (true = in-progress placeholder, no closed cards)
+$eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
+if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
+$expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
+$expectedPlayers = (int)($expectedRow['total'] ?? 0);
+
+foreach ($dateRows as $dr) {
+    $fecha = $dr['fecha'];
+    $fecEsc = esc($conn, $fecha);
+    // Count any scorecards (open or closed) for that date
+    $anyRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
+                                 FROM tarjetas t
+                                 JOIN jugadores j ON (j.id = t.jugadorid)
+                                 WHERE $eligibleWhere
+                                   AND t.torneoid = $tid
+                                   AND DATE(t.fecha_juego) = '$fecEsc'");
+    $anyCount = (int)($anyRow['total'] ?? 0);
+    if ($anyCount === 0) { continue; } // future round, skip
+    // Count CLOSED scorecards (statlsc=1) for that date
+    $closedRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
+                                   FROM tarjetas t
+                                   JOIN jugadores j ON (j.id = t.jugadorid)
+                                   WHERE $eligibleWhere
+                                     AND t.torneoid = $tid
+                                     AND DATE(t.fecha_juego) = '$fecEsc'
+                                     AND t.statlsc = 1");
+    $closedCount = (int)($closedRow['total'] ?? 0);
+    // Hide the round column entirely if NO player has closed a card yet
+    // (statlsc=1). Empty/in-progress-only rounds are not shown.
+    if ($closedCount === 0) { continue; }
+    $idx = count($dias) + 1;
+    $dias[$idx] = $fecha;
+    // All published rounds now have at least one closed card, so they are
+    // never "partial". Kept for backward compatibility with downstream code.
+    $diasPartial[$idx] = false;
 }
 
 // ============= Get course info =============
@@ -128,114 +166,89 @@ $sql = "SELECT b.campoid, b.salidaid, rating, slope, tee, parcampo
         JOIN salidas s ON (b.salidaid = s.id)
         LIMIT 1";
 $courseInfo = query_one($conn, $sql);
+/** Course par used for diff-to-par computation in partial Stroke rounds. */
+$parcampo = (int)($courseInfo['parcampo'] ?? 72);
 
 // ============= Inline subquery helpers for closed-card totals =============
 
-/** Sum SA (neto/stableford points) from CLOSED cards only */
-$closedSA  = "(SELECT IFNULL(SUM(t.SA), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
-
-/** Sum SO (gross strokes) from CLOSED cards only */
-$closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
-
-/** Sum totstbgross (stableford gross points) from CLOSED cards only */
-$closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1)";
-
-// ============= Round 1 tiebreaker chunk builders =============
 /**
- * Build a subquery that returns the sum of a hole-range from the player's
- * ROUND 1 closed scorecard. Used for tie-breaking the position order with
- * the official progression: H10-18 → H13-18 → H16-18 → H18.
+ * SQL date guard for the accumulated `total` column.
  *
- * @param string $col   Per-hole column to sum:
- *                        - 'h{n}'         → gross strokes (Stroke Play GROSS)
- *                        - 'h{n}_a'       → net strokes  (Stroke Play NETO)
- *                        - 'arsa[n]'      → stableford NETO  points (parsed from CSV)
- *                        - 'arstbgross[n]'→ stableford GROSS points (parsed from CSV)
- * @param array  $holes Holes (1..18) included in the range.
- * @param string $r1    Quoted/escaped round-1 date (YYYY-MM-DD).
- * @return string SQL scalar subquery.
+ * Rule (updated): a player's individually CLOSED scorecard (statlsc = 1)
+ * always rolls into their Total, regardless of whether the rest of the
+ * category has also closed that round. The filter therefore restricts to
+ * the set of scheduled round dates (`$dias`) — so future / unscheduled
+ * dates are excluded — but no longer requires the round to be fully
+ * closed by every eligible player.
+ *
+ * Previously this only included rounds where EVERY eligible player had
+ * closed their card, which meant a player who had already finished
+ * (thru = "F") would see "0" in Total until the slowest player in the
+ * category also signed off. The new behaviour mirrors what the user sees
+ * mid-round: as soon as your card closes, your contribution counts.
  */
-function r1_chunk($col, $holes, $r1) {
-    if (!$r1) return '0';
-    $parts = [];
-    foreach ($holes as $h) {
-        if ($col === 'h') {
-            // Gross stroke columns per hole: h1..h18
-            $parts[] = "IFNULL(t.h{$h}, 0)";
-        } elseif ($col === 'h_a') {
-            // Net stroke columns per hole: h1_a..h18_a
-            $parts[] = "IFNULL(t.h{$h}_a, 0)";
-        } elseif ($col === 'arsa' || $col === 'arstbgross') {
-            // CSV columns: 18 comma-separated points; index $h is 1-based.
-            // SUBSTRING_INDEX trick to extract the n-th element.
-            $parts[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(t.{$col}, ',', {$h}), ',', -1) AS SIGNED)";
-        } else {
-            $parts[] = '0';
-        }
-    }
-    $sum = implode(' + ', $parts);
-    // statlsc=1 ensures the round was closed; otherwise tiebreaker contributes 0.
-    return "(SELECT IFNULL($sum, 0) FROM tarjetas t
-             WHERE t.jugadorid = j.id
-               AND t.torneoid = j.torneoid
-               AND t.fecha_juego = '$r1'
-               AND t.statlsc = 1
-             LIMIT 1)";
+$allDates = array_map(function($fecha) use ($conn) { return "'" . esc($conn, $fecha) . "'"; }, array_values($dias));
+$closedDateFilter = count($allDates) > 0
+    ? " AND DATE(t.fecha_juego) IN (" . implode(',', $allDates) . ")"
+    : " AND 1 = 0";
+
+/** Sum SA (neto/stableford points) from CLOSED cards only on fully published rounds */
+$closedSA  = "(SELECT IFNULL(SUM(t.SA), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
+/** Sum SO (gross strokes) from CLOSED cards only on fully published rounds */
+$closedSO  = "(SELECT IFNULL(SUM(t.SO), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
+/** Sum totstbgross (stableford gross points) from CLOSED cards only on fully published rounds */
+$closedSTBGross = "(SELECT IFNULL(SUM(t.totstbgross), 0) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
+/**
+ * Count of CLOSED scorecards (statlsc=1) for this player on scheduled round dates.
+ *
+ * Exposed in the JSON response as `closedRounds` so the frontend can convert
+ * the raw stroke total (`total`) into a differential vs par for Stroke Play
+ * leaderboards: `displayedTotal = total - parcampo * closedRounds`.
+ *
+ * When 0 the UI shows a plain "0" because the player has no terminated round yet.
+ */
+$closedRoundCount = "(SELECT COUNT(*) FROM tarjetas t WHERE t.jugadorid = j.id AND t.torneoid = j.torneoid AND t.statlsc = 1 $closedDateFilter)";
+
+// ============= Legacy countback tiebreaker =============
+// Replaces the old r1_chunk / prev_rounds_tiebreaker / partial_round_ordering
+// stack with the legacy pattern: JOIN to the helper view that exposes the
+// player's LAST closed scorecard split into c1..c5 buckets:
+//   c1 = H18           c2 = H17           c3 = H16
+//   c4 = H15+H14+H13   c5 = H12+H11+H10
+// And then ORDER BY (c1+c2+c3+c4+c5) → (c1+c2+c3+c4) → (c1+c2+c3) → c1
+// (a.k.a. holes 10-18 → 13-18 → 16-18 → 18). Direction matches the system:
+//   Stroke Play → ASC  (fewer wins)
+//   Stableford  → DESC (more wins; same direction as the primary total)
+//
+// The view used depends on the scoring side:
+//   v_cd_ulttar_sa → buckets built from h{n}_a (net / SA)
+//   v_cd_ulttar_so → buckets built from h{n}   (gross / SO)
+
+/**
+ * Build the legacy countback ORDER BY fragment using the JOINed view's
+ * c1..c5 columns. Returns SQL starting with ", " so it can be appended.
+ *
+ * @param string $direction 'ASC' (Stroke Play) or 'DESC' (Stableford).
+ */
+function countback_order($direction) {
+    return ", (u.c1 + u.c2 + u.c3 + u.c4 + u.c5) {$direction}"
+         . ", (u.c1 + u.c2 + u.c3 + u.c4) {$direction}"
+         . ", (u.c1 + u.c2 + u.c3) {$direction}"
+         . ", u.c1 {$direction}";
 }
 
-/** Round 1 date (first scheduled round). Empty string disables R1 tiebreakers. */
-$r1Date = isset($dias[1]) ? esc($conn, $dias[1]) : '';
-
-// ============= Legacy "diax" (penultimate round date) =============
 /**
- * In the legacy ORDER BY, the very last tiebreaker is `f_score_dia_sa{x|o}(id, '$diax')`
- * where `$diax` is the penultimate scheduled round (R2 if R3 exists, otherwise R1
- * if R2 exists). When only one round exists, this tiebreaker is omitted.
+ * Last-round score alias used right before the countback. Mirrors legacy
+ * `f_score_dia_saxU(a.id)` (score of player's last published round).
+ * Returns 'NULL' when there are no rounds yet so MySQL skips it cleanly.
  */
-$diaxDate = '';
-if (isset($dias[3])) {
-    $diaxDate = esc($conn, $dias[2]);
-} elseif (isset($dias[2])) {
-    $diaxDate = esc($conn, $dias[1]);
-}
-
-// ============= Previous-rounds tiebreaker builder =============
-/**
- * Build the per-round tiebreaker ORDER BY fragment.
- *
- * Rule extension (rounds 2+): when two players are tied on the cumulative
- * total, look at the score of the most recent completed round first, then
- * the previous one, and so on back to round 1. The player who scored
- * better in the latest round wins the tie; if still tied, compare the
- * round before, etc. This is applied BEFORE the R1 hole-chunk progression
- * (H10-18 → H13-18 → H16-18 → H18) which remains the final fallback.
- *
- * Direction:
- *   - Stroke Play  → ASC  (fewer strokes wins)
- *   - Stableford   → DESC (more points wins, standard golf rule for prior
- *                    rounds; the special "fewer points wins" rule applies
- *                    only to the R1 hole-chunk progression as defined by
- *                    the tournament's printed terms).
- *
- * Each per-round score uses the same f_score_dia_sax/sox alias (d{i})
- * already SELECTed in the main query, so no extra subquery is needed.
- *
- * @param array  $dias       1-indexed map of round number → date.
- * @param string $direction  'ASC' or 'DESC'.
- * @return string SQL fragment to append to ORDER BY (starts with ", ").
- */
-function prev_rounds_tiebreaker(array $dias, $direction) {
-    if (count($dias) < 2) return '';
-    // Iterate from the most recent round down to round 1.
-    $rounds = array_keys($dias);
-    rsort($rounds);
-    $parts = [];
-    foreach ($rounds as $i) {
-        // d{i} is the per-round score alias from the main SELECT.
-        // Wrap with IFNULL so unplayed rounds (NULL/0) don't poison ordering.
-        $parts[] = "IFNULL(d{$i}, 0) {$direction}";
-    }
-    return ', ' . implode(', ', $parts);
+function last_round_alias(array $dias) {
+    if (empty($dias)) return 'NULL';
+    $last = max(array_keys($dias));
+    return "d{$last}";
 }
 
 // ============= Legacy R1 chunk tiebreaker (c1..c6) =============
@@ -327,6 +340,98 @@ function statusLabel($code) {
     return '';
 }
 
+// ============= Per-round score expression builder =============
+/**
+ * Build the SQL expression that returns a player's per-round score for
+ * the requested round.
+ *
+ * - For CLOSED rounds (every eligible player has statlsc=1): we keep using
+ *   the legacy `f_score_dia_sax/sox` functions which read from `v_resultar`
+ *   (statlsc=1 only). This preserves identical numbers for finished rounds.
+ *
+ * - For PARTIAL rounds (at least one eligible player has an open card): we
+ *   read from `tarjetas` directly with NO `statlsc` filter so in-progress
+ *   scores show up. The score column matches what each scoring system shows
+ *   in the round column:
+ *     STROKE  GROSS → SO - parcampo (diff to par)
+ *     STROKE  NETO  → SA - parcampo (net diff to par)
+ *     STBLF   GROSS → totstbgross
+ *     STBLF   NETO  → SA
+ *
+ *   `parcampo` for a single round comes from the categoria's course par
+ *   (`caljuego JOIN campo_tee.parcampo`). Each scorecard row represents one
+ *   played round so the diff is `SUM(score) - parcampo * cards_played`.
+ *
+ * @param string $sistema  STROKE PLAY | STABLEFORD
+ * @param string $gross    '0' | '1'
+ * @param string $fecEsc   Escaped YYYY-MM-DD round date
+ * @param bool   $partial   Whether the round is in-progress
+ * @param int    $parcampo  Course par for this category (default 72)
+ * @return string SQL scalar expression that evaluates to the player's score
+ *                for that round (or 0 if no card).
+ */
+function day_score_expr($sistema, $gross, $fecEsc, $partial, $parcampo = 72) {
+    // Partial round = nobody has closed yet. We return NULL so the row cell
+    // renders as "—" placeholder on the frontend; no live computation runs.
+    if ($partial) {
+        return 'NULL';
+    }
+    // Scoring round (>=1 closed card). Read DIRECTLY from `tarjetas` with
+    // an explicit `statlsc = 1` filter to guarantee that only finalized
+    // cards contribute to the round score. The legacy
+    // f_score_dia_sax/sox functions sometimes returned partial values for
+    // players whose card was still open (e.g. R2 not started yet showed a
+    // value pulled from in-progress data). Querying tarjetas directly
+    // eliminates that risk.
+    //
+    // RESULTADOS shows the RAW per-round total (golpes for Stroke, points for
+    // Stableford). The diff-vs-par "+N / -N / E" view belongs to /live ONLY.
+    // Therefore we never subtract parcampo here — the round cell mirrors the
+    // signed scorecard total, and the global Total is the straight sum.
+    //   STABLEFORD GROSS → SUM(totstbgross)
+    //   STABLEFORD NETO  → SUM(SA)
+    //   STROKE     GROSS → SUM(SO)   (raw gross strokes)
+    //   STROKE     NETO  → SUM(SA)   (raw net strokes)
+    //
+    // Returns NULL when the player has no closed card for that date so the
+    // frontend renders a dash instead of a misleading "0".
+    if ($sistema === 'STABLEFORD' && $gross == '1') {
+        $col = 'SUM(t.totstbgross)';
+    } elseif ($sistema === 'STABLEFORD') {
+        $col = 'SUM(t.SA)';
+    } elseif ($gross == '1') {
+        $col = 'SUM(t.SO)';
+    } else {
+        $col = 'SUM(t.SA)';
+    }
+    return "(SELECT CASE WHEN COUNT(*) = 0 THEN NULL ELSE $col END
+              FROM tarjetas t
+              WHERE t.jugadorid = j.id
+                AND t.torneoid  = j.torneoid
+                AND DATE(t.fecha_juego) = '$fecEsc'
+                AND t.statlsc = 1)";
+}
+
+// ============= Player eligibility helper =============
+/**
+ * "Has any tarjeta in this tournament" — used to keep a player visible in
+ * Resultados as soon as their first card is opened, even before any round
+ * is fully closed. Without this, the leaderboard would be empty during the
+ * very first in-progress round.
+ */
+$hasAnyCard = "EXISTS (SELECT 1 FROM tarjetas t
+                       WHERE t.jugadorid = j.id
+                         AND t.torneoid  = j.torneoid)";
+
+/**
+ * When there are no rounds with cards yet (`$dias` is empty — e.g. the
+ * tournament hasn't started or no scorecards exist for any scheduled date),
+ * we still want to show the full eligible roster in Resultados so users can
+ * see who's playing in each category, with empty round columns and total=0.
+ * In that case we drop the "must have at least one closed/open card" filter.
+ */
+$rosterFilter = count($dias) === 0 ? '1=1' : '';
+
 // ============= Build main results query (NORMAL players) =============
 $players = [];
 
@@ -337,10 +442,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSO as so,
                        $closedSA as sa,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -349,7 +456,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND (" . ($rosterFilter ?: "$closedSO > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSO ASC";
 
@@ -358,19 +465,21 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         // (c1+..+c5) ASC, (c1+..+c4) ASC, (c1+..+c3) ASC, c1 ASC,
         // f_score_dia_sox(diax) ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $sql .= ", " . latest_card_score('SO') . " ASC";
-        $sql .= legacy_r1_chunks('ASC');
-        $sql .= diax_tiebreaker('sox', $diaxDate, 'ASC');
+        // Legacy ordering: last round score, then countback c1..c5 (ASC for Stroke).
+        $sql .= ", " . last_round_alias($dias) . " ASC";
+        $sql .= countback_order('ASC');
 
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSA as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -379,7 +488,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND (" . ($rosterFilter ?: "$closedSA > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA ASC";
@@ -388,8 +497,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         // f_torneosax ASC, muertesubita DESC, latest-card SA ASC,
         // (c1+..+c5) ASC, (c1+..+c4) ASC, (c1+..+c3) ASC, c1 ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $sql .= ", " . latest_card_score('SA') . " ASC";
-        $sql .= legacy_r1_chunks('ASC');
+        // Legacy ordering: last round score, then countback c1..c5 (ASC for Stroke).
+        $sql .= ", " . last_round_alias($dias) . " ASC";
+        $sql .= countback_order('ASC');
     }
 
 } elseif ($sistema === 'STABLEFORD') {
@@ -399,10 +509,12 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSTBGross as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sox(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '1', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -411,7 +523,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND (" . ($rosterFilter ?: "$closedSTBGross > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                  ORDER BY $closedSTBGross DESC";
 
@@ -420,18 +532,20 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         // (c1+..+c5) DESC, (c1+..+c4) DESC, (c1+..+c3) DESC, c1 DESC,
         // f_score_dia_sox(diax) ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $sql .= ", " . latest_card_score('totstbgross') . " DESC";
-        $sql .= legacy_r1_chunks('DESC');
-        $sql .= diax_tiebreaker('sox', $diaxDate, 'ASC');
+        // Legacy ordering: last round score, then countback c1..c5 (DESC for Stableford).
+        $sql .= ", " . last_round_alias($dias) . " DESC";
+        $sql .= countback_order('DESC');
     } else {
         $sql = "SELECT j.id AS jugadorid, j.numjugador,
                        CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                        $closedSA as sa,
                        $closedSO as so,
+                       $closedRoundCount as closed_rounds,
                        IFNULL(j.muertesubita, 0) as muertesubita";
 
         foreach ($dias as $i => $fecha) {
-            $sql .= ", f_score_dia_sax(j.id, '$fecha') as d{$i}";
+            $expr = day_score_expr($sistema, '0', esc($conn, $fecha), !empty($diasPartial[$i]), $parcampo);
+            $sql .= ", $expr as d{$i}";
         }
 
         $sql .= ", c.abr, c.logo
@@ -440,7 +554,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
                  JOIN clubs c ON (j.clubid = c.id)
                  WHERE j.categoriaid = $cid
                    AND j.torneoid = $tid
-                   AND f_torneoso(j.id, j.torneoid) > 0
+                   AND (" . ($rosterFilter ?: "$closedSA > 0 OR $hasAnyCard") . ")
                    AND j.estatus = 'NORMAL'
                    AND j.campgross = 0
                  ORDER BY $closedSA DESC";
@@ -450,9 +564,9 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
         // (c1+..+c5) DESC, (c1+..+c4) DESC, (c1+..+c3) DESC, c1 DESC,
         // f_score_dia_sax(diax) ASC
         $sql .= ", IFNULL(j.muertesubita, 0) DESC";
-        $sql .= ", " . latest_card_score('SA') . " DESC";
-        $sql .= legacy_r1_chunks('DESC');
-        $sql .= diax_tiebreaker('sax', $diaxDate, 'ASC');
+        // Legacy ordering: last round score, then countback c1..c5 (DESC for Stableford).
+        $sql .= ", " . last_round_alias($dias) . " DESC";
+        $sql .= countback_order('DESC');
     }
 }
 
@@ -471,12 +585,18 @@ foreach ($rows as $row) {
         'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
         'total'     => $gross == '1' ? (int)$row['so'] : (int)$row['sa'],
         'totalSO'   => (int)($row['so'] ?? 0),
-        'totalSA'   => (int)($row['sa'] ?? 0)
+        'totalSA'   => (int)($row['sa'] ?? 0),
+        // Number of CLOSED scorecards (statlsc=1) for this player on scheduled dates.
+        // Frontend uses this to compute Stroke Play differential: total - parcampo * closedRounds.
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0)
     ];
 
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
-        $player["r{$i}"] = $val !== null && $val != 0 ? (int)$val : null;
+        // Partial rounds (no closed cards yet) always render as null → "—"
+        // placeholder on the frontend. For scoring rounds, 0 historically
+        // means "did not play this round" and is also rendered as a dash.
+        $player["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
     }
 
     $players[] = $player;
@@ -506,21 +626,41 @@ $cutPlayers = [];
  */
 $cutDayCols = '';
 foreach ($dias as $i => $fecha) {
-    if ($sistema === 'STABLEFORD' && $gross == '1') {
-        $scoreCol = 't.totstbgross';
-    } elseif ($gross == '1') {
-        $scoreCol = 't.SO';
-    } else {
-        $scoreCol = 't.SA';
-    }
     $fecEsc = esc($conn, $fecha);
-    // Subquery: closed scorecard (statlsc = 1) for this player on this date
-    $cutDayCols .= ", (SELECT IFNULL(SUM($scoreCol), 0)
-                       FROM tarjetas t
-                       WHERE t.jugadorid   = j.id
-                         AND t.torneoid    = j.torneoid
-                         AND t.fecha_juego = '$fecEsc'
-                         AND t.statlsc     = 1) as d{$i}";
+    // Partial rounds (no closed cards yet) → no live data shown for cut
+    // players either; force the subquery to return 0/null. Scoring rounds
+    // keep the statlsc=1 filter (matches the leaderboard semantics).
+    $statFilter = empty($diasPartial[$i]) ? "AND t.statlsc = 1" : "AND 1 = 0";
+    if ($sistema === 'STABLEFORD' && $gross == '1') {
+        // Stableford GROSS: raw stableford gross points
+        $expr = "(SELECT IFNULL(SUM(t.totstbgross), 0)
+                  FROM tarjetas t
+                  WHERE t.jugadorid   = j.id
+                    AND t.torneoid    = j.torneoid
+                    AND DATE(t.fecha_juego) = '$fecEsc'
+                    $statFilter)";
+    } elseif ($sistema === 'STABLEFORD') {
+        // Stableford NETO: SA points
+        $expr = "(SELECT IFNULL(SUM(t.SA), 0)
+                  FROM tarjetas t
+                  WHERE t.jugadorid   = j.id
+                    AND t.torneoid    = j.torneoid
+                    AND DATE(t.fecha_juego) = '$fecEsc'
+                    $statFilter)";
+    } else {
+        // Stroke Play: raw strokes (preserves prior cut-player semantics).
+        // The leaderboard column shows diff-to-par for Stroke; cut players
+        // historically showed raw strokes here. We keep that to avoid a
+        // silent semantic change for closed-round cut data.
+        $scoreCol = ($gross == '1') ? 't.SO' : 't.SA';
+        $expr = "(SELECT IFNULL(SUM($scoreCol), 0)
+                  FROM tarjetas t
+                  WHERE t.jugadorid   = j.id
+                    AND t.torneoid    = j.torneoid
+                    AND DATE(t.fecha_juego) = '$fecEsc'
+                    $statFilter)";
+    }
+    $cutDayCols .= ", $expr as d{$i}";
 }
 
 /**
@@ -539,6 +679,7 @@ if ($sistema === 'STABLEFORD' && $gross == '1') {
 $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                   $cutTotalExpr
+                  , $closedRoundCount as closed_rounds
                   $cutDayCols,
                   c.abr, c.logo
            FROM jugadores j
@@ -557,6 +698,7 @@ foreach ($cutRows as $row) {
     $cutRounds = [];
     foreach ($dias as $i => $fecha) {
         $val = $row["d{$i}"] ?? null;
+        // Same treatment as NORMAL: 0 / null → render as dash placeholder.
         $cutRounds["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
     }
     $cutTotal = isset($row['total_score']) ? (int)$row['total_score'] : 0;
@@ -570,6 +712,7 @@ foreach ($cutRows as $row) {
         'statusCode'  => $statusCode ?? 'D',
         'statusLabel' => statusLabel($statusCode ?? 'D'),
         'total'       => $cutTotal,
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0),
     ], $cutRounds);
 }
 
@@ -590,6 +733,7 @@ json_response([
         'par'      => (int)($courseInfo['parcampo'] ?? 72)
     ] : null,
     'days'         => array_values($dias),
+    'daysPartial'  => array_values($diasPartial),
     'players'      => $players,
     'cutPlayers'   => $cutPlayers,
 ]);

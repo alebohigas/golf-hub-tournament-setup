@@ -11,6 +11,13 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+// ============= PHP Error Output Guard =============
+// API endpoints must never emit PHP warning/fatal HTML around JSON responses.
+// Errors are handled by json_error() or logged server-side instead.
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+mysqli_report(MYSQLI_REPORT_OFF);
+
 // Handle preflight OPTIONS requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

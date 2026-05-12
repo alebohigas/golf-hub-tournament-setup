@@ -16,6 +16,7 @@ import competenciasHero from '@/assets/competencias-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
+import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
@@ -42,6 +43,9 @@ const Competencias = () => {
   // Navigation state
   const [selectedCompetenciaId, setSelectedCompetenciaId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
+  /** When true, the "Mejor Score del Día" report view is rendered instead of the
+   *  standard competencias drill-down. Independent from competencia selection. */
+  const [showMejorScore, setShowMejorScore] = useState(false);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
@@ -193,7 +197,9 @@ const Competencias = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    if (selectedGroup) {
+    if (showMejorScore) {
+      setShowMejorScore(false);
+    } else if (selectedGroup) {
       setSelectedGroup(null);
     } else if (selectedCompetenciaId) {
       setSelectedCompetenciaId(null);
@@ -275,6 +281,20 @@ const Competencias = () => {
 
   // Loading state
   const isLoading = loadingList || (selectedCompetenciaId && loadingDetail);
+
+  /** Display columns for selected competition; Driver Distancia uses yards. */
+  const selectedCompetenciaColumns = useMemo(() => {
+    if (!selectedCompetencia) return [];
+    const isDriverDistancia =
+      selectedCompetencia.id === 'driverd' ||
+      selectedCompetencia.name.toLowerCase().includes('driver distancia');
+
+    if (!isDriverDistancia) return selectedCompetencia.columns;
+
+    return selectedCompetencia.columns.map((col) =>
+      col.key === 'distance' ? { ...col, format: 'yards' as const } : col
+    );
+  }, [selectedCompetencia]);
 
   return (
     <Layout>
@@ -460,7 +480,7 @@ const Competencias = () => {
           )}
 
           {/* View: Competition Types (no selection, no active search) */}
-          {!isLoading && !selectedCompetenciaId && !activeResults && (
+          {!isLoading && !selectedCompetenciaId && !activeResults && !showMejorScore && (
             <>
               {/* Player search bar with autocomplete — jumps to /premios on pick */}
               {playerSuggestions.length > 0 && (
@@ -511,6 +531,23 @@ const Competencias = () => {
                     </CardContent>
                   </Card>
                 ))}
+                {/* Special card: Mejor Score del Día report */}
+                <Card
+                  className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
+                  onClick={() => setShowMejorScore(true)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Medal className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-bold text-foreground text-lg mb-2">
+                      Mejor Score del Día
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Reporte por día
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Empty state */}
@@ -522,6 +559,62 @@ const Competencias = () => {
                   </p>
                 </div>
               )}
+
+              {/* External link: Putt Finales Caballeros (Match Play) */}
+              <div className="flex justify-center mt-10">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gap-2"
+                >
+                  <a
+                    href="https://va.speitour.mx/match-play-putt-caballeros"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Putt Finales Caballeros
+                  </a>
+                </Button>
+              </div>
+
+              {/* External link: Putt Finales Damas (Match Play) */}
+              <div className="flex justify-center mt-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gap-2"
+                >
+                  <a
+                    href="https://va.speitour.mx/match-play-putt-damas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Putt Finales Damas
+                  </a>
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* View: Mejor Score del Día report */}
+          {!isLoading && showMejorScore && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a competencias
+              </Button>
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-foreground">
+                  Mejor Score del Día
+                </h2>
+              </div>
+              <MejorScoreDiarioReport />
             </>
           )}
 
@@ -594,8 +687,9 @@ const Competencias = () => {
                 <span className="inline-block px-4 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
                   {selectedGroup.name}
                 </span>
+                {/* Hole label, bold and tight to the table below */}
                 {selectedGroup.hoyo && (
-                  <p className="text-muted-foreground mt-2">
+                  <p className="mt-3 mb-1 text-foreground font-bold text-base">
                     Hoyo {selectedGroup.hoyo}
                   </p>
                 )}
@@ -606,7 +700,7 @@ const Competencias = () => {
                 <CardContent className="p-0">
                   <CompetenciasTable 
                     players={selectedGroup.players || []}
-                    columns={selectedCompetencia.columns}
+                    columns={selectedCompetenciaColumns}
                   />
                 </CardContent>
               </Card>
