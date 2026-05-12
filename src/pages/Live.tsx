@@ -161,23 +161,6 @@ const isPlayerFinished = (player: LivePlayer, currentRoundDate?: string | null):
 };
 
 /**
- * Determine whether the "Hoy" (today) live scorecard is openable for a player.
- * Open whenever the latest card is NOT closed AND the player has actually
- * started playing today (thru > 0 OR todayScore != 0). Closed cards
- * (todayClosed === 1) surface through the per-round drill-down instead.
- * Note: backend does not always send `hasCurrentCard`, so we no longer
- * gate on it — that flag was the source of the regression that hid
- * current-day scorecards entirely.
- */
-const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-  if (player.todayClosed === 1) return false;
-  // Player has begun their current round
-  if ((player.thru ?? 0) > 0) return true;
-  if ((player.todayScore ?? 0) !== 0) return true;
-  return false;
-};
-
-/**
  * Format the "Thru" column display
  * Shows "F" for finished players (tournament complete), hole number otherwise, "-" if 0
  */
@@ -323,7 +306,7 @@ const Live = () => {
     }
 
     const prevDates = player.prevRoundDates ?? [];
-    const canOpenLive = canOpenTodayScorecard(player);
+    const canOpenLive = canOpenTodayScorecard(player, leaderboard?.currentRoundDate);
     // Nothing to show if no closed scorecards AND no live card available
     if (prevDates.length === 0 && !canOpenLive) return;
 
@@ -381,19 +364,6 @@ const Live = () => {
    * Shows the in-progress live scorecard for the current round only,
    * fetched from live_tarjeta.php.
    */
-  /**
-   * Whether the "Hoy" (today) live scorecard column should be clickable
-   * for a given player. The live scorecard is only available when the
-   * player's most recent card exists AND is still open (statlsc != 1).
-   * Closed cards are shown as "F" in the Thru column and are intentionally
-   * non-interactive — historical rounds are reached via the "Total" column.
-   */
-  const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-    if (!player.hasCurrentCard) return false;
-    if (player.todayClosed === 1) return false;
-    return true;
-  };
-
   const handleTodayClick = async (player: LivePlayer) => {
     // Toggle off if already expanded as "today" (use a sentinel suffix)
     const expandKey = `${player.playerId}::today`;
@@ -403,7 +373,7 @@ const Live = () => {
       return;
     }
 
-    if (!canOpenTodayScorecard(player)) return;
+    if (!canOpenTodayScorecard(player, leaderboard?.currentRoundDate)) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);

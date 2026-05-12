@@ -59,12 +59,6 @@ export interface PlayerResult {
    */
   closedRounds?: number;
   handicapIndex?: number;
-  /**
-   * Dynamic round scores: r1, r2, r3, r4, ... rN
-   * The number of rounds depends on `ResultCategory.days.length`.
-   * Always read round scores via `player[`r${n}`]` — never assume only 3 rounds.
-   */
-  [key: `r${number}`]: number | undefined;
 }
 
 /** Player who did not complete the tournament (NO SHOW, RETIRO, DQ) */
