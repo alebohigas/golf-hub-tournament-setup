@@ -459,6 +459,11 @@ const AdminDashboard = () => {
           />
         </TabsContent>
 
+        {/* Archivos Tab — upload images + PDFs to the server */}
+        <TabsContent value="archivos">
+          <AdminUploads />
+        </TabsContent>
+
         {/* Convocatoria Tab */}
         <TabsContent value="convocatoria">
           <AdminConvocatoria />

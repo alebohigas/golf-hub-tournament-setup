@@ -162,6 +162,8 @@ json_response([
         'format' => $catInfo['formato']
     ],
     'date'    => $fecha,
+    /** Last capture timestamp from tarjetas.fecha_cap (MySQL DATETIME). */
+    'fechaCap' => $playerData['fecha_cap'] ?? null,
     'totals'  => [
         'SO'     => (int)($scoreData['SO'] ?? 0),
         'SA'     => (int)($scoreData['SA'] ?? 0),

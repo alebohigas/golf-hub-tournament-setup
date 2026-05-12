@@ -174,11 +174,13 @@ export const getResultadosTarjetaUrl = (
  */
 export const getLiveTarjetaUrl = (
   jugadorId: string,
-  tipo: string = 'stroke'
+  tipo: string = 'stroke',
+  categoriaId?: string
 ): string =>
   `${API_BASE_URL}/live_tarjeta.php${buildQuery({
     jugadorid: jugadorId,
     tipo,
+    ...(categoriaId ? { categoriaid: categoriaId } : {}),
   })}`;
 
 /**
