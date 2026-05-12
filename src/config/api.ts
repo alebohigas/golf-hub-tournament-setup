@@ -219,3 +219,26 @@ export const getLocationsStatesUrl = (countryId: number | string): string =>
   `${API_BASE_URL}/locations.php?kind=states&country_id=${encodeURIComponent(String(countryId))}`;
 export const getLocationsCitiesUrl = (stateId: number | string): string =>
   `${API_BASE_URL}/locations.php?kind=cities&state_id=${encodeURIComponent(String(stateId))}`;
+
+/** Clubs list (for Pre-Registro autocomplete) */
+export const getClubsUrl = (): string =>
+  `${API_BASE_URL}/clubs.php`;
+
+/**
+ * Lookup an existing player's stored club by name + birthdate.
+ * Used to pre-fill the club field in Pre-Registro when the same person
+ * is already in the `jugadores` table.
+ */
+export const getClubLookupUrl = (
+  nombre: string,
+  apellido: string,
+  fechanac: string,
+): string => {
+  const qs = new URLSearchParams({
+    action: 'lookup',
+    nombre,
+    apellido,
+    fechanac,
+  }).toString();
+  return `${API_BASE_URL}/clubs.php?${qs}`;
+};
