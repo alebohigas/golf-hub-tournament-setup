@@ -28,7 +28,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, Send } from 'lucide-react';
+import { Loader2, CheckCircle2, Send, HelpCircle } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useToast } from '@/hooks/use-toast';
@@ -37,12 +38,17 @@ import {
   getLocationsCountriesUrl,
   getLocationsStatesUrl,
   getLocationsCitiesUrl,
+  getClubsUrl,
+  getClubLookupUrl,
 } from '@/config/api';
 
 // ============= Types =============
 
 /** Row returned by /api/locations.php */
 interface LocationRow { id: number; name: string }
+
+/** Row returned by /api/clubs.php */
+interface ClubRow { id: number; nombre: string }
 
 /** Field-name → suggested placeholder text shown as greyed example. */
 const PLACEHOLDERS: Record<string, string> = {
@@ -94,12 +100,45 @@ const Registro = () => {
   const [states, setStates]       = useState<LocationRow[]>([]);
   const [cities, setCities]       = useState<LocationRow[]>([]);
 
-  /** Field config sorted by display_order, enabled only. */
+  /** Full club list (for the reg_club autocomplete datalist). */
+  const [clubs, setClubs] = useState<ClubRow[]>([]);
+
+  /**
+   * Tracks the last "nombre|apellido|fechanac" key for which we performed
+   * an existing-player lookup, so we don't re-fire on every keystroke or
+   * overwrite an edited club value.
+   */
+  const [lastLookupKey, setLastLookupKey] = useState<string>('');
+
+  /**
+   * Field config sorted by display_order, enabled only.
+   * UX rule: `reg_sexo` and `reg_fechanac` MUST always render right
+   * before `reg_categoria` because they drive the eligible-categories
+   * filter. We re-order them client-side regardless of admin display_order.
+   */
   const visibleFields = useMemo(() => {
     if (!fieldsData?.fields) return [];
-    return [...fieldsData.fields]
+    const enabled = [...fieldsData.fields]
       .filter(f => !!f.is_enabled)
       .sort((a, b) => a.display_order - b.display_order);
+
+    const sexo = enabled.find(f => f.field_name === 'reg_sexo');
+    const fnac = enabled.find(f => f.field_name === 'reg_fechanac');
+    const cat  = enabled.find(f => f.field_name === 'reg_categoria');
+    if (!cat || (!sexo && !fnac)) return enabled;
+
+    const without = enabled.filter(
+      f => f.field_name !== 'reg_sexo' && f.field_name !== 'reg_fechanac'
+    );
+    const catIdx = without.findIndex(f => f.field_name === 'reg_categoria');
+    const head = without.slice(0, catIdx);
+    const tail = without.slice(catIdx); // starts with reg_categoria
+    return [
+      ...head,
+      ...(sexo ? [sexo] : []),
+      ...(fnac ? [fnac] : []),
+      ...tail,
+    ];
   }, [fieldsData]);
 
   /** Quick lookup: is a given field configured/enabled? */
@@ -140,6 +179,46 @@ const Registro = () => {
       .catch(() => setCities([]));
     setValues(v => ({ ...v, reg_ciudad: '' }));
   }, [values.reg_estado]);
+
+  /** Load full clubs list once, when reg_club is enabled. */
+  useEffect(() => {
+    if (!isFieldEnabled('reg_club')) return;
+    fetch(getClubsUrl())
+      .then(r => r.json())
+      .then(j => setClubs(Array.isArray(j?.clubs) ? j.clubs : []))
+      .catch(() => setClubs([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleFields.length]);
+
+  /**
+   * When the user has filled nombre + apellido (and optionally fechanac),
+   * look up an existing `jugadores` row and pre-fill the club. Field stays
+   * fully editable in case the player has switched clubs since.
+   */
+  useEffect(() => {
+    if (!isFieldEnabled('reg_club')) return;
+    const nombre   = (values.reg_nombre   || '').trim();
+    const apellido = (values.reg_apellido || '').trim();
+    const fechanac = (values.reg_fechanac || '').trim();
+    if (nombre.length < 2 || apellido.length < 2) return;
+    const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${fechanac}`;
+    if (key === lastLookupKey) return;
+
+    let cancelled = false;
+    const t = setTimeout(() => {
+      setLastLookupKey(key);
+      fetch(getClubLookupUrl(nombre, apellido, fechanac))
+        .then(r => r.json())
+        .then(j => {
+          if (cancelled || !j?.found || !j?.club) return;
+          // Only auto-fill when the user hasn't typed a club yet.
+          setValues(v => v.reg_club ? v : { ...v, reg_club: String(j.club) });
+        })
+        .catch(() => { /* silent — autofill is best-effort */ });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length]);
 
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
@@ -232,14 +311,16 @@ const Registro = () => {
     }
 
     if (name === 'reg_sexo') {
+      // UX: stored as M/F in the DB, presented as Hombre/Mujer with the
+      // localized label "Género" regardless of what the admin configured.
       return (
         <div className="space-y-2" key={name}>
-          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Label htmlFor={id}>Género{required && <span className="text-destructive"> *</span>}</Label>
           <Select value={values[name] || ''} onValueChange={v => setValue(name, v)}>
             <SelectTrigger id={id}><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="M">Masculino</SelectItem>
-              <SelectItem value="F">Femenino</SelectItem>
+              <SelectItem value="M">Hombre</SelectItem>
+              <SelectItem value="F">Mujer</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -249,7 +330,27 @@ const Registro = () => {
     if (name === 'reg_categoria') {
       return (
         <div className="space-y-2" key={name}>
-          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          {/* Label + Popover help (works on tap mobile and click desktop,
+              same pattern as the HI/HJ/HN headers in /jugadores). */}
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="¿Cómo se eligen las categorías?"
+                  className="inline-flex items-center text-muted-foreground hover:text-foreground cursor-help"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" className="max-w-[260px] w-auto text-xs p-3">
+                Las categorías mostradas se filtran automáticamente con base en
+                tu <strong>género</strong>, <strong>edad</strong> (fecha de
+                nacimiento) y <strong>hándicap</strong>.
+              </PopoverContent>
+            </Popover>
+          </div>
           <Select value={values[name] || ''} onValueChange={v => setValue(name, v)}>
             <SelectTrigger id={id}>
               <SelectValue placeholder={eligibleCategories.length ? 'Selecciona categoría' : 'Completa hcp/sexo/edad'} />
@@ -263,6 +364,33 @@ const Registro = () => {
           <p className="text-xs text-muted-foreground">
             {eligibleCategories.length} categoría(s) compatible(s) con tus datos.
           </p>
+        </div>
+      );
+    }
+
+    if (name === 'reg_club') {
+      // Editable text input + native <datalist> autocomplete reduces options
+      // as the user types. Auto-filled from existing jugadores match when
+      // available; user can overwrite freely (e.g. they changed clubs).
+      const listId = `${id}-clubs`;
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="text"
+            required={required}
+            placeholder={PLACEHOLDERS[name] ?? 'Ej: Club de Golf…'}
+            value={values[name] || ''}
+            onChange={e => setValue(name, e.target.value)}
+            list={listId}
+            autoComplete="off"
+          />
+          <datalist id={listId}>
+            {clubs.map(c => (
+              <option key={c.id} value={c.nombre} />
+            ))}
+          </datalist>
         </div>
       );
     }
