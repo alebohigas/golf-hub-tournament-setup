@@ -14,13 +14,21 @@ error_reporting(E_ALL);
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
+/** Detect new optional age-range columns added for the Pre-Registro feature. */
+$ageMinExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'age_range_min'");
+$ageMinExists = $ageMinExists && $ageMinExists->num_rows > 0;
+$ageMaxExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'age_range_max'");
+$ageMaxExists = $ageMaxExists && $ageMaxExists->num_rows > 0;
+$ageMinSel = $ageMinExists ? ', a.age_range_min' : '';
+$ageMaxSel = $ageMaxExists ? ', a.age_range_max' : '';
+
 /** Query: fetch categories with player count, joined to jugadores */
 /** Query: fetch categories with player count, tee info, rating & slope */
 $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                a.gross, a.catrel, a.sexo, a.corte,
-               a.maxjugadores, a.hoyosxronda,
+               a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
                COUNT(b.id) as playerCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
@@ -35,7 +43,7 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                  a.gross, a.catrel, a.sexo, a.corte,
-                 a.maxjugadores, a.hoyosxronda,
+                 a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
                  s.tee, s.color, ct.rating, ct.slope, ct.parcampo
         ORDER BY a.categoria_id ASC";
 
@@ -69,6 +77,10 @@ $categories = array_map(function($row) {
         'rating'      => $row['rating'] !== null ? (float)$row['rating'] : null,
         'slope'       => $row['slope'] !== null ? (int)$row['slope'] : null,
         'par'         => $row['parcampo'] !== null ? (int)$row['parcampo'] : null,
+        // Age-range bounds for senior/age-restricted categories. NULL when
+        // the column is absent or the value is not configured.
+        'ageMin'      => isset($row['age_range_min']) && $row['age_range_min'] !== null ? (int)$row['age_range_min'] : null,
+        'ageMax'      => isset($row['age_range_max']) && $row['age_range_max'] !== null ? (int)$row['age_range_max'] : null,
     ];
 }, $rows);
 

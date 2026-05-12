@@ -76,6 +76,7 @@ export const menuConfig: MenuItem[] = [
   { id: 'premios', label: 'PREMIOS', path: '/premios', enabled: true, order: 12 },
   { id: 'patrocinadores', label: 'PATROCINADORES', path: '/patrocinadores', enabled: true, order: 13 },
   { id: 'reglas', label: 'REGLAS Y CC', path: '/reglas', enabled: true, order: 14 },
+  { id: 'registro', label: 'PRE-REGISTRO', path: '/registro', enabled: true, order: 16 },
 ];
 
 /** Sponsors fallback - actual data comes from API via useSponsors hook */

@@ -21,6 +21,7 @@ import AdminPagina from '@/components/admin/AdminPagina';
 import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
 import AdminUploads from '@/components/admin/AdminUploads';
+import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import { 
   Shield, 
@@ -43,6 +44,7 @@ import {
   CalendarDays,
   Bell,
   Upload,
+  ClipboardList,
   Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -337,6 +339,9 @@ const AdminDashboard = () => {
             <ImageIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Patrocinadores</span>
           </TabsTrigger>
+          <TabsTrigger value="registro" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Pre-Registro</span>
           <TabsTrigger value="brackets" className="gap-2">
             <Trophy className="h-4 w-4" />
             <span className="hidden sm:inline">Brackets</span>
@@ -489,6 +494,9 @@ const AdminDashboard = () => {
           <AdminSponsors />
         </TabsContent>
 
+        {/* Pre-Registro Tab — configures public registration form fields */}
+        <TabsContent value="registro">
+          <AdminRegistro />
         {/* Brackets Tab — Match Play / Knockout configuration per prize */}
         <TabsContent value="brackets">
           <AdminBrackets />

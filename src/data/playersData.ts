@@ -34,6 +34,12 @@ export interface CategoryDetail {
   maxPlayers?: number;
   /** Holes per round (e.g. 9 or 18) — used for "RONDA" display */
   holesPerRound?: number;
+  /** Optional gender restriction (e.g. 'M', 'F', or empty for both). */
+  gender?: string;
+  /** Optional age-range minimum (used to flag senior/age-restricted categories). */
+  ageMin?: number | null;
+  /** Optional age-range maximum. */
+  ageMax?: number | null;
 }
 
 // ============= Player Interface =============
