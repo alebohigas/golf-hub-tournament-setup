@@ -306,7 +306,7 @@ const Live = () => {
     }
 
     const prevDates = player.prevRoundDates ?? [];
-    const canOpenLive = canOpenTodayScorecard(player);
+    const canOpenLive = canOpenTodayScorecard(player, leaderboard?.currentRoundDate);
     // Nothing to show if no closed scorecards AND no live card available
     if (prevDates.length === 0 && !canOpenLive) return;
 
@@ -364,19 +364,6 @@ const Live = () => {
    * Shows the in-progress live scorecard for the current round only,
    * fetched from live_tarjeta.php.
    */
-  /**
-   * Whether the "Hoy" (today) live scorecard column should be clickable
-   * for a given player. The live scorecard is only available when the
-   * player's most recent card exists AND is still open (statlsc != 1).
-   * Closed cards are shown as "F" in the Thru column and are intentionally
-   * non-interactive — historical rounds are reached via the "Total" column.
-   */
-  const canOpenTodayScorecard = (player: LivePlayer): boolean => {
-    if (!player.hasCurrentCard) return false;
-    if (player.todayClosed === 1) return false;
-    return true;
-  };
-
   const handleTodayClick = async (player: LivePlayer) => {
     // Toggle off if already expanded as "today" (use a sentinel suffix)
     const expandKey = `${player.playerId}::today`;
@@ -386,7 +373,7 @@ const Live = () => {
       return;
     }
 
-    if (!canOpenTodayScorecard(player)) return;
+    if (!canOpenTodayScorecard(player, leaderboard?.currentRoundDate)) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);
