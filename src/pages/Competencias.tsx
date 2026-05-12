@@ -16,8 +16,11 @@ import competenciasHero from '@/assets/competencias-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
+import BracketView from '@/components/competencias/BracketView';
+import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
+import { useBracketPrizes } from '@/hooks/useBrackets';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
@@ -42,6 +45,9 @@ const Competencias = () => {
   // Navigation state
   const [selectedCompetenciaId, setSelectedCompetenciaId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<CompetenciaGroup | null>(null);
+  /** When true, the "Mejor Score del Día" report view is rendered instead of the
+   *  standard competencias drill-down. Independent from competencia selection. */
+  const [showMejorScore, setShowMejorScore] = useState(false);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
@@ -75,6 +81,59 @@ const Competencias = () => {
     () => collectUniquePlayerNames(allWithPlayers),
     [allWithPlayers]
   );
+
+  /**
+   * List of prize rows flagged as is_bracket=1 across all 6 tables.
+   * Used to switch the results view to BracketView when the selected
+   * group corresponds to a bracketed prize.
+   */
+  const { data: bracketPrizesData } = useBracketPrizes();
+  const bracketedPrizes = useMemo(
+    () => (bracketPrizesData?.prizes ?? []).filter(p => p.is_bracket === 1),
+    [bracketPrizesData]
+  );
+
+  /**
+   * Resolve the (prize_table, prize_id) for the currently selected group.
+   * Group ids from the backend are shaped like:
+   *   oyes-{id}                  → table 'oyes'
+   *   approach-{id}              → table 'approach'
+   *   putt-{id}                  → table 'putt'
+   *   driverp-{id}-{slug}        → table 'driverp'
+   *   driverd-{id}-{slug}        → table 'driver'  (note: UI 'driverd' = table 'driver')
+   *   oyesx-{id}                 → table 'oyesx'
+   * Returns null if not bracketed or unparseable.
+   */
+  const bracketContext = useMemo(() => {
+    if (!selectedGroup) return null;
+    const id = selectedGroup.id;
+    // Map UI prefix → DB table name
+    const prefixMap: Record<string, string> = {
+      oyesx: 'oyesx',
+      oyes: 'oyes',
+      approach: 'approach',
+      putt: 'putt',
+      driverp: 'driverp',
+      driverd: 'driver',
+      driver: 'driver',
+    };
+    let table: string | null = null;
+    let rest = '';
+    // Match longest prefix first to avoid 'oyes' eating 'oyesx'
+    for (const prefix of ['oyesx', 'driverp', 'driverd', 'approach', 'driver', 'putt', 'oyes']) {
+      if (id === prefix || id.startsWith(prefix + '-')) {
+        table = prefixMap[prefix];
+        rest  = id === prefix ? '' : id.slice(prefix.length + 1);
+        break;
+      }
+    }
+    if (!table || !rest) return null;
+    // Take the first segment after the prefix as the prize_id
+    const prizeId = parseInt(rest.split('-')[0], 10);
+    if (!Number.isFinite(prizeId)) return null;
+    const match = bracketedPrizes.find(p => p.prize_table === table && p.prize_id === prizeId);
+    return match ? { prize_table: match.prize_table, prize_id: match.prize_id } : null;
+  }, [selectedGroup, bracketedPrizes]);
 
   /**
    * Handle local typing in the search input.
@@ -193,7 +252,9 @@ const Competencias = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    if (selectedGroup) {
+    if (showMejorScore) {
+      setShowMejorScore(false);
+    } else if (selectedGroup) {
       setSelectedGroup(null);
     } else if (selectedCompetenciaId) {
       setSelectedCompetenciaId(null);
@@ -275,6 +336,20 @@ const Competencias = () => {
 
   // Loading state
   const isLoading = loadingList || (selectedCompetenciaId && loadingDetail);
+
+  /** Display columns for selected competition; Driver Distancia uses yards. */
+  const selectedCompetenciaColumns = useMemo(() => {
+    if (!selectedCompetencia) return [];
+    const isDriverDistancia =
+      selectedCompetencia.id === 'driverd' ||
+      selectedCompetencia.name.toLowerCase().includes('driver distancia');
+
+    if (!isDriverDistancia) return selectedCompetencia.columns;
+
+    return selectedCompetencia.columns.map((col) =>
+      col.key === 'distance' ? { ...col, format: 'yards' as const } : col
+    );
+  }, [selectedCompetencia]);
 
   return (
     <Layout>
@@ -460,7 +535,7 @@ const Competencias = () => {
           )}
 
           {/* View: Competition Types (no selection, no active search) */}
-          {!isLoading && !selectedCompetenciaId && !activeResults && (
+          {!isLoading && !selectedCompetenciaId && !activeResults && !showMejorScore && (
             <>
               {/* Player search bar with autocomplete — jumps to /premios on pick */}
               {playerSuggestions.length > 0 && (
@@ -511,6 +586,23 @@ const Competencias = () => {
                     </CardContent>
                   </Card>
                 ))}
+                {/* Special card: Mejor Score del Día report */}
+                <Card
+                  className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
+                  onClick={() => setShowMejorScore(true)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Medal className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-bold text-foreground text-lg mb-2">
+                      Mejor Score del Día
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Reporte por día
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Empty state */}
@@ -522,6 +614,62 @@ const Competencias = () => {
                   </p>
                 </div>
               )}
+
+              {/* External link: Putt Finales Caballeros (Match Play) */}
+              <div className="flex justify-center mt-10">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gap-2"
+                >
+                  <a
+                    href="https://va.speitour.mx/match-play-putt-caballeros"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Putt Finales Caballeros
+                  </a>
+                </Button>
+              </div>
+
+              {/* External link: Putt Finales Damas (Match Play) */}
+              <div className="flex justify-center mt-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gap-2"
+                >
+                  <a
+                    href="https://va.speitour.mx/match-play-putt-damas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trophy className="h-5 w-5" />
+                    Putt Finales Damas
+                  </a>
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* View: Mejor Score del Día report */}
+          {!isLoading && showMejorScore && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a competencias
+              </Button>
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-foreground">
+                  Mejor Score del Día
+                </h2>
+              </div>
+              <MejorScoreDiarioReport />
             </>
           )}
 
@@ -594,22 +742,35 @@ const Competencias = () => {
                 <span className="inline-block px-4 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
                   {selectedGroup.name}
                 </span>
+                {/* Hole label, bold and tight to the table below */}
                 {selectedGroup.hoyo && (
-                  <p className="text-muted-foreground mt-2">
+                  <p className="mt-3 mb-1 text-foreground font-bold text-base">
                     Hoyo {selectedGroup.hoyo}
                   </p>
                 )}
               </div>
 
               {/* Results Table */}
-              <Card className="border-border/50 max-w-4xl mx-auto bg-white">
-                <CardContent className="p-0">
-                  <CompetenciasTable 
-                    players={selectedGroup.players || []}
-                    columns={selectedCompetencia.columns}
-                  />
-                </CardContent>
-              </Card>
+              {bracketContext ? (
+                /* Bracket-flagged prize → render knockout bracket instead of standings table */
+                <Card className="border-border/50 max-w-6xl mx-auto bg-white">
+                  <CardContent className="p-4">
+                    <BracketView
+                      prizeTable={bracketContext.prize_table}
+                      prizeId={bracketContext.prize_id}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-border/50 max-w-4xl mx-auto bg-white">
+                  <CardContent className="p-0">
+                    <CompetenciasTable 
+                      players={selectedGroup.players || []}
+                      columns={selectedCompetencia.columns}
+                    />
+                  </CardContent>
+                </Card>
+              )}
               
               {/* Last updated */}
               {selectedGroup.lastUpdated && (

@@ -1,0 +1,75 @@
+# Project Memory
+
+## Core
+- **🔒 LOCKED (2026-05-01):** App is fully working EXCEPT pre-registros. ONLY modify pre-registros. Never touch any other file/query/component, even for "small" fixes. No refactors, no scope expansion. See [LOCKED rule](mem://constraints/locked-everything-except-preregistros).
+- **Design:** Green/gold palette, functional aesthetic. Pure white (`#FFFFFF`) background for tables/logos; cards use `bg-card`.
+- **Stack:** React SPA frontend (Vite base `/`) deployed to IONOS shared hosting root. PHP JSON API backend in `/api/` querying MySQL DB (`torneos`).
+- **Data Integrity:** No text/HTML output around JSON in PHP endpoints (use `error_log`). 
+- **Configuration:** `torneoid` is tied to domain/subdomain and MUST be appended to all API requests.
+- **Logos/Assets:** Use `/api/logo.php?file=` or `/api/sponsor_logo.php` proxies. Never double-wrap URLs.
+- **Auth:** Admin dashboard (`/admin`) password is `admin2025`.
+- **Navigation:** Multi-step navigation always uses a card-based grid selection layout.
+- **Round scores:** Resultados/Live use dynamic `r1..rN` keys. NEVER hardcode `r1/r2/r3` ternaries — always read `player[`r${round}`]` and iterate from `days.length`.
+
+## Memories
+- [Salidas page structure](mem://features/salidas-page-structure) — Drill-down nav, conditional Neto/Gross scores, Stableford/Stroke Play sorting
+- [Card-based navigation](mem://ui-patterns/card-based-navigation) — Multi-step grid layout for category, day, competition selection
+- [Multi-select filter defaults](mem://ui-patterns/multi-select-filter-defaults) — Show all items when no or all items are selected
+- [Secondary button styling](mem://ui-patterns/button-styling-secondary) — Back buttons use bg-primary/10 and hover:bg-primary/20
+- [Competición page structure](mem://features/competicion-page-structure) — O'Yes, Putt, Approach, Driver consolidation, and specific metrics
+- [Jugadores page structure](mem://features/jugadores-page-structure) — Categories as cards, specific metrics alignment
+- [Convocatoria page structure](mem://features/convocatoria-page-structure) — 8 dynamic sections, database sync, respects branding
+- [Calendario de juego page structure](mem://features/calendario-de-juego-page-structure) — Matrix table, ignores empty categories, localized dates
+- [Horarios de salidas page](mem://features/horarios-de-salidas-page) — Matrix earliest kickoff per category/day from salidagrupo.horainicio1a, ignores 00:00:00
+- [Admin management](mem://features/admin-visibility-and-menu-management) — Manage visibility, menus, settings via 5 tabs
+- [Navigation menu grouping](mem://ui-patterns/navigation-menu-grouping) — Multi-level grouping, dropdowns/collapsibles, visibility sync
+- [Eventos page structure](mem://features/eventos-page-structure) — Card-based daily schedules and raffles
+- [API asset resolution](mem://architecture/api-asset-resolution) — PHP proxy for external resources to prevent CORS
+- [Live scoring section](mem://features/live-scoring-section) — 100s refresh, scoring colors, hole-by-hole status, club logos
+- [Logo fallback strategy](mem://ui-patterns/logo-fallback-strategy) — Inline SVG data URIs
+- [Navigation content organization](mem://features/navigation-content-organization) — 4 main areas: Competición, Resultados, LIVE, Salidas
+- [Drill-down navigation logic](mem://ui-patterns/drill-down-navigation-logic) — Drill-down logic for Competencias and LIVE
+- [Backend transition strategy](mem://architecture/backend-transition-strategy) — PHP JSON API bridge at server/api/ for MySQL legacy logics
+- [Legacy SQL patterns](mem://data/legacy-sql-patterns-and-sorting) — Mapping and sorting rules for distance, skin games, and live scoring
+- [Brackets data structure](mem://features/brackets-data-structure) — 16-player format logic
+- [PHP API security](mem://architecture/php-api-security-pattern) — Credential separation via config.php
+- [IONOS deployment layout](mem://architecture/ionos-deployment-layout) — dist/ at root, api/ in subfolder
+- [IONOS server configuration](mem://architecture/ionos-server-configuration) — .htaccess SPA routing and MIME types
+- [Page visibility persistence](mem://architecture/page-visibility-state-persistence) — MySQL site_config synchronization
+- [IONOS hosting parking scripts](mem://constraints/ionos-hosting-parking-scripts) — Disable Domain Parking to avoid CORS
+- [Section hero images](mem://style/section-hero-images) — Local specific images for each main section
+- [Tournament ID management](mem://features/tournament-id-management) — Managed in DB by domain, required for all requests
+- [API request standardization](mem://architecture/api-request-standardization) — Active torneoid query parameter in all requests
+- [Competencias data aggregation](mem://architecture/competencias-data-aggregation) — Unified JSON for multiple lateral prizes
+- [Database schema alignments](mem://data/database-schema-alignments) — Field mappings for categories and players
+- [API resiliency patterns](mem://architecture/api-resiliency-patterns) — Missing DB tables return empty JSON instead of 500
+- [Tournament stats mapping](mem://architecture/tournament-stats-mapping) — Historical club-wide stats logic
+- [Scorecard fetching logic](mem://features/scorecard-data-fetching-logic) — R1, R2, R3 dynamic date parameters and scoring type mapping
+- [PHP API debug mode](mem://architecture/php-api-debug-mode) — ?debug=1 logs to _debug field without corrupting JSON
+- [Tournament results filtering](mem://data/tournament-results-filtering) — Filter exclusions for closed rounds and specific status
+- [IONOS deployment workflow](mem://architecture/ionos-deployment-workflow) — Manual dist/ and api/ sync
+- [Global site config persistence](mem://architecture/global-site-config-persistence) — site_config MySQL table structure
+- [Sponsor proxy architecture](mem://architecture/sponsor-image-proxy-architecture) — /api/sponsor_logo.php proxy
+- [Local build dependencies](mem://constraints/local-build-dependencies) — Requires @hello-pangea/dnd
+- [Hero branding logic](mem://features/hero-branding-logic) — Roman numeral parsing and document title sync
+- [Site config auto init](mem://architecture/site-config-automatic-initialization) — Auto init for domains via admin panel
+- [Sponsor ribbon styling](mem://ui-patterns/sponsor-ribbon-styling) — Height properties and grayscale hover
+- [Header navigation overflow](mem://ui-patterns/header-navigation-overflow) — Right-aligned More (...) menu
+- [Home nav cards visibility](mem://ui-patterns/home-navigation-cards-visibility) — Nav cards synced with admin visibility
+- [Social media metadata](mem://design/social-media-metadata) — White-label custom OG tags
+- [Footer dynamic content](mem://features/footer-dynamic-content) — Dynamic location, contact, and stats
+- [Table club logo styling](mem://ui-patterns/table-club-logo-styling) — Specific heights and padding for logos in tables
+- [Tie breaking logic](mem://data/tie-breaking-logic) — Hierarchy: sudden death, last round, 9-6-3-1
+- [Reglas y CC page structure](mem://features/reglas-y-cc-page-structure) — Dynamic rule cards and accordion
+- [Branding asset mapping](mem://features/branding-asset-mapping) — Database field mappings for hero and header
+- [Convocatoria display logic](mem://features/convocatoria-display-logic) — Infinite symbol for 0 limit, cost table formats
+- [Player alphabetical sorting](mem://features/player-alphabetical-sorting) — Locale-aware es sorting
+- [Header logo dimensions](mem://ui-patterns/header-logo-dimensions) — Enlarged mobile/desktop sizes
+- [Timezone safe date parsing](mem://architecture/timezone-safe-date-parsing) — Decomposition of YYYY-MM-DD
+- [Mobile shortcut branding](mem://features/mobile-shortcut-branding) — Favicon sync with tournament active logo
+- [PHP API safe query pattern](mem://architecture/php-api-safe-query-pattern) — safe_exec logs errors without failing entirely
+- [Resultados scorecard structure](mem://features/resultados-scorecard-structure) — Stableford/Neto vs Scratch rows and labels
+- [Resultados scoring type selection](mem://features/resultados-scoring-type-selection) — Dual NETO/GROSS selection if gross: 1
+- [Dynamic round keys](mem://constraints/dynamic-round-keys) — Never hardcode r1/r2/r3 in Resultados/Live; spread all r{n} from API
+- [Resultados partial rounds](mem://features/resultados-partial-rounds) — Show in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
+- [O'Yes 300 competition](mem://features/oyes-300-competition) — Premio independiente: usa oyesx/oyesxjug, ganadores absolutos por hoyo sin filtro de categoría. NO confundir con O'Yes regular ni con Driver/Approach

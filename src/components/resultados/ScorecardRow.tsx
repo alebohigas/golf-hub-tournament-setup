@@ -3,8 +3,8 @@
  * Renders an expandable scorecard (hole-by-hole) below a player row
  * Adapts layout based on scorecardType: 'hcp', 'stableford', or 'scratch'
  * 
- * Stableford: Hoyo, Par, Vtja, Gross, Hcp., Neto, Ptos
- * HCP (Stroke Neto): Hoyo, Par, Vtja, Gross, Hcp., Neto
+ * Stableford: Hoyo, Par, Gross, Vtja, Hcp., Neto, Ptos
+ * HCP (Stroke Neto): Hoyo, Par, Gross, Vtja, Hcp., Neto
  * Scratch (Gross): Hoyo, Par, Golpes, +/-
  */
 
@@ -75,14 +75,14 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </td>
           </tr>
 
-          {/* Vtja (Ventaja) row - shown for hcp and stableford */}
+          {/* Vtja row - course hole handicap/difficulty ranking from campo_tee.ventajas. Sits between Par and Gross. */}
           {(type === 'hcp' || type === 'stableford') && (
-            <tr className="bg-muted/30">
+            <tr className="bg-muted/20">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Vtja</td>
               {holes.map(h => (
-                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground text-[11px]">{h.hcp}</td>
+                <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcp ?? 0}</td>
               ))}
-              <td className="px-2 py-1 text-center"></td>
+              <td className="px-2 py-1 text-center text-muted-foreground">-</td>
             </tr>
           )}
 
@@ -101,9 +101,9 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             </tr>
           )}
 
-          {/* Hcp. strokes row - shown for hcp and stableford */}
+          {/* Hcp. row - actual handicap strokes received by the player on each hole */}
           {(type === 'hcp' || type === 'stableford') && (
-            <tr className="bg-muted/20">
+            <tr className="bg-muted/10">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Hcp.</td>
               {holes.map(h => (
                 <td key={h.hoyo} className="px-2 py-1 text-center text-muted-foreground">{h.hcpStrokes ?? 0}</td>
@@ -165,18 +165,26 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             <tr className="bg-muted/20">
               <td className="px-2 py-1 font-semibold text-center text-muted-foreground">+/-</td>
               {holes.map(h => {
-                const diff = h.golpes - h.par;
+                // Unplayed hole (golpes=0 or falsy): show "0" and don't color it.
+                // Coerce to Number defensively in case the backend returns "0" as a string.
+                const golpesNum = Number(h.golpes) || 0;
+                const played = golpesNum > 0;
+                const diff = golpesNum - h.par;
                 return (
                   <td key={h.hoyo} className={`px-2 py-1 text-center font-medium ${
+                    !played ? 'text-muted-foreground' :
                     diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : 'text-muted-foreground'
                   }`}>
-                    {h.resultado}
+                    {played ? h.resultado : '0'}
                   </td>
                 );
               })}
               <td className="px-2 py-1 text-center font-semibold">
                 {(() => {
-                  const total = holes.reduce((s, h) => s + h.golpes, 0) - holes.reduce((s, h) => s + h.par, 0);
+                  // Only sum played holes (golpes > 0) so unplayed holes don't subtract par.
+                  const playedHoles = holes.filter(h => (Number(h.golpes) || 0) > 0);
+                  if (playedHoles.length === 0) return '0';
+                  const total = playedHoles.reduce((s, h) => s + (Number(h.golpes) || 0) - h.par, 0);
                   return total === 0 ? 'E' : total > 0 ? `+${total}` : `${total}`;
                 })()}
               </td>
@@ -215,8 +223,20 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
               </span>
             </div>
 
-            {/* Right section: close button */}
-            <div className="flex items-center">
+            {/* Right section: last-update timestamp (live only) + close button */}
+            <div className="flex items-center gap-3">
+              {scorecard.fechaCap && (
+                <span
+                  className="text-xs text-muted-foreground whitespace-nowrap"
+                  title="Última captura de la tarjeta (tarjetas.fecha_cap)"
+                >
+                  Fecha de captura:{' '}
+                  <span className="font-medium text-foreground">
+                    {/* MySQL DATETIME comes as "YYYY-MM-DD HH:MM:SS" — trim seconds */}
+                    {String(scorecard.fechaCap).slice(0, 16).replace('T', ' ')}
+                  </span>
+                </span>
+              )}
               <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="h-4 w-4" />
               </button>
@@ -252,15 +272,18 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
             )}
             {type === 'scratch' && (
               <span className="text-muted-foreground">
-                +/-: <strong className={`font-bold ${
-                  (scorecard.totalGolpes - 72) < 0 ? 'text-red-600' : 
-                  (scorecard.totalGolpes - 72) > 0 ? 'text-blue-600' : ''
-                }`}>
-                  {(() => {
-                    const d = scorecard.totalGolpes - 72;
-                    return d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
-                  })()}
-                </strong>
+                {(() => {
+                  // Compute total +/- using ONLY played holes (golpes > 0), so unplayed
+                  // holes don't subtract par and produce a misleading negative score.
+                  const playedHoles = scorecard.holes.filter(h => (Number(h.golpes) || 0) > 0);
+                  if (playedHoles.length === 0) {
+                    return <>+/-: <strong className="font-bold">0</strong></>;
+                  }
+                  const d = playedHoles.reduce((s, h) => s + (Number(h.golpes) || 0) - h.par, 0);
+                  const cls = d < 0 ? 'text-red-600' : d > 0 ? 'text-blue-600' : '';
+                  const txt = d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
+                  return <>+/-: <strong className={`font-bold ${cls}`}>{txt}</strong></>;
+                })()}
               </span>
             )}
           </div>

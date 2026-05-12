@@ -10,20 +10,52 @@ import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, ge
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlayer } from '@/data/resultadosData';
 
 /**
- * Extract every dynamic round key (`r1`, `r2`, ... `rN`) from a raw API player
- * object into a plain object. The API returns one `r{i}` field per play day,
- * so the number of rounds is variable and must NOT be hardcoded to 3.
+ * Build a 1-indexed `rounds` array from any `r1`, `r2`, ... `rN` keys returned
+ * by the backend. Index `i` corresponds to round `i + 1`. Missing rounds are
+ * filled with `null`. `length` is the count of scheduled rounds (`days.length`)
+ * when provided, or the highest `r{N}` key found otherwise. This lets the UI
+ * render any number of rounds without hardcoding to r1/r2/r3.
  */
-const extractRounds = (p: any): Record<string, number | null | undefined> => {
-  const out: Record<string, number | null | undefined> = {};
-  if (!p || typeof p !== 'object') return out;
-  for (const k of Object.keys(p)) {
-    if (/^r\d+$/.test(k)) out[k] = p[k] ?? undefined;
+const buildRoundsArray = (
+  raw: Record<string, any>,
+  daysLength?: number,
+): Array<number | null> => {
+  // Collect all r{N} keys present on the row
+  const numericRoundKeys = Object.keys(raw)
+    .map((k) => /^r(\d+)$/.exec(k))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => parseInt(m[1], 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  const maxFromKeys = numericRoundKeys.length ? Math.max(...numericRoundKeys) : 0;
+  const length = Math.max(daysLength ?? 0, maxFromKeys);
+  const out: Array<number | null> = [];
+  for (let i = 1; i <= length; i++) {
+    const v = raw[`r${i}`];
+    out.push(v === undefined || v === null ? null : Number(v));
   }
   return out;
 };
 
 // ============= All Results =============
+
+/** Extracts every dynamic round score from an API player object without capping at R3. */
+const mapRoundScores = (p: Record<string, unknown> | null | undefined): Record<`r${number}`, number | undefined> => {
+  return Object.fromEntries(
+    Object.entries(p || {})
+      .filter(([key]) => /^r\d+$/.test(key))
+      .map(([key, value]) => [key, value == null ? undefined : Number(value)])
+  ) as Record<`r${number}`, number | undefined>;
+};
+
+/** Extracts every dynamic cut-player round score, preserving null for unplayed rounds. */
+const mapCutRoundScores = (p: Record<string, unknown> | null | undefined): Record<`r${number}`, number | null | undefined> => {
+  return Object.fromEntries(
+    Object.entries(p || {})
+      .filter(([key]) => /^r\d+$/.test(key))
+      .map(([key, value]) => [key, value == null ? null : Number(value)])
+  ) as Record<`r${number}`, number | null | undefined>;
+};
 
 /** Fetch all categories with results, including GROSS when enabled */
 export const useAllResults = () => {
@@ -52,13 +84,14 @@ export const useAllResults = () => {
           try {
             // Always fetch NETO (gross=0)
             const netoResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '0'));
+            const netoDaysLen = Array.isArray(netoResp.days) ? netoResp.days.length : undefined;
             const netoPlayers = (netoResp.players || []).map((p: any, idx: number) => ({
+              ...mapRoundScores(p),
               id: p.playerId || String(idx),
               position: p.position ?? idx + 1,
               name: p.name || '',
               club: p.club || '',
               clubLogo: p.clubLogo || '',
-              ...extractRounds(p),
               total: p.total ?? p.totalSA ?? 0,
               handicapIndex: p.handicapIndex,
             }));
@@ -70,13 +103,14 @@ export const useAllResults = () => {
             // If category has gross enabled, also fetch GROSS results
             if (cat.gross === 1) {
               const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
+              const grosDaysLen = Array.isArray(grosResp.days) ? grosResp.days.length : undefined;
               const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
+                ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
                 name: p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
-                ...extractRounds(p),
                 total: p.total ?? p.totalSO ?? 0,
                 handicapIndex: p.handicapIndex,
               }));
@@ -123,6 +157,7 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
     queryKey: ['resultados', categoryId, gross],
     queryFn: async () => {
       const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!, gross));
+      const daysLen = Array.isArray(raw.days) ? raw.days.length : undefined;
 
       // Normalize into ResultCategory with scoringTypes array
       const scoringTypes = Array.isArray(raw.scoringTypes)
@@ -132,19 +167,22 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
           : [{
               scoringType: raw.gross === 1 ? 'GROSS' as const : 'NETO' as const,
               players: (raw.players || []).map((p: any, idx: number) => ({
+                ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
                 name: p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
-                ...extractRounds(p),
                 total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
+                // Number of CLOSED scorecards (statlsc=1) — used to compute Stroke diff total.
+                closedRounds: typeof p.closedRounds === 'number' ? p.closedRounds : 0,
                 handicapIndex: p.handicapIndex,
               })),
             }];
 
       // Map cut players (non-NORMAL status)
       const cutPlayers: CutPlayer[] = (raw.cutPlayers || []).map((cp: any) => ({
+        ...mapCutRoundScores(cp),
         playerId: cp.playerId || '',
         number: cp.number || '',
         name: cp.name || '',
@@ -152,11 +190,9 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         clubLogo: cp.clubLogo || '',
         statusCode: cp.statusCode || 'D',
         statusLabel: cp.statusLabel || 'Descalificado',
-        // Per-round scores (may be null if round not played / scorecard not closed).
-        // Spread ALL r{n} keys so tournaments with >3 rounds render correctly.
-        ...extractRounds(cp),
         // Accumulated closed-card total
         total: typeof cp.total === 'number' ? cp.total : 0,
+        closedRounds: typeof cp.closedRounds === 'number' ? cp.closedRounds : 0,
       }));
 
       return {
@@ -165,6 +201,12 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         shortName: raw.shortName || '',
         system: raw.system || '',
         days: raw.days || [],
+        daysPartial: Array.isArray(raw.daysPartial)
+          ? raw.daysPartial.map((v: unknown) => Boolean(v))
+          : [],
+        // Course par (e.g. 72) — needed to compute Stroke Play differential total
+        // from the raw stroke total: diff = total - coursePar * closedRounds.
+        coursePar: raw.course?.par ?? 72,
         medalCount: raw.medalCount ?? 3,
         medalCountNeto: raw.medalCountNeto ?? raw.medalCount ?? 3,
         medalCountGross: raw.medalCountGross ?? 1,
@@ -273,6 +315,9 @@ export const fetchPlayerScorecardFromApi = async (
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
     date: raw.date || '',
+    // Last capture timestamp (tarjetas.fecha_cap) — used in /LIVE to show
+    // the exact moment the scorecard was last updated.
+    fechaCap: raw.fechaCap || undefined,
   };
 };
 
@@ -288,16 +333,18 @@ export const fetchPlayerScorecardFromApi = async (
 export const fetchLiveScorecardFromApi = async (
   playerId: string,
   tipo: string,
-  scoringType: string = 'NETO'
+  scoringType: string = 'NETO',
+  categoryId?: string
 ): Promise<RoundScorecard> => {
   const scType = tipo === 'stableford' ? 'stableford' : (scoringType === 'GROSS' ? 'scratch' : 'hcp');
 
-  const url = getLiveTarjetaUrl(playerId, tipo);
+  const url = getLiveTarjetaUrl(playerId, tipo, categoryId);
   const raw = await apiFetch<any>(url);
 
-  // Parse par and ventajas arrays from the response
+  // Parse par and actual player handicap-stroke arrays from the response
   const parArr: number[] = raw.par || [];
   const ventajasArr: number[] = raw.ventajas || [];
+  const hcpArr: number[] = raw.hcp || [];
   const holesSOArr: (number | null)[] = raw.holes || [];
   const holesSAArr: (number | null)[] = raw.holesSA || [];
 
@@ -318,7 +365,7 @@ export const fetchLiveScorecardFromApi = async (
     holes.push({
       hoyo: i + 1,
       par,
-      hcp: 0, // live_tarjeta doesn't return ventaja ranking per hole
+      hcp: hcpArr[i] ?? 0,
       golpes,
       neto,
       hcpStrokes,
@@ -347,5 +394,7 @@ export const fetchLiveScorecardFromApi = async (
     out: raw.totals?.outSO ?? front9.reduce((s, h) => s + h.golpes, 0),
     in: raw.totals?.inSO ?? back9.reduce((s, h) => s + h.golpes, 0),
     date: raw.date || '',
+    // Last capture timestamp (tarjetas.fecha_cap) for live cards.
+    fechaCap: raw.fechaCap || undefined,
   };
 };

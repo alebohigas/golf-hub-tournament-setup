@@ -37,6 +37,8 @@ export interface RoundScorecard {
   in: number;
   /** Date of the round (YYYY-MM-DD) */
   date?: string;
+  /** Last capture timestamp from tarjetas.fecha_cap (only set for live cards) */
+  fechaCap?: string;
 }
 
 export interface PlayerResult {
@@ -46,10 +48,16 @@ export interface PlayerResult {
   club: string;
   /** Club logo URL (proxied via logo.php) */
   clubLogo?: string;
-  r1?: number;
-  r2?: number;
-  r3?: number;
+  /** Dynamic round scores keyed as r1, r2, r3, r4... from the API. */
+  [roundKey: `r${number}`]: number | undefined;
   total: number;
+  /**
+   * Count of CLOSED scorecards (statlsc=1) for this player. Frontend uses it
+   * to convert the raw stroke `total` into a differential vs par for display:
+   *   diff = total - coursePar * closedRounds
+   * 0 means the player has no terminated round yet → UI shows plain "0".
+   */
+  closedRounds?: number;
   handicapIndex?: number;
   /**
    * Dynamic round scores: r1, r2, r3, r4, ... rN
@@ -70,19 +78,12 @@ export interface CutPlayer {
   statusCode: 'S' | 'R' | 'D' | 'C';
   /** Human-readable status label */
   statusLabel: string;
-  /** Round 1 score (closed scorecard only). Null if not played/closed. */
-  r1?: number | null;
-  /** Round 2 score (closed scorecard only). Null if not played/closed. */
-  r2?: number | null;
-  /** Round 3 score (closed scorecard only). Null if not played/closed. */
-  r3?: number | null;
+  /** Dynamic round scores keyed as r1, r2, r3, r4...; null if not played/closed. */
+  [roundKey: `r${number}`]: number | null | undefined;
   /** Accumulated total from closed scorecards (0 if no rounds completed) */
   total?: number;
-  /**
-   * Dynamic round scores: r1, r2, r3, r4, ... rN (closed scorecards only).
-   * Read via `cp[`r${n}`]` to support tournaments with more than 3 rounds.
-   */
-  [key: `r${number}`]: number | null | undefined;
+  /** Count of CLOSED scorecards (statlsc=1) — see PlayerResult.closedRounds. */
+  closedRounds?: number;
 }
 
 export interface CategoryScoring {
@@ -102,6 +103,17 @@ export interface ResultCategory {
   system?: string;
   /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
   days?: string[];
+  /**
+   * Per-round in-progress flag aligned to `days`. `true` means at least one
+   * eligible player still has an open card for that date — the round shows
+   * up in its column with an "En vivo" badge and is NOT counted in `total`.
+   */
+  daysPartial?: boolean[];
+  /**
+   * Course par for this category (e.g. 72). Used to convert the raw stroke
+   * `total` into a differential vs par for Stroke Play leaderboards.
+   */
+  coursePar?: number;
   /**
    * Number of medal winners for the active scoring type (back-compat).
    * Prefer `medalCountNeto` / `medalCountGross` when picking dynamically.

@@ -60,65 +60,71 @@ $isParejas = ($formato === 'parejas');
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
 
-//echo $viewName.'  '.$formato.'<br>';
-
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
 
-    // Build player query based on system and gross.
-    // Salidas is a tee-sheet view, so the order inside each group must follow
-    // the explicit tarjeta.orden position instead of leaderboard/tiebreak sort.
+    // ============= Player query — EXACT legacy ORDER BY =============
+    // Mirrors the legacy PHP source verbatim. Ordering keys (in priority):
+    //   1. salidagrupoid  (tee-time group)
+    //   2. accumulated score (acumstbgross/acumsa/acumso) per modality
+    //   3. orden            (display order field on the view)
+    //   4. f_score_dia_{sat blU|saxU|soxU}(jugadorid)  (last-round score function)
+    //   5. tarjetaid DESC   (final deterministic fallback)
+    //
+    // IMPORTANT: For Stableford the legacy code OVERWRITES the SQL when
+    // grossstb=1, switching the score column to `acumso` and the direction
+    // to ASC. Replicated below with the same control flow.
+    $nameExpr = $isParejas
+        ? "CONCAT(nombre, ' ') as jugador"
+        : "CONCAT(nombre, ' ', apellido) as jugador";
+    $logoCols = $isParejas ? "logo, logo2" : "logo";
+
     if ($sistema === 'STABLEFORD') {
         if ($gross == 1 || $grossstb == 1) {
-            // Stableford Gross — higher points first, then orden ASC, then last-card stableford gross score, then tarjetaid DESC
-            if ($isParejas) {
-                $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                               acumstbgross as sa, sistema
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
-            } else {
-                $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                               acumstbgross as sa, sistema, grupoid
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
-            }
+            $sql = "SELECT $logoCols, $nameExpr, acumstbgross as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY salidagrupoid, acumstbgross DESC, orden ASC,
+                             f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
         } else {
-            // Stableford Neto — higher net stableford points first, then orden ASC, then last-card neto stableford score, then tarjetaid DESC
-            if ($isParejas) {
-                $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                               acumsa as sa, sistema
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
-            } else {
-                $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                               acumsa as sa, sistema, grupoid
-                        FROM $viewName
-                        WHERE salidagrupoid = $salid
-                        ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
-            }
+            $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY salidagrupoid, acumsa DESC, orden ASC,
+                             f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
+        }
+        // Legacy override: grossstb=1 swaps to acumso ASC ordering.
+        if ($grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY salidagrupoid, acumso, orden DESC,
+                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
         }
     } else {
-        // Stroke Play — preserve tee-sheet player position inside the group.
-        $scoreCol = ($gross == 1) ? 'acumso' : 'acumsa';
-        if ($isParejas) {
-            $sql = "SELECT logo, logo2, CONCAT(nombre, ' ') as jugador,
-                           $scoreCol as sa, sistema
+        if ($gross == 1 || $grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
+                    ORDER BY salidagrupoid, acumso, orden DESC,
+                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
         } else {
-            $sql = "SELECT logo, CONCAT(nombre, ' ', apellido) as jugador,
-                           $scoreCol as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
                     FROM $viewName
                     WHERE salidagrupoid = $salid
-                    ORDER BY salidagrupoid, orden DESC, tarjetaid DESC";
+                    ORDER BY salidagrupoid, acumsa, orden DESC,
+                             f_score_dia_saxU(jugadorid), tarjetaid DESC";
+        }
+        // Legacy override: grossstb=1 swaps to acumso ordering.
+        if ($grossstb == 1) {
+            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+                    FROM $viewName
+                    WHERE salidagrupoid = $salid
+                    ORDER BY salidagrupoid, acumso, orden DESC,
+                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
         }
     }
 
-//echo $sql.'<br>';
     $playerRows = query_all($conn, $sql);
 
     $players = [];

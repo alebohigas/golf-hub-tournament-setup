@@ -31,6 +31,35 @@ $sqlRounds = "SELECT COUNT(*) AS total FROM caljuego
 $roundsRow = query_one($conn, $sqlRounds);
 $totalRounds = (int)($roundsRow['total'] ?? 0);
 
+// ── Current live-round closure status ──
+// Live closes a category only when EVERY eligible NORMAL player has a closed
+// tarjeta (`statlsc = 1`) for the latest played/created round date. This is
+// intentionally round-based, not whole-tournament based, so completed rounds
+// move out of Live and become visible in Resultados.
+$eligibleWhere = "j.categoriaid = $cid AND j.torneoid = $tid AND j.estatus = 'NORMAL'";
+if ($gross != '1') { $eligibleWhere .= " AND j.campgross = 0"; }
+$expectedRow = query_one($conn, "SELECT COUNT(*) AS total FROM jugadores j WHERE $eligibleWhere");
+$expectedPlayers = (int)($expectedRow['total'] ?? 0);
+$currentRoundRow = query_one($conn, "SELECT DATE(MAX(t.fecha_juego)) AS fecha
+                                     FROM tarjetas t
+                                     JOIN jugadores j ON (j.id = t.jugadorid)
+                                     WHERE $eligibleWhere
+                                       AND t.torneoid = $tid");
+$currentRoundDate = $currentRoundRow['fecha'] ?? null;
+$currentClosedPlayers = 0;
+if ($currentRoundDate) {
+    $fecEsc = esc($conn, $currentRoundDate);
+    $closedRoundRow = query_one($conn, "SELECT COUNT(DISTINCT t.jugadorid) AS total
+                                        FROM tarjetas t
+                                        JOIN jugadores j ON (j.id = t.jugadorid)
+                                        WHERE $eligibleWhere
+                                          AND t.torneoid = $tid
+                                          AND DATE(t.fecha_juego) = '$fecEsc'
+                                          AND t.statlsc = 1");
+    $currentClosedPlayers = (int)($closedRoundRow['total'] ?? 0);
+}
+$categoryClosed = ($expectedPlayers > 0 && $currentRoundDate && $currentClosedPlayers >= $expectedPlayers) ? 1 : 0;
+
 // ── Course info (par, rating, slope) ──
 $salidaid = esc($conn, $catInfo['salida']);
 $sql = "SELECT b.campoid, rating, slope, tee, parcampo
@@ -290,18 +319,47 @@ foreach ($rows as $row) {
 }
 
 /**
- * Re-sort by closed-only Total so the leaderboard reflects what users actually see.
- *   Stableford → DESC (more points = better)
- *   Stroke     → ASC  (lower diff to par = better)
- * Tie-break: keep original order from the SQL (stable sort via usort + index).
+ * Re-sort by the same value shown in the main leaderboard column.
+ *   - With previous closed rounds: use closed-only Total so the live "Hoy"
+ *     column does NOT reshuffle R2/R3 group/leaderboard order.
+ *   - With no closed rounds yet: use today's live value, matching legacy Live.
+ *   - Stroke: lower first. Stableford: higher first.
+ * Tie-break keeps the original SQL order deterministically.
  */
+foreach ($players as $i => &$player) {
+    $player['_originalIndex'] = $i;
+    // Match the EXACT value rendered in the frontend "Dif Par / Total" cell:
+    //   - hasPrevClosed && todayClosed → score (today is already inside score)
+    //   - hasPrevClosed && today open  → score + todayScore
+    //   - no prev closed               → todayScore (R1 in progress)
+    // Sorting on this single value (no F/no-F grouping, no thru tiers).
+    //   Stableford → DESC, Stroke → ASC.
+    $prevDates    = $player['prevRoundDates'] ?? [];
+    $hasPrevClosed = is_array($prevDates) && count($prevDates) > 0;
+    $todayClosed  = ($currentRoundDate !== null) && in_array($currentRoundDate, $prevDates, true);
+    $score        = (int)($player['score'] ?? 0);
+    $todayScore   = (int)($player['todayScore'] ?? 0);
+    if ($hasPrevClosed) {
+        $player['_sortScore'] = $score + ($todayClosed ? 0 : $todayScore);
+    } else {
+        $player['_sortScore'] = $todayScore;
+    }
+}
+unset($player);
+
 usort($players, function($a, $b) use ($isStableford) {
-    $sa = (int)$a['score'];
-    $sb = (int)$b['score'];
-    if ($sa === $sb) return 0;
-    return $isStableford ? ($sb <=> $sa) : ($sa <=> $sb);
+    if ($a['_sortScore'] !== $b['_sortScore']) {
+        return $isStableford
+            ? ($b['_sortScore'] <=> $a['_sortScore'])
+            : ($a['_sortScore'] <=> $b['_sortScore']);
+    }
+    return $a['_originalIndex'] <=> $b['_originalIndex'];
 });
-foreach ($players as $i => $_) { $players[$i]['position'] = $i + 1; }
+
+foreach ($players as $i => $_) {
+    unset($players[$i]['_originalIndex'], $players[$i]['_sortScore']);
+    $players[$i]['position'] = $i + 1;
+}
 
 json_response([
     'categoryId'   => $catInfo['categoria_id'],
@@ -312,6 +370,10 @@ json_response([
     'gross'        => (int)$gross,
     'par'          => $parcampo,
     'totalRounds'  => $totalRounds,
+    'currentRoundDate' => $currentRoundDate,
+    'expectedPlayers' => $expectedPlayers,
+    'currentClosedPlayers' => $currentClosedPlayers,
+    'categoryClosed' => $categoryClosed,
     'course'       => $courseInfo ? [
         'rating' => (float)($courseInfo['rating'] ?? 0),
         'slope'  => (int)($courseInfo['slope'] ?? 0),

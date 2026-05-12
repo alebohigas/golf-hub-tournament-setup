@@ -22,6 +22,7 @@ import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
 import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
+import AdminBrackets from '@/components/admin/AdminBrackets';
 import { 
   Shield, 
   LogOut, 
@@ -44,6 +45,7 @@ import {
   Bell,
   Upload,
   ClipboardList,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -340,6 +342,9 @@ const AdminDashboard = () => {
           <TabsTrigger value="registro" className="gap-2">
             <ClipboardList className="h-4 w-4" />
             <span className="hidden sm:inline">Pre-Registro</span>
+          <TabsTrigger value="brackets" className="gap-2">
+            <Trophy className="h-4 w-4" />
+            <span className="hidden sm:inline">Brackets</span>
           </TabsTrigger>
         </TabsList>
 
@@ -459,6 +464,11 @@ const AdminDashboard = () => {
           />
         </TabsContent>
 
+        {/* Archivos Tab — upload images + PDFs to the server */}
+        <TabsContent value="archivos">
+          <AdminUploads />
+        </TabsContent>
+
         {/* Convocatoria Tab */}
         <TabsContent value="convocatoria">
           <AdminConvocatoria />
@@ -487,6 +497,9 @@ const AdminDashboard = () => {
         {/* Pre-Registro Tab — configures public registration form fields */}
         <TabsContent value="registro">
           <AdminRegistro />
+        {/* Brackets Tab — Match Play / Knockout configuration per prize */}
+        <TabsContent value="brackets">
+          <AdminBrackets />
         </TabsContent>
       </Tabs>
 

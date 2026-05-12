@@ -323,13 +323,9 @@ export interface DesempatesData {
 
 /** Cómo decidir empates — Valle Alto 2026 */
 export const desempatesData: DesempatesData = {
-  intro:
-    'Estos son los criterios oficiales que el Comité utiliza para resolver empates, tanto para definir el corte como para decidir trofeos. En Stroke Play se considera el menor score; en Stableford se considera la menor cantidad de puntos en la segunda vuelta para definir la mejor posición en la tabla.',
+  intro: 'Se utilizarán los siguientes términos para definir corte',
   paraCorte: [
-    'Mejor score de los hoyos 10 al 18 de la ronda 1.',
-    'Si persiste el empate: mejor score de los hoyos 13 al 18 de la ronda 1.',
-    'Si persiste el empate: mejor score de los hoyos 16 al 18 de la ronda 1.',
-    'Si persiste el empate: mejor score del hoyo 18 de la ronda 1.',
+    'Se tomará como primer criterio el mejor score de la última ronda. Si persistiera el empate, el segundo criterio será comparar el score de los hoyos del 10 al 18 de la última ronda, continuando con los hoyos del 13 al 18, 16 al 18 y por último el hoyo 18. En caso de persistir el empate se hará lo mismo con los hoyos del 1 al 9.',
   ],
   paraTrofeos: [
     'Solo para el primer lugar en todas las categorías Gross o Neto se jugará a muerte súbita SIN VENTAJAS.',

@@ -14,7 +14,8 @@
  * expands their live scorecard fetched from live_tarjeta.php
  */
 
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
@@ -116,6 +117,10 @@ interface LiveScoringResponse {
   type: 'stroke' | 'stableford';
   gross: number;
   par: number;
+  /** 1 when every eligible category player has statlsc=1 for the current round */
+  categoryClosed?: number;
+  /** YYYY-MM-DD of the current (in-progress or just-closed) round */
+  currentRoundDate?: string | null;
   course: { rating: number; slope: number; tee: string } | null;
   players: LivePlayer[];
 }
@@ -142,13 +147,15 @@ const getStrokeScoreClass = (difpar: number): string => {
 
 /**
  * Check if a player has finished the tournament.
- * Shows "F" when EITHER:
- *   - the player's current/latest scorecard is closed (statlsc=1) → `todayClosed`
- *   - all scheduled scorecards are closed → `finished`
- * Falls back to legacy "thru >= 18" only when both flags are absent.
+ * A player is considered "F" (finished for the current round) when their
+ * scorecard for the current round date has been closed (statlsc=1) — i.e.
+ * the current round date appears in their `prevRoundDates` list.
+ * Falls back to:
+ *   - backend `finished` flag (whole-tournament completion), then
+ *   - legacy "thru >= 18" when neither signal is available.
  */
-const isPlayerFinished = (player: LivePlayer): boolean => {
-  if (typeof player.todayClosed === 'number' && player.todayClosed === 1) return true;
+const isPlayerFinished = (player: LivePlayer, currentRoundDate?: string | null): boolean => {
+  if (currentRoundDate && player.prevRoundDates?.includes(currentRoundDate)) return true;
   if (typeof player.finished === 'number') return player.finished === 1;
   return player.thru >= 18;
 };
@@ -174,10 +181,38 @@ const canOpenTodayScorecard = (player: LivePlayer): boolean => {
  * Format the "Thru" column display
  * Shows "F" for finished players (tournament complete), hole number otherwise, "-" if 0
  */
-const formatThru = (player: LivePlayer): string => {
-  if (isPlayerFinished(player)) return 'F';
+const formatThru = (player: LivePlayer, currentRoundDate?: string | null): string => {
+  if (isPlayerFinished(player, currentRoundDate)) return 'F';
   if (player.thru === 0) return '-';
   return String(player.thru);
+};
+
+/**
+ * Check if the Hoy score should open a scorecard.
+ * The live API can report a valid current-day score while `thru` is 0 once the card is closed,
+ * so clickability must be based on the displayed Hoy value instead of only holes-in-progress.
+ *
+ * Additionally, if the category's current round date is in the future (e.g. category being
+ * set up for the next day), the scorecard MUST NOT be openable. Only allow when the round
+ * date matches today's local date (YYYY-MM-DD).
+ */
+const canOpenTodayScorecard = (
+  player: LivePlayer,
+  currentRoundDate?: string | null
+): boolean => {
+  if (!(typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))) {
+    return false;
+  }
+  // If we don't know the round date, default to allowing the click (legacy behavior).
+  if (!currentRoundDate) return true;
+  // Build today's local YYYY-MM-DD without timezone shifts.
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // currentRoundDate may include time; take the date portion only.
+  const roundDateStr = String(currentRoundDate).slice(0, 10);
+  // Only block when the round date is strictly in the FUTURE (set up for next day).
+  // Today or past dates remain clickable so live categories keep working normally.
+  return roundDateStr <= todayStr;
 };
 
 /**
@@ -194,6 +229,14 @@ const isCategoryCompleted = (players: LivePlayer[]): boolean => {
 const Live = () => {
   /** Currently selected category entry */
   const [selected, setSelected] = useState<LiveScoringEntry | null>(null);
+
+  /**
+   * Deep-link support: when arriving via /live?categoria=<id> (e.g. from the
+   * Resultados disclaimer LIVE link), auto-select that category once the
+   * site config has loaded the enabled entries. Runs only while no category
+   * is selected so it never overrides user navigation.
+   */
+  const [searchParams] = useSearchParams();
 
   /** Expanded scorecard state: playerId or null */
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
@@ -213,6 +256,18 @@ const Live = () => {
     .filter(e => e.enabled)
     .sort((a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId)));
 
+  useEffect(() => {
+    if (selected) return;
+    const wanted = searchParams.get('categoria');
+    if (!wanted) return;
+    const match = enabledEntries.find(e => String(e.categoryId) === String(wanted));
+    if (match) setSelected(match);
+    // enabledEntries changes identity each render but its content is what
+    // matters; keying on length + the param is enough to trigger once data
+    // arrives.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, enabledEntries.length]);
+
   /** Pre-fetch all category leaderboards to detect completion status on card view */
   const categoryQueries = useQueries({
     queries: enabledEntries.map(entry => ({
@@ -229,8 +284,11 @@ const Live = () => {
     const map = new Map<string, boolean>();
     enabledEntries.forEach((entry, idx) => {
       const data = categoryQueries[idx]?.data;
-      if (data && data.players.length > 0) {
-        map.set(entry.categoryId, isCategoryCompleted(data.players));
+      if (data) {
+        map.set(entry.categoryId, typeof data.categoryClosed === 'number'
+          ? data.categoryClosed === 1
+          : isCategoryCompleted(data.players)
+        );
       }
     });
     return map;
@@ -323,6 +381,19 @@ const Live = () => {
    * Shows the in-progress live scorecard for the current round only,
    * fetched from live_tarjeta.php.
    */
+  /**
+   * Whether the "Hoy" (today) live scorecard column should be clickable
+   * for a given player. The live scorecard is only available when the
+   * player's most recent card exists AND is still open (statlsc != 1).
+   * Closed cards are shown as "F" in the Thru column and are intentionally
+   * non-interactive — historical rounds are reached via the "Total" column.
+   */
+  const canOpenTodayScorecard = (player: LivePlayer): boolean => {
+    if (!player.hasCurrentCard) return false;
+    if (player.todayClosed === 1) return false;
+    return true;
+  };
+
   const handleTodayClick = async (player: LivePlayer) => {
     // Toggle off if already expanded as "today" (use a sentinel suffix)
     const expandKey = `${player.playerId}::today`;
@@ -332,8 +403,6 @@ const Live = () => {
       return;
     }
 
-    // Only open the live scorecard when the latest card exists and is not closed.
-    // Closed cards (statlsc=1) show F in "Thru" and are intentionally disabled here.
     if (!canOpenTodayScorecard(player)) return;
 
     setExpandedPlayerId(expandKey);
@@ -343,7 +412,7 @@ const Live = () => {
     try {
       const tipo = selected?.tipo || (isStroke ? 'stroke' : 'stableford');
       const scoringType = selected?.gross === 1 ? 'GROSS' : 'NETO';
-      const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
+      const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType, selected?.categoryId);
       setScorecardStack([live]);
     } catch (err) {
       console.error('Failed to fetch live scorecard:', err);
@@ -408,7 +477,7 @@ const Live = () => {
                 <p className="text-muted-foreground mt-2">Selecciona una categoría</p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
                 {enabledEntries.map((entry, idx) => {
                   const isCompleted = completionMap.get(entry.categoryId) ?? false;
 
@@ -561,29 +630,63 @@ const Live = () => {
                                 {/*
                                   Total column — clickable when player has previously CLOSED scorecards.
                                   Click expands all previous closed cards (statlsc=1) stacked by date.
-                                  Live/in-progress round is NOT included here (see "Hoy").
+                                  In Live, the displayed Total INCLUDES the in-progress round
+                                  (player.score from closed cards + player.todayScore from the
+                                  card currently being played). This is intentional and ONLY
+                                  applies to /live — Resultados keeps Total = closed rounds only.
+                                  Special case: when the player has zero closed rounds yet (e.g. the
+                                  very first round in progress), the "Total"/"Dif Par" column would
+                                  otherwise always show "E" (0). To avoid that misleading display we
+                                  mirror the Hoy value here so the leaderboard still reflects current
+                                  standings during R1.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {((player.prevRoundDates && player.prevRoundDates.length > 0) || canOpenTodayScorecard(player)) ? (
+                                  {(() => {
+                                    const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
+                                    // Live Total = closed rounds (player.score) + today's in-progress
+                                    // round (player.todayScore) ONLY while today's card is still open.
+                                    // Once today's card is closed (statlsc=1 → "F" in Thru, and the
+                                    // currentRoundDate appears inside player.prevRoundDates from the
+                                    // backend), its value is already baked into player.score, so we
+                                    // must NOT add todayScore again — otherwise it would be counted twice.
+                                    const todayDate = leaderboard?.currentRoundDate ?? null;
+                                    const todayClosed = !!(todayDate && player.prevRoundDates?.includes(todayDate));
+                                    const todayVal = (typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))
+                                      ? player.todayScore
+                                      : 0;
+                                    // If today is closed, player.score already contains today's value.
+                                    // If today is still open, add the in-progress todayScore on top of
+                                    // the previously-closed total (player.score).
+                                    const displayValue = hasPrevClosed
+                                      ? ((player.score ?? 0) + (todayClosed ? 0 : todayVal))
+                                      : todayVal;
+                                    if (hasPrevClosed) {
+                                      return (
                                     <button
                                       onClick={() => handleTotalClick(player)}
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
-                                        isStroke ? getStrokeScoreClass(player.score) : 'font-bold'
+                                        isStroke ? getStrokeScoreClass(displayValue) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
                                       title="Ver tarjetas de rondas previas y ronda en curso"
                                     >
-                                      {isStroke ? formatDifPar(player.score) : player.score}
+                                      {isStroke ? formatDifPar(displayValue) : displayValue}
                                     </button>
-                                  ) : (
-                                    <span className={`py-3 px-2 inline-block ${isStroke ? getStrokeScoreClass(player.score) : 'font-bold'}`}>
-                                      {isStroke ? formatDifPar(player.score) : player.score}
-                                    </span>
-                                  )}
+                                      );
+                                    }
+                                    return (
+                                      <span
+                                        className={`py-3 px-2 inline-block ${isStroke ? getStrokeScoreClass(displayValue) : 'font-bold'}`}
+                                        title="Aún sin rondas cerradas — se muestra el score de hoy"
+                                      >
+                                        {isStroke ? formatDifPar(displayValue) : displayValue}
+                                      </span>
+                                    );
+                                  })()}
                                 </TableCell>
 
                                 {/* Holes completed — shows "F" when player has all scorecards closed (statlsc=1) */}
-                                <TableCell className={`text-center text-sm ${isPlayerFinished(player) ? 'font-bold text-green-700' : ''}`}>
-                                  {formatThru(player)}
+                                <TableCell className={`text-center text-sm ${isPlayerFinished(player, leaderboard?.currentRoundDate) ? 'font-bold text-green-700' : ''}`}>
+                                  {formatThru(player, leaderboard?.currentRoundDate)}
                                 </TableCell>
 
                                 {/*
@@ -591,7 +694,7 @@ const Live = () => {
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
                                 <TableCell className="text-center p-0">
-                                  {canOpenTodayScorecard(player) ? (
+                                  {canOpenTodayScorecard(player, leaderboard?.currentRoundDate) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
                                       className={`w-full py-3 px-2 text-sm transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
