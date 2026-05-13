@@ -192,6 +192,18 @@ const Registro = () => {
   /** Inline error message for the handicap field (shown on blur). */
   const [handicapError, setHandicapError] = useState<string>('');
 
+  /** Inline error / suggestion for the email field (shown on blur). */
+  const [emailError, setEmailError] = useState<string>('');
+  const [emailSuggestion, setEmailSuggestion] = useState<string>('');
+  const [emailChecking, setEmailChecking] = useState(false);
+
+  /** Inline error for the phone field. */
+  const [phoneError, setPhoneError] = useState<string>('');
+  /** Selected dial code (defaults to MX). */
+  const [phoneCode, setPhoneCode] = useState<string>('+52');
+  /** Local 10-digit (or country-specific) phone digits, no spaces. */
+  const [phoneLocal, setPhoneLocal] = useState<string>('');
+
   /**
    * Field config sorted by display_order, enabled only.
    * UX rule: `reg_sexo` and `reg_fechanac` MUST always render right
@@ -245,6 +257,96 @@ const Registro = () => {
     } else {
       setHandicapError('');
     }
+  };
+
+  // ============= Email validation =============
+
+  /** Strict client-side email syntax. RFC-ish; rejects spaces, multiple @, etc. */
+  const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+  /** Validate email on blur: regex + server MX check + typo suggestion. */
+  const validateEmailOnBlur = async () => {
+    const v = (values.reg_correo || '').trim();
+    setEmailSuggestion('');
+    if (v === '') { setEmailError(''); return; }
+    if (!EMAIL_RE.test(v)) {
+      const msg = 'Correo inválido. Verifica el formato (ej: nombre@dominio.com)';
+      setEmailError(msg);
+      toast({ title: 'Correo inválido', description: msg, variant: 'destructive' });
+      return;
+    }
+    setEmailChecking(true);
+    try {
+      const res = await fetch(getEmailValidateUrl(v));
+      const j = await res.json().catch(() => ({}));
+      if (j?.valid) {
+        setEmailError('');
+        return;
+      }
+      if (j?.reason === 'typo' && j?.suggestion) {
+        setEmailSuggestion(j.suggestion);
+        const msg = `¿Quisiste decir ${j.suggestion}?`;
+        setEmailError(msg);
+        toast({ title: 'Posible error en el correo', description: msg, variant: 'destructive' });
+      } else if (j?.reason === 'no_mx') {
+        const msg = 'El dominio del correo no existe o no recibe correos.';
+        setEmailError(msg);
+        toast({ title: 'Correo inválido', description: msg, variant: 'destructive' });
+      } else {
+        const msg = 'Correo inválido.';
+        setEmailError(msg);
+        toast({ title: 'Correo inválido', description: msg, variant: 'destructive' });
+      }
+    } catch {
+      // Network failure — don't block, server check is best-effort.
+      setEmailError('');
+    } finally {
+      setEmailChecking(false);
+    }
+  };
+
+  /** Apply the typo suggestion banner. */
+  const acceptEmailSuggestion = () => {
+    if (!emailSuggestion) return;
+    setValue('reg_correo', emailSuggestion);
+    setEmailError('');
+    setEmailSuggestion('');
+  };
+
+  // ============= Phone validation =============
+
+  /** Selected country's required digit length. */
+  const phoneLenRequired = useMemo(
+    () => PHONE_CODES.find(p => p.code === phoneCode)?.len ?? 10,
+    [phoneCode]
+  );
+
+  /** Re-compose reg_telefono whenever code or local digits change. */
+  useEffect(() => {
+    if (!phoneLocal) {
+      setValue('reg_telefono', '');
+      return;
+    }
+    setValue('reg_telefono', `${phoneCode} ${phoneLocal}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneCode, phoneLocal]);
+
+  /** Validate the phone on blur (length + digits-only). */
+  const validatePhoneOnBlur = () => {
+    if (!phoneLocal) { setPhoneError(''); return; }
+    if (!/^\d+$/.test(phoneLocal)) {
+      const msg = 'Sólo se permiten números (sin espacios ni guiones).';
+      setPhoneError(msg);
+      toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
+      return;
+    }
+    if (phoneLocal.length !== phoneLenRequired) {
+      const msg = `Debe tener exactamente ${phoneLenRequired} dígitos.`;
+      setPhoneError(msg);
+      toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
+      return;
+    }
+    setPhoneError('');
   };
 
   /** Load countries on mount (only if the field is enabled). */
