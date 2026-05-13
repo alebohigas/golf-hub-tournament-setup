@@ -56,6 +56,10 @@ interface ClubRow {
   ciudad?: string;
   estado?: string;
   pais?: string;
+  /** Optional location IDs (preferred when present — exact match). */
+  id_pais?: number;
+  id_estado?: number;
+  id_ciudad?: number;
 }
 
 /** Field-name → suggested placeholder text shown as greyed example. */
@@ -87,6 +91,19 @@ const calcAge = (yyyymmdd: string): number | null => {
   if (beforeBirthday) age -= 1;
   return age;
 };
+
+/**
+ * Normalize a string for tolerant matching: lowercase, trimmed, and with
+ * combining diacritics stripped ("México" → "mexico", "Nuevo León" →
+ * "nuevo leon"). Used when matching club location strings against the
+ * country/state/city dropdown lists.
+ */
+const norm = (s: string): string =>
+  (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
 
 // ============= Component =============
 
@@ -286,39 +303,60 @@ const Registro = () => {
    * dropdown lists. We only set values that resolve cleanly to an ID.
    */
   useEffect(() => {
-    const clubName = (values.reg_club || '').trim().toLowerCase();
+    const clubName = norm(values.reg_club || '');
     if (!clubName) return;
-    const match = clubs.find(c => c.nombre.trim().toLowerCase() === clubName);
+    const match = clubs.find(c => norm(c.nombre) === clubName);
     if (!match) return;
 
-    // 1) Country: try to match by name against the loaded countries list.
-    const paisName = (match.pais || '').trim().toLowerCase();
-    const country = paisName
-      ? countries.find(c => c.name.trim().toLowerCase() === paisName)
-      : countries.find(c => c.name.trim().toLowerCase() === 'mexico'
-                         || c.name.trim().toLowerCase() === 'méxico');
+    // 1) Country resolution priority:
+    //    a) explicit id_pais from clubs table
+    //    b) name match (accent-insensitive) against countries list
+    //    c) sensible default of "mexico" / "méxico" / "mx" / "mex"
+    let country = match.id_pais
+      ? countries.find(c => c.id === match.id_pais)
+      : undefined;
+    if (!country) {
+      const paisName = norm(match.pais || '');
+      country = paisName
+        ? countries.find(c => norm(c.name) === paisName)
+        : countries.find(c => ['mexico', 'mx', 'mex'].includes(norm(c.name)));
+    }
     if (country && values.reg_pais !== String(country.id)) {
       setValues(v => ({ ...v, reg_pais: String(country.id) }));
       return; // wait for states to load on next render
     }
 
     // 2) State (depends on states list being loaded for current country)
-    const estadoName = (match.estado || '').trim().toLowerCase();
-    if (estadoName && states.length) {
-      const st = states.find(s => s.name.trim().toLowerCase() === estadoName);
-      if (st && values.reg_estado !== String(st.id)) {
-        setValues(v => ({ ...v, reg_estado: String(st.id) }));
-        return;
+    let st = match.id_estado && states.length
+      ? states.find(s => s.id === match.id_estado)
+      : undefined;
+    if (!st && states.length) {
+      const estadoName = norm(match.estado || '');
+      if (estadoName) {
+        st = states.find(s => norm(s.name) === estadoName)
+          || states.find(s => norm(s.name).includes(estadoName)
+                           || estadoName.includes(norm(s.name)));
       }
+    }
+    if (st && values.reg_estado !== String(st.id)) {
+      setValues(v => ({ ...v, reg_estado: String(st.id) }));
+      return;
     }
 
     // 3) City (depends on cities list being loaded for current state)
-    const ciudadName = (match.ciudad || '').trim().toLowerCase();
-    if (ciudadName && cities.length) {
-      const ci = cities.find(c => c.name.trim().toLowerCase() === ciudadName);
-      if (ci && values.reg_ciudad !== String(ci.id)) {
-        setValues(v => ({ ...v, reg_ciudad: String(ci.id) }));
+    let ci = match.id_ciudad && cities.length
+      ? cities.find(c => c.id === match.id_ciudad)
+      : undefined;
+    if (!ci && cities.length) {
+      const ciudadName = norm(match.ciudad || '');
+      if (ciudadName) {
+        ci = cities.find(c => norm(c.name) === ciudadName)
+          || cities.find(c => norm(c.name).includes(ciudadName)
+                           || ciudadName.includes(norm(c.name)));
       }
+    }
+    if (ci && values.reg_ciudad !== String(ci.id)) {
+      setValues(v => ({ ...v, reg_ciudad: String(ci.id) }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_club, clubs, countries, states, cities]);
