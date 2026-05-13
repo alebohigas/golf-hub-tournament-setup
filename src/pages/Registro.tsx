@@ -41,6 +41,7 @@ import {
   getLocationsCitiesUrl,
   getClubsUrl,
   getClubLookupUrl,
+  getEmailValidateUrl,
 } from '@/config/api';
 
 // ============= Types =============
@@ -105,6 +106,54 @@ const norm = (s: string): string =>
     .trim()
     .toLowerCase();
 
+/**
+ * Aliases used when matching club.estado strings to the `states` dropdown.
+ * The `clubs` table sometimes stores short forms ("CDMX") while the
+ * `states` table uses the full name ("Ciudad de México"). Keys/values are
+ * pre-normalized (no accents, lowercase). All entries are bidirectional.
+ */
+const STATE_ALIASES: Record<string, string[]> = {
+  'cdmx':              ['ciudad de mexico', 'distrito federal', 'df', 'mexico df', 'mexico city'],
+  'ciudad de mexico':  ['cdmx', 'distrito federal', 'df'],
+  'edomex':            ['estado de mexico', 'mexico'],
+  'estado de mexico':  ['edomex'],
+  'nuevo leon':        ['nl', 'n.l.'],
+  'baja california':   ['bc', 'b.c.'],
+  'baja california sur': ['bcs', 'b.c.s.'],
+  'quintana roo':      ['qroo', 'q. roo', 'qr'],
+  'san luis potosi':   ['slp', 's.l.p.'],
+};
+
+/** Returns true if two location strings refer to the same place,
+ *  considering the alias table above. Both inputs may be raw. */
+const locMatches = (a: string, b: string): boolean => {
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if ((STATE_ALIASES[na] || []).some(x => norm(x) === nb)) return true;
+  if ((STATE_ALIASES[nb] || []).some(x => norm(x) === na)) return true;
+  return false;
+};
+
+// ============= Phone country codes =============
+/** Mini list of country dial codes shown in the phone <Select>. MX first. */
+const PHONE_CODES: { code: string; flag: string; label: string; len: number }[] = [
+  { code: '+52', flag: '🇲🇽', label: 'México',         len: 10 },
+  { code: '+1',  flag: '🇺🇸', label: 'EE. UU. / CAN', len: 10 },
+  { code: '+34', flag: '🇪🇸', label: 'España',         len: 9  },
+  { code: '+54', flag: '🇦🇷', label: 'Argentina',      len: 10 },
+  { code: '+55', flag: '🇧🇷', label: 'Brasil',         len: 11 },
+  { code: '+56', flag: '🇨🇱', label: 'Chile',          len: 9  },
+  { code: '+57', flag: '🇨🇴', label: 'Colombia',       len: 10 },
+  { code: '+58', flag: '🇻🇪', label: 'Venezuela',      len: 10 },
+  { code: '+51', flag: '🇵🇪', label: 'Perú',           len: 9  },
+  { code: '+593', flag: '🇪🇨', label: 'Ecuador',       len: 9  },
+  { code: '+502', flag: '🇬🇹', label: 'Guatemala',     len: 8  },
+  { code: '+503', flag: '🇸🇻', label: 'El Salvador',   len: 8  },
+  { code: '+506', flag: '🇨🇷', label: 'Costa Rica',    len: 8  },
+];
+
 // ============= Component =============
 
 const Registro = () => {
@@ -142,6 +191,18 @@ const Registro = () => {
 
   /** Inline error message for the handicap field (shown on blur). */
   const [handicapError, setHandicapError] = useState<string>('');
+
+  /** Inline error / suggestion for the email field (shown on blur). */
+  const [emailError, setEmailError] = useState<string>('');
+  const [emailSuggestion, setEmailSuggestion] = useState<string>('');
+  const [emailChecking, setEmailChecking] = useState(false);
+
+  /** Inline error for the phone field. */
+  const [phoneError, setPhoneError] = useState<string>('');
+  /** Selected dial code (defaults to MX). */
+  const [phoneCode, setPhoneCode] = useState<string>('+52');
+  /** Local 10-digit (or country-specific) phone digits, no spaces. */
+  const [phoneLocal, setPhoneLocal] = useState<string>('');
 
   /**
    * Field config sorted by display_order, enabled only.
@@ -196,6 +257,96 @@ const Registro = () => {
     } else {
       setHandicapError('');
     }
+  };
+
+  // ============= Email validation =============
+
+  /** Strict client-side email syntax. RFC-ish; rejects spaces, multiple @, etc. */
+  const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+  /** Validate email on blur: regex + server MX check + typo suggestion. */
+  const validateEmailOnBlur = async () => {
+    const v = (values.reg_correo || '').trim();
+    setEmailSuggestion('');
+    if (v === '') { setEmailError(''); return; }
+    if (!EMAIL_RE.test(v)) {
+      const msg = 'Correo inválido. Verifica el formato (ej: nombre@dominio.com)';
+      setEmailError(msg);
+      toast({ title: 'Correo inválido', description: msg, variant: 'destructive' });
+      return;
+    }
+    setEmailChecking(true);
+    try {
+      const res = await fetch(getEmailValidateUrl(v));
+      const j = await res.json().catch(() => ({}));
+      if (j?.valid) {
+        setEmailError('');
+        return;
+      }
+      if (j?.reason === 'typo' && j?.suggestion) {
+        setEmailSuggestion(j.suggestion);
+        const msg = `¿Quisiste decir ${j.suggestion}?`;
+        setEmailError(msg);
+        toast({ title: 'Posible error en el correo', description: msg, variant: 'destructive' });
+      } else if (j?.reason === 'no_mx') {
+        const msg = 'El dominio del correo no existe o no recibe correos.';
+        setEmailError(msg);
+        toast({ title: 'Correo inválido', description: msg, variant: 'destructive' });
+      } else {
+        const msg = 'Correo inválido.';
+        setEmailError(msg);
+        toast({ title: 'Correo inválido', description: msg, variant: 'destructive' });
+      }
+    } catch {
+      // Network failure — don't block, server check is best-effort.
+      setEmailError('');
+    } finally {
+      setEmailChecking(false);
+    }
+  };
+
+  /** Apply the typo suggestion banner. */
+  const acceptEmailSuggestion = () => {
+    if (!emailSuggestion) return;
+    setValue('reg_correo', emailSuggestion);
+    setEmailError('');
+    setEmailSuggestion('');
+  };
+
+  // ============= Phone validation =============
+
+  /** Selected country's required digit length. */
+  const phoneLenRequired = useMemo(
+    () => PHONE_CODES.find(p => p.code === phoneCode)?.len ?? 10,
+    [phoneCode]
+  );
+
+  /** Re-compose reg_telefono whenever code or local digits change. */
+  useEffect(() => {
+    if (!phoneLocal) {
+      setValue('reg_telefono', '');
+      return;
+    }
+    setValue('reg_telefono', `${phoneCode} ${phoneLocal}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneCode, phoneLocal]);
+
+  /** Validate the phone on blur (length + digits-only). */
+  const validatePhoneOnBlur = () => {
+    if (!phoneLocal) { setPhoneError(''); return; }
+    if (!/^\d+$/.test(phoneLocal)) {
+      const msg = 'Sólo se permiten números (sin espacios ni guiones).';
+      setPhoneError(msg);
+      toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
+      return;
+    }
+    if (phoneLocal.length !== phoneLenRequired) {
+      const msg = `Debe tener exactamente ${phoneLenRequired} dígitos.`;
+      setPhoneError(msg);
+      toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
+      return;
+    }
+    setPhoneError('');
   };
 
   /** Load countries on mount (only if the field is enabled). */
@@ -333,7 +484,7 @@ const Registro = () => {
     if (!st && states.length) {
       const estadoName = norm(match.estado || '');
       if (estadoName) {
-        st = states.find(s => norm(s.name) === estadoName)
+        st = states.find(s => locMatches(s.name, match.estado || ''))
           || states.find(s => norm(s.name).includes(estadoName)
                            || estadoName.includes(norm(s.name)));
       }
@@ -350,7 +501,7 @@ const Registro = () => {
     if (!ci && cities.length) {
       const ciudadName = norm(match.ciudad || '');
       if (ciudadName) {
-        ci = cities.find(c => norm(c.name) === ciudadName)
+        ci = cities.find(c => locMatches(c.name, match.ciudad || ''))
           || cities.find(c => norm(c.name).includes(ciudadName)
                            || ciudadName.includes(norm(c.name)));
       }
@@ -393,6 +544,24 @@ const Registro = () => {
       const v = (values.reg_handicap || '').trim();
       if (v && !HANDICAP_RE.test(v)) {
         validateHandicapOnBlur();
+        return;
+      }
+    }
+    // Block submission when email failed validation.
+    if (isFieldEnabled('reg_correo') && (emailError || (values.reg_correo && !EMAIL_RE.test(values.reg_correo.trim())))) {
+      validateEmailOnBlur();
+      return;
+    }
+    // Block submission when phone is incomplete or invalid.
+    if (isFieldEnabled('reg_telefono')) {
+      const requiredPhone = isFieldRequired('reg_telefono');
+      if (requiredPhone && !phoneLocal) {
+        setPhoneError('Ingresa tu teléfono.');
+        toast({ title: 'Teléfono requerido', variant: 'destructive' });
+        return;
+      }
+      if (phoneLocal && (phoneLocal.length !== phoneLenRequired || !/^\d+$/.test(phoneLocal))) {
+        validatePhoneOnBlur();
         return;
       }
     }
@@ -515,6 +684,103 @@ const Registro = () => {
           <p className="text-xs text-muted-foreground">
             {eligibleCategories.length} categoría(s) compatible(s) con tus datos.
           </p>
+        </div>
+      );
+    }
+
+    if (name === 'reg_correo') {
+      // Email input with onBlur server-side MX/typo validation. Inline
+      // suggestion banner lets the user accept "did you mean ..." with one click.
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required={required}
+            placeholder={PLACEHOLDERS[name] ?? 'tu@correo.com'}
+            value={values[name] || ''}
+            onChange={e => {
+              setValue(name, e.target.value);
+              if (emailError) setEmailError('');
+              if (emailSuggestion) setEmailSuggestion('');
+            }}
+            onBlur={validateEmailOnBlur}
+            aria-invalid={!!emailError}
+            className={emailError ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {emailChecking && (
+            <p className="text-xs text-muted-foreground">Verificando dominio…</p>
+          )}
+          {emailError && !emailSuggestion && (
+            <p className="text-xs text-destructive">{emailError}</p>
+          )}
+          {emailSuggestion && (
+            <p className="text-xs text-destructive">
+              ¿Quisiste decir{' '}
+              <button
+                type="button"
+                className="underline font-medium"
+                onClick={acceptEmailSuggestion}
+              >
+                {emailSuggestion}
+              </button>
+              ?
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (name === 'reg_telefono') {
+      // Composite phone input: dial-code <Select> with flag emoji + digits-only
+      // text input. Joined value is mirrored into reg_telefono ("+52 5512345678").
+      const expectedLen = phoneLenRequired;
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <div className="flex gap-2">
+            <Select value={phoneCode} onValueChange={setPhoneCode}>
+              <SelectTrigger className="w-[120px]" aria-label="Lada">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PHONE_CODES.map(p => (
+                  <SelectItem key={p.code} value={p.code}>
+                    <span className="mr-2">{p.flag}</span>{p.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              id={id}
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              required={required}
+              maxLength={expectedLen}
+              placeholder={`${expectedLen} dígitos`}
+              value={phoneLocal}
+              onChange={e => {
+                // Strip everything that isn't a digit; cap at expected length.
+                const digits = e.target.value.replace(/\D/g, '').slice(0, expectedLen);
+                setPhoneLocal(digits);
+                if (phoneError) setPhoneError('');
+              }}
+              onBlur={validatePhoneOnBlur}
+              aria-invalid={!!phoneError}
+              className={phoneError ? 'border-destructive focus-visible:ring-destructive flex-1' : 'flex-1'}
+            />
+          </div>
+          {phoneError ? (
+            <p className="text-xs text-destructive">{phoneError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Selecciona la lada y escribe {expectedLen} dígitos sin espacios.
+            </p>
+          )}
         </div>
       );
     }
