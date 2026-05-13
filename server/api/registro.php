@@ -77,6 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac',
         'reg_es_socio', 'reg_tipo_socio', 'reg_club', 'reg_ghin',
         'reg_pais', 'reg_estado', 'reg_ciudad', 'reg_notas',
+        // Tallas (skipped silently if column doesn't exist on this DB)
+        'reg_talla_gorra', 'reg_talla_guante', 'reg_talla_camisa',
+        'reg_talla_tenis', 'reg_talla_pantalon', 'reg_talla_cinturon',
     ];
 
     $cols = [$torneoCol];
