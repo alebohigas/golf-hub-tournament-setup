@@ -38,16 +38,28 @@ $DEFAULT_FIELDS = [
     ['field_name' => 'reg_pais',       'field_label' => 'País',                                         'is_enabled' => 1, 'is_required' => 0, 'display_order' => 120, 'section' => 'socios'],
     ['field_name' => 'reg_estado',     'field_label' => 'Estado',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 130, 'section' => 'socios'],
     ['field_name' => 'reg_ciudad',     'field_label' => 'Ciudad',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 140, 'section' => 'socios'],
-    ['field_name' => 'reg_ghin',       'field_label' => 'GHIN / FMG ID',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 150, 'section' => 'socios'],
+    // Identificadores oficiales — al llenarse, sincroniza con tabla jugadores
+    ['field_name' => 'reg_spei',       'field_label' => 'ID SPEI (interno)',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 145, 'section' => 'socios'],
+    ['field_name' => 'numghinspei',    'field_label' => 'GHIN (FMG / USGA)',                            'is_enabled' => 1, 'is_required' => 0, 'display_order' => 150, 'section' => 'socios'],
+    // Dirección postal
+    ['field_name' => 'reg_direccion',  'field_label' => 'Dirección',                                    'is_enabled' => 0, 'is_required' => 0, 'display_order' => 152, 'section' => 'socios'],
+    ['field_name' => 'reg_cp',         'field_label' => 'Código postal',                                'is_enabled' => 0, 'is_required' => 0, 'display_order' => 154, 'section' => 'socios'],
     ['field_name' => 'reg_archivo',         'field_label' => 'Comprobante de pago',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 160, 'section' => 'adicionales'],
     ['field_name' => 'reg_notas',           'field_label' => 'Notas adicionales',                            'is_enabled' => 1, 'is_required' => 0, 'display_order' => 170, 'section' => 'adicionales'],
     // Tallas — desactivadas por defecto; el admin las activa según necesidad
-    ['field_name' => 'reg_talla_gorra',     'field_label' => 'Talla de gorra',                               'is_enabled' => 0, 'is_required' => 0, 'display_order' => 180, 'section' => 'adicionales'],
-    ['field_name' => 'reg_talla_guante',    'field_label' => 'Talla de guante',                              'is_enabled' => 0, 'is_required' => 0, 'display_order' => 190, 'section' => 'adicionales'],
-    ['field_name' => 'reg_talla_camisa',    'field_label' => 'Talla de camisa',                              'is_enabled' => 0, 'is_required' => 0, 'display_order' => 200, 'section' => 'adicionales'],
-    ['field_name' => 'reg_talla_tenis',     'field_label' => 'Talla de tenis (zapatos)',                     'is_enabled' => 0, 'is_required' => 0, 'display_order' => 210, 'section' => 'adicionales'],
+    ['field_name' => 'akron_talla',         'field_label' => 'Talla de playera',                             'is_enabled' => 0, 'is_required' => 0, 'display_order' => 180, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_gorra',     'field_label' => 'Talla de gorra',                               'is_enabled' => 0, 'is_required' => 0, 'display_order' => 185, 'section' => 'adicionales'],
+    ['field_name' => 'akron_talla_guante',  'field_label' => 'Talla de guante',                              'is_enabled' => 0, 'is_required' => 0, 'display_order' => 190, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_camisa',    'field_label' => 'Talla de camisa (alterna)',                    'is_enabled' => 0, 'is_required' => 0, 'display_order' => 200, 'section' => 'adicionales'],
+    ['field_name' => 'akron_calzado',       'field_label' => 'Talla de calzado / tenis',                     'is_enabled' => 0, 'is_required' => 0, 'display_order' => 210, 'section' => 'adicionales'],
     ['field_name' => 'reg_talla_pantalon',  'field_label' => 'Talla de pantalón',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 220, 'section' => 'adicionales'],
     ['field_name' => 'reg_talla_cinturon',  'field_label' => 'Talla de cinturón',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 230, 'section' => 'adicionales'],
+    // Código de promoción (jugador lo llena, admin lo valida)
+    ['field_name' => 'akron_codigo',        'field_label' => 'Código de promoción',                          'is_enabled' => 0, 'is_required' => 0, 'display_order' => 240, 'section' => 'adicionales'],
+    // === Sección REVISIÓN ADMIN — el jugador NO ve estos campos ===
+    ['field_name' => 'reg_cargo',           'field_label' => 'Cargo / pago registrado',                      'is_enabled' => 0, 'is_required' => 0, 'display_order' => 300, 'section' => 'revision'],
+    ['field_name' => 'akron_monto_pago',    'field_label' => 'Monto pagado',                                 'is_enabled' => 0, 'is_required' => 0, 'display_order' => 310, 'section' => 'revision'],
+    ['field_name' => 'akron_codigo_admin',  'field_label' => 'Código promoción (validación admin)',          'is_enabled' => 0, 'is_required' => 0, 'display_order' => 320, 'section' => 'revision'],
 ];
 
 /** Ensure the registro_form_fields table exists; if not, return defaults / refuse writes. */
