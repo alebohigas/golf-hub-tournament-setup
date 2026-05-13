@@ -16,25 +16,31 @@ require_once 'config.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
-/** Default field set — used when the DB has no rows for this tournament. */
+/**
+ * Default field set — used when the DB has no rows for this tournament.
+ * `section` groups fields into the progressive-disclosure UI sections:
+ *   - 'basica'      → identity, contact, hcp, género, fechanac, categoría
+ *   - 'socios'      → es_socio, tipo_socio, club, location
+ *   - 'adicionales' → comprobante, notas, future tallas
+ */
 $DEFAULT_FIELDS = [
-    ['field_name' => 'reg_nombre',     'field_label' => 'Nombre',                'is_enabled' => 1, 'is_required' => 1, 'display_order' => 10],
-    ['field_name' => 'reg_apellido',   'field_label' => 'Apellido',              'is_enabled' => 1, 'is_required' => 1, 'display_order' => 20],
-    ['field_name' => 'reg_correo',     'field_label' => 'Correo electrónico',    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 30],
-    ['field_name' => 'reg_telefono',   'field_label' => 'Teléfono',              'is_enabled' => 1, 'is_required' => 0, 'display_order' => 40],
-    ['field_name' => 'reg_handicap',   'field_label' => 'Hándicap',              'is_enabled' => 1, 'is_required' => 1, 'display_order' => 50],
-    ['field_name' => 'reg_categoria',  'field_label' => 'Categoría',             'is_enabled' => 1, 'is_required' => 1, 'display_order' => 60],
-    ['field_name' => 'reg_sexo',       'field_label' => 'Sexo',                  'is_enabled' => 1, 'is_required' => 0, 'display_order' => 70],
-    ['field_name' => 'reg_fechanac',   'field_label' => 'Fecha de nacimiento',   'is_enabled' => 1, 'is_required' => 0, 'display_order' => 80],
-    ['field_name' => 'reg_es_socio',   'field_label' => '¿Es socio del club?',   'is_enabled' => 1, 'is_required' => 1, 'display_order' => 90],
-    ['field_name' => 'reg_tipo_socio', 'field_label' => 'Tipo de socio',         'is_enabled' => 1, 'is_required' => 0, 'display_order' => 100],
-    ['field_name' => 'reg_club',       'field_label' => 'Club de procedencia',   'is_enabled' => 1, 'is_required' => 0, 'display_order' => 110],
-    ['field_name' => 'reg_ghin',       'field_label' => 'GHIN / FMG ID',         'is_enabled' => 1, 'is_required' => 0, 'display_order' => 120],
-    ['field_name' => 'reg_pais',       'field_label' => 'País',                  'is_enabled' => 1, 'is_required' => 0, 'display_order' => 130],
-    ['field_name' => 'reg_estado',     'field_label' => 'Estado',                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 140],
-    ['field_name' => 'reg_ciudad',     'field_label' => 'Ciudad',                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 150],
-    ['field_name' => 'reg_archivo',    'field_label' => 'Comprobante de pago',   'is_enabled' => 1, 'is_required' => 0, 'display_order' => 160],
-    ['field_name' => 'reg_notas',      'field_label' => 'Notas adicionales',     'is_enabled' => 1, 'is_required' => 0, 'display_order' => 170],
+    ['field_name' => 'reg_nombre',     'field_label' => 'Nombre',                                       'is_enabled' => 1, 'is_required' => 1, 'display_order' => 10,  'section' => 'basica'],
+    ['field_name' => 'reg_apellido',   'field_label' => 'Apellido',                                     'is_enabled' => 1, 'is_required' => 1, 'display_order' => 20,  'section' => 'basica'],
+    ['field_name' => 'reg_correo',     'field_label' => 'Correo electrónico',                           'is_enabled' => 1, 'is_required' => 1, 'display_order' => 30,  'section' => 'basica'],
+    ['field_name' => 'reg_telefono',   'field_label' => 'Teléfono',                                     'is_enabled' => 1, 'is_required' => 0, 'display_order' => 40,  'section' => 'basica'],
+    ['field_name' => 'reg_handicap',   'field_label' => 'Hándicap',                                     'is_enabled' => 1, 'is_required' => 1, 'display_order' => 50,  'section' => 'basica'],
+    ['field_name' => 'reg_sexo',       'field_label' => 'Género',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 60,  'section' => 'basica'],
+    ['field_name' => 'reg_fechanac',   'field_label' => 'Fecha de nacimiento',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 70,  'section' => 'basica'],
+    ['field_name' => 'reg_categoria',  'field_label' => 'Categoría',                                    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 80,  'section' => 'basica'],
+    ['field_name' => 'reg_es_socio',   'field_label' => '¿Es socio del club que realiza el torneo?',    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 90,  'section' => 'socios'],
+    ['field_name' => 'reg_tipo_socio', 'field_label' => 'Tipo de socio',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 100, 'section' => 'socios'],
+    ['field_name' => 'reg_club',       'field_label' => 'Club de procedencia',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 110, 'section' => 'socios'],
+    ['field_name' => 'reg_pais',       'field_label' => 'País',                                         'is_enabled' => 1, 'is_required' => 0, 'display_order' => 120, 'section' => 'socios'],
+    ['field_name' => 'reg_estado',     'field_label' => 'Estado',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 130, 'section' => 'socios'],
+    ['field_name' => 'reg_ciudad',     'field_label' => 'Ciudad',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 140, 'section' => 'socios'],
+    ['field_name' => 'reg_ghin',       'field_label' => 'GHIN / FMG ID',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 150, 'section' => 'socios'],
+    ['field_name' => 'reg_archivo',    'field_label' => 'Comprobante de pago',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 160, 'section' => 'adicionales'],
+    ['field_name' => 'reg_notas',      'field_label' => 'Notas adicionales',                            'is_enabled' => 1, 'is_required' => 0, 'display_order' => 170, 'section' => 'adicionales'],
 ];
 
 /** Ensure the registro_form_fields table exists; if not, return defaults / refuse writes. */
@@ -46,6 +52,22 @@ function registro_fields_table_exists($conn) {
     return $exists;
 }
 
+/**
+ * Ensure the `section` column exists on `registro_form_fields`. Runs a
+ * harmless ALTER TABLE the first time and caches the result for the
+ * remainder of the request.
+ */
+function ensure_section_column($conn) {
+    static $checked = null;
+    if ($checked !== null) return $checked;
+    if (!registro_fields_table_exists($conn)) return $checked = false;
+    $r = $conn->query("SHOW COLUMNS FROM registro_form_fields LIKE 'section'");
+    if ($r && $r->num_rows > 0) return $checked = true;
+    @$conn->query("ALTER TABLE registro_form_fields ADD COLUMN section VARCHAR(32) NOT NULL DEFAULT 'basica'");
+    $r = $conn->query("SHOW COLUMNS FROM registro_form_fields LIKE 'section'");
+    return $checked = ($r && $r->num_rows > 0);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $torneoid = (int) require_param('torneoid');
 
@@ -53,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         json_response(['fields' => $DEFAULT_FIELDS, 'source' => 'defaults']);
     }
 
-    $sql = "SELECT field_name, field_label, is_enabled, is_required, display_order
+    $hasSection = ensure_section_column($conn);
+    $sectionSql = $hasSection ? ", section" : "";
+    $sql = "SELECT field_name, field_label, is_enabled, is_required, display_order $sectionSql
             FROM registro_form_fields
             WHERE torneo_id = $torneoid
             ORDER BY display_order ASC, field_name ASC";
@@ -64,13 +88,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     /** Cast booleans / ints for the client */
-    $fields = array_map(function($r) {
+    /** Default-section lookup (so legacy rows without `section` map sensibly). */
+    $defaultSectionByName = [];
+    foreach ($DEFAULT_FIELDS as $df) {
+        $defaultSectionByName[$df['field_name']] = $df['section'];
+    }
+    $fields = array_map(function($r) use ($defaultSectionByName) {
+        $section = isset($r['section']) && $r['section'] !== ''
+            ? $r['section']
+            : ($defaultSectionByName[$r['field_name']] ?? 'basica');
         return [
             'field_name'    => $r['field_name'],
             'field_label'   => $r['field_label'],
             'is_enabled'    => (int)$r['is_enabled'] ? 1 : 0,
             'is_required'   => (int)$r['is_required'] ? 1 : 0,
             'display_order' => (int)$r['display_order'],
+            'section'       => $section,
         ];
     }, $rows);
 
@@ -91,6 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         json_error('Table registro_form_fields not found. Run the migration block first.', 500);
     }
 
+    $hasSection = ensure_section_column($conn);
+
     $fields = $body['fields'] ?? [];
     if (!is_array($fields)) json_error('fields must be an array', 400);
 
@@ -104,11 +139,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $en    = !empty($f['is_enabled'])  ? 1 : 0;
         $req   = !empty($f['is_required']) ? 1 : 0;
         $ord   = (int)($f['display_order'] ?? 0);
+        $sect  = esc($conn, (string)($f['section'] ?? 'basica'));
         if ($name === '') continue;
 
-        $sql = "INSERT INTO registro_form_fields
-                (torneo_id, field_name, field_label, is_enabled, is_required, display_order)
-                VALUES ($torneoid, '$name', '$label', $en, $req, $ord)";
+        if ($hasSection) {
+            $sql = "INSERT INTO registro_form_fields
+                    (torneo_id, field_name, field_label, is_enabled, is_required, display_order, section)
+                    VALUES ($torneoid, '$name', '$label', $en, $req, $ord, '$sect')";
+        } else {
+            $sql = "INSERT INTO registro_form_fields
+                    (torneo_id, field_name, field_label, is_enabled, is_required, display_order)
+                    VALUES ($torneoid, '$name', '$label', $en, $req, $ord)";
+        }
         if ($conn->query($sql)) $insertCount++;
     }
 

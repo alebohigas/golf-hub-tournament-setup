@@ -73,17 +73,45 @@ if ($action === 'lookup') {
 
 // ============= Default: list of clubs =============
 /**
- * Pull every club name from the `clubs` table. We intentionally include
- * id so the frontend can use it as a stable React key, but the value
- * stored in the form is the club name (matches `jugadores.club`).
+ * Pull every club name (and any available location columns) from the
+ * `clubs` table. We include location fields so the Pre-Registro form
+ * can auto-fill país/estado/ciudad when the user picks a known club.
+ * Schema-tolerant: missing columns are silently omitted.
  */
+function clubs_columns($conn) {
+    static $cols = null;
+    if ($cols !== null) return $cols;
+    $cols = [];
+    $r = $conn->query("SHOW COLUMNS FROM clubs");
+    if ($r) {
+        while ($row = $r->fetch_assoc()) $cols[$row['Field']] = true;
+        $r->free();
+    }
+    return $cols;
+}
+function club_has($conn, $col) {
+    $cols = clubs_columns($conn);
+    return isset($cols[$col]);
+}
+
+$selectCols = ['id', 'nombre'];
+foreach (['ciudad', 'estado', 'pais', 'country', 'state', 'city'] as $optional) {
+    if (club_has($conn, $optional)) $selectCols[] = $optional;
+}
+
 $rows = [];
-$res = $conn->query("SELECT id, nombre FROM clubs ORDER BY nombre ASC");
+$res = $conn->query("SELECT " . implode(',', $selectCols) . " FROM clubs ORDER BY nombre ASC");
 if ($res) {
     while ($r = $res->fetch_assoc()) {
         $name = trim((string)($r['nombre'] ?? ''));
         if ($name === '') continue;
-        $rows[] = ['id' => (int)$r['id'], 'nombre' => $name];
+        $rows[] = [
+            'id'     => (int)$r['id'],
+            'nombre' => $name,
+            'ciudad' => trim((string)($r['ciudad'] ?? $r['city']  ?? '')),
+            'estado' => trim((string)($r['estado'] ?? $r['state'] ?? '')),
+            'pais'   => trim((string)($r['pais']   ?? $r['country'] ?? '')),
+        ];
     }
     $res->free();
 }

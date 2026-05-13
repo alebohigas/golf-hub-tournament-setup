@@ -32,6 +32,7 @@ import { Loader2, CheckCircle2, Send, HelpCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
 import {
   getRegistroSubmitUrl,
@@ -48,7 +49,14 @@ import {
 interface LocationRow { id: number; name: string }
 
 /** Row returned by /api/clubs.php */
-interface ClubRow { id: number; nombre: string }
+interface ClubRow {
+  id: number;
+  nombre: string;
+  /** Optional location strings (whichever exist in the `clubs` table). */
+  ciudad?: string;
+  estado?: string;
+  pais?: string;
+}
 
 /** Field-name → suggested placeholder text shown as greyed example. */
 const PLACEHOLDERS: Record<string, string> = {
@@ -85,6 +93,7 @@ const calcAge = (yyyymmdd: string): number | null => {
 const Registro = () => {
   const { data: fieldsData, isLoading: loadingFields } = useRegistroFields();
   const { data: categories = [] } = useCategories();
+  const { data: tournamentInfo } = useTournamentInfo();
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
@@ -109,6 +118,13 @@ const Registro = () => {
    * overwrite an edited club value.
    */
   const [lastLookupKey, setLastLookupKey] = useState<string>('');
+
+  /** Tracks whether we already auto-filled the club from "soy socio = SI"
+   *  so toggling NO doesn't keep clobbering manual edits. */
+  const [socioClubAutofilled, setSocioClubAutofilled] = useState(false);
+
+  /** Inline error message for the handicap field (shown on blur). */
+  const [handicapError, setHandicapError] = useState<string>('');
 
   /**
    * Field config sorted by display_order, enabled only.
@@ -146,6 +162,25 @@ const Registro = () => {
   const isFieldRequired = (name: string) =>
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
+  /**
+   * Strict numeric handicap regex: digits, optional single dot, digits.
+   * Empty string is treated as "not yet entered" (no error).
+   */
+  const HANDICAP_RE = /^\d+(\.\d+)?$/;
+
+  /** onBlur validator for the handicap field. */
+  const validateHandicapOnBlur = () => {
+    const v = (values.reg_handicap || '').trim();
+    if (v === '') { setHandicapError(''); return; }
+    if (!HANDICAP_RE.test(v)) {
+      const msg = 'Hándicap inválido. Usa solo números y punto decimal (ej: 14.2)';
+      setHandicapError(msg);
+      toast({ title: 'Hándicap inválido', description: msg, variant: 'destructive' });
+    } else {
+      setHandicapError('');
+    }
+  };
+
   /** Load countries on mount (only if the field is enabled). */
   useEffect(() => {
     if (!isFieldEnabled('reg_pais')) return;
@@ -164,9 +199,10 @@ const Registro = () => {
       .then(r => r.json())
       .then((rows: LocationRow[]) => setStates(rows || []))
       .catch(() => setStates([]));
-    // Reset downstream selections
-    setValues(v => ({ ...v, reg_estado: '', reg_ciudad: '' }));
-    setCities([]);
+    // Note: we intentionally do NOT auto-clear estado/ciudad here so that
+    // the club-autofill chain (which sets pais → states load → estado →
+    // cities load → ciudad) doesn't wipe its own intermediate value. The
+    // user-driven dropdowns also re-validate against the loaded list.
   }, [values.reg_pais]);
 
   /** Cascade cities when state changes. */
@@ -177,7 +213,6 @@ const Registro = () => {
       .then(r => r.json())
       .then((rows: LocationRow[]) => setCities(rows || []))
       .catch(() => setCities([]));
-    setValues(v => ({ ...v, reg_ciudad: '' }));
   }, [values.reg_estado]);
 
   /** Load full clubs list once, when reg_club is enabled. */
@@ -210,8 +245,12 @@ const Registro = () => {
       fetch(getClubLookupUrl(nombre, apellido, fechanac))
         .then(r => r.json())
         .then(j => {
-          if (cancelled || !j?.found || !j?.club) return;
-          // Only auto-fill when the user hasn't typed a club yet.
+          if (cancelled) return;
+          // Tag whether we found this player at all — used by the
+          // es_socio NO branch to decide between "leave blank" vs autofill.
+          setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
+          if (!j?.found || !j?.club) return;
+          // Only auto-fill club when the user hasn't typed one yet.
           setValues(v => v.reg_club ? v : { ...v, reg_club: String(j.club) });
         })
         .catch(() => { /* silent — autofill is best-effort */ });
@@ -219,6 +258,70 @@ const Registro = () => {
     return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length]);
+
+  /**
+   * Es-socio autofill rules:
+   *  - SI  → reg_club = host tournament club name (always overwrites).
+   *  - NO  → if we previously autofilled from SI, clear it so the user
+   *          (or the player-lookup effect above) can fill the real club.
+   */
+  useEffect(() => {
+    const ans = values.reg_es_socio;
+    if (ans === 'SI' && tournamentInfo?.club) {
+      setSocioClubAutofilled(true);
+      setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
+    } else if (ans === 'NO' && socioClubAutofilled) {
+      setSocioClubAutofilled(false);
+      // Clear the SI-injected value so the player-lookup effect (or the
+      // user) can re-populate it. If we already have player data the
+      // lookup effect will refill on the next debounce tick.
+      setValues(v => ({ ...v, reg_club: '' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_es_socio, tournamentInfo?.club]);
+
+  /**
+   * When the typed club name matches a known club row, auto-fill país /
+   * estado / ciudad by case-insensitive name match against the cascading
+   * dropdown lists. We only set values that resolve cleanly to an ID.
+   */
+  useEffect(() => {
+    const clubName = (values.reg_club || '').trim().toLowerCase();
+    if (!clubName) return;
+    const match = clubs.find(c => c.nombre.trim().toLowerCase() === clubName);
+    if (!match) return;
+
+    // 1) Country: try to match by name against the loaded countries list.
+    const paisName = (match.pais || '').trim().toLowerCase();
+    const country = paisName
+      ? countries.find(c => c.name.trim().toLowerCase() === paisName)
+      : countries.find(c => c.name.trim().toLowerCase() === 'mexico'
+                         || c.name.trim().toLowerCase() === 'méxico');
+    if (country && values.reg_pais !== String(country.id)) {
+      setValues(v => ({ ...v, reg_pais: String(country.id) }));
+      return; // wait for states to load on next render
+    }
+
+    // 2) State (depends on states list being loaded for current country)
+    const estadoName = (match.estado || '').trim().toLowerCase();
+    if (estadoName && states.length) {
+      const st = states.find(s => s.name.trim().toLowerCase() === estadoName);
+      if (st && values.reg_estado !== String(st.id)) {
+        setValues(v => ({ ...v, reg_estado: String(st.id) }));
+        return;
+      }
+    }
+
+    // 3) City (depends on cities list being loaded for current state)
+    const ciudadName = (match.ciudad || '').trim().toLowerCase();
+    if (ciudadName && cities.length) {
+      const ci = cities.find(c => c.name.trim().toLowerCase() === ciudadName);
+      if (ci && values.reg_ciudad !== String(ci.id)) {
+        setValues(v => ({ ...v, reg_ciudad: String(ci.id) }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_club, clubs, countries, states, cities]);
 
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
@@ -247,10 +350,20 @@ const Registro = () => {
   /** Submit the form as multipart/form-data. */
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Block submission when the handicap value is malformed.
+    if (isFieldEnabled('reg_handicap')) {
+      const v = (values.reg_handicap || '').trim();
+      if (v && !HANDICAP_RE.test(v)) {
+        validateHandicapOnBlur();
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       const fd = new FormData();
       Object.entries(values).forEach(([k, v]) => {
+        // Skip our internal/private flags (prefixed with __).
+        if (k.startsWith('__')) return;
         if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
       });
       if (file) fd.append('reg_archivo', file);
@@ -481,8 +594,36 @@ const Registro = () => {
     let type: string = 'text';
     if (name === 'reg_correo')     type = 'email';
     if (name === 'reg_telefono')   type = 'tel';
-    if (name === 'reg_handicap')   type = 'number';
     if (name === 'reg_fechanac')   type = 'date';
+
+    // Specialized handicap input: text + decimal inputMode so mobile keyboards
+    // expose the dot, and a strict regex pattern that rejects commas / letters.
+    if (name === 'reg_handicap') {
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]+(\\.[0-9]+)?"
+            placeholder={PLACEHOLDERS[name]}
+            required={required}
+            value={values[name] || ''}
+            onChange={e => {
+              setValue(name, e.target.value);
+              if (handicapError) setHandicapError('');
+            }}
+            onBlur={validateHandicapOnBlur}
+            aria-invalid={!!handicapError}
+            className={handicapError ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {handicapError && (
+            <p className="text-xs text-destructive">{handicapError}</p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-2" key={name}>
@@ -490,7 +631,6 @@ const Registro = () => {
         <Input
           {...common}
           type={type}
-          step={name === 'reg_handicap' ? '0.1' : undefined}
           value={values[name] || ''}
           onChange={e => setValue(name, e.target.value)}
         />
@@ -533,9 +673,74 @@ const Registro = () => {
                     <Loader2 className="h-4 w-4 animate-spin" /> Cargando formulario…
                   </div>
                 ) : (
-                  <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {visibleFields.map(f => renderField(f.field_name, f.field_label, !!f.is_required))}
-                    <div className="md:col-span-2 flex justify-end pt-2">
+                  <form onSubmit={onSubmit} className="space-y-8">
+                    {(() => {
+                      // Group enabled fields by section while preserving order.
+                      const order: Array<{ key: string; title: string }> = [
+                        { key: 'basica',      title: 'Información básica' },
+                        { key: 'socios',      title: '¿Eres socio?' },
+                        { key: 'adicionales', title: 'Información adicional' },
+                      ];
+                      const grouped: Record<string, typeof visibleFields> = {};
+                      visibleFields.forEach(f => {
+                        const k = (f.section as string) || 'basica';
+                        (grouped[k] ||= []).push(f);
+                      });
+                      // Any custom section keys not in `order` go after.
+                      Object.keys(grouped).forEach(k => {
+                        if (!order.find(o => o.key === k)) {
+                          order.push({ key: k, title: k.charAt(0).toUpperCase() + k.slice(1) });
+                        }
+                      });
+
+                      /**
+                       * Progressive reveal: section N renders only when every
+                       * required field in sections 0..N-1 has a value.
+                       */
+                      const isSectionComplete = (key: string) => {
+                        const list = grouped[key] || [];
+                        return list.every(f => {
+                          if (!f.is_required) return true;
+                          // Conditional required: tipo_socio only when es_socio = SI
+                          if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return true;
+                          return !!(values[f.field_name] || '').trim();
+                        });
+                      };
+
+                      const blocks: JSX.Element[] = [];
+                      let revealUpTo = true;
+                      order.forEach((sec, idx) => {
+                        const list = grouped[sec.key];
+                        if (!list || list.length === 0) return;
+                        if (!revealUpTo) return;
+
+                        blocks.push(
+                          <section key={sec.key} className="space-y-4">
+                            {/* Section header + thin divider as visual spacer */}
+                            <div className="space-y-2">
+                              <h3 className="text-base font-semibold text-foreground">{sec.title}</h3>
+                              <div className="h-px bg-border" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {list
+                                .filter(f => {
+                                  // Hide reg_tipo_socio entirely until es_socio = SI.
+                                  if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return false;
+                                  return true;
+                                })
+                                .map(f => renderField(f.field_name, f.field_label, !!f.is_required))}
+                            </div>
+                          </section>
+                        );
+
+                        // Decide if the next section should be revealed.
+                        if (idx < order.length - 1 && !isSectionComplete(sec.key)) {
+                          revealUpTo = false;
+                        }
+                      });
+                      return blocks;
+                    })()}
+                    <div className="flex justify-end pt-2">
                       <Button type="submit" disabled={submitting} className="gap-2" size="lg">
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         Enviar pre-registro

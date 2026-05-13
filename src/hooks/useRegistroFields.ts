@@ -14,6 +14,12 @@ export interface RegistroField {
   is_enabled: 0 | 1;
   is_required: 0 | 1;
   display_order: number;
+  /**
+   * Logical section this field belongs to in the public Pre-Registro form.
+   * Used to drive the progressive-reveal UI ("basica" → "socios" → "adicionales").
+   * Optional for backwards-compat with rows saved before the column existed.
+   */
+  section?: 'basica' | 'socios' | 'adicionales' | string;
 }
 
 interface RegistroFieldsResponse {
