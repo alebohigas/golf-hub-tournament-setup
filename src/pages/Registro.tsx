@@ -580,8 +580,36 @@ const Registro = () => {
     let type: string = 'text';
     if (name === 'reg_correo')     type = 'email';
     if (name === 'reg_telefono')   type = 'tel';
-    if (name === 'reg_handicap')   type = 'number';
     if (name === 'reg_fechanac')   type = 'date';
+
+    // Specialized handicap input: text + decimal inputMode so mobile keyboards
+    // expose the dot, and a strict regex pattern that rejects commas / letters.
+    if (name === 'reg_handicap') {
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]+(\\.[0-9]+)?"
+            placeholder={PLACEHOLDERS[name]}
+            required={required}
+            value={values[name] || ''}
+            onChange={e => {
+              setValue(name, e.target.value);
+              if (handicapError) setHandicapError('');
+            }}
+            onBlur={validateHandicapOnBlur}
+            aria-invalid={!!handicapError}
+            className={handicapError ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {handicapError && (
+            <p className="text-xs text-destructive">{handicapError}</p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-2" key={name}>
@@ -589,7 +617,6 @@ const Registro = () => {
         <Input
           {...common}
           type={type}
-          step={name === 'reg_handicap' ? '0.1' : undefined}
           value={values[name] || ''}
           onChange={e => setValue(name, e.target.value)}
         />
