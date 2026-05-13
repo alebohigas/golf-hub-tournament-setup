@@ -547,6 +547,24 @@ const Registro = () => {
         return;
       }
     }
+    // Block submission when email failed validation.
+    if (isFieldEnabled('reg_correo') && (emailError || (values.reg_correo && !EMAIL_RE.test(values.reg_correo.trim())))) {
+      validateEmailOnBlur();
+      return;
+    }
+    // Block submission when phone is incomplete or invalid.
+    if (isFieldEnabled('reg_telefono')) {
+      const requiredPhone = isFieldRequired('reg_telefono');
+      if (requiredPhone && !phoneLocal) {
+        setPhoneError('Ingresa tu teléfono.');
+        toast({ title: 'Teléfono requerido', variant: 'destructive' });
+        return;
+      }
+      if (phoneLocal && (phoneLocal.length !== phoneLenRequired || !/^\d+$/.test(phoneLocal))) {
+        validatePhoneOnBlur();
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       const fd = new FormData();
