@@ -670,6 +670,103 @@ const Registro = () => {
       );
     }
 
+    if (name === 'reg_correo') {
+      // Email input with onBlur server-side MX/typo validation. Inline
+      // suggestion banner lets the user accept "did you mean ..." with one click.
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required={required}
+            placeholder={PLACEHOLDERS[name] ?? 'tu@correo.com'}
+            value={values[name] || ''}
+            onChange={e => {
+              setValue(name, e.target.value);
+              if (emailError) setEmailError('');
+              if (emailSuggestion) setEmailSuggestion('');
+            }}
+            onBlur={validateEmailOnBlur}
+            aria-invalid={!!emailError}
+            className={emailError ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {emailChecking && (
+            <p className="text-xs text-muted-foreground">Verificando dominio…</p>
+          )}
+          {emailError && !emailSuggestion && (
+            <p className="text-xs text-destructive">{emailError}</p>
+          )}
+          {emailSuggestion && (
+            <p className="text-xs text-destructive">
+              ¿Quisiste decir{' '}
+              <button
+                type="button"
+                className="underline font-medium"
+                onClick={acceptEmailSuggestion}
+              >
+                {emailSuggestion}
+              </button>
+              ?
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (name === 'reg_telefono') {
+      // Composite phone input: dial-code <Select> with flag emoji + digits-only
+      // text input. Joined value is mirrored into reg_telefono ("+52 5512345678").
+      const expectedLen = phoneLenRequired;
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <div className="flex gap-2">
+            <Select value={phoneCode} onValueChange={setPhoneCode}>
+              <SelectTrigger className="w-[120px]" aria-label="Lada">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PHONE_CODES.map(p => (
+                  <SelectItem key={p.code} value={p.code}>
+                    <span className="mr-2">{p.flag}</span>{p.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              id={id}
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              required={required}
+              maxLength={expectedLen}
+              placeholder={`${expectedLen} dígitos`}
+              value={phoneLocal}
+              onChange={e => {
+                // Strip everything that isn't a digit; cap at expected length.
+                const digits = e.target.value.replace(/\D/g, '').slice(0, expectedLen);
+                setPhoneLocal(digits);
+                if (phoneError) setPhoneError('');
+              }}
+              onBlur={validatePhoneOnBlur}
+              aria-invalid={!!phoneError}
+              className={phoneError ? 'border-destructive focus-visible:ring-destructive flex-1' : 'flex-1'}
+            />
+          </div>
+          {phoneError ? (
+            <p className="text-xs text-destructive">{phoneError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Selecciona la lada y escribe {expectedLen} dígitos sin espacios.
+            </p>
+          )}
+        </div>
+      );
+    }
+
     if (name === 'reg_club') {
       // Editable text input + native <datalist> autocomplete reduces options
       // as the user types. Auto-filled from existing jugadores match when
