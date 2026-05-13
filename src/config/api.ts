@@ -246,3 +246,17 @@ export const getClubLookupUrl = (
   }).toString();
   return `${API_BASE_URL}/clubs.php?${qs}`;
 };
+
+/**
+ * Lookup an existing player by SPEI or GHIN. Used when the user types
+ * either identifier in Pre-Registro to pre-fill nombre, apellido, correo,
+ * club, sexo, fecha de nacimiento, etc. Either one may be empty.
+ */
+export const getPlayerLookupByIdUrl = (spei: string, ghin: string): string => {
+  const qs = new URLSearchParams({
+    action: 'lookup',
+    spei,
+    ghin,
+  }).toString();
+  return `${API_BASE_URL}/clubs.php?${qs}`;
+};

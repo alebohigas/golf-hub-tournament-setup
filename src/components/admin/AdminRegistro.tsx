@@ -28,6 +28,7 @@ const SECTION_OPTIONS: { value: string; label: string }[] = [
   { value: 'basica',      label: 'Información básica' },
   { value: 'socios',      label: 'Socios y procedencia' },
   { value: 'adicionales', label: 'Adicionales' },
+  { value: 'revision',    label: 'Solo revisión admin' },
 ];
 
 const AdminRegistro = () => {

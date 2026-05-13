@@ -42,6 +42,7 @@ import {
   getClubsUrl,
   getClubLookupUrl,
   getEmailValidateUrl,
+  getPlayerLookupByIdUrl,
 } from '@/config/api';
 
 // ============= Types =============
@@ -72,8 +73,54 @@ const PLACEHOLDERS: Record<string, string> = {
   reg_handicap:   'Ej: 14.2',
   reg_club:       'Ej: Club de Golf Valle Alto',
   reg_ghin:       'Ej: 123456789',
+  numghinspei:    'Ej: 123456789',
+  reg_spei:       'Tu ID interno (si lo conoces)',
   reg_notas:      'Notas adicionales para el comité…',
-  reg_fechanac:   'YYYY-MM-DD',
+  reg_mensaje:    'Notas adicionales para el comité…',
+  reg_fechanac:   'dd/mm/aaaa',
+  reg_direccion:  'Calle, número, colonia',
+  reg_cp:         'Ej: 64000',
+};
+
+// ============= Date helpers (dd/mm/aaaa) =============
+
+/** Parse a dd/mm/aaaa string into {y,m,d} or null if invalid. */
+const parseDmy = (s: string): { y: number; m: number; d: number } | null => {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s || '').trim());
+  if (!m) return null;
+  const d = +m[1], mo = +m[2], y = +m[3];
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return { y, m: mo, d };
+};
+/** Convert dd/mm/aaaa → YYYY-MM-DD (or '' if invalid). */
+const dmyToIso = (s: string): string => {
+  const p = parseDmy(s);
+  return p ? `${p.y.toString().padStart(4, '0')}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}` : '';
+};
+/** Convert YYYY-MM-DD → dd/mm/aaaa (or '' if invalid). */
+const isoToDmy = (s: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+};
+/** Auto-mask digit input as dd/mm/aaaa while typing. */
+const maskDmy = (raw: string): string => {
+  const d = raw.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+};
+/** Validate a dd/mm/aaaa birthdate: not in future, not today, not >120 years ago. */
+const validateBirthDmy = (s: string): string => {
+  if (!s) return '';
+  const p = parseDmy(s);
+  if (!p) return 'Formato inválido. Usa dd/mm/aaaa.';
+  const dt  = new Date(p.y, p.m - 1, p.d);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (dt >= today)                return 'La fecha no puede ser hoy ni futura.';
+  if (p.y < (now.getFullYear() - 120)) return 'Fecha demasiado antigua.';
+  return '';
 };
 
 // ============= Helpers =============
@@ -203,6 +250,14 @@ const Registro = () => {
   const [phoneCode, setPhoneCode] = useState<string>('+52');
   /** Local 10-digit (or country-specific) phone digits, no spaces. */
   const [phoneLocal, setPhoneLocal] = useState<string>('');
+
+  /** Inline error for the birthdate field (dd/mm/aaaa). */
+  const [birthError, setBirthError] = useState<string>('');
+  /** Visible dd/mm/aaaa string for the birthdate input. */
+  const [birthDmy, setBirthDmy]     = useState<string>('');
+
+  /** Tracks the last lookup key for SPEI/GHIN to avoid spamming. */
+  const [lastIdLookup, setLastIdLookup] = useState<string>('');
 
   /**
    * Field config sorted by display_order, enabled only.
@@ -536,9 +591,63 @@ const Registro = () => {
   const setValue = (name: string, v: string) =>
     setValues(prev => ({ ...prev, [name]: v }));
 
+  /**
+   * SPEI / GHIN lookup: when either reg_spei or numghinspei has a long
+   * enough value, query /api/clubs.php?action=lookup&spei=…&ghin=… and
+   * pre-fill any empty top-level fields (nombre, apellido, correo, club,
+   * sexo, fechanac). Existing user input is never overwritten.
+   */
+  useEffect(() => {
+    const spei = (values.reg_spei || '').trim();
+    const ghin = (values.numghinspei || values.reg_ghin || '').trim();
+    if (spei.length < 3 && ghin.length < 3) return;
+    const key = `${spei}|${ghin}`;
+    if (key === lastIdLookup) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      setLastIdLookup(key);
+      fetch(getPlayerLookupByIdUrl(spei, ghin))
+        .then(r => r.json())
+        .then(j => {
+          if (cancelled || !j?.found) return;
+          /** Only fill empty fields — never clobber user input. */
+          setValues(v => {
+            const next = { ...v };
+            const fill = (k: string, val: any) => {
+              if (val == null || val === '') return;
+              if (!next[k]) next[k] = String(val);
+            };
+            fill('reg_nombre',   j.nombre);
+            fill('reg_apellido', j.apellido);
+            fill('reg_correo',   j.correo);
+            fill('reg_club',     j.club);
+            const sx = j.sexo || j.genero;
+            if (sx) fill('reg_sexo', String(sx).toUpperCase().startsWith('F') ? 'F' : 'M');
+            if (j.fechanac && /^\d{4}-\d{2}-\d{2}/.test(j.fechanac)) {
+              fill('reg_fechanac', j.fechanac.slice(0, 10));
+              if (!birthDmy) setBirthDmy(isoToDmy(j.fechanac));
+            }
+            return next;
+          });
+        })
+        .catch(() => { /* silent */ });
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_spei, values.numghinspei, values.reg_ghin]);
+
   /** Submit the form as multipart/form-data. */
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Validate birthdate dd/mm/aaaa if rendered.
+    if (isFieldEnabled('reg_fechanac')) {
+      const err = validateBirthDmy(birthDmy);
+      if (err) {
+        setBirthError(err);
+        toast({ title: 'Fecha de nacimiento inválida', description: err, variant: 'destructive' });
+        return;
+      }
+    }
     // Block submission when the handicap value is malformed.
     if (isFieldEnabled('reg_handicap')) {
       const v = (values.reg_handicap || '').trim();
@@ -898,7 +1007,51 @@ const Registro = () => {
     let type: string = 'text';
     if (name === 'reg_correo')     type = 'email';
     if (name === 'reg_telefono')   type = 'tel';
-    if (name === 'reg_fechanac')   type = 'date';
+
+    /**
+     * Specialized birthdate input: dd/mm/aaaa with auto-mask while typing,
+     * and on-blur validation against future/today/200-years-ago. The ISO
+     * version is mirrored into values.reg_fechanac so all downstream
+     * effects (categoría eligibility, jugadores lookup, server-side
+     * akron_edad) keep working unchanged.
+     */
+    if (name === 'reg_fechanac') {
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="text"
+            inputMode="numeric"
+            autoComplete="bday"
+            placeholder="dd/mm/aaaa"
+            maxLength={10}
+            required={required}
+            value={birthDmy}
+            onChange={e => {
+              const masked = maskDmy(e.target.value);
+              setBirthDmy(masked);
+              if (birthError) setBirthError('');
+              setValue('reg_fechanac', dmyToIso(masked));
+            }}
+            onBlur={() => {
+              const err = validateBirthDmy(birthDmy);
+              setBirthError(err);
+              if (err) {
+                toast({ title: 'Fecha inválida', description: err, variant: 'destructive' });
+              }
+            }}
+            aria-invalid={!!birthError}
+            className={birthError ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {birthError ? (
+            <p className="text-xs text-destructive">{birthError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Formato dd/mm/aaaa</p>
+          )}
+        </div>
+      );
+    }
 
     // Specialized handicap input: text + decimal inputMode so mobile keyboards
     // expose the dot, and a strict regex pattern that rejects commas / letters.

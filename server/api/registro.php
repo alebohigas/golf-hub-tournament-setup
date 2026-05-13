@@ -25,6 +25,135 @@ const REGISTROS_PASSWORD = 'registros2025';
 /** Max binary upload accepted into reg_archivo (LONGBLOB). 15 MB. */
 const MAX_REG_FILE_BYTES = 15 * 1024 * 1024;
 
+/**
+ * Map UI/legacy field_name -> actual DB column on `registro`.
+ * Older code/forms used reg_sexo/reg_telefono/reg_notas/reg_ghin, but the
+ * production schema (registro_campos) uses reg_genero/reg_celular/reg_mensaje/
+ * numghinspei. We accept both on the wire and write to the canonical column
+ * if it exists; otherwise we fall back to the legacy column.
+ */
+const REGISTRO_COLUMN_ALIASES = [
+    'reg_sexo'     => 'reg_genero',
+    'reg_telefono' => 'reg_celular',
+    'reg_notas'    => 'reg_mensaje',
+    'reg_ghin'     => 'numghinspei',
+];
+
+/** Resolve a posted field_name to the column we'll write to (canonical first). */
+function resolve_reg_column($conn, $name) {
+    if (registro_has($conn, $name)) return $name;
+    if (isset(REGISTRO_COLUMN_ALIASES[$name])) {
+        $alt = REGISTRO_COLUMN_ALIASES[$name];
+        if (registro_has($conn, $alt)) return $alt;
+    }
+    // Reverse alias: form posted canonical but only legacy exists
+    foreach (REGISTRO_COLUMN_ALIASES as $legacy => $canonical) {
+        if ($canonical === $name && registro_has($conn, $legacy)) return $legacy;
+    }
+    return null;
+}
+
+/**
+ * Compute precise age (in completed years) at a given reference date.
+ * Returns null if either date is invalid. Uses day/month precision so a
+ * birthday one day after the cutoff stays in the older-age bucket.
+ */
+function compute_age_at($birth_yyyymmdd, $ref_yyyymmdd) {
+    if (!$birth_yyyymmdd || !$ref_yyyymmdd) return null;
+    try {
+        $b = new DateTime($birth_yyyymmdd);
+        $r = new DateTime($ref_yyyymmdd);
+    } catch (Exception $e) { return null; }
+    if ($b > $r) return null;
+    return (int) $b->diff($r)->y;
+}
+
+/** Lookup torneo start date (fecha_ini) — used as the cutoff for akron_edad. */
+function torneo_fecha_ini($conn, $torneoid) {
+    $r = $conn->query("SELECT fecha_ini FROM torneo WHERE id = " . (int)$torneoid . " LIMIT 1");
+    if (!$r) return null;
+    $row = $r->fetch_assoc();
+    $r->free();
+    return $row['fecha_ini'] ?? null;
+}
+
+/** Cache: which columns exist in the `jugadores` table. */
+function jugadores_cols_reg($conn) {
+    static $c = null;
+    if ($c !== null) return $c;
+    $c = [];
+    $r = $conn->query("SHOW COLUMNS FROM jugadores");
+    if ($r) { while ($row = $r->fetch_assoc()) $c[$row['Field']] = true; $r->free(); }
+    return $c;
+}
+function jug_has_reg($conn, $col) { $c = jugadores_cols_reg($conn); return isset($c[$col]); }
+
+/**
+ * If the pre-registro carries a SPEI or GHIN, sync the `jugadores` row:
+ *  - Match by reg_spei or numghinspei (whichever was provided & exists as col).
+ *  - On match: UPDATE only the columns that are currently NULL/empty so we
+ *    fill gaps without overwriting curated data.
+ *  - On no match: do nothing (per product decision — admin merges manually).
+ * Silent on errors (non-blocking for the registration save).
+ */
+function sync_jugadores_from_registro($conn, $posted, $birth_yyyymmdd) {
+    $spei = trim((string)($posted['reg_spei'] ?? ''));
+    $ghin = trim((string)($posted['numghinspei'] ?? $posted['reg_ghin'] ?? ''));
+    if ($spei === '' && $ghin === '') return;
+
+    $where = [];
+    if ($spei !== '' && jug_has_reg($conn, 'reg_spei')) {
+        $where[] = "reg_spei = '" . esc($conn, $spei) . "'";
+    }
+    if ($ghin !== '' && jug_has_reg($conn, 'numghinspei')) {
+        $where[] = "numghinspei = '" . esc($conn, $ghin) . "'";
+    }
+    if (!$where) return;
+
+    $sel = "SELECT * FROM jugadores WHERE " . implode(' OR ', $where) . " LIMIT 1";
+    $r = @$conn->query($sel);
+    if (!$r || !($row = $r->fetch_assoc())) {
+        // Player not yet in jugadores; nothing to sync now.
+        return;
+    }
+    $r->free();
+
+    $jugId = (int)($row['id'] ?? 0);
+    if ($jugId <= 0) return;
+
+    /**
+     * Map of jugadores column -> incoming registro field. Only columns that
+     * exist on jugadores AND are currently NULL/empty get filled.
+     */
+    $fillMap = [
+        'nombre'      => $posted['reg_nombre']    ?? '',
+        'apellido'    => $posted['reg_apellido']  ?? '',
+        'correo'      => $posted['reg_correo']    ?? '',
+        'telefono'    => $posted['reg_telefono']  ?? $posted['reg_celular'] ?? '',
+        'celular'     => $posted['reg_celular']   ?? $posted['reg_telefono'] ?? '',
+        'sexo'        => $posted['reg_sexo']      ?? $posted['reg_genero']  ?? '',
+        'genero'      => $posted['reg_genero']    ?? $posted['reg_sexo']    ?? '',
+        'club'        => $posted['reg_club']      ?? '',
+        'fechanac'    => $birth_yyyymmdd          ?? '',
+        'reg_spei'    => $posted['reg_spei']      ?? '',
+        'numghinspei' => $posted['numghinspei']   ?? $posted['reg_ghin'] ?? '',
+        'handicap'    => $posted['reg_handicap']  ?? '',
+    ];
+    $sets = [];
+    foreach ($fillMap as $col => $val) {
+        $val = trim((string)$val);
+        if ($val === '') continue;
+        if (!jug_has_reg($conn, $col)) continue;
+        // Only fill if current value is NULL or empty string
+        $current = $row[$col] ?? null;
+        if ($current !== null && trim((string)$current) !== '') continue;
+        $sets[] = "$col = '" . esc($conn, $val) . "'";
+    }
+    if ($sets) {
+        @$conn->query("UPDATE jugadores SET " . implode(',', $sets) . " WHERE id = $jugId LIMIT 1");
+    }
+}
+
 /** Cache: which columns exist in the `registro` table. */
 function registro_columns($conn) {
     static $cols = null;
@@ -77,21 +206,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac',
         'reg_es_socio', 'reg_tipo_socio', 'reg_club', 'reg_ghin',
         'reg_pais', 'reg_estado', 'reg_ciudad', 'reg_notas',
+        // Canonical names from registro_campos
+        'reg_genero', 'reg_celular', 'reg_mensaje', 'numghinspei',
+        'reg_spei', 'reg_direccion', 'reg_cp', 'reg_id_club', 'reg_cargo',
         // Tallas (skipped silently if column doesn't exist on this DB)
         'reg_talla_gorra', 'reg_talla_guante', 'reg_talla_camisa',
         'reg_talla_tenis', 'reg_talla_pantalon', 'reg_talla_cinturon',
+        // Akron-specific
+        'akron_talla', 'akron_talla_guante', 'akron_calzado',
+        'akron_codigo', 'akron_monto_pago',
     ];
 
     $cols = [$torneoCol];
     $vals = [$torneoid];
+    $writtenCols = []; // dedupe when alias maps two posted names to same column
 
     foreach ($allowedTextFields as $f) {
         if (!isset($_POST[$f])) continue;
-        if (!registro_has($conn, $f)) continue; // column missing on this server
         $v = trim((string)$_POST[$f]);
         if ($v === '') continue;
-        $cols[] = $f;
+        $target = resolve_reg_column($conn, $f);
+        if (!$target) continue; // neither canonical nor alias exists on this server
+        if (isset($writtenCols[$target])) continue;
+        $writtenCols[$target] = true;
+        $cols[] = $target;
         $vals[] = "'" . esc($conn, $v) . "'";
+    }
+
+    /**
+     * Auto-calculate akron_edad against the tournament start date so a
+     * player whose birthday falls one day after the cutoff stays in the
+     * older bucket. We compute on the server with day-month precision.
+     */
+    $birth = trim((string)($_POST['reg_fechanac'] ?? ''));
+    if ($birth !== '' && registro_has($conn, 'akron_edad') && !isset($writtenCols['akron_edad'])) {
+        $cutoff = torneo_fecha_ini($conn, $torneoid);
+        $age = $cutoff ? compute_age_at($birth, $cutoff) : null;
+        if ($age !== null) {
+            $writtenCols['akron_edad'] = true;
+            $cols[] = 'akron_edad';
+            $vals[] = (int)$age;
+        }
     }
 
     /** Optional file upload into reg_archivo (LONGBLOB). */
@@ -135,6 +290,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     if (!$conn->query($sql)) {
         json_error('Failed to save registration: ' . $conn->error, 500);
     }
+
+    // Best-effort sync to jugadores when SPEI/GHIN provided.
+    sync_jugadores_from_registro($conn, $_POST, $birth);
 
     json_response(['saved' => true, 'id' => $conn->insert_id]);
 }
@@ -182,6 +340,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Tallas (optional columns)
         'reg_talla_gorra','reg_talla_guante','reg_talla_camisa',
         'reg_talla_tenis','reg_talla_pantalon','reg_talla_cinturon',
+        // Canonical / akron columns
+        'reg_genero','reg_celular','reg_mensaje','numghinspei','reg_spei',
+        'reg_direccion','reg_cp','reg_id_club','reg_cargo',
+        'akron_edad','akron_talla','akron_talla_guante','akron_calzado',
+        'akron_codigo','akron_monto_pago',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = $c;
     /** Indicate whether a binary attachment exists without sending the bytes. */

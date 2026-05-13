@@ -40,6 +40,35 @@ if ($action === 'lookup') {
     $nombre   = trim((string) optional_param('nombre',   ''));
     $apellido = trim((string) optional_param('apellido', ''));
     $fechanac = trim((string) optional_param('fechanac', ''));
+    $spei     = trim((string) optional_param('spei',     ''));
+    $ghin     = trim((string) optional_param('ghin',     ''));
+
+    /**
+     * If a SPEI or GHIN is provided, prefer that exact match — it's more
+     * authoritative than name+birthdate. Returns extended fields so the
+     * Pre-Registro form can prefill nombre, apellido, correo, etc.
+     */
+    if ($spei !== '' || $ghin !== '') {
+        $w = [];
+        if ($spei !== '' && jug_has($conn, 'reg_spei'))    $w[] = "reg_spei = '"    . esc($conn, $spei) . "'";
+        if ($ghin !== '' && jug_has($conn, 'numghinspei')) $w[] = "numghinspei = '" . esc($conn, $ghin) . "'";
+        if ($w) {
+            // Build a column list of only the ones present on this DB.
+            $want = ['nombre','apellido','correo','telefono','celular','sexo','genero',
+                     'club','fechanac','reg_spei','numghinspei','handicap'];
+            $sel  = [];
+            foreach ($want as $c) if (jug_has($conn, $c)) $sel[] = "j.$c";
+            if (!$sel) json_response(['found' => false]);
+            $sql = "SELECT " . implode(',', $sel) . " FROM jugadores j WHERE " .
+                   implode(' OR ', $w) . " ORDER BY j.id DESC LIMIT 1";
+            $res = $conn->query($sql);
+            if ($res && $row = $res->fetch_assoc()) {
+                $row['found'] = true;
+                json_response($row);
+            }
+            json_response(['found' => false]);
+        }
+    }
 
     if ($nombre === '' || $apellido === '') {
         json_response(['found' => false]);
