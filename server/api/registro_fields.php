@@ -50,10 +50,7 @@ $DEFAULT_FIELDS = [
     ['field_name' => 'akron_talla',         'field_label' => 'Talla de playera',                             'is_enabled' => 0, 'is_required' => 0, 'display_order' => 180, 'section' => 'adicionales'],
     ['field_name' => 'reg_talla_gorra',     'field_label' => 'Talla de gorra',                               'is_enabled' => 0, 'is_required' => 0, 'display_order' => 185, 'section' => 'adicionales'],
     ['field_name' => 'akron_talla_guante',  'field_label' => 'Talla de guante',                              'is_enabled' => 0, 'is_required' => 0, 'display_order' => 190, 'section' => 'adicionales'],
-    ['field_name' => 'reg_talla_camisa',    'field_label' => 'Talla de camisa (alterna)',                    'is_enabled' => 0, 'is_required' => 0, 'display_order' => 200, 'section' => 'adicionales'],
     ['field_name' => 'akron_calzado',       'field_label' => 'Talla de calzado / tenis',                     'is_enabled' => 0, 'is_required' => 0, 'display_order' => 210, 'section' => 'adicionales'],
-    ['field_name' => 'reg_talla_pantalon',  'field_label' => 'Talla de pantalón',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 220, 'section' => 'adicionales'],
-    ['field_name' => 'reg_talla_cinturon',  'field_label' => 'Talla de cinturón',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 230, 'section' => 'adicionales'],
     // Código de promoción (jugador lo llena, admin lo valida)
     ['field_name' => 'akron_codigo',        'field_label' => 'Código de promoción',                          'is_enabled' => 0, 'is_required' => 0, 'display_order' => 240, 'section' => 'adicionales'],
     // === Sección REVISIÓN ADMIN — el jugador NO ve estos campos ===

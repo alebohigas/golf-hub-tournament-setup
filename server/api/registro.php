@@ -209,9 +209,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         // Canonical names from registro_campos
         'reg_genero', 'reg_celular', 'reg_mensaje', 'numghinspei',
         'reg_spei', 'reg_direccion', 'reg_cp', 'reg_id_club', 'reg_cargo',
-        // Tallas (skipped silently if column doesn't exist on this DB)
-        'reg_talla_gorra', 'reg_talla_guante', 'reg_talla_camisa',
-        'reg_talla_tenis', 'reg_talla_pantalon', 'reg_talla_cinturon',
+        // Talla de gorra (única reg_talla_*; las demás van en akron_*)
+        'reg_talla_gorra',
         // Akron-specific
         'akron_talla', 'akron_talla_guante', 'akron_calzado',
         'akron_codigo', 'akron_monto_pago',
@@ -338,8 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
         'reg_verificado','reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
         // Tallas (optional columns)
-        'reg_talla_gorra','reg_talla_guante','reg_talla_camisa',
-        'reg_talla_tenis','reg_talla_pantalon','reg_talla_cinturon',
+        'reg_talla_gorra',
         // Canonical / akron columns
         'reg_genero','reg_celular','reg_mensaje','numghinspei','reg_spei',
         'reg_direccion','reg_cp','reg_id_club','reg_cargo',
