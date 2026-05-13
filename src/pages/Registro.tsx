@@ -1007,7 +1007,51 @@ const Registro = () => {
     let type: string = 'text';
     if (name === 'reg_correo')     type = 'email';
     if (name === 'reg_telefono')   type = 'tel';
-    if (name === 'reg_fechanac')   type = 'date';
+
+    /**
+     * Specialized birthdate input: dd/mm/aaaa with auto-mask while typing,
+     * and on-blur validation against future/today/200-years-ago. The ISO
+     * version is mirrored into values.reg_fechanac so all downstream
+     * effects (categoría eligibility, jugadores lookup, server-side
+     * akron_edad) keep working unchanged.
+     */
+    if (name === 'reg_fechanac') {
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="text"
+            inputMode="numeric"
+            autoComplete="bday"
+            placeholder="dd/mm/aaaa"
+            maxLength={10}
+            required={required}
+            value={birthDmy}
+            onChange={e => {
+              const masked = maskDmy(e.target.value);
+              setBirthDmy(masked);
+              if (birthError) setBirthError('');
+              setValue('reg_fechanac', dmyToIso(masked));
+            }}
+            onBlur={() => {
+              const err = validateBirthDmy(birthDmy);
+              setBirthError(err);
+              if (err) {
+                toast({ title: 'Fecha inválida', description: err, variant: 'destructive' });
+              }
+            }}
+            aria-invalid={!!birthError}
+            className={birthError ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {birthError ? (
+            <p className="text-xs text-destructive">{birthError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Formato dd/mm/aaaa</p>
+          )}
+        </div>
+      );
+    }
 
     // Specialized handicap input: text + decimal inputMode so mobile keyboards
     // expose the dot, and a strict regex pattern that rejects commas / letters.
