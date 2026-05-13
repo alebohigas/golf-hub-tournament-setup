@@ -224,6 +224,10 @@ export const getLocationsCitiesUrl = (stateId: number | string): string =>
 export const getClubsUrl = (): string =>
   `${API_BASE_URL}/clubs.php`;
 
+/** Server-side email validation (syntax + MX + typo suggestions). */
+export const getEmailValidateUrl = (email: string): string =>
+  `${API_BASE_URL}/email_validate.php?email=${encodeURIComponent(email)}`;
+
 /**
  * Lookup an existing player's stored club by name + birthdate.
  * Used to pre-fill the club field in Pre-Registro when the same person
