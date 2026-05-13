@@ -199,6 +199,10 @@ const Registro = () => {
       .then(r => r.json())
       .then((rows: LocationRow[]) => setStates(rows || []))
       .catch(() => setStates([]));
+    // Note: we intentionally do NOT auto-clear estado/ciudad here so that
+    // the club-autofill chain (which sets pais → states load → estado →
+    // cities load → ciudad) doesn't wipe its own intermediate value. The
+    // user-driven dropdowns also re-validate against the loaded list.
   }, [values.reg_pais]);
 
   /** Cascade cities when state changes. */
