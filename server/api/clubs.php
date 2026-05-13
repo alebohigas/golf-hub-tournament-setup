@@ -95,7 +95,14 @@ function club_has($conn, $col) {
 }
 
 $selectCols = ['id', 'nombre'];
-foreach (['ciudad', 'estado', 'pais', 'country', 'state', 'city'] as $optional) {
+foreach ([
+    'ciudad', 'estado', 'pais',
+    'country', 'state', 'city',
+    'id_pais', 'id_estado', 'id_ciudad',
+    'id_country', 'id_state', 'id_city',
+    'pais_id', 'estado_id', 'ciudad_id',
+    'country_id', 'state_id', 'city_id',
+] as $optional) {
     if (club_has($conn, $optional)) $selectCols[] = $optional;
 }
 
@@ -111,6 +118,10 @@ if ($res) {
             'ciudad' => trim((string)($r['ciudad'] ?? $r['city']  ?? '')),
             'estado' => trim((string)($r['estado'] ?? $r['state'] ?? '')),
             'pais'   => trim((string)($r['pais']   ?? $r['country'] ?? '')),
+            // Optional IDs (any naming variant). 0 means "not present".
+            'id_pais'   => (int)($r['id_pais']   ?? $r['id_country'] ?? $r['pais_id']   ?? $r['country_id'] ?? 0),
+            'id_estado' => (int)($r['id_estado'] ?? $r['id_state']   ?? $r['estado_id'] ?? $r['state_id']   ?? 0),
+            'id_ciudad' => (int)($r['id_ciudad'] ?? $r['id_city']    ?? $r['ciudad_id'] ?? $r['city_id']    ?? 0),
         ];
     }
     $res->free();
