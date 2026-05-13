@@ -32,6 +32,7 @@ import { Loader2, CheckCircle2, Send, HelpCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
 import {
   getRegistroSubmitUrl,
@@ -48,7 +49,14 @@ import {
 interface LocationRow { id: number; name: string }
 
 /** Row returned by /api/clubs.php */
-interface ClubRow { id: number; nombre: string }
+interface ClubRow {
+  id: number;
+  nombre: string;
+  /** Optional location strings (whichever exist in the `clubs` table). */
+  ciudad?: string;
+  estado?: string;
+  pais?: string;
+}
 
 /** Field-name → suggested placeholder text shown as greyed example. */
 const PLACEHOLDERS: Record<string, string> = {
@@ -85,6 +93,7 @@ const calcAge = (yyyymmdd: string): number | null => {
 const Registro = () => {
   const { data: fieldsData, isLoading: loadingFields } = useRegistroFields();
   const { data: categories = [] } = useCategories();
+  const { data: tournamentInfo } = useTournamentInfo();
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
@@ -109,6 +118,13 @@ const Registro = () => {
    * overwrite an edited club value.
    */
   const [lastLookupKey, setLastLookupKey] = useState<string>('');
+
+  /** Tracks whether we already auto-filled the club from "soy socio = SI"
+   *  so toggling NO doesn't keep clobbering manual edits. */
+  const [socioClubAutofilled, setSocioClubAutofilled] = useState(false);
+
+  /** Inline error message for the handicap field (shown on blur). */
+  const [handicapError, setHandicapError] = useState<string>('');
 
   /**
    * Field config sorted by display_order, enabled only.
@@ -146,6 +162,25 @@ const Registro = () => {
   const isFieldRequired = (name: string) =>
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
+  /**
+   * Strict numeric handicap regex: digits, optional single dot, digits.
+   * Empty string is treated as "not yet entered" (no error).
+   */
+  const HANDICAP_RE = /^\d+(\.\d+)?$/;
+
+  /** onBlur validator for the handicap field. */
+  const validateHandicapOnBlur = () => {
+    const v = (values.reg_handicap || '').trim();
+    if (v === '') { setHandicapError(''); return; }
+    if (!HANDICAP_RE.test(v)) {
+      const msg = 'Hándicap inválido. Usa solo números y punto decimal (ej: 14.2)';
+      setHandicapError(msg);
+      toast({ title: 'Hándicap inválido', description: msg, variant: 'destructive' });
+    } else {
+      setHandicapError('');
+    }
+  };
+
   /** Load countries on mount (only if the field is enabled). */
   useEffect(() => {
     if (!isFieldEnabled('reg_pais')) return;
@@ -164,9 +199,6 @@ const Registro = () => {
       .then(r => r.json())
       .then((rows: LocationRow[]) => setStates(rows || []))
       .catch(() => setStates([]));
-    // Reset downstream selections
-    setValues(v => ({ ...v, reg_estado: '', reg_ciudad: '' }));
-    setCities([]);
   }, [values.reg_pais]);
 
   /** Cascade cities when state changes. */
@@ -177,7 +209,6 @@ const Registro = () => {
       .then(r => r.json())
       .then((rows: LocationRow[]) => setCities(rows || []))
       .catch(() => setCities([]));
-    setValues(v => ({ ...v, reg_ciudad: '' }));
   }, [values.reg_estado]);
 
   /** Load full clubs list once, when reg_club is enabled. */
@@ -210,8 +241,12 @@ const Registro = () => {
       fetch(getClubLookupUrl(nombre, apellido, fechanac))
         .then(r => r.json())
         .then(j => {
-          if (cancelled || !j?.found || !j?.club) return;
-          // Only auto-fill when the user hasn't typed a club yet.
+          if (cancelled) return;
+          // Tag whether we found this player at all — used by the
+          // es_socio NO branch to decide between "leave blank" vs autofill.
+          setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
+          if (!j?.found || !j?.club) return;
+          // Only auto-fill club when the user hasn't typed one yet.
           setValues(v => v.reg_club ? v : { ...v, reg_club: String(j.club) });
         })
         .catch(() => { /* silent — autofill is best-effort */ });
@@ -219,6 +254,70 @@ const Registro = () => {
     return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length]);
+
+  /**
+   * Es-socio autofill rules:
+   *  - SI  → reg_club = host tournament club name (always overwrites).
+   *  - NO  → if we previously autofilled from SI, clear it so the user
+   *          (or the player-lookup effect above) can fill the real club.
+   */
+  useEffect(() => {
+    const ans = values.reg_es_socio;
+    if (ans === 'SI' && tournamentInfo?.club) {
+      setSocioClubAutofilled(true);
+      setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
+    } else if (ans === 'NO' && socioClubAutofilled) {
+      setSocioClubAutofilled(false);
+      // Clear the SI-injected value so the player-lookup effect (or the
+      // user) can re-populate it. If we already have player data the
+      // lookup effect will refill on the next debounce tick.
+      setValues(v => ({ ...v, reg_club: '' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_es_socio, tournamentInfo?.club]);
+
+  /**
+   * When the typed club name matches a known club row, auto-fill país /
+   * estado / ciudad by case-insensitive name match against the cascading
+   * dropdown lists. We only set values that resolve cleanly to an ID.
+   */
+  useEffect(() => {
+    const clubName = (values.reg_club || '').trim().toLowerCase();
+    if (!clubName) return;
+    const match = clubs.find(c => c.nombre.trim().toLowerCase() === clubName);
+    if (!match) return;
+
+    // 1) Country: try to match by name against the loaded countries list.
+    const paisName = (match.pais || '').trim().toLowerCase();
+    const country = paisName
+      ? countries.find(c => c.name.trim().toLowerCase() === paisName)
+      : countries.find(c => c.name.trim().toLowerCase() === 'mexico'
+                         || c.name.trim().toLowerCase() === 'méxico');
+    if (country && values.reg_pais !== String(country.id)) {
+      setValues(v => ({ ...v, reg_pais: String(country.id) }));
+      return; // wait for states to load on next render
+    }
+
+    // 2) State (depends on states list being loaded for current country)
+    const estadoName = (match.estado || '').trim().toLowerCase();
+    if (estadoName && states.length) {
+      const st = states.find(s => s.name.trim().toLowerCase() === estadoName);
+      if (st && values.reg_estado !== String(st.id)) {
+        setValues(v => ({ ...v, reg_estado: String(st.id) }));
+        return;
+      }
+    }
+
+    // 3) City (depends on cities list being loaded for current state)
+    const ciudadName = (match.ciudad || '').trim().toLowerCase();
+    if (ciudadName && cities.length) {
+      const ci = cities.find(c => c.name.trim().toLowerCase() === ciudadName);
+      if (ci && values.reg_ciudad !== String(ci.id)) {
+        setValues(v => ({ ...v, reg_ciudad: String(ci.id) }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_club, clubs, countries, states, cities]);
 
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
