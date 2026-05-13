@@ -346,10 +346,20 @@ const Registro = () => {
   /** Submit the form as multipart/form-data. */
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Block submission when the handicap value is malformed.
+    if (isFieldEnabled('reg_handicap')) {
+      const v = (values.reg_handicap || '').trim();
+      if (v && !HANDICAP_RE.test(v)) {
+        validateHandicapOnBlur();
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       const fd = new FormData();
       Object.entries(values).forEach(([k, v]) => {
+        // Skip our internal/private flags (prefixed with __).
+        if (k.startsWith('__')) return;
         if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
       });
       if (file) fd.append('reg_archivo', file);
@@ -659,9 +669,74 @@ const Registro = () => {
                     <Loader2 className="h-4 w-4 animate-spin" /> Cargando formulario…
                   </div>
                 ) : (
-                  <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {visibleFields.map(f => renderField(f.field_name, f.field_label, !!f.is_required))}
-                    <div className="md:col-span-2 flex justify-end pt-2">
+                  <form onSubmit={onSubmit} className="space-y-8">
+                    {(() => {
+                      // Group enabled fields by section while preserving order.
+                      const order: Array<{ key: string; title: string }> = [
+                        { key: 'basica',      title: 'Información básica' },
+                        { key: 'socios',      title: '¿Eres socio?' },
+                        { key: 'adicionales', title: 'Información adicional' },
+                      ];
+                      const grouped: Record<string, typeof visibleFields> = {};
+                      visibleFields.forEach(f => {
+                        const k = (f.section as string) || 'basica';
+                        (grouped[k] ||= []).push(f);
+                      });
+                      // Any custom section keys not in `order` go after.
+                      Object.keys(grouped).forEach(k => {
+                        if (!order.find(o => o.key === k)) {
+                          order.push({ key: k, title: k.charAt(0).toUpperCase() + k.slice(1) });
+                        }
+                      });
+
+                      /**
+                       * Progressive reveal: section N renders only when every
+                       * required field in sections 0..N-1 has a value.
+                       */
+                      const isSectionComplete = (key: string) => {
+                        const list = grouped[key] || [];
+                        return list.every(f => {
+                          if (!f.is_required) return true;
+                          // Conditional required: tipo_socio only when es_socio = SI
+                          if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return true;
+                          return !!(values[f.field_name] || '').trim();
+                        });
+                      };
+
+                      const blocks: JSX.Element[] = [];
+                      let revealUpTo = true;
+                      order.forEach((sec, idx) => {
+                        const list = grouped[sec.key];
+                        if (!list || list.length === 0) return;
+                        if (!revealUpTo) return;
+
+                        blocks.push(
+                          <section key={sec.key} className="space-y-4">
+                            {/* Section header + thin divider as visual spacer */}
+                            <div className="space-y-2">
+                              <h3 className="text-base font-semibold text-foreground">{sec.title}</h3>
+                              <div className="h-px bg-border" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {list
+                                .filter(f => {
+                                  // Hide reg_tipo_socio entirely until es_socio = SI.
+                                  if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return false;
+                                  return true;
+                                })
+                                .map(f => renderField(f.field_name, f.field_label, !!f.is_required))}
+                            </div>
+                          </section>
+                        );
+
+                        // Decide if the next section should be revealed.
+                        if (idx < order.length - 1 && !isSectionComplete(sec.key)) {
+                          revealUpTo = false;
+                        }
+                      });
+                      return blocks;
+                    })()}
+                    <div className="flex justify-end pt-2">
                       <Button type="submit" disabled={submitting} className="gap-2" size="lg">
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         Enviar pre-registro
