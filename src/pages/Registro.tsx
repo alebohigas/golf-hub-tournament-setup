@@ -41,6 +41,7 @@ import {
   getLocationsCitiesUrl,
   getClubsUrl,
   getClubLookupUrl,
+  getEmailValidateUrl,
 } from '@/config/api';
 
 // ============= Types =============
@@ -104,6 +105,54 @@ const norm = (s: string): string =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase();
+
+/**
+ * Aliases used when matching club.estado strings to the `states` dropdown.
+ * The `clubs` table sometimes stores short forms ("CDMX") while the
+ * `states` table uses the full name ("Ciudad de México"). Keys/values are
+ * pre-normalized (no accents, lowercase). All entries are bidirectional.
+ */
+const STATE_ALIASES: Record<string, string[]> = {
+  'cdmx':              ['ciudad de mexico', 'distrito federal', 'df', 'mexico df', 'mexico city'],
+  'ciudad de mexico':  ['cdmx', 'distrito federal', 'df'],
+  'edomex':            ['estado de mexico', 'mexico'],
+  'estado de mexico':  ['edomex'],
+  'nuevo leon':        ['nl', 'n.l.'],
+  'baja california':   ['bc', 'b.c.'],
+  'baja california sur': ['bcs', 'b.c.s.'],
+  'quintana roo':      ['qroo', 'q. roo', 'qr'],
+  'san luis potosi':   ['slp', 's.l.p.'],
+};
+
+/** Returns true if two location strings refer to the same place,
+ *  considering the alias table above. Both inputs may be raw. */
+const locMatches = (a: string, b: string): boolean => {
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if ((STATE_ALIASES[na] || []).some(x => norm(x) === nb)) return true;
+  if ((STATE_ALIASES[nb] || []).some(x => norm(x) === na)) return true;
+  return false;
+};
+
+// ============= Phone country codes =============
+/** Mini list of country dial codes shown in the phone <Select>. MX first. */
+const PHONE_CODES: { code: string; flag: string; label: string; len: number }[] = [
+  { code: '+52', flag: '🇲🇽', label: 'México',         len: 10 },
+  { code: '+1',  flag: '🇺🇸', label: 'EE. UU. / CAN', len: 10 },
+  { code: '+34', flag: '🇪🇸', label: 'España',         len: 9  },
+  { code: '+54', flag: '🇦🇷', label: 'Argentina',      len: 10 },
+  { code: '+55', flag: '🇧🇷', label: 'Brasil',         len: 11 },
+  { code: '+56', flag: '🇨🇱', label: 'Chile',          len: 9  },
+  { code: '+57', flag: '🇨🇴', label: 'Colombia',       len: 10 },
+  { code: '+58', flag: '🇻🇪', label: 'Venezuela',      len: 10 },
+  { code: '+51', flag: '🇵🇪', label: 'Perú',           len: 9  },
+  { code: '+593', flag: '🇪🇨', label: 'Ecuador',       len: 9  },
+  { code: '+502', flag: '🇬🇹', label: 'Guatemala',     len: 8  },
+  { code: '+503', flag: '🇸🇻', label: 'El Salvador',   len: 8  },
+  { code: '+506', flag: '🇨🇷', label: 'Costa Rica',    len: 8  },
+];
 
 // ============= Component =============
 
