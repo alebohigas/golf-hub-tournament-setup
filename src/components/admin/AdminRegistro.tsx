@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save, ListChecks, ExternalLink } from 'lucide-react';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useRegistroFields, useSaveRegistroFields, type RegistroField } from '@/hooks/useRegistroFields';
@@ -19,6 +20,16 @@ import { useToast } from '@/hooks/use-toast';
  * AdminRegistro tab component.
  * Shows a single editable table of fields keyed by `field_name`.
  */
+/**
+ * Section options shown in the per-field <Select>. Keep in sync with the
+ * progressive-reveal sections in src/pages/Registro.tsx.
+ */
+const SECTION_OPTIONS: { value: string; label: string }[] = [
+  { value: 'basica',      label: 'Información básica' },
+  { value: 'socios',      label: 'Socios y procedencia' },
+  { value: 'adicionales', label: 'Adicionales' },
+];
+
 const AdminRegistro = () => {
   const { torneoId } = useTorneoId();
   const { data, isLoading } = useRegistroFields();
@@ -109,6 +120,7 @@ const AdminRegistro = () => {
                     <tr>
                       <th className="text-left p-2 w-32">Campo</th>
                       <th className="text-left p-2">Etiqueta</th>
+                      <th className="text-left p-2 w-44">Sección</th>
                       <th className="text-center p-2 w-20">Orden</th>
                       <th className="text-center p-2 w-24">Activo</th>
                       <th className="text-center p-2 w-28">Obligatorio</th>
@@ -123,6 +135,21 @@ const AdminRegistro = () => {
                             value={r.field_label}
                             onChange={e => updateRow(idx, { field_label: e.target.value })}
                           />
+                        </td>
+                        <td className="p-2">
+                          {/* Section selector — drives which group the field
+                              renders inside on the public form. */}
+                          <Select
+                            value={r.section || 'basica'}
+                            onValueChange={v => updateRow(idx, { section: v })}
+                          >
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {SECTION_OPTIONS.map(o => (
+                                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td className="p-2 text-center">
                           <Input
