@@ -484,7 +484,7 @@ const Registro = () => {
     if (!st && states.length) {
       const estadoName = norm(match.estado || '');
       if (estadoName) {
-        st = states.find(s => norm(s.name) === estadoName)
+        st = states.find(s => locMatches(s.name, match.estado || ''))
           || states.find(s => norm(s.name).includes(estadoName)
                            || estadoName.includes(norm(s.name)));
       }
@@ -501,7 +501,7 @@ const Registro = () => {
     if (!ci && cities.length) {
       const ciudadName = norm(match.ciudad || '');
       if (ciudadName) {
-        ci = cities.find(c => norm(c.name) === ciudadName)
+        ci = cities.find(c => locMatches(c.name, match.ciudad || ''))
           || cities.find(c => norm(c.name).includes(ciudadName)
                            || ciudadName.includes(norm(c.name)));
       }
