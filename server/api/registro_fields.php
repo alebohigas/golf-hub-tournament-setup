@@ -39,8 +39,15 @@ $DEFAULT_FIELDS = [
     ['field_name' => 'reg_estado',     'field_label' => 'Estado',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 130, 'section' => 'socios'],
     ['field_name' => 'reg_ciudad',     'field_label' => 'Ciudad',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 140, 'section' => 'socios'],
     ['field_name' => 'reg_ghin',       'field_label' => 'GHIN / FMG ID',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 150, 'section' => 'socios'],
-    ['field_name' => 'reg_archivo',    'field_label' => 'Comprobante de pago',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 160, 'section' => 'adicionales'],
-    ['field_name' => 'reg_notas',      'field_label' => 'Notas adicionales',                            'is_enabled' => 1, 'is_required' => 0, 'display_order' => 170, 'section' => 'adicionales'],
+    ['field_name' => 'reg_archivo',         'field_label' => 'Comprobante de pago',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 160, 'section' => 'adicionales'],
+    ['field_name' => 'reg_notas',           'field_label' => 'Notas adicionales',                            'is_enabled' => 1, 'is_required' => 0, 'display_order' => 170, 'section' => 'adicionales'],
+    // Tallas — desactivadas por defecto; el admin las activa según necesidad
+    ['field_name' => 'reg_talla_gorra',     'field_label' => 'Talla de gorra',                               'is_enabled' => 0, 'is_required' => 0, 'display_order' => 180, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_guante',    'field_label' => 'Talla de guante',                              'is_enabled' => 0, 'is_required' => 0, 'display_order' => 190, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_camisa',    'field_label' => 'Talla de camisa',                              'is_enabled' => 0, 'is_required' => 0, 'display_order' => 200, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_tenis',     'field_label' => 'Talla de tenis (zapatos)',                     'is_enabled' => 0, 'is_required' => 0, 'display_order' => 210, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_pantalon',  'field_label' => 'Talla de pantalón',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 220, 'section' => 'adicionales'],
+    ['field_name' => 'reg_talla_cinturon',  'field_label' => 'Talla de cinturón',                            'is_enabled' => 0, 'is_required' => 0, 'display_order' => 230, 'section' => 'adicionales'],
 ];
 
 /** Ensure the registro_form_fields table exists; if not, return defaults / refuse writes. */
