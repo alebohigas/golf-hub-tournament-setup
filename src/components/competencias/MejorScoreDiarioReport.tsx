@@ -127,28 +127,16 @@ const MejorScoreDiarioReport = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {data.map((sec, idx) => {
-        const hasBoth = sec.stableford.length > 0 && sec.strokePlay.length > 0;
-        return (
-          <div key={`${sec.premio}-${sec.fecha}-${idx}`}>
-            <h3 className="text-xl font-bold text-foreground">SCORE DEL DIA</h3>
-            <h4 className="text-base font-bold text-[#900000] mb-3">
-              {sec.fechaLabel}
-            </h4>
-            {hasBoth ? (
-              <>
-                <PlayersTable title="Stableford" players={sec.stableford} />
-                <PlayersTable title="Stroke Play" players={sec.strokePlay} />
-              </>
-            ) : (
-              <>
-                <PlayersTable players={sec.stableford} />
-                <PlayersTable players={sec.strokePlay} />
-              </>
-            )}
-          </div>
-        );
-      })}
+      {data.map((sec, idx) => (
+        <div key={`${sec.premio}-${sec.fecha}-${idx}`}>
+          <h3 className="text-xl font-bold text-foreground">SCORE DEL DIA</h3>
+          <h4 className="text-base font-bold text-[#900000] mb-3">
+            {sec.fechaLabel}
+          </h4>
+          <PlayersTable title="Stableford" players={sec.stableford} />
+          <PlayersTable title="Stroke Play" players={sec.strokePlay} />
+        </div>
+      ))}
     </div>
   );
 };
