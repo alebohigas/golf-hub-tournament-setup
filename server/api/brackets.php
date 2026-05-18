@@ -188,13 +188,22 @@ function action_get_putt_finales($conn, $torneoid) {
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
+                        m.player_high_id  AS player1_id,
+                        m.player_low_id   AS player2_id,
+                        m.seed_high       AS player1_seed,
+                        m.seed_low        AS player2_seed,
+                        m.score_high      AS player1_score,
+                        m.score_low       AS player2_score,
+                        m.winner_player_id AS winner_id,
+                        m.round_num       AS round,
+                        m.match_num       AS position,
                         CONCAT(j1.nombre,' ',j1.apellido) AS player1_name,
                         CONCAT(j2.nombre,' ',j2.apellido) AS player2_name
                  FROM bracket_matches m
-                 LEFT JOIN jugadores j1 ON j1.id = m.player1_id
-                 LEFT JOIN jugadores j2 ON j2.id = m.player2_id
-                 WHERE m.bracket_config_id = $cfgId
-                 ORDER BY m.round ASC, m.position ASC");
+                 LEFT JOIN jugadores j1 ON j1.id = m.player_high_id
+                 LEFT JOIN jugadores j2 ON j2.id = m.player_low_id
+                 WHERE m.bracket_id = $cfgId
+                 ORDER BY m.round_num ASC, m.match_num ASC");
         }
         $out[$sx] = [
             'config'  => $cfg,
@@ -224,13 +233,22 @@ function action_get_putt_admin($conn, $torneoid) {
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
+                        m.player_high_id  AS player1_id,
+                        m.player_low_id   AS player2_id,
+                        m.seed_high       AS player1_seed,
+                        m.seed_low        AS player2_seed,
+                        m.score_high      AS player1_score,
+                        m.score_low       AS player2_score,
+                        m.winner_player_id AS winner_id,
+                        m.round_num       AS round,
+                        m.match_num       AS position,
                         CONCAT(j1.nombre,' ',j1.apellido) AS player1_name,
                         CONCAT(j2.nombre,' ',j2.apellido) AS player2_name
                  FROM bracket_matches m
-                 LEFT JOIN jugadores j1 ON j1.id = m.player1_id
-                 LEFT JOIN jugadores j2 ON j2.id = m.player2_id
-                 WHERE m.bracket_config_id = $cfgId
-                 ORDER BY m.round ASC, m.position ASC");
+                 LEFT JOIN jugadores j1 ON j1.id = m.player_high_id
+                 LEFT JOIN jugadores j2 ON j2.id = m.player_low_id
+                 WHERE m.bracket_id = $cfgId
+                 ORDER BY m.round_num ASC, m.match_num ASC");
         }
         // Conteo de candidatos potenciales (límite alto para ver el universo).
         $ranking = collect_putt_ranking($conn, $tid, $sx, 9999);
@@ -318,7 +336,7 @@ function action_generate_putt($conn, $body) {
     }
 
     // 2) Wipe matches anteriores.
-    $conn->query("DELETE FROM bracket_matches WHERE bracket_config_id = $cfgId");
+    $conn->query("DELETE FROM bracket_matches WHERE bracket_id = $cfgId");
 
     // 3) Crear matches por ronda (final primero para poder linkear next_match_id).
     $totalRounds = (int)log($size, 2);
@@ -330,12 +348,13 @@ function action_generate_putt($conn, $body) {
             $nextSlot = 'NULL';
             if ($round < $totalRounds) {
                 $parentPos  = (int)ceil($pos / 2);
-                $parentSlot = (($pos - 1) % 2) + 1;
+                // slot enum en bracket_matches: 'high' | 'low'
+                $parentSlot = (($pos - 1) % 2) === 0 ? "'high'" : "'low'";
                 $nextId   = (int)$matchIds[$round + 1][$parentPos];
                 $nextSlot = $parentSlot;
             }
             $sql = "INSERT INTO bracket_matches
-                      (bracket_config_id, round, position, next_match_id, next_slot, status, updated_at)
+                      (bracket_id, round_num, match_num, next_match_id, next_slot, status, updated_at)
                     VALUES ($cfgId, $round, $pos, $nextId, $nextSlot, 'pending', NOW())";
             if (!$conn->query($sql)) {
                 json_error('Insert match failed: ' . $conn->error, 500);
@@ -356,8 +375,8 @@ function action_generate_putt($conn, $body) {
         $s1 = (int)$pair[0];
         $s2 = (int)$pair[1];
         $conn->query("UPDATE bracket_matches
-                      SET player1_id = $p1Sql, player2_id = $p2Sql,
-                          player1_seed = $s1, player2_seed = $s2, updated_at = NOW()
+                      SET player_high_id = $p1Sql, player_low_id = $p2Sql,
+                          seed_high = $s1, seed_low = $s2, updated_at = NOW()
                       WHERE id = $matchId");
         // BYE: avanzar al jugador presente
         if ($p1 !== null && $p2 === null)      advance_winner($conn, $matchId, (int)$p1);
@@ -385,12 +404,13 @@ function advance_winner($conn, $matchId, $winnerId) {
     $mid = (int)$matchId;
     $wid = (int)$winnerId;
     $conn->query("UPDATE bracket_matches
-                  SET winner_id = $wid, status = 'complete', updated_at = NOW()
+                  SET winner_player_id = $wid, status = 'completed', updated_at = NOW()
                   WHERE id = $mid");
     $row = safe_one($conn, "SELECT next_match_id, next_slot FROM bracket_matches WHERE id = $mid");
     if (!$row || $row['next_match_id'] === null) return;
     $nextId  = (int)$row['next_match_id'];
-    $slotCol = ((int)$row['next_slot']) === 1 ? 'player1_id' : 'player2_id';
+    // next_slot es ENUM 'high'|'low' -> mapea a la columna del player correspondiente
+    $slotCol = ($row['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
     $conn->query("UPDATE bracket_matches SET $slotCol = $wid, updated_at = NOW() WHERE id = $nextId");
 }
 
@@ -410,14 +430,14 @@ function action_record_score($conn, $body) {
     $s2Sql = $s2 !== null ? (int)$s2 : 'NULL';
 
     $conn->query("UPDATE bracket_matches
-                  SET player1_score = $s1Sql, player2_score = $s2Sql, updated_at = NOW()
+                  SET score_high = $s1Sql, score_low = $s2Sql, updated_at = NOW()
                   WHERE id = $matchId");
 
     $m = safe_one($conn, "SELECT * FROM bracket_matches WHERE id = $matchId");
     if (!$m) json_error('Match not found', 404);
 
     if ($s1 !== null && $s2 !== null && $s1 !== $s2) {
-        $winner = $s1 > $s2 ? (int)$m['player1_id'] : (int)$m['player2_id'];
+        $winner = $s1 > $s2 ? (int)$m['player_high_id'] : (int)$m['player_low_id'];
         if ($winner > 0) advance_winner($conn, $matchId, $winner);
     }
     json_response(['ok' => true]);
@@ -433,9 +453,9 @@ function action_set_winner($conn, $body) {
     $matchId  = (int)($body['match_id']  ?? 0);
     $winnerId = (int)($body['winner_id'] ?? 0);
     if ($matchId <= 0 || $winnerId <= 0) json_error('Invalid match_id or winner_id', 400);
-    $m = safe_one($conn, "SELECT player1_id, player2_id FROM bracket_matches WHERE id = $matchId");
+    $m = safe_one($conn, "SELECT player_high_id, player_low_id FROM bracket_matches WHERE id = $matchId");
     if (!$m) json_error('Match not found', 404);
-    if ((int)$m['player1_id'] !== $winnerId && (int)$m['player2_id'] !== $winnerId) {
+    if ((int)$m['player_high_id'] !== $winnerId && (int)$m['player_low_id'] !== $winnerId) {
         json_error('winner_id no corresponde a player1 ni player2 de este match', 400);
     }
     advance_winner($conn, $matchId, $winnerId);
