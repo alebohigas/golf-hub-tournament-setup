@@ -583,40 +583,9 @@ const Competencias = () => {
               )}
 
               {/* External link: Putt Finales Caballeros (Match Play) */}
-              <div className="flex justify-center mt-10">
-                <Button
-                  asChild
-                  size="lg"
-                  className="gap-2"
-                >
-                  <a
-                    href="https://va.speitour.mx/match-play-putt-caballeros"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Trophy className="h-5 w-5" />
-                    Putt Finales Caballeros
-                  </a>
-                </Button>
-              </div>
-
-              {/* External link: Putt Finales Damas (Match Play) */}
-              <div className="flex justify-center mt-4">
-                <Button
-                  asChild
-                  size="lg"
-                  className="gap-2"
-                >
-                  <a
-                    href="https://va.speitour.mx/match-play-putt-damas"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Trophy className="h-5 w-5" />
-                    Putt Finales Damas
-                  </a>
-                </Button>
-              </div>
+              {/* Putt Finales (Caballero / Dama) ahora se inyectan como
+                  competencias normales por competencias.php cuando el admin
+                  las marca como visibles. Ver AdminBrackets + BracketView. */}
             </>
           )}
 
