@@ -320,7 +320,7 @@ const Competencias = () => {
       />
       
       <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
+        <div className={bracketSexo && selectedGroup ? 'w-full px-2 sm:px-4 lg:px-8' : 'container mx-auto px-4'}>
           
           {/* Loading indicator */}
           {isLoading && (
@@ -778,7 +778,7 @@ const Competencias = () => {
               {bracketSexo ? (
                 /* Bracket-flagged prize → render knockout bracket instead of standings table */
                 <Card className="border-border/50 w-full bg-white">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <BracketView sexo={bracketSexo} />
                   </CardContent>
                 </Card>
