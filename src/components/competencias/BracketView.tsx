@@ -95,10 +95,16 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         placeholder="Buscar jugador en el bracket..."
         className="max-w-md"
       />
-      <div className="overflow-x-auto pb-4">
-      <div className="flex gap-6 min-w-max px-2">
+      {/*
+        Layout responsivo:
+        - Móvil/tablet: scroll horizontal con anchos mínimos por columna (min-w-max).
+        - Desktop (lg+): se eliminan los mínimos y se usan columnas flex-1 para que
+          TODAS las rondas quepan a lo ancho de la pantalla sin scroll.
+      */}
+      <div className="overflow-x-auto lg:overflow-visible pb-4">
+      <div className="flex gap-3 lg:gap-2 min-w-max lg:min-w-0 lg:w-full px-2">
         {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="flex flex-col gap-3 min-w-[220px]">
+          <div key={round} className="flex flex-col gap-3 min-w-[220px] lg:min-w-0 lg:flex-1">
             <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
               {roundLabel(round, totalRounds)}
             </h4>
