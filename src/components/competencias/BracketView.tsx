@@ -155,13 +155,13 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 const MatchCard = ({
   match,
   highlight,
-  championId,
+  championKey,
   dimChampion,
 }: {
   match: BracketMatch;
   highlight?: string;
-  /** Player id del campeón del bracket (final ya resuelta). */
-  championId?: number | null;
+  /** Llave estable del campeón del bracket (ID si existe; nombre como fallback). */
+  championKey?: string | null;
   /** Cuando el usuario está buscando, atenuar el resaltado dorado del campeón. */
   dimChampion?: boolean;
 }) => {
@@ -170,16 +170,15 @@ const MatchCard = ({
   /** Marca si la fila coincide con el término de búsqueda activo (resaltado amarillo). */
   const h1 = !!highlight && matchesPlayerName(match.player1_name, highlight);
   const h2 = !!highlight && matchesPlayerName(match.player2_name, highlight);
-  /** Resalta TODAS las apariciones del campeón con el mismo dorado del search. */
-  const c1 = championId != null && match.player1_id === championId;
-  const c2 = championId != null && match.player2_id === championId;
+  /** Resalta TODAS las apariciones del campeón con la misma lógica visual del buscador. */
+  const c1 = championKey != null && playerKey(match.player1_id, match.player1_name) === championKey;
+  const c2 = championKey != null && playerKey(match.player2_id, match.player2_name) === championKey;
 
-  /** Clases de resaltado dorado (search + champion). Usamos amber para que
-   *  destaque claramente sobre el verde de winner (bg-primary/10). */
-  const goldRow      = 'bg-amber-200/80 ring-2 ring-amber-400';
-  const goldRowDim   = 'bg-amber-100/40';
-  const goldText     = 'font-bold text-amber-950';
-  const goldTextDim  = 'font-semibold text-amber-950/50';
+  /** Dorado original del buscador; el campeón se difumina con opacidad al buscar. */
+  const goldRow = 'bg-accent ring-2 ring-accent';
+  const goldRowDim = 'bg-accent/30';
+  const goldText = 'font-bold text-accent-foreground';
+  const goldTextDim = 'font-semibold text-accent-foreground/60';
 
   const renderRow = (
     name: string | null,
@@ -207,7 +206,7 @@ const MatchCard = ({
           <Badge variant="outline" className="h-5 px-1.5 text-[10px] shrink-0 mt-0.5">{seed}</Badge>
         )}
         <span
-          className={`text-sm break-words whitespace-normal leading-tight ${
+          className={`text-sm min-w-0 break-words whitespace-normal leading-tight ${
             isHighlighted
               ? goldText
               : isChampion && !dimChampion
@@ -223,7 +222,7 @@ const MatchCard = ({
         </span>
       </div>
       <span
-        className={`text-sm tabular-nums shrink-0 pl-2 ${
+        className={`text-sm tabular-nums shrink-0 self-start pl-2 ${
           isHighlighted
             ? goldText
             : isChampion && !dimChampion
@@ -244,9 +243,9 @@ const MatchCard = ({
     <Card
       className={`border-border overflow-hidden divide-y divide-border ${
         h1 || h2
-          ? 'ring-2 ring-amber-400 shadow-md'
+          ? 'ring-2 ring-accent shadow-md'
           : (c1 || c2) && !dimChampion
-            ? 'ring-2 ring-amber-400 shadow-md'
+            ? 'ring-2 ring-accent shadow-md'
             : ''
       }`}
     >
