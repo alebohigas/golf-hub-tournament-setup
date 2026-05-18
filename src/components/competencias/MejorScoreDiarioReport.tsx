@@ -128,14 +128,19 @@ const MejorScoreDiarioReport = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {data.map((sec, idx) => (
-        <div key={`${sec.premio}-${sec.fecha}-${idx}`}>
-          <h3 className="text-xl font-bold text-foreground">SCORE DEL DIA</h3>
-          <h4 className="text-base font-bold text-[#900000] mb-3">
-            {sec.fechaLabel}
-          </h4>
-          <PlayersTable title="Stableford" players={sec.stableford} />
-          <PlayersTable title="Stroke Play" players={sec.strokePlay} />
-        </div>
+        <Card
+          key={`${sec.premio}-${sec.fecha}-${idx}`}
+          className="border-border/50"
+        >
+          <CardContent className="p-5">
+            <h3 className="text-xl font-bold text-foreground">SCORE DEL DIA</h3>
+            <h4 className="text-base font-bold text-[#900000] mb-4 capitalize">
+              {sec.fechaLabel}
+            </h4>
+            <PlayersTable title="Stableford" players={sec.stableford} />
+            <PlayersTable title="Stroke Play" players={sec.strokePlay} />
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
