@@ -777,7 +777,7 @@ const Competencias = () => {
               {/* Results Table */}
               {bracketSexo ? (
                 /* Bracket-flagged prize → render knockout bracket instead of standings table */
-                <Card className="border-border/50 max-w-6xl mx-auto bg-white">
+                <Card className="border-border/50 w-full bg-white">
                   <CardContent className="p-4">
                     <BracketView sexo={bracketSexo} />
                   </CardContent>
