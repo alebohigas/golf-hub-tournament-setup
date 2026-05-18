@@ -1057,13 +1057,6 @@ if (!empty($DEBUG_MODE)) {
 }
 json_response($competencias);
 
-// ============================================================================
-// (Lo siguiente nunca se ejecuta — está antes del catch arriba — pero dejamos
-//  aquí documentada la inyección de Putt Finales por si en el futuro queremos
-//  reordenar. La inyección real está unas líneas arriba, justo antes de este
-//  json_response.)
-// ============================================================================
-
 } catch (\Throwable $e) {
     // Caught by the main try: return JSON with details in debug mode
     global $DEBUG_MODE;
