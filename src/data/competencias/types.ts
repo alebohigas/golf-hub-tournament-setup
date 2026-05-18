@@ -35,6 +35,12 @@ export interface CompetenciaGroup {
   /** Player data (only available with detalle=1) */
   players?: CompetenciaPlayer[];
   lastUpdated?: string;
+  /**
+   * Cuando está presente, este grupo representa un bracket Putt Finales
+   * ('M' = Caballero, 'F' = Dama). El front renderiza <BracketView sexo />
+   * en lugar de la tabla estándar.
+   */
+  bracketSexo?: 'M' | 'F';
 }
 
 // ============= Competition Types =============

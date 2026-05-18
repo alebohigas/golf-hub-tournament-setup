@@ -20,7 +20,6 @@ import BracketView from '@/components/competencias/BracketView';
 import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
-import { useBracketPrizes } from '@/hooks/useBrackets';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
@@ -86,57 +85,11 @@ const Competencias = () => {
   );
 
   /**
-   * List of prize rows flagged as is_bracket=1 across all 6 tables.
-   * Used to switch the results view to BracketView when the selected
-   * group corresponds to a bracketed prize.
+   * Detecta si el grupo seleccionado es uno de los brackets Putt Finales
+   * (inyectados por competencias.php como pseudo-competencias). En ese caso
+   * el front renderiza <BracketView sexo /> en lugar de la tabla.
    */
-  const { data: bracketPrizesData } = useBracketPrizes();
-  const bracketedPrizes = useMemo(
-    () => (bracketPrizesData?.prizes ?? []).filter(p => p.is_bracket === 1),
-    [bracketPrizesData]
-  );
-
-  /**
-   * Resolve the (prize_table, prize_id) for the currently selected group.
-   * Group ids from the backend are shaped like:
-   *   oyes-{id}                  → table 'oyes'
-   *   approach-{id}              → table 'approach'
-   *   putt-{id}                  → table 'putt'
-   *   driverp-{id}-{slug}        → table 'driverp'
-   *   driverd-{id}-{slug}        → table 'driver'  (note: UI 'driverd' = table 'driver')
-   *   oyesx-{id}                 → table 'oyesx'
-   * Returns null if not bracketed or unparseable.
-   */
-  const bracketContext = useMemo(() => {
-    if (!selectedGroup) return null;
-    const id = selectedGroup.id;
-    // Map UI prefix → DB table name
-    const prefixMap: Record<string, string> = {
-      oyesx: 'oyesx',
-      oyes: 'oyes',
-      approach: 'approach',
-      putt: 'putt',
-      driverp: 'driverp',
-      driverd: 'driver',
-      driver: 'driver',
-    };
-    let table: string | null = null;
-    let rest = '';
-    // Match longest prefix first to avoid 'oyes' eating 'oyesx'
-    for (const prefix of ['oyesx', 'driverp', 'driverd', 'approach', 'driver', 'putt', 'oyes']) {
-      if (id === prefix || id.startsWith(prefix + '-')) {
-        table = prefixMap[prefix];
-        rest  = id === prefix ? '' : id.slice(prefix.length + 1);
-        break;
-      }
-    }
-    if (!table || !rest) return null;
-    // Take the first segment after the prefix as the prize_id
-    const prizeId = parseInt(rest.split('-')[0], 10);
-    if (!Number.isFinite(prizeId)) return null;
-    const match = bracketedPrizes.find(p => p.prize_table === table && p.prize_id === prizeId);
-    return match ? { prize_table: match.prize_table, prize_id: match.prize_id } : null;
-  }, [selectedGroup, bracketedPrizes]);
+  const bracketSexo: 'M' | 'F' | null = selectedGroup?.bracketSexo ?? null;
 
   /**
    * Handle local typing in the search input.
@@ -853,14 +806,11 @@ const Competencias = () => {
               </div>
 
               {/* Results Table */}
-              {bracketContext ? (
+              {bracketSexo ? (
                 /* Bracket-flagged prize → render knockout bracket instead of standings table */
                 <Card className="border-border/50 max-w-6xl mx-auto bg-white">
                   <CardContent className="p-4">
-                    <BracketView
-                      prizeTable={bracketContext.prize_table}
-                      prizeId={bracketContext.prize_id}
-                    />
+                    <BracketView sexo={bracketSexo} />
                   </CardContent>
                 </Card>
               ) : (

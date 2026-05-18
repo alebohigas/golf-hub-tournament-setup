@@ -345,7 +345,7 @@ const AdminDashboard = () => {
           </TabsTrigger>
           <TabsTrigger value="brackets" className="gap-2">
             <Trophy className="h-4 w-4" />
-            <span className="hidden sm:inline">Brackets</span>
+            <span className="hidden sm:inline">Brackets Putt</span>
           </TabsTrigger>
         </TabsList>
 
@@ -499,7 +499,7 @@ const AdminDashboard = () => {
         <TabsContent value="registro">
           <AdminRegistro />
         </TabsContent>
-        {/* Brackets Tab — Match Play / Knockout configuration per prize */}
+        {/* Brackets Putt Tab — config + visibilidad de Putt Finales (M/F) */}
         <TabsContent value="brackets">
           <AdminBrackets />
         </TabsContent>
