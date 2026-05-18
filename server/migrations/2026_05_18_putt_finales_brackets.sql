@@ -20,6 +20,12 @@ ALTER TABLE bracket_config
   ADD COLUMN sexo    CHAR(1)    NULL        AFTER prize_id,
   ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 0 AFTER status;
 
+-- La tabla legacy bracket_config no tenía columna `size` (el tamaño se
+-- guardaba en otra parte). El nuevo sistema la requiere para persistir
+-- 8/16/32/64/128 por sexo.
+ALTER TABLE bracket_config
+  ADD COLUMN size INT NOT NULL DEFAULT 16 AFTER sexo;
+
 -- Opcional: apagar todos los flags viejos para que ya no aparezcan como
 -- brackets en /competicion. (Descomenta si quieres limpiar de una.)
 -- UPDATE oyes      SET is_bracket = 0;
