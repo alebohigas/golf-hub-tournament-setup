@@ -71,6 +71,14 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const { config, matches } = side;
   const totalRounds = Math.log2(config.size);
 
+  /**
+   * Champion: ganador del match de la ronda final (si ya está decidido).
+   * Se usa para resaltar TODAS sus filas en dorado a través del bracket.
+   */
+  const finalMatch = matches.find((m) => m.round === totalRounds);
+  const championId: number | null = finalMatch?.winner_id ?? null;
+  const searching = search.trim().length > 0;
+
   // Agrupar matches por ronda
   const byRound: Record<number, BracketMatch[]> = {};
   for (const m of matches) {
@@ -96,7 +104,13 @@ const BracketView = ({ sexo }: BracketViewProps) => {
             </h4>
             <div className="flex flex-col gap-3 justify-around flex-1">
               {(byRound[round] ?? []).map((m) => (
-                <MatchCard key={m.id} match={m} highlight={search} />
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  highlight={search}
+                  championId={championId}
+                  dimChampion={searching}
+                />
               ))}
             </div>
           </div>
@@ -108,12 +122,27 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 };
 
 /** Tarjeta de un match — dos filas (player1 / player2) con ganador resaltado. */
-const MatchCard = ({ match, highlight }: { match: BracketMatch; highlight?: string }) => {
+const MatchCard = ({
+  match,
+  highlight,
+  championId,
+  dimChampion,
+}: {
+  match: BracketMatch;
+  highlight?: string;
+  /** Player id del campeón del bracket (final ya resuelta). */
+  championId?: number | null;
+  /** Cuando el usuario está buscando, atenuar el resaltado dorado del campeón. */
+  dimChampion?: boolean;
+}) => {
   const w1 = match.winner_id != null && match.winner_id === match.player1_id;
   const w2 = match.winner_id != null && match.winner_id === match.player2_id;
   /** Marca si la fila coincide con el término de búsqueda activo (resaltado amarillo). */
   const h1 = !!highlight && matchesPlayerName(match.player1_name, highlight);
   const h2 = !!highlight && matchesPlayerName(match.player2_name, highlight);
+  /** Resalta TODAS las apariciones del campeón con el mismo dorado del search. */
+  const c1 = championId != null && match.player1_id === championId;
+  const c2 = championId != null && match.player2_id === championId;
 
   const renderRow = (
     name: string | null,
@@ -121,10 +150,19 @@ const MatchCard = ({ match, highlight }: { match: BracketMatch; highlight?: stri
     score: number | null,
     isWinner: boolean,
     isHighlighted: boolean,
+    isChampion: boolean,
   ) => (
     <div
       className={`flex items-center justify-between px-3 py-2 ${
-        isHighlighted ? 'bg-accent ring-2 ring-accent' : isWinner ? 'bg-primary/10' : ''
+        isHighlighted
+          ? 'bg-accent ring-2 ring-accent'
+          : isChampion
+            ? dimChampion
+              ? 'bg-accent/20'
+              : 'bg-accent ring-2 ring-accent'
+            : isWinner
+              ? 'bg-primary/10'
+              : ''
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -133,7 +171,15 @@ const MatchCard = ({ match, highlight }: { match: BracketMatch; highlight?: stri
         )}
         <span
           className={`truncate text-sm ${
-            isHighlighted ? 'font-bold text-accent-foreground' : isWinner ? 'font-bold text-primary' : ''
+            isHighlighted
+              ? 'font-bold text-accent-foreground'
+              : isChampion && !dimChampion
+                ? 'font-bold text-accent-foreground'
+                : isChampion && dimChampion
+                  ? 'font-semibold text-foreground/70'
+                  : isWinner
+                    ? 'font-bold text-primary'
+                    : ''
           }`}
         >
           {name ?? <span className="text-muted-foreground italic">— por definir —</span>}
@@ -141,7 +187,15 @@ const MatchCard = ({ match, highlight }: { match: BracketMatch; highlight?: stri
       </div>
       <span
         className={`text-sm tabular-nums ${
-          isHighlighted ? 'font-bold text-accent-foreground' : isWinner ? 'font-bold text-primary' : 'text-muted-foreground'
+          isHighlighted
+            ? 'font-bold text-accent-foreground'
+            : isChampion && !dimChampion
+              ? 'font-bold text-accent-foreground'
+              : isChampion && dimChampion
+                ? 'font-semibold text-foreground/70'
+                : isWinner
+                  ? 'font-bold text-primary'
+                  : 'text-muted-foreground'
         }`}
       >
         {score ?? '–'}
@@ -152,11 +206,15 @@ const MatchCard = ({ match, highlight }: { match: BracketMatch; highlight?: stri
   return (
     <Card
       className={`border-border overflow-hidden divide-y divide-border ${
-        h1 || h2 ? 'ring-2 ring-accent shadow-md' : ''
+        h1 || h2
+          ? 'ring-2 ring-accent shadow-md'
+          : (c1 || c2) && !dimChampion
+            ? 'ring-2 ring-accent shadow-md'
+            : ''
       }`}
     >
-      {renderRow(match.player1_name, match.player1_seed, match.player1_score, w1, h1)}
-      {renderRow(match.player2_name, match.player2_seed, match.player2_score, w2, h2)}
+      {renderRow(match.player1_name, match.player1_seed, match.player1_score, w1, h1, c1)}
+      {renderRow(match.player2_name, match.player2_seed, match.player2_score, w2, h2, c2)}
     </Card>
   );
 };
