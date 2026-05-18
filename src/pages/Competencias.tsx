@@ -678,6 +678,13 @@ const Competencias = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Volver a competencias
               </Button>
+              <CompetenciasSubmenu
+                competencias={competencias}
+                selectedId={null}
+                onSelect={handleCompetenciaSelect}
+                mejorScoreActive={true}
+                onMejorScoreClick={() => { /* already active */ }}
+              />
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-foreground">
                   Mejor Score del Día
@@ -731,6 +738,20 @@ const Competencias = () => {
 
               {/* Groups Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                {/* Special card: render all groups stacked */}
+                {groups.length > 1 && (
+                  <Card
+                    className="border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all hover:shadow-lg cursor-pointer group sm:col-span-2 md:col-span-3"
+                    onClick={() => setShowAllGroups(true)}
+                  >
+                    <CardContent className="p-5 flex items-center justify-center gap-3">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      <h3 className="font-bold text-primary text-lg">
+                        Ver todos los resultados
+                      </h3>
+                    </CardContent>
+                  </Card>
+                )}
                 {groups.map((group) => (
                   <CompetenciasGroupCard
                     key={group.id}
