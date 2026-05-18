@@ -97,14 +97,16 @@ const BracketView = ({ sexo }: BracketViewProps) => {
       />
       {/*
         Layout responsivo:
-        - Móvil/tablet: scroll horizontal con anchos mínimos por columna (min-w-max).
-        - Desktop (lg+): se eliminan los mínimos y se usan columnas flex-1 para que
-          TODAS las rondas quepan a lo ancho de la pantalla sin scroll.
+        - Móvil/tablet (<md): scroll horizontal con ancho mínimo por columna.
+        - Desktop (md+): TODAS las rondas reparten el ancho completo del contenedor
+          (flex-1 + w-full) para aprovechar todo el espacio disponible.
+        Los nombres NO se truncan: usamos break-words y whitespace-normal para
+        mostrarlos completos, ajustándose verticalmente si hace falta.
       */}
-      <div className="overflow-x-auto lg:overflow-visible pb-4">
-      <div className="flex gap-3 lg:gap-2 min-w-max lg:min-w-0 lg:w-full px-2">
+      <div className="overflow-x-auto md:overflow-visible pb-4 w-full">
+      <div className="flex gap-2 min-w-max md:min-w-0 md:w-full">
         {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="flex flex-col gap-3 min-w-[220px] lg:min-w-0 lg:flex-1">
+          <div key={round} className="flex flex-col gap-3 min-w-[200px] md:min-w-0 md:flex-1 md:basis-0">
             <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
               {roundLabel(round, totalRounds)}
             </h4>
@@ -150,6 +152,13 @@ const MatchCard = ({
   const c1 = championId != null && match.player1_id === championId;
   const c2 = championId != null && match.player2_id === championId;
 
+  /** Clases de resaltado dorado (search + champion). Usamos amber para que
+   *  destaque claramente sobre el verde de winner (bg-primary/10). */
+  const goldRow      = 'bg-amber-200/80 ring-2 ring-amber-400';
+  const goldRowDim   = 'bg-amber-100/40';
+  const goldText     = 'font-bold text-amber-950';
+  const goldTextDim  = 'font-semibold text-amber-950/50';
+
   const renderRow = (
     name: string | null,
     seed: number | null,
@@ -161,28 +170,28 @@ const MatchCard = ({
     <div
       className={`flex items-center justify-between px-3 py-2 ${
         isHighlighted
-          ? 'bg-accent ring-2 ring-accent'
+          ? goldRow
           : isChampion
             ? dimChampion
-              ? 'bg-accent/20'
-              : 'bg-accent ring-2 ring-accent'
+              ? goldRowDim
+              : goldRow
             : isWinner
               ? 'bg-primary/10'
               : ''
       }`}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start gap-2 min-w-0 flex-1">
         {seed != null && (
-          <Badge variant="outline" className="h-5 px-1.5 text-[10px] shrink-0">{seed}</Badge>
+          <Badge variant="outline" className="h-5 px-1.5 text-[10px] shrink-0 mt-0.5">{seed}</Badge>
         )}
         <span
-          className={`truncate text-sm ${
+          className={`text-sm break-words whitespace-normal leading-tight ${
             isHighlighted
-              ? 'font-bold text-accent-foreground'
+              ? goldText
               : isChampion && !dimChampion
-                ? 'font-bold text-accent-foreground'
+                ? goldText
                 : isChampion && dimChampion
-                  ? 'font-semibold text-foreground/70'
+                  ? goldTextDim
                   : isWinner
                     ? 'font-bold text-primary'
                     : ''
@@ -192,13 +201,13 @@ const MatchCard = ({
         </span>
       </div>
       <span
-        className={`text-sm tabular-nums ${
+        className={`text-sm tabular-nums shrink-0 pl-2 ${
           isHighlighted
-            ? 'font-bold text-accent-foreground'
+            ? goldText
             : isChampion && !dimChampion
-              ? 'font-bold text-accent-foreground'
+              ? goldText
               : isChampion && dimChampion
-                ? 'font-semibold text-foreground/70'
+                ? goldTextDim
                 : isWinner
                   ? 'font-bold text-primary'
                   : 'text-muted-foreground'
@@ -213,9 +222,9 @@ const MatchCard = ({
     <Card
       className={`border-border overflow-hidden divide-y divide-border ${
         h1 || h2
-          ? 'ring-2 ring-accent shadow-md'
+          ? 'ring-2 ring-amber-400 shadow-md'
           : (c1 || c2) && !dimChampion
-            ? 'ring-2 ring-accent shadow-md'
+            ? 'ring-2 ring-amber-400 shadow-md'
             : ''
       }`}
     >
