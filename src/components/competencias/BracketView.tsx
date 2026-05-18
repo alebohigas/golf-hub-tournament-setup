@@ -32,6 +32,22 @@ const roundLabel = (round: number, totalRounds: number): string => {
   return `R${round}`;
 };
 
+/** Normaliza IDs/nombres para comparar jugadores aunque el API mande number/string/null. */
+const playerKey = (id: number | string | null | undefined, name: string | null | undefined): string | null => {
+  if (id !== null && id !== undefined && String(id).trim() !== '') return `id:${String(id).trim()}`;
+  if (name && name.trim() !== '') return `name:${name.trim().toLocaleLowerCase('es-MX')}`;
+  return null;
+};
+
+/** Determina ganador por score: menor valor gana, 0 cuenta como mejor score. */
+const scoreWinnerSlot = (score1: number | null, score2: number | null): 1 | 2 | null => {
+  if (score1 === null || score2 === null) return null;
+  const rounded1 = Number(Number(score1).toFixed(3));
+  const rounded2 = Number(Number(score2).toFixed(3));
+  if (rounded1 === rounded2) return null;
+  return rounded1 < rounded2 ? 1 : 2;
+};
+
 const BracketView = ({ sexo }: BracketViewProps) => {
   const { data, isLoading, error } = usePuttFinales();
   const side = data?.[sexo];
@@ -71,12 +87,18 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const { config, matches } = side;
   const totalRounds = Math.log2(config.size);
 
-  /**
-   * Champion: ganador del match de la ronda final (si ya está decidido).
-   * Se usa para resaltar TODAS sus filas en dorado a través del bracket.
-   */
+  /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
   const finalMatch = matches.find((m) => m.round === totalRounds);
-  const championId: number | null = finalMatch?.winner_id ?? null;
+  const finalWinnerSlot = finalMatch?.winner_id != null
+    ? finalMatch.winner_id === finalMatch.player1_id ? 1 : finalMatch.winner_id === finalMatch.player2_id ? 2 : null
+    : finalMatch
+      ? scoreWinnerSlot(finalMatch.player1_score, finalMatch.player2_score)
+      : null;
+  const championKey = finalMatch && finalWinnerSlot === 1
+    ? playerKey(finalMatch.player1_id, finalMatch.player1_name)
+    : finalMatch && finalWinnerSlot === 2
+      ? playerKey(finalMatch.player2_id, finalMatch.player2_name)
+      : null;
   const searching = search.trim().length > 0;
 
   // Agrupar matches por ronda
@@ -106,7 +128,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
       <div className="overflow-x-auto md:overflow-visible pb-4 w-full">
       <div className="flex gap-2 min-w-max md:min-w-0 md:w-full">
         {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="flex flex-col gap-3 min-w-[200px] md:min-w-0 md:flex-1 md:basis-0">
+          <div key={round} className="flex flex-col gap-3 min-w-[240px] md:min-w-0 md:flex-1 md:basis-0">
             <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
               {roundLabel(round, totalRounds)}
             </h4>
@@ -116,7 +138,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
                   key={m.id}
                   match={m}
                   highlight={search}
-                  championId={championId}
+                  championKey={championKey}
                   dimChampion={searching}
                 />
               ))}
