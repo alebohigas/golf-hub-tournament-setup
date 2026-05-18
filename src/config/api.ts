@@ -121,17 +121,17 @@ export const getCompetenciaDetailUrl = (id: string): string =>
 export const getCompetenciaGroupUrl = (compId: string, groupId: string): string =>
   `${API_BASE_URL}/competencias.php${buildQuery({ tipo: compId, detalle: '1' })}`;
 
-// ============= Brackets (Match Play / Knockout) =============
+// ============= Brackets — Putt Finales (Caballero / Dama) =============
 
-/** List every prize row across the 6 bracket-eligible tables with is_bracket flag */
-export const getBracketsListPrizesUrl = (): string =>
-  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'list_prizes' })}`;
+/** Público: ambos brackets (M/F) con config + matches + visible. */
+export const getPuttFinalesUrl = (): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_putt_finales' })}`;
 
-/** Get bracket_config + matches for a single (prize_table, prize_id) pair */
-export const getBracketConfigUrl = (prizeTable: string, prizeId: number | string): string =>
-  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_config', prize_table: prizeTable, prize_id: String(prizeId) })}`;
+/** Admin: mismo + candidates_count por sexo. */
+export const getPuttFinalesAdminUrl = (): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_putt_admin' })}`;
 
-/** POST endpoints — same file, action passed in body */
+/** Endpoint POST genérico — action va en query. */
 export const getBracketsActionUrl = (action: string): string =>
   `${API_BASE_URL}/brackets.php${buildQuery({ action })}`;
 
