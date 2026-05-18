@@ -301,7 +301,12 @@ const PlayerSlot = ({ name, seed, score, setScore, winner, onForceWin, canForce 
       {name ?? <em className="text-muted-foreground">— BYE / por definir —</em>}
     </span>
     <Input
-      type="number" className="h-7 w-14 text-xs" value={score}
+      type="number"
+      inputMode="decimal"
+      step="0.001"
+      /* Oculta las flechitas (spin buttons) para no recortar el espacio visible del score. */
+      className="h-7 w-16 text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+      value={score}
       onChange={(e) => setScore(e.target.value)} placeholder="—"
       disabled={!canForce}
     />
