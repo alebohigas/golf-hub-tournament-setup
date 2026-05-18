@@ -48,6 +48,9 @@ const Competencias = () => {
   /** When true, the "Mejor Score del Día" report view is rendered instead of the
    *  standard competencias drill-down. Independent from competencia selection. */
   const [showMejorScore, setShowMejorScore] = useState(false);
+  /** When true within a selected competencia, render ALL groups' tables
+   *  stacked instead of the group selection grid. */
+  const [showAllGroups, setShowAllGroups] = useState(false);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
