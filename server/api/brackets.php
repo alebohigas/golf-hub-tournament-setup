@@ -416,18 +416,21 @@ function advance_winner($conn, $matchId, $winnerId) {
 
 // ============= Acción: record_score (admin) =============
 /**
- * Captura scores del match. Si ambos scores presentes y distintos, marca al
- * mayor como ganador (semántica match-play "holes won") y lo avanza al
- * siguiente round automáticamente.
+ * Captura scores del match. Acepta decimales (hasta 3). Si ambos scores
+ * están presentes y son distintos, avanza al jugador con MENOR score
+ * (semántica putt/stroke: menos es mejor; 0 es válido y es el mejor score).
  */
 function action_record_score($conn, $body) {
     require_admin($body);
     $matchId = (int)($body['match_id'] ?? 0);
     if ($matchId <= 0) json_error('Invalid match_id', 400);
-    $s1 = isset($body['player1_score']) && $body['player1_score'] !== '' ? (int)$body['player1_score'] : null;
-    $s2 = isset($body['player2_score']) && $body['player2_score'] !== '' ? (int)$body['player2_score'] : null;
-    $s1Sql = $s1 !== null ? (int)$s1 : 'NULL';
-    $s2Sql = $s2 !== null ? (int)$s2 : 'NULL';
+    /** Parse score conservando decimales; null sólo si está vacío/no enviado. 0 es válido. */
+    $s1 = isset($body['player1_score']) && $body['player1_score'] !== '' && $body['player1_score'] !== null
+        ? round((float)$body['player1_score'], 3) : null;
+    $s2 = isset($body['player2_score']) && $body['player2_score'] !== '' && $body['player2_score'] !== null
+        ? round((float)$body['player2_score'], 3) : null;
+    $s1Sql = $s1 !== null ? (float)$s1 : 'NULL';
+    $s2Sql = $s2 !== null ? (float)$s2 : 'NULL';
 
     $conn->query("UPDATE bracket_matches
                   SET score_high = $s1Sql, score_low = $s2Sql, updated_at = NOW()
@@ -437,7 +440,8 @@ function action_record_score($conn, $body) {
     if (!$m) json_error('Match not found', 404);
 
     if ($s1 !== null && $s2 !== null && $s1 !== $s2) {
-        $winner = $s1 > $s2 ? (int)$m['player_high_id'] : (int)$m['player_low_id'];
+        /** Menor score gana (golf): el mejor es el más bajo, 0 incluido. */
+        $winner = $s1 < $s2 ? (int)$m['player_high_id'] : (int)$m['player_low_id'];
         if ($winner > 0) advance_winner($conn, $matchId, $winner);
     }
     json_response(['ok' => true]);
