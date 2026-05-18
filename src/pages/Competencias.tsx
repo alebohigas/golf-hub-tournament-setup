@@ -48,6 +48,9 @@ const Competencias = () => {
   /** When true, the "Mejor Score del Día" report view is rendered instead of the
    *  standard competencias drill-down. Independent from competencia selection. */
   const [showMejorScore, setShowMejorScore] = useState(false);
+  /** When true within a selected competencia, render ALL groups' tables
+   *  stacked instead of the group selection grid. */
+  const [showAllGroups, setShowAllGroups] = useState(false);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
@@ -243,6 +246,8 @@ const Competencias = () => {
   const handleCompetenciaSelect = (id: string | null) => {
     setSelectedCompetenciaId(id);
     setSelectedGroup(null);
+    setShowAllGroups(false);
+    setShowMejorScore(false);
   };
 
   // Handle group selection
@@ -254,6 +259,8 @@ const Competencias = () => {
   const handleBack = () => {
     if (showMejorScore) {
       setShowMejorScore(false);
+    } else if (showAllGroups) {
+      setShowAllGroups(false);
     } else if (selectedGroup) {
       setSelectedGroup(null);
     } else if (selectedCompetenciaId) {
@@ -556,6 +563,13 @@ const Competencias = () => {
                 competencias={competencias}
                 selectedId={null}
                 onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={() => {
+                  setSelectedCompetenciaId(null);
+                  setSelectedGroup(null);
+                  setShowAllGroups(false);
+                  setShowMejorScore(true);
+                }}
               />
               
               {/* Header */}
@@ -664,6 +678,13 @@ const Competencias = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Volver a competencias
               </Button>
+              <CompetenciasSubmenu
+                competencias={competencias}
+                selectedId={null}
+                onSelect={handleCompetenciaSelect}
+                mejorScoreActive={true}
+                onMejorScoreClick={() => { /* already active */ }}
+              />
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-foreground">
                   Mejor Score del Día
@@ -674,7 +695,7 @@ const Competencias = () => {
           )}
 
           {/* View: Groups within a competition */}
-          {!isLoading && selectedCompetenciaId && !selectedGroup && selectedCompetencia && (
+          {!isLoading && selectedCompetenciaId && !selectedGroup && !showAllGroups && selectedCompetencia && (
             <>
               {/* Back button */}
               <Button 
@@ -691,6 +712,13 @@ const Competencias = () => {
                 competencias={competencias}
                 selectedId={selectedCompetencia.id}
                 onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={() => {
+                  setSelectedCompetenciaId(null);
+                  setSelectedGroup(null);
+                  setShowAllGroups(false);
+                  setShowMejorScore(true);
+                }}
               />
 
               {/* Header */}
@@ -710,6 +738,20 @@ const Competencias = () => {
 
               {/* Groups Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                {/* Special card: render all groups stacked */}
+                {groups.length > 1 && (
+                  <Card
+                    className="border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all hover:shadow-lg cursor-pointer group sm:col-span-2 md:col-span-3"
+                    onClick={() => setShowAllGroups(true)}
+                  >
+                    <CardContent className="p-5 flex items-center justify-center gap-3">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      <h3 className="font-bold text-primary text-lg">
+                        Ver todos los resultados
+                      </h3>
+                    </CardContent>
+                  </Card>
+                )}
                 {groups.map((group) => (
                   <CompetenciasGroupCard
                     key={group.id}
@@ -717,6 +759,66 @@ const Competencias = () => {
                     onClick={() => handleGroupSelect(group)}
                   />
                 ))}
+              </div>
+            </>
+          )}
+
+          {/* View: All groups within a competition (stacked tables) */}
+          {!isLoading && selectedCompetenciaId && showAllGroups && selectedCompetencia && (
+            <>
+              {/* Back button */}
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a {selectedCompetencia.shortName}
+              </Button>
+
+              {/* Header */}
+              <div className="text-center mb-10">
+                <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary">
+                  {getIcon(selectedCompetencia.icon)}
+                </div>
+                <h2 className="text-3xl font-bold text-foreground mb-2">
+                  {selectedCompetencia.name}
+                </h2>
+                <p className="text-muted-foreground">Todos los resultados</p>
+              </div>
+
+              {/* Stacked group tables — each in its own card with the prize title */}
+              <div className="max-w-4xl mx-auto space-y-8">
+                {groups.map((group) => (
+                  <Card key={group.id} className="border-border/50 bg-white">
+                    <CardContent className="p-4">
+                      <div className="mb-3 text-center">
+                        <span className="inline-block px-4 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
+                          {group.description || group.name}
+                        </span>
+                        {group.hoyo && (
+                          <p className="mt-2 mb-1 text-foreground font-bold text-base">
+                            Hoyo {group.hoyo}
+                          </p>
+                        )}
+                      </div>
+                      <CompetenciasTable
+                        players={group.players || []}
+                        columns={selectedCompetenciaColumns}
+                      />
+                      {group.lastUpdated && (
+                        <p className="text-center text-xs text-muted-foreground mt-3">
+                          Última actualización: {group.lastUpdated}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                {groups.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No hay grupos disponibles.
+                  </p>
+                )}
               </div>
             </>
           )}
