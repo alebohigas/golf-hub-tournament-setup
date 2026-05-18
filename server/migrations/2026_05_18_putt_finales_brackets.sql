@@ -26,6 +26,12 @@ ALTER TABLE bracket_config
 ALTER TABLE bracket_config
   ADD COLUMN size INT NOT NULL DEFAULT 16 AFTER sexo;
 
+-- La tabla legacy traía un CHECK constraint `chk_size` que solo permitía
+-- 8/16/32. Lo reemplazamos para aceptar 8/16/32/64/128.
+ALTER TABLE bracket_config DROP CHECK chk_size;
+ALTER TABLE bracket_config
+  ADD CONSTRAINT chk_size CHECK (size IN (8,16,32,64,128));
+
 -- Nota: el endpoint ya no inserta `advancement`; no hace falta agregar esa
 -- columna en MySQL para este flujo de Putt Finales.
 
