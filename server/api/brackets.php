@@ -181,7 +181,7 @@ function action_get_putt_finales($conn, $torneoid) {
     $out = ['M' => null, 'F' => null];
     foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
         $cfg = safe_one($conn,
-            "SELECT * FROM bracket_config
+            "SELECT *, bracket_size AS size FROM bracket_config
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
         $matches = [];
         if ($cfg) {
@@ -217,7 +217,7 @@ function action_get_putt_admin($conn, $torneoid) {
     $out = ['M' => null, 'F' => null];
     foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
         $cfg = safe_one($conn,
-            "SELECT * FROM bracket_config
+            "SELECT *, bracket_size AS size FROM bracket_config
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
         $matches = [];
         if ($cfg) {
@@ -264,15 +264,17 @@ function action_save_putt_config($conn, $body) {
     $pid     = prize_id_for_sexo($sexo);
 
     // Upsert por unique key (torneoid, prize_table, prize_id).
+    // NOTE: La tabla legacy `bracket_config` usa `bracket_size` (no `size`)
+    // y el ENUM de status es ('pending','seeded','in_progress','completed').
     $sql = "INSERT INTO bracket_config
-              (torneoid, prize_table, prize_id, sexo, size,
+              (torneoid, prize_table, prize_id, sexo, bracket_size,
                seed_source, status, visible, created_at, updated_at)
             VALUES
               ($tid, '$PUTT_PRIZE_TABLE', $pid, '$sexo', $size,
-               'standings', 'draft', $visible, NOW(), NOW())
+               'standings', 'pending', $visible, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                sexo = VALUES(sexo),
-               size = VALUES(size),
+               bracket_size = VALUES(bracket_size),
                visible = VALUES(visible),
                updated_at = NOW()";
     if (!$conn->query($sql)) {
@@ -280,7 +282,7 @@ function action_save_putt_config($conn, $body) {
     }
 
     $saved = safe_one($conn,
-        "SELECT * FROM bracket_config
+        "SELECT *, bracket_size AS size FROM bracket_config
          WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
     json_response(['config' => $saved]);
 }
@@ -300,12 +302,12 @@ function action_generate_putt($conn, $body) {
     $pid  = prize_id_for_sexo($sexo);
 
     $cfg = safe_one($conn,
-        "SELECT * FROM bracket_config
+        "SELECT *, bracket_size AS size FROM bracket_config
          WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
     if (!$cfg) json_error('Configura primero el tamaño del bracket antes de generar.', 404);
 
     $cfgId = (int)$cfg['id'];
-    $size  = (int)$cfg['size'];
+    $size  = (int)$cfg['bracket_size'];
 
     // 1) Recolectar ranking sembrado (jugadorid en orden 1..size).
     $ranking = collect_putt_ranking($conn, $tid, $sexo, $size);
@@ -362,7 +364,7 @@ function action_generate_putt($conn, $body) {
         elseif ($p2 !== null && $p1 === null)  advance_winner($conn, $matchId, (int)$p2);
     }
 
-    $conn->query("UPDATE bracket_config SET status = 'active', updated_at = NOW() WHERE id = $cfgId");
+    $conn->query("UPDATE bracket_config SET status = 'seeded', updated_at = NOW() WHERE id = $cfgId");
 
     json_response([
         'ok'             => true,
