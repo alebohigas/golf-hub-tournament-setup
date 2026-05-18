@@ -121,6 +121,20 @@ export const getCompetenciaDetailUrl = (id: string): string =>
 export const getCompetenciaGroupUrl = (compId: string, groupId: string): string =>
   `${API_BASE_URL}/competencias.php${buildQuery({ tipo: compId, detalle: '1' })}`;
 
+// ============= Brackets (Match Play / Knockout) =============
+
+/** List every prize row across the 6 bracket-eligible tables with is_bracket flag */
+export const getBracketsListPrizesUrl = (): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'list_prizes' })}`;
+
+/** Get bracket_config + matches for a single (prize_table, prize_id) pair */
+export const getBracketConfigUrl = (prizeTable: string, prizeId: number | string): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_config', prize_table: prizeTable, prize_id: String(prizeId) })}`;
+
+/** POST endpoints — same file, action passed in body */
+export const getBracketsActionUrl = (action: string): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action })}`;
+
 /** Events */
 export const getEventosUrl = (): string => `${API_BASE_URL}/eventos.php${buildQuery()}`;
 
@@ -175,3 +189,74 @@ export const getLiveTarjetaUrl = (
  */
 export const getLogoUrl = (logoFilename: string): string =>
   `${LOGOS_BASE_URL}${logoFilename}`;
+
+// ============= Pre-Registro endpoints =============
+
+/** Form fields configuration (admin + public) */
+export const getRegistroFieldsUrl = (): string =>
+  `${API_BASE_URL}/registro_fields.php${buildQuery()}`;
+
+/** Public submission endpoint (POST multipart) */
+export const getRegistroSubmitUrl = (): string =>
+  `${API_BASE_URL}/registro.php${buildQuery()}`;
+
+/** Admin listing endpoint (requires ?password=) */
+export const getRegistroListUrl = (password: string): string =>
+  `${API_BASE_URL}/registro.php${buildQuery({ password })}`;
+
+/** Admin verify toggle endpoint (POST JSON body) */
+export const getRegistroVerifyUrl = (): string =>
+  `${API_BASE_URL}/registro.php?action=verify`;
+
+/** Stream binary attachment for a single registro row */
+export const getRegistroArchivoUrl = (id: number, password: string): string =>
+  `${API_BASE_URL}/registro_archivo.php?id=${id}&password=${encodeURIComponent(password)}`;
+
+/** Cascading location dropdowns */
+export const getLocationsCountriesUrl = (): string =>
+  `${API_BASE_URL}/locations.php?kind=countries`;
+export const getLocationsStatesUrl = (countryId: number | string): string =>
+  `${API_BASE_URL}/locations.php?kind=states&country_id=${encodeURIComponent(String(countryId))}`;
+export const getLocationsCitiesUrl = (stateId: number | string): string =>
+  `${API_BASE_URL}/locations.php?kind=cities&state_id=${encodeURIComponent(String(stateId))}`;
+
+/** Clubs list (for Pre-Registro autocomplete) */
+export const getClubsUrl = (): string =>
+  `${API_BASE_URL}/clubs.php`;
+
+/** Server-side email validation (syntax + MX + typo suggestions). */
+export const getEmailValidateUrl = (email: string): string =>
+  `${API_BASE_URL}/email_validate.php?email=${encodeURIComponent(email)}`;
+
+/**
+ * Lookup an existing player's stored club by name + birthdate.
+ * Used to pre-fill the club field in Pre-Registro when the same person
+ * is already in the `jugadores` table.
+ */
+export const getClubLookupUrl = (
+  nombre: string,
+  apellido: string,
+  fechanac: string,
+): string => {
+  const qs = new URLSearchParams({
+    action: 'lookup',
+    nombre,
+    apellido,
+    fechanac,
+  }).toString();
+  return `${API_BASE_URL}/clubs.php?${qs}`;
+};
+
+/**
+ * Lookup an existing player by SPEI or GHIN. Used when the user types
+ * either identifier in Pre-Registro to pre-fill nombre, apellido, correo,
+ * club, sexo, fecha de nacimiento, etc. Either one may be empty.
+ */
+export const getPlayerLookupByIdUrl = (spei: string, ghin: string): string => {
+  const qs = new URLSearchParams({
+    action: 'lookup',
+    spei,
+    ghin,
+  }).toString();
+  return `${API_BASE_URL}/clubs.php?${qs}`;
+};

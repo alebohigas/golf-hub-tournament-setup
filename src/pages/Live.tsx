@@ -292,9 +292,10 @@ const Live = () => {
 
   /**
    * Click on the "Total" column.
-   * Shows ONLY the player's previously closed scorecards (statlsc=1),
-   * one per date, stacked top-to-bottom. The in-progress (live) round
-   * is NOT included here — it belongs to the "Hoy" column.
+   * Shows the player's previously closed scorecards (statlsc=1) stacked
+   * by date AND appends the in-progress live scorecard at the end (when
+   * available). This reflects the user decision to have the partial
+   * scorecard contribute to the displayed totals view.
    */
   const handleTotalClick = async (player: LivePlayer) => {
     // Toggle off if already expanded
@@ -305,8 +306,9 @@ const Live = () => {
     }
 
     const prevDates = player.prevRoundDates ?? [];
-    // Nothing to show if no closed scorecards exist
-    if (prevDates.length === 0) return;
+    const canOpenLive = canOpenTodayScorecard(player, leaderboard?.currentRoundDate);
+    // Nothing to show if no closed scorecards AND no live card available
+    if (prevDates.length === 0 && !canOpenLive) return;
 
     setExpandedPlayerId(player.playerId);
     setScorecardStack([]);
@@ -337,6 +339,17 @@ const Live = () => {
       const prevResults = await Promise.all(prevPromises);
       const stack: RoundScorecard[] = prevResults
         .filter((c): c is RoundScorecard => c !== null);
+
+      // Append in-progress live scorecard so the partial round contributes
+      // visually to the total stack. Failures are logged but non-fatal.
+      if (canOpenLive) {
+        try {
+          const live = await fetchLiveScorecardFromApi(player.playerId, tipo, scoringType);
+          stack.push(live);
+        } catch (err) {
+          console.error('Failed to fetch live scorecard for total stack:', err);
+        }
+      }
       setScorecardStack(stack);
     } catch (err) {
       console.error('Failed to fetch previous scorecards:', err);
@@ -360,7 +373,7 @@ const Live = () => {
       return;
     }
 
-    if (!canOpenTodayScorecard(player)) return;
+    if (!canOpenTodayScorecard(player, leaderboard?.currentRoundDate)) return;
 
     setExpandedPlayerId(expandKey);
     setScorecardStack([]);
@@ -541,9 +554,15 @@ const Live = () => {
                       <Table className="tournament-table">
                         <TableHeader>
                           <TableRow className="bg-primary hover:bg-primary">
-                            <TableHead className="text-primary-foreground font-bold w-[50px] text-center">Pos</TableHead>
-                            <TableHead className="text-primary-foreground font-bold w-16 min-w-16 p-1 text-center">Club</TableHead>
-                            <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                            {/*
+                              Sticky columns (Pos, Club, Jugador) — mirror Resultados table pattern.
+                              Keeps player identity visible while horizontally scrolling.
+                              z-20 on headers so they stay above sticky body cells (z-10).
+                              Left offsets: Pos=0, Club=3.125rem (w-[50px]), Jugador=7.125rem (Pos 50px + Club 4rem).
+                            */}
+                            <TableHead className="text-primary-foreground font-bold w-[50px] text-center sticky left-0 z-20 bg-primary">Pos</TableHead>
+                            <TableHead className="text-primary-foreground font-bold w-16 min-w-16 p-1 text-center sticky z-20 bg-primary" style={{ left: '3.125rem' }}>Club</TableHead>
+                            <TableHead className="text-primary-foreground font-bold sticky z-20 bg-primary" style={{ left: '7.125rem' }}>Jugador</TableHead>
                             <TableHead className="text-primary-foreground font-bold text-center w-[80px]">
                               {isStroke ? 'Dif Par' : 'Total'}
                             </TableHead>
@@ -556,12 +575,12 @@ const Live = () => {
                             <Fragment key={player.playerId}>
                               <TableRow className="bg-white">
                                 {/* Position */}
-                                <TableCell className="text-center font-bold">
+                                <TableCell className="text-center font-bold sticky left-0 z-10 bg-white">
                                   {player.position}
                                 </TableCell>
 
                                 {/* Club logo */}
-                                <TableCell className="w-16 min-w-16 p-1 text-center align-middle">
+                                <TableCell className="w-16 min-w-16 p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '3.125rem' }}>
                                   {player.clubLogo ? (
                                     <img
                                       src={player.clubLogo}
@@ -574,7 +593,7 @@ const Live = () => {
                                 </TableCell>
 
                                 {/* Player name */}
-                                <TableCell className="font-medium player-name-cell">
+                                <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.125rem' }}>
                                   {player.name}
                                 </TableCell>
 
@@ -618,7 +637,7 @@ const Live = () => {
                                       className={`w-full py-3 px-2 transition-colors cursor-pointer hover:bg-primary/10 hover:text-primary ${
                                         isStroke ? getStrokeScoreClass(displayValue) : 'font-bold'
                                       } ${expandedPlayerId === player.playerId ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''}`}
-                                      title="Ver tarjetas de rondas previas"
+                                      title="Ver tarjetas de rondas previas y ronda en curso"
                                     >
                                       {isStroke ? formatDifPar(displayValue) : displayValue}
                                     </button>
@@ -684,7 +703,11 @@ const Live = () => {
                                 ) : scorecardStack.length > 0 ? (
                                   scorecardStack.map((sc, idx) => {
                                     const isLiveExpansion = expandedPlayerId === `${player.playerId}::today`;
-                                    const roundLabel = isLiveExpansion
+                                    // For "Total" expansion, the live card (if present)
+                                    // is appended LAST. Mark it explicitly as "En Vivo".
+                                    const prevCount = player.prevRoundDates?.length ?? 0;
+                                    const isAppendedLive = !isLiveExpansion && idx >= prevCount;
+                                    const roundLabel = isLiveExpansion || isAppendedLive
                                       ? 'En Vivo'
                                       : `Ronda ${idx + 1}`;
                                     return (

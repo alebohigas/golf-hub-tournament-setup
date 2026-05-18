@@ -16,9 +16,11 @@ import competenciasHero from '@/assets/competencias-hero.jpg';
 import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
+import BracketView from '@/components/competencias/BracketView';
 import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
+import { useBracketPrizes } from '@/hooks/useBrackets';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 
@@ -46,6 +48,9 @@ const Competencias = () => {
   /** When true, the "Mejor Score del Día" report view is rendered instead of the
    *  standard competencias drill-down. Independent from competencia selection. */
   const [showMejorScore, setShowMejorScore] = useState(false);
+  /** When true within a selected competencia, render ALL groups' tables
+   *  stacked instead of the group selection grid. */
+  const [showAllGroups, setShowAllGroups] = useState(false);
   /** Player search query (autocomplete) */
   const [searchQuery, setSearchQuery] = useState('');
   /** Error state for the search input (player not found) */
@@ -79,6 +84,59 @@ const Competencias = () => {
     () => collectUniquePlayerNames(allWithPlayers),
     [allWithPlayers]
   );
+
+  /**
+   * List of prize rows flagged as is_bracket=1 across all 6 tables.
+   * Used to switch the results view to BracketView when the selected
+   * group corresponds to a bracketed prize.
+   */
+  const { data: bracketPrizesData } = useBracketPrizes();
+  const bracketedPrizes = useMemo(
+    () => (bracketPrizesData?.prizes ?? []).filter(p => p.is_bracket === 1),
+    [bracketPrizesData]
+  );
+
+  /**
+   * Resolve the (prize_table, prize_id) for the currently selected group.
+   * Group ids from the backend are shaped like:
+   *   oyes-{id}                  → table 'oyes'
+   *   approach-{id}              → table 'approach'
+   *   putt-{id}                  → table 'putt'
+   *   driverp-{id}-{slug}        → table 'driverp'
+   *   driverd-{id}-{slug}        → table 'driver'  (note: UI 'driverd' = table 'driver')
+   *   oyesx-{id}                 → table 'oyesx'
+   * Returns null if not bracketed or unparseable.
+   */
+  const bracketContext = useMemo(() => {
+    if (!selectedGroup) return null;
+    const id = selectedGroup.id;
+    // Map UI prefix → DB table name
+    const prefixMap: Record<string, string> = {
+      oyesx: 'oyesx',
+      oyes: 'oyes',
+      approach: 'approach',
+      putt: 'putt',
+      driverp: 'driverp',
+      driverd: 'driver',
+      driver: 'driver',
+    };
+    let table: string | null = null;
+    let rest = '';
+    // Match longest prefix first to avoid 'oyes' eating 'oyesx'
+    for (const prefix of ['oyesx', 'driverp', 'driverd', 'approach', 'driver', 'putt', 'oyes']) {
+      if (id === prefix || id.startsWith(prefix + '-')) {
+        table = prefixMap[prefix];
+        rest  = id === prefix ? '' : id.slice(prefix.length + 1);
+        break;
+      }
+    }
+    if (!table || !rest) return null;
+    // Take the first segment after the prefix as the prize_id
+    const prizeId = parseInt(rest.split('-')[0], 10);
+    if (!Number.isFinite(prizeId)) return null;
+    const match = bracketedPrizes.find(p => p.prize_table === table && p.prize_id === prizeId);
+    return match ? { prize_table: match.prize_table, prize_id: match.prize_id } : null;
+  }, [selectedGroup, bracketedPrizes]);
 
   /**
    * Handle local typing in the search input.
@@ -188,6 +246,8 @@ const Competencias = () => {
   const handleCompetenciaSelect = (id: string | null) => {
     setSelectedCompetenciaId(id);
     setSelectedGroup(null);
+    setShowAllGroups(false);
+    setShowMejorScore(false);
   };
 
   // Handle group selection
@@ -199,6 +259,8 @@ const Competencias = () => {
   const handleBack = () => {
     if (showMejorScore) {
       setShowMejorScore(false);
+    } else if (showAllGroups) {
+      setShowAllGroups(false);
     } else if (selectedGroup) {
       setSelectedGroup(null);
     } else if (selectedCompetenciaId) {
@@ -501,6 +563,13 @@ const Competencias = () => {
                 competencias={competencias}
                 selectedId={null}
                 onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={() => {
+                  setSelectedCompetenciaId(null);
+                  setSelectedGroup(null);
+                  setShowAllGroups(false);
+                  setShowMejorScore(true);
+                }}
               />
               
               {/* Header */}
@@ -511,7 +580,7 @@ const Competencias = () => {
               </div>
 
               {/* Competition Types Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
                 {competencias.map((comp) => (
                   <Card 
                     key={comp.id}
@@ -609,6 +678,13 @@ const Competencias = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Volver a competencias
               </Button>
+              <CompetenciasSubmenu
+                competencias={competencias}
+                selectedId={null}
+                onSelect={handleCompetenciaSelect}
+                mejorScoreActive={true}
+                onMejorScoreClick={() => { /* already active */ }}
+              />
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-foreground">
                   Mejor Score del Día
@@ -619,7 +695,7 @@ const Competencias = () => {
           )}
 
           {/* View: Groups within a competition */}
-          {!isLoading && selectedCompetenciaId && !selectedGroup && selectedCompetencia && (
+          {!isLoading && selectedCompetenciaId && !selectedGroup && !showAllGroups && selectedCompetencia && (
             <>
               {/* Back button */}
               <Button 
@@ -636,6 +712,13 @@ const Competencias = () => {
                 competencias={competencias}
                 selectedId={selectedCompetencia.id}
                 onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={() => {
+                  setSelectedCompetenciaId(null);
+                  setSelectedGroup(null);
+                  setShowAllGroups(false);
+                  setShowMejorScore(true);
+                }}
               />
 
               {/* Header */}
@@ -655,6 +738,20 @@ const Competencias = () => {
 
               {/* Groups Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                {/* Special card: render all groups stacked */}
+                {groups.length > 1 && (
+                  <Card
+                    className="border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all hover:shadow-lg cursor-pointer group sm:col-span-2 md:col-span-3"
+                    onClick={() => setShowAllGroups(true)}
+                  >
+                    <CardContent className="p-5 flex items-center justify-center gap-3">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      <h3 className="font-bold text-primary text-lg">
+                        Ver todos los resultados
+                      </h3>
+                    </CardContent>
+                  </Card>
+                )}
                 {groups.map((group) => (
                   <CompetenciasGroupCard
                     key={group.id}
@@ -662,6 +759,66 @@ const Competencias = () => {
                     onClick={() => handleGroupSelect(group)}
                   />
                 ))}
+              </div>
+            </>
+          )}
+
+          {/* View: All groups within a competition (stacked tables) */}
+          {!isLoading && selectedCompetenciaId && showAllGroups && selectedCompetencia && (
+            <>
+              {/* Back button */}
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a {selectedCompetencia.shortName}
+              </Button>
+
+              {/* Header */}
+              <div className="text-center mb-10">
+                <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary">
+                  {getIcon(selectedCompetencia.icon)}
+                </div>
+                <h2 className="text-3xl font-bold text-foreground mb-2">
+                  {selectedCompetencia.name}
+                </h2>
+                <p className="text-muted-foreground">Todos los resultados</p>
+              </div>
+
+              {/* Stacked group tables — each in its own card with the prize title */}
+              <div className="max-w-4xl mx-auto space-y-8">
+                {groups.map((group) => (
+                  <Card key={group.id} className="border-border/50 bg-white">
+                    <CardContent className="p-4">
+                      <div className="mb-3 text-center">
+                        <span className="inline-block px-4 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
+                          {group.description || group.name}
+                        </span>
+                        {group.hoyo && (
+                          <p className="mt-2 mb-1 text-foreground font-bold text-base">
+                            Hoyo {group.hoyo}
+                          </p>
+                        )}
+                      </div>
+                      <CompetenciasTable
+                        players={group.players || []}
+                        columns={selectedCompetenciaColumns}
+                      />
+                      {group.lastUpdated && (
+                        <p className="text-center text-xs text-muted-foreground mt-3">
+                          Última actualización: {group.lastUpdated}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                {groups.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No hay grupos disponibles.
+                  </p>
+                )}
               </div>
             </>
           )}
@@ -696,14 +853,26 @@ const Competencias = () => {
               </div>
 
               {/* Results Table */}
-              <Card className="border-border/50 max-w-4xl mx-auto bg-white">
-                <CardContent className="p-0">
-                  <CompetenciasTable 
-                    players={selectedGroup.players || []}
-                    columns={selectedCompetenciaColumns}
-                  />
-                </CardContent>
-              </Card>
+              {bracketContext ? (
+                /* Bracket-flagged prize → render knockout bracket instead of standings table */
+                <Card className="border-border/50 max-w-6xl mx-auto bg-white">
+                  <CardContent className="p-4">
+                    <BracketView
+                      prizeTable={bracketContext.prize_table}
+                      prizeId={bracketContext.prize_id}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-border/50 max-w-4xl mx-auto bg-white">
+                  <CardContent className="p-0">
+                    <CompetenciasTable 
+                      players={selectedGroup.players || []}
+                      columns={selectedCompetencia.columns}
+                    />
+                  </CardContent>
+                </Card>
+              )}
               
               {/* Last updated */}
               {selectedGroup.lastUpdated && (
