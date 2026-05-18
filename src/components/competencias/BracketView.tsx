@@ -1,27 +1,25 @@
 /**
  * BracketView
  * ----------------------------------------------------------------------------
- * Public read-only bracket display for a prize flagged with is_bracket=1.
- * Renders rounds left-to-right (R1 → Final) with each match as a card
- * showing both seeded players, their scores and the winner highlighted.
+ * Render público read-only de uno de los dos brackets putt-finales (M o F).
+ * Selecciona el bracket por `sexo`, hace polling cada POLL_ACTIVE y muestra
+ * los rounds left-to-right (R1 → Final) con cada match como una tarjeta.
  *
- * Polls bracket_matches via useBracketConfig() so live results update.
- *
- * Used inside /competencias when the selected group corresponds to a prize
- * row with is_bracket = 1.
+ * Usado dentro de /competicion cuando el usuario entra a la pseudo-competencia
+ * "Putt Finales Caballero" o "Putt Finales Dama" inyectada por competencias.php.
  */
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Trophy } from 'lucide-react';
-import { useBracketConfig, type BracketMatch } from '@/hooks/useBrackets';
+import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 
 interface BracketViewProps {
-  prizeTable: string;
-  prizeId: number;
+  /** 'M' = Caballero, 'F' = Dama */
+  sexo: 'M' | 'F';
 }
 
-/** Human round labels by total round count */
+/** Etiquetas humanas para cada ronda según total de rondas. */
 const roundLabel = (round: number, totalRounds: number): string => {
   const fromEnd = totalRounds - round;
   if (fromEnd === 0) return 'Final';
@@ -31,8 +29,9 @@ const roundLabel = (round: number, totalRounds: number): string => {
   return `R${round}`;
 };
 
-const BracketView = ({ prizeTable, prizeId }: BracketViewProps) => {
-  const { data, isLoading, error } = useBracketConfig(prizeTable, prizeId);
+const BracketView = ({ sexo }: BracketViewProps) => {
+  const { data, isLoading, error } = usePuttFinales();
+  const side = data?.[sexo];
 
   if (isLoading) {
     return (
@@ -43,19 +42,19 @@ const BracketView = ({ prizeTable, prizeId }: BracketViewProps) => {
     );
   }
 
-  if (error || !data?.config) {
+  if (error || !side?.config) {
     return (
       <div className="text-center py-12">
         <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">El bracket aún no se ha configurado.</p>
+        <p className="text-muted-foreground">El bracket aún no se ha generado.</p>
       </div>
     );
   }
 
-  const { config, matches } = data;
+  const { config, matches } = side;
   const totalRounds = Math.log2(config.size);
 
-  // Group matches by round
+  // Agrupar matches por ronda
   const byRound: Record<number, BracketMatch[]> = {};
   for (const m of matches) {
     if (!byRound[m.round]) byRound[m.round] = [];
@@ -82,7 +81,7 @@ const BracketView = ({ prizeTable, prizeId }: BracketViewProps) => {
   );
 };
 
-/** Single match card — two stacked rows for player1 and player2 */
+/** Tarjeta de un match — dos filas (player1 / player2) con ganador resaltado. */
 const MatchCard = ({ match }: { match: BracketMatch }) => {
   const w1 = match.winner_id != null && match.winner_id === match.player1_id;
   const w2 = match.winner_id != null && match.winner_id === match.player2_id;

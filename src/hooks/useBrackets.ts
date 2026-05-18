@@ -1,59 +1,41 @@
 /**
- * Brackets Hooks — Match Play / Knockout
+ * Brackets Hooks — Putt Finales (Caballero / Dama)
  * ----------------------------------------------------------------------------
- * React Query hooks for the brackets.php endpoint family.
- * Used by both the admin tab (toggle is_bracket, configure size/seeding,
- * generate matchups) and the public BracketView in /competencias.
+ * React Query hooks contra /api/brackets.php para los dos brackets fijos
+ * por torneo (M y F), sembrados desde el ranking acumulado de putt.
+ *
+ * Usados por:
+ *   - AdminBrackets ("Brackets Putt"): config de tamaño + visibilidad,
+ *     generación, captura de scores, override manual de ganador.
+ *   - BracketView en /competicion: render público read-only por sexo.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import {
-  getBracketsListPrizesUrl,
-  getBracketConfigUrl,
+  getPuttFinalesUrl,
+  getPuttFinalesAdminUrl,
   getBracketsActionUrl,
-  API_BASE_URL,
+  POLL_ACTIVE,
 } from '@/config/api';
-import { POLL_ACTIVE } from '@/config/api';
 
-// ============= Types =============
+// ============= Tipos =============
 
-/** A row from list_prizes — one per prize across all 6 tables */
-export interface BracketPrizeRow {
-  prize_table: 'oyes' | 'oyesx' | 'approach' | 'putt' | 'driver' | 'driverp';
-  prize_id: number;
-  descripcion: string;
-  hoyo: number | null;
-  categoriaid: number | null;
-  premio: number | null;
-  campo: number | null;
-  is_bracket: 0 | 1;
-  has_config: boolean;
-  config_id: number | null;
-  size: number | null;
-  status: string | null;
-}
-
-/** A bracket_config row */
+/** Fila bracket_config (subconjunto que usamos). */
 export interface BracketConfig {
   id: number;
   torneoid: number;
-  prize_table: string;
-  prize_id: number;
+  prize_table: string;        // siempre 'putt_finales'
+  prize_id: number;           // 1=M, 2=F
+  sexo: 'M' | 'F' | null;
   size: number;
-  seed_source: 'standings' | 'manual' | 'random';
-  advancement: 'manual' | 'auto';
-  seed_categoriaid: number | null;
-  seed_premio: number | null;
-  seed_hoyo: number | null;
-  seed_campo: number | null;
-  advancement_source: string | null;
   status: 'draft' | 'active' | 'complete';
+  visible: 0 | 1;
   created_at: string;
   updated_at: string;
 }
 
-/** A bracket_matches row (with joined player names) */
+/** Fila bracket_matches (con nombres joinados). */
 export interface BracketMatch {
   id: number;
   bracket_config_id: number;
@@ -73,32 +55,44 @@ export interface BracketMatch {
   status: 'pending' | 'in_progress' | 'complete';
 }
 
-// ============= Hooks =============
+/** Shape de la respuesta para un sexo. */
+export interface PuttBracketSide {
+  config: BracketConfig | null;
+  matches: BracketMatch[];
+  visible: boolean;
+  /** Sólo presente en endpoint admin. */
+  candidates_count?: number;
+}
 
-/** List every prize across all 6 bracket-eligible tables. */
-export const useBracketPrizes = () =>
-  useQuery<{ prizes: BracketPrizeRow[] }>({
-    queryKey: ['brackets', 'list_prizes'],
-    queryFn: () => apiFetch(getBracketsListPrizesUrl()),
-    staleTime: POLL_ACTIVE,
-  });
+/** Respuesta combinada M/F. */
+export interface PuttFinalesData {
+  M: PuttBracketSide;
+  F: PuttBracketSide;
+}
 
-/** Fetch config + matches for a single bracketed prize. */
-export const useBracketConfig = (
-  prizeTable: string | null,
-  prizeId: number | null,
-  enabled = true,
-) =>
-  useQuery<{ config: BracketConfig | null; matches: BracketMatch[] }>({
-    queryKey: ['brackets', 'config', prizeTable, prizeId],
-    queryFn: () => apiFetch(getBracketConfigUrl(prizeTable!, prizeId!)),
-    enabled: enabled && !!prizeTable && prizeId != null,
+// ============= Hooks (lectura) =============
+
+/** Público: bracket actual para un sexo (M o F). */
+export const usePuttFinales = () =>
+  useQuery<PuttFinalesData>({
+    queryKey: ['brackets', 'putt_finales', 'public'],
+    queryFn: () => apiFetch(getPuttFinalesUrl()),
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
   });
 
-/** POST helper — sends JSON body to brackets.php?action=X */
-const postBracketAction = async <T>(action: string, body: Record<string, unknown>): Promise<T> => {
+/** Admin: mismo + candidates_count por sexo. */
+export const usePuttFinalesAdmin = () =>
+  useQuery<PuttFinalesData>({
+    queryKey: ['brackets', 'putt_finales', 'admin'],
+    queryFn: () => apiFetch(getPuttFinalesAdminUrl()),
+    staleTime: POLL_ACTIVE,
+  });
+
+// ============= POST helper =============
+
+/** Envía JSON al endpoint /api/brackets.php?action=X. */
+const postBracketAction = async <T,>(action: string, body: Record<string, unknown>): Promise<T> => {
   const res = await fetch(getBracketsActionUrl(action), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -108,55 +102,58 @@ const postBracketAction = async <T>(action: string, body: Record<string, unknown
   let parsed: any = null;
   try { parsed = text ? JSON.parse(text) : null; } catch { parsed = null; }
   if (!res.ok) {
-    throw new Error(parsed?.error || `Bracket action '${action}' failed (${res.status})`);
+    throw new Error(parsed?.error || `Bracket action '${action}' falló (${res.status})`);
   }
   return parsed as T;
 };
 
-/** Mutation: toggle is_bracket flag on a prize row */
-export const useSetBracketFlag = () => {
+// ============= Hooks (mutaciones) =============
+
+/** Upsert config (size, visible) para un sexo. NO regenera matches. */
+export const useSavePuttConfig = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { prize_table: string; prize_id: number; is_bracket: 0 | 1; password: string }) =>
-      postBracketAction('set_flag', vars),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brackets', 'list_prizes'] });
-    },
+    mutationFn: (vars: {
+      torneoid: number;
+      sexo: 'M' | 'F';
+      size: number;
+      visible: boolean;
+      password: string;
+    }) => postBracketAction('save_putt_config', vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
   });
 };
 
-/** Mutation: upsert bracket_config */
-export const useSaveBracketConfig = () => {
+/** Regenera todos los matches desde el ranking acumulado para un sexo. */
+export const useGeneratePuttBracket = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: Partial<BracketConfig> & { password: string }) =>
-      postBracketAction('save_config', vars as any),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brackets'] });
-    },
+    mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F'; password: string }) =>
+      postBracketAction('generate_putt', vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
   });
 };
 
-/** Mutation: (re)generate matches from seed source */
-export const useGenerateBracket = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { bracket_config_id: number; password: string }) =>
-      postBracketAction('generate', vars),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brackets'] });
-    },
-  });
-};
-
-/** Mutation: record a match score (auto-advances winner if config.advancement='auto') */
+/** Captura scores; el backend marca ganador y avanza automáticamente. */
 export const useRecordBracketScore = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { match_id: number; player1_score: number; player2_score: number; password: string }) =>
-      postBracketAction('record_score', vars),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brackets'] });
-    },
+    mutationFn: (vars: {
+      match_id: number;
+      player1_score: number | null;
+      player2_score: number | null;
+      password: string;
+    }) => postBracketAction('record_score', vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+  });
+};
+
+/** Override manual del ganador (walkover / corrección). */
+export const useSetBracketWinner = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { match_id: number; winner_id: number; password: string }) =>
+      postBracketAction('set_winner', vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
   });
 };
