@@ -563,6 +563,13 @@ const Competencias = () => {
                 competencias={competencias}
                 selectedId={null}
                 onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={() => {
+                  setSelectedCompetenciaId(null);
+                  setSelectedGroup(null);
+                  setShowAllGroups(false);
+                  setShowMejorScore(true);
+                }}
               />
               
               {/* Header */}
@@ -698,6 +705,13 @@ const Competencias = () => {
                 competencias={competencias}
                 selectedId={selectedCompetencia.id}
                 onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={() => {
+                  setSelectedCompetenciaId(null);
+                  setSelectedGroup(null);
+                  setShowAllGroups(false);
+                  setShowMejorScore(true);
+                }}
               />
 
               {/* Header */}
