@@ -37,6 +37,18 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const side = data?.[sexo];
   /** Texto de búsqueda para resaltar a un jugador en cualquier match del bracket. */
   const [search, setSearch] = useState('');
+  /**
+   * Lista única de nombres de jugadores presentes en cualquier match (para autocomplete).
+   * Debe declararse ANTES de cualquier `return` condicional para no romper el orden de
+   * hooks de React (error #310 cuando data cambia y aparecen/desaparecen hooks).
+   */
+  const nameSuggestions = useMemo(
+    () =>
+      buildUniqueNameSuggestions(
+        (side?.matches ?? []).flatMap((m) => [m.player1_name, m.player2_name]),
+      ),
+    [side?.matches],
+  );
 
   if (isLoading) {
     return (
@@ -65,15 +77,6 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     if (!byRound[m.round]) byRound[m.round] = [];
     byRound[m.round].push(m);
   }
-
-  /** Lista única de nombres de jugadores presentes en cualquier match (para autocomplete). */
-  const nameSuggestions = useMemo(
-    () =>
-      buildUniqueNameSuggestions(
-        matches.flatMap((m) => [m.player1_name, m.player2_name]),
-      ),
-    [matches],
-  );
 
   return (
     <div className="space-y-4">
