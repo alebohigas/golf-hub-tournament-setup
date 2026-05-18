@@ -11,6 +11,7 @@
  * Tablas requeridas (ya existen): bracket_config, bracket_matches.
  * Columnas nuevas en bracket_config (ver migrations/2026_05_18_putt_finales_brackets.sql):
  *   - sexo CHAR(1) NULL
+ *   - size INT NOT NULL DEFAULT 16
  *   - visible TINYINT(1) NOT NULL DEFAULT 0
  *
  * Ruteo (acción por ?action=):
@@ -265,10 +266,10 @@ function action_save_putt_config($conn, $body) {
     // Upsert por unique key (torneoid, prize_table, prize_id).
     $sql = "INSERT INTO bracket_config
               (torneoid, prize_table, prize_id, sexo, size,
-               seed_source, advancement, status, visible, created_at, updated_at)
+               seed_source, status, visible, created_at, updated_at)
             VALUES
               ($tid, '$PUTT_PRIZE_TABLE', $pid, '$sexo', $size,
-               'standings', 'auto', 'draft', $visible, NOW(), NOW())
+               'standings', 'draft', $visible, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                sexo = VALUES(sexo),
                size = VALUES(size),

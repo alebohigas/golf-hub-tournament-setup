@@ -26,6 +26,9 @@ ALTER TABLE bracket_config
 ALTER TABLE bracket_config
   ADD COLUMN size INT NOT NULL DEFAULT 16 AFTER sexo;
 
+-- Nota: el endpoint ya no inserta `advancement`; no hace falta agregar esa
+-- columna en MySQL para este flujo de Putt Finales.
+
 -- Opcional: apagar todos los flags viejos para que ya no aparezcan como
 -- brackets en /competicion. (Descomenta si quieres limpiar de una.)
 -- UPDATE oyes      SET is_bracket = 0;
