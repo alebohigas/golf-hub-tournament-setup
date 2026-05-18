@@ -695,7 +695,7 @@ const Competencias = () => {
           )}
 
           {/* View: Groups within a competition */}
-          {!isLoading && selectedCompetenciaId && !selectedGroup && selectedCompetencia && (
+          {!isLoading && selectedCompetenciaId && !selectedGroup && !showAllGroups && selectedCompetencia && (
             <>
               {/* Back button */}
               <Button 
@@ -759,6 +759,66 @@ const Competencias = () => {
                     onClick={() => handleGroupSelect(group)}
                   />
                 ))}
+              </div>
+            </>
+          )}
+
+          {/* View: All groups within a competition (stacked tables) */}
+          {!isLoading && selectedCompetenciaId && showAllGroups && selectedCompetencia && (
+            <>
+              {/* Back button */}
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a {selectedCompetencia.shortName}
+              </Button>
+
+              {/* Header */}
+              <div className="text-center mb-10">
+                <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary">
+                  {getIcon(selectedCompetencia.icon)}
+                </div>
+                <h2 className="text-3xl font-bold text-foreground mb-2">
+                  {selectedCompetencia.name}
+                </h2>
+                <p className="text-muted-foreground">Todos los resultados</p>
+              </div>
+
+              {/* Stacked group tables — each in its own card with the prize title */}
+              <div className="max-w-4xl mx-auto space-y-8">
+                {groups.map((group) => (
+                  <Card key={group.id} className="border-border/50 bg-white">
+                    <CardContent className="p-4">
+                      <div className="mb-3 text-center">
+                        <span className="inline-block px-4 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
+                          {group.description || group.name}
+                        </span>
+                        {group.hoyo && (
+                          <p className="mt-2 mb-1 text-foreground font-bold text-base">
+                            Hoyo {group.hoyo}
+                          </p>
+                        )}
+                      </div>
+                      <CompetenciasTable
+                        players={group.players || []}
+                        columns={selectedCompetenciaColumns}
+                      />
+                      {group.lastUpdated && (
+                        <p className="text-center text-xs text-muted-foreground mt-3">
+                          Última actualización: {group.lastUpdated}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                {groups.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No hay grupos disponibles.
+                  </p>
+                )}
               </div>
             </>
           )}
