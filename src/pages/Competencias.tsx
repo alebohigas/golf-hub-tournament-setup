@@ -246,6 +246,8 @@ const Competencias = () => {
   const handleCompetenciaSelect = (id: string | null) => {
     setSelectedCompetenciaId(id);
     setSelectedGroup(null);
+    setShowAllGroups(false);
+    setShowMejorScore(false);
   };
 
   // Handle group selection
@@ -257,6 +259,8 @@ const Competencias = () => {
   const handleBack = () => {
     if (showMejorScore) {
       setShowMejorScore(false);
+    } else if (showAllGroups) {
+      setShowAllGroups(false);
     } else if (selectedGroup) {
       setSelectedGroup(null);
     } else if (selectedCompetenciaId) {
