@@ -70,7 +70,7 @@ const PLACEHOLDERS: Record<string, string> = {
   reg_apellido:   'Ej: Pérez González',
   reg_correo:     'tu@correo.com',
   reg_telefono:   '+52 55 1234 5678',
-  reg_handicap:   'Ej: 14.2',
+  reg_handicap:   'Entre -6 y 54.0 (ej: 14.2)',
   reg_club:       'Ej: Club de Golf Valle Alto',
   reg_ghin:       'Ej: 123456789',
   numghinspei:    'Ej: 123456789',
@@ -296,10 +296,13 @@ const Registro = () => {
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
   /**
-   * Strict numeric handicap regex: digits, optional single dot, digits.
+   * Strict numeric handicap regex: optional minus sign, digits, optional single dot, digits.
    * Empty string is treated as "not yet entered" (no error).
    */
-  const HANDICAP_RE = /^\d+(\.\d+)?$/;
+  const HANDICAP_RE = /^-?\d+(\.\d+)?$/;
+  /** Accepted handicap range for pre-registro (inclusive). */
+  const HANDICAP_MIN = -6;
+  const HANDICAP_MAX = 54.0;
 
   /** onBlur validator for the handicap field. */
   const validateHandicapOnBlur = () => {
@@ -309,9 +312,16 @@ const Registro = () => {
       const msg = 'Hándicap inválido. Usa solo números y punto decimal (ej: 14.2)';
       setHandicapError(msg);
       toast({ title: 'Hándicap inválido', description: msg, variant: 'destructive' });
-    } else {
-      setHandicapError('');
+      return;
     }
+    const num = parseFloat(v);
+    if (num < HANDICAP_MIN || num > HANDICAP_MAX) {
+      const msg = `El hándicap debe estar entre ${HANDICAP_MIN} y ${HANDICAP_MAX}.`;
+      setHandicapError(msg);
+      toast({ title: 'Hándicap fuera de rango', description: msg, variant: 'destructive' });
+      return;
+    }
+    setHandicapError('');
   };
 
   // ============= Email validation =============
@@ -651,7 +661,7 @@ const Registro = () => {
     // Block submission when the handicap value is malformed.
     if (isFieldEnabled('reg_handicap')) {
       const v = (values.reg_handicap || '').trim();
-      if (v && !HANDICAP_RE.test(v)) {
+      if (v && (!HANDICAP_RE.test(v) || parseFloat(v) < HANDICAP_MIN || parseFloat(v) > HANDICAP_MAX)) {
         validateHandicapOnBlur();
         return;
       }
