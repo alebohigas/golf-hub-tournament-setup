@@ -54,6 +54,8 @@ const blankRule = (order: number): Partial<RegistroPrecioRule> => ({
   genero: null,
   edad_min: null,
   edad_max: null,
+  hcp_min: null,
+  hcp_max: null,
   precio: 0,
   moneda: 'MXN',
   incluye: '',
@@ -119,9 +121,9 @@ const AdminRegistroPrecios = () => {
           </CardTitle>
           <CardDescription>
             Define una <strong>regla por combinación de filtros</strong>. Los filtros
-            vacíos ("Cualquiera") aplican a todos. La regla con más filtros específicos
-            gana; en caso de empate, gana la de mayor <em>prioridad</em>.
-            El jugador verá el precio en su pre-registro al completar categoría/socio/género/edad.
+            vacíos ("Cualquiera") o sin valor aplican a todos. La regla con más filtros
+            específicos gana automáticamente. El jugador verá el precio en su pre-registro
+            al completar categoría / socio / género / edad / hándicap.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -166,10 +168,11 @@ const AdminRegistroPrecios = () => {
                         <th className="text-left p-2 min-w-[120px]">Género</th>
                         <th className="text-center p-2 w-20">Edad mín</th>
                         <th className="text-center p-2 w-20">Edad máx</th>
+                        <th className="text-center p-2 w-20">Hcp mín</th>
+                        <th className="text-center p-2 w-20">Hcp máx</th>
                         <th className="text-right p-2 w-28">Precio</th>
                         <th className="text-center p-2 w-20">Moneda</th>
                         <th className="text-left p-2 min-w-[160px]">Incluye</th>
-                        <th className="text-center p-2 w-20">Prioridad</th>
                         <th className="text-center p-2 w-20">Activa</th>
                         <th className="text-center p-2 w-10"></th>
                       </tr>
@@ -242,6 +245,29 @@ const AdminRegistroPrecios = () => {
                               className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
+                          {/* Filtro adicional: rango de handicap (decimales y negativos). */}
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.1"
+                              value={r.hcp_min ?? ''}
+                              onChange={e => update(idx, { hcp_min: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                              placeholder="-6"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.1"
+                              value={r.hcp_max ?? ''}
+                              onChange={e => update(idx, { hcp_max: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                              placeholder="54"
+                            />
+                          </td>
                           <td className="p-2">
                             <Input
                               type="number"
@@ -265,15 +291,6 @@ const AdminRegistroPrecios = () => {
                               value={r.incluye || ''}
                               onChange={e => update(idx, { incluye: e.target.value })}
                               placeholder="Incluye carrito, kit, comida…"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              value={r.prioridad ?? 0}
-                              onChange={e => update(idx, { prioridad: parseInt(e.target.value, 10) || 0 })}
-                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
                           <td className="p-2 text-center">
