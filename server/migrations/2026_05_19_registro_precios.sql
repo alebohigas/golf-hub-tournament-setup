@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `registro_precios` (
 -- Campo en `registro` para guardar el precio que se mostró al jugador
 -- al momento del envío (referencia/auditoría — no se recalcula después).
 ALTER TABLE `registro`
+  ADD COLUMN IF NOT EXISTS `torneoid` INT(11) NULL,
   ADD COLUMN IF NOT EXISTS `reg_precio_estimado` DECIMAL(10,2) NULL AFTER `reg_categoria`,
   ADD COLUMN IF NOT EXISTS `reg_precio_moneda`   VARCHAR(3)    NULL AFTER `reg_precio_estimado`,
   ADD COLUMN IF NOT EXISTS `reg_precio_regla_id` INT(11)       NULL AFTER `reg_precio_moneda`;
