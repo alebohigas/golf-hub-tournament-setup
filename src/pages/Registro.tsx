@@ -775,6 +775,18 @@ const Registro = () => {
   /** Submit the form as multipart/form-data. */
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Validate "Clave de Socio" cuando el jugador eligió cargar a cuenta.
+    if (values.reg_es_socio === 'SI' && values.reg_cargo_socio === '1') {
+      const clave = (values.reg_clave_socio || '').trim();
+      if (!clave) {
+        toast({
+          title: 'Clave de Socio requerida',
+          description: 'Captura el número o clave de tu membresía del club.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     // Validate birthdate dd/mm/aaaa if rendered.
     if (isFieldEnabled('reg_fechanac')) {
       const err = validateBirthDmy(birthDmy);
