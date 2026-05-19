@@ -177,8 +177,8 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         Los nombres NO se truncan: usamos break-words y whitespace-normal para
         mostrarlos completos, ajustándose verticalmente si hace falta.
       */}
-      <div ref={bracketAreaRef} className="overflow-x-auto pb-4 w-full">
-      <div className={`flex gap-2 min-w-max ${shouldFillWidth ? 'md:min-w-0 md:w-full' : 'md:w-max'}`}>
+      <div ref={bracketAreaRef} className={`overflow-x-auto pb-4 ${shouldFillWidth ? 'relative left-1/2 w-screen -translate-x-1/2 px-2 sm:px-4 lg:px-8' : 'w-full'}`}>
+      <div className={`flex gap-2 min-w-max ${shouldFillWidth ? 'md:min-w-0 md:w-full' : 'md:w-max md:mx-auto'}`}>
         {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
           <div key={round} className={`flex flex-col gap-3 min-w-[240px] ${shouldFillWidth ? 'md:min-w-0 md:flex-1 md:basis-0' : 'md:w-[280px] md:min-w-[280px]'}`}>
             <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
@@ -228,8 +228,8 @@ const MatchCard = ({
   const h2 = !!highlight && matchesPlayerName(match.player2_name, highlight);
   /** Resalta TODAS las apariciones del campeón con la misma lógica visual del buscador. */
   const championKeySet = new Set(championKeys ?? []);
-  const c1 = normalizedPlayerName(match.player1_name) === championName || playerKeys(match.player1_id, match.player1_name).some((key) => championKeySet.has(key));
-  const c2 = normalizedPlayerName(match.player2_name) === championName || playerKeys(match.player2_id, match.player2_name).some((key) => championKeySet.has(key));
+  const c1 = (championName != null && normalizedPlayerName(match.player1_name) === championName) || playerKeys(match.player1_id, match.player1_name).some((key) => championKeySet.has(key));
+  const c2 = (championName != null && normalizedPlayerName(match.player2_name) === championName) || playerKeys(match.player2_id, match.player2_name).some((key) => championKeySet.has(key));
 
   /** Dorado original del buscador; el campeón se difumina con opacidad al buscar. */
   const goldRow = 'bg-accent ring-2 ring-accent';
