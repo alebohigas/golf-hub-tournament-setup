@@ -37,6 +37,24 @@ function precios_table_exists($conn) {
 }
 
 /**
+ * Garantiza que las columnas hcp_min / hcp_max existan en registro_precios.
+ * Las añade silenciosamente si faltan; cachea el resultado por request.
+ * (Patrón usado también en registro_fields.php → ensure_section_column).
+ */
+function ensure_hcp_columns($conn) {
+    static $checked = null;
+    if ($checked !== null) return $checked;
+    if (!precios_table_exists($conn)) return $checked = false;
+    foreach (['hcp_min', 'hcp_max'] as $col) {
+        $r = $conn->query("SHOW COLUMNS FROM registro_precios LIKE '$col'");
+        if (!$r || $r->num_rows === 0) {
+            @$conn->query("ALTER TABLE registro_precios ADD COLUMN `$col` DECIMAL(4,1) NULL");
+        }
+    }
+    return $checked = true;
+}
+
+/**
  * Normaliza una regla cruda de la BD a la forma que consume el cliente.
  * Castea numéricos y devuelve NULL (no string vacío) en los filtros opcionales.
  */
@@ -49,6 +67,8 @@ function normalize_rule($r) {
         'genero'        => $r['genero'] !== null && $r['genero'] !== '' ? $r['genero'] : null,
         'edad_min'      => $r['edad_min'] !== null ? (int)$r['edad_min'] : null,
         'edad_max'      => $r['edad_max'] !== null ? (int)$r['edad_max'] : null,
+        'hcp_min'       => isset($r['hcp_min']) && $r['hcp_min'] !== null ? (float)$r['hcp_min'] : null,
+        'hcp_max'       => isset($r['hcp_max']) && $r['hcp_max'] !== null ? (float)$r['hcp_max'] : null,
         'precio'        => (float)$r['precio'],
         'moneda'        => $r['moneda'] ?: 'MXN',
         'incluye'       => $r['incluye'] ?? '',
@@ -65,7 +85,7 @@ function normalize_rule($r) {
  * Para tipo_socio: si la regla pide 'SOCIO' aceptamos cualquier subtipo
  * (TITULAR/EMERITO/DEPENDIENTE). Si pide un subtipo específico, debe coincidir.
  */
-function rule_matches($rule, $cat, $tipoSocio, $genero, $edad) {
+function rule_matches($rule, $cat, $tipoSocio, $genero, $edad, $hcp = null) {
     if ($rule['categoria']  !== null && strcasecmp($rule['categoria'], (string)$cat) !== 0) return false;
     if ($rule['genero']     !== null && $genero !== null && $rule['genero'] !== $genero)   return false;
 
@@ -86,6 +106,11 @@ function rule_matches($rule, $cat, $tipoSocio, $genero, $edad) {
         if ($rule['edad_min'] !== null && $edad < $rule['edad_min']) return false;
         if ($rule['edad_max'] !== null && $edad > $rule['edad_max']) return false;
     }
+    /** Filtro adicional por handicap (rango inclusivo). NULL = comodín. */
+    if ($hcp !== null) {
+        if (isset($rule['hcp_min']) && $rule['hcp_min'] !== null && $hcp < $rule['hcp_min']) return false;
+        if (isset($rule['hcp_max']) && $rule['hcp_max'] !== null && $hcp > $rule['hcp_max']) return false;
+    }
     return true;
 }
 
@@ -100,6 +125,8 @@ function rule_specificity($rule) {
     if ($rule['genero']     !== null) $s++;
     if ($rule['edad_min']   !== null) $s++;
     if ($rule['edad_max']   !== null) $s++;
+    if (!empty($rule['hcp_min']) || (isset($rule['hcp_min']) && $rule['hcp_min'] === 0.0)) $s++;
+    if (!empty($rule['hcp_max']) || (isset($rule['hcp_max']) && $rule['hcp_max'] === 0.0)) $s++;
     return $s;
 }
 
@@ -114,8 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($action === 'match') json_response(['match' => null, 'source' => 'no_table']);
         json_response(['rules' => [], 'source' => 'no_table']);
     }
+    ensure_hcp_columns($conn);
 
     $sql = "SELECT id, etiqueta, categoria, tipo_socio, genero, edad_min, edad_max,
+                   hcp_min, hcp_max,
                    precio, moneda, incluye, prioridad, display_order, is_active
             FROM registro_precios
             WHERE torneo_id = $torneoid
@@ -129,10 +158,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $gen   = optional_param('genero', null);      // M/F
         $edadP = optional_param('edad', null);
         $edad  = ($edadP !== null && $edadP !== '') ? (int)$edadP : null;
+        $hcpP  = optional_param('handicap', null);
+        $hcp   = ($hcpP !== null && $hcpP !== '') ? (float)$hcpP : null;
 
-        $candidates = array_filter($rows, function($r) use ($cat, $tipo, $gen, $edad) {
+        $candidates = array_filter($rows, function($r) use ($cat, $tipo, $gen, $edad, $hcp) {
             if (!$r['is_active']) return false;
-            return rule_matches($r, $cat, $tipo, $gen, $edad);
+            return rule_matches($r, $cat, $tipo, $gen, $edad, $hcp);
         });
 
         if (count($candidates) === 0) {
@@ -169,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!precios_table_exists($conn)) {
         json_error('Table registro_precios not found. Corre la migración 2026_05_19_registro_precios.sql.', 500);
     }
+    ensure_hcp_columns($conn);
 
     $rules = $body['rules'] ?? [];
     if (!is_array($rules)) json_error('rules must be an array', 400);
@@ -184,6 +216,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($v === null || $v === '' || $v === 'ANY') return 'NULL';
         return (int)$v;
     };
+    /** Floats nullables para hcp_min/hcp_max (acepta decimales). */
+    $nullableFloat = function($v) {
+        if ($v === null || $v === '' || $v === 'ANY') return 'NULL';
+        return (float)$v;
+    };
 
     $count = 0;
     foreach ($rules as $r) {
@@ -193,6 +230,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $genero     = $nullable($r['genero'] ?? null);
         $edadMin    = $nullableInt($r['edad_min'] ?? null);
         $edadMax    = $nullableInt($r['edad_max'] ?? null);
+        $hcpMin     = $nullableFloat($r['hcp_min'] ?? null);
+        $hcpMax     = $nullableFloat($r['hcp_max'] ?? null);
         $precio     = (float)($r['precio'] ?? 0);
         $moneda     = esc($conn, (string)($r['moneda'] ?? 'MXN'));
         $incluye    = esc($conn, (string)($r['incluye'] ?? ''));
@@ -202,10 +241,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $sql = "INSERT INTO registro_precios
                   (torneo_id, etiqueta, categoria, tipo_socio, genero, edad_min, edad_max,
-                   precio, moneda, incluye, prioridad, display_order, is_active)
+                   hcp_min, hcp_max, precio, moneda, incluye, prioridad, display_order, is_active)
                 VALUES
                   ($torneoid, '$etiqueta', $categoria, $tipoSocio, $genero, $edadMin, $edadMax,
-                   $precio, '$moneda', '$incluye', $prioridad, $ord, $active)";
+                   $hcpMin, $hcpMax, $precio, '$moneda', '$incluye', $prioridad, $ord, $active)";
         if ($conn->query($sql)) $count++;
     }
 
