@@ -32,11 +32,10 @@ const roundLabel = (round: number, totalRounds: number): string => {
   return `R${round}`;
 };
 
-/** Normaliza IDs/nombres para comparar jugadores aunque el API mande number/string/null. */
-const playerKey = (id: number | string | null | undefined, name: string | null | undefined): string | null => {
-  if (id !== null && id !== undefined && String(id).trim() !== '') return `id:${String(id).trim()}`;
-  if (name && name.trim() !== '') return `name:${name.trim().toLocaleLowerCase('es-MX')}`;
-  return null;
+/** Normaliza nombres para comparar la trayectoria del campeón sin depender del ID. */
+const normalizedPlayerName = (name: string | null | undefined): string | null => {
+  const cleaned = name?.trim();
+  return cleaned ? cleaned.toLocaleLowerCase('es-MX') : null;
 };
 
 /** Llaves posibles del jugador: ID y nombre, para pintar trayectoria aunque un dato venga inconsistente. */
@@ -87,12 +86,16 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   /** Total de rondas disponible aun antes de renderizar, para conservar orden de hooks. */
   const totalRounds = side?.config ? Math.log2(side.config.size) : 0;
 
-  /** Mide el contenedor: 16 jugadores queda compacto; formatos grandes usan todo el ancho. */
+  /** Mide el contenedor: 16 jugadores o menos conserva formato compacto original. */
   useEffect(() => {
     const el = bracketAreaRef.current;
     if (!el || totalRounds <= 0) return;
 
     const updateWidthMode = () => {
+      if ((side?.config?.size ?? 0) <= 16) {
+        setShouldFillWidth(false);
+        return;
+      }
       const compactWidth = (totalRounds * COMPACT_ROUND_WIDTH) + ((totalRounds - 1) * ROUND_GAP);
       setShouldFillWidth(compactWidth > el.clientWidth);
     };
@@ -101,7 +104,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     const observer = new ResizeObserver(updateWidthMode);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [totalRounds]);
+  }, [side?.config?.size, totalRounds]);
 
   if (isLoading) {
     return (
@@ -123,8 +126,9 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   const { matches } = side;
 
-  /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
-  const finalMatch = matches.find((m) => m.round === totalRounds);
+  /** Champion: ganador real de la última ronda visible; se prioriza score menor (0 es mejor). */
+  const finalRound = Math.max(...matches.map((m) => m.round));
+  const finalMatch = matches.find((m) => m.round === finalRound);
   const finalScoreWinnerSlot = finalMatch
     ? scoreWinnerSlot(finalMatch.player1_score, finalMatch.player2_score)
     : null;
@@ -142,6 +146,11 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     : finalMatch && finalWinnerSlot === 2
       ? playerKeys(finalMatch.player2_id, finalMatch.player2_name)
       : [];
+  const championName = finalMatch && finalWinnerSlot === 1
+    ? normalizedPlayerName(finalMatch.player1_name)
+    : finalMatch && finalWinnerSlot === 2
+      ? normalizedPlayerName(finalMatch.player2_name)
+      : null;
   const searching = search.trim().length > 0;
 
   // Agrupar matches por ronda
@@ -168,8 +177,8 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         Los nombres NO se truncan: usamos break-words y whitespace-normal para
         mostrarlos completos, ajustándose verticalmente si hace falta.
       */}
-      <div ref={bracketAreaRef} className="overflow-x-auto pb-4 w-full">
-      <div className={`flex gap-2 min-w-max ${shouldFillWidth ? 'md:min-w-0 md:w-full' : 'md:w-max'}`}>
+      <div ref={bracketAreaRef} className={`overflow-x-auto pb-4 ${shouldFillWidth ? 'relative left-1/2 w-screen -translate-x-1/2 px-2 sm:px-4 lg:px-8' : 'w-full'}`}>
+      <div className={`flex gap-2 min-w-max ${shouldFillWidth ? 'md:min-w-0 md:w-full' : 'md:w-max md:mx-auto'}`}>
         {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
           <div key={round} className={`flex flex-col gap-3 min-w-[240px] ${shouldFillWidth ? 'md:min-w-0 md:flex-1 md:basis-0' : 'md:w-[280px] md:min-w-[280px]'}`}>
             <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
@@ -182,6 +191,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
                   match={m}
                   highlight={search}
                   championKeys={championKeys}
+                  championName={championName}
                   dimChampion={searching}
                 />
               ))}
@@ -199,12 +209,15 @@ const MatchCard = ({
   match,
   highlight,
   championKeys,
+  championName,
   dimChampion,
 }: {
   match: BracketMatch;
   highlight?: string;
   /** Llaves estables del campeón del bracket (ID y nombre). */
   championKeys?: string[];
+  /** Nombre normalizado del campeón; fallback principal para pintar toda la trayectoria. */
+  championName?: string | null;
   /** Cuando el usuario está buscando, atenuar el resaltado dorado del campeón. */
   dimChampion?: boolean;
 }) => {
@@ -215,8 +228,8 @@ const MatchCard = ({
   const h2 = !!highlight && matchesPlayerName(match.player2_name, highlight);
   /** Resalta TODAS las apariciones del campeón con la misma lógica visual del buscador. */
   const championKeySet = new Set(championKeys ?? []);
-  const c1 = playerKeys(match.player1_id, match.player1_name).some((key) => championKeySet.has(key));
-  const c2 = playerKeys(match.player2_id, match.player2_name).some((key) => championKeySet.has(key));
+  const c1 = (championName != null && normalizedPlayerName(match.player1_name) === championName) || playerKeys(match.player1_id, match.player1_name).some((key) => championKeySet.has(key));
+  const c2 = (championName != null && normalizedPlayerName(match.player2_name) === championName) || playerKeys(match.player2_id, match.player2_name).some((key) => championKeySet.has(key));
 
   /** Dorado original del buscador; el campeón se difumina con opacidad al buscar. */
   const goldRow = 'bg-accent ring-2 ring-accent';

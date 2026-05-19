@@ -320,7 +320,7 @@ const Competencias = () => {
       />
       
       <section className="py-16 bg-background">
-        <div className={bracketSexo && selectedGroup ? 'w-full px-2 sm:px-4 lg:px-8' : 'container mx-auto px-4'}>
+        <div className="container mx-auto px-4">
           
           {/* Loading indicator */}
           {isLoading && (
