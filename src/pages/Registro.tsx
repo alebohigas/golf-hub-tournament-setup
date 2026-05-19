@@ -1225,6 +1225,53 @@ const Registro = () => {
       );
     }
 
+    /**
+     * Edad: input numérico que se autocompleta desde reg_fechanac cuando
+     * está disponible (`edadAuto = true` → input gris/disabled), o queda
+     * editable cuando no hay fecha (porque el admin desactivó fechanac o
+     * porque el jugador aún no la ha llenado).
+     *
+     * Reglas:
+     *  - Si `reg_fechanac` está activo y tiene valor válido → auto y disabled.
+     *  - Si NO hay fecha o es inválida → editable; el usuario captura su edad.
+     */
+    if (name === 'reg_edad') {
+      const fechanacEnabled = isFieldEnabled('reg_fechanac');
+      const disabled = edadAuto && fechanacEnabled;
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            required={required}
+            placeholder="Ej: 42"
+            value={values[name] || ''}
+            disabled={disabled}
+            onChange={e => {
+              const v = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
+              setValue(name, v);
+              // Si el usuario edita manualmente liberamos el flag auto.
+              if (edadAuto) setEdadAuto(false);
+            }}
+            className={`[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none ${
+              disabled ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
+            }`}
+          />
+          <p className="text-xs text-muted-foreground">
+            {disabled
+              ? 'Auto-calculada desde tu fecha de nacimiento.'
+              : fechanacEnabled
+                ? 'Se calcula automáticamente cuando llenas la fecha de nacimiento.'
+                : 'Años cumplidos.'}
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-2" key={name}>
         <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
