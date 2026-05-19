@@ -15,7 +15,7 @@ import { Loader2, Trophy } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface BracketViewProps {
   /** 'M' = Caballero, 'F' = Dama */
@@ -55,6 +55,12 @@ const scoreWinnerSlot = (score1: number | null, score2: number | null): 1 | 2 | 
   if (rounded1 === rounded2) return null;
   return rounded1 < rounded2 ? 1 : 2;
 };
+
+/** Ancho compacto base por ronda; sólo se expande a pantalla completa si esto no cabe. */
+const COMPACT_ROUND_WIDTH = 280;
+
+/** Separación horizontal equivalente a `gap-2` para decidir si el bracket cabe compacto. */
+const ROUND_GAP = 8;
 
 const BracketView = ({ sexo }: BracketViewProps) => {
   const { data, isLoading, error } = usePuttFinales();
