@@ -123,11 +123,18 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
   const finalMatch = matches.find((m) => m.round === totalRounds);
-  const finalWinnerSlot = finalMatch?.winner_id != null
-    ? String(finalMatch.winner_id) === String(finalMatch.player1_id) ? 1 : String(finalMatch.winner_id) === String(finalMatch.player2_id) ? 2 : null
-    : finalMatch
-      ? scoreWinnerSlot(finalMatch.player1_score, finalMatch.player2_score)
-      : null;
+  const finalScoreWinnerSlot = finalMatch
+    ? scoreWinnerSlot(finalMatch.player1_score, finalMatch.player2_score)
+    : null;
+  const finalWinnerSlot = finalScoreWinnerSlot ?? (
+    finalMatch?.winner_id != null
+      ? String(finalMatch.winner_id) === String(finalMatch.player1_id)
+        ? 1
+        : String(finalMatch.winner_id) === String(finalMatch.player2_id)
+          ? 2
+          : null
+      : null
+  );
   const championKeys = finalMatch && finalWinnerSlot === 1
     ? playerKeys(finalMatch.player1_id, finalMatch.player1_name)
     : finalMatch && finalWinnerSlot === 2
@@ -154,8 +161,8 @@ const BracketView = ({ sexo }: BracketViewProps) => {
       {/*
         Layout responsivo:
         - Móvil/tablet (<md): scroll horizontal con ancho mínimo por columna.
-        - Desktop (md+): TODAS las rondas reparten el ancho completo del contenedor
-          (flex-1 + w-full) para aprovechar todo el espacio disponible.
+        - Desktop (md+): queda compacto cuando todas las rondas caben; sólo se
+          expande a pantalla completa cuando el formato compacto escondería rondas.
         Los nombres NO se truncan: usamos break-words y whitespace-normal para
         mostrarlos completos, ajustándose verticalmente si hace falta.
       */}
