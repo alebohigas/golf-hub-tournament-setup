@@ -214,6 +214,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         // Akron-specific
         'akron_talla', 'akron_talla_guante', 'akron_calzado',
         'akron_codigo', 'akron_monto_pago',
+        // Snapshot del precio mostrado al jugador al enviar el form.
+        // Lo escribe el cliente con base en /api/registro_precios.php?action=match.
+        'reg_precio_estimado', 'reg_precio_moneda', 'reg_precio_regla_id',
     ];
 
     $cols = [$torneoCol];
@@ -343,6 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_direccion','reg_cp','reg_id_club','reg_cargo',
         'akron_edad','akron_talla','akron_talla_guante','akron_calzado',
         'akron_codigo','akron_monto_pago',
+        'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = $c;
     /** Indicate whether a binary attachment exists without sending the bytes. */
