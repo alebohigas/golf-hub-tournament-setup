@@ -752,6 +752,14 @@ const Registro = () => {
         if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
       });
       if (file) fd.append('reg_archivo', file);
+      // Snapshot del precio mostrado al jugador (auditoría / referencia
+      // para el comité). Se calcula en la BD vía registro_precios; aquí
+      // sólo persistimos lo que el jugador vio al pulsar enviar.
+      if (precioMatch) {
+        fd.append('reg_precio_estimado', String(precioMatch.precio));
+        fd.append('reg_precio_moneda',   precioMatch.moneda || 'MXN');
+        fd.append('reg_precio_regla_id', String(precioMatch.id));
+      }
 
       const res = await fetch(getRegistroSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
