@@ -34,6 +34,7 @@ import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
+import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
@@ -597,6 +598,64 @@ const Registro = () => {
     });
   }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac]);
 
+  // ============= Precio estimado de inscripción =============
+
+  /**
+   * Resuelve el NOMBRE de la categoría seleccionada (la BD de precios
+   * guarda nombres, no IDs, para sobrevivir entre torneos).
+   */
+  const selectedCategoryName = useMemo(() => {
+    const id = values.reg_categoria;
+    if (!id) return undefined;
+    return categories.find(c => c.id === id)?.name;
+  }, [categories, values.reg_categoria]);
+
+  /** Edad calculada a partir de la fecha de nacimiento ya validada. */
+  const ageForPricing = useMemo(
+    () => calcAge(values.reg_fechanac || ''),
+    [values.reg_fechanac]
+  );
+
+  /**
+   * tipo_socio enviado al matcher:
+   *  - Si es_socio = SI y eligió subtipo → subtipo (TITULAR/EMERITO/DEPENDIENTE)
+   *  - Si es_socio = SI sin subtipo      → 'SOCIO' (cualquier subtipo)
+   *  - Si es_socio = NO                  → 'NO_SOCIO'
+   *  - Si no eligió                       → undefined (sin filtro)
+   */
+  const tipoSocioForPricing = useMemo(() => {
+    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
+    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
+    return undefined;
+  }, [values.reg_es_socio, values.reg_tipo_socio]);
+
+  /** Consulta reactiva al endpoint de matching de precio. */
+  const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
+    categoria:  selectedCategoryName,
+    tipo_socio: tipoSocioForPricing,
+    genero:     values.reg_sexo || undefined,
+    edad:       ageForPricing,
+    // Sólo consulta cuando hay al menos un filtro útil
+    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo || ageForPricing !== null),
+  });
+  const precioMatch = precioMatchData?.match || null;
+
+  /**
+   * Formateador de moneda con `Intl`. Por defecto MXN-es-MX.
+   * Cae a "$1,234" si la moneda no es estándar ISO.
+   */
+  const formatPrice = (amount: number, currency: string) => {
+    try {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: currency || 'MXN',
+        minimumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `$${amount.toLocaleString('es-MX')} ${currency}`;
+    }
+  };
+
   /** Generic value setter. */
   const setValue = (name: string, v: string) =>
     setValues(prev => ({ ...prev, [name]: v }));
@@ -693,6 +752,14 @@ const Registro = () => {
         if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
       });
       if (file) fd.append('reg_archivo', file);
+      // Snapshot del precio mostrado al jugador (auditoría / referencia
+      // para el comité). Se calcula en la BD vía registro_precios; aquí
+      // sólo persistimos lo que el jugador vio al pulsar enviar.
+      if (precioMatch) {
+        fd.append('reg_precio_estimado', String(precioMatch.precio));
+        fd.append('reg_precio_moneda',   precioMatch.moneda || 'MXN');
+        fd.append('reg_precio_regla_id', String(precioMatch.id));
+      }
 
       const res = await fetch(getRegistroSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
@@ -1207,6 +1274,46 @@ const Registro = () => {
                       });
                       return blocks;
                     })()}
+                    {/* Costo de inscripción calculado a partir de los datos
+                        del jugador y la tabla `registro_precios` (admin).
+                        Sólo se muestra cuando hay al menos un dato útil. */}
+                    {(selectedCategoryName || tipoSocioForPricing || values.reg_sexo) && (
+                      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                              Costo estimado de inscripción
+                            </p>
+                            {precioFetching ? (
+                              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Calculando…
+                              </p>
+                            ) : precioMatch ? (
+                              <>
+                                <p className="text-3xl font-bold text-primary">
+                                  {formatPrice(precioMatch.precio, precioMatch.moneda)}
+                                </p>
+                                {precioMatch.etiqueta && (
+                                  <p className="text-sm text-foreground mt-0.5">{precioMatch.etiqueta}</p>
+                                )}
+                                {precioMatch.incluye && (
+                                  <p className="text-xs text-muted-foreground mt-1">{precioMatch.incluye}</p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Aún no hay un precio configurado para esta combinación de datos.
+                                Contacta al comité para confirmar tu costo.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground italic">
+                          El monto es una estimación calculada con base en tus datos.
+                          La confirmación oficial la realiza el comité del torneo.
+                        </p>
+                      </div>
+                    )}
                     <div className="flex justify-end pt-2">
                       <Button type="submit" disabled={submitting} className="gap-2" size="lg">
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

@@ -212,6 +212,30 @@ export const getRegistroVerifyUrl = (): string =>
 export const getRegistroArchivoUrl = (id: number, password: string): string =>
   `${API_BASE_URL}/registro_archivo.php?id=${id}&password=${encodeURIComponent(password)}`;
 
+// ============= Pre-Registro · Precios =============
+
+/** Admin / lectura pública: lista completa de reglas de precio del torneo. */
+export const getRegistroPreciosUrl = (): string =>
+  `${API_BASE_URL}/registro_precios.php${buildQuery()}`;
+
+/**
+ * Match de precio para un jugador específico.
+ * Cualquier parámetro puede omitirse — el backend usa NULL como comodín.
+ */
+export const getRegistroPrecioMatchUrl = (params: {
+  categoria?: string;
+  tipo_socio?: string;
+  genero?: string;
+  edad?: string | number;
+}): string => {
+  const clean: Record<string, string> = { action: 'match' };
+  if (params.categoria)   clean.categoria  = params.categoria;
+  if (params.tipo_socio)  clean.tipo_socio = params.tipo_socio;
+  if (params.genero)      clean.genero     = params.genero;
+  if (params.edad !== undefined && params.edad !== '') clean.edad = String(params.edad);
+  return `${API_BASE_URL}/registro_precios.php${buildQuery(clean)}`;
+};
+
 /** Cascading location dropdowns */
 export const getLocationsCountriesUrl = (): string =>
   `${API_BASE_URL}/locations.php?kind=countries`;
