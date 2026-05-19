@@ -2,33 +2,52 @@
  * BracketView
  * ----------------------------------------------------------------------------
  * Render público read-only de uno de los dos brackets putt-finales (M o F).
- * Selecciona el bracket por `sexo`, hace polling cada POLL_ACTIVE y muestra
- * los rounds left-to-right (R1 → Final) con cada match como una tarjeta.
  *
- * Usado dentro de /competicion cuando el usuario entra a la pseudo-competencia
- * "Putt Finales Caballero" o "Putt Finales Dama" inyectada por competencias.php.
+ * Cambios clave:
+ *   - Los brackets > 16 se separan en "Grupo 1..N" (16 jugadores cada uno,
+ *     con sus 4 rondas internas: Octavos → Final del grupo).
+ *   - Para tamaños 32/64/128 se agrega una sección extra "Gran Final" con
+ *     layout bilateral (mitad izquierda, mitad derecha convergen al centro)
+ *     y al campeón resaltado arriba en dorado.
+ *   - El score de match-play se reemplaza por "G" (ganador) / "-" (perdedor)
+ *     en lugar de la distancia (los jugadores son sensibles a ver distancias
+ *     comparativas tras perder).
+ *   - El buscador hace auto-scroll hacia el primer match donde aparezca el
+ *     jugador resaltado.
  */
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Trophy } from 'lucide-react';
+import { Loader2, Trophy, Crown } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface BracketViewProps {
   /** 'M' = Caballero, 'F' = Dama */
   sexo: 'M' | 'F';
 }
 
-/** Etiquetas humanas para cada ronda según total de rondas. */
-const roundLabel = (round: number, totalRounds: number): string => {
-  const fromEnd = totalRounds - round;
-  if (fromEnd === 0) return 'Final';
+/**
+ * Etiqueta de ronda dentro de un grupo (siempre 16 jugadores → 4 rondas:
+ * Octavos → Cuartos → Semifinal → Final del grupo).
+ */
+const groupRoundLabel = (round: number, lastRound: number): string => {
+  const fromEnd = lastRound - round;
+  if (fromEnd === 0) return 'Final del Grupo';
   if (fromEnd === 1) return 'Semifinal';
   if (fromEnd === 2) return 'Cuartos';
   if (fromEnd === 3) return 'Octavos';
+  return `R${round}`;
+};
+
+/** Etiqueta para rondas de la Gran Final (a partir de los ganadores de grupo). */
+const grandFinalRoundLabel = (round: number, lastRound: number): string => {
+  const fromEnd = lastRound - round;
+  if (fromEnd === 0) return 'Final';
+  if (fromEnd === 1) return 'Semifinal';
+  if (fromEnd === 2) return 'Cuartos';
   return `R${round}`;
 };
 
@@ -37,6 +56,8 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const side = data?.[sexo];
   /** Texto de búsqueda para resaltar a un jugador en cualquier match del bracket. */
   const [search, setSearch] = useState('');
+  /** Refs por matchId → permite hacer scroll automático al primer resultado. */
+  const matchRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   /**
    * Lista única de nombres de jugadores presentes en cualquier match (para autocomplete).
    * Debe declararse ANTES de cualquier `return` condicional para no romper el orden de
@@ -49,6 +70,27 @@ const BracketView = ({ sexo }: BracketViewProps) => {
       ),
     [side?.matches],
   );
+
+  /**
+   * Cuando el usuario escribe en el buscador, hacer scroll al primer match
+   * en el que aparezca el jugador. Sin dependencia de matches refs cambiantes.
+   */
+  useEffect(() => {
+    const term = search.trim();
+    if (!term || !side?.matches) return;
+    const hit = side.matches.find(
+      (m) =>
+        matchesPlayerName(m.player1_name, term) ||
+        matchesPlayerName(m.player2_name, term),
+    );
+    if (!hit) return;
+    // Esperar un tick para que los nodos existan.
+    const t = setTimeout(() => {
+      const el = matchRefs.current.get(hit.id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [search, side?.matches]);
 
   if (isLoading) {
     return (
@@ -77,17 +119,43 @@ const BracketView = ({ sexo }: BracketViewProps) => {
    */
   const finalMatch = matches.find((m) => m.round === totalRounds);
   const championId: number | null = finalMatch?.winner_id ?? null;
+  const championName: string | null =
+    championId != null
+      ? finalMatch?.player1_id === championId
+        ? finalMatch?.player1_name ?? null
+        : finalMatch?.player2_name ?? null
+      : null;
   const searching = search.trim().length > 0;
 
-  // Agrupar matches por ronda
-  const byRound: Record<number, BracketMatch[]> = {};
-  for (const m of matches) {
-    if (!byRound[m.round]) byRound[m.round] = [];
-    byRound[m.round].push(m);
-  }
+  /**
+   * Reparto en grupos de 16:
+   *   - groupsCount = max(1, size / 16)
+   *   - groupRoundsCount = min(totalRounds, 4)  → rondas que se dibujan dentro
+   *     de cada grupo (Octavos..Final del Grupo).
+   *   - Las rondas posteriores (round > 4) forman la Gran Final.
+   *
+   * Asignación de matches a grupo según posición:
+   *   en la ronda r, hay (size / 2^r) matches en total; cada grupo contiene
+   *   (16 / 2^r) matches consecutivos (positions ordenadas por la query).
+   */
+  const groupsCount = Math.max(1, Math.floor(config.size / 16));
+  const groupRoundsCount = Math.min(totalRounds, 4);
+
+  /** Devuelve los matches de un grupo+ronda usando rebanado por posición. */
+  const matchesForGroupRound = (group: number, round: number): BracketMatch[] => {
+    const perGroup = Math.max(1, Math.floor(16 / Math.pow(2, round)));
+    const ofRound = matches
+      .filter((m) => m.round === round)
+      .sort((a, b) => a.position - b.position);
+    return ofRound.slice(group * perGroup, (group + 1) * perGroup);
+  };
+
+  /** Matches de las rondas posteriores a las 4 internas → Gran Final. */
+  const grandFinalRounds: number[] = [];
+  for (let r = groupRoundsCount + 1; r <= totalRounds; r++) grandFinalRounds.push(r);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PlayerSearchInput
         value={search}
         onChange={setSearch}
@@ -95,28 +163,54 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         placeholder="Buscar jugador en el bracket..."
         className="max-w-md"
       />
-      <div className="overflow-x-auto pb-4">
-      <div className="flex gap-6 min-w-max px-2">
-        {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="flex flex-col gap-3 min-w-[220px]">
-            <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
-              {roundLabel(round, totalRounds)}
-            </h4>
-            <div className="flex flex-col gap-3 justify-around flex-1">
-              {(byRound[round] ?? []).map((m) => (
-                <MatchCard
-                  key={m.id}
-                  match={m}
-                  highlight={search}
-                  championId={championId}
-                  dimChampion={searching}
-                />
-              ))}
+
+      {/* ============ GRUPOS DE 16 ============ */}
+      <div className="space-y-8">
+        {Array.from({ length: groupsCount }, (_, g) => (
+          <section key={g} className="space-y-3">
+            <h3 className="text-base font-bold text-primary">
+              {groupsCount === 1 ? 'Bracket' : `Grupo ${g + 1}`}
+            </h3>
+            <div className="overflow-x-auto pb-4">
+              <div className="flex gap-6 min-w-max px-2">
+                {Array.from({ length: groupRoundsCount }, (_, i) => i + 1).map((round) => (
+                  <div key={round} className="flex flex-col gap-3 min-w-[220px]">
+                    <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
+                      {groupRoundLabel(round, groupRoundsCount)}
+                    </h4>
+                    <div className="flex flex-col gap-3 justify-around flex-1">
+                      {matchesForGroupRound(g, round).map((m) => (
+                        <MatchCard
+                          key={m.id}
+                          match={m}
+                          highlight={search}
+                          championId={championId}
+                          dimChampion={searching}
+                          registerRef={(el) => matchRefs.current.set(m.id, el)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </section>
         ))}
       </div>
-      </div>
+
+      {/* ============ GRAN FINAL (solo si hay rondas > 4) ============ */}
+      {grandFinalRounds.length > 0 && (
+        <GrandFinalView
+          rounds={grandFinalRounds}
+          allMatches={matches}
+          totalRounds={totalRounds}
+          championId={championId}
+          championName={championName}
+          highlight={search}
+          dimChampion={searching}
+          registerRef={(id, el) => matchRefs.current.set(id, el)}
+        />
+      )}
     </div>
   );
 };
@@ -127,6 +221,7 @@ const MatchCard = ({
   highlight,
   championId,
   dimChampion,
+  registerRef,
 }: {
   match: BracketMatch;
   highlight?: string;
@@ -134,6 +229,8 @@ const MatchCard = ({
   championId?: number | null;
   /** Cuando el usuario está buscando, atenuar el resaltado dorado del campeón. */
   dimChampion?: boolean;
+  /** Callback para registrar el nodo DOM y permitir scroll automático. */
+  registerRef?: (el: HTMLDivElement | null) => void;
 }) => {
   const w1 = match.winner_id != null && match.winner_id === match.player1_id;
   const w2 = match.winner_id != null && match.winner_id === match.player2_id;
@@ -144,10 +241,19 @@ const MatchCard = ({
   const c1 = championId != null && match.player1_id === championId;
   const c2 = championId != null && match.player2_id === championId;
 
+  /**
+   * Render del valor del lado derecho: "G" (ganador), "-" (perdedor) o
+   * vacío cuando el match aún no está resuelto. No mostramos distancias.
+   */
+  const resultLabel = (isWinner: boolean): string => {
+    if (match.winner_id == null) return '';
+    return isWinner ? 'G' : '-';
+  };
+
   const renderRow = (
     name: string | null,
     seed: number | null,
-    score: number | null,
+    _score: number | null,
     isWinner: boolean,
     isHighlighted: boolean,
     isChampion: boolean,
@@ -186,7 +292,7 @@ const MatchCard = ({
         </span>
       </div>
       <span
-        className={`text-sm tabular-nums ${
+        className={`text-sm font-bold tabular-nums w-6 text-center ${
           isHighlighted
             ? 'font-bold text-accent-foreground'
             : isChampion && !dimChampion
@@ -198,13 +304,14 @@ const MatchCard = ({
                   : 'text-muted-foreground'
         }`}
       >
-        {score ?? '–'}
+        {resultLabel(isWinner) || '–'}
       </span>
     </div>
   );
 
   return (
     <Card
+      ref={registerRef as any}
       className={`border-border overflow-hidden divide-y divide-border ${
         h1 || h2
           ? 'ring-2 ring-accent shadow-md'
@@ -216,6 +323,137 @@ const MatchCard = ({
       {renderRow(match.player1_name, match.player1_seed, match.player1_score, w1, h1, c1)}
       {renderRow(match.player2_name, match.player2_seed, match.player2_score, w2, h2, c2)}
     </Card>
+  );
+};
+
+// ============================================================================
+// GrandFinalView — bilateral layout para rondas posteriores a los grupos
+// ============================================================================
+
+/**
+ * Dibuja la Gran Final con layout simétrico:
+ *   - Cada ronda divide sus matches en mitad izquierda y mitad derecha.
+ *   - La ronda más avanzada (final) queda en el centro.
+ *   - El campeón se muestra arriba con corona dorada.
+ */
+const GrandFinalView = ({
+  rounds,
+  allMatches,
+  totalRounds,
+  championId,
+  championName,
+  highlight,
+  dimChampion,
+  registerRef,
+}: {
+  rounds: number[];
+  allMatches: BracketMatch[];
+  totalRounds: number;
+  championId: number | null;
+  championName: string | null;
+  highlight?: string;
+  dimChampion?: boolean;
+  registerRef: (id: number, el: HTMLDivElement | null) => void;
+}) => {
+  /** matches de cada ronda en orden de posición. */
+  const byRound: Record<number, BracketMatch[]> = {};
+  for (const r of rounds) {
+    byRound[r] = allMatches
+      .filter((m) => m.round === r)
+      .sort((a, b) => a.position - b.position);
+  }
+
+  // Excluimos la final del armado izq/der (va en el centro).
+  const finalRound = totalRounds;
+  const sideRounds = rounds.filter((r) => r !== finalRound);
+  const finalMatch = byRound[finalRound]?.[0] ?? null;
+
+  return (
+    <section className="space-y-4 border-t-2 border-accent/50 pt-6">
+      <div className="text-center space-y-2">
+        <h3 className="text-2xl font-bold text-accent inline-flex items-center gap-2">
+          <Crown className="h-6 w-6" /> Gran Final
+        </h3>
+        {championName && (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+            <Trophy className="h-5 w-5" />
+            Campeón: {championName}
+          </div>
+        )}
+      </div>
+
+      <div className="overflow-x-auto pb-4">
+        <div className="flex items-stretch justify-center gap-4 min-w-max px-2">
+          {/* Lado izquierdo: rondas en orden ascendente (R5 → semi izq) */}
+          {sideRounds.map((round) => {
+            const half = Math.ceil(byRound[round].length / 2);
+            const left = byRound[round].slice(0, half);
+            return (
+              <div key={`L-${round}`} className="flex flex-col gap-3 min-w-[200px]">
+                <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
+                  {grandFinalRoundLabel(round, totalRounds)}
+                </h4>
+                <div className="flex flex-col gap-3 justify-around flex-1">
+                  {left.map((m) => (
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      highlight={highlight}
+                      championId={championId}
+                      dimChampion={dimChampion}
+                      registerRef={(el) => registerRef(m.id, el)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Final central */}
+          {finalMatch && (
+            <div className="flex flex-col gap-3 min-w-[220px]">
+              <h4 className="text-xs font-bold uppercase text-center text-accent tracking-wide">
+                Final
+              </h4>
+              <div className="flex flex-col gap-3 justify-center flex-1">
+                <MatchCard
+                  match={finalMatch}
+                  highlight={highlight}
+                  championId={championId}
+                  dimChampion={dimChampion}
+                  registerRef={(el) => registerRef(finalMatch.id, el)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Lado derecho: mismas rondas en orden inverso (semi der → R5) */}
+          {[...sideRounds].reverse().map((round) => {
+            const half = Math.ceil(byRound[round].length / 2);
+            const right = byRound[round].slice(half);
+            return (
+              <div key={`R-${round}`} className="flex flex-col gap-3 min-w-[200px]">
+                <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
+                  {grandFinalRoundLabel(round, totalRounds)}
+                </h4>
+                <div className="flex flex-col gap-3 justify-around flex-1">
+                  {right.map((m) => (
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      highlight={highlight}
+                      championId={championId}
+                      dimChampion={dimChampion}
+                      registerRef={(el) => registerRef(m.id, el)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 };
 

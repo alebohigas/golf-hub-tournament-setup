@@ -31,6 +31,7 @@ import Reglas from "./pages/Reglas";
 import Admin from "./pages/Admin";
 import Registro from "./pages/Registro";
 import AdminRegistros from "./pages/AdminRegistros";
+import AdminBracketsPage from "./pages/AdminBracketsPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/registros" element={<AdminRegistros />} />
+              <Route path="/admin/brackets" element={<AdminBracketsPage />} />
               
               {/* Protected Routes - visibility controlled by admin */}
               <Route path="/convocatoria" element={<ProtectedRoute pageId="convocatoria"><Convocatoria /></ProtectedRoute>} />
