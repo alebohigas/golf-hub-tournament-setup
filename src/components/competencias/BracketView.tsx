@@ -32,11 +32,10 @@ const roundLabel = (round: number, totalRounds: number): string => {
   return `R${round}`;
 };
 
-/** Normaliza IDs/nombres para comparar jugadores aunque el API mande number/string/null. */
-const playerKey = (id: number | string | null | undefined, name: string | null | undefined): string | null => {
-  if (id !== null && id !== undefined && String(id).trim() !== '') return `id:${String(id).trim()}`;
-  if (name && name.trim() !== '') return `name:${name.trim().toLocaleLowerCase('es-MX')}`;
-  return null;
+/** Normaliza nombres para comparar la trayectoria del campeón sin depender del ID. */
+const normalizedPlayerName = (name: string | null | undefined): string | null => {
+  const cleaned = name?.trim();
+  return cleaned ? cleaned.toLocaleLowerCase('es-MX') : null;
 };
 
 /** Llaves posibles del jugador: ID y nombre, para pintar trayectoria aunque un dato venga inconsistente. */
@@ -87,12 +86,16 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   /** Total de rondas disponible aun antes de renderizar, para conservar orden de hooks. */
   const totalRounds = side?.config ? Math.log2(side.config.size) : 0;
 
-  /** Mide el contenedor: 16 jugadores queda compacto; formatos grandes usan todo el ancho. */
+  /** Mide el contenedor: 16 jugadores o menos conserva formato compacto original. */
   useEffect(() => {
     const el = bracketAreaRef.current;
     if (!el || totalRounds <= 0) return;
 
     const updateWidthMode = () => {
+      if ((side?.config?.size ?? 0) <= 16) {
+        setShouldFillWidth(false);
+        return;
+      }
       const compactWidth = (totalRounds * COMPACT_ROUND_WIDTH) + ((totalRounds - 1) * ROUND_GAP);
       setShouldFillWidth(compactWidth > el.clientWidth);
     };
@@ -101,7 +104,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     const observer = new ResizeObserver(updateWidthMode);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [totalRounds]);
+  }, [side?.config?.size, totalRounds]);
 
   if (isLoading) {
     return (
@@ -123,8 +126,9 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   const { matches } = side;
 
-  /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
-  const finalMatch = matches.find((m) => m.round === totalRounds);
+  /** Champion: ganador real de la última ronda visible; se prioriza score menor (0 es mejor). */
+  const finalRound = Math.max(...matches.map((m) => m.round));
+  const finalMatch = matches.find((m) => m.round === finalRound);
   const finalScoreWinnerSlot = finalMatch
     ? scoreWinnerSlot(finalMatch.player1_score, finalMatch.player2_score)
     : null;
@@ -142,6 +146,11 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     : finalMatch && finalWinnerSlot === 2
       ? playerKeys(finalMatch.player2_id, finalMatch.player2_name)
       : [];
+  const championName = finalMatch && finalWinnerSlot === 1
+    ? normalizedPlayerName(finalMatch.player1_name)
+    : finalMatch && finalWinnerSlot === 2
+      ? normalizedPlayerName(finalMatch.player2_name)
+      : null;
   const searching = search.trim().length > 0;
 
   // Agrupar matches por ronda
