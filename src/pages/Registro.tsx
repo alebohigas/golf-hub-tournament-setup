@@ -70,7 +70,7 @@ const PLACEHOLDERS: Record<string, string> = {
   reg_apellido:   'Ej: Pérez González',
   reg_correo:     'tu@correo.com',
   reg_telefono:   '+52 55 1234 5678',
-  reg_handicap:   'Ej: 14.2',
+  reg_handicap:   'Entre -6 y 54.0 (ej: 14.2)',
   reg_club:       'Ej: Club de Golf Valle Alto',
   reg_ghin:       'Ej: 123456789',
   numghinspei:    'Ej: 123456789',
