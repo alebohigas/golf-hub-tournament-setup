@@ -34,6 +34,7 @@ import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
+import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
