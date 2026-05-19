@@ -1118,6 +1118,10 @@ const Registro = () => {
     }
 
     if (name === 'reg_archivo') {
+      // Si el jugador marcó "Cargo a cuenta de socio", se omite por
+      // completo la subida de comprobante de pago (el cargo se hace
+      // directamente a su cuenta de membresía).
+      if (values.reg_cargo_socio === '1') return null;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
