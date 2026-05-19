@@ -590,9 +590,11 @@ const Registro = () => {
       // Gender filter when category restricts it (M/F).
       if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
       // Age range filter (senior categories with min/max set).
+      // Legacy data uses 0 / null interchangeably as "no limit", so we
+      // ignore zero values to avoid wrongly excluding every player.
       if (age !== null) {
-        if (c.ageMin != null && age < c.ageMin) return false;
-        if (c.ageMax != null && age > c.ageMax) return false;
+        if (c.ageMin != null && c.ageMin > 0 && age < c.ageMin) return false;
+        if (c.ageMax != null && c.ageMax > 0 && age > c.ageMax) return false;
       }
       return true;
     });
