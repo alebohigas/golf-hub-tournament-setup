@@ -111,13 +111,13 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   }
 
   const { config, matches } = side;
-  const totalRounds = Math.log2(config.size);
+  const totalRounds = Math.log2(Number(config.size));
 
   /**
    * Champion: ganador del match de la ronda final (si ya está decidido).
    * Se usa para resaltar TODAS sus filas en dorado a través del bracket.
    */
-  const finalMatch = matches.find((m) => m.round === totalRounds);
+  const finalMatch = matches.find((m) => Number(m.round) === totalRounds);
   const championId: number | null = finalMatch?.winner_id ?? null;
   const championName: string | null =
     championId != null
@@ -138,15 +138,15 @@ const BracketView = ({ sexo }: BracketViewProps) => {
    *   en la ronda r, hay (size / 2^r) matches en total; cada grupo contiene
    *   (16 / 2^r) matches consecutivos (positions ordenadas por la query).
    */
-  const groupsCount = Math.max(1, Math.floor(config.size / 16));
+  const groupsCount = Math.max(1, Math.floor(Number(config.size) / 16));
   const groupRoundsCount = Math.min(totalRounds, 4);
 
   /** Devuelve los matches de un grupo+ronda usando rebanado por posición. */
   const matchesForGroupRound = (group: number, round: number): BracketMatch[] => {
     const perGroup = Math.max(1, Math.floor(16 / Math.pow(2, round)));
     const ofRound = matches
-      .filter((m) => m.round === round)
-      .sort((a, b) => a.position - b.position);
+      .filter((m) => Number(m.round) === round)
+      .sort((a, b) => Number(a.position) - Number(b.position));
     return ofRound.slice(group * perGroup, (group + 1) * perGroup);
   };
 
@@ -359,8 +359,8 @@ const GrandFinalView = ({
   const byRound: Record<number, BracketMatch[]> = {};
   for (const r of rounds) {
     byRound[r] = allMatches
-      .filter((m) => m.round === r)
-      .sort((a, b) => a.position - b.position);
+      .filter((m) => Number(m.round) === r)
+      .sort((a, b) => Number(a.position) - Number(b.position));
   }
 
   // Excluimos la final del armado izq/der (va en el centro).
