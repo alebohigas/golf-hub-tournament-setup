@@ -227,12 +227,14 @@ export const getRegistroPrecioMatchUrl = (params: {
   tipo_socio?: string;
   genero?: string;
   edad?: string | number;
+  handicap?: string | number;
 }): string => {
   const clean: Record<string, string> = { action: 'match' };
   if (params.categoria)   clean.categoria  = params.categoria;
   if (params.tipo_socio)  clean.tipo_socio = params.tipo_socio;
   if (params.genero)      clean.genero     = params.genero;
   if (params.edad !== undefined && params.edad !== '') clean.edad = String(params.edad);
+  if (params.handicap !== undefined && params.handicap !== '') clean.handicap = String(params.handicap);
   return `${API_BASE_URL}/registro_precios.php${buildQuery(clean)}`;
 };
 
