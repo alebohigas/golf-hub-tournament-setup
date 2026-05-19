@@ -30,6 +30,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, CheckCircle2, Send, HelpCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
@@ -773,6 +775,18 @@ const Registro = () => {
   /** Submit the form as multipart/form-data. */
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Validate "Clave de Socio" cuando el jugador eligió cargar a cuenta.
+    if (values.reg_es_socio === 'SI' && values.reg_cargo_socio === '1') {
+      const clave = (values.reg_clave_socio || '').trim();
+      if (!clave) {
+        toast({
+          title: 'Clave de Socio requerida',
+          description: 'Captura el número o clave de tu membresía del club.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     // Validate birthdate dd/mm/aaaa if rendered.
     if (isFieldEnabled('reg_fechanac')) {
       const err = validateBirthDmy(birthDmy);
@@ -1116,6 +1130,10 @@ const Registro = () => {
     }
 
     if (name === 'reg_archivo') {
+      // Si el jugador marcó "Cargo a cuenta de socio", se omite por
+      // completo la subida de comprobante de pago (el cargo se hace
+      // directamente a su cuenta de membresía).
+      if (values.reg_cargo_socio === '1') return null;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
@@ -1425,6 +1443,65 @@ const Registro = () => {
                           El monto es una estimación calculada con base en tus datos.
                           La confirmación oficial la realiza el comité del torneo.
                         </p>
+                      </div>
+                    )}
+                    {/* ============= Cargo a cuenta de socio =============
+                        Sólo visible cuando el jugador declaró ser socio
+                        (cualquier tipo). Al activarlo:
+                          - aparece el campo obligatorio "Clave de Socio"
+                          - se oculta la subida de comprobante (reg_archivo)
+                          - se muestra el aviso de aceptación de cargo. */}
+                    {values.reg_es_socio === 'SI' && (
+                      <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            id="reg_cargo_socio"
+                            checked={values.reg_cargo_socio === '1'}
+                            onCheckedChange={(c) => {
+                              const on = c === true;
+                              setValue('reg_cargo_socio', on ? '1' : '');
+                              if (!on) setValue('reg_clave_socio', '');
+                              // Si se activa el cargo a cuenta, no se requiere
+                              // comprobante de pago; lo limpiamos por si se
+                              // había subido previamente.
+                              if (on) setFile(null);
+                            }}
+                          />
+                          <Label htmlFor="reg_cargo_socio" className="font-medium cursor-pointer leading-tight">
+                            Cargo a cuenta de socio
+                          </Label>
+                        </div>
+                        {values.reg_cargo_socio === '1' && (
+                          <div className="space-y-2 pl-7">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor="reg_clave_socio">
+                                Clave de Socio<span className="text-destructive"> *</span>
+                              </Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger type="button" className="text-muted-foreground hover:text-foreground">
+                                    <HelpCircle className="h-4 w-4" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Este es el numero o clave de la membresia del club
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <Input
+                              id="reg_clave_socio"
+                              required
+                              value={values.reg_clave_socio || ''}
+                              onChange={(e) => setValue('reg_clave_socio', e.target.value)}
+                              placeholder="Ej: 1234"
+                            />
+                            <p className="text-xs text-foreground/80">
+                              Al enviar este registro acepto que se realice el cargo correspondiente
+                              de la inscripción a mi cuenta. Solo Socios de:{' '}
+                              <span className="font-semibold">{tournamentInfo?.club || '—'}</span>
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex justify-end pt-2">
