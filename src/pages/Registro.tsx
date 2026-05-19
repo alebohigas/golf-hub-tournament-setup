@@ -580,9 +580,19 @@ const Registro = () => {
 
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
-    const hcp  = parseFloat(values.reg_handicap);
+    const hcpRaw = parseFloat(values.reg_handicap);
     const sex  = (values.reg_sexo || '').toUpperCase();
     const age  = calcAge(values.reg_fechanac || '');
+    // Si el jugador tiene un handicap por debajo del mínimo global definido
+    // en las categorías (p.ej. registramos hasta -6 pero la categoría más
+    // baja arranca en -5), igual debe caer en la categoría inferior. Para
+    // ello "elevamos" su handicap al mínimo global a efectos del filtro.
+    const globalMinHcp = categories
+      .filter(c => c.hcpMax > 0)
+      .reduce<number | null>((min, c) => (min === null || c.hcpMin < min ? c.hcpMin : min), null);
+    const hcp = !isNaN(hcpRaw) && globalMinHcp !== null && hcpRaw < globalMinHcp
+      ? globalMinHcp
+      : hcpRaw;
     return categories.filter(c => {
       // Handicap range — only filter when user has typed a number AND the
       // category has a usable range (max > 0 in legacy data sometimes is 0).
