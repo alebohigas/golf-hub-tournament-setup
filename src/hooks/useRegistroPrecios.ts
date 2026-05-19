@@ -29,6 +29,10 @@ export interface RegistroPrecioRule {
   edad_min: number | null;
   /** Edad máxima inclusiva o null. */
   edad_max: number | null;
+  /** Handicap mínimo inclusivo (acepta decimales y negativos) o null = comodín. */
+  hcp_min: number | null;
+  /** Handicap máximo inclusivo o null = comodín. */
+  hcp_max: number | null;
   precio: number;
   moneda: string;
   incluye: string;
@@ -85,18 +89,21 @@ export const useRegistroPrecioMatch = (params: {
   tipo_socio?: string;
   genero?: string;
   edad?: number | null;
+  /** Hándicap actual del jugador (acepta decimales / negativos). */
+  handicap?: number | null;
   enabled?: boolean;
 }) => {
   const { torneoId } = useTorneoId();
-  const { categoria, tipo_socio, genero, edad, enabled = true } = params;
+  const { categoria, tipo_socio, genero, edad, handicap, enabled = true } = params;
   return useQuery({
-    queryKey: ['registro_precio_match', torneoId, categoria, tipo_socio, genero, edad],
+    queryKey: ['registro_precio_match', torneoId, categoria, tipo_socio, genero, edad, handicap],
     queryFn: async (): Promise<{ match: RegistroPrecioRule | null }> => {
       const url = getRegistroPrecioMatchUrl({
         categoria,
         tipo_socio,
         genero,
         edad: edad ?? undefined,
+        handicap: handicap ?? undefined,
       });
       const res = await fetch(url);
       if (!res.ok) throw new Error('Error al consultar precio');

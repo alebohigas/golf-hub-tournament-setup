@@ -261,6 +261,14 @@ const Registro = () => {
   const [lastIdLookup, setLastIdLookup] = useState<string>('');
 
   /**
+   * Indica que el valor actual de `reg_edad` fue auto-calculado a partir de
+   * `reg_fechanac` (no escrito por el usuario). Cuando es true se renderiza
+   * el input en gris y disabled. Se limpia si el usuario borra la fecha o
+   * decide editar manualmente.
+   */
+  const [edadAuto, setEdadAuto] = useState<boolean>(false);
+
+  /**
    * Field config sorted by display_order, enabled only.
    * UX rule: `reg_sexo` and `reg_fechanac` MUST always render right
    * before `reg_categoria` because they drive the eligible-categories
@@ -274,11 +282,14 @@ const Registro = () => {
 
     const sexo = enabled.find(f => f.field_name === 'reg_sexo');
     const fnac = enabled.find(f => f.field_name === 'reg_fechanac');
+    const edad = enabled.find(f => f.field_name === 'reg_edad');
     const cat  = enabled.find(f => f.field_name === 'reg_categoria');
-    if (!cat || (!sexo && !fnac)) return enabled;
+    if (!cat || (!sexo && !fnac && !edad)) return enabled;
 
     const without = enabled.filter(
-      f => f.field_name !== 'reg_sexo' && f.field_name !== 'reg_fechanac'
+      f => f.field_name !== 'reg_sexo'
+        && f.field_name !== 'reg_fechanac'
+        && f.field_name !== 'reg_edad'
     );
     const catIdx = without.findIndex(f => f.field_name === 'reg_categoria');
     const head = without.slice(0, catIdx);
@@ -287,6 +298,7 @@ const Registro = () => {
       ...head,
       ...(sexo ? [sexo] : []),
       ...(fnac ? [fnac] : []),
+      ...(edad ? [edad] : []),
       ...tail,
     ];
   }, [fieldsData]);
@@ -582,7 +594,13 @@ const Registro = () => {
   const eligibleCategories = useMemo(() => {
     const hcpRaw = parseFloat(values.reg_handicap);
     const sex  = (values.reg_sexo || '').toUpperCase();
-    const age  = calcAge(values.reg_fechanac || '');
+    // Edad: prioriza la calculada desde fechanac; si no, usa la capturada
+    // manualmente en reg_edad (cuando el admin desactivó fechanac).
+    const ageFromBirth = calcAge(values.reg_fechanac || '');
+    const ageManual    = parseInt(values.reg_edad || '', 10);
+    const age = ageFromBirth !== null
+      ? ageFromBirth
+      : (!isNaN(ageManual) ? ageManual : null);
     // Si el jugador tiene un handicap por debajo del mínimo global definido
     // en las categorías (p.ej. registramos hasta -6 pero la categoría más
     // baja arranca en -5), igual debe caer en la categoría inferior. Para
@@ -624,9 +642,39 @@ const Registro = () => {
 
   /** Edad calculada a partir de la fecha de nacimiento ya validada. */
   const ageForPricing = useMemo(
-    () => calcAge(values.reg_fechanac || ''),
-    [values.reg_fechanac]
+    () => {
+      const fromBirth = calcAge(values.reg_fechanac || '');
+      if (fromBirth !== null) return fromBirth;
+      const manual = parseInt(values.reg_edad || '', 10);
+      return !isNaN(manual) ? manual : null;
+    },
+    [values.reg_fechanac, values.reg_edad]
   );
+
+  /**
+   * Auto-completar `reg_edad` a partir de `reg_fechanac` cuando ambos campos
+   * están activos. Sincroniza el flag `edadAuto` para que el input se
+   * renderice en gris/disabled. Si la fecha se borra o invalida, libera el
+   * campo para captura manual.
+   */
+  useEffect(() => {
+    if (!isFieldEnabled('reg_edad')) return;
+    const age = calcAge(values.reg_fechanac || '');
+    if (age !== null) {
+      // Auto-rellenar (sólo si cambia, para no entrar en loop infinito).
+      if (values.reg_edad !== String(age)) {
+        setValues(v => ({ ...v, reg_edad: String(age) }));
+      }
+      if (!edadAuto) setEdadAuto(true);
+    } else {
+      // Fecha vacía/inválida — si el valor previo era auto, limpiarlo.
+      if (edadAuto) {
+        setEdadAuto(false);
+        setValues(v => ({ ...v, reg_edad: '' }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_fechanac, visibleFields.length]);
 
   /**
    * tipo_socio enviado al matcher:
@@ -647,8 +695,13 @@ const Registro = () => {
     tipo_socio: tipoSocioForPricing,
     genero:     values.reg_sexo || undefined,
     edad:       ageForPricing,
+    handicap:   (() => {
+      const v = parseFloat(values.reg_handicap || '');
+      return isNaN(v) ? null : v;
+    })(),
     // Sólo consulta cuando hay al menos un filtro útil
-    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo || ageForPricing !== null),
+    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo
+              || ageForPricing !== null || values.reg_handicap),
   });
   const precioMatch = precioMatchData?.match || null;
 
@@ -1168,6 +1221,53 @@ const Registro = () => {
           {handicapError && (
             <p className="text-xs text-destructive">{handicapError}</p>
           )}
+        </div>
+      );
+    }
+
+    /**
+     * Edad: input numérico que se autocompleta desde reg_fechanac cuando
+     * está disponible (`edadAuto = true` → input gris/disabled), o queda
+     * editable cuando no hay fecha (porque el admin desactivó fechanac o
+     * porque el jugador aún no la ha llenado).
+     *
+     * Reglas:
+     *  - Si `reg_fechanac` está activo y tiene valor válido → auto y disabled.
+     *  - Si NO hay fecha o es inválida → editable; el usuario captura su edad.
+     */
+    if (name === 'reg_edad') {
+      const fechanacEnabled = isFieldEnabled('reg_fechanac');
+      const disabled = edadAuto && fechanacEnabled;
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            required={required}
+            placeholder="Ej: 42"
+            value={values[name] || ''}
+            disabled={disabled}
+            onChange={e => {
+              const v = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
+              setValue(name, v);
+              // Si el usuario edita manualmente liberamos el flag auto.
+              if (edadAuto) setEdadAuto(false);
+            }}
+            className={`[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none ${
+              disabled ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
+            }`}
+          />
+          <p className="text-xs text-muted-foreground">
+            {disabled
+              ? 'Auto-calculada desde tu fecha de nacimiento.'
+              : fechanacEnabled
+                ? 'Se calcula automáticamente cuando llenas la fecha de nacimiento.'
+                : 'Años cumplidos.'}
+          </p>
         </div>
       );
     }
