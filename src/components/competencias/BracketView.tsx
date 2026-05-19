@@ -191,6 +191,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
                   match={m}
                   highlight={search}
                   championKeys={championKeys}
+                  championName={championName}
                   dimChampion={searching}
                 />
               ))}
@@ -208,12 +209,15 @@ const MatchCard = ({
   match,
   highlight,
   championKeys,
+  championName,
   dimChampion,
 }: {
   match: BracketMatch;
   highlight?: string;
   /** Llaves estables del campeón del bracket (ID y nombre). */
   championKeys?: string[];
+  /** Nombre normalizado del campeón; fallback principal para pintar toda la trayectoria. */
+  championName?: string | null;
   /** Cuando el usuario está buscando, atenuar el resaltado dorado del campeón. */
   dimChampion?: boolean;
 }) => {
@@ -224,8 +228,8 @@ const MatchCard = ({
   const h2 = !!highlight && matchesPlayerName(match.player2_name, highlight);
   /** Resalta TODAS las apariciones del campeón con la misma lógica visual del buscador. */
   const championKeySet = new Set(championKeys ?? []);
-  const c1 = playerKeys(match.player1_id, match.player1_name).some((key) => championKeySet.has(key));
-  const c2 = playerKeys(match.player2_id, match.player2_name).some((key) => championKeySet.has(key));
+  const c1 = normalizedPlayerName(match.player1_name) === championName || playerKeys(match.player1_id, match.player1_name).some((key) => championKeySet.has(key));
+  const c2 = normalizedPlayerName(match.player2_name) === championName || playerKeys(match.player2_id, match.player2_name).some((key) => championKeySet.has(key));
 
   /** Dorado original del buscador; el campeón se difumina con opacidad al buscar. */
   const goldRow = 'bg-accent ring-2 ring-accent';
