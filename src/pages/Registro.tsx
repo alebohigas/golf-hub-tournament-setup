@@ -598,6 +598,64 @@ const Registro = () => {
     });
   }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac]);
 
+  // ============= Precio estimado de inscripción =============
+
+  /**
+   * Resuelve el NOMBRE de la categoría seleccionada (la BD de precios
+   * guarda nombres, no IDs, para sobrevivir entre torneos).
+   */
+  const selectedCategoryName = useMemo(() => {
+    const id = values.reg_categoria;
+    if (!id) return undefined;
+    return categories.find(c => c.id === id)?.name;
+  }, [categories, values.reg_categoria]);
+
+  /** Edad calculada a partir de la fecha de nacimiento ya validada. */
+  const ageForPricing = useMemo(
+    () => calcAge(values.reg_fechanac || ''),
+    [values.reg_fechanac]
+  );
+
+  /**
+   * tipo_socio enviado al matcher:
+   *  - Si es_socio = SI y eligió subtipo → subtipo (TITULAR/EMERITO/DEPENDIENTE)
+   *  - Si es_socio = SI sin subtipo      → 'SOCIO' (cualquier subtipo)
+   *  - Si es_socio = NO                  → 'NO_SOCIO'
+   *  - Si no eligió                       → undefined (sin filtro)
+   */
+  const tipoSocioForPricing = useMemo(() => {
+    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
+    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
+    return undefined;
+  }, [values.reg_es_socio, values.reg_tipo_socio]);
+
+  /** Consulta reactiva al endpoint de matching de precio. */
+  const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
+    categoria:  selectedCategoryName,
+    tipo_socio: tipoSocioForPricing,
+    genero:     values.reg_sexo || undefined,
+    edad:       ageForPricing,
+    // Sólo consulta cuando hay al menos un filtro útil
+    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo || ageForPricing !== null),
+  });
+  const precioMatch = precioMatchData?.match || null;
+
+  /**
+   * Formateador de moneda con `Intl`. Por defecto MXN-es-MX.
+   * Cae a "$1,234" si la moneda no es estándar ISO.
+   */
+  const formatPrice = (amount: number, currency: string) => {
+    try {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: currency || 'MXN',
+        minimumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `$${amount.toLocaleString('es-MX')} ${currency}`;
+    }
+  };
+
   /** Generic value setter. */
   const setValue = (name: string, v: string) =>
     setValues(prev => ({ ...prev, [name]: v }));
