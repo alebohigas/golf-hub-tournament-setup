@@ -84,6 +84,25 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     [side?.matches],
   );
 
+  /** Total de rondas disponible aun antes de renderizar, para conservar orden de hooks. */
+  const totalRounds = side?.config ? Math.log2(side.config.size) : 0;
+
+  /** Mide el contenedor: 16 jugadores queda compacto; formatos grandes usan todo el ancho. */
+  useEffect(() => {
+    const el = bracketAreaRef.current;
+    if (!el || totalRounds <= 0) return;
+
+    const updateWidthMode = () => {
+      const compactWidth = (totalRounds * COMPACT_ROUND_WIDTH) + ((totalRounds - 1) * ROUND_GAP);
+      setShouldFillWidth(compactWidth > el.clientWidth);
+    };
+
+    updateWidthMode();
+    const observer = new ResizeObserver(updateWidthMode);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [totalRounds]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -102,24 +121,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     );
   }
 
-  const { config, matches } = side;
-  const totalRounds = Math.log2(config.size);
-
-  /** Mide el contenedor: 16 jugadores queda compacto; formatos grandes usan todo el ancho. */
-  useEffect(() => {
-    const el = bracketAreaRef.current;
-    if (!el) return;
-
-    const updateWidthMode = () => {
-      const compactWidth = (totalRounds * COMPACT_ROUND_WIDTH) + ((totalRounds - 1) * ROUND_GAP);
-      setShouldFillWidth(compactWidth > el.clientWidth);
-    };
-
-    updateWidthMode();
-    const observer = new ResizeObserver(updateWidthMode);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [totalRounds]);
+  const { matches } = side;
 
   /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
   const finalMatch = matches.find((m) => m.round === totalRounds);
