@@ -65,8 +65,12 @@ const ROUND_GAP = 8;
 const BracketView = ({ sexo }: BracketViewProps) => {
   const { data, isLoading, error } = usePuttFinales();
   const side = data?.[sexo];
+  /** Ref del área disponible para decidir si conviene compactar o expandir el bracket. */
+  const bracketAreaRef = useRef<HTMLDivElement | null>(null);
   /** Texto de búsqueda para resaltar a un jugador en cualquier match del bracket. */
   const [search, setSearch] = useState('');
+  /** True sólo cuando el formato compacto no cabe y habría columnas escondidas. */
+  const [shouldFillWidth, setShouldFillWidth] = useState(false);
   /**
    * Lista única de nombres de jugadores presentes en cualquier match (para autocomplete).
    * Debe declararse ANTES de cualquier `return` condicional para no romper el orden de
@@ -100,6 +104,22 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   const { config, matches } = side;
   const totalRounds = Math.log2(config.size);
+
+  /** Mide el contenedor: 16 jugadores queda compacto; formatos grandes usan todo el ancho. */
+  useEffect(() => {
+    const el = bracketAreaRef.current;
+    if (!el) return;
+
+    const updateWidthMode = () => {
+      const compactWidth = (totalRounds * COMPACT_ROUND_WIDTH) + ((totalRounds - 1) * ROUND_GAP);
+      setShouldFillWidth(compactWidth > el.clientWidth);
+    };
+
+    updateWidthMode();
+    const observer = new ResizeObserver(updateWidthMode);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [totalRounds]);
 
   /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
   const finalMatch = matches.find((m) => m.round === totalRounds);
@@ -139,10 +159,10 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         Los nombres NO se truncan: usamos break-words y whitespace-normal para
         mostrarlos completos, ajustándose verticalmente si hace falta.
       */}
-      <div className="overflow-x-auto md:overflow-visible pb-4 w-full">
-      <div className="flex gap-2 min-w-max md:min-w-0 md:w-full">
+      <div ref={bracketAreaRef} className="overflow-x-auto pb-4 w-full">
+      <div className={`flex gap-2 min-w-max ${shouldFillWidth ? 'md:min-w-0 md:w-full' : 'md:w-max'}`}>
         {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => (
-          <div key={round} className="flex flex-col gap-3 min-w-[240px] md:min-w-0 md:flex-1 md:basis-0">
+          <div key={round} className={`flex flex-col gap-3 min-w-[240px] ${shouldFillWidth ? 'md:min-w-0 md:flex-1 md:basis-0' : 'md:w-[280px] md:min-w-[280px]'}`}>
             <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
               {roundLabel(round, totalRounds)}
             </h4>
