@@ -39,6 +39,14 @@ const playerKey = (id: number | string | null | undefined, name: string | null |
   return null;
 };
 
+/** Llaves posibles del jugador: ID y nombre, para pintar trayectoria aunque un dato venga inconsistente. */
+const playerKeys = (id: number | string | null | undefined, name: string | null | undefined): string[] => {
+  const keys: string[] = [];
+  if (id !== null && id !== undefined && String(id).trim() !== '') keys.push(`id:${String(id).trim()}`);
+  if (name && name.trim() !== '') keys.push(`name:${name.trim().toLocaleLowerCase('es-MX')}`);
+  return keys;
+};
+
 /** Determina ganador por score: menor valor gana, 0 cuenta como mejor score. */
 const scoreWinnerSlot = (score1: number | null, score2: number | null): 1 | 2 | null => {
   if (score1 === null || score2 === null) return null;
@@ -90,15 +98,15 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   /** Champion: ganador real de la final. Si winner_id aún no viene, se infiere por score. */
   const finalMatch = matches.find((m) => m.round === totalRounds);
   const finalWinnerSlot = finalMatch?.winner_id != null
-    ? finalMatch.winner_id === finalMatch.player1_id ? 1 : finalMatch.winner_id === finalMatch.player2_id ? 2 : null
+    ? String(finalMatch.winner_id) === String(finalMatch.player1_id) ? 1 : String(finalMatch.winner_id) === String(finalMatch.player2_id) ? 2 : null
     : finalMatch
       ? scoreWinnerSlot(finalMatch.player1_score, finalMatch.player2_score)
       : null;
-  const championKey = finalMatch && finalWinnerSlot === 1
-    ? playerKey(finalMatch.player1_id, finalMatch.player1_name)
+  const championKeys = finalMatch && finalWinnerSlot === 1
+    ? playerKeys(finalMatch.player1_id, finalMatch.player1_name)
     : finalMatch && finalWinnerSlot === 2
-      ? playerKey(finalMatch.player2_id, finalMatch.player2_name)
-      : null;
+      ? playerKeys(finalMatch.player2_id, finalMatch.player2_name)
+      : [];
   const searching = search.trim().length > 0;
 
   // Agrupar matches por ronda
@@ -138,7 +146,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
                   key={m.id}
                   match={m}
                   highlight={search}
-                  championKey={championKey}
+                  championKeys={championKeys}
                   dimChampion={searching}
                 />
               ))}
