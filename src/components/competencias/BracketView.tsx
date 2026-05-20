@@ -30,26 +30,10 @@ interface BracketViewProps {
 }
 
 /**
- * Etiqueta de ronda dentro de un grupo (siempre 16 jugadores → 4 rondas:
- * Octavos → Cuartos → Semifinal → Final del grupo).
+ * Etiqueta de ronda dentro de un grupo: simple "Ronda N" para no confundir a
+ * los jugadores con nomenclatura tipo Octavos/Cuartos.
  */
-const groupRoundLabel = (round: number, lastRound: number): string => {
-  const fromEnd = lastRound - round;
-  if (fromEnd === 0) return 'Final del Grupo';
-  if (fromEnd === 1) return 'Semifinal';
-  if (fromEnd === 2) return 'Cuartos';
-  if (fromEnd === 3) return 'Octavos';
-  return `R${round}`;
-};
-
-/** Etiqueta para rondas de la Gran Final (a partir de los ganadores de grupo). */
-const grandFinalRoundLabel = (round: number, lastRound: number): string => {
-  const fromEnd = lastRound - round;
-  if (fromEnd === 0) return 'Final';
-  if (fromEnd === 1) return 'Semifinal';
-  if (fromEnd === 2) return 'Cuartos';
-  return `R${round}`;
-};
+const groupRoundLabel = (round: number, _lastRound: number): string => `Ronda ${round}`;
 
 const BracketView = ({ sexo }: BracketViewProps) => {
   const { data, isLoading, error } = usePuttFinales();
