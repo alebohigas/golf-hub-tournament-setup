@@ -257,8 +257,10 @@ function repair_empty_seed_slots($conn, $cfg, $sexo) {
                       SET player_high_id = $p1Sql, player_low_id = $p2Sql,
                           seed_high = $s1, seed_low = $s2, updated_at = NOW()
                       WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
-        if ($p1 !== null && $p2 === null)      advance_winner($conn, (int)safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos")['id'], (int)$p1);
-        elseif ($p2 !== null && $p1 === null)  advance_winner($conn, (int)safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos")['id'], (int)$p2);
+        $matchRow = safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
+        $matchId = (int)($matchRow['id'] ?? 0);
+        if ($matchId > 0 && $p1 !== null && $p2 === null)      advance_winner($conn, $matchId, (int)$p1);
+        elseif ($matchId > 0 && $p2 !== null && $p1 === null)  advance_winner($conn, $matchId, (int)$p2);
     }
 }
 
