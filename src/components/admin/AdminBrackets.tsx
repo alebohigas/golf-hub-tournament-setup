@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Trophy, Zap, RefreshCw, Crown } from 'lucide-react';
+import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
@@ -36,7 +36,17 @@ const BRACKET_SIZES = [8, 16, 32, 64, 128] as const;
 /** Password admin (igual que resto del panel). */
 const ADMIN_PW = 'admin2025';
 
-const AdminBrackets = () => {
+/**
+ * AdminBrackets
+ * @param mode 'config'  → solo configuración (tamaño/visibilidad) + generación.
+ *             'scores'  → solo captura de resultados por match.
+ *             'full'    → ambos (legacy).
+ */
+interface AdminBracketsProps {
+  mode?: 'config' | 'scores' | 'full';
+}
+
+const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const { torneoId } = useTorneoId();
   const { data, isLoading, refetch, isRefetching } = usePuttFinalesAdmin();
 
@@ -60,15 +70,24 @@ const AdminBrackets = () => {
                 Brackets Putt
               </CardTitle>
               <CardDescription>
-                Genera dos brackets finales (Caballero y Dama) a partir del ranking acumulado de putt
-                de todas las competiciones del torneo. Los jugadores se siembran automáticamente
-                según distancia. Al capturar los scores de cada match, el ganador avanza solo.
+                {mode === 'scores'
+                  ? 'Captura los scores de cada match. El ganador avanza automáticamente al siguiente bracket.'
+                  : 'Genera dos brackets finales (Caballero y Dama) a partir del ranking acumulado de putt de todas las competiciones del torneo. Los jugadores se siembran automáticamente según distancia.'}
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
-              Recargar
-            </Button>
+            <div className="flex items-center gap-2">
+              {mode === 'config' && (
+                <Button asChild variant="outline" size="sm" className="gap-2">
+                  <a href="/admin/brackets" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" /> Capturar resultados
+                  </a>
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+                Recargar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -78,8 +97,8 @@ const AdminBrackets = () => {
             </p>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BracketSection sexo="M" label="Putt Finales Caballero" side={data?.M} />
-            <BracketSection sexo="F" label="Putt Finales Dama"      side={data?.F} />
+            <BracketSection sexo="M" label="Putt Finales Caballero" side={data?.M} mode={mode} />
+            <BracketSection sexo="F" label="Putt Finales Dama"      side={data?.F} mode={mode} />
           </div>
         </CardContent>
       </Card>
@@ -95,9 +114,10 @@ interface SectionProps {
   sexo: 'M' | 'F';
   label: string;
   side: PuttBracketSide | undefined;
+  mode: 'config' | 'scores' | 'full';
 }
 
-const BracketSection = ({ sexo, label, side }: SectionProps) => {
+const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
   const { torneoId } = useTorneoId();
   const { toast } = useToast();
   const saveConfig = useSavePuttConfig();
@@ -152,6 +172,8 @@ const BracketSection = ({ sexo, label, side }: SectionProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {mode !== 'scores' && (
+        <>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Tamaño del bracket</Label>
@@ -190,9 +212,17 @@ const BracketSection = ({ sexo, label, side }: SectionProps) => {
             </span>
           )}
         </div>
+        </>
+        )}
 
-        {side && side.matches.length > 0 && (
+        {mode !== 'config' && side && side.matches.length > 0 && (
           <MatchesEditor matches={side.matches} />
+        )}
+        {mode === 'config' && side && side.matches.length > 0 && (
+          <p className="text-xs text-muted-foreground border-t border-border pt-3">
+            Bracket generado · {side.matches.length} matches. La captura de resultados
+            se realiza en <a href="/admin/brackets" target="_blank" rel="noopener noreferrer" className="underline text-primary">/admin/brackets</a>.
+          </p>
         )}
       </CardContent>
     </Card>
