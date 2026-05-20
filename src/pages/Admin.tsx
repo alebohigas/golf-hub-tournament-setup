@@ -22,6 +22,7 @@ import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
 import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
+import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import { 
   Shield, 
@@ -345,7 +346,7 @@ const AdminDashboard = () => {
           </TabsTrigger>
           <TabsTrigger value="brackets" className="gap-2">
             <Trophy className="h-4 w-4" />
-            <span className="hidden sm:inline">Brackets</span>
+            <span className="hidden sm:inline">Brackets Putt</span>
           </TabsTrigger>
         </TabsList>
 
@@ -497,11 +498,22 @@ const AdminDashboard = () => {
 
         {/* Pre-Registro Tab — configures public registration form fields */}
         <TabsContent value="registro">
-          <AdminRegistro />
+          <Tabs defaultValue="campos" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="campos">Campos del formulario</TabsTrigger>
+              <TabsTrigger value="precios">Precios de inscripción</TabsTrigger>
+            </TabsList>
+            <TabsContent value="campos">
+              <AdminRegistro />
+            </TabsContent>
+            <TabsContent value="precios">
+              <AdminRegistroPrecios />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
-        {/* Brackets Tab — Match Play / Knockout configuration per prize */}
+        {/* Brackets Putt Tab — config + visibilidad de Putt Finales (M/F) */}
         <TabsContent value="brackets">
-          <AdminBrackets />
+          <AdminBrackets mode="config" />
         </TabsContent>
       </Tabs>
 

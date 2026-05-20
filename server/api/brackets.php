@@ -1,76 +1,61 @@
 <?php
 /**
- * Brackets Endpoint — Match Play / Knockout
+ * Brackets Endpoint — Putt Finales (Caballero / Dama)
  * ----------------------------------------------------------------------------
- * Handles all bracket operations for prizes flagged with is_bracket=1
- * across the 6 prize tables: oyes, oyesx, approach, putt, driver, driverp.
+ * Maneja dos brackets fijos por torneo, sembrados desde el ranking acumulado
+ * de putt a lo largo del torneo:
  *
- * Schema dependencies (must be created via migration first):
- *   - oyes.is_bracket / oyesx.is_bracket / approach.is_bracket /
- *     putt.is_bracket / driver.is_bracket / driverp.is_bracket  TINYINT(1)
- *   - bracket_config(id, torneoid, prize_table, prize_id, size,
- *                    seed_source ENUM('standings','manual','random'),
- *                    advancement ENUM('manual','auto'),
- *                    seed_categoriaid, seed_premio, seed_hoyo, seed_campo,
- *                    advancement_source, status, created_at, updated_at)
- *   - bracket_matches(id, bracket_config_id, round, position,
- *                     player1_id, player2_id, player1_seed, player2_seed,
- *                     player1_score, player2_score, winner_id,
- *                     next_match_id, next_slot, status, updated_at)
+ *   prize_table = 'putt_finales', prize_id = 1, sexo = 'M' → Caballero
+ *   prize_table = 'putt_finales', prize_id = 2, sexo = 'F' → Dama
  *
- * Routing — single endpoint, action determined by ?action=
- *   GET  ?torneoid=X&action=list_prizes
- *        → list every prize row in all 6 tables with is_bracket flag
- *   POST ?action=set_flag           body: prize_table, prize_id, is_bracket
- *   GET  ?action=get_config         params: torneoid, prize_table, prize_id
- *   POST ?action=save_config        body: full bracket_config payload
- *   POST ?action=generate           body: bracket_config_id (rebuilds matches)
- *   POST ?action=record_score       body: match_id, player1_score, player2_score
+ * Tablas requeridas (ya existen): bracket_config, bracket_matches.
+ * Columnas nuevas en bracket_config (ver migrations/2026_05_18_putt_finales_brackets.sql):
+ *   - sexo CHAR(1) NULL
+ *   - size INT NOT NULL DEFAULT 16
+ *   - visible TINYINT(1) NOT NULL DEFAULT 0
  *
- * All POST actions require admin password (matches site_config.php pattern).
+ * Ruteo (acción por ?action=):
+ *   GET  ?torneoid=X&action=get_putt_finales       (público)
+ *        → { M: {config, matches, visible}, F: {...} }
+ *   GET  ?torneoid=X&action=get_putt_admin         (admin)
+ *        → mismo shape, además incluye candidate count por sexo
+ *   POST ?action=save_putt_config                  (admin)
+ *        body: { torneoid, sexo, size, visible, password }
+ *   POST ?action=generate_putt                     (admin)
+ *        body: { torneoid, sexo, password }
+ *        Regenera bracket_matches sembrando con ranking acumulado por sexo.
+ *   POST ?action=record_score                      (admin)
+ *        body: { match_id, player1_score, player2_score, password }
+ *        Captura scores; ganador = mayor score; avanza al next_match_id.
+ *   POST ?action=set_winner                        (admin)
+ *        body: { match_id, winner_id, password }
+ *        Override manual (ej. walkover / corrección).
  */
 
 require_once 'config.php';
 
-// ============= Allow POST in addition to GET =============
+// ============= CORS — permitimos POST =============
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
-// ============= Constants =============
-/** Tables that can host bracket-flagged prizes (per user spec) */
-$BRACKET_TABLES = ['oyes', 'oyesx', 'approach', 'putt', 'driver', 'driverp'];
-/** Allowed bracket sizes (powers of 2, 4..128) */
-$ALLOWED_SIZES = [4, 8, 16, 32, 64, 128];
-/** Admin password — keep aligned with site_config.php */
+// ============= Constantes =============
+/** Tamaños de bracket permitidos (potencias de 2). */
+$ALLOWED_SIZES = [8, 16, 32, 64, 128];
+/** Contraseña admin — alineada con el resto del panel. */
 $ADMIN_PASSWORD = 'admin2025';
+/** Identificador convencional del par de brackets putt-finales. */
+$PUTT_PRIZE_TABLE = 'putt_finales';
 
-// ============= Helper: validate prize table =============
-/**
- * Throw 400 JSON error if the supplied table name is not whitelisted.
- * Defends against SQL injection via the dynamic table name.
- */
-function validate_prize_table($table) {
-    global $BRACKET_TABLES;
-    if (!in_array($table, $BRACKET_TABLES, true)) {
-        json_error("Invalid prize_table '$table'. Allowed: " . implode(',', $BRACKET_TABLES), 400);
-    }
-}
+// ============= Helpers =============
 
-// ============= Helper: read JSON body =============
-/**
- * Read POST JSON body into associative array. Returns empty array if missing.
- */
+/** Lee body JSON del POST. */
 function read_json_body() {
     $raw = file_get_contents('php://input');
     if (!$raw) return [];
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
+    $d = json_decode($raw, true);
+    return is_array($d) ? $d : [];
 }
 
-// ============= Helper: require admin =============
-/**
- * Verify the password supplied in the JSON body matches the admin password.
- * Calls json_error() with 401 on mismatch.
- */
+/** Verifica password admin en body; falla con 401. */
 function require_admin($body) {
     global $ADMIN_PASSWORD;
     if (!isset($body['password']) || $body['password'] !== $ADMIN_PASSWORD) {
@@ -78,17 +63,44 @@ function require_admin($body) {
     }
 }
 
-// ============= Standard 1-vs-N seed pairing =============
+/** Normaliza sexo a 'M' o 'F'; falla si distinto. */
+function require_sexo($val) {
+    $s = strtoupper((string)$val);
+    if ($s !== 'M' && $s !== 'F') {
+        json_error("Invalid sexo '$val' — debe ser 'M' o 'F'", 400);
+    }
+    return $s;
+}
+
+/** prize_id convencional según sexo (1=M, 2=F). */
+function prize_id_for_sexo($sexo) {
+    return $sexo === 'M' ? 1 : 2;
+}
+
+/** Query single-row seguro (logea, no muere). */
+function safe_one($conn, $sql) {
+    $r = $conn->query($sql);
+    if (!$r) { error_log('brackets.php query failed: ' . $conn->error . ' | SQL: ' . $sql); return null; }
+    $row = $r->fetch_assoc();
+    $r->free();
+    return $row;
+}
+
+/** Query all rows seguro. */
+function safe_all($conn, $sql) {
+    $r = $conn->query($sql);
+    if (!$r) { error_log('brackets.php query failed: ' . $conn->error . ' | SQL: ' . $sql); return []; }
+    $out = [];
+    while ($row = $r->fetch_assoc()) $out[] = $row;
+    $r->free();
+    return $out;
+}
+
 /**
- * Build the "standard tennis-style" seed pairing for a bracket of $size.
- * Returns an array of [seedA, seedB] pairs for round 1, ordered so that
- * the bracket folds onto itself correctly (1 plays N, 8 plays 9, etc.).
- *
- * Algorithm: start with [1,2], then for each doubling round, pair each
- * existing seed S with (newSize+1 - S) and interleave.
+ * Construye el orden estándar 1-vs-N de seeds para un bracket de $size.
+ * Devuelve array de pares [seedA, seedB] para round 1 (1vsN, 8vs9, etc.).
  */
 function build_seed_pairs($size) {
-    // Build full seed order list (left-to-right placement in the bracket)
     $order = [1, 2];
     while (count($order) < $size) {
         $newOrder = [];
@@ -99,7 +111,6 @@ function build_seed_pairs($size) {
         }
         $order = $newOrder;
     }
-    // Pair up consecutive seeds → round 1 matchups
     $pairs = [];
     for ($i = 0; $i < count($order); $i += 2) {
         $pairs[] = [$order[$i], $order[$i + 1]];
@@ -107,305 +118,341 @@ function build_seed_pairs($size) {
     return $pairs;
 }
 
-// ============= Action: list_prizes =============
+// ============= Ranking acumulado de putt (sembrado) =============
 /**
- * Return every prize row in all 6 bracket-eligible tables for the given
- * torneoid, with the current is_bracket flag plus whether a bracket_config
- * already exists. The frontend admin uses this to show a master list with
- * a checkbox per row.
- *
- * Each row has shape:
- *   { prize_table, prize_id, descripcion, hoyo, categoriaid, premio,
- *     campo, is_bracket, has_config, config_id, size, status }
- *
- * Tables vary slightly in column names — query each separately and tolerate
- * missing columns (some tables may not have categoriaid/campo).
+ * Marca la mejor distancia de cada jugador dentro de cada grupo Putt.
+ * Es el mismo criterio usado por `competencias.php`, por eso brackets y tablas
+ * públicas leen del mismo universo de jugadores.
  */
-function action_list_prizes($conn, $torneoid) {
-    global $BRACKET_TABLES;
-    $tid = esc($conn, $torneoid);
-    $rows = [];
+function refresh_putt_best_flags($conn, $torneoid) {
+    $tid = (int)$torneoid;
+    $conn->query("UPDATE puttjug SET orden = 0 WHERE torneoid = $tid");
+    $conn->query("UPDATE puttjug a
+                  JOIN (
+                      SELECT torneoid, premio, premiosjugcol, jugadorid, MIN(distancia) AS mindistancia
+                      FROM puttjug
+                      WHERE torneoid = $tid
+                      GROUP BY torneoid, premio, premiosjugcol, jugadorid
+                  ) b ON (a.torneoid = b.torneoid
+                          AND a.premio = b.premio
+                          AND a.premiosjugcol <=> b.premiosjugcol
+                          AND a.jugadorid = b.jugadorid
+                          AND a.distancia = b.mindistancia)
+                  SET a.orden = 1
+                  WHERE a.torneoid = $tid");
+}
 
-    foreach ($BRACKET_TABLES as $table) {
-        // Discover column names so we don't blow up on tables that don't
-        // share a perfectly identical schema.
-        $colsRes = $conn->query("SHOW COLUMNS FROM `$table`");
-        if (!$colsRes) {
-            error_log("brackets.php list_prizes: SHOW COLUMNS failed for $table: " . $conn->error);
-            continue;
-        }
-        $cols = [];
-        while ($c = $colsRes->fetch_assoc()) { $cols[$c['Field']] = true; }
-        $colsRes->free();
+/**
+ * Construye el ranking para sembrar brackets desde `putt` + `puttjug`.
+ *
+ * Flujo:
+ *   1) Lee cada grupo configurado en `putt` por PREMIO + descripción.
+ *   2) Toma los mejores `hoyo` jugadores de `puttjug` para ese grupo.
+ *   3) Filtra por `jugadores.sexo` M/F.
+ *   4) Deduplica por jugador conservando su mejor distancia global.
+ *   5) Ordena por distancia ASC y corta al tamaño del bracket.
+ *
+ * Devuelve filas normalizadas con `jugadorid`, `jugador`, `categoria`,
+ * `distancia` y `ultact`, que son las llaves que usa `action_generate_putt`.
+ */
+function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
+    $tid = (int)$torneoid;
+    $sx  = esc($conn, strtoupper((string)$sexo));
+    $lim = max(1, (int)$limit);
 
-        // Skip tables where the migration hasn't been run yet
-        if (!isset($cols['is_bracket'])) {
-            error_log("brackets.php: $table missing is_bracket column — run migration");
-            continue;
-        }
+    refresh_putt_best_flags($conn, $tid);
 
-        // Build SELECT defensively
-        $selectParts = ['id', 'is_bracket'];
-        $selectParts[] = isset($cols['descripcion'])  ? 'descripcion'  : "'' AS descripcion";
-        $selectParts[] = isset($cols['hoyo'])         ? 'hoyo'         : 'NULL AS hoyo';
-        $selectParts[] = isset($cols['categoriaid'])  ? 'categoriaid'  : 'NULL AS categoriaid';
-        $selectParts[] = isset($cols['premio'])       ? 'premio'       : 'NULL AS premio';
-        $selectParts[] = isset($cols['campo'])        ? 'campo'        : 'NULL AS campo';
+    // Catálogo de grupos Putt: incluye descripción porque premio puede repetirse
+    // para Damas/Caballeros u otros cortes y `premiosjugcol` separa esos listados.
+    $sqlPrizes = "SELECT p.premio AS premio,
+                         TRIM(p.descripcion) AS descripcion,
+                         MIN(NULLIF(p.hoyo, 0)) AS lugares
+                  FROM putt p
+                  WHERE p.torneoid = $tid AND p.premio > 0
+                  GROUP BY p.premio, p.descripcion
+                  ORDER BY p.premio ASC";
+    $prizes = safe_all($conn, $sqlPrizes);
+    if (empty($prizes)) return [];
 
-        $sql = 'SELECT ' . implode(', ', $selectParts) . " FROM `$table` WHERE torneoid = $tid ORDER BY id ASC";
-        $res = $conn->query($sql);
-        if (!$res) {
-            error_log("brackets.php list_prizes failed for $table: " . $conn->error);
-            continue;
-        }
-        while ($r = $res->fetch_assoc()) {
-            $rows[] = [
-                'prize_table' => $table,
-                'prize_id'    => (int)$r['id'],
-                'descripcion' => $r['descripcion'] ?? '',
-                'hoyo'        => $r['hoyo'] !== null ? (int)$r['hoyo'] : null,
-                'categoriaid' => $r['categoriaid'] !== null ? (int)$r['categoriaid'] : null,
-                'premio'      => $r['premio'] !== null ? (int)$r['premio'] : null,
-                'campo'       => $r['campo'] !== null ? (int)$r['campo'] : null,
-                'is_bracket'  => (int)$r['is_bracket'],
-                'has_config'  => false,
-                'config_id'   => null,
-                'size'        => null,
-                'status'      => null,
-            ];
-        }
-        $res->free();
-    }
+    $rankingByPlayer = [];
+    $sequence = 0;
+    foreach ($prizes as $p) {
+        $premio = (int)$p['premio'];
+        $desc   = esc($conn, trim((string)($p['descripcion'] ?? '')));
+        $places = (int)($p['lugares'] ?? 0);
+        if ($premio <= 0 || $places <= 0) continue;
 
-    // Annotate with existing bracket_config rows
-    $cfgRes = $conn->query("SELECT id, prize_table, prize_id, size, status
-                            FROM bracket_config WHERE torneoid = $tid");
-    if ($cfgRes) {
-        $cfgMap = [];
-        while ($c = $cfgRes->fetch_assoc()) {
-            $cfgMap[$c['prize_table'] . ':' . $c['prize_id']] = $c;
-        }
-        $cfgRes->free();
-        foreach ($rows as &$row) {
-            $key = $row['prize_table'] . ':' . $row['prize_id'];
-            if (isset($cfgMap[$key])) {
-                $row['has_config'] = true;
-                $row['config_id']  = (int)$cfgMap[$key]['id'];
-                $row['size']       = (int)$cfgMap[$key]['size'];
-                $row['status']     = $cfgMap[$key]['status'];
+        $rows = safe_all($conn, "SELECT a.jugadorid AS jugadorid,
+                                        CONCAT(j.nombre, ' ', j.apellido) AS jugador,
+                                        a.premiosjugcol AS categoria,
+                                        a.distancia AS distancia,
+                                        a.id AS ultact
+                                 FROM puttjug a
+                                 JOIN jugadores j ON j.id = a.jugadorid
+                                 WHERE a.torneoid = $tid
+                                   AND a.premio = $premio
+                                   AND TRIM(a.premiosjugcol) = '$desc'
+                                   AND a.orden = 1
+                                   AND UPPER(TRIM(j.sexo)) = '$sx'
+                                 ORDER BY a.distancia ASC, a.id ASC
+                                 LIMIT $places");
+
+        foreach ($rows as $row) {
+            $jid = (int)($row['jugadorid'] ?? 0);
+            if ($jid <= 0) continue;
+            $row['_seq'] = $sequence++;
+            $existing = $rankingByPlayer[$jid] ?? null;
+            if (!$existing || (float)$row['distancia'] < (float)$existing['distancia']) {
+                $rankingByPlayer[$jid] = $row;
             }
         }
-        unset($row);
-    } else {
-        error_log('brackets.php: bracket_config table missing or unreadable: ' . $conn->error);
     }
 
-    json_response(['prizes' => $rows]);
+    $ranking = array_values($rankingByPlayer);
+    usort($ranking, function ($a, $b) {
+        $byDistance = (float)$a['distancia'] <=> (float)$b['distancia'];
+        return $byDistance !== 0 ? $byDistance : ((int)$a['_seq'] <=> (int)$b['_seq']);
+    });
+    return array_slice($ranking, 0, $lim);
 }
 
-// ============= Action: set_flag =============
 /**
- * Toggle is_bracket on a single prize row. Body: { prize_table, prize_id,
- * is_bracket: 0|1, password }. When set to 0 we LEAVE bracket_config rows
- * intact (admin can clean them separately) so flipping back keeps history.
+ * Re-siembra round 1 cuando un bracket existente fue generado con slots vacíos.
+ * No toca brackets que ya tienen scores/ganadores para evitar pisar resultados.
  */
-function action_set_flag($conn, $body) {
-    require_admin($body);
-    $table = $body['prize_table'] ?? '';
-    validate_prize_table($table);
-    $id   = (int)($body['prize_id'] ?? 0);
-    $flag = (int)($body['is_bracket'] ?? 0) ? 1 : 0;
-    if ($id <= 0) json_error('Invalid prize_id', 400);
+function repair_empty_seed_slots($conn, $cfg, $sexo) {
+    if (!$cfg) return;
+    $cfgId = (int)$cfg['id'];
+    $tid   = (int)$cfg['torneoid'];
+    $size  = (int)($cfg['bracket_size'] ?? $cfg['size'] ?? 0);
+    if ($cfgId <= 0 || $tid <= 0 || $size <= 0) return;
 
-    $sql = "UPDATE `$table` SET is_bracket = $flag WHERE id = $id LIMIT 1";
-    if (!$conn->query($sql)) {
-        json_error('Update failed: ' . $conn->error, 500);
+    $progress = safe_one($conn, "SELECT COUNT(*) AS cnt
+                                FROM bracket_matches
+                                WHERE bracket_id = $cfgId
+                                  AND (winner_player_id IS NOT NULL
+                                       OR score_high IS NOT NULL
+                                       OR score_low IS NOT NULL)");
+    if ((int)($progress['cnt'] ?? 0) > 0) return;
+
+    $seeded = safe_one($conn, "SELECT SUM((player_high_id IS NOT NULL) + (player_low_id IS NOT NULL)) AS cnt
+                              FROM bracket_matches
+                              WHERE bracket_id = $cfgId AND round_num = 1");
+    $ranking = collect_putt_ranking($conn, $tid, $sexo, $size);
+    $expectedPlayers = min($size, count($ranking));
+    if ((int)($seeded['cnt'] ?? 0) >= $expectedPlayers || $expectedPlayers <= 0) return;
+
+    $players = array_slice($ranking, 0, $size);
+    while (count($players) < $size) $players[] = ['jugadorid' => null];
+
+    foreach (build_seed_pairs($size) as $i => $pair) {
+        $pos = $i + 1;
+        $p1 = $players[$pair[0] - 1]['jugadorid'] ?? null;
+        $p2 = $players[$pair[1] - 1]['jugadorid'] ?? null;
+        $p1Sql = $p1 !== null ? (int)$p1 : 'NULL';
+        $p2Sql = $p2 !== null ? (int)$p2 : 'NULL';
+        $s1 = (int)$pair[0];
+        $s2 = (int)$pair[1];
+        $conn->query("UPDATE bracket_matches
+                      SET player_high_id = $p1Sql, player_low_id = $p2Sql,
+                          seed_high = $s1, seed_low = $s2, updated_at = NOW()
+                      WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
+        $matchRow = safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
+        $matchId = (int)($matchRow['id'] ?? 0);
+        if ($matchId > 0 && $p1 !== null && $p2 === null)      advance_winner($conn, $matchId, (int)$p1);
+        elseif ($matchId > 0 && $p2 !== null && $p1 === null)  advance_winner($conn, $matchId, (int)$p2);
     }
-    json_response(['ok' => true, 'prize_table' => $table, 'prize_id' => $id, 'is_bracket' => $flag]);
 }
 
-// ============= Action: get_config =============
+// ============= Acción: get_putt_finales (público) =============
 /**
- * Return the bracket_config row + all bracket_matches for a given prize.
- * Returns 404-shaped payload (config: null) if no config exists yet so the
- * frontend can render an empty editor.
+ * Devuelve la configuración + matches actuales para ambos brackets (M/F).
+ * Sólo se incluye `visible=1` cuando el público debe verlo — el front decide
+ * si mostrar o no en /competicion según ese flag.
  */
-function action_get_config($conn, $torneoid, $prizeTable, $prizeId) {
-    validate_prize_table($prizeTable);
-    $tid = esc($conn, $torneoid);
-    $pt  = esc($conn, $prizeTable);
-    $pid = (int)$prizeId;
-
-    $cfg = safe_query_one_local($conn,
-        "SELECT * FROM bracket_config
-         WHERE torneoid = $tid AND prize_table = '$pt' AND prize_id = $pid LIMIT 1");
-
-    $matches = [];
-    if ($cfg) {
-        $cfgId = (int)$cfg['id'];
-        $res = $conn->query("SELECT m.*,
-                                    CONCAT(j1.nombre,' ',j1.apellido) AS player1_name,
-                                    CONCAT(j2.nombre,' ',j2.apellido) AS player2_name
-                             FROM bracket_matches m
-                             LEFT JOIN jugadores j1 ON j1.id = m.player1_id
-                             LEFT JOIN jugadores j2 ON j2.id = m.player2_id
-                             WHERE m.bracket_config_id = $cfgId
-                             ORDER BY m.round ASC, m.position ASC");
-        if ($res) {
-            while ($m = $res->fetch_assoc()) { $matches[] = $m; }
-            $res->free();
+function action_get_putt_finales($conn, $torneoid) {
+    global $PUTT_PRIZE_TABLE;
+    $tid = (int)$torneoid;
+    $out = ['M' => null, 'F' => null];
+    foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
+        $cfg = safe_one($conn,
+            "SELECT *, bracket_size AS size FROM bracket_config
+             WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
+        $matches = [];
+        if ($cfg) {
+            repair_empty_seed_slots($conn, $cfg, $sx);
+            $cfgId = (int)$cfg['id'];
+            $matches = safe_all($conn,
+                "SELECT m.*,
+                        m.player_high_id  AS player1_id,
+                        m.player_low_id   AS player2_id,
+                        m.seed_high       AS player1_seed,
+                        m.seed_low        AS player2_seed,
+                        m.score_high      AS player1_score,
+                        m.score_low       AS player2_score,
+                        m.winner_player_id AS winner_id,
+                        m.round_num       AS round,
+                        m.match_num       AS position,
+                        CONCAT(j1.nombre,' ',j1.apellido) AS player1_name,
+                        CONCAT(j2.nombre,' ',j2.apellido) AS player2_name
+                 FROM bracket_matches m
+                 LEFT JOIN jugadores j1 ON j1.id = m.player_high_id
+                 LEFT JOIN jugadores j2 ON j2.id = m.player_low_id
+                 WHERE m.bracket_id = $cfgId
+                 ORDER BY m.round_num ASC, m.match_num ASC");
         }
+        $out[$sx] = [
+            'config'  => $cfg,
+            'matches' => $matches,
+            'visible' => $cfg ? (int)$cfg['visible'] === 1 : false,
+        ];
     }
-
-    json_response(['config' => $cfg, 'matches' => $matches]);
+    json_response($out);
 }
 
-/** Local safe single-row helper (avoids name clash with competencias.php) */
-function safe_query_one_local($conn, $sql) {
-    $r = $conn->query($sql);
-    if (!$r) {
-        error_log('brackets.php query failed: ' . $conn->error . ' | SQL: ' . $sql);
-        return null;
-    }
-    $row = $r->fetch_assoc();
-    $r->free();
-    return $row;
-}
-
-// ============= Action: save_config =============
+// ============= Acción: get_putt_admin (admin) =============
 /**
- * Upsert a bracket_config row. Body fields:
- *   torneoid, prize_table, prize_id, size, seed_source, advancement,
- *   seed_categoriaid, seed_premio, seed_hoyo, seed_campo,
- *   advancement_source, password
- * Returns the saved config row.
+ * Igual que get_putt_finales pero agrega `candidates_count` por sexo —
+ * cuántos jugadores únicos podrían entrar al bracket según el ranking actual.
+ * Útil para que el admin elija el tamaño correcto antes de generar.
  */
-function action_save_config($conn, $body) {
-    global $ALLOWED_SIZES;
+function action_get_putt_admin($conn, $torneoid) {
+    global $PUTT_PRIZE_TABLE;
+    $tid = (int)$torneoid;
+    $out = ['M' => null, 'F' => null];
+    foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
+        $cfg = safe_one($conn,
+            "SELECT *, bracket_size AS size FROM bracket_config
+             WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
+        $matches = [];
+        if ($cfg) {
+            repair_empty_seed_slots($conn, $cfg, $sx);
+            $cfgId = (int)$cfg['id'];
+            $matches = safe_all($conn,
+                "SELECT m.*,
+                        m.player_high_id  AS player1_id,
+                        m.player_low_id   AS player2_id,
+                        m.seed_high       AS player1_seed,
+                        m.seed_low        AS player2_seed,
+                        m.score_high      AS player1_score,
+                        m.score_low       AS player2_score,
+                        m.winner_player_id AS winner_id,
+                        m.round_num       AS round,
+                        m.match_num       AS position,
+                        CONCAT(j1.nombre,' ',j1.apellido) AS player1_name,
+                        CONCAT(j2.nombre,' ',j2.apellido) AS player2_name
+                 FROM bracket_matches m
+                 LEFT JOIN jugadores j1 ON j1.id = m.player_high_id
+                 LEFT JOIN jugadores j2 ON j2.id = m.player_low_id
+                 WHERE m.bracket_id = $cfgId
+                 ORDER BY m.round_num ASC, m.match_num ASC");
+        }
+        // Conteo de candidatos potenciales (límite alto para ver el universo).
+        $ranking = collect_putt_ranking($conn, $tid, $sx, 9999);
+        $out[$sx] = [
+            'config'           => $cfg,
+            'matches'          => $matches,
+            'visible'          => $cfg ? (int)$cfg['visible'] === 1 : false,
+            'candidates_count' => count($ranking),
+        ];
+    }
+    json_response($out);
+}
+
+// ============= Acción: save_putt_config (admin) =============
+/**
+ * Upsert de la fila bracket_config para un bracket (M o F).
+ * Body: { torneoid, sexo, size, visible, password }.
+ * NO regenera matches — sólo guarda configuración y visibilidad.
+ */
+function action_save_putt_config($conn, $body) {
+    global $ALLOWED_SIZES, $PUTT_PRIZE_TABLE;
     require_admin($body);
-    $torneoid = (int)($body['torneoid'] ?? 0);
-    $table    = $body['prize_table'] ?? '';
-    validate_prize_table($table);
-    $prizeId  = (int)($body['prize_id'] ?? 0);
-    $size     = (int)($body['size'] ?? 0);
+    $tid     = (int)($body['torneoid'] ?? 0);
+    if ($tid <= 0) json_error('Invalid torneoid', 400);
+    $sexo    = require_sexo($body['sexo'] ?? '');
+    $size    = (int)($body['size'] ?? 0);
     if (!in_array($size, $ALLOWED_SIZES, true)) {
         json_error('Invalid size; allowed: ' . implode(',', $ALLOWED_SIZES), 400);
     }
-    $seedSrc  = in_array($body['seed_source'] ?? '', ['standings','manual','random'], true)
-              ? $body['seed_source'] : 'standings';
-    $adv      = in_array($body['advancement'] ?? '', ['manual','auto'], true)
-              ? $body['advancement'] : 'manual';
+    $visible = !empty($body['visible']) ? 1 : 0;
+    $pid     = prize_id_for_sexo($sexo);
 
-    // Optional standings filters (any may be NULL)
-    $catId    = isset($body['seed_categoriaid']) ? (int)$body['seed_categoriaid'] : null;
-    $premio   = isset($body['seed_premio'])      ? (int)$body['seed_premio']      : null;
-    $hoyo     = isset($body['seed_hoyo'])        ? (int)$body['seed_hoyo']        : null;
-    $campo    = isset($body['seed_campo'])       ? (int)$body['seed_campo']       : null;
-    $advSrc   = isset($body['advancement_source'])
-              ? "'" . esc($conn, $body['advancement_source']) . "'" : 'NULL';
-
-    $tid = (int)$torneoid;
-    $pt  = esc($conn, $table);
-
-    // Build NULL-aware values
-    $catSql    = $catId  !== null ? (int)$catId  : 'NULL';
-    $premioSql = $premio !== null ? (int)$premio : 'NULL';
-    $hoyoSql   = $hoyo   !== null ? (int)$hoyo   : 'NULL';
-    $campoSql  = $campo  !== null ? (int)$campo  : 'NULL';
-
-    // Upsert by unique key (torneoid, prize_table, prize_id)
+    // Upsert por unique key (torneoid, prize_table, prize_id).
+    // NOTE: La tabla legacy `bracket_config` usa `bracket_size` (no `size`)
+    // y el ENUM de status es ('pending','seeded','in_progress','completed').
     $sql = "INSERT INTO bracket_config
-              (torneoid, prize_table, prize_id, size, seed_source, advancement,
-               seed_categoriaid, seed_premio, seed_hoyo, seed_campo,
-               advancement_source, status, created_at, updated_at)
+              (torneoid, prize_table, prize_id, sexo, bracket_size,
+               seed_source, status, visible, created_at, updated_at)
             VALUES
-              ($tid, '$pt', $prizeId, $size, '$seedSrc', '$adv',
-               $catSql, $premioSql, $hoyoSql, $campoSql,
-               $advSrc, 'draft', NOW(), NOW())
+              ($tid, '$PUTT_PRIZE_TABLE', $pid, '$sexo', $size,
+               'standings', 'pending', $visible, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
-               size = VALUES(size),
-               seed_source = VALUES(seed_source),
-               advancement = VALUES(advancement),
-               seed_categoriaid = VALUES(seed_categoriaid),
-               seed_premio = VALUES(seed_premio),
-               seed_hoyo = VALUES(seed_hoyo),
-               seed_campo = VALUES(seed_campo),
-               advancement_source = VALUES(advancement_source),
+               sexo = VALUES(sexo),
+               bracket_size = VALUES(bracket_size),
+               visible = VALUES(visible),
                updated_at = NOW()";
     if (!$conn->query($sql)) {
         json_error('Save config failed: ' . $conn->error, 500);
     }
 
-    $saved = safe_query_one_local($conn,
-        "SELECT * FROM bracket_config WHERE torneoid = $tid AND prize_table = '$pt' AND prize_id = $prizeId LIMIT 1");
+    $saved = safe_one($conn,
+        "SELECT *, bracket_size AS size FROM bracket_config
+         WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
     json_response(['config' => $saved]);
 }
 
-// ============= Action: generate =============
+// ============= Acción: generate_putt (admin) =============
 /**
- * (Re)generate the bracket_matches rows for a given bracket_config_id.
- * Steps:
- *   1. Load config + verify exists.
- *   2. Pull seeded player list from the chosen source (standings or random).
- *      (manual seeding is left untouched — admin populates rows by hand.)
- *   3. Wipe existing bracket_matches for this config.
- *   4. Build round-1 matches using build_seed_pairs($size), then create
- *      empty placeholder matches for all subsequent rounds, linking each
- *      match's next_match_id / next_slot so winners can be auto-advanced.
- *   5. Set status = 'active'.
- *
- * Standings source query: pulls from the same view family used by the
- * existing premio endpoints, but is intentionally generic here — we read
- * jugadorid + ordering from the linked premio table itself when possible
- * so the bracket reflects the same ranking the public sees.
+ * Regenera bracket_matches para un sexo: tira los matches anteriores,
+ * recolecta ranking acumulado de putt (sembrado), crea la estructura
+ * completa de partidos vinculados por next_match_id y siembra el round 1.
  */
-function action_generate($conn, $body) {
+function action_generate_putt($conn, $body) {
+    global $PUTT_PRIZE_TABLE;
     require_admin($body);
-    $cfgId = (int)($body['bracket_config_id'] ?? 0);
-    if ($cfgId <= 0) json_error('Invalid bracket_config_id', 400);
+    $tid  = (int)($body['torneoid'] ?? 0);
+    if ($tid <= 0) json_error('Invalid torneoid', 400);
+    $sexo = require_sexo($body['sexo'] ?? '');
+    $pid  = prize_id_for_sexo($sexo);
 
-    $cfg = safe_query_one_local($conn, "SELECT * FROM bracket_config WHERE id = $cfgId LIMIT 1");
-    if (!$cfg) json_error('bracket_config not found', 404);
+    $cfg = safe_one($conn,
+        "SELECT *, bracket_size AS size FROM bracket_config
+         WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
+    if (!$cfg) json_error('Configura primero el tamaño del bracket antes de generar.', 404);
 
-    $size       = (int)$cfg['size'];
-    $seedSource = $cfg['seed_source'];
-    $tid        = (int)$cfg['torneoid'];
-    $table      = $cfg['prize_table'];
-    $prizeId    = (int)$cfg['prize_id'];
+    $cfgId = (int)$cfg['id'];
+    $size  = (int)$cfg['bracket_size'];
 
-    // Pull candidate players
-    $players = collect_seed_players($conn, $cfg, $size, $seedSource);
-    // Truncate / pad to bracket size
-    $players = array_slice($players, 0, $size);
+    // 1) Recolectar ranking sembrado (jugadorid en orden 1..size).
+    $ranking = collect_putt_ranking($conn, $tid, $sexo, $size);
+    $players = array_slice($ranking, 0, $size);
     while (count($players) < $size) {
-        $players[] = ['jugadorid' => null]; // BYE slot
+        // Padding con BYE (jugadorid = null) para tamaños sin suficientes inscritos.
+        $players[] = ['jugadorid' => null];
     }
 
-    // Wipe existing matches for this config
-    $conn->query("DELETE FROM bracket_matches WHERE bracket_config_id = $cfgId");
+    // 2) Wipe matches anteriores.
+    $conn->query("DELETE FROM bracket_matches WHERE bracket_id = $cfgId");
 
-    // Build placeholder rows for all rounds
+    // 3) Crear matches por ronda (final primero para poder linkear next_match_id).
     $totalRounds = (int)log($size, 2);
-    // matchIds[round][position] = inserted match row id
-    $matchIds = [];
-
-    // Insert in reverse round order (final first) so we can wire next_match_id
-    // for earlier rounds. We do final → semis → … → R1.
+    $matchIds = []; // [round][position] => id
     for ($round = $totalRounds; $round >= 1; $round--) {
         $matchesInRound = (int)pow(2, $totalRounds - $round);
         for ($pos = 1; $pos <= $matchesInRound; $pos++) {
-            $nextMatchId = 'NULL';
-            $nextSlot    = 'NULL';
+            $nextId   = 'NULL';
+            $nextSlot = 'NULL';
             if ($round < $totalRounds) {
                 $parentPos  = (int)ceil($pos / 2);
-                $parentSlot = (($pos - 1) % 2) + 1;
-                $nextMatchId = (int)$matchIds[$round + 1][$parentPos];
-                $nextSlot    = $parentSlot;
+                // slot enum en bracket_matches: 'high' | 'low'
+                $parentSlot = (($pos - 1) % 2) === 0 ? "'high'" : "'low'";
+                $nextId   = (int)$matchIds[$round + 1][$parentPos];
+                $nextSlot = $parentSlot;
             }
-
             $sql = "INSERT INTO bracket_matches
-                      (bracket_config_id, round, position, next_match_id, next_slot, status, updated_at)
-                    VALUES ($cfgId, $round, $pos, $nextMatchId, $nextSlot, 'pending', NOW())";
+                      (bracket_id, round_num, match_num, next_match_id, next_slot, status, updated_at)
+                    VALUES ($cfgId, $round, $pos, $nextId, $nextSlot, 'pending', NOW())";
             if (!$conn->query($sql)) {
                 json_error('Insert match failed: ' . $conn->error, 500);
             }
@@ -413,148 +460,106 @@ function action_generate($conn, $body) {
         }
     }
 
-    // Populate round 1 with seeded players
+    // 4) Poblar round 1 con seeds (1vsN, etc.) + auto-avance de BYEs.
     $pairs = build_seed_pairs($size);
-    foreach ($pairs as $pos1Based => $pair) {
-        $pos    = $pos1Based + 1;
+    foreach ($pairs as $i => $pair) {
+        $pos = $i + 1;
         $matchId = (int)$matchIds[1][$pos];
-        $p1     = $players[$pair[0] - 1]['jugadorid'] ?? null;
-        $p2     = $players[$pair[1] - 1]['jugadorid'] ?? null;
-        $p1Sql  = $p1 !== null ? (int)$p1 : 'NULL';
-        $p2Sql  = $p2 !== null ? (int)$p2 : 'NULL';
-        $s1     = (int)$pair[0];
-        $s2     = (int)$pair[1];
-
+        $p1 = $players[$pair[0] - 1]['jugadorid'] ?? null;
+        $p2 = $players[$pair[1] - 1]['jugadorid'] ?? null;
+        $p1Sql = $p1 !== null ? (int)$p1 : 'NULL';
+        $p2Sql = $p2 !== null ? (int)$p2 : 'NULL';
+        $s1 = (int)$pair[0];
+        $s2 = (int)$pair[1];
         $conn->query("UPDATE bracket_matches
-                      SET player1_id = $p1Sql, player2_id = $p2Sql,
-                          player1_seed = $s1, player2_seed = $s2,
-                          updated_at = NOW()
+                      SET player_high_id = $p1Sql, player_low_id = $p2Sql,
+                          seed_high = $s1, seed_low = $s2, updated_at = NOW()
                       WHERE id = $matchId");
-
-        // Auto-advance BYEs (one player null)
-        if ($p1 !== null && $p2 === null) {
-            advance_winner($conn, $matchId, (int)$p1);
-        } elseif ($p2 !== null && $p1 === null) {
-            advance_winner($conn, $matchId, (int)$p2);
-        }
+        // BYE: avanzar al jugador presente
+        if ($p1 !== null && $p2 === null)      advance_winner($conn, $matchId, (int)$p1);
+        elseif ($p2 !== null && $p1 === null)  advance_winner($conn, $matchId, (int)$p2);
     }
 
-    $conn->query("UPDATE bracket_config SET status = 'active', updated_at = NOW() WHERE id = $cfgId");
+    $conn->query("UPDATE bracket_config SET status = 'seeded', updated_at = NOW() WHERE id = $cfgId");
 
-    json_response(['ok' => true, 'config_id' => $cfgId, 'rounds' => $totalRounds, 'players_seeded' => count($players)]);
+    json_response([
+        'ok'             => true,
+        'config_id'      => $cfgId,
+        'rounds'         => $totalRounds,
+        'players_seeded' => count(array_filter($players, fn($p) => $p['jugadorid'] !== null)),
+        'size'           => $size,
+    ]);
 }
 
+// ============= Avance automático de ganador =============
 /**
- * Collect players to seed the bracket.
- * - 'random': pull all distinct jugadorid that played in this category
- * - 'standings': pull ranked players from the relevant standings query
- * - 'manual': return empty (admin will fill in by hand)
- * Each returned row is at minimum { jugadorid, name? }.
- */
-function collect_seed_players($conn, $cfg, $size, $source) {
-    $tid    = (int)$cfg['torneoid'];
-    $catId  = $cfg['seed_categoriaid'] !== null ? (int)$cfg['seed_categoriaid'] : null;
-    $premio = $cfg['seed_premio']      !== null ? (int)$cfg['seed_premio']      : null;
-    $hoyo   = $cfg['seed_hoyo']        !== null ? (int)$cfg['seed_hoyo']        : null;
-    $campo  = $cfg['seed_campo']       !== null ? (int)$cfg['seed_campo']       : null;
-
-    if ($source === 'manual') {
-        return [];
-    }
-
-    if ($source === 'random') {
-        $where = "WHERE j.torneoid = $tid";
-        if ($catId !== null) $where .= " AND j.categoriaid = $catId";
-        $sql = "SELECT DISTINCT j.id AS jugadorid
-                FROM jugadores j
-                $where
-                ORDER BY RAND()
-                LIMIT $size";
-        $res = $conn->query($sql);
-        if (!$res) {
-            error_log('brackets.php random seed failed: ' . $conn->error);
-            return [];
-        }
-        $out = [];
-        while ($r = $res->fetch_assoc()) { $out[] = $r; }
-        $res->free();
-        return $out;
-    }
-
-    // standings: pull from gross/net category leaderboard.
-    // We use the same data source the public Resultados page uses:
-    // resultados_jug.php drives off `jugadores` joined with the round
-    // tables via category. To keep this generic we order by sumtotalneto
-    // ascending (best first); if your DB uses a different column the
-    // admin should override via 'random' or wire a custom view.
-    $where = "WHERE j.torneoid = $tid";
-    if ($catId !== null) $where .= " AND j.categoriaid = $catId";
-    $sql = "SELECT j.id AS jugadorid,
-                   CONCAT(j.nombre,' ',j.apellido) AS name,
-                   COALESCE(j.sumtotalneto, 999999) AS rank_score
-            FROM jugadores j
-            $where
-            ORDER BY rank_score ASC, j.id ASC
-            LIMIT $size";
-    $res = $conn->query($sql);
-    if (!$res) {
-        error_log('brackets.php standings seed failed: ' . $conn->error . ' SQL: ' . $sql);
-        return [];
-    }
-    $out = [];
-    while ($r = $res->fetch_assoc()) { $out[] = $r; }
-    $res->free();
-    return $out;
-}
-
-/**
- * Mark a winner for $matchId and propagate them into the parent match's
- * appropriate slot (player1 if next_slot=1, player2 if next_slot=2).
- * If the parent match becomes complete (was already auto-advanceable),
- * recursion is NOT triggered here — we only fill the slot.
+ * Marca ganador en $matchId y lo coloca en el slot correspondiente del
+ * match padre (next_match_id / next_slot). NO recursa: si el padre
+ * también queda completo, el siguiente record_score lo avanzará.
  */
 function advance_winner($conn, $matchId, $winnerId) {
     $mid = (int)$matchId;
     $wid = (int)$winnerId;
-    $conn->query("UPDATE bracket_matches SET winner_id = $wid, status = 'complete', updated_at = NOW() WHERE id = $mid");
-    $row = safe_query_one_local($conn, "SELECT next_match_id, next_slot FROM bracket_matches WHERE id = $mid");
+    $conn->query("UPDATE bracket_matches
+                  SET winner_player_id = $wid, status = 'completed', updated_at = NOW()
+                  WHERE id = $mid");
+    $row = safe_one($conn, "SELECT next_match_id, next_slot FROM bracket_matches WHERE id = $mid");
     if (!$row || $row['next_match_id'] === null) return;
-    $nextId   = (int)$row['next_match_id'];
-    $slotCol  = ((int)$row['next_slot']) === 1 ? 'player1_id' : 'player2_id';
+    $nextId  = (int)$row['next_match_id'];
+    // next_slot es ENUM 'high'|'low' -> mapea a la columna del player correspondiente
+    $slotCol = ($row['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
     $conn->query("UPDATE bracket_matches SET $slotCol = $wid, updated_at = NOW() WHERE id = $nextId");
 }
 
-// ============= Action: record_score =============
+// ============= Acción: record_score (admin) =============
 /**
- * Record scores for a single match. If both players have a score the
- * higher score wins (golf match-play "holes won" semantics — admin can
- * adjust later if a different convention is needed). When advancement
- * is set on the config the winner is auto-pushed to the next round slot.
+ * Captura scores del match. Acepta decimales (hasta 3). Si ambos scores
+ * están presentes y son distintos, avanza al jugador con MENOR score
+ * (semántica putt/stroke: menos es mejor; 0 es válido y es el mejor score).
  */
 function action_record_score($conn, $body) {
     require_admin($body);
     $matchId = (int)($body['match_id'] ?? 0);
     if ($matchId <= 0) json_error('Invalid match_id', 400);
-    $s1 = isset($body['player1_score']) ? (int)$body['player1_score'] : null;
-    $s2 = isset($body['player2_score']) ? (int)$body['player2_score'] : null;
-    $s1Sql = $s1 !== null ? (int)$s1 : 'NULL';
-    $s2Sql = $s2 !== null ? (int)$s2 : 'NULL';
+    /** Parse score conservando decimales; null sólo si está vacío/no enviado. 0 es válido. */
+    $s1 = isset($body['player1_score']) && $body['player1_score'] !== '' && $body['player1_score'] !== null
+        ? round((float)$body['player1_score'], 3) : null;
+    $s2 = isset($body['player2_score']) && $body['player2_score'] !== '' && $body['player2_score'] !== null
+        ? round((float)$body['player2_score'], 3) : null;
+    $s1Sql = $s1 !== null ? (float)$s1 : 'NULL';
+    $s2Sql = $s2 !== null ? (float)$s2 : 'NULL';
 
-    $conn->query("UPDATE bracket_matches SET player1_score = $s1Sql, player2_score = $s2Sql, updated_at = NOW() WHERE id = $matchId");
+    $conn->query("UPDATE bracket_matches
+                  SET score_high = $s1Sql, score_low = $s2Sql, updated_at = NOW()
+                  WHERE id = $matchId");
 
-    $m = safe_query_one_local($conn,
-        "SELECT m.*, c.advancement
-         FROM bracket_matches m
-         JOIN bracket_config c ON c.id = m.bracket_config_id
-         WHERE m.id = $matchId");
+    $m = safe_one($conn, "SELECT * FROM bracket_matches WHERE id = $matchId");
     if (!$m) json_error('Match not found', 404);
 
-    if ($s1 !== null && $s2 !== null && $s1 !== $s2 && $m['advancement'] === 'auto') {
-        $winner = $s1 > $s2 ? (int)$m['player1_id'] : (int)$m['player2_id'];
-        if ($winner > 0) {
-            advance_winner($conn, $matchId, $winner);
-        }
+    if ($s1 !== null && $s2 !== null && $s1 !== $s2) {
+        /** Menor score gana (golf): el mejor es el más bajo, 0 incluido. */
+        $winner = $s1 < $s2 ? (int)$m['player_high_id'] : (int)$m['player_low_id'];
+        if ($winner > 0) advance_winner($conn, $matchId, $winner);
     }
+    json_response(['ok' => true]);
+}
+
+// ============= Acción: set_winner (admin, override manual) =============
+/**
+ * Sobreescribe el ganador del match sin tocar scores. Útil para walkovers,
+ * descalificaciones o correcciones manuales del admin.
+ */
+function action_set_winner($conn, $body) {
+    require_admin($body);
+    $matchId  = (int)($body['match_id']  ?? 0);
+    $winnerId = (int)($body['winner_id'] ?? 0);
+    if ($matchId <= 0 || $winnerId <= 0) json_error('Invalid match_id or winner_id', 400);
+    $m = safe_one($conn, "SELECT player_high_id, player_low_id FROM bracket_matches WHERE id = $matchId");
+    if (!$m) json_error('Match not found', 404);
+    if ((int)$m['player_high_id'] !== $winnerId && (int)$m['player_low_id'] !== $winnerId) {
+        json_error('winner_id no corresponde a player1 ni player2 de este match', 400);
+    }
+    advance_winner($conn, $matchId, $winnerId);
     json_response(['ok' => true]);
 }
 
@@ -564,28 +569,16 @@ $action = optional_param('action', '');
 
 if ($method === 'GET') {
     $torneoid = require_param('torneoid');
-    if ($action === 'list_prizes') {
-        action_list_prizes($conn, $torneoid);
-    } elseif ($action === 'get_config') {
-        $pt  = require_param('prize_table');
-        $pid = require_param('prize_id');
-        action_get_config($conn, $torneoid, $pt, $pid);
-    } else {
-        json_error("Unknown GET action '$action'. Try list_prizes or get_config.", 400);
-    }
+    if ($action === 'get_putt_finales')      action_get_putt_finales($conn, $torneoid);
+    elseif ($action === 'get_putt_admin')    action_get_putt_admin($conn, $torneoid);
+    else json_error("Unknown GET action '$action'. Try get_putt_finales | get_putt_admin.", 400);
 } elseif ($method === 'POST') {
     $body = read_json_body();
-    if ($action === 'set_flag') {
-        action_set_flag($conn, $body);
-    } elseif ($action === 'save_config') {
-        action_save_config($conn, $body);
-    } elseif ($action === 'generate') {
-        action_generate($conn, $body);
-    } elseif ($action === 'record_score') {
-        action_record_score($conn, $body);
-    } else {
-        json_error("Unknown POST action '$action'.", 400);
-    }
+    if     ($action === 'save_putt_config') action_save_putt_config($conn, $body);
+    elseif ($action === 'generate_putt')    action_generate_putt($conn, $body);
+    elseif ($action === 'record_score')     action_record_score($conn, $body);
+    elseif ($action === 'set_winner')       action_set_winner($conn, $body);
+    else json_error("Unknown POST action '$action'.", 400);
 } else {
     json_error('Method not allowed', 405);
 }

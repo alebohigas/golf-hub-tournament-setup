@@ -70,7 +70,7 @@ function compute_age_at($birth_yyyymmdd, $ref_yyyymmdd) {
 
 /** Lookup torneo start date (fecha_ini) — used as the cutoff for akron_edad. */
 function torneo_fecha_ini($conn, $torneoid) {
-    $r = $conn->query("SELECT fecha_ini FROM torneo WHERE id = " . (int)$torneoid . " LIMIT 1");
+    $r = $conn->query("SELECT fecha_ini FROM torneo WHERE torneo_id = " . (int)$torneoid . " LIMIT 1");
     if (!$r) return null;
     $row = $r->fetch_assoc();
     $r->free();
@@ -155,8 +155,9 @@ function sync_jugadores_from_registro($conn, $posted, $birth_yyyymmdd) {
 }
 
 /** Cache: which columns exist in the `registro` table. */
-function registro_columns($conn) {
+function registro_columns($conn, $refresh = false) {
     static $cols = null;
+    if ($refresh) $cols = null;
     if ($cols !== null) return $cols;
     $cols = [];
     $r = $conn->query("SHOW COLUMNS FROM registro");
@@ -177,9 +178,16 @@ function registro_has($conn, $col) {
  * different names; we probe in priority order.
  */
 function registro_torneo_col($conn) {
-    foreach (['torneoid', 'torneo_id', 'reg_torneoid', 'reg_torneo_id'] as $c) {
+    foreach (['torneoid', 'torneo_id', 'id_torneo', 'idtorneo', 'reg_torneoid', 'reg_torneo_id'] as $c) {
         if (registro_has($conn, $c)) return $c;
     }
+
+    // Some legacy `registro` tables were created without a tournament column.
+    // Add the canonical column once so new submissions can be tied to torneoid.
+    @$conn->query("ALTER TABLE registro ADD COLUMN torneoid INT(11) NULL");
+    registro_columns($conn, true);
+    if (registro_has($conn, 'torneoid')) return 'torneoid';
+
     return null;
 }
 
@@ -203,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
         'reg_nombre', 'reg_apellido', 'reg_correo', 'reg_telefono',
-        'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac',
+        'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac', 'reg_edad',
         'reg_es_socio', 'reg_tipo_socio', 'reg_club', 'reg_ghin',
         'reg_pais', 'reg_estado', 'reg_ciudad', 'reg_notas',
         // Canonical names from registro_campos
@@ -214,6 +222,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         // Akron-specific
         'akron_talla', 'akron_talla_guante', 'akron_calzado',
         'akron_codigo', 'akron_monto_pago',
+        // Snapshot del precio mostrado al jugador al enviar el form.
+        // Lo escribe el cliente con base en /api/registro_precios.php?action=match.
+        'reg_precio_estimado', 'reg_precio_moneda', 'reg_precio_regla_id',
     ];
 
     $cols = [$torneoCol];
@@ -343,6 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_direccion','reg_cp','reg_id_club','reg_cargo',
         'akron_edad','akron_talla','akron_talla_guante','akron_calzado',
         'akron_codigo','akron_monto_pago',
+        'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = $c;
     /** Indicate whether a binary attachment exists without sending the bytes. */

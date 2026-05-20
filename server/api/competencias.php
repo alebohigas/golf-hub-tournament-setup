@@ -980,6 +980,53 @@ if ($tipo === '' || $tipo === 'oyes300') {
 }
 error_log("competencias.php - Completed O'Yes 300 section, competencias count: " . count($competencias));
 
+// ============= Putt Finales (Brackets por sexo) =============
+/**
+ * Inyecta hasta dos pseudo-competencias para los brackets putt-finales
+ * (M y F) cuando estén configuradas Y marcadas visible=1 en bracket_config.
+ *
+ * Cada una se modela como una competencia con un único grupo cuyo `bracketSexo`
+ * indica al frontend qué bracket pedir a /api/brackets.php. La tabla de
+ * jugadores queda vacía; el render real es <BracketView sexo="M"|"F" />.
+ *
+ * Sólo se considera 'putt' o '' como tipo (mismo gating que el resto).
+ */
+if ($tipo === '' || $tipo === 'putt' || $tipo === 'putt_finales') {
+    $sqlFinales = "SELECT prize_id, sexo, bracket_size AS size, visible, status
+                   FROM bracket_config
+                   WHERE torneoid = $tid AND prize_table = 'putt_finales' AND visible = 1
+                   ORDER BY prize_id ASC";
+    $finalesRows = safe_query_all($conn, $sqlFinales);
+    foreach ($finalesRows as $idx => $fr) {
+        $sx       = strtoupper((string)$fr['sexo']) === 'F' ? 'F' : 'M';
+        $idSuffix = $sx === 'M' ? 'm' : 'f';
+        $label    = $sx === 'M' ? 'Putt Finales Caballero' : 'Putt Finales Dama';
+        $competencias[] = [
+            'id'          => 'putt-finales-' . $idSuffix,
+            'name'        => $label,
+            'shortName'   => $label,
+            'description' => 'Match-Play final — sembrado desde ranking acumulado de putt',
+            'icon'        => 'trophy',
+            'endpoint'    => 'putt_finales',
+            'order'       => 50 + $idx, // al final del listado
+            'enabled'     => true,
+            'groupCount'  => 1,
+            'groups'      => [[
+                'id'          => 'putt-finales-' . $idSuffix . '-bracket',
+                'name'        => $label,
+                'shortName'   => $label,
+                'maxPlayers'  => (int)$fr['size'],
+                'playerCount' => (int)$fr['size'],
+                // El frontend usa bracketSexo para renderizar BracketView en
+                // lugar de la tabla estándar de competencias.
+                'bracketSexo' => $sx,
+            ]],
+            'columns'     => [], // no aplica — se renderiza un bracket
+        ];
+    }
+    error_log("competencias.php - Putt Finales injected: " . count($finalesRows));
+}
+
 // Sort by order
 usort($competencias, function($a, $b) {
     return $a['order'] - $b['order'];

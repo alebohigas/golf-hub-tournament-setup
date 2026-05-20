@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, ListChecks, ExternalLink } from 'lucide-react';
+import { Loader2, Save, ListChecks, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useRegistroFields, useSaveRegistroFields, type RegistroField } from '@/hooks/useRegistroFields';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +71,20 @@ const AdminRegistro = () => {
   /** Convenience metric for the header. */
   const enabledCount = useMemo(() => rows.filter(r => !!r.is_enabled).length, [rows]);
 
+  /**
+   * Validación crítica: el formulario SIEMPRE debe permitir capturar la edad
+   * (sea como fecha de nacimiento o como campo edad directo, o ambos).
+   * Si el admin desactiva los dos, se rompe el filtro de categorías y la
+   * resolución de precios. Mostramos una alerta destacada.
+   */
+  const ageFieldsMissing = useMemo(() => {
+    const fechanac = rows.find(r => r.field_name === 'reg_fechanac');
+    const edad     = rows.find(r => r.field_name === 'reg_edad');
+    const fechanacEnabled = !!(fechanac && fechanac.is_enabled);
+    const edadEnabled     = !!(edad && edad.is_enabled);
+    return !fechanacEnabled && !edadEnabled;
+  }, [rows]);
+
   return (
     <div className="space-y-4">
       <Card>
@@ -91,6 +105,19 @@ const AdminRegistro = () => {
             </div>
           ) : (
             <>
+              {/* Alerta crítica: al menos uno entre reg_fechanac y reg_edad
+                  debe estar activo para poder filtrar categorías y precios. */}
+              {ageFieldsMissing && (
+                <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <strong>Falta capturar edad:</strong> tienes desactivados los campos
+                    <em> Fecha de nacimiento</em> y <em>Edad</em>. El formulario no podrá
+                    filtrar categorías por edad ni resolver precios dependientes de edad.
+                    Activa al menos uno de los dos.
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm text-muted-foreground">
                   {enabledCount} de {rows.length} campos activos

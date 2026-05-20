@@ -121,17 +121,17 @@ export const getCompetenciaDetailUrl = (id: string): string =>
 export const getCompetenciaGroupUrl = (compId: string, groupId: string): string =>
   `${API_BASE_URL}/competencias.php${buildQuery({ tipo: compId, detalle: '1' })}`;
 
-// ============= Brackets (Match Play / Knockout) =============
+// ============= Brackets — Putt Finales (Caballero / Dama) =============
 
-/** List every prize row across the 6 bracket-eligible tables with is_bracket flag */
-export const getBracketsListPrizesUrl = (): string =>
-  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'list_prizes' })}`;
+/** Público: ambos brackets (M/F) con config + matches + visible. */
+export const getPuttFinalesUrl = (): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_putt_finales' })}`;
 
-/** Get bracket_config + matches for a single (prize_table, prize_id) pair */
-export const getBracketConfigUrl = (prizeTable: string, prizeId: number | string): string =>
-  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_config', prize_table: prizeTable, prize_id: String(prizeId) })}`;
+/** Admin: mismo + candidates_count por sexo. */
+export const getPuttFinalesAdminUrl = (): string =>
+  `${API_BASE_URL}/brackets.php${buildQuery({ action: 'get_putt_admin' })}`;
 
-/** POST endpoints — same file, action passed in body */
+/** Endpoint POST genérico — action va en query. */
 export const getBracketsActionUrl = (action: string): string =>
   `${API_BASE_URL}/brackets.php${buildQuery({ action })}`;
 
@@ -211,6 +211,32 @@ export const getRegistroVerifyUrl = (): string =>
 /** Stream binary attachment for a single registro row */
 export const getRegistroArchivoUrl = (id: number, password: string): string =>
   `${API_BASE_URL}/registro_archivo.php?id=${id}&password=${encodeURIComponent(password)}`;
+
+// ============= Pre-Registro · Precios =============
+
+/** Admin / lectura pública: lista completa de reglas de precio del torneo. */
+export const getRegistroPreciosUrl = (): string =>
+  `${API_BASE_URL}/registro_precios.php${buildQuery()}`;
+
+/**
+ * Match de precio para un jugador específico.
+ * Cualquier parámetro puede omitirse — el backend usa NULL como comodín.
+ */
+export const getRegistroPrecioMatchUrl = (params: {
+  categoria?: string;
+  tipo_socio?: string;
+  genero?: string;
+  edad?: string | number;
+  handicap?: string | number;
+}): string => {
+  const clean: Record<string, string> = { action: 'match' };
+  if (params.categoria)   clean.categoria  = params.categoria;
+  if (params.tipo_socio)  clean.tipo_socio = params.tipo_socio;
+  if (params.genero)      clean.genero     = params.genero;
+  if (params.edad !== undefined && params.edad !== '') clean.edad = String(params.edad);
+  if (params.handicap !== undefined && params.handicap !== '') clean.handicap = String(params.handicap);
+  return `${API_BASE_URL}/registro_precios.php${buildQuery(clean)}`;
+};
 
 /** Cascading location dropdowns */
 export const getLocationsCountriesUrl = (): string =>

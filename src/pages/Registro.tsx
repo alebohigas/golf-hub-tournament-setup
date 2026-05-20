@@ -30,10 +30,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, CheckCircle2, Send, HelpCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
+import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
@@ -70,7 +73,7 @@ const PLACEHOLDERS: Record<string, string> = {
   reg_apellido:   'Ej: Pérez González',
   reg_correo:     'tu@correo.com',
   reg_telefono:   '+52 55 1234 5678',
-  reg_handicap:   'Ej: 14.2',
+  reg_handicap:   'Entre -6 y 54.0 (ej: 14.2)',
   reg_club:       'Ej: Club de Golf Valle Alto',
   reg_ghin:       'Ej: 123456789',
   numghinspei:    'Ej: 123456789',
@@ -260,6 +263,14 @@ const Registro = () => {
   const [lastIdLookup, setLastIdLookup] = useState<string>('');
 
   /**
+   * Indica que el valor actual de `reg_edad` fue auto-calculado a partir de
+   * `reg_fechanac` (no escrito por el usuario). Cuando es true se renderiza
+   * el input en gris y disabled. Se limpia si el usuario borra la fecha o
+   * decide editar manualmente.
+   */
+  const [edadAuto, setEdadAuto] = useState<boolean>(false);
+
+  /**
    * Field config sorted by display_order, enabled only.
    * UX rule: `reg_sexo` and `reg_fechanac` MUST always render right
    * before `reg_categoria` because they drive the eligible-categories
@@ -273,11 +284,14 @@ const Registro = () => {
 
     const sexo = enabled.find(f => f.field_name === 'reg_sexo');
     const fnac = enabled.find(f => f.field_name === 'reg_fechanac');
+    const edad = enabled.find(f => f.field_name === 'reg_edad');
     const cat  = enabled.find(f => f.field_name === 'reg_categoria');
-    if (!cat || (!sexo && !fnac)) return enabled;
+    if (!cat || (!sexo && !fnac && !edad)) return enabled;
 
     const without = enabled.filter(
-      f => f.field_name !== 'reg_sexo' && f.field_name !== 'reg_fechanac'
+      f => f.field_name !== 'reg_sexo'
+        && f.field_name !== 'reg_fechanac'
+        && f.field_name !== 'reg_edad'
     );
     const catIdx = without.findIndex(f => f.field_name === 'reg_categoria');
     const head = without.slice(0, catIdx);
@@ -286,6 +300,7 @@ const Registro = () => {
       ...head,
       ...(sexo ? [sexo] : []),
       ...(fnac ? [fnac] : []),
+      ...(edad ? [edad] : []),
       ...tail,
     ];
   }, [fieldsData]);
@@ -296,10 +311,13 @@ const Registro = () => {
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
   /**
-   * Strict numeric handicap regex: digits, optional single dot, digits.
+   * Strict numeric handicap regex: optional minus sign, digits, optional single dot, digits.
    * Empty string is treated as "not yet entered" (no error).
    */
-  const HANDICAP_RE = /^\d+(\.\d+)?$/;
+  const HANDICAP_RE = /^-?\d+(\.\d+)?$/;
+  /** Accepted handicap range for pre-registro (inclusive). */
+  const HANDICAP_MIN = -6;
+  const HANDICAP_MAX = 54.0;
 
   /** onBlur validator for the handicap field. */
   const validateHandicapOnBlur = () => {
@@ -309,9 +327,16 @@ const Registro = () => {
       const msg = 'Hándicap inválido. Usa solo números y punto decimal (ej: 14.2)';
       setHandicapError(msg);
       toast({ title: 'Hándicap inválido', description: msg, variant: 'destructive' });
-    } else {
-      setHandicapError('');
+      return;
     }
+    const num = parseFloat(v);
+    if (num < HANDICAP_MIN || num > HANDICAP_MAX) {
+      const msg = `El hándicap debe estar entre ${HANDICAP_MIN} y ${HANDICAP_MAX}.`;
+      setHandicapError(msg);
+      toast({ title: 'Hándicap fuera de rango', description: msg, variant: 'destructive' });
+      return;
+    }
+    setHandicapError('');
   };
 
   // ============= Email validation =============
@@ -569,9 +594,25 @@ const Registro = () => {
 
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
-    const hcp  = parseFloat(values.reg_handicap);
+    const hcpRaw = parseFloat(values.reg_handicap);
     const sex  = (values.reg_sexo || '').toUpperCase();
-    const age  = calcAge(values.reg_fechanac || '');
+    // Edad: prioriza la calculada desde fechanac; si no, usa la capturada
+    // manualmente en reg_edad (cuando el admin desactivó fechanac).
+    const ageFromBirth = calcAge(values.reg_fechanac || '');
+    const ageManual    = parseInt(values.reg_edad || '', 10);
+    const age = ageFromBirth !== null
+      ? ageFromBirth
+      : (!isNaN(ageManual) ? ageManual : null);
+    // Si el jugador tiene un handicap por debajo del mínimo global definido
+    // en las categorías (p.ej. registramos hasta -6 pero la categoría más
+    // baja arranca en -5), igual debe caer en la categoría inferior. Para
+    // ello "elevamos" su handicap al mínimo global a efectos del filtro.
+    const globalMinHcp = categories
+      .filter(c => c.hcpMax > 0)
+      .reduce<number | null>((min, c) => (min === null || c.hcpMin < min ? c.hcpMin : min), null);
+    const hcp = !isNaN(hcpRaw) && globalMinHcp !== null && hcpRaw < globalMinHcp
+      ? globalMinHcp
+      : hcpRaw;
     return categories.filter(c => {
       // Handicap range — only filter when user has typed a number AND the
       // category has a usable range (max > 0 in legacy data sometimes is 0).
@@ -579,13 +620,108 @@ const Registro = () => {
       // Gender filter when category restricts it (M/F).
       if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
       // Age range filter (senior categories with min/max set).
+      // Legacy data uses 0 / null interchangeably as "no limit", so we
+      // ignore zero values to avoid wrongly excluding every player.
       if (age !== null) {
-        if (c.ageMin != null && age < c.ageMin) return false;
-        if (c.ageMax != null && age > c.ageMax) return false;
+        if (c.ageMin != null && c.ageMin > 0 && age < c.ageMin) return false;
+        if (c.ageMax != null && c.ageMax > 0 && age > c.ageMax) return false;
       }
       return true;
     });
   }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac]);
+
+  // ============= Precio estimado de inscripción =============
+
+  /**
+   * Resuelve el NOMBRE de la categoría seleccionada (la BD de precios
+   * guarda nombres, no IDs, para sobrevivir entre torneos).
+   */
+  const selectedCategoryName = useMemo(() => {
+    const id = values.reg_categoria;
+    if (!id) return undefined;
+    return categories.find(c => c.id === id)?.name;
+  }, [categories, values.reg_categoria]);
+
+  /** Edad calculada a partir de la fecha de nacimiento ya validada. */
+  const ageForPricing = useMemo(
+    () => {
+      const fromBirth = calcAge(values.reg_fechanac || '');
+      if (fromBirth !== null) return fromBirth;
+      const manual = parseInt(values.reg_edad || '', 10);
+      return !isNaN(manual) ? manual : null;
+    },
+    [values.reg_fechanac, values.reg_edad]
+  );
+
+  /**
+   * Auto-completar `reg_edad` a partir de `reg_fechanac` cuando ambos campos
+   * están activos. Sincroniza el flag `edadAuto` para que el input se
+   * renderice en gris/disabled. Si la fecha se borra o invalida, libera el
+   * campo para captura manual.
+   */
+  useEffect(() => {
+    if (!isFieldEnabled('reg_edad')) return;
+    const age = calcAge(values.reg_fechanac || '');
+    if (age !== null) {
+      // Auto-rellenar (sólo si cambia, para no entrar en loop infinito).
+      if (values.reg_edad !== String(age)) {
+        setValues(v => ({ ...v, reg_edad: String(age) }));
+      }
+      if (!edadAuto) setEdadAuto(true);
+    } else {
+      // Fecha vacía/inválida — si el valor previo era auto, limpiarlo.
+      if (edadAuto) {
+        setEdadAuto(false);
+        setValues(v => ({ ...v, reg_edad: '' }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.reg_fechanac, visibleFields.length]);
+
+  /**
+   * tipo_socio enviado al matcher:
+   *  - Si es_socio = SI y eligió subtipo → subtipo (TITULAR/EMERITO/DEPENDIENTE)
+   *  - Si es_socio = SI sin subtipo      → 'SOCIO' (cualquier subtipo)
+   *  - Si es_socio = NO                  → 'NO_SOCIO'
+   *  - Si no eligió                       → undefined (sin filtro)
+   */
+  const tipoSocioForPricing = useMemo(() => {
+    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
+    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
+    return undefined;
+  }, [values.reg_es_socio, values.reg_tipo_socio]);
+
+  /** Consulta reactiva al endpoint de matching de precio. */
+  const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
+    categoria:  selectedCategoryName,
+    tipo_socio: tipoSocioForPricing,
+    genero:     values.reg_sexo || undefined,
+    edad:       ageForPricing,
+    handicap:   (() => {
+      const v = parseFloat(values.reg_handicap || '');
+      return isNaN(v) ? null : v;
+    })(),
+    // Sólo consulta cuando hay al menos un filtro útil
+    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo
+              || ageForPricing !== null || values.reg_handicap),
+  });
+  const precioMatch = precioMatchData?.match || null;
+
+  /**
+   * Formateador de moneda con `Intl`. Por defecto MXN-es-MX.
+   * Cae a "$1,234" si la moneda no es estándar ISO.
+   */
+  const formatPrice = (amount: number, currency: string) => {
+    try {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: currency || 'MXN',
+        minimumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `$${amount.toLocaleString('es-MX')} ${currency}`;
+    }
+  };
 
   /** Generic value setter. */
   const setValue = (name: string, v: string) =>
@@ -639,6 +775,18 @@ const Registro = () => {
   /** Submit the form as multipart/form-data. */
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Validate "Clave de Socio" cuando el jugador eligió cargar a cuenta.
+    if (values.reg_es_socio === 'SI' && values.reg_cargo_socio === '1') {
+      const clave = (values.reg_clave_socio || '').trim();
+      if (!clave) {
+        toast({
+          title: 'Clave de Socio requerida',
+          description: 'Captura el número o clave de tu membresía del club.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     // Validate birthdate dd/mm/aaaa if rendered.
     if (isFieldEnabled('reg_fechanac')) {
       const err = validateBirthDmy(birthDmy);
@@ -651,7 +799,7 @@ const Registro = () => {
     // Block submission when the handicap value is malformed.
     if (isFieldEnabled('reg_handicap')) {
       const v = (values.reg_handicap || '').trim();
-      if (v && !HANDICAP_RE.test(v)) {
+      if (v && (!HANDICAP_RE.test(v) || parseFloat(v) < HANDICAP_MIN || parseFloat(v) > HANDICAP_MAX)) {
         validateHandicapOnBlur();
         return;
       }
@@ -683,6 +831,14 @@ const Registro = () => {
         if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
       });
       if (file) fd.append('reg_archivo', file);
+      // Snapshot del precio mostrado al jugador (auditoría / referencia
+      // para el comité). Se calcula en la BD vía registro_precios; aquí
+      // sólo persistimos lo que el jugador vio al pulsar enviar.
+      if (precioMatch) {
+        fd.append('reg_precio_estimado', String(precioMatch.precio));
+        fd.append('reg_precio_moneda',   precioMatch.moneda || 'MXN');
+        fd.append('reg_precio_regla_id', String(precioMatch.id));
+      }
 
       const res = await fetch(getRegistroSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
@@ -974,6 +1130,10 @@ const Registro = () => {
     }
 
     if (name === 'reg_archivo') {
+      // Si el jugador marcó "Cargo a cuenta de socio", se omite por
+      // completo la subida de comprobante de pago (el cargo se hace
+      // directamente a su cuenta de membresía).
+      if (values.reg_cargo_socio === '1') return null;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
@@ -1063,7 +1223,8 @@ const Registro = () => {
             id={id}
             type="text"
             inputMode="decimal"
-            pattern="[0-9]+(\\.[0-9]+)?"
+            pattern="-?[0-9]+(\\.[0-9]+)?"
+            title={`El hándicap debe estar entre ${HANDICAP_MIN} y ${HANDICAP_MAX}.`}
             placeholder={PLACEHOLDERS[name]}
             required={required}
             value={values[name] || ''}
@@ -1078,6 +1239,53 @@ const Registro = () => {
           {handicapError && (
             <p className="text-xs text-destructive">{handicapError}</p>
           )}
+        </div>
+      );
+    }
+
+    /**
+     * Edad: input numérico que se autocompleta desde reg_fechanac cuando
+     * está disponible (`edadAuto = true` → input gris/disabled), o queda
+     * editable cuando no hay fecha (porque el admin desactivó fechanac o
+     * porque el jugador aún no la ha llenado).
+     *
+     * Reglas:
+     *  - Si `reg_fechanac` está activo y tiene valor válido → auto y disabled.
+     *  - Si NO hay fecha o es inválida → editable; el usuario captura su edad.
+     */
+    if (name === 'reg_edad') {
+      const fechanacEnabled = isFieldEnabled('reg_fechanac');
+      const disabled = edadAuto && fechanacEnabled;
+      return (
+        <div className="space-y-2" key={name}>
+          <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
+          <Input
+            id={id}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            required={required}
+            placeholder="Ej: 42"
+            value={values[name] || ''}
+            disabled={disabled}
+            onChange={e => {
+              const v = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
+              setValue(name, v);
+              // Si el usuario edita manualmente liberamos el flag auto.
+              if (edadAuto) setEdadAuto(false);
+            }}
+            className={`[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none ${
+              disabled ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
+            }`}
+          />
+          <p className="text-xs text-muted-foreground">
+            {disabled
+              ? 'Auto-calculada desde tu fecha de nacimiento.'
+              : fechanacEnabled
+                ? 'Se calcula automáticamente cuando llenas la fecha de nacimiento.'
+                : 'Años cumplidos.'}
+          </p>
         </div>
       );
     }
@@ -1197,6 +1405,105 @@ const Registro = () => {
                       });
                       return blocks;
                     })()}
+                    {/* Costo de inscripción calculado a partir de los datos
+                        del jugador y la tabla `registro_precios` (admin).
+                        Sólo se muestra cuando hay al menos un dato útil. */}
+                    {(selectedCategoryName || tipoSocioForPricing || values.reg_sexo) && (
+                      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                              Costo estimado de inscripción
+                            </p>
+                            {precioFetching ? (
+                              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Calculando…
+                              </p>
+                            ) : precioMatch ? (
+                              <>
+                                <p className="text-3xl font-bold text-primary">
+                                  {formatPrice(precioMatch.precio, precioMatch.moneda)}
+                                </p>
+                                {precioMatch.etiqueta && (
+                                  <p className="text-sm text-foreground mt-0.5">{precioMatch.etiqueta}</p>
+                                )}
+                                {precioMatch.incluye && (
+                                  <p className="text-xs text-muted-foreground mt-1">{precioMatch.incluye}</p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Aún no hay un precio configurado para esta combinación de datos.
+                                Contacta al comité para confirmar tu costo.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground italic">
+                          El monto es una estimación calculada con base en tus datos.
+                          La confirmación oficial la realiza el comité del torneo.
+                        </p>
+                      </div>
+                    )}
+                    {/* ============= Cargo a cuenta de socio =============
+                        Sólo visible cuando el jugador declaró ser socio
+                        (cualquier tipo). Al activarlo:
+                          - aparece el campo obligatorio "Clave de Socio"
+                          - se oculta la subida de comprobante (reg_archivo)
+                          - se muestra el aviso de aceptación de cargo. */}
+                    {values.reg_es_socio === 'SI' && (
+                      <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            id="reg_cargo_socio"
+                            checked={values.reg_cargo_socio === '1'}
+                            onCheckedChange={(c) => {
+                              const on = c === true;
+                              setValue('reg_cargo_socio', on ? '1' : '');
+                              if (!on) setValue('reg_clave_socio', '');
+                              // Si se activa el cargo a cuenta, no se requiere
+                              // comprobante de pago; lo limpiamos por si se
+                              // había subido previamente.
+                              if (on) setFile(null);
+                            }}
+                          />
+                          <Label htmlFor="reg_cargo_socio" className="font-medium cursor-pointer leading-tight">
+                            Cargo a cuenta de socio
+                          </Label>
+                        </div>
+                        {values.reg_cargo_socio === '1' && (
+                          <div className="space-y-2 pl-7">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor="reg_clave_socio">
+                                Clave de Socio<span className="text-destructive"> *</span>
+                              </Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger type="button" className="text-muted-foreground hover:text-foreground">
+                                    <HelpCircle className="h-4 w-4" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Este es el numero o clave de la membresia del club
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <Input
+                              id="reg_clave_socio"
+                              required
+                              value={values.reg_clave_socio || ''}
+                              onChange={(e) => setValue('reg_clave_socio', e.target.value)}
+                              placeholder="Ej: 1234"
+                            />
+                            <p className="text-xs text-foreground/80">
+                              Al enviar este registro acepto que se realice el cargo correspondiente
+                              de la inscripción a mi cuenta. Solo Socios de:{' '}
+                              <span className="font-semibold">{tournamentInfo?.club || '—'}</span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="flex justify-end pt-2">
                       <Button type="submit" disabled={submitting} className="gap-2" size="lg">
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
