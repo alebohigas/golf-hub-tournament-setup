@@ -22,7 +22,7 @@ import { Loader2, Trophy, Crown } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface BracketViewProps {
   /** 'M' = Caballero, 'F' = Dama */
@@ -56,25 +56,23 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   );
 
   /**
-   * Cuando el usuario escribe en el buscador, hacer scroll al primer match
-   * en el que aparezca el jugador. Sin dependencia de matches refs cambiantes.
+   * Scroll al primer match con el jugador SOLO cuando el usuario confirma la
+   * búsqueda (selección de sugerencia o Enter). Mientras tipea no salta.
    */
-  useEffect(() => {
-    const term = search.trim();
-    if (!term || !side?.matches) return;
+  const handleSearchSubmit = (term: string) => {
+    const q = term.trim();
+    if (!q || !side?.matches) return;
     const hit = side.matches.find(
       (m) =>
-        matchesPlayerName(m.player1_name, term) ||
-        matchesPlayerName(m.player2_name, term),
+        matchesPlayerName(m.player1_name, q) ||
+        matchesPlayerName(m.player2_name, q),
     );
     if (!hit) return;
-    // Esperar un tick para que los nodos existan.
-    const t = setTimeout(() => {
+    setTimeout(() => {
       const el = matchRefs.current.get(hit.id);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     }, 50);
-    return () => clearTimeout(t);
-  }, [search, side?.matches]);
+  };
 
   if (isLoading) {
     return (
@@ -149,6 +147,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
       <PlayerSearchInput
         value={search}
         onChange={setSearch}
+        onSubmit={handleSearchSubmit}
         suggestions={nameSuggestions}
         placeholder="Buscar jugador en el bracket..."
         className="max-w-md"
