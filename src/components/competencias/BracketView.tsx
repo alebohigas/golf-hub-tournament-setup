@@ -300,7 +300,7 @@ const MatchCard = ({
 
   return (
     <Card
-      ref={registerRef as any}
+      ref={registerRef}
       className={`border-border overflow-hidden divide-y divide-border ${
         h1 || h2
           ? 'ring-2 ring-accent shadow-md'
