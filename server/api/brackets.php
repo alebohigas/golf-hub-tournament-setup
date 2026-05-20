@@ -216,6 +216,52 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
     return array_slice($ranking, 0, $lim);
 }
 
+/**
+ * Re-siembra round 1 cuando un bracket existente fue generado con slots vacíos.
+ * No toca brackets que ya tienen scores/ganadores para evitar pisar resultados.
+ */
+function repair_empty_seed_slots($conn, $cfg, $sexo) {
+    if (!$cfg) return;
+    $cfgId = (int)$cfg['id'];
+    $tid   = (int)$cfg['torneoid'];
+    $size  = (int)($cfg['bracket_size'] ?? $cfg['size'] ?? 0);
+    if ($cfgId <= 0 || $tid <= 0 || $size <= 0) return;
+
+    $progress = safe_one($conn, "SELECT COUNT(*) AS cnt
+                                FROM bracket_matches
+                                WHERE bracket_id = $cfgId
+                                  AND (winner_player_id IS NOT NULL
+                                       OR score_high IS NOT NULL
+                                       OR score_low IS NOT NULL)");
+    if ((int)($progress['cnt'] ?? 0) > 0) return;
+
+    $seeded = safe_one($conn, "SELECT SUM((player_high_id IS NOT NULL) + (player_low_id IS NOT NULL)) AS cnt
+                              FROM bracket_matches
+                              WHERE bracket_id = $cfgId AND round_num = 1");
+    $ranking = collect_putt_ranking($conn, $tid, $sexo, $size);
+    $expectedPlayers = min($size, count($ranking));
+    if ((int)($seeded['cnt'] ?? 0) >= $expectedPlayers || $expectedPlayers <= 0) return;
+
+    $players = array_slice($ranking, 0, $size);
+    while (count($players) < $size) $players[] = ['jugadorid' => null];
+
+    foreach (build_seed_pairs($size) as $i => $pair) {
+        $pos = $i + 1;
+        $p1 = $players[$pair[0] - 1]['jugadorid'] ?? null;
+        $p2 = $players[$pair[1] - 1]['jugadorid'] ?? null;
+        $p1Sql = $p1 !== null ? (int)$p1 : 'NULL';
+        $p2Sql = $p2 !== null ? (int)$p2 : 'NULL';
+        $s1 = (int)$pair[0];
+        $s2 = (int)$pair[1];
+        $conn->query("UPDATE bracket_matches
+                      SET player_high_id = $p1Sql, player_low_id = $p2Sql,
+                          seed_high = $s1, seed_low = $s2, updated_at = NOW()
+                      WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
+        if ($p1 !== null && $p2 === null)      advance_winner($conn, (int)safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos")['id'], (int)$p1);
+        elseif ($p2 !== null && $p1 === null)  advance_winner($conn, (int)safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos")['id'], (int)$p2);
+    }
+}
+
 // ============= Acción: get_putt_finales (público) =============
 /**
  * Devuelve la configuración + matches actuales para ambos brackets (M/F).
