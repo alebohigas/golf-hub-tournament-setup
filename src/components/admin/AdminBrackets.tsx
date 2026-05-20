@@ -220,7 +220,7 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
         )}
         {mode === 'config' && side && side.matches.length > 0 && (
           <p className="text-xs text-muted-foreground border-t border-border pt-3">
-            Bracket generado · {side.matches.length} matches. La captura de resultados
+            Bracket generado · {cfg?.size ?? '?'} jugadores · {side.matches.length} matches. La captura de resultados
             se realiza en <a href="/admin/brackets" target="_blank" rel="noopener noreferrer" className="underline text-primary">/admin/brackets</a>.
           </p>
         )}
