@@ -354,8 +354,8 @@ const GrandFinalView = ({
 
   return (
     <section className="space-y-4 border-t-2 border-accent/50 pt-6">
-      <div className="text-center space-y-2">
-        <h3 className="text-2xl font-bold text-accent inline-flex items-center gap-2">
+      <div className="text-center flex flex-col items-center gap-3">
+        <h3 className="text-2xl font-bold text-accent flex items-center justify-center gap-2">
           <Crown className="h-6 w-6" /> Gran Final
         </h3>
         {championName && (
