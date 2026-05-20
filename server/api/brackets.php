@@ -120,61 +120,148 @@ function build_seed_pairs($size) {
 
 // ============= Ranking acumulado de putt (sembrado) =============
 /**
- * Replica la lógica de `ganadores_putt_json.php` (legacy):
- *   1) Distinct PREMIO+HOYO por sexo (vía categorias.SEXO) y torneo.
- *   2) Por cada PREMIO, toma las HOYO mejores distancias de v_puttjug
- *      (sin filtrar por sexo del jugador — el PREMIO ya es sexo-específico).
- *   3) UNION (no UNION ALL) entre subqueries para deduplicar empates exactos.
- *   4) Orden final por distancia ASC, ultact ASC y se cortan los `limit`
- *      jugadores que entran al bracket (tamaño del bracket).
+ * Marca la mejor distancia de cada jugador dentro de cada grupo Putt.
+ * Es el mismo criterio usado por `competencias.php`, por eso brackets y tablas
+ * públicas leen del mismo universo de jugadores.
+ */
+function refresh_putt_best_flags($conn, $torneoid) {
+    $tid = (int)$torneoid;
+    $conn->query("UPDATE puttjug SET orden = 0 WHERE torneoid = $tid");
+    $conn->query("UPDATE puttjug a
+                  JOIN (
+                      SELECT torneoid, premio, premiosjugcol, jugadorid, MIN(distancia) AS mindistancia
+                      FROM puttjug
+                      WHERE torneoid = $tid
+                      GROUP BY torneoid, premio, premiosjugcol, jugadorid
+                  ) b ON (a.torneoid = b.torneoid
+                          AND a.premio = b.premio
+                          AND a.premiosjugcol <=> b.premiosjugcol
+                          AND a.jugadorid = b.jugadorid
+                          AND a.distancia = b.mindistancia)
+                  SET a.orden = 1
+                  WHERE a.torneoid = $tid");
+}
+
+/**
+ * Construye el ranking para sembrar brackets desde `putt` + `puttjug`.
  *
- * Devuelve filas con: jugadorid, jugador, categoria, distancia, ultact.
+ * Flujo:
+ *   1) Lee cada grupo configurado en `putt` por PREMIO + descripción.
+ *   2) Toma los mejores `hoyo` jugadores de `puttjug` para ese grupo.
+ *   3) Filtra por `jugadores.sexo` M/F.
+ *   4) Deduplica por jugador conservando su mejor distancia global.
+ *   5) Ordena por distancia ASC y corta al tamaño del bracket.
+ *
+ * Devuelve filas normalizadas con `jugadorid`, `jugador`, `categoria`,
+ * `distancia` y `ultact`, que son las llaves que usa `action_generate_putt`.
  */
 function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
-    $tid    = (int)$torneoid;
-    $sx     = esc($conn, $sexo);
+    $tid = (int)$torneoid;
+    $sx  = esc($conn, strtoupper((string)$sexo));
+    $lim = max(1, (int)$limit);
 
-    // (1) Distinct PREMIO + HOYO del torneo. `putt` no tiene columna SEXO ni
-    // FK directa a categorias, así que tomamos TODOS los premios del torneo
-    // y filtramos por sexo más adelante (en el subquery de cada premio,
-    // contra jugadores.sexo). El legacy `ganadores_putt_json.php` tenía el
-    // bug de no filtrar por sexo en el subquery interno — lo corregimos acá.
-    $sqlPrizes = "SELECT DISTINCT p.premio AS PREMIO,
-                                  MIN(NULLIF(p.hoyo,0)) AS HOYO
+    refresh_putt_best_flags($conn, $tid);
+
+    // Catálogo de grupos Putt: incluye descripción porque premio puede repetirse
+    // para Damas/Caballeros u otros cortes y `premiosjugcol` separa esos listados.
+    $sqlPrizes = "SELECT p.premio AS premio,
+                         TRIM(p.descripcion) AS descripcion,
+                         MIN(NULLIF(p.hoyo, 0)) AS lugares
                   FROM putt p
                   WHERE p.torneoid = $tid AND p.premio > 0
-                  GROUP BY p.premio";
+                  GROUP BY p.premio, p.descripcion
+                  ORDER BY p.premio ASC";
     $prizes = safe_all($conn, $sqlPrizes);
     if (empty($prizes)) return [];
 
-    // (2) UNION de las HOYO mejores entradas por PREMIO, filtradas por
-    // jugadores.sexo = $sx para no cruzar M/F entre premios compartidos.
-    $unionParts = [];
+    $rankingByPlayer = [];
+    $sequence = 0;
     foreach ($prizes as $p) {
-        $premio = (int)$p['PREMIO'];
-        $hoyo   = (int)$p['HOYO'];
-        if ($hoyo <= 0) continue;
-        $unionParts[] = "SELECT * FROM (
-                            SELECT vp.id, vp.campo, vp.hoyo, vp.premio, vp.fecha,
-                                   vp.jugador, vp.categoria, vp.distancia,
-                                   vp.jugadorid, vp.torneoid, vp.descripcion, vp.ultact
-                            FROM v_puttjug vp
-                            JOIN jugadores j ON j.id = vp.jugadorid
-                            WHERE vp.torneoid = $tid
-                              AND vp.premio   = $premio
-                              AND j.sexo      = '$sx'
-                            ORDER BY vp.distancia ASC
-                            LIMIT $hoyo
-                         ) AS sub_$premio";
-    }
-    if (empty($unionParts)) return [];
+        $premio = (int)$p['premio'];
+        $desc   = esc($conn, trim((string)($p['descripcion'] ?? '')));
+        $places = (int)($p['lugares'] ?? 0);
+        if ($premio <= 0 || $places <= 0) continue;
 
-    // (3)+(4) UNION (dedupe) + orden global + LIMIT del tamaño del bracket.
-    $lim = (int)$limit;
-    $sqlAgg = "SELECT * FROM (" . implode(' UNION ', $unionParts) . ") AS z
-               ORDER BY z.distancia ASC, z.ultact ASC
-               LIMIT $lim";
-    return safe_all($conn, $sqlAgg);
+        $rows = safe_all($conn, "SELECT a.jugadorid AS jugadorid,
+                                        CONCAT(j.nombre, ' ', j.apellido) AS jugador,
+                                        a.premiosjugcol AS categoria,
+                                        a.distancia AS distancia,
+                                        a.id AS ultact
+                                 FROM puttjug a
+                                 JOIN jugadores j ON j.id = a.jugadorid
+                                 WHERE a.torneoid = $tid
+                                   AND a.premio = $premio
+                                   AND TRIM(a.premiosjugcol) = '$desc'
+                                   AND a.orden = 1
+                                   AND UPPER(TRIM(j.sexo)) = '$sx'
+                                 ORDER BY a.distancia ASC, a.id ASC
+                                 LIMIT $places");
+
+        foreach ($rows as $row) {
+            $jid = (int)($row['jugadorid'] ?? 0);
+            if ($jid <= 0) continue;
+            $row['_seq'] = $sequence++;
+            $existing = $rankingByPlayer[$jid] ?? null;
+            if (!$existing || (float)$row['distancia'] < (float)$existing['distancia']) {
+                $rankingByPlayer[$jid] = $row;
+            }
+        }
+    }
+
+    $ranking = array_values($rankingByPlayer);
+    usort($ranking, function ($a, $b) {
+        $byDistance = (float)$a['distancia'] <=> (float)$b['distancia'];
+        return $byDistance !== 0 ? $byDistance : ((int)$a['_seq'] <=> (int)$b['_seq']);
+    });
+    return array_slice($ranking, 0, $lim);
+}
+
+/**
+ * Re-siembra round 1 cuando un bracket existente fue generado con slots vacíos.
+ * No toca brackets que ya tienen scores/ganadores para evitar pisar resultados.
+ */
+function repair_empty_seed_slots($conn, $cfg, $sexo) {
+    if (!$cfg) return;
+    $cfgId = (int)$cfg['id'];
+    $tid   = (int)$cfg['torneoid'];
+    $size  = (int)($cfg['bracket_size'] ?? $cfg['size'] ?? 0);
+    if ($cfgId <= 0 || $tid <= 0 || $size <= 0) return;
+
+    $progress = safe_one($conn, "SELECT COUNT(*) AS cnt
+                                FROM bracket_matches
+                                WHERE bracket_id = $cfgId
+                                  AND (winner_player_id IS NOT NULL
+                                       OR score_high IS NOT NULL
+                                       OR score_low IS NOT NULL)");
+    if ((int)($progress['cnt'] ?? 0) > 0) return;
+
+    $seeded = safe_one($conn, "SELECT SUM((player_high_id IS NOT NULL) + (player_low_id IS NOT NULL)) AS cnt
+                              FROM bracket_matches
+                              WHERE bracket_id = $cfgId AND round_num = 1");
+    $ranking = collect_putt_ranking($conn, $tid, $sexo, $size);
+    $expectedPlayers = min($size, count($ranking));
+    if ((int)($seeded['cnt'] ?? 0) >= $expectedPlayers || $expectedPlayers <= 0) return;
+
+    $players = array_slice($ranking, 0, $size);
+    while (count($players) < $size) $players[] = ['jugadorid' => null];
+
+    foreach (build_seed_pairs($size) as $i => $pair) {
+        $pos = $i + 1;
+        $p1 = $players[$pair[0] - 1]['jugadorid'] ?? null;
+        $p2 = $players[$pair[1] - 1]['jugadorid'] ?? null;
+        $p1Sql = $p1 !== null ? (int)$p1 : 'NULL';
+        $p2Sql = $p2 !== null ? (int)$p2 : 'NULL';
+        $s1 = (int)$pair[0];
+        $s2 = (int)$pair[1];
+        $conn->query("UPDATE bracket_matches
+                      SET player_high_id = $p1Sql, player_low_id = $p2Sql,
+                          seed_high = $s1, seed_low = $s2, updated_at = NOW()
+                      WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
+        $matchRow = safe_one($conn, "SELECT id FROM bracket_matches WHERE bracket_id = $cfgId AND round_num = 1 AND match_num = $pos");
+        $matchId = (int)($matchRow['id'] ?? 0);
+        if ($matchId > 0 && $p1 !== null && $p2 === null)      advance_winner($conn, $matchId, (int)$p1);
+        elseif ($matchId > 0 && $p2 !== null && $p1 === null)  advance_winner($conn, $matchId, (int)$p2);
+    }
 }
 
 // ============= Acción: get_putt_finales (público) =============
@@ -193,6 +280,7 @@ function action_get_putt_finales($conn, $torneoid) {
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
         $matches = [];
         if ($cfg) {
+            repair_empty_seed_slots($conn, $cfg, $sx);
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
@@ -238,6 +326,7 @@ function action_get_putt_admin($conn, $torneoid) {
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
         $matches = [];
         if ($cfg) {
+            repair_empty_seed_slots($conn, $cfg, $sx);
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
