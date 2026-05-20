@@ -120,12 +120,13 @@ function build_seed_pairs($size) {
 
 // ============= Ranking acumulado de putt (sembrado) =============
 /**
- * Replica la lógica de `listado_ganadores_put-2.php` corrigiendo el bug del
- * filtro por sexo: filtra correctamente DENTRO de cada subquery del UNION.
- *
- * Para cada premio (PREMIO) del torneo, toma las HOYO mejores distancias
- * de v_puttjug filtradas por sexo del jugador, luego ordena el agregado
- * por distancia ASC y ultact ASC, y limita a $limit (tamaño del bracket).
+ * Replica la lógica de `ganadores_putt_json.php` (legacy):
+ *   1) Distinct PREMIO+HOYO por sexo (vía categorias.SEXO) y torneo.
+ *   2) Por cada PREMIO, toma las HOYO mejores distancias de v_puttjug
+ *      (sin filtrar por sexo del jugador — el PREMIO ya es sexo-específico).
+ *   3) UNION (no UNION ALL) entre subqueries para deduplicar empates exactos.
+ *   4) Orden final por distancia ASC, ultact ASC y se cortan los `limit`
+ *      jugadores que entran al bracket (tamaño del bracket).
  *
  * Devuelve filas con: jugadorid, jugador, categoria, distancia, ultact.
  */
@@ -133,37 +134,38 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
     $tid    = (int)$torneoid;
     $sx     = esc($conn, $sexo);
 
-    // Lista distinct PREMIO + HOYO de la tabla putt (sólo premios del sexo
-    // correspondiente — se hace JOIN con categorias.sexo igual que el legacy).
-    $sqlPrizes = "SELECT DISTINCT a.PREMIO, a.HOYO
+    // (1) Distinct PREMIO + HOYO sólo para el sexo solicitado — el JOIN con
+    // categorias garantiza que sólo entran premios del sexo correcto.
+    $sqlPrizes = "SELECT DISTINCT a.PREMIO, a.SEXO, a.HOYO
                   FROM putt a
                   JOIN categorias b ON a.categoriaid = b.categoria_id
                   WHERE a.torneoid = $tid AND b.SEXO = '$sx'";
     $prizes = safe_all($conn, $sqlPrizes);
     if (empty($prizes)) return [];
 
-    // UNION ALL de las HOYO mejores por premio, con filtro extra por sexo
-    // del jugador (JOIN jugadores) para que NO se cuelen del otro sexo.
+    // (2) UNION de las HOYO mejores entradas por PREMIO. Réplica exacta del
+    // legacy: SIN join con jugadores (el PREMIO ya implica el sexo).
     $unionParts = [];
     foreach ($prizes as $p) {
         $premio = (int)$p['PREMIO'];
         $hoyo   = (int)$p['HOYO'];
         if ($hoyo <= 0) continue;
-        $unionParts[] = "(SELECT vp.id, vp.campo, vp.hoyo, vp.premio, vp.fecha,
-                                 vp.jugador, vp.categoria, vp.distancia,
-                                 vp.jugadorid, vp.torneoid, vp.descripcion, vp.ultact
-                          FROM v_puttjug vp
-                          JOIN jugadores j ON j.id = vp.jugadorid
-                          WHERE vp.torneoid = $tid
-                            AND vp.premio   = $premio
-                            AND j.sexo      = '$sx'
-                          ORDER BY vp.distancia ASC
-                          LIMIT $hoyo)";
+        $unionParts[] = "SELECT * FROM (
+                            SELECT vp.id, vp.campo, vp.hoyo, vp.premio, vp.fecha,
+                                   vp.jugador, vp.categoria, vp.distancia,
+                                   vp.jugadorid, vp.torneoid, vp.descripcion, vp.ultact
+                            FROM v_puttjug vp
+                            WHERE vp.torneoid = $tid
+                              AND vp.premio   = $premio
+                            ORDER BY vp.distancia ASC
+                            LIMIT $hoyo
+                         ) AS sub_$premio";
     }
     if (empty($unionParts)) return [];
 
+    // (3)+(4) UNION (dedupe) + orden global + LIMIT del tamaño del bracket.
     $lim = (int)$limit;
-    $sqlAgg = "SELECT * FROM (" . implode(' UNION ALL ', $unionParts) . ") AS z
+    $sqlAgg = "SELECT * FROM (" . implode(' UNION ', $unionParts) . ") AS z
                ORDER BY z.distancia ASC, z.ultact ASC
                LIMIT $lim";
     return safe_all($conn, $sqlAgg);
