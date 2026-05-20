@@ -359,14 +359,18 @@ const GrandFinalView = ({
 
   return (
     <section className="space-y-4 border-t-2 border-accent/50 pt-6">
-      <div className="text-center flex flex-col items-center gap-3">
-        <h3 className="text-2xl font-bold text-accent flex items-center justify-center gap-2">
+      <div className="text-center grid grid-cols-1 justify-items-center gap-4">
+        {/* Título en su propia fila: evita que la tarjeta de campeón lo tape. */}
+        <h3 className="w-full text-2xl font-bold text-accent flex items-center justify-center gap-2 leading-none">
           <Crown className="h-6 w-6" /> Gran Final
         </h3>
         {championName && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+          <div className="w-full flex justify-center">
+            {/* Badge de campeón en segunda fila con ancho controlado para nombres largos. */}
+            <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
             <Trophy className="h-5 w-5" />
-            Campeón: {championName}
+              <span className="min-w-0 truncate">Campeón: {championName}</span>
+            </div>
           </div>
         )}
       </div>
