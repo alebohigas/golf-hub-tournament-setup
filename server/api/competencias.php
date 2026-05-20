@@ -992,7 +992,7 @@ error_log("competencias.php - Completed O'Yes 300 section, competencias count: "
  * Sólo se considera 'putt' o '' como tipo (mismo gating que el resto).
  */
 if ($tipo === '' || $tipo === 'putt' || $tipo === 'putt_finales') {
-    $sqlFinales = "SELECT prize_id, sexo, size, visible, status
+    $sqlFinales = "SELECT prize_id, sexo, bracket_size AS size, visible, status
                    FROM bracket_config
                    WHERE torneoid = $tid AND prize_table = 'putt_finales' AND visible = 1
                    ORDER BY prize_id ASC";

@@ -30,26 +30,10 @@ interface BracketViewProps {
 }
 
 /**
- * Etiqueta de ronda dentro de un grupo (siempre 16 jugadores → 4 rondas:
- * Octavos → Cuartos → Semifinal → Final del grupo).
+ * Etiqueta de ronda dentro de un grupo: simple "Ronda N" para no confundir a
+ * los jugadores con nomenclatura tipo Octavos/Cuartos.
  */
-const groupRoundLabel = (round: number, lastRound: number): string => {
-  const fromEnd = lastRound - round;
-  if (fromEnd === 0) return 'Final del Grupo';
-  if (fromEnd === 1) return 'Semifinal';
-  if (fromEnd === 2) return 'Cuartos';
-  if (fromEnd === 3) return 'Octavos';
-  return `R${round}`;
-};
-
-/** Etiqueta para rondas de la Gran Final (a partir de los ganadores de grupo). */
-const grandFinalRoundLabel = (round: number, lastRound: number): string => {
-  const fromEnd = lastRound - round;
-  if (fromEnd === 0) return 'Final';
-  if (fromEnd === 1) return 'Semifinal';
-  if (fromEnd === 2) return 'Cuartos';
-  return `R${round}`;
-};
+const groupRoundLabel = (round: number, _lastRound: number): string => `Ronda ${round}`;
 
 const BracketView = ({ sexo }: BracketViewProps) => {
   const { data, isLoading, error } = usePuttFinales();
@@ -391,7 +375,7 @@ const GrandFinalView = ({
             return (
               <div key={`L-${round}`} className="flex flex-col gap-3 min-w-[200px]">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
-                  {grandFinalRoundLabel(round, totalRounds)}
+                  {round === totalRounds - 1 ? 'Semifinal 1' : `Ronda ${round}`}
                 </h4>
                 <div className="flex flex-col gap-3 justify-around flex-1">
                   {left.map((m) => (
@@ -413,7 +397,7 @@ const GrandFinalView = ({
           {finalMatch && (
             <div className="flex flex-col gap-3 min-w-[220px]">
               <h4 className="text-xs font-bold uppercase text-center text-accent tracking-wide">
-                Final
+                Gran Final
               </h4>
               <div className="flex flex-col gap-3 justify-center flex-1">
                 <MatchCard
@@ -434,7 +418,7 @@ const GrandFinalView = ({
             return (
               <div key={`R-${round}`} className="flex flex-col gap-3 min-w-[200px]">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
-                  {grandFinalRoundLabel(round, totalRounds)}
+                  {round === totalRounds - 1 ? 'Semifinal 2' : `Ronda ${round}`}
                 </h4>
                 <div className="flex flex-col gap-3 justify-around flex-1">
                   {right.map((m) => (
