@@ -134,17 +134,21 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
     $tid    = (int)$torneoid;
     $sx     = esc($conn, $sexo);
 
-    // (1) Distinct PREMIO + HOYO sólo para el sexo solicitado — el JOIN con
-    // categorias garantiza que sólo entran premios del sexo correcto.
-    $sqlPrizes = "SELECT DISTINCT a.PREMIO, a.SEXO, a.HOYO
-                  FROM putt a
-                  JOIN categorias b ON a.categoriaid = b.categoria_id
-                  WHERE a.torneoid = $tid AND b.SEXO = '$sx'";
+    // (1) Distinct PREMIO + HOYO del torneo. `putt` no tiene columna SEXO ni
+    // FK directa a categorias, así que tomamos TODOS los premios del torneo
+    // y filtramos por sexo más adelante (en el subquery de cada premio,
+    // contra jugadores.sexo). El legacy `ganadores_putt_json.php` tenía el
+    // bug de no filtrar por sexo en el subquery interno — lo corregimos acá.
+    $sqlPrizes = "SELECT DISTINCT p.premio AS PREMIO,
+                                  MIN(NULLIF(p.hoyo,0)) AS HOYO
+                  FROM putt p
+                  WHERE p.torneoid = $tid AND p.premio > 0
+                  GROUP BY p.premio";
     $prizes = safe_all($conn, $sqlPrizes);
     if (empty($prizes)) return [];
 
-    // (2) UNION de las HOYO mejores entradas por PREMIO. Réplica exacta del
-    // legacy: SIN join con jugadores (el PREMIO ya implica el sexo).
+    // (2) UNION de las HOYO mejores entradas por PREMIO, filtradas por
+    // jugadores.sexo = $sx para no cruzar M/F entre premios compartidos.
     $unionParts = [];
     foreach ($prizes as $p) {
         $premio = (int)$p['PREMIO'];
@@ -155,8 +159,10 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                    vp.jugador, vp.categoria, vp.distancia,
                                    vp.jugadorid, vp.torneoid, vp.descripcion, vp.ultact
                             FROM v_puttjug vp
+                            JOIN jugadores j ON j.id = vp.jugadorid
                             WHERE vp.torneoid = $tid
                               AND vp.premio   = $premio
+                              AND j.sexo      = '$sx'
                             ORDER BY vp.distancia ASC
                             LIMIT $hoyo
                          ) AS sub_$premio";
