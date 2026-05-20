@@ -513,7 +513,7 @@ const AdminDashboard = () => {
         </TabsContent>
         {/* Brackets Putt Tab — config + visibilidad de Putt Finales (M/F) */}
         <TabsContent value="brackets">
-          <AdminBrackets />
+          <AdminBrackets mode="config" />
         </TabsContent>
       </Tabs>
 
