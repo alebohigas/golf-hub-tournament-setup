@@ -22,7 +22,7 @@ import { Loader2, Trophy, Crown } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface BracketViewProps {
   /** 'M' = Caballero, 'F' = Dama */
