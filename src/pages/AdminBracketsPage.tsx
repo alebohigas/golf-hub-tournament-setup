@@ -85,7 +85,7 @@ const AdminBracketsPage = () => {
     <Layout>
       {authed ? (
         <div className="container mx-auto px-4 py-8">
-          <AdminBrackets />
+          <AdminBrackets mode="scores" />
         </div>
       ) : (
         <LoginForm onLogin={onLogin} />
