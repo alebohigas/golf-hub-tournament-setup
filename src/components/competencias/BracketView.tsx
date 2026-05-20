@@ -375,7 +375,7 @@ const GrandFinalView = ({
             return (
               <div key={`L-${round}`} className="flex flex-col gap-3 min-w-[200px]">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
-                  {grandFinalRoundLabel(round, totalRounds)}
+                  {round === totalRounds - 1 ? 'Semifinal 1' : `Ronda ${round}`}
                 </h4>
                 <div className="flex flex-col gap-3 justify-around flex-1">
                   {left.map((m) => (
@@ -397,7 +397,7 @@ const GrandFinalView = ({
           {finalMatch && (
             <div className="flex flex-col gap-3 min-w-[220px]">
               <h4 className="text-xs font-bold uppercase text-center text-accent tracking-wide">
-                Final
+                Gran Final
               </h4>
               <div className="flex flex-col gap-3 justify-center flex-1">
                 <MatchCard
@@ -418,7 +418,7 @@ const GrandFinalView = ({
             return (
               <div key={`R-${round}`} className="flex flex-col gap-3 min-w-[200px]">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
-                  {grandFinalRoundLabel(round, totalRounds)}
+                  {round === totalRounds - 1 ? 'Semifinal 2' : `Ronda ${round}`}
                 </h4>
                 <div className="flex flex-col gap-3 justify-around flex-1">
                   {right.map((m) => (
