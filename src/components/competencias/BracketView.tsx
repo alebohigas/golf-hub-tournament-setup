@@ -112,29 +112,35 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const searching = search.trim().length > 0;
 
   /**
-   * Reparto en grupos de 16:
-   *   - groupsCount = max(1, size / 16)
-   *   - groupRoundsCount = min(totalRounds, 4)  → rondas que se dibujan dentro
-   *     de cada grupo (Octavos..Final del Grupo).
-   *   - Las rondas posteriores (round > 4) forman la Gran Final.
+   * Reparto en grupos:
+   *   - Seed 16 → un único bracket sin sección Gran Final.
+   *   - Seed > 16 (32 / 64 / 128) → la Gran Final SIEMPRE contiene las 2 últimas
+   *     rondas (semifinales + final). Por lo tanto los grupos siempre producen
+   *     exactamente 4 ganadores (4 semifinalistas).
+   *       groupsCount      = 4
+   *       groupRoundsCount = totalRounds - 2
+   *       groupSize        = size / 4   (8, 16 ó 32 jugadores por grupo)
    *
    * Asignación de matches a grupo según posición:
    *   en la ronda r, hay (size / 2^r) matches en total; cada grupo contiene
-   *   (16 / 2^r) matches consecutivos (positions ordenadas por la query).
+   *   (groupSize / 2^r) matches consecutivos (positions ordenadas por la query).
    */
-  const groupsCount = Math.max(1, Math.floor(Number(config.size) / 16));
-  const groupRoundsCount = Math.min(totalRounds, 4);
+  const size = Number(config.size);
+  const hasGrandFinal = size > 16;
+  const groupsCount = hasGrandFinal ? 4 : 1;
+  const groupRoundsCount = hasGrandFinal ? totalRounds - 2 : totalRounds;
+  const groupSize = Math.max(1, Math.floor(size / groupsCount));
 
   /** Devuelve los matches de un grupo+ronda usando rebanado por posición. */
   const matchesForGroupRound = (group: number, round: number): BracketMatch[] => {
-    const perGroup = Math.max(1, Math.floor(16 / Math.pow(2, round)));
+    const perGroup = Math.max(1, Math.floor(groupSize / Math.pow(2, round)));
     const ofRound = matches
       .filter((m) => Number(m.round) === round)
       .sort((a, b) => Number(a.position) - Number(b.position));
     return ofRound.slice(group * perGroup, (group + 1) * perGroup);
   };
 
-  /** Matches de las rondas posteriores a las 4 internas → Gran Final. */
+  /** Rondas posteriores a las de grupo → Gran Final (siempre semis + final). */
   const grandFinalRounds: number[] = [];
   for (let r = groupRoundsCount + 1; r <= totalRounds; r++) grandFinalRounds.push(r);
 
