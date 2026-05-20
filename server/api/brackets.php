@@ -280,6 +280,7 @@ function action_get_putt_finales($conn, $torneoid) {
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
         $matches = [];
         if ($cfg) {
+            repair_empty_seed_slots($conn, $cfg, $sx);
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
@@ -325,6 +326,7 @@ function action_get_putt_admin($conn, $torneoid) {
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
         $matches = [];
         if ($cfg) {
+            repair_empty_seed_slots($conn, $cfg, $sx);
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
