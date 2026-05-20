@@ -126,7 +126,6 @@ function build_seed_pairs($size) {
  */
 function refresh_putt_best_flags($conn, $torneoid) {
     $tid = (int)$torneoid;
-    safe_all($conn, "SELECT 1"); // Mantiene logging/guard homogéneo antes de mutar.
     $conn->query("UPDATE puttjug SET orden = 0 WHERE torneoid = $tid");
     $conn->query("UPDATE puttjug a
                   JOIN (
