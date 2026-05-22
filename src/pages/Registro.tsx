@@ -1529,7 +1529,6 @@ const Registro = () => {
      */
     if (name === 'reg_edad') {
       const fechanacEnabled = isFieldEnabled('reg_fechanac');
-      const disabled = edadAuto && fechanacEnabled;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
@@ -1542,20 +1541,17 @@ const Registro = () => {
             required={required}
             placeholder="Ej: 42"
             value={values[name] || ''}
-            disabled={disabled}
             onChange={e => {
               const v = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
               setValue(name, v);
               // Si el usuario edita manualmente liberamos el flag auto.
               if (edadAuto) setEdadAuto(false);
             }}
-            className={`[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none ${
-              disabled ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
-            }`}
+            className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
           />
           <p className="text-xs text-muted-foreground">
-            {disabled
-              ? 'Auto-calculada desde tu fecha de nacimiento.'
+            {edadAuto && fechanacEnabled
+              ? 'Auto-calculada desde tu fecha de nacimiento (puedes editarla manualmente).'
               : fechanacEnabled
                 ? 'Se calcula automáticamente cuando llenas la fecha de nacimiento.'
                 : 'Años cumplidos.'}
