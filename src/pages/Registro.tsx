@@ -739,6 +739,36 @@ const Registro = () => {
       ? globalMinHcp
       : hcpRaw;
     const evaluations = categories.map(c => {
+      const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
+
+      /**
+       * Explicit admin rules are the source of truth when present. This avoids
+       * mixing stale `categorias.hcpIdxMin/Max` values with the eligibility
+       * rules: age-restricted categories (e.g. Campeonato Mayor) are removed by
+       * age first, while normal categories can still use their explicit HCP
+       * range even if the base category range differs.
+       */
+      if (catReglas.length > 0) {
+        const playerCtx = { sex, age, hcp: !isNaN(hcpRaw) ? normalizeHcpIndex(hcpRaw) : null };
+        const anyMatch = catReglas.some(r => playerMatchesRule(r, playerCtx));
+        if (!anyMatch) {
+          /** Resumen legible de cada regla para que el admin sepa qué editar. */
+          const dump = catReglas.map(r => {
+            const parts: string[] = [];
+            parts.push(`género=${r.genero ?? '∗'}`);
+            parts.push(`edad ${r.edad_min ?? '−∞'}–${r.edad_max ?? '+∞'}`);
+            parts.push(`hcp ${r.hcp_min ?? '−∞'}–${r.hcp_max ?? '+∞'}`);
+            return `[${parts.join(', ')}]`;
+          }).join(' ');
+          return {
+            c,
+            ok: false,
+            reason: `Ninguna de ${catReglas.length} regla(s) explícita(s) coincide. Reglas: ${dump}. Jugador: sexo=${sex||'?'}, edad=${age??'?'}, hcp=${!isNaN(hcpRaw)?hcpRaw:'?'}`,
+          };
+        }
+        return { c, ok: true, reason: '' };
+      }
+
       if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) {
         return { c, ok: false, reason: `Hcp ${hcp} fuera del rango BD ${c.hcpMin}–${c.hcpMax}` };
       }
@@ -759,26 +789,6 @@ const Registro = () => {
         const max = maxDb ?? (fromName ? fromName.max : null);
         if (min != null && age < min) return { c, ok: false, reason: `Edad ${age} < mínima ${min}` };
         if (max != null && age > max) return { c, ok: false, reason: `Edad ${age} > máxima ${max}` };
-      }
-      const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
-      if (catReglas.length > 0) {
-        const playerCtx = { sex, age, hcp: !isNaN(hcpRaw) ? hcpRaw : null };
-        const anyMatch = catReglas.some(r => playerMatchesRule(r, playerCtx));
-        if (!anyMatch) {
-          /** Resumen legible de cada regla para que el admin sepa qué editar. */
-          const dump = catReglas.map(r => {
-            const parts: string[] = [];
-            parts.push(`género=${r.genero ?? '∗'}`);
-            parts.push(`edad ${r.edad_min ?? '−∞'}–${r.edad_max ?? '+∞'}`);
-            parts.push(`hcp ${r.hcp_min ?? '−∞'}–${r.hcp_max ?? '+∞'}`);
-            return `[${parts.join(', ')}]`;
-          }).join(' ');
-          return {
-            c,
-            ok: false,
-            reason: `Ninguna de ${catReglas.length} regla(s) explícita(s) coincide. Reglas: ${dump}. Jugador: sexo=${sex||'?'}, edad=${age??'?'}, hcp=${!isNaN(hcpRaw)?hcpRaw:'?'}`,
-          };
-        }
       }
       return { c, ok: true, reason: '' };
     });
