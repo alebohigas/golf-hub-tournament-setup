@@ -1068,6 +1068,11 @@ const Registro = () => {
       const res = await fetch(getRegistroSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !(json as any).saved) {
+        // Duplicate-email case (HTTP 409): surface the canonical message
+        // inline next to the email field so el jugador lo vea sin scroll.
+        if (res.status === 409) {
+          setEmailError((json as any).error || 'Correo ya registrado para este torneo.');
+        }
         throw new Error((json as any).error || 'Error al enviar el formulario');
       }
       setSubmitted(true);
