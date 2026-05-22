@@ -227,6 +227,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     if (!$pkCol)     json_error('registro table has no recognizable primary key column.', 500);
     if (!$torneoCol) json_error('registro table has no recognizable torneo id column.',  500);
 
+    // Asegurar columnas para el flujo "Cargo a cuenta de socio".
+    ensure_cargo_socio_columns($conn);
+
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
         'reg_nombre', 'reg_apellido', 'reg_correo', 'reg_telefono',
@@ -236,6 +239,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         // Canonical names from registro_campos
         'reg_genero', 'reg_celular', 'reg_mensaje', 'numghinspei',
         'reg_spei', 'reg_direccion', 'reg_cp', 'reg_id_club', 'reg_cargo',
+        // Cargo a cuenta de socio (checkbox '1'/'' + clave de socio)
+        'reg_cargo_socio', 'reg_clave_socio',
         // Talla de gorra (única reg_talla_*; las demás van en akron_*)
         'reg_talla_gorra',
         // Akron-specific
