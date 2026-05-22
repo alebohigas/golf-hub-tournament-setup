@@ -213,15 +213,16 @@ function registro_has($conn, $col) {
  * different names; we probe in priority order.
  */
 function registro_torneo_col($conn) {
-    foreach (['torneoid', 'torneo_id', 'id_torneo', 'idtorneo', 'reg_torneoid', 'reg_torneo_id'] as $c) {
+    // Prioridad: reg_id_torneo (canónico nuevo). Las demás se conservan
+    // como fallback para esquemas legacy, pero ya no creamos torneoid.
+    foreach (['reg_id_torneo', 'torneo_id', 'id_torneo', 'idtorneo', 'reg_torneoid', 'reg_torneo_id', 'torneoid'] as $c) {
         if (registro_has($conn, $c)) return $c;
     }
 
-    // Some legacy `registro` tables were created without a tournament column.
-    // Add the canonical column once so new submissions can be tied to torneoid.
-    @$conn->query("ALTER TABLE registro ADD COLUMN torneoid INT(11) NULL");
+    // Si no existe ninguna columna de torneo, crea la canónica nueva.
+    @$conn->query("ALTER TABLE registro ADD COLUMN reg_id_torneo INT(11) NULL");
     registro_columns($conn, true);
-    if (registro_has($conn, 'torneoid')) return 'torneoid';
+    if (registro_has($conn, 'reg_id_torneo')) return 'reg_id_torneo';
 
     return null;
 }
