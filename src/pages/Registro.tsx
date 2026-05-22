@@ -144,6 +144,33 @@ const calcAge = (yyyymmdd: string): number | null => {
 };
 
 /**
+ * Infer an age range from a category name when the backend `categorias`
+ * table does not have `age_range_min` / `age_range_max` populated (legacy
+ * setups encode the range in the name itself). Supports patterns like:
+ *   "SENIOR 55-64", "SENIOR 55 - 64", "55 a 64", "55+", "65 +", "55 y mas".
+ * Returns { min, max } where either side may be null when unbounded.
+ * Returns null when no recognisable age token is found.
+ */
+const parseAgeFromName = (name: string): { min: number | null; max: number | null } | null => {
+  if (!name) return null;
+  const s = name.toLowerCase();
+  // Range: "55-64", "55 - 64", "55 a 64"
+  let m = s.match(/(\d{2,3})\s*(?:-|–|a)\s*(\d{2,3})/);
+  if (m) {
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    if (a >= 30 && b >= a && b <= 120) return { min: a, max: b };
+  }
+  // Open-ended: "55+", "55 +", "55 y mas", "55 o mas"
+  m = s.match(/(\d{2,3})\s*(?:\+|y\s*mas|o\s*mas|y\s*más|o\s*más)/);
+  if (m) {
+    const a = parseInt(m[1], 10);
+    if (a >= 30 && a <= 120) return { min: a, max: null };
+  }
+  return null;
+};
+
+/**
  * Normalize a string for tolerant matching: lowercase, trimmed, and with
  * combining diacritics stripped ("México" → "mexico", "Nuevo León" →
  * "nuevo leon"). Used when matching club location strings against the
@@ -619,16 +646,22 @@ const Registro = () => {
       if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) return false;
       // Gender filter when category restricts it (M/F).
       if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
-      // Age range filter (senior categories with min/max set).
-      // Legacy data uses 0 / null interchangeably as "no limit", so we
-      // ignore zero values to avoid wrongly excluding every player.
+      // Age range filter (senior categories with min/max set). When the
+      // backend columns are missing/zero we fall back to parsing the
+      // category NAME (e.g. "SENIOR 55-64", "55+") so legacy tournaments
+      // without `age_range_min/max` still get filtered correctly.
       if (age !== null) {
-        if (c.ageMin != null && c.ageMin > 0 && age < c.ageMin) return false;
-        if (c.ageMax != null && c.ageMax > 0 && age > c.ageMax) return false;
+        const fromName = parseAgeFromName(c.name || '');
+        const minDb = c.ageMin != null && c.ageMin > 0 ? c.ageMin : null;
+        const maxDb = c.ageMax != null && c.ageMax > 0 ? c.ageMax : null;
+        const min = minDb ?? (fromName ? fromName.min : null);
+        const max = maxDb ?? (fromName ? fromName.max : null);
+        if (min != null && age < min) return false;
+        if (max != null && age > max) return false;
       }
       return true;
     });
-  }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac]);
+  }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   // ============= Precio estimado de inscripción =============
 
