@@ -340,7 +340,7 @@ const Dashboard = ({ password }: { password: string }) => {
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
                         {/* Toggle: pago verificado por tesorería. */}
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={pagoVerif}
@@ -352,7 +352,7 @@ const Dashboard = ({ password }: { password: string }) => {
                           </div>
                         </td>
                         {/* Campo: monto confirmado recibido (se persiste onBlur). */}
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
                             type="number"
                             step="0.01"
@@ -366,7 +366,7 @@ const Dashboard = ({ password }: { password: string }) => {
                             }}
                           />
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={verified}
