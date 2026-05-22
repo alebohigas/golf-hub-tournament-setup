@@ -1172,6 +1172,39 @@ const Registro = () => {
               </div>
             </details>
           )}
+          {/* Auditoría automática de cobertura HCP (-5 → 40.6 paso 0.1)
+              por sexo. Aparece solo con ?debug=1. Muestra los rangos de
+              hándicap que NO tienen ninguna categoría elegible, para
+              detectar agujeros sin tener que probar valor por valor. */}
+          {hcpCoverageAudit && (
+            <details className="text-xs border border-dashed border-amber-500/40 rounded-md p-2 bg-amber-50/30" open>
+              <summary className="cursor-pointer font-medium text-amber-700">
+                Auditoría cobertura HCP (-5 → 40.6, paso 0.1)
+              </summary>
+              <div className="mt-2 space-y-2">
+                <p className="text-muted-foreground">
+                  Edad usada: <strong>{hcpCoverageAudit.age ?? '— (sin edad)'}</strong>.
+                  Lista los tramos de hándicap SIN categoría elegible.
+                </p>
+                {(['M','F'] as const).map(sex => (
+                  <div key={sex}>
+                    <p className="font-medium">Sexo {sex}:</p>
+                    {hcpCoverageAudit[sex].length === 0 ? (
+                      <p className="text-emerald-700">✓ Cobertura completa, sin agujeros.</p>
+                    ) : (
+                      <ul className="ml-4 list-disc">
+                        {hcpCoverageAudit[sex].map((g, i) => (
+                          <li key={i} className="text-destructive">
+                            HCP {g.from.toFixed(1)} → {g.to.toFixed(1)} sin categoría
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       );
     }
