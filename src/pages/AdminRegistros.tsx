@@ -138,6 +138,8 @@ const Dashboard = ({ password }: { password: string }) => {
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
+  /** Comprobante actualmente abierto en el modal de vista previa. */
+  const [previewRow, setPreviewRow] = useState<RegistroRow | null>(null);
   const { toast } = useToast();
 
   /** Fetch the latest list (always scoped to current torneoid). */
