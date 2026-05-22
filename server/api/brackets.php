@@ -265,6 +265,40 @@ function repair_empty_seed_slots($conn, $cfg, $sexo) {
     }
 }
 
+/**
+ * Backfill de seeds en rondas avanzadas.
+ * Recorre todos los matches con ganador definido y, si el next_match
+ * destino tiene el seed correspondiente en NULL pero el jugador ya está
+ * colocado, lo rellena con el seed del ganador en su match origen.
+ * Esto repara brackets generados antes de propagar seeds.
+ */
+function backfill_advanced_seeds($conn, $cfgId) {
+    $cfgId = (int)$cfgId;
+    if ($cfgId <= 0) return;
+    $rows = safe_all($conn, "SELECT id, winner_player_id, player_high_id, player_low_id,
+                                    seed_high, seed_low, next_match_id, next_slot
+                             FROM bracket_matches
+                             WHERE bracket_id = $cfgId
+                               AND winner_player_id IS NOT NULL
+                               AND next_match_id IS NOT NULL");
+    foreach ($rows as $r) {
+        $wid = (int)$r['winner_player_id'];
+        $seed = null;
+        if ((int)$r['player_high_id'] === $wid) $seed = $r['seed_high'];
+        elseif ((int)$r['player_low_id'] === $wid) $seed = $r['seed_low'];
+        if ($seed === null || $seed === '') continue;
+        $nextId  = (int)$r['next_match_id'];
+        $seedCol = ($r['next_slot'] === 'high') ? 'seed_high' : 'seed_low';
+        $playerCol = ($r['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
+        $seedInt = (int)$seed;
+        $conn->query("UPDATE bracket_matches
+                      SET $seedCol = $seedInt
+                      WHERE id = $nextId
+                        AND $playerCol = $wid
+                        AND ($seedCol IS NULL)");
+    }
+}
+
 // ============= Acción: get_putt_finales (público) =============
 /**
  * Devuelve la configuración + matches actuales para ambos brackets (M/F).
