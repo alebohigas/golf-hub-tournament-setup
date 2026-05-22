@@ -113,18 +113,14 @@ const Dashboard = ({ password }: { password: string }) => {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified'>('all');
   const [search, setSearch] = useState('');
-  /**
-   * Alcance del listado: 'all' = todos los torneos del servidor,
-   * 'torneo' = solo el torneoid activo del dominio.
-   */
-  const [scope, setScope] = useState<'all' | 'torneo'>('all');
   const { toast } = useToast();
 
-  /** Fetch the latest list. */
+  /** Fetch the latest list (always scoped to current torneoid). */
   const refresh = async () => {
     setLoading(true);
     try {
-      const res = await fetch(getRegistroListUrl(password, scope));
+      // getRegistroListUrl now always limits to the active tournament
+      const res = await fetch(getRegistroListUrl(password));
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error al cargar');
       setRows(json.rows || []);
@@ -135,7 +131,7 @@ const Dashboard = ({ password }: { password: string }) => {
     }
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [scope]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
   /**
    * Admin update genérico: envía cualquier combinación de campos
