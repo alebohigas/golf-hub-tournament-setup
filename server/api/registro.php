@@ -209,8 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     if (!$pkCol)     json_error('registro table has no recognizable primary key column.', 500);
     if (!$torneoCol) json_error('registro table has no recognizable torneo id column.',  500);
 
-    // Asegurar columnas para el flujo "Cargo a cuenta de socio".
-    ensure_cargo_socio_columns($conn);
 
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
