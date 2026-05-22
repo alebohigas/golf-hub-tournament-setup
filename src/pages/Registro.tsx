@@ -36,7 +36,8 @@ import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
-import { useRegistroPrecioMatch, useRegistroPrecios } from '@/hooks/useRegistroPrecios';
+import { useRegistroPrecioMatch, useRegistroPrecios, type RegistroPrecioRule } from '@/hooks/useRegistroPrecios';
+import type { CategoryDetail } from '@/data/playersData';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
@@ -213,6 +214,61 @@ const locMatches = (a: string, b: string): boolean => {
   return false;
 };
 
+/** Parse finite numbers coming from PHP JSON, form text, or nullable rule fields. */
+const toFiniteNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Normalized key for category/rule matching: trims, removes accents, collapses whitespace. */
+const priceKey = (value: unknown): string =>
+  norm(String(value ?? '')).replace(/\s+/g, ' ');
+
+/** True when a price rule belongs to the current category by name or legacy ID. */
+const priceRuleMatchesCategory = (rule: RegistroPrecioRule, category: Pick<CategoryDetail, 'id' | 'name'>): boolean => {
+  const ruleCategory = priceKey(rule.categoria);
+  if (!ruleCategory) return false;
+  return ruleCategory === priceKey(category.name) || ruleCategory === priceKey(category.id);
+};
+
+/** Match tipo_socio exactly like registro_precios.php, but unknown form values do not hide early. */
+const priceRuleMatchesSocio = (ruleTipo: string | null, tipoSocio?: string): boolean => {
+  if (!ruleTipo) return true;
+  if (!tipoSocio) return true;
+  const rt = ruleTipo.toUpperCase();
+  const ut = tipoSocio.toUpperCase();
+  if (rt === 'SOCIO') return ['SOCIO', 'TITULAR', 'EMERITO', 'DEPENDIENTE'].includes(ut);
+  if (rt === 'NO_SOCIO') return ['NO_SOCIO', 'INVITADO', 'FORANEO'].includes(ut);
+  return rt === ut;
+};
+
+/** True when every non-age filter in the price rule is compatible with the player data. */
+const priceRuleMatchesNonAgeCriteria = (
+  rule: RegistroPrecioRule,
+  params: { sex: string; hcp: number | null; tipoSocio?: string }
+): boolean => {
+  if (rule.genero && params.sex && rule.genero.toUpperCase() !== params.sex) return false;
+  if (!priceRuleMatchesSocio(rule.tipo_socio, params.tipoSocio)) return false;
+  if (params.hcp !== null) {
+    const hcpMin = toFiniteNumber(rule.hcp_min);
+    const hcpMax = toFiniteNumber(rule.hcp_max);
+    if (hcpMin !== null && params.hcp < hcpMin) return false;
+    if (hcpMax !== null && params.hcp > hcpMax) return false;
+  }
+  return true;
+};
+
+/** True when a player's age falls inside the rule age range; no range means no age restriction. */
+const priceRuleMatchesAge = (rule: RegistroPrecioRule, age: number | null): boolean => {
+  if (age === null) return true;
+  const min = toFiniteNumber(rule.edad_min);
+  const max = toFiniteNumber(rule.edad_max);
+  if (min !== null && age < min) return false;
+  if (max !== null && age > max) return false;
+  return true;
+};
+
 // ============= Phone country codes =============
 /** Mini list of country dial codes shown in the phone <Select>. MX first. */
 const PHONE_CODES: { code: string; flag: string; label: string; len: number }[] = [
@@ -247,7 +303,7 @@ const Registro = () => {
    * y por tanto no hay precio disponible).
    */
   const { data: preciosData } = useRegistroPrecios();
-  const preciosRules = preciosData?.rules || [];
+  const preciosRules = useMemo(() => preciosData?.rules || [], [preciosData?.rules]);
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
@@ -630,6 +686,19 @@ const Registro = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_club, clubs, countries, states, cities]);
 
+  /**
+   * tipo_socio usado por filtros/precio:
+   *  - SI + subtipo → TITULAR/EMERITO/DEPENDIENTE
+   *  - SI sin subtipo → SOCIO
+   *  - NO → NO_SOCIO
+   *  - vacío → undefined para no excluir categorías antes de capturar socio.
+   */
+  const tipoSocioForPricing = useMemo(() => {
+    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
+    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
+    return undefined;
+  }, [values.reg_es_socio, values.reg_tipo_socio]);
+
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
     const hcpRaw = parseFloat(values.reg_handicap);
@@ -680,24 +749,34 @@ const Registro = () => {
        * posible para él). Se ignoran tipo_socio y hándicap aquí porque
        * son filtros de precio, no de elegibilidad de categoría.
        */
-      const catRules = preciosRules.filter(
-        r => r.is_active && r.categoria &&
-             r.categoria.toLowerCase() === (c.name || '').toLowerCase()
+      const catRules = preciosRules.filter(r =>
+        !!r.is_active && priceRuleMatchesCategory(r, { id: c.id, name: c.name })
       );
-      if (catRules.length > 0) {
-        const anyRuleAccepts = catRules.some(r => {
-          if (r.genero && sex && r.genero !== sex) return false;
-          if (age !== null) {
-            if (r.edad_min != null && age < r.edad_min) return false;
-            if (r.edad_max != null && age > r.edad_max) return false;
-          }
-          return true;
-        });
-        if (!anyRuleAccepts) return false;
+      if (catRules.length > 0 && age !== null) {
+        const rulesForCurrentNonAgeCriteria = catRules.filter(r =>
+          priceRuleMatchesNonAgeCriteria(r, { sex, hcp: !isNaN(hcpRaw) ? hcpRaw : null, tipoSocio: tipoSocioForPricing })
+        );
+        if (rulesForCurrentNonAgeCriteria.length > 0) {
+          const ageRestrictedRules = rulesForCurrentNonAgeCriteria.filter(r =>
+            toFiniteNumber(r.edad_min) !== null || toFiniteNumber(r.edad_max) !== null
+          );
+          const rulesToCheck = ageRestrictedRules.length > 0
+            ? ageRestrictedRules
+            : rulesForCurrentNonAgeCriteria;
+          const anyRuleAcceptsAge = rulesToCheck.some(r => priceRuleMatchesAge(r, age));
+          if (!anyRuleAcceptsAge) return false;
+        }
       }
       return true;
     });
-  }, [categories, preciosRules, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, preciosRules, tipoSocioForPricing, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+
+  /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
+  useEffect(() => {
+    if (!values.reg_categoria) return;
+    const stillEligible = eligibleCategories.some(c => String(c.id) === String(values.reg_categoria));
+    if (!stillEligible) setValues(v => ({ ...v, reg_categoria: '' }));
+  }, [eligibleCategories, values.reg_categoria]);
 
   // ============= Precio estimado de inscripción =============
 
@@ -746,19 +825,6 @@ const Registro = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_fechanac, visibleFields.length]);
-
-  /**
-   * tipo_socio enviado al matcher:
-   *  - Si es_socio = SI y eligió subtipo → subtipo (TITULAR/EMERITO/DEPENDIENTE)
-   *  - Si es_socio = SI sin subtipo      → 'SOCIO' (cualquier subtipo)
-   *  - Si es_socio = NO                  → 'NO_SOCIO'
-   *  - Si no eligió                       → undefined (sin filtro)
-   */
-  const tipoSocioForPricing = useMemo(() => {
-    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
-    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
-    return undefined;
-  }, [values.reg_es_socio, values.reg_tipo_socio]);
 
   /** Consulta reactiva al endpoint de matching de precio. */
   const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
