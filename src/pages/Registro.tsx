@@ -1161,35 +1161,7 @@ const Registro = () => {
           <p className="text-xs text-muted-foreground">
             {eligibleCategories.length} categoría(s) compatible(s) con tus datos.
           </p>
-          {/* Panel de diagnóstico: aparece cuando no hay categorías
-              elegibles o cuando la URL trae ?debug=1. Sirve para
-              entender por qué cada categoría fue excluida sin tener
-              que abrir DevTools. */}
-          {(eligibleCategories.length === 0 || (typeof window !== 'undefined' && window.location.search.includes('debug=1'))) && categoryFilterResult.exclusions.length > 0 && (
-            <details className="text-xs border border-dashed border-muted-foreground/30 rounded-md p-2 bg-muted/30" open={eligibleCategories.length === 0}>
-              <summary className="cursor-pointer font-medium text-muted-foreground">
-                ¿Por qué no aparece mi categoría? ({categoryFilterResult.exclusions.length} excluida(s))
-              </summary>
-              <div className="mt-2 space-y-1">
-                <p className="text-muted-foreground">
-                  Datos: sexo=<strong>{categoryFilterResult.sex || '—'}</strong>,
-                  edad=<strong>{categoryFilterResult.age ?? '—'}</strong>,
-                  hcp=<strong>{isNaN(categoryFilterResult.hcpRaw) ? '—' : categoryFilterResult.hcpRaw}</strong>
-                  {!isNaN(categoryFilterResult.hcpRaw) && categoryFilterResult.hcp !== categoryFilterResult.hcpRaw &&
-                    <> (ajustado a <strong>{categoryFilterResult.hcp}</strong> por mínimo global)</>}
-                </p>
-                <ul className="space-y-0.5">
-                  {categoryFilterResult.exclusions.map((e, i) => (
-                    <li key={i}>
-                      <span className="font-medium">{e.c.name}</span>
-                      <span className="text-muted-foreground"> · hcp BD {e.c.hcpMin}–{e.c.hcpMax}, género BD “{e.c.gender || '—'}”</span>
-                      <span className="text-destructive"> → {e.reason}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </details>
-          )}
+          {/* Panel de diagnóstico removido — sólo era para debug. */}
           {/* Auditoría automática de cobertura HCP (-5 → 40.6 paso 0.1)
               por sexo. Aparece solo con ?debug=1. Muestra los rangos de
               hándicap que NO tienen ninguna categoría elegible, para
