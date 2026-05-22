@@ -17,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -137,6 +138,8 @@ const Dashboard = ({ password }: { password: string }) => {
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
+  /** Comprobante actualmente abierto en el modal de vista previa. */
+  const [previewRow, setPreviewRow] = useState<RegistroRow | null>(null);
   const { toast } = useToast();
 
   /** Fetch the latest list (always scoped to current torneoid). */
@@ -330,10 +333,13 @@ const Dashboard = ({ password }: { password: string }) => {
                               Cargo a cuenta
                             </Badge>
                           ) : hasFile ? (
-                            <Button asChild size="sm" variant="outline" className="gap-1">
-                              <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
-                                <FileDown className="h-4 w-4" /> Ver
-                              </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
+                            >
+                              <Eye className="h-4 w-4" /> Ver
                             </Button>
                           ) : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
@@ -412,15 +418,6 @@ const Dashboard = ({ password }: { password: string }) => {
                                 );
                               })}
                             </div>
-                            {Number(r.has_archivo) === 1 && (
-                              <div className="mt-4">
-                                <Button asChild size="sm" variant="outline" className="gap-1">
-                                  <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
-                                    <FileDown className="h-4 w-4" /> Descargar comprobante
-                                  </a>
-                                </Button>
-                              </div>
-                            )}
                           </td>
                         </tr>
                       )}
@@ -433,6 +430,43 @@ const Dashboard = ({ password }: { password: string }) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de vista previa del comprobante (imagen o PDF inline). */}
+      <Dialog open={!!previewRow} onOpenChange={(o) => !o && setPreviewRow(null)}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-3 pr-6">
+              <span className="truncate">
+                Comprobante · {previewRow ? `${previewRow.reg_nombre ?? ''} ${previewRow.reg_apellido ?? ''}`.trim() : ''}
+                {previewRow?.reg_archivo_nombre ? ` — ${previewRow.reg_archivo_nombre}` : ''}
+              </span>
+              {previewRow && (
+                <Button asChild size="sm" variant="outline" className="gap-1 shrink-0">
+                  <a
+                    href={getRegistroArchivoUrl(previewRow.id, password)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FileDown className="h-4 w-4" /> Abrir en nueva pestaña
+                  </a>
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {previewRow && (() => {
+            const url = getRegistroArchivoUrl(previewRow.id, password);
+            const name = (previewRow.reg_archivo_nombre || '').toLowerCase();
+            const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name);
+            return isImage ? (
+              <div className="flex-1 overflow-auto bg-muted/30 rounded flex items-center justify-center">
+                <img src={url} alt="Comprobante" className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : (
+              <iframe src={url} title="Comprobante" className="flex-1 w-full rounded border" />
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
