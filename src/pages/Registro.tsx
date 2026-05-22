@@ -303,16 +303,14 @@ const Registro = () => {
   const { data: categories = [] } = useCategories();
   const { data: tournamentInfo } = useTournamentInfo();
   /**
-   * Reglas de precio del torneo. Se usan no sólo para mostrar el costo
-   * estimado, sino TAMBIÉN como fuente adicional de restricciones por
-   * edad / género / tipo de socio / handicap a la hora de filtrar las
-   * categorías mostradas. Ejemplo: si el admin define para "Campeonato
-   * Mayor" una regla con edad_min=55 y edad_max=99, un jugador de 34
-   * años deja de ver esa categoría (porque ninguna regla aplica para él
-   * y por tanto no hay precio disponible).
+   * Reglas de ELEGIBILIDAD de categoría (edad/género/hcp). Vienen de la
+   * tabla `categorias_reglas` — separada de los precios para evitar
+   * acoplar "qué puedo elegir" con "cuánto pago". Cuando una categoría
+   * tiene una o más reglas activas, el jugador debe encajar en al menos
+   * una para verla en el dropdown.
    */
-  const { data: preciosData } = useRegistroPrecios();
-  const preciosRules = useMemo(() => preciosData?.rules || [], [preciosData?.rules]);
+  const { data: reglasData } = useCategoriasReglas();
+  const reglas = useMemo(() => reglasData?.rules || [], [reglasData?.rules]);
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
