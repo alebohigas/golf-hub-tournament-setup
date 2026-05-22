@@ -9,7 +9,7 @@
  * Auth: independent password (`registros2025`) — not tied to /admin.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -113,6 +113,14 @@ const Dashboard = ({ password }: { password: string }) => {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified'>('all');
   const [search, setSearch] = useState('');
+  /** Set de IDs cuyos detalles están expandidos en la tabla. */
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpand = (id: number) =>
+    setExpanded(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
   const { toast } = useToast();
 
   /** Fetch the latest list (always scoped to current torneoid). */
@@ -235,6 +243,7 @@ const Dashboard = ({ password }: { password: string }) => {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
+                    <th className="w-8 p-3"></th>
                     <th className="text-left p-3">Jugador</th>
                     <th className="text-left p-3">Contacto</th>
                     <th className="text-left p-3">Categoría</th>
@@ -258,7 +267,20 @@ const Dashboard = ({ password }: { password: string }) => {
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
                       : '—';
                     return (
-                    <tr key={r.id} className="border-t">
+                    <Fragment key={r.id}>
+                    <tr className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(r.id)}>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}
+                            aria-label={expanded.has(r.id) ? 'Colapsar' : 'Expandir'}
+                          >
+                            {expanded.has(r.id)
+                              ? <ChevronDown className="h-4 w-4" />
+                              : <ChevronRight className="h-4 w-4" />}
+                          </button>
+                        </td>
                         <td className="p-3">
                           <div className="font-medium">{[r.reg_nombre, r.reg_apellido].filter(Boolean).join(' ') || '—'}</div>
                           <div className="text-xs text-muted-foreground">#{r.id} · {r.reg_fecha || r.created_at || ''}</div>
@@ -340,6 +362,56 @@ const Dashboard = ({ password }: { password: string }) => {
                           </div>
                         </td>
                       </tr>
+                      {expanded.has(r.id) && (
+                        <tr className="border-t bg-muted/20">
+                          <td></td>
+                          <td colSpan={10} className="p-4">
+                            {/* Detalle completo: lista todos los campos llenados del registro. */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+                              {[
+                                ['ID', r.id],
+                                ['Torneo', r.torneoid],
+                                ['Nombre', r.reg_nombre],
+                                ['Apellido', r.reg_apellido],
+                                ['Correo', r.reg_correo],
+                                ['Teléfono', r.reg_telefono],
+                                ['Handicap', r.reg_handicap],
+                                ['Categoría (nombre)', r.categoria_name],
+                                ['Categoría (id)', r.reg_categoria],
+                                ['Club', r.reg_club],
+                                ['¿Es socio?', r.reg_es_socio],
+                                ['Tipo de socio', r.reg_tipo_socio],
+                                ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
+                                ['Clave de socio', r.reg_clave_socio],
+                                ['Fecha registro', r.reg_fecha || r.created_at],
+                                ['Precio estimado', r.reg_precio_estimado != null && String(r.reg_precio_estimado) !== '' ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.reg_precio_moneda || 'MXN'}` : ''],
+                                ['Monto confirmado', r.reg_monto_confirmado],
+                                ['Pago verificado', Number(r.reg_pago_verificado) === 1 ? 'Sí' : 'No'],
+                                ['Registro verificado', Number(r.reg_verificado) === 1 ? 'Sí' : 'No'],
+                                ['Comprobante', Number(r.has_archivo) === 1 ? (r.reg_archivo_nombre || 'archivo cargado') : ''],
+                              ].map(([label, value]) => {
+                                const v = value == null || value === '' ? '—' : String(value);
+                                return (
+                                  <div key={String(label)} className="flex flex-col">
+                                    <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+                                    <span className="font-medium break-words">{v}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {Number(r.has_archivo) === 1 && (
+                              <div className="mt-4">
+                                <Button asChild size="sm" variant="outline" className="gap-1">
+                                  <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
+                                    <FileDown className="h-4 w-4" /> Descargar comprobante
+                                  </a>
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
