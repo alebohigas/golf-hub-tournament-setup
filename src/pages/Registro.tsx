@@ -47,6 +47,7 @@ import {
   getClubsUrl,
   getClubLookupUrl,
   getEmailValidateUrl,
+  getRegistroEmailCheckUrl,
   getPlayerLookupByIdUrl,
 } from '@/config/api';
 
