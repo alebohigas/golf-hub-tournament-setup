@@ -429,13 +429,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
     if ($id <= 0) json_error('Missing id', 400);
 
     /**
-     * Auto-crear las columnas admin si faltan. Esto SOLO corre en el
-     * endpoint verify (acción manual del administrador), nunca en el POST
-     * público del formulario, así no agrega overhead al envío de jugadores.
+     * Auto-crear únicamente las columnas que aún manejamos nosotros.
+     * `verificado` y `status_pago` ya existían en el esquema base — no
+     * las creamos ni las tocamos aquí. `reg_monto_confirmado` sí es
+     * propia de este admin y se asegura su existencia.
      */
     $adminColsSpec = [
-        'reg_verificado'       => 'TINYINT(1) NOT NULL DEFAULT 0',
-        'reg_pago_verificado'  => 'TINYINT(1) NOT NULL DEFAULT 0',
         'reg_monto_confirmado' => 'DECIMAL(10,2) NULL',
     ];
     $needRefresh = false;
@@ -449,23 +448,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
 
     /**
      * Admin update — acepta cualquier combinación de:
-     *   - verified            → reg_verificado (TINYINT 0/1)
-     *   - pago_verificado     → reg_pago_verificado (TINYINT 0/1)
+     *   - verified            → `verificado`     (TINYINT 0/1, columna nativa)
+     *   - pago_verificado     → `status_pago`    (TINYINT 0/1, columna nativa)
      *   - monto_confirmado    → reg_monto_confirmado (DECIMAL, NULL si vacío)
-     * Las columnas se garantizan arriba; si el ALTER falla por permisos,
-     * registro_has() seguirá devolviendo false y el set correspondiente
-     * se omite silenciosamente.
      */
     $sets = [];
     $wantVerified = array_key_exists('verified', $body);
     $newVerified  = $wantVerified ? (!empty($body['verified']) ? 1 : 0) : null;
 
-    if ($wantVerified && registro_has($conn, 'reg_verificado')) {
-        $sets[] = "reg_verificado = $newVerified";
+    if ($wantVerified && registro_has($conn, 'verificado')) {
+        $sets[] = "verificado = $newVerified";
     }
-    if (array_key_exists('pago_verificado', $body) && registro_has($conn, 'reg_pago_verificado')) {
+    if (array_key_exists('pago_verificado', $body) && registro_has($conn, 'status_pago')) {
         $pv = !empty($body['pago_verificado']) ? 1 : 0;
-        $sets[] = "reg_pago_verificado = $pv";
+        $sets[] = "status_pago = $pv";
     }
     if (array_key_exists('monto_confirmado', $body) && registro_has($conn, 'reg_monto_confirmado')) {
         $raw = trim((string)$body['monto_confirmado']);
