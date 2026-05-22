@@ -36,7 +36,7 @@ import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
-import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
+import { useRegistroPrecioMatch, useRegistroPrecios } from '@/hooks/useRegistroPrecios';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
@@ -237,6 +237,17 @@ const Registro = () => {
   const { data: fieldsData, isLoading: loadingFields } = useRegistroFields();
   const { data: categories = [] } = useCategories();
   const { data: tournamentInfo } = useTournamentInfo();
+  /**
+   * Reglas de precio del torneo. Se usan no sólo para mostrar el costo
+   * estimado, sino TAMBIÉN como fuente adicional de restricciones por
+   * edad / género / tipo de socio / handicap a la hora de filtrar las
+   * categorías mostradas. Ejemplo: si el admin define para "Campeonato
+   * Mayor" una regla con edad_min=55 y edad_max=99, un jugador de 34
+   * años deja de ver esa categoría (porque ninguna regla aplica para él
+   * y por tanto no hay precio disponible).
+   */
+  const { data: preciosData } = useRegistroPrecios();
+  const preciosRules = preciosData?.rules || [];
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
@@ -659,9 +670,34 @@ const Registro = () => {
         if (min != null && age < min) return false;
         if (max != null && age > max) return false;
       }
+      /**
+       * Tercer fallback: si la categoría no trae rangos ni en BD ni en el
+       * nombre, derivamos las restricciones de edad/género a partir de
+       * las reglas de `registro_precios` definidas para ESTA categoría
+       * (por nombre, case-insensitive). Si TODAS las reglas activas para
+       * la categoría exigen un rango de edad/género y el jugador no
+       * encaja en NINGUNA → la categoría se oculta (no hay precio
+       * posible para él). Se ignoran tipo_socio y hándicap aquí porque
+       * son filtros de precio, no de elegibilidad de categoría.
+       */
+      const catRules = preciosRules.filter(
+        r => r.is_active && r.categoria &&
+             r.categoria.toLowerCase() === (c.name || '').toLowerCase()
+      );
+      if (catRules.length > 0) {
+        const anyRuleAccepts = catRules.some(r => {
+          if (r.genero && sex && r.genero !== sex) return false;
+          if (age !== null) {
+            if (r.edad_min != null && age < r.edad_min) return false;
+            if (r.edad_max != null && age > r.edad_max) return false;
+          }
+          return true;
+        });
+        if (!anyRuleAccepts) return false;
+      }
       return true;
     });
-  }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, preciosRules, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   // ============= Precio estimado de inscripción =============
 
