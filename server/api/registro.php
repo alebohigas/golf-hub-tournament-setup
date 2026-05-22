@@ -364,6 +364,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $pkCol     = registro_pk_col($conn);
     if (!$pkCol || !$torneoCol) json_error('registro table not configured properly.', 500);
 
+    // Asegurar columnas de cargo a cuenta antes de listar.
+    ensure_cargo_socio_columns($conn);
+
     /** Fields to surface in the listing (skip blob). */
     $fields = [$pkCol . ' AS id'];
     $optional = [
@@ -371,6 +374,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
         'reg_verificado','reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
+        // Cargo a cuenta de socio
+        'reg_cargo_socio','reg_clave_socio',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns
