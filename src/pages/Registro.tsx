@@ -745,6 +745,15 @@ const Registro = () => {
       // Handicap range — only filter when user has typed a number AND the
       // category has a usable range (max > 0 in legacy data sometimes is 0).
       if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) return false;
+      // Refuerzo: cuando el nombre de la categoría declara explícitamente
+      // el rango ("B (10.6 A 14.5)") y NO coincide con los valores de BD,
+      // intersectamos con el rango parseado del nombre. Esto evita que
+      // una BD con hcpIdxMax desactualizado (p.ej. 15) permita un
+      // hándicap fuera del rango visible (14.5).
+      if (!isNaN(hcp)) {
+        const hcpFromName = parseHcpFromName(c.name || '');
+        if (hcpFromName && (hcp < hcpFromName.min || hcp > hcpFromName.max)) return false;
+      }
       // Gender filter when category restricts it (M/F).
       if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
       // Age range filter (senior categories with min/max set). When the
