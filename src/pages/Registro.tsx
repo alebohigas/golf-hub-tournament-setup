@@ -1002,7 +1002,7 @@ const Registro = () => {
     e.preventDefault();
     // Validate "Clave de Socio" cuando el jugador eligió cargar a cuenta.
     if (values.reg_es_socio === 'SI' && values.reg_cargo_socio === '1') {
-      const clave = (values.reg_clave_socio || '').trim();
+      const clave = (values.reg_numsocio || '').trim();
       if (!clave) {
         toast({
           title: 'Clave de Socio requerida',
@@ -1706,7 +1706,7 @@ const Registro = () => {
                                     onCheckedChange={(c) => {
                                       const on = c === true;
                                       setValue('reg_cargo_socio', on ? '1' : '');
-                                      if (!on) setValue('reg_clave_socio', '');
+                                      if (!on) setValue('reg_numsocio', '');
                                       // Si se activa el cargo a cuenta, no se requiere
                                       // comprobante de pago; lo limpiamos por si se
                                       // había subido previamente.
@@ -1720,7 +1720,7 @@ const Registro = () => {
                                 {values.reg_cargo_socio === '1' && (
                                   <div className="space-y-2 pl-7">
                                     <div className="flex items-center gap-2">
-                                      <Label htmlFor="reg_clave_socio">
+                                      <Label htmlFor="reg_numsocio">
                                         Clave de Socio<span className="text-destructive"> *</span>
                                       </Label>
                                       <TooltipProvider>
@@ -1735,10 +1735,10 @@ const Registro = () => {
                                       </TooltipProvider>
                                     </div>
                                     <Input
-                                      id="reg_clave_socio"
+                                      id="reg_numsocio"
                                       required
-                                      value={values.reg_clave_socio || ''}
-                                      onChange={(e) => setValue('reg_clave_socio', e.target.value)}
+                                      value={values.reg_numsocio || ''}
+                                      onChange={(e) => setValue('reg_numsocio', e.target.value)}
                                       placeholder="Ej: 1234"
                                     />
                                     <p className="text-xs text-foreground/80">

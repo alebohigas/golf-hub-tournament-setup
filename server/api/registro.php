@@ -269,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         'reg_genero', 'reg_celular', 'reg_mensaje', 'numghinspei',
         'reg_spei', 'reg_direccion', 'reg_cp', 'reg_id_club', 'reg_cargo',
         // Cargo a cuenta de socio (checkbox '1'/'' + clave de socio)
-        'reg_cargo_socio', 'reg_clave_socio',
+        'reg_cargo_socio', 'reg_numsocio',
         // Talla de gorra (única reg_talla_*; las demás van en akron_*)
         'reg_talla_gorra',
         // Akron-specific
@@ -600,7 +600,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
         'reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
         // Cargo a cuenta de socio
-        'reg_cargo_socio','reg_clave_socio',
+        'reg_cargo_socio','reg_numsocio',
         // Monto confirmado por tesorería
         'reg_monto_confirmado',
         // Tallas (optional columns)

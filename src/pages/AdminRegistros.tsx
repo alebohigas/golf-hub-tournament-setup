@@ -78,7 +78,7 @@ interface RegistroRow {
   /** '1' si el jugador eligió cargo a cuenta de socio. */
   reg_cargo_socio?: number | string;
   /** Número/clave de membresía cuando aplica. */
-  reg_clave_socio?: string;
+  reg_numsocio?: string;
 }
 
 // ============= Login form =============
@@ -323,7 +323,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                           )}
                           {cargoCuenta && (
                             <div className="mt-1 text-xs text-muted-foreground">
-                              Clave: <span className="font-mono">{r.reg_clave_socio || '—'}</span>
+                              Clave: <span className="font-mono">{r.reg_numsocio || '—'}</span>
                             </div>
                           )}
                         </td>
@@ -424,7 +424,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['¿Es socio?', r.reg_es_socio],
                                 ['Tipo de socio', r.reg_tipo_socio],
                                 ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
-                                ['Clave de socio', r.reg_clave_socio],
+                                ['Clave de socio', r.reg_numsocio],
                                 ['Fecha registro', r.reg_fecha || r.created_at || (r as any).fecha_alta],
                                 ['Precio estimado', r.reg_precio_estimado != null && String(r.reg_precio_estimado) !== '' ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.reg_precio_moneda || 'MXN'}` : ''],
                                 ['Monto confirmado', r.reg_monto_confirmado],
