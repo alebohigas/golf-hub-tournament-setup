@@ -340,7 +340,7 @@ const Dashboard = ({ password }: { password: string }) => {
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
                         {/* Toggle: pago verificado por tesorería. */}
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={pagoVerif}
