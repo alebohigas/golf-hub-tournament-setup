@@ -235,7 +235,6 @@ const Dashboard = ({ password }: { password: string }) => {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left p-3">Torneo</th>
                     <th className="text-left p-3">Jugador</th>
                     <th className="text-left p-3">Contacto</th>
                     <th className="text-left p-3">Categoría</th>
