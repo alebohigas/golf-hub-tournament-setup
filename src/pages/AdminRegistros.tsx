@@ -270,8 +270,8 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    <th className="text-center p-3">Pago verificado</th>
                     <th className="text-center p-3">Monto confirmado recibido</th>
+                    <th className="text-center p-3">Pago verificado</th>
                     <th className="text-center p-3">Registro verificado</th>
                   </tr>
                 </thead>
@@ -345,18 +345,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {/* Toggle: pago verificado por tesorería. */}
-                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-2">
-                            <Switch
-                              checked={pagoVerif}
-                              onCheckedChange={(v) => updateRegistro(r, { pago_verificado: v ? 1 : 0 })}
-                            />
-                            {pagoVerif
-                              ? <CheckCircle2 className="h-4 w-4 text-primary" />
-                              : <XCircle className="h-4 w-4 text-muted-foreground" />}
-                          </div>
-                        </td>
                         {/* Campo: monto confirmado recibido (se persiste onBlur). */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
@@ -371,6 +359,41 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               if (val !== current) updateRegistro(r, { monto_confirmado: val });
                             }}
                           />
+                        </td>
+                        {/*
+                          Toggle: pago verificado por tesorería.
+                          Regla: sólo se puede activar si el monto confirmado recibido
+                          coincide exactamente con el monto cobrado (reg_precio_estimado).
+                          Si no coinciden, el switch queda deshabilitado.
+                        */}
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const cobradoNum = Number(r.reg_precio_estimado);
+                            const confirmadoRaw = r.reg_monto_confirmado;
+                            const confirmadoNum = confirmadoRaw != null && String(confirmadoRaw).trim() !== ''
+                              ? Number(confirmadoRaw)
+                              : NaN;
+                            const montosCoinciden =
+                              Number.isFinite(cobradoNum) &&
+                              Number.isFinite(confirmadoNum) &&
+                              cobradoNum === confirmadoNum;
+                            const canToggle = montosCoinciden;
+                            return (
+                              <div
+                                className="flex items-center justify-center gap-2"
+                                title={canToggle ? '' : 'El monto confirmado debe coincidir con el monto cobrado'}
+                              >
+                                <Switch
+                                  checked={pagoVerif}
+                                  disabled={!canToggle}
+                                  onCheckedChange={(v) => updateRegistro(r, { pago_verificado: v ? 1 : 0 })}
+                                />
+                                {pagoVerif
+                                  ? <CheckCircle2 className="h-4 w-4 text-primary" />
+                                  : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
