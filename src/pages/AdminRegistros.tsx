@@ -39,6 +39,8 @@ interface RegistroRow {
   reg_apellido?: string;
   reg_correo?: string;
   reg_telefono?: string;
+  /** Alias canónico del teléfono en algunos esquemas. */
+  reg_celular?: string;
   reg_handicap?: string;
   reg_categoria?: string;
   /** Nombre legible de la categoría (JOIN del backend). */
@@ -48,6 +50,8 @@ interface RegistroRow {
   reg_club?: string;
   reg_fecha?: string;
   created_at?: string;
+  /** Fallback adicional de timestamp de alta en esquemas antiguos. */
+  fecha_alta?: string;
   reg_verificado?: number | string;
   /** Toggle administrativo: pago confirmado por tesorería. */
   reg_pago_verificado?: number | string;
@@ -369,12 +373,10 @@ const Dashboard = ({ password }: { password: string }) => {
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
-                                ['ID', r.id],
-                                ['Torneo', r.torneoid],
                                 ['Nombre', r.reg_nombre],
                                 ['Apellido', r.reg_apellido],
                                 ['Correo', r.reg_correo],
-                                ['Teléfono', r.reg_telefono],
+                                ['Teléfono', formatPhone(r.reg_telefono || r.reg_celular)],
                                 ['Handicap', r.reg_handicap],
                                 ['Categoría (nombre)', r.categoria_name],
                                 ['Categoría (id)', r.reg_categoria],
@@ -383,7 +385,7 @@ const Dashboard = ({ password }: { password: string }) => {
                                 ['Tipo de socio', r.reg_tipo_socio],
                                 ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
                                 ['Clave de socio', r.reg_clave_socio],
-                                ['Fecha registro', r.reg_fecha || r.created_at],
+                                ['Fecha registro', r.reg_fecha || r.created_at || (r as any).fecha_alta],
                                 ['Precio estimado', r.reg_precio_estimado != null && String(r.reg_precio_estimado) !== '' ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.reg_precio_moneda || 'MXN'}` : ''],
                                 ['Monto confirmado', r.reg_monto_confirmado],
                                 ['Pago verificado', Number(r.reg_pago_verificado) === 1 ? 'Sí' : 'No'],
