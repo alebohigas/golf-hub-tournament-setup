@@ -418,15 +418,6 @@ const Dashboard = ({ password }: { password: string }) => {
                                 );
                               })}
                             </div>
-                            {Number(r.has_archivo) === 1 && (
-                              <div className="mt-4">
-                                <Button asChild size="sm" variant="outline" className="gap-1">
-                                  <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
-                                    <FileDown className="h-4 w-4" /> Descargar comprobante
-                                  </a>
-                                </Button>
-                              </div>
-                            )}
                           </td>
                         </tr>
                       )}
