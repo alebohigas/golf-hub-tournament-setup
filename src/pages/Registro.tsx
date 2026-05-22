@@ -18,7 +18,7 @@
  * Submission goes to /api/registro.php as multipart/form-data.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import registroHero from '@/assets/registro-hero.jpg';
@@ -721,45 +721,36 @@ const Registro = () => {
     return undefined;
   }, [values.reg_es_socio, values.reg_tipo_socio]);
 
-  /** Eligible categories given hcp/sex/age (when those values are present). */
-  const categoryFilterResult = useMemo(() => {
-    const hcpRaw = parseFloat(values.reg_handicap);
-    const sex  = (values.reg_sexo || '').toUpperCase();
-    // Edad: prioriza la calculada desde fechanac; si no, usa la capturada
-    // manualmente en reg_edad (cuando el admin desactivó fechanac).
-    const ageFromBirth = calcAge(values.reg_fechanac || '');
-    const ageManual    = parseInt(values.reg_edad || '', 10);
-    const age = ageFromBirth !== null
-      ? ageFromBirth
-      : (!isNaN(ageManual) ? ageManual : null);
-    // Si el jugador tiene un handicap por debajo del mínimo global definido
-    // en las categorías (p.ej. registramos hasta -6 pero la categoría más
-    // baja arranca en -5), igual debe caer en la categoría inferior. Para
-    // ello "elevamos" su handicap al mínimo global a efectos del filtro.
+  /**
+   * Núcleo de elegibilidad — dado (sex, age, hcpRaw) devuelve qué categorías
+   * son válidas y, por cada exclusión, el motivo legible. Se extrae como
+   * función para poder reutilizarla tanto en el filtro del formulario como
+   * en la auditoría automática de cobertura de handicaps (sweep -5 → 40.6).
+   */
+  const evaluateEligibility = useCallback((
+    hcpRaw: number,
+    sex: string,
+    age: number | null,
+  ) => {
     const globalMinHcp = categories
       .filter(c => c.hcpMax > 0)
       .reduce<number | null>((min, c) => (min === null || c.hcpMin < min ? c.hcpMin : min), null);
     const hcp = !isNaN(hcpRaw) && globalMinHcp !== null && hcpRaw < globalMinHcp
       ? globalMinHcp
       : hcpRaw;
-    /** Evaluate each category and record the exclusion reason (if any). */
     const evaluations = categories.map(c => {
-      // Handicap range — BD.
       if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) {
         return { c, ok: false, reason: `Hcp ${hcp} fuera del rango BD ${c.hcpMin}–${c.hcpMax}` };
       }
-      // Handicap range — parsed from name "(min A max)".
       if (!isNaN(hcp)) {
         const hcpFromName = parseHcpFromName(c.name || '');
         if (hcpFromName && (hcp < hcpFromName.min || hcp > hcpFromName.max)) {
           return { c, ok: false, reason: `Hcp ${hcp} fuera del rango del nombre ${hcpFromName.min}–${hcpFromName.max}` };
         }
       }
-      // Gender filter.
       if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) {
         return { c, ok: false, reason: `Género ${c.gender} ≠ ${sex}` };
       }
-      // Age range filter (DB + name fallback).
       if (age !== null) {
         const fromName = parseAgeFromName(c.name || '');
         const minDb = c.ageMin != null && c.ageMin > 0 ? c.ageMin : null;
@@ -769,7 +760,6 @@ const Registro = () => {
         if (min != null && age < min) return { c, ok: false, reason: `Edad ${age} < mínima ${min}` };
         if (max != null && age > max) return { c, ok: false, reason: `Edad ${age} > máxima ${max}` };
       }
-      // Reglas explícitas de `categorias_reglas`.
       const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
       if (catReglas.length > 0) {
         const playerCtx = { sex, age, hcp: !isNaN(hcpRaw) ? hcpRaw : null };
@@ -792,7 +782,54 @@ const Registro = () => {
       sex,
       age,
     };
-  }, [categories, reglas, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, reglas]);
+
+  /** Eligible categories given hcp/sex/age (when those values are present). */
+  const categoryFilterResult = useMemo(() => {
+    const hcpRaw = parseFloat(values.reg_handicap);
+    const sex  = (values.reg_sexo || '').toUpperCase();
+    // Edad: prioriza la calculada desde fechanac; si no, usa la capturada
+    // manualmente en reg_edad (cuando el admin desactivó fechanac).
+    const ageFromBirth = calcAge(values.reg_fechanac || '');
+    const ageManual    = parseInt(values.reg_edad || '', 10);
+    const age = ageFromBirth !== null
+      ? ageFromBirth
+      : (!isNaN(ageManual) ? ageManual : null);
+    return evaluateEligibility(hcpRaw, sex, age);
+  }, [evaluateEligibility, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+
+  /**
+   * Auditoría de cobertura de hándicap: barre HCP de -5.0 a 40.6 en pasos
+   * de 0.1 para los sexos M y F (usando la edad capturada) y detecta los
+   * tramos sin ninguna categoría elegible. Sirve para garantizar que NO
+   * existan agujeros de cobertura. Sólo se calcula bajo ?debug=1.
+   */
+  const hcpCoverageAudit = useMemo(() => {
+    if (typeof window === 'undefined' || !window.location.search.includes('debug=1')) return null;
+    if (!categories.length) return null;
+    const ageFromBirth = calcAge(values.reg_fechanac || '');
+    const ageManual    = parseInt(values.reg_edad || '', 10);
+    const age = ageFromBirth !== null ? ageFromBirth : (!isNaN(ageManual) ? ageManual : null);
+    /** Para un sexo dado, devuelve la lista de intervalos [from..to] de HCP sin categoría. */
+    const auditSex = (sex: 'M' | 'F') => {
+      const gaps: { from: number; to: number }[] = [];
+      let current: { from: number; to: number } | null = null;
+      for (let i = -50; i <= 406; i++) {
+        const hcp = Math.round(i) / 10;
+        const res = evaluateEligibility(hcp, sex, age);
+        if (res.eligible.length === 0) {
+          if (current) current.to = hcp;
+          else current = { from: hcp, to: hcp };
+        } else if (current) {
+          gaps.push(current);
+          current = null;
+        }
+      }
+      if (current) gaps.push(current);
+      return gaps;
+    };
+    return { M: auditSex('M'), F: auditSex('F'), age };
+  }, [categories, reglas, evaluateEligibility, values.reg_fechanac, values.reg_edad]);
 
   const eligibleCategories = categoryFilterResult.eligible;
 
@@ -1132,6 +1169,39 @@ const Registro = () => {
                     </li>
                   ))}
                 </ul>
+              </div>
+            </details>
+          )}
+          {/* Auditoría automática de cobertura HCP (-5 → 40.6 paso 0.1)
+              por sexo. Aparece solo con ?debug=1. Muestra los rangos de
+              hándicap que NO tienen ninguna categoría elegible, para
+              detectar agujeros sin tener que probar valor por valor. */}
+          {hcpCoverageAudit && (
+            <details className="text-xs border border-dashed border-amber-500/40 rounded-md p-2 bg-amber-50/30" open>
+              <summary className="cursor-pointer font-medium text-amber-700">
+                Auditoría cobertura HCP (-5 → 40.6, paso 0.1)
+              </summary>
+              <div className="mt-2 space-y-2">
+                <p className="text-muted-foreground">
+                  Edad usada: <strong>{hcpCoverageAudit.age ?? '— (sin edad)'}</strong>.
+                  Lista los tramos de hándicap SIN categoría elegible.
+                </p>
+                {(['M','F'] as const).map(sex => (
+                  <div key={sex}>
+                    <p className="font-medium">Sexo {sex}:</p>
+                    {hcpCoverageAudit[sex].length === 0 ? (
+                      <p className="text-emerald-700">✓ Cobertura completa, sin agujeros.</p>
+                    ) : (
+                      <ul className="ml-4 list-disc">
+                        {hcpCoverageAudit[sex].map((g, i) => (
+                          <li key={i} className="text-destructive">
+                            HCP {g.from.toFixed(1)} → {g.to.toFixed(1)} sin categoría
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </div>
             </details>
           )}
