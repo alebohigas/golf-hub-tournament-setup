@@ -765,10 +765,18 @@ const Registro = () => {
         const playerCtx = { sex, age, hcp: !isNaN(hcpRaw) ? hcpRaw : null };
         const anyMatch = catReglas.some(r => playerMatchesRule(r, playerCtx));
         if (!anyMatch) {
+          /** Resumen legible de cada regla para que el admin sepa qué editar. */
+          const dump = catReglas.map(r => {
+            const parts: string[] = [];
+            parts.push(`género=${r.genero ?? '∗'}`);
+            parts.push(`edad ${r.edad_min ?? '−∞'}–${r.edad_max ?? '+∞'}`);
+            parts.push(`hcp ${r.hcp_min ?? '−∞'}–${r.hcp_max ?? '+∞'}`);
+            return `[${parts.join(', ')}]`;
+          }).join(' ');
           return {
             c,
             ok: false,
-            reason: `Ninguna de ${catReglas.length} regla(s) explícita(s) coincide (sexo=${sex||'?'}, edad=${age??'?'}, hcp=${!isNaN(hcpRaw)?hcpRaw:'?'})`,
+            reason: `Ninguna de ${catReglas.length} regla(s) explícita(s) coincide. Reglas: ${dump}. Jugador: sexo=${sex||'?'}, edad=${age??'?'}, hcp=${!isNaN(hcpRaw)?hcpRaw:'?'}`,
           };
         }
       }
