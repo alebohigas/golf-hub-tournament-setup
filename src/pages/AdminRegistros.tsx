@@ -269,9 +269,6 @@ const Dashboard = ({ password }: { password: string }) => {
                         </td>
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
-                          {r.reg_categoria && (
-                            <div className="text-xs text-muted-foreground font-mono">id: {r.reg_categoria}</div>
-                          )}
                         </td>
                         <td className="p-3">
                           <div>{r.reg_club || '—'}</div>
