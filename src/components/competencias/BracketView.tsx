@@ -18,7 +18,8 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Trophy, Crown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Trophy, Crown, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import type { BracketQualifier } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
@@ -41,6 +42,12 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const side = data?.[sexo];
   /** Texto de búsqueda para resaltar a un jugador en cualquier match del bracket. */
   const [search, setSearch] = useState('');
+  /**
+   * Toggle para mostrar/ocultar la malla de brackets. Por defecto OCULTA:
+   * la tabla de clasificados funciona como "vista previa" y el usuario
+   * decide cuándo abrir la malla completa de partidos.
+   */
+  const [showBracket, setShowBracket] = useState(false);
   /** Refs por matchId → permite hacer scroll automático al primer resultado. */
   const matchRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   /**
@@ -54,6 +61,15 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         (side?.matches ?? []).flatMap((m) => [m.player1_name, m.player2_name]),
       ),
     [side?.matches],
+  );
+  /**
+   * Sugerencias para el buscador de la tabla de clasificados (independiente
+   * del buscador del bracket: una persona puede estar en clasificados sin
+   * aparecer todavía en ningún match si el bracket no se ha generado).
+   */
+  const qualifierSuggestions = useMemo(
+    () => buildUniqueNameSuggestions((side?.qualifiers ?? []).map((q) => q.name)),
+    [side?.qualifiers],
   );
 
   /**
@@ -145,17 +161,47 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   return (
     <div className="space-y-6">
-      <PlayerSearchInput
-        value={search}
-        onChange={setSearch}
-        onSubmit={handleSearchSubmit}
-        suggestions={nameSuggestions}
-        placeholder="Buscar jugador en el bracket..."
-        className="max-w-md"
+      {/* ============ CLASIFICADOS (vista previa, siempre visible) ============ */}
+      <QualifiersTable
+        qualifiers={side.qualifiers ?? []}
+        totalSlots={side.bracket_size ?? Number(config.size)}
+        sexo={sexo}
+        suggestions={qualifierSuggestions}
       />
 
-      {/* ============ GRUPOS DE 16 ============ */}
-      <div className="space-y-8">
+      {/* ============ TOGGLE para ver/ocultar la malla de brackets ============ */}
+      <div className="flex justify-center pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowBracket((v) => !v)}
+          className="gap-2"
+        >
+          {showBracket ? (
+            <>
+              <ChevronUp className="h-4 w-4" /> Ocultar brackets
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-4 w-4" /> Ver brackets de jugadores
+            </>
+          )}
+        </Button>
+      </div>
+
+      {showBracket && (
+        <>
+          <PlayerSearchInput
+            value={search}
+            onChange={setSearch}
+            onSubmit={handleSearchSubmit}
+            suggestions={nameSuggestions}
+            placeholder="Buscar jugador en el bracket..."
+            className="max-w-md"
+          />
+
+          {/* ============ GRUPOS DE 16 ============ */}
+          <div className="space-y-8">
         {Array.from({ length: groupsCount }, (_, g) => (
           <section key={g} className="space-y-3">
             <h3 className="text-base font-bold text-primary">
@@ -186,10 +232,10 @@ const BracketView = ({ sexo }: BracketViewProps) => {
             </div>
           </section>
         ))}
-      </div>
+          </div>
 
-      {/* ============ GRAN FINAL (solo si hay rondas > 4) ============ */}
-      {grandFinalRounds.length > 0 && (
+          {/* ============ GRAN FINAL (solo si hay rondas > 4) ============ */}
+          {grandFinalRounds.length > 0 && (
         <GrandFinalView
           rounds={grandFinalRounds}
           allMatches={matches}
@@ -200,14 +246,9 @@ const BracketView = ({ sexo }: BracketViewProps) => {
           dimChampion={searching}
           registerRef={(id, el) => matchRefs.current.set(id, el)}
         />
+          )}
+        </>
       )}
-
-      {/* ============ CLASIFICADOS (ranking acumulado) ============ */}
-      <QualifiersTable
-        qualifiers={side.qualifiers ?? []}
-        totalSlots={side.bracket_size ?? Number(config.size)}
-        sexo={sexo}
-      />
     </div>
   );
 };
@@ -473,17 +514,51 @@ const QualifiersTable = ({
   qualifiers,
   totalSlots,
   sexo,
+  suggestions,
 }: {
   qualifiers: BracketQualifier[];
   totalSlots: number;
   sexo: 'M' | 'F';
+  /** Lista única de nombres para el autocomplete del buscador. */
+  suggestions: string[];
 }) => {
-  /** Formatea fecha YYYY-MM-DD a "DD/MM/YYYY" sin depender de timezone. */
-  const formatFecha = (f: string | null): string => {
+  /**
+   * Buscador local con la misma UX que el bracket: al confirmar (Enter o
+   * selección de sugerencia) hace scroll a la fila del jugador y la
+   * resalta con el mismo tono dorado.
+   */
+  const [search, setSearch] = useState('');
+  const rowRefs = useRef<Map<number, HTMLTableRowElement | null>>(new Map());
+
+  const handleSubmit = (term: string) => {
+    const q = term.trim();
+    if (!q) return;
+    const hit = qualifiers.find((r) => matchesPlayerName(r.name, q));
+    if (!hit) return;
+    setTimeout(() => {
+      const el = rowRefs.current.get(hit.rank);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
+
+  /** Formatea fecha `YYYY-MM-DD` (o `YYYY-MM-DD HH:MM:SS`) a "DD/MM/YYYY". */
+  const formatFecha = (f: string | null | undefined): string => {
     if (!f) return '—';
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f);
     if (!m) return f;
     return `${m[3]}/${m[2]}/${m[1]}`;
+  };
+
+  /**
+   * Extrae `HH:MM:SS` desde `fecha_full` (DATETIME). Si la fecha es
+   * sólo YYYY-MM-DD o el campo está vacío, devuelve em-dash.
+   */
+  const formatHora = (f: string | null | undefined): string => {
+    if (!f) return '—';
+    const m = /\b(\d{2}):(\d{2}):(\d{2})\b/.exec(f);
+    if (!m) return '—';
+    if (m[1] === '00' && m[2] === '00' && m[3] === '00') return '—';
+    return `${m[1]}:${m[2]}:${m[3]}`;
   };
 
   const slots = Math.max(0, totalSlots | 0);
@@ -502,36 +577,62 @@ const QualifiersTable = ({
         </span>
       </div>
 
+      <PlayerSearchInput
+        value={search}
+        onChange={setSearch}
+        onSubmit={handleSubmit}
+        suggestions={suggestions}
+        placeholder="Buscar jugador en clasificados..."
+        className="max-w-md"
+      />
+
       <div className="overflow-x-auto bg-white rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-primary text-primary-foreground">
               <th className="px-3 py-2 text-center font-bold w-12">#</th>
               <th className="px-3 py-2 text-left font-bold">Jugador</th>
+              <th className="px-3 py-2 text-left font-bold">Categoría</th>
               <th className="px-3 py-2 text-right font-bold w-32">Distancia</th>
               <th className="px-3 py-2 text-center font-bold w-32">Fecha</th>
+              <th className="px-3 py-2 text-center font-bold w-28">Hora</th>
             </tr>
           </thead>
           <tbody>
             {qualifiers.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
                   Aún no hay clasificados.
                 </td>
               </tr>
             ) : (
-              qualifiers.map((q) => (
-                <tr key={`${q.rank}-${q.name}`} className="border-t border-border/60">
-                  <td className="px-3 py-2 text-center font-semibold text-primary">{q.rank}</td>
-                  <td className="px-3 py-2">{q.name}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-center text-muted-foreground">
-                    {formatFecha(q.fecha)}
-                  </td>
-                </tr>
-              ))
+              qualifiers.map((q) => {
+                const isHit = !!search.trim() && matchesPlayerName(q.name, search);
+                return (
+                  <tr
+                    key={`${q.rank}-${q.name}`}
+                    ref={(el) => rowRefs.current.set(q.rank, el)}
+                    className={`border-t border-border/60 ${
+                      isHit ? 'bg-accent ring-2 ring-accent' : ''
+                    }`}
+                  >
+                    <td className="px-3 py-2 text-center font-semibold text-primary">{q.rank}</td>
+                    <td className={`px-3 py-2 ${isHit ? 'font-bold text-accent-foreground' : ''}`}>
+                      {q.name}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{q.categoria ?? '—'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
+                    </td>
+                    <td className="px-3 py-2 text-center text-muted-foreground">
+                      {formatFecha(q.fecha_full ?? q.fecha)}
+                    </td>
+                    <td className="px-3 py-2 text-center text-muted-foreground tabular-nums">
+                      {formatHora(q.fecha_full ?? q.fecha)}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
