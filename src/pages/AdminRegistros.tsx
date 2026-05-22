@@ -30,6 +30,18 @@ import {
 const SESSION_KEY = 'registros_admin_session';
 const REGISTROS_PASSWORD = 'registros2025';
 
+/**
+ * Formatea un teléfono crudo "(+52 5512345678)" o "+52 5512345678" como
+ * "(+52) 5512345678". Si no detecta lada con '+', devuelve el valor original.
+ */
+const formatPhone = (raw?: string | null): string => {
+  const s = (raw || '').trim();
+  if (!s) return '';
+  const m = s.match(/^\+?\s*(\d{1,4})[\s-]+(.+)$/);
+  if (m) return `(+${m[1]}) ${m[2].trim()}`;
+  return s;
+};
+
 /** A single registro row from /api/registro.php */
 interface RegistroRow {
   id: number;
