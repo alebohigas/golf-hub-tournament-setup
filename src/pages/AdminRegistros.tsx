@@ -366,7 +366,7 @@ const Dashboard = ({ password }: { password: string }) => {
                             }}
                           />
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={verified}
