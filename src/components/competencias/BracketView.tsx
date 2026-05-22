@@ -200,6 +200,13 @@ const BracketView = ({ sexo }: BracketViewProps) => {
           registerRef={(id, el) => matchRefs.current.set(id, el)}
         />
       )}
+
+      {/* ============ CLASIFICADOS (ranking acumulado) ============ */}
+      <QualifiersTable
+        qualifiers={side.qualifiers ?? []}
+        totalSlots={side.bracket_size ?? Number(config.size)}
+        sexo={sexo}
+      />
     </div>
   );
 };
