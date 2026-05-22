@@ -269,10 +269,10 @@ const Dashboard = ({ password }: { password: string }) => {
                         </td>
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
+                          <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
                         </td>
                         <td className="p-3">
                           <div>{r.reg_club || '—'}</div>
-                          <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
                         </td>
                         <td className="p-3">
                           {r.reg_es_socio === 'SI' ? (
