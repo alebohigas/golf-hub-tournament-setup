@@ -213,15 +213,16 @@ function registro_has($conn, $col) {
  * different names; we probe in priority order.
  */
 function registro_torneo_col($conn) {
-    foreach (['torneoid', 'torneo_id', 'id_torneo', 'idtorneo', 'reg_torneoid', 'reg_torneo_id'] as $c) {
+    // Prioridad: reg_id_torneo (canónico nuevo). Las demás se conservan
+    // como fallback para esquemas legacy, pero ya no creamos torneoid.
+    foreach (['reg_id_torneo', 'torneo_id', 'id_torneo', 'idtorneo', 'reg_torneoid', 'reg_torneo_id', 'torneoid'] as $c) {
         if (registro_has($conn, $c)) return $c;
     }
 
-    // Some legacy `registro` tables were created without a tournament column.
-    // Add the canonical column once so new submissions can be tied to torneoid.
-    @$conn->query("ALTER TABLE registro ADD COLUMN torneoid INT(11) NULL");
+    // Si no existe ninguna columna de torneo, crea la canónica nueva.
+    @$conn->query("ALTER TABLE registro ADD COLUMN reg_id_torneo INT(11) NULL");
     registro_columns($conn, true);
-    if (registro_has($conn, 'torneoid')) return 'torneoid';
+    if (registro_has($conn, 'reg_id_torneo')) return 'reg_id_torneo';
 
     return null;
 }
@@ -366,9 +367,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         }
     }
 
-    /** Default verification flag = 0 if column exists. */
-    if (registro_has($conn, 'reg_verificado')) {
-        $cols[] = 'reg_verificado';
+    /**
+     * Derivar `reg_cargo` ("SI"/"NO"/"") a partir de la respuesta del jugador:
+     *   - Es socio + check marcado → "SI"
+     *   - Es socio + check no marcado → "NO"
+     *   - No socio → cadena vacía (se queda en blanco)
+     * Se sobreescribe cualquier valor posteado para evitar manipulación
+     * desde el cliente.
+     */
+    if (registro_has($conn, 'reg_cargo')) {
+        $esSocioPost = strtoupper(trim((string)($_POST['reg_es_socio'] ?? '')));
+        $cargoPost   = trim((string)($_POST['reg_cargo_socio'] ?? ''));
+        $cargoVal    = '';
+        if ($esSocioPost === 'SI') {
+            $cargoVal = ($cargoPost === '1') ? 'SI' : 'NO';
+        }
+        if (isset($writtenCols['reg_cargo'])) {
+            // Reemplazar el valor previamente añadido (posteado por el cliente)
+            $idx = array_search('reg_cargo', $cols, true);
+            if ($idx !== false) {
+                $vals[$idx] = "'" . esc($conn, $cargoVal) . "'";
+            }
+        } else {
+            $writtenCols['reg_cargo'] = true;
+            $cols[] = 'reg_cargo';
+            $vals[] = "'" . esc($conn, $cargoVal) . "'";
+        }
+    }
+
+    /** Default verification flag = 0 si la columna `verificado` existe. */
+    if (registro_has($conn, 'verificado') && !isset($writtenCols['verificado'])) {
+        $cols[] = 'verificado';
+        $vals[] = '0';
+    }
+    /** Default status_pago = 0 si la columna existe. */
+    if (registro_has($conn, 'status_pago') && !isset($writtenCols['status_pago'])) {
+        $cols[] = 'status_pago';
         $vals[] = '0';
     }
 
@@ -395,13 +429,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
     if ($id <= 0) json_error('Missing id', 400);
 
     /**
-     * Auto-crear las columnas admin si faltan. Esto SOLO corre en el
-     * endpoint verify (acción manual del administrador), nunca en el POST
-     * público del formulario, así no agrega overhead al envío de jugadores.
+     * Auto-crear únicamente las columnas que aún manejamos nosotros.
+     * `verificado` y `status_pago` ya existían en el esquema base — no
+     * las creamos ni las tocamos aquí. `reg_monto_confirmado` sí es
+     * propia de este admin y se asegura su existencia.
      */
     $adminColsSpec = [
-        'reg_verificado'       => 'TINYINT(1) NOT NULL DEFAULT 0',
-        'reg_pago_verificado'  => 'TINYINT(1) NOT NULL DEFAULT 0',
         'reg_monto_confirmado' => 'DECIMAL(10,2) NULL',
     ];
     $needRefresh = false;
@@ -415,23 +448,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
 
     /**
      * Admin update — acepta cualquier combinación de:
-     *   - verified            → reg_verificado (TINYINT 0/1)
-     *   - pago_verificado     → reg_pago_verificado (TINYINT 0/1)
+     *   - verified            → `verificado`     (TINYINT 0/1, columna nativa)
+     *   - pago_verificado     → `status_pago`    (TINYINT 0/1, columna nativa)
      *   - monto_confirmado    → reg_monto_confirmado (DECIMAL, NULL si vacío)
-     * Las columnas se garantizan arriba; si el ALTER falla por permisos,
-     * registro_has() seguirá devolviendo false y el set correspondiente
-     * se omite silenciosamente.
      */
     $sets = [];
     $wantVerified = array_key_exists('verified', $body);
     $newVerified  = $wantVerified ? (!empty($body['verified']) ? 1 : 0) : null;
 
-    if ($wantVerified && registro_has($conn, 'reg_verificado')) {
-        $sets[] = "reg_verificado = $newVerified";
+    if ($wantVerified && registro_has($conn, 'verificado')) {
+        $sets[] = "verificado = $newVerified";
     }
-    if (array_key_exists('pago_verificado', $body) && registro_has($conn, 'reg_pago_verificado')) {
+    if (array_key_exists('pago_verificado', $body) && registro_has($conn, 'status_pago')) {
         $pv = !empty($body['pago_verificado']) ? 1 : 0;
-        $sets[] = "reg_pago_verificado = $pv";
+        $sets[] = "status_pago = $pv";
     }
     if (array_key_exists('monto_confirmado', $body) && registro_has($conn, 'reg_monto_confirmado')) {
         $raw = trim((string)$body['monto_confirmado']);
@@ -568,11 +598,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_handicap',
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
-        'reg_verificado','reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
+        'reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
         // Cargo a cuenta de socio
         'reg_cargo_socio','reg_clave_socio',
-        // Verificación administrativa (pago + monto)
-        'reg_pago_verificado','reg_monto_confirmado',
+        // Monto confirmado por tesorería
+        'reg_monto_confirmado',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns
@@ -583,6 +613,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = "r.$c";
+    /**
+     * Verificación administrativa: las columnas canónicas en la BD son
+     * `verificado` y `status_pago`. Las exponemos con alias hacia los
+     * nombres antiguos para no romper el frontend (reg_verificado y
+     * reg_pago_verificado siguen siendo las claves que usa la UI).
+     */
+    if (registro_has($conn, 'verificado'))  $fields[] = "r.verificado AS reg_verificado";
+    if (registro_has($conn, 'status_pago')) $fields[] = "r.status_pago AS reg_pago_verificado";
     /** Indicate whether a binary attachment exists without sending the bytes. */
     if (registro_has($conn, 'reg_archivo')) {
         $fields[] = "(r.reg_archivo IS NOT NULL AND OCTET_LENGTH(r.reg_archivo) > 0) AS has_archivo";

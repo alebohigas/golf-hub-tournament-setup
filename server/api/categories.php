@@ -30,11 +30,18 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.gross, a.catrel, a.sexo, a.corte,
                a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
                COUNT(b.id) as playerCount,
-               (SELECT COUNT(*) FROM jugadores j
-                  WHERE j.torneoid = a.torneo_id
-                    AND j.categoriaid = a.categoria_id
-                    AND j.tipoinsc = 1
-                    AND j.tipoinsc2 = 3) AS registeredCount,
+               /**
+                * Conteo de jugadores pre-registrados para esta categoría.
+                * Fuente: tabla `registro` (Pre-Registro). Se cuentan sólo
+                * los que ya están verificados Y con pago confirmado por
+                * tesorería (verificado = 1 AND status_pago = 1). Se filtra
+                * por reg_id_torneo + reg_categoria.
+                */
+               (SELECT COUNT(*) FROM registro r
+                  WHERE r.reg_id_torneo = a.torneo_id
+                    AND r.reg_categoria = a.categoria_id
+                    AND r.verificado   = 1
+                    AND r.status_pago  = 1) AS registeredCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
         FROM categorias a
