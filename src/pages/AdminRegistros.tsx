@@ -258,10 +258,7 @@ const Dashboard = ({ password }: { password: string }) => {
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
                       : '—';
                     return (
-                      <tr key={r.id} className="border-t">
-                        <td className="p-3">
-                          <Badge variant="outline" className="font-mono">#{r.torneoid ?? '—'}</Badge>
-                        </td>
+                    <tr key={r.id} className="border-t">
                         <td className="p-3">
                           <div className="font-medium">{[r.reg_nombre, r.reg_apellido].filter(Boolean).join(' ') || '—'}</div>
                           <div className="text-xs text-muted-foreground">#{r.id} · {r.reg_fecha || r.created_at || ''}</div>
