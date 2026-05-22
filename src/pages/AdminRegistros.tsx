@@ -119,6 +119,43 @@ const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => boolean }) => {
           </form>
         </CardContent>
       </Card>
+
+      {/* Modal de vista previa del comprobante (imagen o PDF inline). */}
+      <Dialog open={!!previewRow} onOpenChange={(o) => !o && setPreviewRow(null)}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-3 pr-6">
+              <span className="truncate">
+                Comprobante · {previewRow ? `${previewRow.reg_nombre ?? ''} ${previewRow.reg_apellido ?? ''}`.trim() : ''}
+                {previewRow?.reg_archivo_nombre ? ` — ${previewRow.reg_archivo_nombre}` : ''}
+              </span>
+              {previewRow && (
+                <Button asChild size="sm" variant="outline" className="gap-1 shrink-0">
+                  <a
+                    href={getRegistroArchivoUrl(previewRow.id, password)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FileDown className="h-4 w-4" /> Abrir en nueva pestaña
+                  </a>
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {previewRow && (() => {
+            const url = getRegistroArchivoUrl(previewRow.id, password);
+            const name = (previewRow.reg_archivo_nombre || '').toLowerCase();
+            const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name);
+            return isImage ? (
+              <div className="flex-1 overflow-auto bg-muted/30 rounded flex items-center justify-center">
+                <img src={url} alt="Comprobante" className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : (
+              <iframe src={url} title="Comprobante" className="flex-1 w-full rounded border" />
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
