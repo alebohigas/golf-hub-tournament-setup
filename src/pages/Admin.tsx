@@ -25,6 +25,7 @@ import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
+import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
   LogOut, 
@@ -48,6 +49,7 @@ import {
   Upload,
   ClipboardList,
   Trophy,
+  ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -308,7 +310,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -344,6 +346,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="registro" className="gap-2">
             <ClipboardList className="h-4 w-4" />
             <span className="hidden sm:inline">Pre-Registro</span>
+          </TabsTrigger>
+          <TabsTrigger value="registros" className="gap-2">
+            <ListChecks className="h-4 w-4" />
+            <span className="hidden sm:inline">Registros</span>
           </TabsTrigger>
           <TabsTrigger value="brackets" className="gap-2">
             <Trophy className="h-4 w-4" />
@@ -516,9 +522,18 @@ const AdminDashboard = () => {
             </TabsContent>
           </Tabs>
         </TabsContent>
-        {/* Brackets Putt Tab — config + visibilidad de Putt Finales (M/F) */}
+        {/* Registros Tab — duplica /admin/registros dentro del panel admin
+            principal. Usa la misma contraseña interna (`registros2025`) que
+            el endpoint verify; el listado público sigue disponible en
+            /admin/registros para personal del club / ayudantes. */}
+        <TabsContent value="registros">
+          <RegistrosDashboard password="registros2025" />
+        </TabsContent>
+        {/* Brackets Putt Tab — config + visibilidad + captura de resultados
+            (mode="full") para que el admin principal pueda hacerlo todo
+            desde /admin. Ayudantes usan /admin/brackets (mode="scores"). */}
         <TabsContent value="brackets">
-          <AdminBrackets mode="config" />
+          <AdminBrackets mode="full" />
         </TabsContent>
       </Tabs>
 

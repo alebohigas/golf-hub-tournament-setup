@@ -294,6 +294,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         }
     }
 
+    /**
+     * Auto-rellenar reg_id_torneo y reg_id_club si esas columnas existen
+     * en la tabla `registro`. El form NO los manda directamente — los
+     * derivamos en el servidor a partir del torneoid de la URL y del
+     * nombre de club tecleado por el jugador (`reg_club`).
+     */
+    if (registro_has($conn, 'reg_id_torneo') && !isset($writtenCols['reg_id_torneo'])) {
+        $writtenCols['reg_id_torneo'] = true;
+        $cols[] = 'reg_id_torneo';
+        $vals[] = (int)$torneoid;
+    }
+    if (registro_has($conn, 'reg_id_club') && !isset($writtenCols['reg_id_club'])) {
+        $clubName = trim((string)($_POST['reg_club'] ?? ''));
+        if ($clubName !== '') {
+            $r = @$conn->query("SELECT id FROM clubs WHERE nombre = '" . esc($conn, $clubName) . "' LIMIT 1");
+            if ($r && ($row = $r->fetch_assoc())) {
+                $writtenCols['reg_id_club'] = true;
+                $cols[] = 'reg_id_club';
+                $vals[] = (int)$row['id'];
+                $r->free();
+            } elseif ($r) { $r->free(); }
+        }
+    }
+
     /** Default verification flag = 0 if column exists. */
     if (registro_has($conn, 'reg_verificado')) {
         $cols[] = 'reg_verificado';

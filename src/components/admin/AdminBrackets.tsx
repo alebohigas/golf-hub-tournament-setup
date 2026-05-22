@@ -26,6 +26,7 @@ import {
   useGeneratePuttBracket,
   useRecordBracketScore,
   useSetBracketWinner,
+  useResetBracketMatch,
   type BracketMatch,
   type PuttBracketSide,
 } from '@/hooks/useBrackets';
@@ -260,6 +261,7 @@ const MatchRow = ({ match }: { match: BracketMatch }) => {
   const { toast } = useToast();
   const record = useRecordBracketScore();
   const setWinner = useSetBracketWinner();
+  const reset = useResetBracketMatch();
   const [s1, setS1] = useState<string>(match.player1_score?.toString() ?? '');
   const [s2, setS2] = useState<string>(match.player2_score?.toString() ?? '');
 
@@ -289,11 +291,23 @@ const MatchRow = ({ match }: { match: BracketMatch }) => {
     );
   };
 
+  /** Resetea sólo este match (scores + ganador) y deshace su avance. */
+  const handleReset = () => {
+    if (!confirm('¿Resetear este match? Se borrarán scores y ganador, y se removerá el avance al siguiente bracket.')) return;
+    reset.mutate(
+      { match_id: match.id, password: ADMIN_PW },
+      {
+        onSuccess: () => { setS1(''); setS2(''); toast({ title: 'Match reseteado' }); },
+        onError:   (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+      },
+    );
+  };
+
   const isW1 = match.winner_id != null && match.winner_id === match.player1_id;
   const isW2 = match.winner_id != null && match.winner_id === match.player2_id;
 
   return (
-    <div className="border border-border rounded-md p-2 grid grid-cols-[1fr,auto,1fr,auto] gap-2 items-center text-sm">
+    <div className="border border-border rounded-md p-2 grid grid-cols-[1fr,auto,1fr,auto,auto] gap-2 items-center text-sm">
       <PlayerSlot
         name={match.player1_name} seed={match.player1_seed}
         score={s1} setScore={setS1} winner={isW1}
@@ -309,6 +323,20 @@ const MatchRow = ({ match }: { match: BracketMatch }) => {
       />
       <Button size="sm" variant="outline" onClick={handleSave} disabled={record.isPending}>
         {record.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Guardar'}
+      </Button>
+      {/* Reset por match — limpia scores, ganador y deshace el avance al siguiente bracket. */}
+      <Button
+        size="sm"
+        variant="ghost"
+        title="Resetear este match"
+        aria-label="Resetear este match"
+        onClick={handleReset}
+        disabled={reset.isPending}
+        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+      >
+        {reset.isPending
+          ? <Loader2 className="h-4 w-4 animate-spin" />
+          : <RefreshCw className="h-4 w-4" />}
       </Button>
     </div>
   );

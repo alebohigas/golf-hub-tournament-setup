@@ -125,7 +125,7 @@ const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => boolean }) => {
 
 // ============= Dashboard =============
 
-const Dashboard = ({ password }: { password: string }) => {
+export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [rows, setRows] = useState<RegistroRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified'>('all');
@@ -488,7 +488,7 @@ const AdminRegistros = () => {
 
   return (
     <Layout>
-      {authed ? <Dashboard password={REGISTROS_PASSWORD} /> : <LoginForm onLogin={onLogin} />}
+      {authed ? <RegistrosDashboard password={REGISTROS_PASSWORD} /> : <LoginForm onLogin={onLogin} />}
     </Layout>
   );
 };

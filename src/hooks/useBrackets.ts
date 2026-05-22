@@ -174,3 +174,17 @@ export const useSetBracketWinner = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
   });
 };
+
+/**
+ * Resetea un match: limpia scores + ganador y deshace el avance al
+ * siguiente bracket. Útil cuando se capturó por error y se quiere volver
+ * a empezar ese emparejamiento desde cero.
+ */
+export const useResetBracketMatch = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { match_id: number; password: string }) =>
+      postBracketAction('reset_match', vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+  });
+};

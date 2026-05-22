@@ -644,6 +644,46 @@ function action_set_winner($conn, $body) {
     json_response(['ok' => true]);
 }
 
+// ============= Acción: reset_match (admin) =============
+/**
+ * Resetea un match: limpia scores y ganador, y borra al ganador del
+ * slot correspondiente del next_match (si fue avanzado previamente).
+ * NO recursa más allá del padre inmediato — si rondas posteriores ya
+ * se jugaron, el admin debe resetearlas también una por una.
+ */
+function action_reset_match($conn, $body) {
+    require_admin($body);
+    $matchId = (int)($body['match_id'] ?? 0);
+    if ($matchId <= 0) json_error('Invalid match_id', 400);
+
+    $m = safe_one($conn, "SELECT id, winner_player_id, next_match_id, next_slot
+                          FROM bracket_matches WHERE id = $matchId");
+    if (!$m) json_error('Match not found', 404);
+
+    /** 1) Si había ganador avanzado al next, limpiar ese slot. */
+    if ($m['winner_player_id'] !== null && $m['next_match_id'] !== null) {
+        $nextId    = (int)$m['next_match_id'];
+        $slotCol   = ($m['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
+        $seedCol   = ($m['next_slot'] === 'high') ? 'seed_high'      : 'seed_low';
+        $scoreCol  = ($m['next_slot'] === 'high') ? 'score_high'     : 'score_low';
+        $wid = (int)$m['winner_player_id'];
+        // Sólo limpiar si el slot todavía contiene a este ganador (no fue
+        // sobreescrito manualmente por el admin con set_winner posterior).
+        $conn->query("UPDATE bracket_matches
+                      SET $slotCol = NULL, $seedCol = NULL, $scoreCol = NULL,
+                          winner_player_id = NULL, status = 'pending', updated_at = NOW()
+                      WHERE id = $nextId AND $slotCol = $wid");
+    }
+
+    /** 2) Limpiar el match actual: scores + ganador + estado. */
+    $conn->query("UPDATE bracket_matches
+                  SET score_high = NULL, score_low = NULL,
+                      winner_player_id = NULL, status = 'pending', updated_at = NOW()
+                  WHERE id = $matchId");
+
+    json_response(['ok' => true]);
+}
+
 // ============= Router =============
 $method = $_SERVER['REQUEST_METHOD'];
 $action = optional_param('action', '');
@@ -659,6 +699,7 @@ if ($method === 'GET') {
     elseif ($action === 'generate_putt')    action_generate_putt($conn, $body);
     elseif ($action === 'record_score')     action_record_score($conn, $body);
     elseif ($action === 'set_winner')       action_set_winner($conn, $body);
+    elseif ($action === 'reset_match')      action_reset_match($conn, $body);
     else json_error("Unknown POST action '$action'.", 400);
 } else {
     json_error('Method not allowed', 405);
