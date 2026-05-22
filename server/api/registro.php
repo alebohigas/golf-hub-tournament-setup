@@ -335,10 +335,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
 
 // ============= GET listing (admin) =============
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $torneoid = (int) require_param('torneoid');
+    // Auth check first — admin password gates everything.
     if (optional_param('password') !== REGISTROS_PASSWORD) {
         json_error('Unauthorized', 401);
     }
+    /**
+     * torneoid es opcional en el GET admin:
+     *   - Si se manda (>0): filtra por ese torneo (vista por dominio).
+     *   - Si se omite o all=1: devuelve TODOS los registros del servidor
+     *     para que el equipo administrativo pueda ver pruebas enviadas
+     *     desde cualquier dominio/subdominio.
+     */
+    $torneoid = (int) optional_param('torneoid');
+    $showAll  = ($torneoid <= 0) || (optional_param('all') === '1');
 
     $torneoCol = registro_torneo_col($conn);
     $pkCol     = registro_pk_col($conn);
@@ -347,6 +356,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     /** Fields to surface in the listing (skip blob). */
     $fields = [$pkCol . ' AS id'];
+    // Exponer el torneoid (alias 'torneoid') para que el admin lo muestre/filtre.
+    $fields[] = "$torneoCol AS torneoid";
     $optional = [
         'reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_handicap',
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
@@ -373,11 +384,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (registro_has($conn, 'reg_fecha'))   $orderCol = 'reg_fecha';
     elseif (registro_has($conn, 'created_at')) $orderCol = 'created_at';
 
+    $where = $showAll ? '1=1' : "$torneoCol = $torneoid";
     $sql = "SELECT " . implode(',', $fields) . " FROM registro
-            WHERE $torneoCol = $torneoid
+            WHERE $where
             ORDER BY $orderCol DESC
             LIMIT 1000";
-    json_response(['rows' => query_all($conn, $sql)]);
+    json_response([
+        'rows'        => query_all($conn, $sql),
+        'scope'       => $showAll ? 'all' : 'torneo',
+        'torneoid'    => $torneoid ?: null,
+    ]);
 }
 
 json_error('Method not allowed', 405);

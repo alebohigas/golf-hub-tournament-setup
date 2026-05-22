@@ -200,9 +200,21 @@ export const getRegistroFieldsUrl = (): string =>
 export const getRegistroSubmitUrl = (): string =>
   `${API_BASE_URL}/registro.php${buildQuery()}`;
 
-/** Admin listing endpoint (requires ?password=) */
-export const getRegistroListUrl = (password: string): string =>
-  `${API_BASE_URL}/registro.php${buildQuery({ password })}`;
+/**
+ * Admin listing endpoint (requires ?password=).
+ * Por defecto pide `all=1` para devolver registros de TODOS los torneos del
+ * servidor (los administradores necesitan ver pruebas enviadas desde
+ * cualquier dominio/subdominio). Pasar `scope='torneo'` para limitar al
+ * torneoid activo del dominio.
+ */
+export const getRegistroListUrl = (
+  password: string,
+  scope: 'all' | 'torneo' = 'all',
+): string => {
+  const extra: Record<string, string> = { password };
+  if (scope === 'all') extra.all = '1';
+  return `${API_BASE_URL}/registro.php${buildQuery(extra)}`;
+};
 
 /** Admin verify toggle endpoint (POST JSON body) */
 export const getRegistroVerifyUrl = (): string =>
