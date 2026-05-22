@@ -368,6 +368,13 @@ function action_get_putt_finales($conn, $torneoid) {
                     'name'     => $r['jugador'] ?? '',
                     'distance' => isset($r['distancia']) ? (float)$r['distancia'] : null,
                     'fecha'    => $r['fecha'] ?? null,
+                    /**
+                     * Fecha+hora capturada en `puttjug.fecha` (DATETIME).
+                     * Formato fijo `YYYY-MM-DD HH:MM:SS`; el front separa fecha/hora.
+                     */
+                    'fecha_full' => $r['fecha_full'] ?? null,
+                    /** Categoría/grupo del jugador (puttjug.premiosjugcol). */
+                    'categoria'  => $r['categoria'] ?? null,
                 ];
             }
         }
