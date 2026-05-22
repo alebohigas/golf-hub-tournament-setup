@@ -186,6 +186,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                         CONCAT(j.nombre, ' ', j.apellido) AS jugador,
                                         a.premiosjugcol AS categoria,
                                         a.distancia AS distancia,
+                                        a.fecha AS fecha,
                                         a.id AS ultact
                                  FROM puttjug a
                                  JOIN jugadores j ON j.id = a.jugadorid
