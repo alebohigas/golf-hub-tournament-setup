@@ -187,6 +187,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                         a.premiosjugcol AS categoria,
                                         a.distancia AS distancia,
                                         a.fecha AS fecha,
+                                        DATE_FORMAT(a.fecha, '%Y-%m-%d %H:%i:%s') AS fecha_full,
                                         a.id AS ultact
                                  FROM puttjug a
                                  JOIN jugadores j ON j.id = a.jugadorid
@@ -195,7 +196,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                    AND TRIM(a.premiosjugcol) = '$desc'
                                    AND a.orden = 1
                                    AND UPPER(TRIM(j.sexo)) = '$sx'
-                                 ORDER BY a.distancia ASC, a.id ASC
+                                 ORDER BY a.distancia ASC, a.fecha ASC, a.id ASC
                                  LIMIT $places");
 
         foreach ($rows as $row) {
@@ -212,7 +213,13 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
     $ranking = array_values($rankingByPlayer);
     usort($ranking, function ($a, $b) {
         $byDistance = (float)$a['distancia'] <=> (float)$b['distancia'];
-        return $byDistance !== 0 ? $byDistance : ((int)$a['_seq'] <=> (int)$b['_seq']);
+        if ($byDistance !== 0) return $byDistance;
+        // Empate en distancia → la fecha/hora MÁS ANTIGUA gana (registrado primero).
+        $fa = (string)($a['fecha_full'] ?? $a['fecha'] ?? '');
+        $fb = (string)($b['fecha_full'] ?? $b['fecha'] ?? '');
+        $byFecha = strcmp($fa, $fb);
+        if ($byFecha !== 0) return $byFecha;
+        return ((int)$a['_seq'] <=> (int)$b['_seq']);
     });
     return array_slice($ranking, 0, $lim);
 }
