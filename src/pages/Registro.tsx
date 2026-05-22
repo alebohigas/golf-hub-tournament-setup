@@ -765,6 +765,13 @@ const Registro = () => {
     });
   }, [categories, preciosRules, tipoSocioForPricing, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
+  /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
+  useEffect(() => {
+    if (!values.reg_categoria) return;
+    const stillEligible = eligibleCategories.some(c => String(c.id) === String(values.reg_categoria));
+    if (!stillEligible) setValues(v => ({ ...v, reg_categoria: '' }));
+  }, [eligibleCategories, values.reg_categoria]);
+
   // ============= Precio estimado de inscripción =============
 
   /**
