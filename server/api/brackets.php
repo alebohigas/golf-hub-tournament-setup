@@ -184,13 +184,14 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
 
         $rows = safe_all($conn, "SELECT a.jugadorid AS jugadorid,
                                         CONCAT(j.nombre, ' ', j.apellido) AS jugador,
-                                        a.premiosjugcol AS categoria,
+                                        COALESCE(NULLIF(cat.abreviatura,''), cat.categoria, a.premiosjugcol) AS categoria,
                                         a.distancia AS distancia,
                                         a.fecha AS fecha,
                                         DATE_FORMAT(a.fecha, '%Y-%m-%d %H:%i:%s') AS fecha_full,
                                         a.id AS ultact
                                  FROM puttjug a
                                  JOIN jugadores j ON j.id = a.jugadorid
+                                 LEFT JOIN categorias cat ON cat.categoria_id = j.categoriaid
                                  WHERE a.torneoid = $tid
                                    AND a.premio = $premio
                                    AND TRIM(a.premiosjugcol) = '$desc'
