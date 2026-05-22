@@ -243,6 +243,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     if (!$pkCol)     json_error('registro table has no recognizable primary key column.', 500);
     if (!$torneoCol) json_error('registro table has no recognizable torneo id column.',  500);
 
+    /**
+     * Duplicate-email guard. One email per tournament: if this torneoid
+     * already has a registro row with the same correo, reject with 409 so
+     * the client can show the canonical message. Case-insensitive.
+     */
+    $postedEmail = trim((string)($_POST['reg_correo'] ?? ''));
+    if ($postedEmail !== '' && registro_email_exists($conn, $torneoid, $postedEmail)) {
+        json_error(
+            'Este torneo ya tiene un jugador registrado con este correo. '
+          . 'Si necesitas registrar otro jugador, utiliza otro correo.',
+            409
+        );
+    }
+
 
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
