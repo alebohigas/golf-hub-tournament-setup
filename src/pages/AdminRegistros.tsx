@@ -246,8 +246,8 @@ const Dashboard = ({ password }: { password: string }) => {
                     <th className="w-8 p-3"></th>
                     <th className="text-left p-3">Jugador</th>
                     <th className="text-left p-3">Contacto</th>
-                    <th className="text-left p-3">Categoría</th>
-                    <th className="text-left p-3">Club / Hcp</th>
+                    <th className="text-left p-3">Categoría / Hcp</th>
+                    <th className="text-left p-3">Club</th>
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
