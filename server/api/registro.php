@@ -21,6 +21,40 @@ require_once 'config.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
+/**
+ * Resolve the email column on the `registro` table. Different deployments
+ * may use `reg_correo` (canonical) or `correo` (legacy). Returns null when
+ * no email column exists at all (in which case duplicate-email checks are
+ * skipped).
+ */
+function registro_email_col($conn) {
+    foreach (['reg_correo', 'correo', 'reg_email', 'email'] as $c) {
+        if (registro_has($conn, $c)) return $c;
+    }
+    return null;
+}
+
+/**
+ * Check whether a given email is already registered for a tournament.
+ * Case-insensitive match. Returns true when a row exists. Silent (returns
+ * false) if any required column is missing.
+ */
+function registro_email_exists($conn, $torneoid, $email) {
+    $email = trim((string)$email);
+    if ($email === '') return false;
+    $emailCol  = registro_email_col($conn);
+    $torneoCol = registro_torneo_col($conn);
+    if (!$emailCol || !$torneoCol) return false;
+    $sql = "SELECT 1 FROM registro
+              WHERE $torneoCol = " . (int)$torneoid . "
+                AND LOWER($emailCol) = LOWER('" . esc($conn, $email) . "')
+              LIMIT 1";
+    $r = @$conn->query($sql);
+    $found = ($r && $r->fetch_row());
+    if ($r) $r->free();
+    return (bool)$found;
+}
+
 const REGISTROS_PASSWORD = 'registros2025';
 /** Max binary upload accepted into reg_archivo (LONGBLOB). 15 MB. */
 const MAX_REG_FILE_BYTES = 15 * 1024 * 1024;
