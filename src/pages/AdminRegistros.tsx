@@ -267,8 +267,8 @@ const Dashboard = ({ password }: { password: string }) => {
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
                       : '—';
                     return (
-                    <>
-                    <tr key={r.id} className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(r.id)}>
+                    <FragmentRow key={r.id}>
+                    <tr className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(r.id)}>
                         <td className="p-3 text-center">
                           <button
                             type="button"
@@ -363,7 +363,7 @@ const Dashboard = ({ password }: { password: string }) => {
                         </td>
                       </tr>
                       {expanded.has(r.id) && (
-                        <tr key={`${r.id}-detail`} className="border-t bg-muted/20">
+                        <tr className="border-t bg-muted/20">
                           <td></td>
                           <td colSpan={10} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
@@ -411,7 +411,7 @@ const Dashboard = ({ password }: { password: string }) => {
                           </td>
                         </tr>
                       )}
-                      </>
+                      </FragmentRow>
                     );
                   })}
                 </tbody>
