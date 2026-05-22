@@ -344,8 +344,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $pkCol     = registro_pk_col($conn);
     if (!$pkCol || !$torneoCol) json_error('registro table not configured properly.', 500);
 
-    // Asegurar columnas de cargo a cuenta antes de listar.
-    ensure_cargo_socio_columns($conn);
 
     /** Fields to surface in the listing (skip blob). */
     $fields = [$pkCol . ' AS id'];
