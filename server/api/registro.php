@@ -323,12 +323,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
     if ($id <= 0) json_error('Missing id', 400);
 
     /**
+     * Auto-crear las columnas admin si faltan. Esto SOLO corre en el
+     * endpoint verify (acción manual del administrador), nunca en el POST
+     * público del formulario, así no agrega overhead al envío de jugadores.
+     */
+    $adminColsSpec = [
+        'reg_verificado'       => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'reg_pago_verificado'  => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'reg_monto_confirmado' => 'DECIMAL(10,2) NULL',
+    ];
+    $needRefresh = false;
+    foreach ($adminColsSpec as $col => $spec) {
+        if (!registro_has($conn, $col)) {
+            @$conn->query("ALTER TABLE registro ADD COLUMN $col $spec");
+            $needRefresh = true;
+        }
+    }
+    if ($needRefresh) registro_columns($conn, true);
+
+    /**
      * Admin update — acepta cualquier combinación de:
      *   - verified            → reg_verificado (TINYINT 0/1)
      *   - pago_verificado     → reg_pago_verificado (TINYINT 0/1)
      *   - monto_confirmado    → reg_monto_confirmado (DECIMAL, NULL si vacío)
-     * Las columnas que no existan en la BD se ignoran silenciosamente para
-     * que el endpoint no rompa antes de que el admin corra los ALTER TABLE.
+     * Las columnas se garantizan arriba; si el ALTER falla por permisos,
+     * registro_has() seguirá devolviendo false y el set correspondiente
+     * se omite silenciosamente.
      */
     $sets = [];
     $wantVerified = array_key_exists('verified', $body);
