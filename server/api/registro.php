@@ -173,24 +173,6 @@ function registro_has($conn, $col) {
     return isset($cols[$col]);
 }
 
-/**
- * Garantizar que existan las columnas para "Cargo a cuenta de socio".
- * Se ejecuta una sola vez por request (cachéo via static). Si ya existen
- * no hace nada. Permite que el feature funcione sin requerir migración
- * manual en cada deployment.
- */
-function ensure_cargo_socio_columns($conn) {
-    static $done = false;
-    if ($done) return;
-    $done = true;
-    if (!registro_has($conn, 'reg_cargo_socio')) {
-        @$conn->query("ALTER TABLE registro ADD COLUMN reg_cargo_socio TINYINT(1) NOT NULL DEFAULT 0");
-    }
-    if (!registro_has($conn, 'reg_clave_socio')) {
-        @$conn->query("ALTER TABLE registro ADD COLUMN reg_clave_socio VARCHAR(64) NULL");
-    }
-    registro_columns($conn, true);
-}
 
 /**
  * Identify the torneo FK column on `registro`. Different deployments use
@@ -227,8 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     if (!$pkCol)     json_error('registro table has no recognizable primary key column.', 500);
     if (!$torneoCol) json_error('registro table has no recognizable torneo id column.',  500);
 
-    // Asegurar columnas para el flujo "Cargo a cuenta de socio".
-    ensure_cargo_socio_columns($conn);
 
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
@@ -364,8 +344,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $pkCol     = registro_pk_col($conn);
     if (!$pkCol || !$torneoCol) json_error('registro table not configured properly.', 500);
 
-    // Asegurar columnas de cargo a cuenta antes de listar.
-    ensure_cargo_socio_columns($conn);
 
     /** Fields to surface in the listing (skip blob). */
     $fields = [$pkCol . ' AS id'];
