@@ -136,18 +136,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows  = array_map('normalize_rule', query_all($conn, $sql));
 
     if ($action === 'match') {
-        // Filtros del jugador (todos opcionales)
-        $cat   = optional_param('categoria', null);
-        $tipo  = optional_param('tipo_socio', null);  // SOCIO/NO_SOCIO/TITULAR/...
-        $gen   = optional_param('genero', null);      // M/F
-        $edadP = optional_param('edad', null);
-        $edad  = ($edadP !== null && $edadP !== '') ? (int)$edadP : null;
-        $hcpP  = optional_param('handicap', null);
-        $hcp   = ($hcpP !== null && $hcpP !== '') ? (float)$hcpP : null;
+        // Sólo se usa tipo_socio. categoria/genero/edad/handicap son
+        // aceptados pero ignorados (compat. con clientes antiguos).
+        $tipo  = optional_param('tipo_socio', null);
 
-        $candidates = array_filter($rows, function($r) use ($cat, $tipo, $gen, $edad, $hcp) {
+        $candidates = array_filter($rows, function($r) use ($tipo) {
             if (!$r['is_active']) return false;
-            return rule_matches($r, $cat, $tipo, $gen, $edad, $hcp);
+            return rule_matches($r, $tipo);
         });
 
         if (count($candidates) === 0) {
