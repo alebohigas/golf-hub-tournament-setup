@@ -113,18 +113,14 @@ const Dashboard = ({ password }: { password: string }) => {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified'>('all');
   const [search, setSearch] = useState('');
-  /**
-   * Alcance del listado: 'all' = todos los torneos del servidor,
-   * 'torneo' = solo el torneoid activo del dominio.
-   */
-  const [scope, setScope] = useState<'all' | 'torneo'>('all');
   const { toast } = useToast();
 
-  /** Fetch the latest list. */
+  /** Fetch the latest list (always scoped to current torneoid). */
   const refresh = async () => {
     setLoading(true);
     try {
-      const res = await fetch(getRegistroListUrl(password, scope));
+      // getRegistroListUrl now always limits to the active tournament
+      const res = await fetch(getRegistroListUrl(password));
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error al cargar');
       setRows(json.rows || []);
@@ -135,7 +131,7 @@ const Dashboard = ({ password }: { password: string }) => {
     }
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [scope]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
   /**
    * Admin update genérico: envía cualquier combinación de campos
@@ -184,7 +180,7 @@ const Dashboard = ({ password }: { password: string }) => {
       if (filter === 'pending' && v) return false;
       if (filter === 'verified' && !v) return false;
       if (term) {
-        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club, String(r.torneoid ?? '')]
+        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club]
           .filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(term)) return false;
       }
@@ -218,14 +214,9 @@ const Dashboard = ({ password }: { password: string }) => {
             <Button variant={filter === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('pending')}>Pendientes</Button>
             <Button variant={filter === 'verified' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('verified')}>Verificados</Button>
           </div>
-          {/* Scope toggle: all servers vs current tournament */}
-          <div className="flex gap-2">
-            <Button variant={scope === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setScope('all')}>Todos los torneos</Button>
-            <Button variant={scope === 'torneo' ? 'default' : 'outline'} size="sm" onClick={() => setScope('torneo')}>Solo este torneo</Button>
-          </div>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-10" placeholder="Buscar por nombre, correo, club, torneoid…" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input className="pl-10" placeholder="Buscar por nombre, correo, club…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </CardContent>
       </Card>
@@ -244,7 +235,6 @@ const Dashboard = ({ password }: { password: string }) => {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left p-3">Torneo</th>
                     <th className="text-left p-3">Jugador</th>
                     <th className="text-left p-3">Contacto</th>
                     <th className="text-left p-3">Categoría</th>
@@ -268,10 +258,7 @@ const Dashboard = ({ password }: { password: string }) => {
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
                       : '—';
                     return (
-                      <tr key={r.id} className="border-t">
-                        <td className="p-3">
-                          <Badge variant="outline" className="font-mono">#{r.torneoid ?? '—'}</Badge>
-                        </td>
+                    <tr key={r.id} className="border-t">
                         <td className="p-3">
                           <div className="font-medium">{[r.reg_nombre, r.reg_apellido].filter(Boolean).join(' ') || '—'}</div>
                           <div className="text-xs text-muted-foreground">#{r.id} · {r.reg_fecha || r.created_at || ''}</div>
