@@ -454,6 +454,47 @@ const GrandFinalView = ({
 export default BracketView;
 
 // ============================================================================
+// BracketQualifiersSection — wrapper auto-fetching para usar en /competicion
+// fuera de la tarjeta del bracket (vista previa al nivel de la grilla de
+// grupos: el usuario ve los clasificados ANTES de entrar al bracket).
+// ============================================================================
+
+/**
+ * Renderiza el bloque de clasificados (con su propio buscador) consultando
+ * los datos de `usePuttFinales`. Es independiente del componente
+ * <BracketView/>: se monta directamente en la vista de grupos para que la
+ * tabla aparezca antes de que el usuario entre al detalle del bracket.
+ */
+export const BracketQualifiersSection = ({ sexo }: { sexo: 'M' | 'F' }) => {
+  const { data, isLoading } = usePuttFinales();
+  const side = data?.[sexo];
+
+  const suggestions = useMemo(
+    () => buildUniqueNameSuggestions((side?.qualifiers ?? []).map((q) => q.name)),
+    [side?.qualifiers],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <span className="ml-3 text-sm text-muted-foreground">Cargando clasificados...</span>
+      </div>
+    );
+  }
+  if (!side) return null;
+
+  return (
+    <QualifiersTable
+      qualifiers={side.qualifiers ?? []}
+      totalSlots={side.bracket_size ?? Number(side.config?.size ?? 0)}
+      sexo={sexo}
+      suggestions={suggestions}
+    />
+  );
+};
+
+// ============================================================================
 // QualifiersTable — lista de clasificados que llenan el cupo del bracket
 // ============================================================================
 
