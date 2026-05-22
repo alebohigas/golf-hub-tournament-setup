@@ -186,6 +186,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                         CONCAT(j.nombre, ' ', j.apellido) AS jugador,
                                         a.premiosjugcol AS categoria,
                                         a.distancia AS distancia,
+                                        a.fecha AS fecha,
                                         a.id AS ultact
                                  FROM puttjug a
                                  JOIN jugadores j ON j.id = a.jugadorid
@@ -264,6 +265,40 @@ function repair_empty_seed_slots($conn, $cfg, $sexo) {
     }
 }
 
+/**
+ * Backfill de seeds en rondas avanzadas.
+ * Recorre todos los matches con ganador definido y, si el next_match
+ * destino tiene el seed correspondiente en NULL pero el jugador ya está
+ * colocado, lo rellena con el seed del ganador en su match origen.
+ * Esto repara brackets generados antes de propagar seeds.
+ */
+function backfill_advanced_seeds($conn, $cfgId) {
+    $cfgId = (int)$cfgId;
+    if ($cfgId <= 0) return;
+    $rows = safe_all($conn, "SELECT id, winner_player_id, player_high_id, player_low_id,
+                                    seed_high, seed_low, next_match_id, next_slot
+                             FROM bracket_matches
+                             WHERE bracket_id = $cfgId
+                               AND winner_player_id IS NOT NULL
+                               AND next_match_id IS NOT NULL");
+    foreach ($rows as $r) {
+        $wid = (int)$r['winner_player_id'];
+        $seed = null;
+        if ((int)$r['player_high_id'] === $wid) $seed = $r['seed_high'];
+        elseif ((int)$r['player_low_id'] === $wid) $seed = $r['seed_low'];
+        if ($seed === null || $seed === '') continue;
+        $nextId  = (int)$r['next_match_id'];
+        $seedCol = ($r['next_slot'] === 'high') ? 'seed_high' : 'seed_low';
+        $playerCol = ($r['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
+        $seedInt = (int)$seed;
+        $conn->query("UPDATE bracket_matches
+                      SET $seedCol = $seedInt
+                      WHERE id = $nextId
+                        AND $playerCol = $wid
+                        AND ($seedCol IS NULL)");
+    }
+}
+
 // ============= Acción: get_putt_finales (público) =============
 /**
  * Devuelve la configuración + matches actuales para ambos brackets (M/F).
@@ -281,6 +316,13 @@ function action_get_putt_finales($conn, $torneoid) {
         $matches = [];
         if ($cfg) {
             repair_empty_seed_slots($conn, $cfg, $sx);
+            /**
+             * Backfill de seeds en rondas avanzadas: brackets generados con la
+             * versión anterior no propagaban seed_high/seed_low al avanzar al
+             * siguiente match, por lo que sólo Ronda 1 mostraba el número de
+             * posición del jugador. Aquí los rellenamos a partir de la Ronda 1.
+             */
+            backfill_advanced_seeds($conn, (int)$cfg['id']);
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
@@ -301,10 +343,33 @@ function action_get_putt_finales($conn, $torneoid) {
                  WHERE m.bracket_id = $cfgId
                  ORDER BY m.round_num ASC, m.match_num ASC");
         }
+        /**
+         * Lista de clasificados (jugadores que ya entraron al ranking
+         * acumulado para sembrar el bracket) — se muestra en /competicion
+         * debajo del bracket para que el público vea cómo se va llenando
+         * el cupo de 1..N cada día. Usa la misma query de seeding.
+         */
+        $size = $cfg ? (int)($cfg['bracket_size'] ?? $cfg['size'] ?? 0) : 0;
+        $qualifiers = [];
+        if ($size > 0) {
+            $rk = collect_putt_ranking($conn, $tid, $sx, $size);
+            $rank = 0;
+            foreach ($rk as $r) {
+                $rank++;
+                $qualifiers[] = [
+                    'rank'     => $rank,
+                    'name'     => $r['jugador'] ?? '',
+                    'distance' => isset($r['distancia']) ? (float)$r['distancia'] : null,
+                    'fecha'    => $r['fecha'] ?? null,
+                ];
+            }
+        }
         $out[$sx] = [
             'config'  => $cfg,
             'matches' => $matches,
             'visible' => $cfg ? (int)$cfg['visible'] === 1 : false,
+            'qualifiers' => $qualifiers,
+            'bracket_size' => $size,
         ];
     }
     json_response($out);
@@ -500,6 +565,18 @@ function action_generate_putt($conn, $body) {
 function advance_winner($conn, $matchId, $winnerId) {
     $mid = (int)$matchId;
     $wid = (int)$winnerId;
+    /**
+     * Determinar el seed del ganador ANTES de marcar completed, para poder
+     * propagarlo al siguiente match y mantener visible el número de seed
+     * del jugador a través de TODAS las rondas (no sólo Ronda 1).
+     */
+    $cur = safe_one($conn, "SELECT player_high_id, player_low_id, seed_high, seed_low
+                              FROM bracket_matches WHERE id = $mid");
+    $winnerSeed = null;
+    if ($cur) {
+        if ((int)$cur['player_high_id'] === $wid) $winnerSeed = $cur['seed_high'];
+        elseif ((int)$cur['player_low_id'] === $wid) $winnerSeed = $cur['seed_low'];
+    }
     $conn->query("UPDATE bracket_matches
                   SET winner_player_id = $wid, status = 'completed', updated_at = NOW()
                   WHERE id = $mid");
@@ -507,8 +584,12 @@ function advance_winner($conn, $matchId, $winnerId) {
     if (!$row || $row['next_match_id'] === null) return;
     $nextId  = (int)$row['next_match_id'];
     // next_slot es ENUM 'high'|'low' -> mapea a la columna del player correspondiente
-    $slotCol = ($row['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
-    $conn->query("UPDATE bracket_matches SET $slotCol = $wid, updated_at = NOW() WHERE id = $nextId");
+    $slotCol  = ($row['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
+    $seedCol  = ($row['next_slot'] === 'high') ? 'seed_high'      : 'seed_low';
+    $seedSql  = ($winnerSeed === null || $winnerSeed === '') ? 'NULL' : (int)$winnerSeed;
+    $conn->query("UPDATE bracket_matches
+                  SET $slotCol = $wid, $seedCol = $seedSql, updated_at = NOW()
+                  WHERE id = $nextId");
 }
 
 // ============= Acción: record_score (admin) =============
