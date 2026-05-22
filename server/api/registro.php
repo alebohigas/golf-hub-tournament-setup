@@ -528,6 +528,19 @@ function send_verification_email($conn, $regId) {
 
 // ============= GET listing (admin) =============
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    /**
+     * Public action — no password required.
+     * GET /api/registro.php?action=check_email&torneoid=NN&email=foo@bar.com
+     * Returns { exists: bool } to let the form warn before submit.
+     */
+    if (optional_param('action') === 'check_email') {
+        $torneoid = (int) require_param('torneoid');
+        $email    = trim((string) optional_param('email', ''));
+        json_response([
+            'exists' => registro_email_exists($conn, $torneoid, $email),
+        ]);
+    }
+
     // Auth check first — admin password gates everything.
     if (optional_param('password') !== REGISTROS_PASSWORD) {
         json_error('Unauthorized', 401);
