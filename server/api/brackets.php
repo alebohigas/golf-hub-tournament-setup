@@ -282,6 +282,13 @@ function action_get_putt_finales($conn, $torneoid) {
         $matches = [];
         if ($cfg) {
             repair_empty_seed_slots($conn, $cfg, $sx);
+            /**
+             * Backfill de seeds en rondas avanzadas: brackets generados con la
+             * versión anterior no propagaban seed_high/seed_low al avanzar al
+             * siguiente match, por lo que sólo Ronda 1 mostraba el número de
+             * posición del jugador. Aquí los rellenamos a partir de la Ronda 1.
+             */
+            backfill_advanced_seeds($conn, (int)$cfg['id']);
             $cfgId = (int)$cfg['id'];
             $matches = safe_all($conn,
                 "SELECT m.*,
@@ -302,10 +309,33 @@ function action_get_putt_finales($conn, $torneoid) {
                  WHERE m.bracket_id = $cfgId
                  ORDER BY m.round_num ASC, m.match_num ASC");
         }
+        /**
+         * Lista de clasificados (jugadores que ya entraron al ranking
+         * acumulado para sembrar el bracket) — se muestra en /competicion
+         * debajo del bracket para que el público vea cómo se va llenando
+         * el cupo de 1..N cada día. Usa la misma query de seeding.
+         */
+        $size = $cfg ? (int)($cfg['bracket_size'] ?? $cfg['size'] ?? 0) : 0;
+        $qualifiers = [];
+        if ($size > 0) {
+            $rk = collect_putt_ranking($conn, $tid, $sx, $size);
+            $rank = 0;
+            foreach ($rk as $r) {
+                $rank++;
+                $qualifiers[] = [
+                    'rank'     => $rank,
+                    'name'     => $r['jugador'] ?? '',
+                    'distance' => isset($r['distancia']) ? (float)$r['distancia'] : null,
+                    'fecha'    => $r['fecha'] ?? null,
+                ];
+            }
+        }
         $out[$sx] = [
             'config'  => $cfg,
             'matches' => $matches,
             'visible' => $cfg ? (int)$cfg['visible'] === 1 : false,
+            'qualifiers' => $qualifiers,
+            'bracket_size' => $size,
         ];
     }
     json_response($out);
