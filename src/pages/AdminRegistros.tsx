@@ -137,17 +137,40 @@ const Dashboard = ({ password }: { password: string }) => {
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [scope]);
 
-  /** Toggle verification flag on the server. */
-  const toggleVerified = async (row: RegistroRow, verified: boolean) => {
+  /**
+   * Admin update genérico: envía cualquier combinación de campos
+   * (verified, pago_verificado, monto_confirmado) al endpoint verify
+   * y aplica el cambio optimistamente en la fila local.
+   * Si `verified` pasa a 1, el backend dispara correo al jugador.
+   */
+  const updateRegistro = async (
+    row: RegistroRow,
+    patch: { verified?: 0 | 1; pago_verificado?: 0 | 1; monto_confirmado?: string | null },
+  ) => {
     try {
       const res = await fetch(getRegistroVerifyUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, verified: verified ? 1 : 0, password }),
+        body: JSON.stringify({ id: row.id, password, ...patch }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error');
-      setRows(prev => prev.map(r => r.id === row.id ? { ...r, reg_verificado: verified ? 1 : 0 } : r));
+      setRows(prev => prev.map(r => {
+        if (r.id !== row.id) return r;
+        const next: RegistroRow = { ...r };
+        if (patch.verified !== undefined)         next.reg_verificado       = patch.verified;
+        if (patch.pago_verificado !== undefined)  next.reg_pago_verificado  = patch.pago_verificado;
+        if (patch.monto_confirmado !== undefined) next.reg_monto_confirmado = patch.monto_confirmado ?? '';
+        return next;
+      }));
+      if (patch.verified === 1) {
+        toast({
+          title: 'Registro verificado',
+          description: json.email_sent
+            ? 'Se envió correo de confirmación al jugador.'
+            : 'No se pudo enviar el correo (revisa la configuración SMTP).',
+        });
+      }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
     }
@@ -228,14 +251,22 @@ const Dashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Club / Hcp</th>
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
-                    <th className="text-center p-3">Verificado</th>
+                    <th className="text-center p-3">Monto cobrado</th>
+                    <th className="text-center p-3">Pago verificado</th>
+                    <th className="text-center p-3">Monto confirmado recibido</th>
+                    <th className="text-center p-3">Registro verificado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(r => {
                     const verified = Number(r.reg_verificado) === 1;
+                    const pagoVerif = Number(r.reg_pago_verificado) === 1;
                     const hasFile = Number(r.has_archivo) === 1;
                     const cargoCuenta = String(r.reg_cargo_socio ?? '') === '1';
+                    const moneda = r.reg_precio_moneda || 'MXN';
+                    const montoCobrado = r.reg_precio_estimado !== undefined && r.reg_precio_estimado !== null && String(r.reg_precio_estimado) !== ''
+                      ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
+                      : '—';
                     return (
                       <tr key={r.id} className="border-t">
                         <td className="p-3">
@@ -249,7 +280,12 @@ const Dashboard = ({ password }: { password: string }) => {
                           <div>{r.reg_correo || '—'}</div>
                           <div className="text-xs text-muted-foreground">{r.reg_telefono || ''}</div>
                         </td>
-                        <td className="p-3">{r.reg_categoria || '—'}</td>
+                        <td className="p-3">
+                          <div>{r.categoria_name || '—'}</div>
+                          {r.reg_categoria && (
+                            <div className="text-xs text-muted-foreground font-mono">id: {r.reg_categoria}</div>
+                          )}
+                        </td>
                         <td className="p-3">
                           <div>{r.reg_club || '—'}</div>
                           <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
@@ -279,9 +315,41 @@ const Dashboard = ({ password }: { password: string }) => {
                             </Button>
                           ) : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
+                        {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
+                        <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
+                        {/* Toggle: pago verificado por tesorería. */}
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <Switch checked={verified} onCheckedChange={(v) => toggleVerified(r, v)} />
+                            <Switch
+                              checked={pagoVerif}
+                              onCheckedChange={(v) => updateRegistro(r, { pago_verificado: v ? 1 : 0 })}
+                            />
+                            {pagoVerif
+                              ? <CheckCircle2 className="h-4 w-4 text-primary" />
+                              : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                        </td>
+                        {/* Campo: monto confirmado recibido (se persiste onBlur). */}
+                        <td className="p-3 text-center">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            defaultValue={r.reg_monto_confirmado != null ? String(r.reg_monto_confirmado) : ''}
+                            placeholder="0.00"
+                            className="h-8 w-28 text-right font-mono"
+                            onBlur={(e) => {
+                              const val = e.currentTarget.value.trim();
+                              const current = r.reg_monto_confirmado != null ? String(r.reg_monto_confirmado) : '';
+                              if (val !== current) updateRegistro(r, { monto_confirmado: val });
+                            }}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Switch
+                              checked={verified}
+                              onCheckedChange={(v) => updateRegistro(r, { verified: v ? 1 : 0 })}
+                            />
                             {verified
                               ? <CheckCircle2 className="h-4 w-4 text-primary" />
                               : <XCircle className="h-4 w-4 text-muted-foreground" />}
