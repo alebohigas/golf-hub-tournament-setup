@@ -17,6 +17,7 @@ import CompetenciasSubmenu from '@/components/competencias/CompetenciasSubmenu';
 import CompetenciasGroupCard from '@/components/competencias/CompetenciasGroupCard';
 import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import BracketView from '@/components/competencias/BracketView';
+import { BracketQualifiersSection } from '@/components/competencias/BracketView';
 import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
@@ -682,6 +683,26 @@ const Competencias = () => {
                   />
                 ))}
               </div>
+
+              {/*
+                Vista previa de clasificados para brackets Putt Finales:
+                aparece DEBAJO de la grilla de grupos, antes de entrar a la
+                tarjeta del bracket. El usuario ve quién está clasificado
+                sin tener que abrir el detalle.
+              */}
+              {(() => {
+                const bracketGroup = groups.find((g) => g.bracketSexo === 'M' || g.bracketSexo === 'F');
+                if (!bracketGroup?.bracketSexo) return null;
+                return (
+                  <div className="max-w-4xl mx-auto mt-8">
+                    <Card className="border-border/50 bg-white">
+                      <CardContent className="p-4">
+                        <BracketQualifiersSection sexo={bracketGroup.bracketSexo} />
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })()}
             </>
           )}
 

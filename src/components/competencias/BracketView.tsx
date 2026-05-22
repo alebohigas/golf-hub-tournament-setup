@@ -18,8 +18,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Loader2, Trophy, Crown, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Trophy, Crown } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import type { BracketQualifier } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
@@ -42,12 +41,6 @@ const BracketView = ({ sexo }: BracketViewProps) => {
   const side = data?.[sexo];
   /** Texto de búsqueda para resaltar a un jugador en cualquier match del bracket. */
   const [search, setSearch] = useState('');
-  /**
-   * Toggle para mostrar/ocultar la malla de brackets. Por defecto OCULTA:
-   * la tabla de clasificados funciona como "vista previa" y el usuario
-   * decide cuándo abrir la malla completa de partidos.
-   */
-  const [showBracket, setShowBracket] = useState(false);
   /** Refs por matchId → permite hacer scroll automático al primer resultado. */
   const matchRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   /**
@@ -61,15 +54,6 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         (side?.matches ?? []).flatMap((m) => [m.player1_name, m.player2_name]),
       ),
     [side?.matches],
-  );
-  /**
-   * Sugerencias para el buscador de la tabla de clasificados (independiente
-   * del buscador del bracket: una persona puede estar en clasificados sin
-   * aparecer todavía en ningún match si el bracket no se ha generado).
-   */
-  const qualifierSuggestions = useMemo(
-    () => buildUniqueNameSuggestions((side?.qualifiers ?? []).map((q) => q.name)),
-    [side?.qualifiers],
   );
 
   /**
@@ -161,47 +145,17 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* ============ CLASIFICADOS (vista previa, siempre visible) ============ */}
-      <QualifiersTable
-        qualifiers={side.qualifiers ?? []}
-        totalSlots={side.bracket_size ?? Number(config.size)}
-        sexo={sexo}
-        suggestions={qualifierSuggestions}
+      <PlayerSearchInput
+        value={search}
+        onChange={setSearch}
+        onSubmit={handleSearchSubmit}
+        suggestions={nameSuggestions}
+        placeholder="Buscar jugador en el bracket..."
+        className="max-w-md"
       />
 
-      {/* ============ TOGGLE para ver/ocultar la malla de brackets ============ */}
-      <div className="flex justify-center pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setShowBracket((v) => !v)}
-          className="gap-2"
-        >
-          {showBracket ? (
-            <>
-              <ChevronUp className="h-4 w-4" /> Ocultar brackets
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-4 w-4" /> Ver brackets de jugadores
-            </>
-          )}
-        </Button>
-      </div>
-
-      {showBracket && (
-        <>
-          <PlayerSearchInput
-            value={search}
-            onChange={setSearch}
-            onSubmit={handleSearchSubmit}
-            suggestions={nameSuggestions}
-            placeholder="Buscar jugador en el bracket..."
-            className="max-w-md"
-          />
-
-          {/* ============ GRUPOS DE 16 ============ */}
-          <div className="space-y-8">
+      {/* ============ GRUPOS DE 16 ============ */}
+      <div className="space-y-8">
         {Array.from({ length: groupsCount }, (_, g) => (
           <section key={g} className="space-y-3">
             <h3 className="text-base font-bold text-primary">
@@ -232,10 +186,10 @@ const BracketView = ({ sexo }: BracketViewProps) => {
             </div>
           </section>
         ))}
-          </div>
+      </div>
 
-          {/* ============ GRAN FINAL (solo si hay rondas > 4) ============ */}
-          {grandFinalRounds.length > 0 && (
+      {/* ============ GRAN FINAL (solo si hay rondas > 4) ============ */}
+      {grandFinalRounds.length > 0 && (
         <GrandFinalView
           rounds={grandFinalRounds}
           allMatches={matches}
@@ -246,8 +200,6 @@ const BracketView = ({ sexo }: BracketViewProps) => {
           dimChampion={searching}
           registerRef={(id, el) => matchRefs.current.set(id, el)}
         />
-          )}
-        </>
       )}
     </div>
   );
@@ -500,6 +452,47 @@ const GrandFinalView = ({
 };
 
 export default BracketView;
+
+// ============================================================================
+// BracketQualifiersSection — wrapper auto-fetching para usar en /competicion
+// fuera de la tarjeta del bracket (vista previa al nivel de la grilla de
+// grupos: el usuario ve los clasificados ANTES de entrar al bracket).
+// ============================================================================
+
+/**
+ * Renderiza el bloque de clasificados (con su propio buscador) consultando
+ * los datos de `usePuttFinales`. Es independiente del componente
+ * <BracketView/>: se monta directamente en la vista de grupos para que la
+ * tabla aparezca antes de que el usuario entre al detalle del bracket.
+ */
+export const BracketQualifiersSection = ({ sexo }: { sexo: 'M' | 'F' }) => {
+  const { data, isLoading } = usePuttFinales();
+  const side = data?.[sexo];
+
+  const suggestions = useMemo(
+    () => buildUniqueNameSuggestions((side?.qualifiers ?? []).map((q) => q.name)),
+    [side?.qualifiers],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <span className="ml-3 text-sm text-muted-foreground">Cargando clasificados...</span>
+      </div>
+    );
+  }
+  if (!side) return null;
+
+  return (
+    <QualifiersTable
+      qualifiers={side.qualifiers ?? []}
+      totalSlots={side.bracket_size ?? Number(side.config?.size ?? 0)}
+      sexo={sexo}
+      suggestions={suggestions}
+    />
+  );
+};
 
 // ============================================================================
 // QualifiersTable — lista de clasificados que llenan el cupo del bracket
