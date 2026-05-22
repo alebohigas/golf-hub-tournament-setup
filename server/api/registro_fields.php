@@ -126,6 +126,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ];
     }, $rows);
 
+    /**
+     * Backfill: garantizar que TODOS los campos definidos en $DEFAULT_FIELDS
+     * aparezcan en la respuesta aunque la fila en BD no exista todavía. Esto
+     * permite que campos agregados después de la primera configuración
+     * (ej. `reg_edad`) sean visibles en el panel admin sin requerir una
+     * migración manual por torneo. Los campos nuevos se insertan como
+     * deshabilitados para no alterar formularios ya publicados.
+     */
+    $existingNames = array_flip(array_map(function($f){ return $f['field_name']; }, $fields));
+    foreach ($DEFAULT_FIELDS as $df) {
+        if (isset($existingNames[$df['field_name']])) continue;
+        $fields[] = [
+            'field_name'    => $df['field_name'],
+            'field_label'   => $df['field_label'],
+            'is_enabled'    => 0, // siempre off por defecto al backfillar
+            'is_required'   => 0,
+            'display_order' => (int)$df['display_order'],
+            'section'       => $df['section'],
+        ];
+    }
+    // Ordenar de nuevo por display_order tras el merge.
+    usort($fields, function($a, $b){ return $a['display_order'] <=> $b['display_order']; });
+
     json_response(['fields' => $fields, 'source' => 'db']);
 }
 
