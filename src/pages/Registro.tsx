@@ -686,6 +686,19 @@ const Registro = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_club, clubs, countries, states, cities]);
 
+  /**
+   * tipo_socio usado por filtros/precio:
+   *  - SI + subtipo → TITULAR/EMERITO/DEPENDIENTE
+   *  - SI sin subtipo → SOCIO
+   *  - NO → NO_SOCIO
+   *  - vacío → undefined para no excluir categorías antes de capturar socio.
+   */
+  const tipoSocioForPricing = useMemo(() => {
+    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
+    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
+    return undefined;
+  }, [values.reg_es_socio, values.reg_tipo_socio]);
+
   /** Eligible categories given hcp/sex/age (when those values are present). */
   const eligibleCategories = useMemo(() => {
     const hcpRaw = parseFloat(values.reg_handicap);
@@ -736,24 +749,21 @@ const Registro = () => {
        * posible para él). Se ignoran tipo_socio y hándicap aquí porque
        * son filtros de precio, no de elegibilidad de categoría.
        */
-      const catRules = preciosRules.filter(
-        r => r.is_active && r.categoria &&
-             r.categoria.toLowerCase() === (c.name || '').toLowerCase()
+      const catRules = preciosRules.filter(r =>
+        !!r.is_active && priceRuleMatchesCategory(r, { id: c.id, name: c.name })
       );
-      if (catRules.length > 0) {
-        const anyRuleAccepts = catRules.some(r => {
-          if (r.genero && sex && r.genero !== sex) return false;
-          if (age !== null) {
-            if (r.edad_min != null && age < r.edad_min) return false;
-            if (r.edad_max != null && age > r.edad_max) return false;
-          }
-          return true;
-        });
-        if (!anyRuleAccepts) return false;
+      if (catRules.length > 0 && age !== null) {
+        const rulesForCurrentNonAgeCriteria = catRules.filter(r =>
+          priceRuleMatchesNonAgeCriteria(r, { sex, hcp: !isNaN(hcpRaw) ? hcpRaw : null, tipoSocio: tipoSocioForPricing })
+        );
+        if (rulesForCurrentNonAgeCriteria.length > 0) {
+          const anyRuleAcceptsAge = rulesForCurrentNonAgeCriteria.some(r => priceRuleMatchesAge(r, age));
+          if (!anyRuleAcceptsAge) return false;
+        }
       }
       return true;
     });
-  }, [categories, preciosRules, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, preciosRules, tipoSocioForPricing, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   // ============= Precio estimado de inscripción =============
 
@@ -802,19 +812,6 @@ const Registro = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_fechanac, visibleFields.length]);
-
-  /**
-   * tipo_socio enviado al matcher:
-   *  - Si es_socio = SI y eligió subtipo → subtipo (TITULAR/EMERITO/DEPENDIENTE)
-   *  - Si es_socio = SI sin subtipo      → 'SOCIO' (cualquier subtipo)
-   *  - Si es_socio = NO                  → 'NO_SOCIO'
-   *  - Si no eligió                       → undefined (sin filtro)
-   */
-  const tipoSocioForPricing = useMemo(() => {
-    if (values.reg_es_socio === 'SI') return values.reg_tipo_socio || 'SOCIO';
-    if (values.reg_es_socio === 'NO') return 'NO_SOCIO';
-    return undefined;
-  }, [values.reg_es_socio, values.reg_tipo_socio]);
 
   /** Consulta reactiva al endpoint de matching de precio. */
   const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
