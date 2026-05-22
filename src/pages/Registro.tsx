@@ -172,6 +172,27 @@ const parseAgeFromName = (name: string): { min: number | null; max: number | nul
 };
 
 /**
+ * parseHcpFromName
+ * Algunos torneos definen el rango de hándicap en el propio nombre de la
+ * categoría — p.ej. "B (10.6 A 14.5)", "Campeonato (-5 A 0.9)". Esta
+ * función extrae ese rango para reforzar el filtro cuando el valor de
+ * `hcpIdxMin/Max` en BD no coincide con la etiqueta visible. Devuelve
+ * null si no encuentra un patrón "(min A max)" reconocible.
+ */
+const parseHcpFromName = (name: string): { min: number; max: number } | null => {
+  if (!name) return null;
+  const s = name.toLowerCase();
+  // Acepta enteros y decimales, con signo opcional. Separador "a" rodeado
+  // de espacios. Toleramos "(", "[" como apertura para mayor robustez.
+  const m = s.match(/[\(\[]\s*(-?\d+(?:\.\d+)?)\s*a\s*(-?\d+(?:\.\d+)?)\s*[\)\]]/);
+  if (!m) return null;
+  const a = parseFloat(m[1]);
+  const b = parseFloat(m[2]);
+  if (isNaN(a) || isNaN(b) || b < a) return null;
+  return { min: a, max: b };
+};
+
+/**
  * Normalize a string for tolerant matching: lowercase, trimmed, and with
  * combining diacritics stripped ("México" → "mexico", "Nuevo León" →
  * "nuevo leon"). Used when matching club location strings against the
