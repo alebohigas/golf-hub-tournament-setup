@@ -37,6 +37,11 @@ $DEFAULT_FIELDS = [
     ['field_name' => 'reg_categoria',  'field_label' => 'Categoría',                                    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 80,  'section' => 'basica'],
     ['field_name' => 'reg_es_socio',   'field_label' => '¿Es socio del club que realiza el torneo?',    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 90,  'section' => 'socios'],
     ['field_name' => 'reg_tipo_socio', 'field_label' => 'Tipo de socio',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 100, 'section' => 'socios'],
+    // Cargo a cuenta de socio: checkbox opcional. Cuando se activa,
+    // requiere capturar `reg_clave_socio` y oculta el comprobante
+    // (`reg_archivo`). El admin lo controla desde el panel.
+    ['field_name' => 'reg_cargo_socio', 'field_label' => 'Cargo a cuenta de socio',                     'is_enabled' => 1, 'is_required' => 0, 'display_order' => 105, 'section' => 'socios'],
+    ['field_name' => 'reg_clave_socio', 'field_label' => 'Número / Clave de socio',                     'is_enabled' => 1, 'is_required' => 0, 'display_order' => 106, 'section' => 'socios'],
     ['field_name' => 'reg_club',       'field_label' => 'Club de procedencia',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 110, 'section' => 'socios'],
     ['field_name' => 'reg_pais',       'field_label' => 'País',                                         'is_enabled' => 1, 'is_required' => 0, 'display_order' => 120, 'section' => 'socios'],
     ['field_name' => 'reg_estado',     'field_label' => 'Estado',                                       'is_enabled' => 1, 'is_required' => 0, 'display_order' => 130, 'section' => 'socios'],
