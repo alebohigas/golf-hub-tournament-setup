@@ -1161,7 +1161,19 @@ const Registro = () => {
           <p className="text-xs text-muted-foreground">
             {eligibleCategories.length} categoría(s) compatible(s) con tus datos.
           </p>
-          {/* Panel de diagnóstico removido — sólo era para debug. */}
+          {/* Aviso al jugador cuando ya capturó sexo + edad + hándicap y
+              ninguna categoría aplica. Mensaje no técnico: lo redirige a
+              la oficina del club en lugar de exponer las reglas internas. */}
+          {eligibleCategories.length === 0
+            && !!categoryFilterResult.sex
+            && categoryFilterResult.age !== null
+            && !isNaN(categoryFilterResult.hcpRaw) && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              No existen categorías disponibles para tu edad/hándicap/género
+              registrados. Favor de contactar a la oficina del club
+              directamente para más información.
+            </div>
+          )}
           {/* Auditoría automática de cobertura HCP (-5 → 40.6 paso 0.1)
               por sexo. Aparece solo con ?debug=1. Muestra los rangos de
               hándicap que NO tienen ninguna categoría elegible, para
