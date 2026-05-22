@@ -266,6 +266,14 @@ export const getEmailValidateUrl = (email: string): string =>
   `${API_BASE_URL}/email_validate.php?email=${encodeURIComponent(email)}`;
 
 /**
+ * Check whether an email is already registered for the active tournament.
+ * One email per torneo is enforced server-side; this lets the form warn
+ * the user before they submit. torneoid is auto-appended by buildQuery().
+ */
+export const getRegistroEmailCheckUrl = (email: string): string =>
+  `${API_BASE_URL}/registro.php${buildQuery({ action: 'check_email', email })}`;
+
+/**
  * Lookup an existing player's stored club by name + birthdate.
  * Used to pre-fill the club field in Pre-Registro when the same person
  * is already in the `jugadores` table.

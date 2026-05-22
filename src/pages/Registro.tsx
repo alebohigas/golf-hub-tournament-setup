@@ -47,6 +47,7 @@ import {
   getClubsUrl,
   getClubLookupUrl,
   getEmailValidateUrl,
+  getRegistroEmailCheckUrl,
   getPlayerLookupByIdUrl,
 } from '@/config/api';
 
@@ -476,6 +477,18 @@ const Registro = () => {
       const res = await fetch(getEmailValidateUrl(v));
       const j = await res.json().catch(() => ({}));
       if (j?.valid) {
+        // Syntax/MX OK — now check duplicate for this tournament. One
+        // correo por torneo: si ya existe, bloquear con mensaje canónico.
+        try {
+          const dupRes = await fetch(getRegistroEmailCheckUrl(v));
+          const dupJ = await dupRes.json().catch(() => ({}));
+          if (dupJ?.exists) {
+            const msg = 'Este torneo ya tiene un jugador registrado con este correo. Si necesitas registrar otro jugador, utiliza otro correo';
+            setEmailError(msg);
+            toast({ title: 'Correo ya registrado', description: msg, variant: 'destructive' });
+            return;
+          }
+        } catch { /* network error → no bloquear; el POST lo revalidará */ }
         setEmailError('');
         return;
       }
@@ -1055,6 +1068,11 @@ const Registro = () => {
       const res = await fetch(getRegistroSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !(json as any).saved) {
+        // Duplicate-email case (HTTP 409): surface the canonical message
+        // inline next to the email field so el jugador lo vea sin scroll.
+        if (res.status === 409) {
+          setEmailError((json as any).error || 'Correo ya registrado para este torneo.');
+        }
         throw new Error((json as any).error || 'Error al enviar el formulario');
       }
       setSubmitted(true);

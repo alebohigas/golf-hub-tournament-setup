@@ -21,6 +21,40 @@ require_once 'config.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
+/**
+ * Resolve the email column on the `registro` table. Different deployments
+ * may use `reg_correo` (canonical) or `correo` (legacy). Returns null when
+ * no email column exists at all (in which case duplicate-email checks are
+ * skipped).
+ */
+function registro_email_col($conn) {
+    foreach (['reg_correo', 'correo', 'reg_email', 'email'] as $c) {
+        if (registro_has($conn, $c)) return $c;
+    }
+    return null;
+}
+
+/**
+ * Check whether a given email is already registered for a tournament.
+ * Case-insensitive match. Returns true when a row exists. Silent (returns
+ * false) if any required column is missing.
+ */
+function registro_email_exists($conn, $torneoid, $email) {
+    $email = trim((string)$email);
+    if ($email === '') return false;
+    $emailCol  = registro_email_col($conn);
+    $torneoCol = registro_torneo_col($conn);
+    if (!$emailCol || !$torneoCol) return false;
+    $sql = "SELECT 1 FROM registro
+              WHERE $torneoCol = " . (int)$torneoid . "
+                AND LOWER($emailCol) = LOWER('" . esc($conn, $email) . "')
+              LIMIT 1";
+    $r = @$conn->query($sql);
+    $found = ($r && $r->fetch_row());
+    if ($r) $r->free();
+    return (bool)$found;
+}
+
 const REGISTROS_PASSWORD = 'registros2025';
 /** Max binary upload accepted into reg_archivo (LONGBLOB). 15 MB. */
 const MAX_REG_FILE_BYTES = 15 * 1024 * 1024;
@@ -208,6 +242,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
 
     if (!$pkCol)     json_error('registro table has no recognizable primary key column.', 500);
     if (!$torneoCol) json_error('registro table has no recognizable torneo id column.',  500);
+
+    /**
+     * Duplicate-email guard. One email per tournament: if this torneoid
+     * already has a registro row with the same correo, reject with 409 so
+     * the client can show the canonical message. Case-insensitive.
+     */
+    $postedEmail = trim((string)($_POST['reg_correo'] ?? ''));
+    if ($postedEmail !== '' && registro_email_exists($conn, $torneoid, $postedEmail)) {
+        json_error(
+            'Este torneo ya tiene un jugador registrado con este correo. '
+          . 'Si necesitas registrar otro jugador, utiliza otro correo.',
+            409
+        );
+    }
 
 
     /** Whitelist of safe field_names accepted from the form. */
@@ -480,6 +528,19 @@ function send_verification_email($conn, $regId) {
 
 // ============= GET listing (admin) =============
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    /**
+     * Public action — no password required.
+     * GET /api/registro.php?action=check_email&torneoid=NN&email=foo@bar.com
+     * Returns { exists: bool } to let the form warn before submit.
+     */
+    if (optional_param('action') === 'check_email') {
+        $torneoid = (int) require_param('torneoid');
+        $email    = trim((string) optional_param('email', ''));
+        json_response([
+            'exists' => registro_email_exists($conn, $torneoid, $email),
+        ]);
+    }
+
     // Auth check first — admin password gates everything.
     if (optional_param('password') !== REGISTROS_PASSWORD) {
         json_error('Unauthorized', 401);
