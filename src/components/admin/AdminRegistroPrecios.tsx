@@ -1,12 +1,9 @@
 /**
  * AdminRegistroPrecios
- * Pestaña admin para configurar las REGLAS DE PRECIO de Pre-Registro.
- *
- * Una regla = una fila editable: filtros (categoría, tipo de socio, género,
- * edad min/max) + precio + moneda + texto "incluye". Los filtros vacíos
- * actúan como comodín. La regla más específica (más filtros no-NULL) gana
- * al hacer match contra los datos del jugador, con `prioridad` como
- * desempate manual.
+ * Pestaña admin para configurar los PRECIOS de inscripción.
+ * Sólo filtra por **tipo de socio**. Las restricciones por categoría /
+ * edad / género / hándicap viven en otra pestaña ("Categorías elegibles"
+ * → tabla `categorias_reglas`).
  *
  * Persistencia: replace-all por torneo vía POST /api/registro_precios.php.
  */
@@ -19,7 +16,6 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save, DollarSign, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { useTorneoId } from '@/hooks/useTorneoId';
-import { useCategories } from '@/hooks/usePlayersData';
 import {
   useRegistroPrecios,
   useSaveRegistroPrecios,
@@ -37,12 +33,6 @@ const TIPO_SOCIO_OPTIONS: { value: string; label: string }[] = [
   { value: 'NO_SOCIO',    label: 'No socio' },
   { value: 'INVITADO',    label: 'Invitado' },
   { value: 'FORANEO',     label: 'Foráneo' },
-];
-
-const GENERO_OPTIONS = [
-  { value: 'ANY', label: 'Cualquiera' },
-  { value: 'M',   label: 'Hombre (M)' },
-  { value: 'F',   label: 'Mujer (F)' },
 ];
 
 /** Una regla nueva en blanco — usada al pulsar "Agregar regla". */
@@ -67,7 +57,6 @@ const blankRule = (order: number): Partial<RegistroPrecioRule> => ({
 const AdminRegistroPrecios = () => {
   const { torneoId } = useTorneoId();
   const { data, isLoading } = useRegistroPrecios();
-  const { data: categories = [] } = useCategories();
   const save = useSaveRegistroPrecios();
   const { toast } = useToast();
 
@@ -120,10 +109,11 @@ const AdminRegistroPrecios = () => {
             Pre-Registro · Precios de inscripción
           </CardTitle>
           <CardDescription>
-            Define una <strong>regla por combinación de filtros</strong>. Los filtros
-            vacíos ("Cualquiera") o sin valor aplican a todos. La regla con más filtros
-            específicos gana automáticamente. El jugador verá el precio en su pre-registro
-            al completar categoría / socio / género / edad / hándicap.
+            Define el costo de inscripción <strong>por tipo de participante</strong>
+            (socio titular, emérito, no socio, invitado, etc.). El kit incluido es
+            opcional y se muestra al jugador junto al monto. Las restricciones de
+            categoría / edad / género / hándicap viven en la pestaña{' '}
+            <strong>Categorías elegibles</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -163,13 +153,7 @@ const AdminRegistroPrecios = () => {
                     <thead className="bg-muted/50">
                       <tr>
                         <th className="text-left p-2 min-w-[160px]">Etiqueta</th>
-                        <th className="text-left p-2 min-w-[140px]">Categoría</th>
                         <th className="text-left p-2 min-w-[160px]">Tipo socio</th>
-                        <th className="text-left p-2 min-w-[120px]">Género</th>
-                        <th className="text-center p-2 w-20">Edad mín</th>
-                        <th className="text-center p-2 w-20">Edad máx</th>
-                        <th className="text-center p-2 w-20">Hcp mín</th>
-                        <th className="text-center p-2 w-20">Hcp máx</th>
                         <th className="text-right p-2 w-28">Precio</th>
                         <th className="text-center p-2 w-20">Moneda</th>
                         <th className="text-left p-2 min-w-[160px]">Incluye</th>
@@ -189,20 +173,6 @@ const AdminRegistroPrecios = () => {
                           </td>
                           <td className="p-2">
                             <Select
-                              value={r.categoria ?? 'ANY'}
-                              onValueChange={v => update(idx, { categoria: v === 'ANY' ? null : v })}
-                            >
-                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                              <SelectContent className="max-h-[280px]">
-                                <SelectItem value="ANY">Cualquiera</SelectItem>
-                                {categories.map(c => (
-                                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Select
                               value={r.tipo_socio ?? 'ANY'}
                               onValueChange={v => update(idx, { tipo_socio: v === 'ANY' ? null : v })}
                             >
@@ -213,60 +183,6 @@ const AdminRegistroPrecios = () => {
                                 ))}
                               </SelectContent>
                             </Select>
-                          </td>
-                          <td className="p-2">
-                            <Select
-                              value={r.genero ?? 'ANY'}
-                              onValueChange={v => update(idx, { genero: v === 'ANY' ? null : v })}
-                            >
-                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {GENERO_OPTIONS.map(o => (
-                                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              value={r.edad_min ?? ''}
-                              onChange={e => update(idx, { edad_min: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
-                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              value={r.edad_max ?? ''}
-                              onChange={e => update(idx, { edad_max: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
-                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </td>
-                          {/* Filtro adicional: rango de handicap (decimales y negativos). */}
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.1"
-                              value={r.hcp_min ?? ''}
-                              onChange={e => update(idx, { hcp_min: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                              placeholder="-6"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.1"
-                              value={r.hcp_max ?? ''}
-                              onChange={e => update(idx, { hcp_max: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                              className="w-20 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                              placeholder="54"
-                            />
                           </td>
                           <td className="p-2">
                             <Input
@@ -318,9 +234,9 @@ const AdminRegistroPrecios = () => {
               )}
 
               <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                <strong>Tip:</strong> crea primero las reglas más específicas (por categoría exacta
-                + tipo de socio) y deja una regla "comodín" al final con todos los filtros en
-                "Cualquiera" como precio por defecto.
+                <strong>Tip:</strong> deja una regla con tipo de socio en{' '}
+                <em>Cualquiera</em> al final como precio por defecto si algún
+                tipo no tiene tarifa específica.
               </p>
             </>
           )}
