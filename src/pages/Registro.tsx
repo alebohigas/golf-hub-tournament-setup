@@ -707,7 +707,7 @@ const Registro = () => {
   }, [values.reg_es_socio, values.reg_tipo_socio]);
 
   /** Eligible categories given hcp/sex/age (when those values are present). */
-  const eligibleCategories = useMemo(() => {
+  const categoryFilterResult = useMemo(() => {
     const hcpRaw = parseFloat(values.reg_handicap);
     const sex  = (values.reg_sexo || '').toUpperCase();
     // Edad: prioriza la calculada desde fechanac; si no, usa la capturada
@@ -727,54 +727,59 @@ const Registro = () => {
     const hcp = !isNaN(hcpRaw) && globalMinHcp !== null && hcpRaw < globalMinHcp
       ? globalMinHcp
       : hcpRaw;
-    return categories.filter(c => {
-      // Handicap range — only filter when user has typed a number AND the
-      // category has a usable range (max > 0 in legacy data sometimes is 0).
-      if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) return false;
-      // Refuerzo: cuando el nombre de la categoría declara explícitamente
-      // el rango ("B (10.6 A 14.5)") y NO coincide con los valores de BD,
-      // intersectamos con el rango parseado del nombre. Esto evita que
-      // una BD con hcpIdxMax desactualizado (p.ej. 15) permita un
-      // hándicap fuera del rango visible (14.5).
+    /** Evaluate each category and record the exclusion reason (if any). */
+    const evaluations = categories.map(c => {
+      // Handicap range — BD.
+      if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) {
+        return { c, ok: false, reason: `Hcp ${hcp} fuera del rango BD ${c.hcpMin}–${c.hcpMax}` };
+      }
+      // Handicap range — parsed from name "(min A max)".
       if (!isNaN(hcp)) {
         const hcpFromName = parseHcpFromName(c.name || '');
-        if (hcpFromName && (hcp < hcpFromName.min || hcp > hcpFromName.max)) return false;
+        if (hcpFromName && (hcp < hcpFromName.min || hcp > hcpFromName.max)) {
+          return { c, ok: false, reason: `Hcp ${hcp} fuera del rango del nombre ${hcpFromName.min}–${hcpFromName.max}` };
+        }
       }
-      // Gender filter when category restricts it (M/F).
-      if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
-      // Age range filter (senior categories with min/max set). When the
-      // backend columns are missing/zero we fall back to parsing the
-      // category NAME (e.g. "SENIOR 55-64", "55+") so legacy tournaments
-      // without `age_range_min/max` still get filtered correctly.
+      // Gender filter.
+      if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) {
+        return { c, ok: false, reason: `Género ${c.gender} ≠ ${sex}` };
+      }
+      // Age range filter (DB + name fallback).
       if (age !== null) {
         const fromName = parseAgeFromName(c.name || '');
         const minDb = c.ageMin != null && c.ageMin > 0 ? c.ageMin : null;
         const maxDb = c.ageMax != null && c.ageMax > 0 ? c.ageMax : null;
         const min = minDb ?? (fromName ? fromName.min : null);
         const max = maxDb ?? (fromName ? fromName.max : null);
-        if (min != null && age < min) return false;
-        if (max != null && age > max) return false;
+        if (min != null && age < min) return { c, ok: false, reason: `Edad ${age} < mínima ${min}` };
+        if (max != null && age > max) return { c, ok: false, reason: `Edad ${age} > máxima ${max}` };
       }
-      /**
-       * Reglas de elegibilidad explícitas (tabla `categorias_reglas`).
-       * Si la categoría tiene una o más reglas activas, el jugador debe
-       * encajar en al menos una (edad/género/hcp). Si ninguna regla
-       * aplica → se oculta. Si la categoría no tiene reglas aquí, se
-       * considera abierta (sólo aplican los filtros previos).
-       */
+      // Reglas explícitas de `categorias_reglas`.
       const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
       if (catReglas.length > 0) {
-        const playerCtx = {
-          sex,
-          age,
-          hcp: !isNaN(hcpRaw) ? hcpRaw : null,
-        };
+        const playerCtx = { sex, age, hcp: !isNaN(hcpRaw) ? hcpRaw : null };
         const anyMatch = catReglas.some(r => playerMatchesRule(r, playerCtx));
-        if (!anyMatch) return false;
+        if (!anyMatch) {
+          return {
+            c,
+            ok: false,
+            reason: `Ninguna de ${catReglas.length} regla(s) explícita(s) coincide (sexo=${sex||'?'}, edad=${age??'?'}, hcp=${!isNaN(hcpRaw)?hcpRaw:'?'})`,
+          };
+        }
       }
-      return true;
+      return { c, ok: true, reason: '' };
     });
+    return {
+      eligible: evaluations.filter(e => e.ok).map(e => e.c),
+      exclusions: evaluations.filter(e => !e.ok),
+      hcp,
+      hcpRaw,
+      sex,
+      age,
+    };
   }, [categories, reglas, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+
+  const eligibleCategories = categoryFilterResult.eligible;
 
   /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
   useEffect(() => {
