@@ -598,11 +598,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_handicap',
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
-        'reg_verificado','reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
+        'reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
         // Cargo a cuenta de socio
         'reg_cargo_socio','reg_clave_socio',
-        // Verificación administrativa (pago + monto)
-        'reg_pago_verificado','reg_monto_confirmado',
+        // Monto confirmado por tesorería
+        'reg_monto_confirmado',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns
@@ -613,6 +613,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = "r.$c";
+    /**
+     * Verificación administrativa: las columnas canónicas en la BD son
+     * `verificado` y `status_pago`. Las exponemos con alias hacia los
+     * nombres antiguos para no romper el frontend (reg_verificado y
+     * reg_pago_verificado siguen siendo las claves que usa la UI).
+     */
+    if (registro_has($conn, 'verificado'))  $fields[] = "r.verificado AS reg_verificado";
+    if (registro_has($conn, 'status_pago')) $fields[] = "r.status_pago AS reg_pago_verificado";
     /** Indicate whether a binary attachment exists without sending the bytes. */
     if (registro_has($conn, 'reg_archivo')) {
         $fields[] = "(r.reg_archivo IS NOT NULL AND OCTET_LENGTH(r.reg_archivo) > 0) AS has_archivo";
