@@ -333,10 +333,13 @@ const Dashboard = ({ password }: { password: string }) => {
                               Cargo a cuenta
                             </Badge>
                           ) : hasFile ? (
-                            <Button asChild size="sm" variant="outline" className="gap-1">
-                              <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
-                                <FileDown className="h-4 w-4" /> Ver
-                              </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
+                            >
+                              <Eye className="h-4 w-4" /> Ver
                             </Button>
                           ) : <span className="text-muted-foreground text-xs">—</span>}
                         </td>
