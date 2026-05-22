@@ -1696,12 +1696,14 @@ const Registro = () => {
                       </div>
                     )}
                     {/* ============= Cargo a cuenta de socio =============
-                        Visible siempre que el jugador NO haya declarado
-                        explícitamente que no es socio. Al activarlo:
+                        Visibilidad: requiere que el admin haya activado el
+                        campo `reg_cargo_socio` en /admin → Pre-Registro, y
+                        que el jugador no haya declarado explícitamente que
+                        no es socio. Al activarlo:
                           - aparece el campo obligatorio "Clave de Socio"
                           - se oculta la subida de comprobante (reg_archivo)
                           - se muestra el aviso de aceptación de cargo. */}
-                    {values.reg_es_socio !== 'NO' && (
+                    {isFieldEnabled('reg_cargo_socio') && values.reg_es_socio !== 'NO' && (
                       <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
                         <div className="flex items-start gap-3">
                           <Checkbox
