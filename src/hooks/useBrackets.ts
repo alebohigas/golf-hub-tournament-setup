@@ -79,6 +79,13 @@ export interface BracketQualifier {
   distance: number | null;
   /** Fecha en formato YYYY-MM-DD (o null si la columna no aplica). */
   fecha: string | null;
+  /**
+   * Fecha+hora completa `YYYY-MM-DD HH:MM:SS` cuando `puttjug.fecha` es
+   * DATETIME. Usada para mostrar la hora de registro junto al día.
+   */
+  fecha_full?: string | null;
+  /** Categoría/grupo del jugador (puttjug.premiosjugcol). */
+  categoria?: string | null;
 }
 
 /** Respuesta combinada M/F. */
