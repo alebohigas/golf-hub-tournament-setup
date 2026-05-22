@@ -144,6 +144,33 @@ const calcAge = (yyyymmdd: string): number | null => {
 };
 
 /**
+ * Infer an age range from a category name when the backend `categorias`
+ * table does not have `age_range_min` / `age_range_max` populated (legacy
+ * setups encode the range in the name itself). Supports patterns like:
+ *   "SENIOR 55-64", "SENIOR 55 - 64", "55 a 64", "55+", "65 +", "55 y mas".
+ * Returns { min, max } where either side may be null when unbounded.
+ * Returns null when no recognisable age token is found.
+ */
+const parseAgeFromName = (name: string): { min: number | null; max: number | null } | null => {
+  if (!name) return null;
+  const s = name.toLowerCase();
+  // Range: "55-64", "55 - 64", "55 a 64"
+  let m = s.match(/(\d{2,3})\s*(?:-|–|a)\s*(\d{2,3})/);
+  if (m) {
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    if (a >= 30 && b >= a && b <= 120) return { min: a, max: b };
+  }
+  // Open-ended: "55+", "55 +", "55 y mas", "55 o mas"
+  m = s.match(/(\d{2,3})\s*(?:\+|y\s*mas|o\s*mas|y\s*más|o\s*más)/);
+  if (m) {
+    const a = parseInt(m[1], 10);
+    if (a >= 30 && a <= 120) return { min: a, max: null };
+  }
+  return null;
+};
+
+/**
  * Normalize a string for tolerant matching: lowercase, trimmed, and with
  * combining diacritics stripped ("México" → "mexico", "Nuevo León" →
  * "nuevo leon"). Used when matching club location strings against the
