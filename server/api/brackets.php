@@ -500,6 +500,18 @@ function action_generate_putt($conn, $body) {
 function advance_winner($conn, $matchId, $winnerId) {
     $mid = (int)$matchId;
     $wid = (int)$winnerId;
+    /**
+     * Determinar el seed del ganador ANTES de marcar completed, para poder
+     * propagarlo al siguiente match y mantener visible el número de seed
+     * del jugador a través de TODAS las rondas (no sólo Ronda 1).
+     */
+    $cur = safe_one($conn, "SELECT player_high_id, player_low_id, seed_high, seed_low
+                              FROM bracket_matches WHERE id = $mid");
+    $winnerSeed = null;
+    if ($cur) {
+        if ((int)$cur['player_high_id'] === $wid) $winnerSeed = $cur['seed_high'];
+        elseif ((int)$cur['player_low_id'] === $wid) $winnerSeed = $cur['seed_low'];
+    }
     $conn->query("UPDATE bracket_matches
                   SET winner_player_id = $wid, status = 'completed', updated_at = NOW()
                   WHERE id = $mid");
@@ -507,8 +519,12 @@ function advance_winner($conn, $matchId, $winnerId) {
     if (!$row || $row['next_match_id'] === null) return;
     $nextId  = (int)$row['next_match_id'];
     // next_slot es ENUM 'high'|'low' -> mapea a la columna del player correspondiente
-    $slotCol = ($row['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
-    $conn->query("UPDATE bracket_matches SET $slotCol = $wid, updated_at = NOW() WHERE id = $nextId");
+    $slotCol  = ($row['next_slot'] === 'high') ? 'player_high_id' : 'player_low_id';
+    $seedCol  = ($row['next_slot'] === 'high') ? 'seed_high'      : 'seed_low';
+    $seedSql  = ($winnerSeed === null || $winnerSeed === '') ? 'NULL' : (int)$winnerSeed;
+    $conn->query("UPDATE bracket_matches
+                  SET $slotCol = $wid, $seedCol = $seedSql, updated_at = NOW()
+                  WHERE id = $nextId");
 }
 
 // ============= Acción: record_score (admin) =============
