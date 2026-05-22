@@ -18,7 +18,7 @@
  * Submission goes to /api/registro.php as multipart/form-data.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import registroHero from '@/assets/registro-hero.jpg';
