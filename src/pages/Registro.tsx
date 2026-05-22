@@ -36,7 +36,8 @@ import { useRegistroFields } from '@/hooks/useRegistroFields';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
-import { useRegistroPrecioMatch, useRegistroPrecios, type RegistroPrecioRule } from '@/hooks/useRegistroPrecios';
+import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
+import { useCategoriasReglas, type CategoriaRegla } from '@/hooks/useCategoriasReglas';
 import type { CategoryDetail } from '@/data/playersData';
 import {
   getRegistroSubmitUrl,
@@ -243,50 +244,37 @@ const toFiniteNumber = (value: unknown): number | null => {
 };
 
 /** Normalized key for category/rule matching: trims, removes accents, collapses whitespace. */
-const priceKey = (value: unknown): string =>
+const ruleKey = (value: unknown): string =>
   norm(String(value ?? '')).replace(/\s+/g, ' ');
 
-/** True when a price rule belongs to the current category by name or legacy ID. */
-const priceRuleMatchesCategory = (rule: RegistroPrecioRule, category: Pick<CategoryDetail, 'id' | 'name'>): boolean => {
-  const ruleCategory = priceKey(rule.categoria);
-  if (!ruleCategory) return false;
-  return ruleCategory === priceKey(category.name) || ruleCategory === priceKey(category.id);
-};
-
-/** Match tipo_socio exactly like registro_precios.php, but unknown form values do not hide early. */
-const priceRuleMatchesSocio = (ruleTipo: string | null, tipoSocio?: string): boolean => {
-  if (!ruleTipo) return true;
-  if (!tipoSocio) return true;
-  const rt = ruleTipo.toUpperCase();
-  const ut = tipoSocio.toUpperCase();
-  if (rt === 'SOCIO') return ['SOCIO', 'TITULAR', 'EMERITO', 'DEPENDIENTE'].includes(ut);
-  if (rt === 'NO_SOCIO') return ['NO_SOCIO', 'INVITADO', 'FORANEO'].includes(ut);
-  return rt === ut;
-};
-
-/** True when every non-age filter in the price rule is compatible with the player data. */
-const priceRuleMatchesNonAgeCriteria = (
-  rule: RegistroPrecioRule,
-  params: { sex: string; hcp: number | null; tipoSocio?: string }
+/** True when an eligibility rule applies to the given category (by name). */
+const ruleMatchesCategory = (
+  rule: CategoriaRegla,
+  category: Pick<CategoryDetail, 'id' | 'name'>
 ): boolean => {
-  if (rule.genero && params.sex && rule.genero.toUpperCase() !== params.sex) return false;
-  if (!priceRuleMatchesSocio(rule.tipo_socio, params.tipoSocio)) return false;
-  if (params.hcp !== null) {
-    const hcpMin = toFiniteNumber(rule.hcp_min);
-    const hcpMax = toFiniteNumber(rule.hcp_max);
-    if (hcpMin !== null && params.hcp < hcpMin) return false;
-    if (hcpMax !== null && params.hcp > hcpMax) return false;
-  }
-  return true;
+  const rk = ruleKey(rule.categoria);
+  if (!rk) return false;
+  return rk === ruleKey(category.name) || rk === ruleKey(category.id);
 };
 
-/** True when a player's age falls inside the rule age range; no range means no age restriction. */
-const priceRuleMatchesAge = (rule: RegistroPrecioRule, age: number | null): boolean => {
-  if (age === null) return true;
-  const min = toFiniteNumber(rule.edad_min);
-  const max = toFiniteNumber(rule.edad_max);
-  if (min !== null && age < min) return false;
-  if (max !== null && age > max) return false;
+/** True if the player matches a single eligibility rule. */
+const playerMatchesRule = (
+  rule: CategoriaRegla,
+  player: { sex: string; age: number | null; hcp: number | null }
+): boolean => {
+  if (rule.genero && player.sex && rule.genero.toUpperCase() !== player.sex) return false;
+  if (player.age !== null) {
+    const emin = toFiniteNumber(rule.edad_min);
+    const emax = toFiniteNumber(rule.edad_max);
+    if (emin !== null && player.age < emin) return false;
+    if (emax !== null && player.age > emax) return false;
+  }
+  if (player.hcp !== null) {
+    const hmin = toFiniteNumber(rule.hcp_min);
+    const hmax = toFiniteNumber(rule.hcp_max);
+    if (hmin !== null && player.hcp < hmin) return false;
+    if (hmax !== null && player.hcp > hmax) return false;
+  }
   return true;
 };
 
@@ -315,16 +303,14 @@ const Registro = () => {
   const { data: categories = [] } = useCategories();
   const { data: tournamentInfo } = useTournamentInfo();
   /**
-   * Reglas de precio del torneo. Se usan no sólo para mostrar el costo
-   * estimado, sino TAMBIÉN como fuente adicional de restricciones por
-   * edad / género / tipo de socio / handicap a la hora de filtrar las
-   * categorías mostradas. Ejemplo: si el admin define para "Campeonato
-   * Mayor" una regla con edad_min=55 y edad_max=99, un jugador de 34
-   * años deja de ver esa categoría (porque ninguna regla aplica para él
-   * y por tanto no hay precio disponible).
+   * Reglas de ELEGIBILIDAD de categoría (edad/género/hcp). Vienen de la
+   * tabla `categorias_reglas` — separada de los precios para evitar
+   * acoplar "qué puedo elegir" con "cuánto pago". Cuando una categoría
+   * tiene una o más reglas activas, el jugador debe encajar en al menos
+   * una para verla en el dropdown.
    */
-  const { data: preciosData } = useRegistroPrecios();
-  const preciosRules = useMemo(() => preciosData?.rules || [], [preciosData?.rules]);
+  const { data: reglasData } = useCategoriasReglas();
+  const reglas = useMemo(() => reglasData?.rules || [], [reglasData?.rules]);
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
@@ -770,36 +756,25 @@ const Registro = () => {
         if (max != null && age > max) return false;
       }
       /**
-       * Tercer fallback: si la categoría no trae rangos ni en BD ni en el
-       * nombre, derivamos las restricciones de edad/género a partir de
-       * las reglas de `registro_precios` definidas para ESTA categoría
-       * (por nombre, case-insensitive). Si TODAS las reglas activas para
-       * la categoría exigen un rango de edad/género y el jugador no
-       * encaja en NINGUNA → la categoría se oculta (no hay precio
-       * posible para él). Se ignoran tipo_socio y hándicap aquí porque
-       * son filtros de precio, no de elegibilidad de categoría.
+       * Reglas de elegibilidad explícitas (tabla `categorias_reglas`).
+       * Si la categoría tiene una o más reglas activas, el jugador debe
+       * encajar en al menos una (edad/género/hcp). Si ninguna regla
+       * aplica → se oculta. Si la categoría no tiene reglas aquí, se
+       * considera abierta (sólo aplican los filtros previos).
        */
-      const catRules = preciosRules.filter(r =>
-        !!r.is_active && priceRuleMatchesCategory(r, { id: c.id, name: c.name })
-      );
-      if (catRules.length > 0 && age !== null) {
-        const rulesForCurrentNonAgeCriteria = catRules.filter(r =>
-          priceRuleMatchesNonAgeCriteria(r, { sex, hcp: !isNaN(hcpRaw) ? hcpRaw : null, tipoSocio: tipoSocioForPricing })
-        );
-        if (rulesForCurrentNonAgeCriteria.length > 0) {
-          const ageRestrictedRules = rulesForCurrentNonAgeCriteria.filter(r =>
-            toFiniteNumber(r.edad_min) !== null || toFiniteNumber(r.edad_max) !== null
-          );
-          const rulesToCheck = ageRestrictedRules.length > 0
-            ? ageRestrictedRules
-            : rulesForCurrentNonAgeCriteria;
-          const anyRuleAcceptsAge = rulesToCheck.some(r => priceRuleMatchesAge(r, age));
-          if (!anyRuleAcceptsAge) return false;
-        }
+      const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
+      if (catReglas.length > 0) {
+        const playerCtx = {
+          sex,
+          age,
+          hcp: !isNaN(hcpRaw) ? hcpRaw : null,
+        };
+        const anyMatch = catReglas.some(r => playerMatchesRule(r, playerCtx));
+        if (!anyMatch) return false;
       }
       return true;
     });
-  }, [categories, preciosRules, tipoSocioForPricing, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, reglas, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
   useEffect(() => {
@@ -856,19 +831,16 @@ const Registro = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_fechanac, visibleFields.length]);
 
-  /** Consulta reactiva al endpoint de matching de precio. */
+  /**
+   * Consulta reactiva al endpoint de matching de precio.
+   * Tras el split (2026-05-22), el precio depende ÚNICAMENTE del tipo de
+   * socio. Se ejecuta sólo cuando ya hay categoría elegida + tipo de
+   * socio resuelto (así evitamos mostrar un precio antes de que el
+   * usuario haya completado los datos relevantes).
+   */
   const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
-    categoria:  selectedCategoryName,
     tipo_socio: tipoSocioForPricing,
-    genero:     values.reg_sexo || undefined,
-    edad:       ageForPricing,
-    handicap:   (() => {
-      const v = parseFloat(values.reg_handicap || '');
-      return isNaN(v) ? null : v;
-    })(),
-    // Sólo consulta cuando hay al menos un filtro útil
-    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo
-              || ageForPricing !== null || values.reg_handicap),
+    enabled: !!(selectedCategoryName && tipoSocioForPricing),
   });
   const precioMatch = precioMatchData?.match || null;
 
@@ -1606,7 +1578,7 @@ const Registro = () => {
                                     al matcher de precios para que el admin pueda
                                     revisar por qué ninguna regla aplica. */}
                                 <p className="text-[11px] text-muted-foreground mt-2 font-mono">
-                                  Datos usados: categoría={selectedCategoryName || '—'} · tipo={tipoSocioForPricing || '—'} · sexo={values.reg_sexo || '—'} · edad={ageForPricing ?? '—'} · hcp={values.reg_handicap || '—'}
+                                  Datos usados: tipo de socio={tipoSocioForPricing || '—'}
                                 </p>
                               </>
                             )}

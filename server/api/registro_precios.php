@@ -9,7 +9,7 @@
  *      Respuesta: { rules: [...] }
  *
  * GET  /api/registro_precios.php?torneoid=XXX&action=match
- *           &categoria=...&tipo_socio=...&genero=M|F&edad=NN
+ *           &tipo_socio=...
  *      → Devuelve la regla que mejor matchea (o null).
  *      Respuesta: { match: { id, precio, moneda, etiqueta, incluye } | null }
  *
@@ -19,6 +19,11 @@
  *
  * Tabla backend: `registro_precios` — ver
  * server/migrations/2026_05_19_registro_precios.sql
+ *
+ * IMPORTANTE (2026-05-22): Los filtros de elegibilidad de categoría
+ * (edad/género/hcp) se mueven a la tabla `categorias_reglas`. Este
+ * endpoint sigue aceptando las columnas legacy para no romper datos
+ * existentes, pero el matching nuevo SÓLO usa `tipo_socio`.
  *
  * Patrón: si la tabla no existe, GET devuelve { rules: [] } y POST devuelve
  * 500 con instrucción de correr la migración.
@@ -85,10 +90,7 @@ function normalize_rule($r) {
  * Para tipo_socio: si la regla pide 'SOCIO' aceptamos cualquier subtipo
  * (TITULAR/EMERITO/DEPENDIENTE). Si pide un subtipo específico, debe coincidir.
  */
-function rule_matches($rule, $cat, $tipoSocio, $genero, $edad, $hcp = null) {
-    if ($rule['categoria']  !== null && strcasecmp($rule['categoria'], (string)$cat) !== 0) return false;
-    if ($rule['genero']     !== null && $genero !== null && $rule['genero'] !== $genero)   return false;
-
+function rule_matches($rule, $tipoSocio) {
     if ($rule['tipo_socio'] !== null) {
         $rt = $rule['tipo_socio'];
         $ut = (string)$tipoSocio;
@@ -101,33 +103,15 @@ function rule_matches($rule, $cat, $tipoSocio, $genero, $edad, $hcp = null) {
             if (strcasecmp($rt, $ut) !== 0) return false;
         }
     }
-
-    if ($edad !== null) {
-        if ($rule['edad_min'] !== null && $edad < $rule['edad_min']) return false;
-        if ($rule['edad_max'] !== null && $edad > $rule['edad_max']) return false;
-    }
-    /** Filtro adicional por handicap (rango inclusivo). NULL = comodín. */
-    if ($hcp !== null) {
-        if (isset($rule['hcp_min']) && $rule['hcp_min'] !== null && $hcp < $rule['hcp_min']) return false;
-        if (isset($rule['hcp_max']) && $rule['hcp_max'] !== null && $hcp > $rule['hcp_max']) return false;
-    }
     return true;
 }
 
 /**
- * "Score" de especificidad: cuántos filtros NO son NULL.
- * Tie-break adicional: rule.prioridad (mayor gana), luego id ascendente.
+ * Especificidad simplificada: una regla con tipo_socio definido gana a
+ * la regla wildcard. Después decide `prioridad` y luego id.
  */
 function rule_specificity($rule) {
-    $s = 0;
-    if ($rule['categoria']  !== null) $s++;
-    if ($rule['tipo_socio'] !== null) $s++;
-    if ($rule['genero']     !== null) $s++;
-    if ($rule['edad_min']   !== null) $s++;
-    if ($rule['edad_max']   !== null) $s++;
-    if (!empty($rule['hcp_min']) || (isset($rule['hcp_min']) && $rule['hcp_min'] === 0.0)) $s++;
-    if (!empty($rule['hcp_max']) || (isset($rule['hcp_max']) && $rule['hcp_max'] === 0.0)) $s++;
-    return $s;
+    return $rule['tipo_socio'] !== null ? 1 : 0;
 }
 
 // ===========================================================================
@@ -152,18 +136,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows  = array_map('normalize_rule', query_all($conn, $sql));
 
     if ($action === 'match') {
-        // Filtros del jugador (todos opcionales)
-        $cat   = optional_param('categoria', null);
-        $tipo  = optional_param('tipo_socio', null);  // SOCIO/NO_SOCIO/TITULAR/...
-        $gen   = optional_param('genero', null);      // M/F
-        $edadP = optional_param('edad', null);
-        $edad  = ($edadP !== null && $edadP !== '') ? (int)$edadP : null;
-        $hcpP  = optional_param('handicap', null);
-        $hcp   = ($hcpP !== null && $hcpP !== '') ? (float)$hcpP : null;
+        // Sólo se usa tipo_socio. categoria/genero/edad/handicap son
+        // aceptados pero ignorados (compat. con clientes antiguos).
+        $tipo  = optional_param('tipo_socio', null);
 
-        $candidates = array_filter($rows, function($r) use ($cat, $tipo, $gen, $edad, $hcp) {
+        $candidates = array_filter($rows, function($r) use ($tipo) {
             if (!$r['is_active']) return false;
-            return rule_matches($r, $cat, $tipo, $gen, $edad, $hcp);
+            return rule_matches($r, $tipo);
         });
 
         if (count($candidates) === 0) {

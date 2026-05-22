@@ -230,13 +230,19 @@ export const getRegistroPrecioMatchUrl = (params: {
   handicap?: string | number;
 }): string => {
   const clean: Record<string, string> = { action: 'match' };
-  if (params.categoria)   clean.categoria  = params.categoria;
   if (params.tipo_socio)  clean.tipo_socio = params.tipo_socio;
-  if (params.genero)      clean.genero     = params.genero;
-  if (params.edad !== undefined && params.edad !== '') clean.edad = String(params.edad);
-  if (params.handicap !== undefined && params.handicap !== '') clean.handicap = String(params.handicap);
+  // categoria/genero/edad/handicap se ignoran en el match nuevo —
+  // se mantienen en la firma por compatibilidad de tipos con llamadores
+  // existentes y para reactividad de React Query (cambiar de tipo de
+  // socio re-fetchea aunque el resto cambie también).
   return `${API_BASE_URL}/registro_precios.php${buildQuery(clean)}`;
 };
+
+// ============= Pre-Registro · Categorías Elegibles =============
+
+/** Lista de reglas de elegibilidad de categoría para este torneo. */
+export const getCategoriasReglasUrl = (): string =>
+  `${API_BASE_URL}/categorias_reglas.php${buildQuery()}`;
 
 /** Cascading location dropdowns */
 export const getLocationsCountriesUrl = (): string =>
