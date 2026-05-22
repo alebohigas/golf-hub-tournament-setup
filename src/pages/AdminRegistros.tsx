@@ -180,7 +180,7 @@ const Dashboard = ({ password }: { password: string }) => {
       if (filter === 'pending' && v) return false;
       if (filter === 'verified' && !v) return false;
       if (term) {
-        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club, String(r.torneoid ?? '')]
+        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club]
           .filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(term)) return false;
       }
