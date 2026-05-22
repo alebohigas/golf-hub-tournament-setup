@@ -9,7 +9,7 @@
  * Auth: independent password (`registros2025`) — not tied to /admin.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -267,7 +267,7 @@ const Dashboard = ({ password }: { password: string }) => {
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
                       : '—';
                     return (
-                    <FragmentRow key={r.id}>
+                    <Fragment key={r.id}>
                     <tr className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(r.id)}>
                         <td className="p-3 text-center">
                           <button
@@ -411,7 +411,7 @@ const Dashboard = ({ password }: { password: string }) => {
                           </td>
                         </tr>
                       )}
-                      </FragmentRow>
+                      </Fragment>
                     );
                   })}
                 </tbody>
