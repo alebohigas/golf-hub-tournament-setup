@@ -243,6 +243,18 @@ const toFiniteNumber = (value: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/** Normalize rule/player gender codes so legacy values like "M ", "Hombre" or "Masculino" still match "M". */
+const normalizeGenderCode = (value: unknown): string => {
+  const key = ruleKey(value);
+  if (!key) return '';
+  if (['m', 'masculino', 'hombre', 'caballero', 'caballeros', 'male'].includes(key)) return 'M';
+  if (['f', 'femenino', 'mujer', 'dama', 'damas', 'female'].includes(key)) return 'F';
+  return key.toUpperCase();
+};
+
+/** Compare handicap values at one decimal (the DB stores DECIMAL(4,1)) with a tiny epsilon for safe inclusive bounds. */
+const normalizeHcpIndex = (value: number): number => Math.round(value * 10) / 10;
+
 /** Normalized key for category/rule matching: trims, removes accents, collapses whitespace. */
 const ruleKey = (value: unknown): string =>
   norm(String(value ?? '')).replace(/\s+/g, ' ');
@@ -262,18 +274,21 @@ const playerMatchesRule = (
   rule: CategoriaRegla,
   player: { sex: string; age: number | null; hcp: number | null }
 ): boolean => {
-  if (rule.genero && player.sex && rule.genero.toUpperCase() !== player.sex) return false;
+  const ruleGender = normalizeGenderCode(rule.genero);
+  const playerGender = normalizeGenderCode(player.sex);
+  if (ruleGender && playerGender && ruleGender !== playerGender) return false;
   if (player.age !== null) {
     const emin = toFiniteNumber(rule.edad_min);
     const emax = toFiniteNumber(rule.edad_max);
-    if (emin !== null && player.age < emin) return false;
-    if (emax !== null && player.age > emax) return false;
+    if (emin !== null && emin > 0 && player.age < emin) return false;
+    if (emax !== null && emax > 0 && player.age > emax) return false;
   }
   if (player.hcp !== null) {
     const hmin = toFiniteNumber(rule.hcp_min);
     const hmax = toFiniteNumber(rule.hcp_max);
-    if (hmin !== null && player.hcp < hmin) return false;
-    if (hmax !== null && player.hcp > hmax) return false;
+    const hcp = normalizeHcpIndex(player.hcp);
+    if (hmin !== null && hcp < hmin - Number.EPSILON) return false;
+    if (hmax !== null && hcp > hmax + Number.EPSILON) return false;
   }
   return true;
 };
