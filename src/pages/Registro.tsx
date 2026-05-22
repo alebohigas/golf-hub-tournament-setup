@@ -1763,67 +1763,6 @@ const Registro = () => {
                         </p>
                       </div>
                     )}
-                    {/* ============= Cargo a cuenta de socio =============
-                        Visibilidad: requiere que el admin haya activado el
-                        campo `reg_cargo_socio` en /admin → Pre-Registro, y
-                        que el jugador no haya declarado explícitamente que
-                        no es socio. Al activarlo:
-                          - aparece el campo obligatorio "Clave de Socio"
-                          - se oculta la subida de comprobante (reg_archivo)
-                          - se muestra el aviso de aceptación de cargo. */}
-                    {isFieldEnabled('reg_cargo_socio') && values.reg_es_socio !== 'NO' && (
-                      <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            id="reg_cargo_socio"
-                            checked={values.reg_cargo_socio === '1'}
-                            onCheckedChange={(c) => {
-                              const on = c === true;
-                              setValue('reg_cargo_socio', on ? '1' : '');
-                              if (!on) setValue('reg_clave_socio', '');
-                              // Si se activa el cargo a cuenta, no se requiere
-                              // comprobante de pago; lo limpiamos por si se
-                              // había subido previamente.
-                              if (on) setFile(null);
-                            }}
-                          />
-                          <Label htmlFor="reg_cargo_socio" className="font-medium cursor-pointer leading-tight">
-                            Cargo a cuenta de socio
-                          </Label>
-                        </div>
-                        {values.reg_cargo_socio === '1' && (
-                          <div className="space-y-2 pl-7">
-                            <div className="flex items-center gap-2">
-                              <Label htmlFor="reg_clave_socio">
-                                Clave de Socio<span className="text-destructive"> *</span>
-                              </Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger type="button" className="text-muted-foreground hover:text-foreground">
-                                    <HelpCircle className="h-4 w-4" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Este es el numero o clave de la membresia del club
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <Input
-                              id="reg_clave_socio"
-                              required
-                              value={values.reg_clave_socio || ''}
-                              onChange={(e) => setValue('reg_clave_socio', e.target.value)}
-                              placeholder="Ej: 1234"
-                            />
-                            <p className="text-xs text-foreground/80">
-                              Al enviar este registro acepto que se realice el cargo correspondiente
-                              de la inscripción a mi cuenta. Solo Socios de:{' '}
-                              <span className="font-semibold">{tournamentInfo?.club || '—'}</span>
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
                     <div className="flex justify-end pt-2">
                       <Button type="submit" disabled={submitting} className="gap-2" size="lg">
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
