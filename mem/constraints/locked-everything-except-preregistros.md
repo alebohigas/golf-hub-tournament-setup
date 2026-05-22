@@ -22,3 +22,18 @@ type: constraint
 ## When in doubt
 - Ask the user before touching anything outside pre-registros.
 - Prefer "I won't touch that" over "let me also fix this".
+
+## Locked-in additions (2026-05-22)
+- Putt Finales brackets (`server/api/brackets.php`, `src/hooks/useBrackets.ts`,
+  `src/components/competencias/BracketView.tsx`, `src/components/admin/AdminBrackets.tsx`)
+  including:
+  - Qualifiers table rendered as preview at the groups-grid level in
+    `src/pages/Competencias.tsx` via `<BracketQualifiersSection sexo />`.
+  - Qualifiers columns: #, Jugador, Categoría (from `categorias` via
+    `jugadores.categoriaid`), Distancia, Fecha (single column using
+    `puttjug.ultact` DATETIME → `DD/MM/YYYY HH:MM:SS`).
+  - Ordering ASC by `distancia`, then `ultact`, then `id`.
+  - Player search input (jump-to + highlight) inside the qualifiers table.
+  - Per-match RESET button in admin Brackets (`useResetBracketMatch`).
+- All of the above is WORKING and LOCKED. Do not modify unless the user
+  explicitly names the feature in the current message.
