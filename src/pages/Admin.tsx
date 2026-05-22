@@ -23,6 +23,7 @@ import AdminAvisos from '@/components/admin/AdminAvisos';
 import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
+import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import { 
   Shield, 
@@ -501,10 +502,14 @@ const AdminDashboard = () => {
           <Tabs defaultValue="campos" className="space-y-4">
             <TabsList>
               <TabsTrigger value="campos">Campos del formulario</TabsTrigger>
+              <TabsTrigger value="categorias">Categorías elegibles</TabsTrigger>
               <TabsTrigger value="precios">Precios de inscripción</TabsTrigger>
             </TabsList>
             <TabsContent value="campos">
               <AdminRegistro />
+            </TabsContent>
+            <TabsContent value="categorias">
+              <AdminCategoriasReglas />
             </TabsContent>
             <TabsContent value="precios">
               <AdminRegistroPrecios />
