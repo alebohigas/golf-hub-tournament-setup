@@ -299,11 +299,11 @@ const Dashboard = ({ password }: { password: string }) => {
                         </td>
                         <td className="p-3">
                           <div className="font-medium">{[r.reg_nombre, r.reg_apellido].filter(Boolean).join(' ') || '—'}</div>
-                          <div className="text-xs text-muted-foreground">#{r.id} · {r.reg_fecha || r.created_at || ''}</div>
+                          <div className="text-xs text-muted-foreground">#{r.id} · {r.reg_fecha || r.created_at || (r as any).fecha_alta || '—'}</div>
                         </td>
                         <td className="p-3">
                           <div>{r.reg_correo || '—'}</div>
-                          <div className="text-xs text-muted-foreground">{r.reg_telefono || ''}</div>
+                          <div className="text-xs text-muted-foreground">{formatPhone(r.reg_telefono || r.reg_celular)}</div>
                         </td>
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
@@ -390,8 +390,7 @@ const Dashboard = ({ password }: { password: string }) => {
                                 ['Correo', r.reg_correo],
                                 ['Teléfono', formatPhone(r.reg_telefono || r.reg_celular)],
                                 ['Handicap', r.reg_handicap],
-                                ['Categoría (nombre)', r.categoria_name],
-                                ['Categoría (id)', r.reg_categoria],
+                                ['Categoría', r.categoria_name],
                                 ['Club', r.reg_club],
                                 ['¿Es socio?', r.reg_es_socio],
                                 ['Tipo de socio', r.reg_tipo_socio],
