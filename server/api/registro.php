@@ -174,6 +174,25 @@ function registro_has($conn, $col) {
 }
 
 /**
+ * Garantizar que existan las columnas para "Cargo a cuenta de socio".
+ * Se ejecuta una sola vez por request (cachéo via static). Si ya existen
+ * no hace nada. Permite que el feature funcione sin requerir migración
+ * manual en cada deployment.
+ */
+function ensure_cargo_socio_columns($conn) {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    if (!registro_has($conn, 'reg_cargo_socio')) {
+        @$conn->query("ALTER TABLE registro ADD COLUMN reg_cargo_socio TINYINT(1) NOT NULL DEFAULT 0");
+    }
+    if (!registro_has($conn, 'reg_clave_socio')) {
+        @$conn->query("ALTER TABLE registro ADD COLUMN reg_clave_socio VARCHAR(64) NULL");
+    }
+    registro_columns($conn, true);
+}
+
+/**
  * Identify the torneo FK column on `registro`. Different deployments use
  * different names; we probe in priority order.
  */
