@@ -41,12 +41,21 @@ interface RegistroRow {
   reg_telefono?: string;
   reg_handicap?: string;
   reg_categoria?: string;
+  /** Nombre legible de la categoría (JOIN del backend). */
+  categoria_name?: string;
   reg_es_socio?: string;
   reg_tipo_socio?: string;
   reg_club?: string;
   reg_fecha?: string;
   created_at?: string;
   reg_verificado?: number | string;
+  /** Toggle administrativo: pago confirmado por tesorería. */
+  reg_pago_verificado?: number | string;
+  /** Monto realmente recibido (capturado por el admin). */
+  reg_monto_confirmado?: number | string | null;
+  /** Snapshot del precio mostrado al jugador al enviar el form. */
+  reg_precio_estimado?: number | string;
+  reg_precio_moneda?: string;
   has_archivo?: number | string;
   reg_archivo_nombre?: string;
   /** '1' si el jugador eligió cargo a cuenta de socio. */
