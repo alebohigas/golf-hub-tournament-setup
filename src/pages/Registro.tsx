@@ -1172,18 +1172,31 @@ const Registro = () => {
             </SelectTrigger>
             <SelectContent>
               {eligibleCategories.map(c => (
-                <SelectItem key={c.id} value={c.id}>
-                  {(() => {
-                    /** Render category label with availability suffix:
-                     *  "[name] (registered/max) espacios disponibles".
-                     *  Suffix is omitted when max is unlimited (0 or 99). */
-                    const max = Number(c.maxPlayers) || 0;
-                    const reg = Number(c.registeredCount) || 0;
-                    if (!max || max === 99) return c.name;
-                    const left = Math.max(max - reg, 0);
-                    return `${c.name} (${reg}/${max}) ${left} espacios disponibles`;
-                  })()}
-                </SelectItem>
+                (() => {
+                  /**
+                   * Render category label con sufijo de disponibilidad:
+                   *   "[name] (registrados/max) N espacios disponibles".
+                   * Si la categoría llegó a su cupo (registrados >= max),
+                   * se muestra "LLENO" y el item queda deshabilitado en
+                   * el Select (pero sigue visible para el jugador).
+                   * Se omite el sufijo cuando max es 0 o 99 (ilimitado).
+                   */
+                  const max = Number(c.maxPlayers) || 0;
+                  const reg = Number(c.registeredCount) || 0;
+                  const unlimited = !max || max === 99;
+                  const left = Math.max(max - reg, 0);
+                  const full = !unlimited && left <= 0;
+                  const label = unlimited
+                    ? c.name
+                    : full
+                      ? `${c.name} (${reg}/${max}) — LLENO`
+                      : `${c.name} (${reg}/${max}) ${left} espacios disponibles`;
+                  return (
+                    <SelectItem key={c.id} value={c.id} disabled={full}>
+                      {label}
+                    </SelectItem>
+                  );
+                })()
               ))}
             </SelectContent>
           </Select>
