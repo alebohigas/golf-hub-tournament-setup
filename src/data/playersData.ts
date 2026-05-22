@@ -32,6 +32,10 @@ export interface CategoryDetail {
   playerCount: number;     // Number of registered players
   /** Maximum players allowed in the category (99 = unlimited) */
   maxPlayers?: number;
+  /** Number of players already registered via Pre-Registro flow
+   *  (jugadores.tipoinsc=1 AND tipoinsc2=3). Used to compute available
+   *  spots in the public registration form. */
+  registeredCount?: number;
   /** Holes per round (e.g. 9 or 18) — used for "RONDA" display */
   holesPerRound?: number;
   /** Optional gender restriction (e.g. 'M', 'F', or empty for both). */
