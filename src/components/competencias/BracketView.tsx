@@ -534,24 +534,18 @@ const QualifiersTable = ({
     }, 50);
   };
 
-  /** Formatea fecha `YYYY-MM-DD` (o `YYYY-MM-DD HH:MM:SS`) a "DD/MM/YYYY". */
-  const formatFecha = (f: string | null | undefined): string => {
-    if (!f) return '—';
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f);
-    if (!m) return f;
-    return `${m[3]}/${m[2]}/${m[1]}`;
-  };
-
   /**
-   * Extrae `HH:MM:SS` desde `fecha_full` (DATETIME). Si la fecha es
-   * sólo YYYY-MM-DD o el campo está vacío, devuelve em-dash.
+   * Formatea `YYYY-MM-DD HH:MM:SS` (o sólo `YYYY-MM-DD`) a "DD/MM/YYYY HH:MM:SS".
+   * Cuando la hora viene 00:00:00 (campo DATE sin time real) se omite.
    */
-  const formatHora = (f: string | null | undefined): string => {
+  const formatFechaHora = (f: string | null | undefined): string => {
     if (!f) return '—';
-    const m = /\b(\d{2}):(\d{2}):(\d{2})\b/.exec(f);
-    if (!m) return '—';
-    if (m[1] === '00' && m[2] === '00' && m[3] === '00') return '—';
-    return `${m[1]}:${m[2]}:${m[3]}`;
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/.exec(f);
+    if (!m) return f;
+    const dmy = `${m[3]}/${m[2]}/${m[1]}`;
+    if (!m[4]) return dmy;
+    if (m[4] === '00' && m[5] === '00' && m[6] === '00') return dmy;
+    return `${dmy} ${m[4]}:${m[5]}:${m[6]}`;
   };
 
   const slots = Math.max(0, totalSlots | 0);
@@ -587,14 +581,13 @@ const QualifiersTable = ({
               <th className="px-3 py-2 text-left font-bold">Jugador</th>
               <th className="px-3 py-2 text-left font-bold">Categoría</th>
               <th className="px-3 py-2 text-right font-bold w-32">Distancia</th>
-              <th className="px-3 py-2 text-center font-bold w-32">Fecha</th>
-              <th className="px-3 py-2 text-center font-bold w-28">Hora</th>
+              <th className="px-3 py-2 text-center font-bold w-44">Fecha</th>
             </tr>
           </thead>
           <tbody>
             {qualifiers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
                   Aún no hay clasificados.
                 </td>
               </tr>
@@ -617,11 +610,8 @@ const QualifiersTable = ({
                     <td className="px-3 py-2 text-right tabular-nums">
                       {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
                     </td>
-                    <td className="px-3 py-2 text-center text-muted-foreground">
-                      {formatFecha(q.fecha_full ?? q.fecha)}
-                    </td>
                     <td className="px-3 py-2 text-center text-muted-foreground tabular-nums">
-                      {formatHora(q.fecha_full ?? q.fecha)}
+                      {formatFechaHora(q.fecha_full ?? q.fecha)}
                     </td>
                   </tr>
                 );
