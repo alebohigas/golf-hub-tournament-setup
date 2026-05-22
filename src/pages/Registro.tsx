@@ -756,36 +756,25 @@ const Registro = () => {
         if (max != null && age > max) return false;
       }
       /**
-       * Tercer fallback: si la categoría no trae rangos ni en BD ni en el
-       * nombre, derivamos las restricciones de edad/género a partir de
-       * las reglas de `registro_precios` definidas para ESTA categoría
-       * (por nombre, case-insensitive). Si TODAS las reglas activas para
-       * la categoría exigen un rango de edad/género y el jugador no
-       * encaja en NINGUNA → la categoría se oculta (no hay precio
-       * posible para él). Se ignoran tipo_socio y hándicap aquí porque
-       * son filtros de precio, no de elegibilidad de categoría.
+       * Reglas de elegibilidad explícitas (tabla `categorias_reglas`).
+       * Si la categoría tiene una o más reglas activas, el jugador debe
+       * encajar en al menos una (edad/género/hcp). Si ninguna regla
+       * aplica → se oculta. Si la categoría no tiene reglas aquí, se
+       * considera abierta (sólo aplican los filtros previos).
        */
-      const catRules = preciosRules.filter(r =>
-        !!r.is_active && priceRuleMatchesCategory(r, { id: c.id, name: c.name })
-      );
-      if (catRules.length > 0 && age !== null) {
-        const rulesForCurrentNonAgeCriteria = catRules.filter(r =>
-          priceRuleMatchesNonAgeCriteria(r, { sex, hcp: !isNaN(hcpRaw) ? hcpRaw : null, tipoSocio: tipoSocioForPricing })
-        );
-        if (rulesForCurrentNonAgeCriteria.length > 0) {
-          const ageRestrictedRules = rulesForCurrentNonAgeCriteria.filter(r =>
-            toFiniteNumber(r.edad_min) !== null || toFiniteNumber(r.edad_max) !== null
-          );
-          const rulesToCheck = ageRestrictedRules.length > 0
-            ? ageRestrictedRules
-            : rulesForCurrentNonAgeCriteria;
-          const anyRuleAcceptsAge = rulesToCheck.some(r => priceRuleMatchesAge(r, age));
-          if (!anyRuleAcceptsAge) return false;
-        }
+      const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
+      if (catReglas.length > 0) {
+        const playerCtx = {
+          sex,
+          age,
+          hcp: !isNaN(hcpRaw) ? hcpRaw : null,
+        };
+        const anyMatch = catReglas.some(r => playerMatchesRule(r, playerCtx));
+        if (!anyMatch) return false;
       }
       return true;
     });
-  }, [categories, preciosRules, tipoSocioForPricing, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, reglas, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
   useEffect(() => {
