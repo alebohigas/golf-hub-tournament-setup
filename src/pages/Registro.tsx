@@ -244,50 +244,37 @@ const toFiniteNumber = (value: unknown): number | null => {
 };
 
 /** Normalized key for category/rule matching: trims, removes accents, collapses whitespace. */
-const priceKey = (value: unknown): string =>
+const ruleKey = (value: unknown): string =>
   norm(String(value ?? '')).replace(/\s+/g, ' ');
 
-/** True when a price rule belongs to the current category by name or legacy ID. */
-const priceRuleMatchesCategory = (rule: RegistroPrecioRule, category: Pick<CategoryDetail, 'id' | 'name'>): boolean => {
-  const ruleCategory = priceKey(rule.categoria);
-  if (!ruleCategory) return false;
-  return ruleCategory === priceKey(category.name) || ruleCategory === priceKey(category.id);
-};
-
-/** Match tipo_socio exactly like registro_precios.php, but unknown form values do not hide early. */
-const priceRuleMatchesSocio = (ruleTipo: string | null, tipoSocio?: string): boolean => {
-  if (!ruleTipo) return true;
-  if (!tipoSocio) return true;
-  const rt = ruleTipo.toUpperCase();
-  const ut = tipoSocio.toUpperCase();
-  if (rt === 'SOCIO') return ['SOCIO', 'TITULAR', 'EMERITO', 'DEPENDIENTE'].includes(ut);
-  if (rt === 'NO_SOCIO') return ['NO_SOCIO', 'INVITADO', 'FORANEO'].includes(ut);
-  return rt === ut;
-};
-
-/** True when every non-age filter in the price rule is compatible with the player data. */
-const priceRuleMatchesNonAgeCriteria = (
-  rule: RegistroPrecioRule,
-  params: { sex: string; hcp: number | null; tipoSocio?: string }
+/** True when an eligibility rule applies to the given category (by name). */
+const ruleMatchesCategory = (
+  rule: CategoriaRegla,
+  category: Pick<CategoryDetail, 'id' | 'name'>
 ): boolean => {
-  if (rule.genero && params.sex && rule.genero.toUpperCase() !== params.sex) return false;
-  if (!priceRuleMatchesSocio(rule.tipo_socio, params.tipoSocio)) return false;
-  if (params.hcp !== null) {
-    const hcpMin = toFiniteNumber(rule.hcp_min);
-    const hcpMax = toFiniteNumber(rule.hcp_max);
-    if (hcpMin !== null && params.hcp < hcpMin) return false;
-    if (hcpMax !== null && params.hcp > hcpMax) return false;
-  }
-  return true;
+  const rk = ruleKey(rule.categoria);
+  if (!rk) return false;
+  return rk === ruleKey(category.name) || rk === ruleKey(category.id);
 };
 
-/** True when a player's age falls inside the rule age range; no range means no age restriction. */
-const priceRuleMatchesAge = (rule: RegistroPrecioRule, age: number | null): boolean => {
-  if (age === null) return true;
-  const min = toFiniteNumber(rule.edad_min);
-  const max = toFiniteNumber(rule.edad_max);
-  if (min !== null && age < min) return false;
-  if (max !== null && age > max) return false;
+/** True if the player matches a single eligibility rule. */
+const playerMatchesRule = (
+  rule: CategoriaRegla,
+  player: { sex: string; age: number | null; hcp: number | null }
+): boolean => {
+  if (rule.genero && player.sex && rule.genero.toUpperCase() !== player.sex) return false;
+  if (player.age !== null) {
+    const emin = toFiniteNumber(rule.edad_min);
+    const emax = toFiniteNumber(rule.edad_max);
+    if (emin !== null && player.age < emin) return false;
+    if (emax !== null && player.age > emax) return false;
+  }
+  if (player.hcp !== null) {
+    const hmin = toFiniteNumber(rule.hcp_min);
+    const hmax = toFiniteNumber(rule.hcp_max);
+    if (hmin !== null && player.hcp < hmin) return false;
+    if (hmax !== null && player.hcp > hmax) return false;
+  }
   return true;
 };
 
