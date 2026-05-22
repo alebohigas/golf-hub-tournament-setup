@@ -1154,7 +1154,18 @@ const Registro = () => {
             </SelectTrigger>
             <SelectContent>
               {eligibleCategories.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {(() => {
+                    /** Render category label with availability suffix:
+                     *  "[name] (registered/max) espacios disponibles".
+                     *  Suffix is omitted when max is unlimited (0 or 99). */
+                    const max = Number(c.maxPlayers) || 0;
+                    const reg = Number(c.registeredCount) || 0;
+                    if (!max || max === 99) return c.name;
+                    const left = Math.max(max - reg, 0);
+                    return `${c.name} (${reg}/${max}) ${left} espacios disponibles`;
+                  })()}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -30,6 +30,11 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.gross, a.catrel, a.sexo, a.corte,
                a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
                COUNT(b.id) as playerCount,
+               (SELECT COUNT(*) FROM jugadores j
+                  WHERE j.torneoid = a.torneo_id
+                    AND j.categoriaid = a.categoria_id
+                    AND j.tipoinsc = 1
+                    AND j.tipoinsc2 = 3) AS registeredCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
         FROM categorias a
@@ -70,6 +75,11 @@ $categories = array_map(function($row) {
         'relatedCat'  => $row['catrel'],
         'gender'      => $row['sexo'],
         'playerCount' => (int)$row['playerCount'],
+        // Number of players actively registered in this category via the
+        // Pre-Registro flow (jugadores.tipoinsc=1 AND tipoinsc2=3). Used by
+        // the public registration form to display "spots available" next to
+        // each category in the dropdown.
+        'registeredCount' => isset($row['registeredCount']) ? (int)$row['registeredCount'] : 0,
         'maxPlayers'  => isset($row['maxjugadores']) ? (int)$row['maxjugadores'] : 0,
         'holesPerRound'=> isset($row['hoyosxronda']) ? (int)$row['hoyosxronda'] : 18,
         'teeName'     => $row['teeName'] ?? '',
