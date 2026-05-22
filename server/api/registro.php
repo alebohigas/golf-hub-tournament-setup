@@ -317,20 +317,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
     if (!$body) json_error('Invalid JSON', 400);
     if (($body['password'] ?? '') !== REGISTROS_PASSWORD) json_error('Unauthorized', 401);
 
-    if (!registro_has($conn, 'reg_verificado')) {
-        json_error("Missing column reg_verificado on registro. Run: ALTER TABLE registro ADD COLUMN reg_verificado TINYINT(1) NOT NULL DEFAULT 0;", 500);
-    }
-
     $pkCol = registro_pk_col($conn);
     if (!$pkCol) json_error('registro PK not found', 500);
     $id = (int)($body['id'] ?? 0);
-    $v  = !empty($body['verified']) ? 1 : 0;
     if ($id <= 0) json_error('Missing id', 400);
 
-    if (!$conn->query("UPDATE registro SET reg_verificado = $v WHERE $pkCol = $id LIMIT 1")) {
+    /**
+     * Admin update — acepta cualquier combinación de:
+     *   - verified            → reg_verificado (TINYINT 0/1)
+     *   - pago_verificado     → reg_pago_verificado (TINYINT 0/1)
+     *   - monto_confirmado    → reg_monto_confirmado (DECIMAL, NULL si vacío)
+     * Las columnas que no existan en la BD se ignoran silenciosamente para
+     * que el endpoint no rompa antes de que el admin corra los ALTER TABLE.
+     */
+    $sets = [];
+    $wantVerified = array_key_exists('verified', $body);
+    $newVerified  = $wantVerified ? (!empty($body['verified']) ? 1 : 0) : null;
+
+    if ($wantVerified && registro_has($conn, 'reg_verificado')) {
+        $sets[] = "reg_verificado = $newVerified";
+    }
+    if (array_key_exists('pago_verificado', $body) && registro_has($conn, 'reg_pago_verificado')) {
+        $pv = !empty($body['pago_verificado']) ? 1 : 0;
+        $sets[] = "reg_pago_verificado = $pv";
+    }
+    if (array_key_exists('monto_confirmado', $body) && registro_has($conn, 'reg_monto_confirmado')) {
+        $raw = trim((string)$body['monto_confirmado']);
+        if ($raw === '' || !is_numeric($raw)) {
+            $sets[] = "reg_monto_confirmado = NULL";
+        } else {
+            $sets[] = "reg_monto_confirmado = " . (float)$raw;
+        }
+    }
+    if (!$sets) json_error('Nothing to update (missing columns or fields).', 400);
+
+    if (!$conn->query("UPDATE registro SET " . implode(',', $sets) . " WHERE $pkCol = $id LIMIT 1")) {
         json_error('Update failed: ' . $conn->error);
     }
-    json_response(['saved' => true]);
+
+    /**
+     * Notificación por correo cuando un registro pasa a verificado.
+     * Se dispara solo si el toggle "verified" cambió a 1 en esta llamada.
+     * Usa la función mail() nativa de PHP (IONOS). Falla silenciosamente
+     * para no bloquear la respuesta al admin.
+     */
+    $emailSent = false;
+    if ($wantVerified && $newVerified === 1) {
+        $emailSent = send_verification_email($conn, $id);
+    }
+
+    json_response(['saved' => true, 'email_sent' => $emailSent]);
+}
+
+/**
+ * Envía un correo al jugador notificando que su pre-registro fue verificado.
+ * Lee nombre/correo/categoria desde la BD y arma un mensaje plano + HTML.
+ * Devuelve true si mail() acepta el envío. Errores se loguean a error_log.
+ */
+function send_verification_email($conn, $regId) {
+    $pkCol = registro_pk_col($conn);
+    if (!$pkCol) return false;
+
+    // Resolver columnas opcionales (algunas instalaciones usan reg_correo).
+    $cols = ['reg_nombre','reg_apellido','reg_correo','reg_categoria',
+             'reg_precio_estimado','reg_precio_moneda','reg_monto_confirmado'];
+    $select = [];
+    foreach ($cols as $c) if (registro_has($conn, $c)) $select[] = $c;
+    if (!in_array('reg_correo', $select, true)) return false;
+
+    $torneoCol = registro_torneo_col($conn);
+    $select[] = "$torneoCol AS torneoid";
+
+    $sql = "SELECT " . implode(',', $select) . " FROM registro WHERE $pkCol = " . (int)$regId . " LIMIT 1";
+    $r = $conn->query($sql);
+    if (!$r) return false;
+    $row = $r->fetch_assoc();
+    $r->free();
+    if (!$row || empty($row['reg_correo'])) return false;
+
+    // Resolver nombre de categoría y de torneo.
+    $catName = '';
+    if (!empty($row['reg_categoria'])) {
+        $cr = $conn->query("SELECT categoria FROM categorias WHERE categoria_id = " . (int)$row['reg_categoria'] . " LIMIT 1");
+        if ($cr) { $cc = $cr->fetch_assoc(); $cr->free(); if ($cc) $catName = $cc['categoria']; }
+    }
+    $torneoName = '';
+    if (!empty($row['torneoid'])) {
+        $tr = $conn->query("SELECT nombre FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
+        if ($tr) { $tt = $tr->fetch_assoc(); $tr->free(); if ($tt) $torneoName = $tt['nombre']; }
+    }
+
+    $nombre = trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''));
+    if ($nombre === '') $nombre = 'Jugador';
+    $monto = $row['reg_monto_confirmado'] ?? $row['reg_precio_estimado'] ?? '';
+    $moneda = $row['reg_precio_moneda'] ?? 'MXN';
+
+    $subject = 'Pre-registro verificado' . ($torneoName ? " · $torneoName" : '');
+    $lines = [
+        "Hola $nombre,",
+        '',
+        'Tu pre-registro ha sido verificado por el comité del torneo' . ($torneoName ? " ($torneoName)" : '') . '.',
+    ];
+    if ($catName) $lines[] = "Categoría: $catName";
+    if ($monto !== '' && $monto !== null) $lines[] = "Monto: $monto $moneda";
+    $lines[] = '';
+    $lines[] = '¡Te esperamos en el campo!';
+
+    $body = implode("\r\n", $lines);
+    $headers  = "From: no-reply@" . ($_SERVER['HTTP_HOST'] ?? 'torneos.mx') . "\r\n";
+    $headers .= "Reply-To: no-reply@" . ($_SERVER['HTTP_HOST'] ?? 'torneos.mx') . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+    $ok = @mail($row['reg_correo'], $subject, $body, $headers);
+    if (!$ok) error_log("[registro] mail() failed for reg id=$regId to {$row['reg_correo']}");
+    return $ok;
 }
 
 // ============= GET listing (admin) =============
@@ -355,9 +456,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 
     /** Fields to surface in the listing (skip blob). */
-    $fields = [$pkCol . ' AS id'];
+    $fields = ['r.' . $pkCol . ' AS id'];
     // Exponer el torneoid (alias 'torneoid') para que el admin lo muestre/filtre.
-    $fields[] = "$torneoCol AS torneoid";
+    $fields[] = "r.$torneoCol AS torneoid";
     $optional = [
         'reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_handicap',
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
@@ -365,6 +466,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_verificado','reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
         // Cargo a cuenta de socio
         'reg_cargo_socio','reg_clave_socio',
+        // Verificación administrativa (pago + monto)
+        'reg_pago_verificado','reg_monto_confirmado',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns
@@ -374,18 +477,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'akron_codigo','akron_monto_pago',
         'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
     ];
-    foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = $c;
+    foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = "r.$c";
     /** Indicate whether a binary attachment exists without sending the bytes. */
     if (registro_has($conn, 'reg_archivo')) {
-        $fields[] = "(reg_archivo IS NOT NULL AND OCTET_LENGTH(reg_archivo) > 0) AS has_archivo";
+        $fields[] = "(r.reg_archivo IS NOT NULL AND OCTET_LENGTH(r.reg_archivo) > 0) AS has_archivo";
     }
+    // JOIN a categorias para exponer el nombre legible de la categoría.
+    $fields[] = "c.categoria AS categoria_name";
 
-    $orderCol = $pkCol;
-    if (registro_has($conn, 'reg_fecha'))   $orderCol = 'reg_fecha';
-    elseif (registro_has($conn, 'created_at')) $orderCol = 'created_at';
+    $orderCol = "r.$pkCol";
+    if (registro_has($conn, 'reg_fecha'))   $orderCol = 'r.reg_fecha';
+    elseif (registro_has($conn, 'created_at')) $orderCol = 'r.created_at';
 
-    $where = $showAll ? '1=1' : "$torneoCol = $torneoid";
-    $sql = "SELECT " . implode(',', $fields) . " FROM registro
+    $where = $showAll ? '1=1' : "r.$torneoCol = $torneoid";
+    $sql = "SELECT " . implode(',', $fields) . " FROM registro r
+            LEFT JOIN categorias c ON c.categoria_id = r.reg_categoria
             WHERE $where
             ORDER BY $orderCol DESC
             LIMIT 1000";
