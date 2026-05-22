@@ -352,7 +352,7 @@ const Dashboard = ({ password }: { password: string }) => {
                           </div>
                         </td>
                         {/* Campo: monto confirmado recibido (se persiste onBlur). */}
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
                             type="number"
                             step="0.01"
