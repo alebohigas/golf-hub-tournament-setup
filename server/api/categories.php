@@ -75,6 +75,11 @@ $categories = array_map(function($row) {
         'relatedCat'  => $row['catrel'],
         'gender'      => $row['sexo'],
         'playerCount' => (int)$row['playerCount'],
+        // Number of players actively registered in this category via the
+        // Pre-Registro flow (jugadores.tipoinsc=1 AND tipoinsc2=3). Used by
+        // the public registration form to display "spots available" next to
+        // each category in the dropdown.
+        'registeredCount' => isset($row['registeredCount']) ? (int)$row['registeredCount'] : 0,
         'maxPlayers'  => isset($row['maxjugadores']) ? (int)$row['maxjugadores'] : 0,
         'holesPerRound'=> isset($row['hoyosxronda']) ? (int)$row['hoyosxronda'] : 18,
         'teeName'     => $row['teeName'] ?? '',
