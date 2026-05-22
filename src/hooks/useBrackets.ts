@@ -62,6 +62,23 @@ export interface PuttBracketSide {
   visible: boolean;
   /** Sólo presente en endpoint admin. */
   candidates_count?: number;
+  /**
+   * Lista de clasificados que ya entraron al ranking acumulado del bracket
+   * (1..bracket_size). Se va llenando día a día y se publica bajo el bracket
+   * en /competicion → Putt Finales (Caballeros/Damas).
+   */
+  qualifiers?: BracketQualifier[];
+  /** Cupos totales del bracket (16/32/64/128). */
+  bracket_size?: number;
+}
+
+/** Fila de clasificado para Putt Finales (mostrada bajo el bracket). */
+export interface BracketQualifier {
+  rank: number;
+  name: string;
+  distance: number | null;
+  /** Fecha en formato YYYY-MM-DD (o null si la columna no aplica). */
+  fecha: string | null;
 }
 
 /** Respuesta combinada M/F. */
