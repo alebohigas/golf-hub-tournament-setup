@@ -214,14 +214,9 @@ const Dashboard = ({ password }: { password: string }) => {
             <Button variant={filter === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('pending')}>Pendientes</Button>
             <Button variant={filter === 'verified' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('verified')}>Verificados</Button>
           </div>
-          {/* Scope toggle: all servers vs current tournament */}
-          <div className="flex gap-2">
-            <Button variant={scope === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setScope('all')}>Todos los torneos</Button>
-            <Button variant={scope === 'torneo' ? 'default' : 'outline'} size="sm" onClick={() => setScope('torneo')}>Solo este torneo</Button>
-          </div>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-10" placeholder="Buscar por nombre, correo, club, torneoid…" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input className="pl-10" placeholder="Buscar por nombre, correo, club…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </CardContent>
       </Card>
