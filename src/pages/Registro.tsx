@@ -831,19 +831,16 @@ const Registro = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_fechanac, visibleFields.length]);
 
-  /** Consulta reactiva al endpoint de matching de precio. */
+  /**
+   * Consulta reactiva al endpoint de matching de precio.
+   * Tras el split (2026-05-22), el precio depende ÚNICAMENTE del tipo de
+   * socio. Se ejecuta sólo cuando ya hay categoría elegida + tipo de
+   * socio resuelto (así evitamos mostrar un precio antes de que el
+   * usuario haya completado los datos relevantes).
+   */
   const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
-    categoria:  selectedCategoryName,
     tipo_socio: tipoSocioForPricing,
-    genero:     values.reg_sexo || undefined,
-    edad:       ageForPricing,
-    handicap:   (() => {
-      const v = parseFloat(values.reg_handicap || '');
-      return isNaN(v) ? null : v;
-    })(),
-    // Sólo consulta cuando hay al menos un filtro útil
-    enabled: !!(selectedCategoryName || tipoSocioForPricing || values.reg_sexo
-              || ageForPricing !== null || values.reg_handicap),
+    enabled: !!(selectedCategoryName && tipoSocioForPricing),
   });
   const precioMatch = precioMatchData?.match || null;
 
