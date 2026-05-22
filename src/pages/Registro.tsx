@@ -1465,10 +1465,18 @@ const Registro = () => {
                                 )}
                               </>
                             ) : (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Aún no hay un precio configurado para esta combinación de datos.
-                                Contacta al comité para confirmar tu costo.
-                              </p>
+                              <>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Aún no hay un precio configurado para esta combinación de datos.
+                                  Contacta al comité para confirmar tu costo.
+                                </p>
+                                {/* Diagnóstico: muestra los parámetros enviados
+                                    al matcher de precios para que el admin pueda
+                                    revisar por qué ninguna regla aplica. */}
+                                <p className="text-[11px] text-muted-foreground mt-2 font-mono">
+                                  Datos usados: categoría={selectedCategoryName || '—'} · tipo={tipoSocioForPricing || '—'} · sexo={values.reg_sexo || '—'} · edad={ageForPricing ?? '—'} · hcp={values.reg_handicap || '—'}
+                                </p>
+                              </>
                             )}
                           </div>
                         </div>
