@@ -1578,7 +1578,7 @@ const Registro = () => {
                                     al matcher de precios para que el admin pueda
                                     revisar por qué ninguna regla aplica. */}
                                 <p className="text-[11px] text-muted-foreground mt-2 font-mono">
-                                  Datos usados: categoría={selectedCategoryName || '—'} · tipo={tipoSocioForPricing || '—'} · sexo={values.reg_sexo || '—'} · edad={ageForPricing ?? '—'} · hcp={values.reg_handicap || '—'}
+                                  Datos usados: tipo de socio={tipoSocioForPricing || '—'}
                                 </p>
                               </>
                             )}
