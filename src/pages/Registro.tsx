@@ -757,7 +757,13 @@ const Registro = () => {
           priceRuleMatchesNonAgeCriteria(r, { sex, hcp: !isNaN(hcpRaw) ? hcpRaw : null, tipoSocio: tipoSocioForPricing })
         );
         if (rulesForCurrentNonAgeCriteria.length > 0) {
-          const anyRuleAcceptsAge = rulesForCurrentNonAgeCriteria.some(r => priceRuleMatchesAge(r, age));
+          const ageRestrictedRules = rulesForCurrentNonAgeCriteria.filter(r =>
+            toFiniteNumber(r.edad_min) !== null || toFiniteNumber(r.edad_max) !== null
+          );
+          const rulesToCheck = ageRestrictedRules.length > 0
+            ? ageRestrictedRules
+            : rulesForCurrentNonAgeCriteria;
+          const anyRuleAcceptsAge = rulesToCheck.some(r => priceRuleMatchesAge(r, age));
           if (!anyRuleAcceptsAge) return false;
         }
       }
