@@ -47,6 +47,10 @@ interface RegistroRow {
   reg_verificado?: number | string;
   has_archivo?: number | string;
   reg_archivo_nombre?: string;
+  /** '1' si el jugador eligió cargo a cuenta de socio. */
+  reg_cargo_socio?: number | string;
+  /** Número/clave de membresía cuando aplica. */
+  reg_clave_socio?: string;
 }
 
 // ============= Login form =============
@@ -201,7 +205,7 @@ const Dashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Categoría</th>
                     <th className="text-left p-3">Club / Hcp</th>
                     <th className="text-left p-3">Socio</th>
-                    <th className="text-center p-3">Comprobante</th>
+                    <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Verificado</th>
                   </tr>
                 </thead>
@@ -209,6 +213,7 @@ const Dashboard = ({ password }: { password: string }) => {
                   {filtered.map(r => {
                     const verified = Number(r.reg_verificado) === 1;
                     const hasFile = Number(r.has_archivo) === 1;
+                    const cargoCuenta = String(r.reg_cargo_socio ?? '') === '1';
                     return (
                       <tr key={r.id} className="border-t">
                         <td className="p-3">
@@ -230,9 +235,18 @@ const Dashboard = ({ password }: { password: string }) => {
                           ) : (
                             <Badge variant="secondary">No socio</Badge>
                           )}
+                          {cargoCuenta && (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Clave: <span className="font-mono">{r.reg_clave_socio || '—'}</span>
+                            </div>
+                          )}
                         </td>
                         <td className="p-3 text-center">
-                          {hasFile ? (
+                          {cargoCuenta ? (
+                            <Badge variant="default" className="bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
+                              Cargo a cuenta
+                            </Badge>
+                          ) : hasFile ? (
                             <Button asChild size="sm" variant="outline" className="gap-1">
                               <a href={getRegistroArchivoUrl(r.id, password)} target="_blank" rel="noopener noreferrer">
                                 <FileDown className="h-4 w-4" /> Ver
