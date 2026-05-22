@@ -303,7 +303,7 @@ const Registro = () => {
    * y por tanto no hay precio disponible).
    */
   const { data: preciosData } = useRegistroPrecios();
-  const preciosRules = preciosData?.rules || [];
+  const preciosRules = useMemo(() => preciosData?.rules || [], [preciosData?.rules]);
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
