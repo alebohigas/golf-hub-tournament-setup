@@ -646,16 +646,22 @@ const Registro = () => {
       if (!isNaN(hcp) && c.hcpMax > 0 && (hcp < c.hcpMin || hcp > c.hcpMax)) return false;
       // Gender filter when category restricts it (M/F).
       if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
-      // Age range filter (senior categories with min/max set).
-      // Legacy data uses 0 / null interchangeably as "no limit", so we
-      // ignore zero values to avoid wrongly excluding every player.
+      // Age range filter (senior categories with min/max set). When the
+      // backend columns are missing/zero we fall back to parsing the
+      // category NAME (e.g. "SENIOR 55-64", "55+") so legacy tournaments
+      // without `age_range_min/max` still get filtered correctly.
       if (age !== null) {
-        if (c.ageMin != null && c.ageMin > 0 && age < c.ageMin) return false;
-        if (c.ageMax != null && c.ageMax > 0 && age > c.ageMax) return false;
+        const fromName = parseAgeFromName(c.name || '');
+        const minDb = c.ageMin != null && c.ageMin > 0 ? c.ageMin : null;
+        const maxDb = c.ageMax != null && c.ageMax > 0 ? c.ageMax : null;
+        const min = minDb ?? (fromName ? fromName.min : null);
+        const max = maxDb ?? (fromName ? fromName.max : null);
+        if (min != null && age < min) return false;
+        if (max != null && age > max) return false;
       }
       return true;
     });
-  }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac]);
+  }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   // ============= Precio estimado de inscripción =============
 
