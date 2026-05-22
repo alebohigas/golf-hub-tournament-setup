@@ -30,6 +30,11 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.gross, a.catrel, a.sexo, a.corte,
                a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
                COUNT(b.id) as playerCount,
+               (SELECT COUNT(*) FROM jugadores j
+                  WHERE j.torneoid = a.torneo_id
+                    AND j.categoriaid = a.categoria_id
+                    AND j.tipoinsc = 1
+                    AND j.tipoinsc2 = 3) AS registeredCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
         FROM categorias a
