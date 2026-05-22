@@ -186,9 +186,14 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                         CONCAT(j.nombre, ' ', j.apellido) AS jugador,
                                         COALESCE(NULLIF(cat.abreviatura,''), cat.categoria, a.premiosjugcol) AS categoria,
                                         a.distancia AS distancia,
-                                        a.fecha AS fecha,
-                                        DATE_FORMAT(a.fecha, '%Y-%m-%d %H:%i:%s') AS fecha_full,
-                                        a.id AS ultact
+                                        /**
+                                         * `puttjug.ultact` es DATETIME con fecha + hh:mm:ss real de captura.
+                                         * `puttjug.fecha` es sólo DATE (sin hora), por eso se usa ultact
+                                         * tanto para mostrar como para ordenar empates por distancia.
+                                         */
+                                        a.ultact AS fecha,
+                                        DATE_FORMAT(a.ultact, '%Y-%m-%d %H:%i:%s') AS fecha_full,
+                                        a.id AS rowid
                                  FROM puttjug a
                                  JOIN jugadores j ON j.id = a.jugadorid
                                  LEFT JOIN categorias cat ON cat.categoria_id = j.categoriaid
@@ -197,7 +202,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                    AND TRIM(a.premiosjugcol) = '$desc'
                                    AND a.orden = 1
                                    AND UPPER(TRIM(j.sexo)) = '$sx'
-                                 ORDER BY a.distancia ASC, a.fecha ASC, a.id ASC
+                                 ORDER BY a.distancia ASC, a.ultact ASC, a.id ASC
                                  LIMIT $places");
 
         foreach ($rows as $row) {
