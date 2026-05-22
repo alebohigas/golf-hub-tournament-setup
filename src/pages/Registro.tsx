@@ -670,9 +670,34 @@ const Registro = () => {
         if (min != null && age < min) return false;
         if (max != null && age > max) return false;
       }
+      /**
+       * Tercer fallback: si la categoría no trae rangos ni en BD ni en el
+       * nombre, derivamos las restricciones de edad/género a partir de
+       * las reglas de `registro_precios` definidas para ESTA categoría
+       * (por nombre, case-insensitive). Si TODAS las reglas activas para
+       * la categoría exigen un rango de edad/género y el jugador no
+       * encaja en NINGUNA → la categoría se oculta (no hay precio
+       * posible para él). Se ignoran tipo_socio y hándicap aquí porque
+       * son filtros de precio, no de elegibilidad de categoría.
+       */
+      const catRules = preciosRules.filter(
+        r => r.is_active && r.categoria &&
+             r.categoria.toLowerCase() === (c.name || '').toLowerCase()
+      );
+      if (catRules.length > 0) {
+        const anyRuleAccepts = catRules.some(r => {
+          if (r.genero && sex && r.genero !== sex) return false;
+          if (age !== null) {
+            if (r.edad_min != null && age < r.edad_min) return false;
+            if (r.edad_max != null && age > r.edad_max) return false;
+          }
+          return true;
+        });
+        if (!anyRuleAccepts) return false;
+      }
       return true;
     });
-  }, [categories, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [categories, preciosRules, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
 
   // ============= Precio estimado de inscripción =============
 
