@@ -459,3 +459,83 @@ const GrandFinalView = ({
 };
 
 export default BracketView;
+
+// ============================================================================
+// QualifiersTable — lista de clasificados que llenan el cupo del bracket
+// ============================================================================
+
+/**
+ * Renderiza la tabla de clasificados (rank 1..N) ordenados por distancia.
+ * Se va llenando día a día conforme la query del seeding del bracket
+ * encuentra más jugadores. Muestra: posición, nombre, distancia y fecha.
+ */
+const QualifiersTable = ({
+  qualifiers,
+  totalSlots,
+  sexo,
+}: {
+  qualifiers: BracketQualifier[];
+  totalSlots: number;
+  sexo: 'M' | 'F';
+}) => {
+  /** Formatea fecha YYYY-MM-DD a "DD/MM/YYYY" sin depender de timezone. */
+  const formatFecha = (f: string | null): string => {
+    if (!f) return '—';
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f);
+    if (!m) return f;
+    return `${m[3]}/${m[2]}/${m[1]}`;
+  };
+
+  const slots = Math.max(0, totalSlots | 0);
+  const filled = qualifiers.length;
+  const titulo = sexo === 'M' ? 'Caballeros' : 'Damas';
+
+  return (
+    <section className="space-y-3 border-t-2 border-primary/30 pt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-base font-bold text-primary">
+          Clasificados — Putt Finales {titulo}
+        </h3>
+        <span className="text-sm text-muted-foreground">
+          {filled} {filled === 1 ? 'jugador' : 'jugadores'}
+          {slots > 0 ? ` de ${slots}` : ''}
+        </span>
+      </div>
+
+      <div className="overflow-x-auto bg-white rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-primary text-primary-foreground">
+              <th className="px-3 py-2 text-center font-bold w-12">#</th>
+              <th className="px-3 py-2 text-left font-bold">Jugador</th>
+              <th className="px-3 py-2 text-right font-bold w-32">Distancia</th>
+              <th className="px-3 py-2 text-center font-bold w-32">Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            {qualifiers.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                  Aún no hay clasificados.
+                </td>
+              </tr>
+            ) : (
+              qualifiers.map((q) => (
+                <tr key={`${q.rank}-${q.name}`} className="border-t border-border/60">
+                  <td className="px-3 py-2 text-center font-semibold text-primary">{q.rank}</td>
+                  <td className="px-3 py-2">{q.name}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-center text-muted-foreground">
+                    {formatFecha(q.fecha)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+};
