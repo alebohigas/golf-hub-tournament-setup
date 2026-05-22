@@ -367,9 +367,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         }
     }
 
-    /** Default verification flag = 0 if column exists. */
-    if (registro_has($conn, 'reg_verificado')) {
-        $cols[] = 'reg_verificado';
+    /**
+     * Derivar `reg_cargo` ("SI"/"NO"/"") a partir de la respuesta del jugador:
+     *   - Es socio + check marcado → "SI"
+     *   - Es socio + check no marcado → "NO"
+     *   - No socio → cadena vacía (se queda en blanco)
+     * Se sobreescribe cualquier valor posteado para evitar manipulación
+     * desde el cliente.
+     */
+    if (registro_has($conn, 'reg_cargo')) {
+        $esSocioPost = strtoupper(trim((string)($_POST['reg_es_socio'] ?? '')));
+        $cargoPost   = trim((string)($_POST['reg_cargo_socio'] ?? ''));
+        $cargoVal    = '';
+        if ($esSocioPost === 'SI') {
+            $cargoVal = ($cargoPost === '1') ? 'SI' : 'NO';
+        }
+        if (isset($writtenCols['reg_cargo'])) {
+            // Reemplazar el valor previamente añadido (posteado por el cliente)
+            $idx = array_search('reg_cargo', $cols, true);
+            if ($idx !== false) {
+                $vals[$idx] = "'" . esc($conn, $cargoVal) . "'";
+            }
+        } else {
+            $writtenCols['reg_cargo'] = true;
+            $cols[] = 'reg_cargo';
+            $vals[] = "'" . esc($conn, $cargoVal) . "'";
+        }
+    }
+
+    /** Default verification flag = 0 si la columna `verificado` existe. */
+    if (registro_has($conn, 'verificado') && !isset($writtenCols['verificado'])) {
+        $cols[] = 'verificado';
+        $vals[] = '0';
+    }
+    /** Default status_pago = 0 si la columna existe. */
+    if (registro_has($conn, 'status_pago') && !isset($writtenCols['status_pago'])) {
+        $cols[] = 'status_pago';
         $vals[] = '0';
     }
 
