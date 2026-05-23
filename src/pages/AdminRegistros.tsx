@@ -407,9 +407,15 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    <th className="text-center p-3">Monto confirmado recibido</th>
-                    <th className="text-center p-3">Pago verificado</th>
-                    <th className="text-center p-3">Registro verificado</th>
+                    {section === 'sec1' ? (
+                      <th className="text-center p-3">Estatus Correo</th>
+                    ) : (
+                      <>
+                        <th className="text-center p-3">Monto confirmado recibido</th>
+                        <th className="text-center p-3">Pago verificado</th>
+                        <th className="text-center p-3">Registro verificado</th>
+                      </>
+                    )}
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
