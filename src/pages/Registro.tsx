@@ -336,6 +336,8 @@ const Registro = () => {
   /** Submission state */
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  /** Forces a fresh form DOM tree after "Enviar otro pre-registro" to prevent browser autofill from restoring stale values. */
+  const [formInstanceKey, setFormInstanceKey] = useState(0);
 
   /** Cascading dropdown data + selected ids */
   const [countries, setCountries] = useState<LocationRow[]>([]);
@@ -530,7 +532,7 @@ const Registro = () => {
     [phoneCode]
   );
 
-  /** Re-compose reg_telefono whenever code or local digits change. */
+  /** Re-compose reg_telefono whenever code or local digits change as a safety mirror for derived phone state. */
   useEffect(() => {
     if (!phoneLocal) {
       setValue('reg_telefono', '');
@@ -1321,7 +1323,14 @@ const Registro = () => {
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
           <div className="flex gap-2">
-            <Select value={phoneCode} onValueChange={setPhoneCode}>
+            <Select
+              value={phoneCode}
+              onValueChange={(code) => {
+                setPhoneCode(code);
+                setValue('reg_telefono', phoneLocal ? `${code} ${phoneLocal}` : '');
+                if (phoneError) setPhoneError('');
+              }}
+            >
               <SelectTrigger className="w-[120px]" aria-label="Lada">
                 <SelectValue />
               </SelectTrigger>
@@ -1334,10 +1343,12 @@ const Registro = () => {
               </SelectContent>
             </Select>
             <Input
+              key={`phone-local-${formInstanceKey}`}
               id={id}
               type="tel"
               inputMode="numeric"
-              autoComplete="tel-national"
+              autoComplete="off"
+              name={`reg_telefono_${formInstanceKey}`}
               required={required}
               maxLength={expectedLen}
               placeholder={`${expectedLen} dígitos`}
@@ -1346,6 +1357,7 @@ const Registro = () => {
                 // Strip everything that isn't a digit; cap at expected length.
                 const digits = e.target.value.replace(/\D/g, '').slice(0, expectedLen);
                 setPhoneLocal(digits);
+                setValue('reg_telefono', digits ? `${phoneCode} ${digits}` : '');
                 if (phoneError) setPhoneError('');
               }}
               onBlur={validatePhoneOnBlur}
@@ -1643,6 +1655,7 @@ const Registro = () => {
                      * condicionales debajo de la info básica se desplieguen
                      * al re-llenar los campos.
                      */
+                    setFormInstanceKey(k => k + 1);
                     setSubmitted(false);
                     setValues({});
                     setFile(null);
@@ -1679,7 +1692,7 @@ const Registro = () => {
                     <Loader2 className="h-4 w-4 animate-spin" /> Cargando formulario…
                   </div>
                 ) : (
-                  <form onSubmit={onSubmit} className="space-y-8">
+                  <form key={formInstanceKey} onSubmit={onSubmit} className="space-y-8">
                     {(() => {
                       // Group enabled fields by section while preserving order.
                       const order: Array<{ key: string; title: string }> = [
@@ -1709,6 +1722,8 @@ const Registro = () => {
                           if (!f.is_required) return true;
                           // Conditional required: tipo_socio only when es_socio = SI
                           if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return true;
+                          // Composite phone input stores its visible digits outside `values`; use it directly so progressive reveal updates immediately.
+                          if (f.field_name === 'reg_telefono') return !!phoneLocal.trim();
                           return !!(values[f.field_name] || '').trim();
                         });
                       };
