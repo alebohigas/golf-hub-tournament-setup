@@ -91,6 +91,10 @@ interface RegistroRow {
   reg_email_count?: number | string;
   /** Timestamp del último correo enviado al jugador. */
   reg_email_last?: string;
+  /** Flag: correo de bienvenida ("registrado oficialmente") ya enviado. */
+  reg_welcome_sent?: number | string;
+  /** Timestamp del último envío del correo de bienvenida. */
+  reg_welcome_last?: string;
 }
 
 // ============= Login form =============
@@ -231,9 +235,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       }));
       if (patch.verified === 1) {
         toast({ title: 'Registro verificado' });
-        // Disparo "fire-and-forget" del correo de bienvenida. Idempotente
-        // en el backend vía `reg_welcome_sent` (no re-envía si ya se mandó).
-        sendWelcomeEmail(row).catch(() => { /* silenciado: error ya se notifica via toast */ });
       }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
@@ -241,28 +242,34 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
-   * Envía el correo de bienvenida ("estás oficialmente registrado al torneo
-   * en la categoría X") al jugador. Llamado automáticamente cuando un admin
-   * marca `verified=1`. El backend evita duplicados con `reg_welcome_sent`.
+   * Sección 4 → POST /registro_welcome_email.php para mandar el correo de
+   * bienvenida ("estás oficialmente registrado al torneo en la categoría X").
+   * Disparado manualmente desde el botón "Enviar bienvenida" en la columna
+   * "Registro completado". Se pasa `force=true` para permitir reenvíos
+   * explícitos desde el admin (el backend marca reg_welcome_sent=1 al enviar).
    */
   const sendWelcomeEmail = async (row: RegistroRow) => {
+    const key = `welcome-${row.id}`;
+    markBusy(key, true);
     try {
       const res = await fetch(getRegistroWelcomeEmailUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, password }),
+        body: JSON.stringify({ id: row.id, password, force: true }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error al enviar correo de bienvenida');
-      if (json.sent) {
-        toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to}` });
-      }
+      toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to}` });
+      // Optimistic: marca el flag local para que el botón cambie a "Volver a enviar".
+      setRows(prev => prev.map(rr => rr.id === row.id ? { ...rr, reg_welcome_sent: 1 } : rr));
     } catch (err: any) {
       toast({
         title: 'No se pudo enviar correo de bienvenida',
         description: err.message,
         variant: 'destructive',
       });
+    } finally {
+      markBusy(key, false);
     }
   };
 
