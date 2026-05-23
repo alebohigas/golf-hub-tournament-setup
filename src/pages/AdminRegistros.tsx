@@ -28,6 +28,7 @@ import {
   getRegistroEmailUrl,
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
+  getRegistroWelcomeEmailUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
@@ -230,9 +231,38 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       }));
       if (patch.verified === 1) {
         toast({ title: 'Registro verificado' });
+        // Disparo "fire-and-forget" del correo de bienvenida. Idempotente
+        // en el backend vía `reg_welcome_sent` (no re-envía si ya se mandó).
+        sendWelcomeEmail(row).catch(() => { /* silenciado: error ya se notifica via toast */ });
       }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  /**
+   * Envía el correo de bienvenida ("estás oficialmente registrado al torneo
+   * en la categoría X") al jugador. Llamado automáticamente cuando un admin
+   * marca `verified=1`. El backend evita duplicados con `reg_welcome_sent`.
+   */
+  const sendWelcomeEmail = async (row: RegistroRow) => {
+    try {
+      const res = await fetch(getRegistroWelcomeEmailUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error al enviar correo de bienvenida');
+      if (json.sent) {
+        toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to}` });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'No se pudo enviar correo de bienvenida',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
   };
 
