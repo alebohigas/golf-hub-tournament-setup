@@ -18,13 +18,16 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye } from 'lucide-react';
+import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye, Mail, UserMinus, UserCheck, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   getRegistroListUrl,
   getRegistroVerifyUrl,
   getRegistroArchivoUrl,
+  getRegistroEmailUrl,
+  getRegistroUnregisterUrl,
+  getRegistroBajaUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
@@ -79,6 +82,10 @@ interface RegistroRow {
   reg_cargo_socio?: number | string;
   /** Número/clave de membresía cuando aplica. */
   reg_numsocio?: string;
+  /** Flag: jugador completó el flujo (subió comprobante o cargo a cuenta). */
+  enviado?: number | string;
+  /** Token opaco para el link público de adjuntar comprobante. */
+  reg_token?: string;
 }
 
 // ============= Login form =============
