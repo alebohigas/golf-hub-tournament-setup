@@ -489,6 +489,32 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
+                        {section === 'sec1' ? (
+                          /*
+                           * Estatus de correo: en la sección 1 reemplaza a las 3
+                           * columnas de tesorería. Muestra "Enviado (N)" si ya se
+                           * mandó al menos un correo de validación; "—" en otro caso.
+                           */
+                          <td className="p-3 text-center">
+                            {(() => {
+                              const count = Number(r.reg_email_count) || 0;
+                              if (count > 0) {
+                                return (
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <Badge variant="default" className="bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
+                                      Enviado ({count})
+                                    </Badge>
+                                    {r.reg_email_last && (
+                                      <span className="text-[10px] text-muted-foreground">{r.reg_email_last}</span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return <span className="text-muted-foreground text-xs">—</span>;
+                            })()}
+                          </td>
+                        ) : (
+                        <>
                         {/* Campo: monto confirmado recibido (se persiste onBlur). */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
@@ -551,6 +577,8 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               : <XCircle className="h-4 w-4 text-muted-foreground" />}
                           </div>
                         </td>
+                        </>
+                        )}
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
@@ -570,7 +598,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 {busy[`email-${r.id}`]
                                   ? <Loader2 className="h-4 w-4 animate-spin" />
                                   : <Mail className="h-4 w-4" />}
-                                Enviar correo
+                                {Number(r.reg_email_count) > 0 ? 'Volver a enviar' : 'Enviar correo'}
                               </Button>
                             )}
                             {section === 'sec3' && !verified && (
