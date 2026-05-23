@@ -687,19 +687,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Make sure the flow columns are present before SELECTing them.
     ensure_registro_flow_cols($conn);
 
-    // Backfill: any existing row without a token gets one now. Cheap,
-    // bounded by current row count, runs at most once per row.
-    if (registro_has($conn, 'reg_token')) {
-        $rs = @$conn->query("SELECT $pkCol AS id FROM registro WHERE reg_token IS NULL OR reg_token = ''");
-        if ($rs) {
-            while ($r = $rs->fetch_assoc()) {
-                $tok = gen_registro_token();
-                @$conn->query("UPDATE registro SET reg_token = '$tok' WHERE $pkCol = " . (int)$r['id'] . " LIMIT 1");
-            }
-            $rs->free();
-        }
-    }
-
     /**
      * torneoid es opcional en el GET admin:
      *   - Si se manda (>0): filtra por ese torneo (vista por dominio).
@@ -714,6 +701,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $pkCol     = registro_pk_col($conn);
     if (!$pkCol || !$torneoCol) json_error('registro table not configured properly.', 500);
 
+    // Backfill: any existing row without a token gets one now. Cheap,
+    // bounded by current row count, runs at most once per row.
+    if (registro_has($conn, 'reg_token')) {
+        $rs = @$conn->query("SELECT $pkCol AS id FROM registro WHERE reg_token IS NULL OR reg_token = ''");
+        if ($rs) {
+            while ($r = $rs->fetch_assoc()) {
+                $tok = gen_registro_token();
+                @$conn->query("UPDATE registro SET reg_token = '$tok' WHERE $pkCol = " . (int)$r['id'] . " LIMIT 1");
+            }
+            $rs->free();
+        }
+    }
 
     /** Fields to surface in the listing (skip blob). */
     $fields = ['r.' . $pkCol . ' AS id'];
