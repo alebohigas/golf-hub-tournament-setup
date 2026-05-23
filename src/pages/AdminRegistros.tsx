@@ -644,6 +644,28 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </>
                         )}
                         {/*
+                          Sección 4 — Columna "Registro completado":
+                          botón "Enviar bienvenida" que dispara el correo
+                          oficial "estás registrado al torneo en la categoría X".
+                          Cambia a "Volver a enviar" si ya se envió (reg_welcome_sent=1).
+                        */}
+                        {section === 'sec4' && (
+                          <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant={Number(r.reg_welcome_sent) === 1 ? 'outline' : 'default'}
+                              className="gap-1"
+                              disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
+                              onClick={() => sendWelcomeEmail(r)}
+                            >
+                              {busy[`welcome-${r.id}`]
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <Mail className="h-4 w-4" />}
+                              {Number(r.reg_welcome_sent) === 1 ? 'Volver a enviar' : 'Enviar bienvenida'}
+                            </Button>
+                          </td>
+                        )}
+                        {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
                           sec3 → "Verificar" marca verificado=1 (atajo del switch).
