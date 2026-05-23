@@ -314,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     $cols = [$torneoCol];
     $vals = [$torneoid];
     $writtenCols = []; // dedupe when alias maps two posted names to same column
+    $writtenCols[$torneoCol] = true; // ya se añadió arriba; evitar duplicado
 
     foreach ($allowedTextFields as $f) {
         if (!isset($_POST[$f])) continue;
