@@ -31,6 +31,7 @@ import Reglas from "./pages/Reglas";
 import Admin from "./pages/Admin";
 import Registro from "./pages/Registro";
 import AdminRegistros from "./pages/AdminRegistros";
+import Comprobante from "./pages/Comprobante";
 import AdminBracketsPage from "./pages/AdminBracketsPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -96,6 +97,8 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/registros" element={<AdminRegistros />} />
               <Route path="/admin/brackets" element={<AdminBracketsPage />} />
+              {/* Public: player upload page after admin sends the email link */}
+              <Route path="/registro/comprobante" element={<Comprobante />} />
               
               {/* Protected Routes - visibility controlled by admin */}
               <Route path="/convocatoria" element={<ProtectedRoute pageId="convocatoria"><Convocatoria /></ProtectedRoute>} />

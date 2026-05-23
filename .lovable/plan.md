@@ -1,130 +1,120 @@
-# Rework: Brackets Putt (Finales Caballero / Dama)
 
-## Resumen
-Quitar todo el sistema viejo de brackets genéricos (flag `is_bracket` por premio, AdminBrackets, BracketView por premio) y reemplazarlo por **dos brackets fijos por torneo**: uno masculino y uno femenino, sembrados automáticamente a partir del **ranking acumulado de putt** de todas las competiciones del torneo (misma lógica que `listado_ganadores_put-2.php` pero bien separada por sexo).
+## Alcance
 
----
-
-## Cambios funcionales (lo que verá el usuario)
-
-### En `/competicion`
-- Se elimina la lógica actual de "Putt Finales Caballeros / Damas" (vienen del flag `is_bracket` en filas de `putt`).
-- Aparecerán como dos competiciones nuevas, **solo si el admin las habilita**:
-  - **Putt Finales Caballero**
-  - **Putt Finales Dama**
-- Al entrar, se muestra el bracket renderizado (estructura visual igual a la actual `BracketView`).
-
-### En `/admin`
-- Se elimina la pestaña actual "Brackets" (lista de premios con checkboxes + configurador).
-- Se agrega **"Brackets Putt"** con:
-  1. Selector de **tamaño** (8 / 16 / 32 / 64 / 128) por bracket.
-  2. Toggle **visible público** por bracket (M y F independientes).
-  3. Botón **"Generar / Regenerar bracket"** que recalcula sembrado desde el ranking acumulado.
-  4. Lista visual del bracket con cada match editable: capturar `score1`, `score2` → al guardar, el sistema marca winner y avanza automáticamente al siguiente match.
-  5. Botón **"Mover manualmente"** por match (override del ganador sin scores).
+Reestructurar el dashboard `/admin/registros` de 3 tabs (Todos/Pendientes/Verificados) a **4 secciones** basadas en estado real del registro, agregar flujo de correo SMTP con PHPMailer, y crear una página pública para que el jugador adjunte su comprobante de pago mediante un link con token único.
 
 ---
 
-## Estructura de datos (DB)
+## Cambios en Base de Datos
 
-### Reutilizamos tablas existentes con cambios mínimos
-- `bracket_config` y `bracket_matches` ya existen. Las reutilizamos.
-- Para distinguir los dos brackets fijos por torneo, usamos convención en `prize_table` + `prize_id`:
-  - `prize_table = 'putt_finales'` (nuevo valor permitido)
-  - `prize_id = 1` para Caballero (M), `prize_id = 2` para Dama (F)
-- Esto deja todas las filas viejas de `bracket_config` (con `prize_table` en `oyes/approach/...`) intactas pero ya no las usaremos; se pueden limpiar manualmente después.
+Agregar a tabla `registro`:
+- `enviado` TINYINT(1) DEFAULT 0 — marca si el jugador ya completó el flujo (subió comprobante o cargo a cuenta)
+- `reg_token` VARCHAR(64) NULL UNIQUE — token único por registro para el link de adjuntar
 
-### Migración nueva
-```sql
--- Nuevas columnas en bracket_config para los brackets putt
-ALTER TABLE bracket_config
-  ADD COLUMN sexo CHAR(1) NULL,           -- 'M' | 'F' (solo para prize_table='putt_finales')
-  ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 0;  -- visibilidad pública
+Auto-llenado en INSERT:
+- `enviado = 1` si llegó comprobante adjunto **o** `reg_cargo_socio = 1`
+- `reg_token` se genera con `bin2hex(random_bytes(32))` para todos los registros nuevos
+- Backfill: generar token para registros existentes que no lo tengan
 
--- Limpiar flags is_bracket viejos (opcional, no destructivo)
--- UPDATE oyes/oyesx/approach/putt/driver/driverp SET is_bracket = 0;
+Acción "dar de baja": UPDATE `jugadores` SET `estatus='BAJA'` WHERE matching player.
+
+---
+
+## Las 4 Secciones (frontend AdminRegistros.tsx)
+
+```text
+Sección 1 — Sin validar registro
+  Filtro: enviado=0
+  Columnas actuales + botón "Enviar correo" en filas donde
+  NO hay comprobante y NO hay cargo a cuenta.
+  (Si ya hay comprobante o cargo, no aparece botón porque
+   el registro está enviado=1 automáticamente desde el INSERT.)
+
+Sección 2 — Pendiente verificación de pago
+  Filtro: enviado=1 AND status_pago=0
+  Muestra comprobante/cargo + monto cobrado + input monto
+  confirmado + toggle status_pago (regla actual: solo activable
+  si los montos coinciden).
+
+Sección 3 — Verificar registro
+  Filtro: status_pago=1 AND verificado=0
+  Muestra TODOS los detalles del pre-registro + un botón
+  "Verificar" que pone verificado=1.
+
+Sección 4 — Registros completados
+  Filtro: enviado=1 AND verificado=1 AND status_pago=1 (o status_pago=99)
+  Dos botones por fila:
+    • "Des-registrar" → status_pago=99 (al re-clic el botón
+      se llama "Registrar" y vuelve status_pago=1).
+    • "Dar de baja" → UPDATE jugadores.estatus='BAJA' para el
+      jugador correspondiente (match por correo + nombre).
 ```
 
-No tocamos `bracket_matches` (su esquema actual ya soporta lo que necesitamos: player1/2_id, scores, winner_id, next_match_id, next_slot).
+Las secciones se navegarán con tabs nuevos: "Sin validar", "Pendiente pago", "Verificar registro", "Completados", cada uno con su contador.
 
 ---
 
-## Lógica de sembrado (PHP nuevo en `brackets.php`)
+## Flujo de correo (SMTP via PHPMailer)
 
-Replicar exactamente la consulta de `listado_ganadores_put-2.php` pero **filtrando por `SEXO`**:
+Nuevo endpoint `server/api/registro_email.php`:
+- POST `{id, password}` → carga registro + datos del torneo (incluye `logo_cuentadeposito`).
+- Envía correo HTML con:
+  - Saludo personalizado y **reg_id en negritas grande**.
+  - Resumen de los datos del pre-registro (negritas en valores).
+  - Imagen `logo_cuentadeposito` embebida (`<img src="https://...">`).
+  - Instrucciones: *"Su registro ha sido validado. Para terminar su registro, por favor realice el pago a la siguiente cuenta. IMPORTANTE: agregar el reg_id en el concepto de su pago."*
+  - Botón CTA: *"Adjuntar comprobante a su registro"* → enlaza a `https://<dominio>/registro/comprobante?token=<reg_token>`.
+- Después de enviar: NO marca `enviado` (eso solo sucede cuando el jugador realmente sube comprobante o ya tenía cargo). El correo es solo recordatorio.
 
-```sql
--- Para cada premio del torneo con HOYO N, tomar las N mejores distancias
--- (mismo subquery UNION del archivo legacy)
--- AÑADIR filtro: JOIN jugadores j WHERE j.sexo = 'M'  (o 'F')
--- Orden final: distancia ASC, ultact ASC, LIMIT = size del bracket
-```
-
-El bug del archivo original (no separa por sexo en el subquery interno) se corrige aplicando el filtro de `sexo` **dentro de cada subquery del UNION**, no solo en el outer.
-
-Los `jugadorid` resultantes (1..size) se asignan a los slots del bracket usando la función ya existente `build_seed_pairs($size)` (1 vs N, 8 vs 9, etc.).
+> **Aclaración importante:** Releí tu mensaje original — dices "al hacer click en este botón, se actualiza en registro el valor 'enviado' a 1". Pero también dices que enviado=1 = "ya subió comprobante o cargo a cuenta" (sección 2). Si marcamos enviado=1 al mandar correo, el registro brinca a sección 2 sin que el jugador haya hecho nada. **Voy a interpretar que enviar el correo NO marca enviado=1** — solo lo marca el jugador al subir comprobante (o automático si ya tenía cargo/comprobante desde el formulario inicial). Si quieres la otra interpretación dímelo.
 
 ---
 
-## Captura de resultados / avance automático
+## Página pública `/registro/comprobante?token=...`
 
-El usuario indicó que los resultados se capturan "en el mismo lugar de donde se extrae la info de los brackets". El sistema viejo (que estamos quitando) los capturaba en `bracket_matches.player1_score/player2_score` desde AdminBrackets. **Mantenemos ese mecanismo** dentro del nuevo "Brackets Putt" admin: capturar scores ahí mismo dispara `record_score` que ya auto-avanza al ganador.
+Nueva ruta React `Comprobante.tsx`:
+- Al cargar, llama GET `/api/registro_publico.php?token=xxx` → devuelve datos del registro (sin password).
+- Muestra todos los campos del pre-registro **en negritas, solo lectura**.
+- Componente de upload de archivo (mismo widget que en el formulario original).
+- Botón "Terminar Registro" → POST `/api/registro_publico.php` con `{token, file}` → guarda blob en `reg_archivo` y marca `enviado=1`.
+- Vista de éxito al terminar.
 
-**Pregunta pendiente para el usuario** (no bloqueante — la dejo anotada en el código): si existe otra tabla legacy donde se registran los puntos de los match-play de la final (p. ej. una vista o tabla aparte de `puttjug`), me la pasas y conectamos el avance auto contra esa fuente. Por defecto, el admin captura los scores en la nueva pantalla.
+---
+
+## Acciones requeridas del usuario (manuales en IONOS)
+
+1. **Subir PHPMailer** a `/api/PHPMailer/` (3 archivos: `PHPMailer.php`, `SMTP.php`, `Exception.php` desde https://github.com/PHPMailer/PHPMailer/tree/master/src).
+2. **Editar `/api/credentials.php`** y agregar:
+   ```php
+   $SMTP_HOST = 'smtp.ionos.mx';   // o el host correcto
+   $SMTP_PORT = 587;
+   $SMTP_USER = 'registro.torneo01@speitour.mx';
+   $SMTP_PASS = 'la-contraseña';
+   $SMTP_FROM_NAME = 'Speitour Registros';
+   ```
+3. **Correr el SQL** (te lo daré al final) para agregar `enviado`, `reg_token` y poblar tokens.
+4. Subir `dist/` y `api/` actualizados.
 
 ---
 
 ## Archivos a tocar
 
-### Backend (PHP)
-- **Nueva migración** `server/migrations/XXXX_putt_finales_bracket.sql` (manual; documentamos en README).
-- **`server/api/brackets.php`**: reemplazar acciones. Nuevas acciones:
-  - `get_putt_finales` (público): devuelve `{ M: {config, matches, visible}, F: {...} }`
-  - `save_putt_config` (admin): guarda `size` y `visible` por sexo
-  - `generate_putt` (admin): regenera matches de un bracket (M o F) desde ranking acumulado
-  - `record_score` (admin): se conserva tal cual está (ya funciona)
-  - `set_winner` (admin, nuevo): override manual del ganador
-  - Se eliminan: `list_prizes`, `set_flag`, `save_config`, `generate` (legacy)
-- **`server/api/competencias.php`**: quitar la inyección de filas `Putt Finales` (las que veníamos agregando vía `is_bracket=1`).
-- **`server/api/competicion.php`**: en su lugar, **si** existe `bracket_config` con `prize_table='putt_finales'` y `visible=1`, inyectar dos pseudo-competiciones ("Putt Finales Caballero", "Putt Finales Dama") en la respuesta, marcadas con un `type: 'putt_finales_bracket'` para que el front sepa renderizar `BracketView`.
+**Backend (PHP):**
+- `server/api/registro.php` — generar `reg_token` en INSERT; auto `enviado=1` si llega archivo o cargo; exponer `enviado`, `reg_token` en listing; nuevo endpoint `action=unregister` (status_pago=99/1 toggle), `action=baja` (jugadores.estatus='BAJA').
+- `server/api/registro_email.php` *(nuevo)* — envía SMTP.
+- `server/api/registro_publico.php` *(nuevo)* — GET por token + POST con archivo.
+- `server/api/_smtp.php` *(nuevo)* — helper que carga PHPMailer y envía.
 
-### Frontend (TS/React)
-- **`src/hooks/useBrackets.ts`**: reemplazar hooks. Nuevos:
-  - `usePuttFinales()` (público)
-  - `usePuttFinalesAdmin()` (admin)
-  - `useSavePuttConfig()`, `useGeneratePuttBracket()`, `useRecordBracketScore()` (conservada), `useSetBracketWinner()` (nueva)
-  - Eliminar: `useBracketPrizes`, `useSetBracketFlag`, `useSaveBracketConfig`, `useGenerateBracket`
-- **`src/components/admin/AdminBrackets.tsx`**: reescribir completamente como "Brackets Putt" con dos secciones (M / F): selector de tamaño, toggle visible, botón generar, lista de matches con captura de scores y override manual.
-- **`src/components/competencias/BracketView.tsx`**: ajustar firma — ahora recibe `sexo: 'M'|'F'` en lugar de `prizeTable/prizeId`. Misma render lógica.
-- **`src/pages/Competencias.tsx`**: detectar competiciones con `type === 'putt_finales_bracket'` y renderizar `BracketView` con el sexo correspondiente.
-- **`src/data/competencias/types.ts`** y `columns.ts`: agregar el tipo `putt_finales_bracket`.
-- **`src/pages/Admin.tsx`**: renombrar la pestaña "Brackets" → "Brackets Putt" (mismo componente).
-- **`src/config/api.ts`**: nuevas URLs (`getPuttFinalesUrl`, `getPuttFinalesAdminUrl`, etc.), eliminar las legacy de brackets.
-
-### Memoria
-- Actualizar `mem://features/brackets-data-structure` para reflejar la nueva arquitectura (dos brackets por torneo, sembrados desde ranking acumulado, visibilidad toggleable).
+**Frontend (React):**
+- `src/pages/AdminRegistros.tsx` — reemplazar tabs y lógica de filtrado por 4 secciones; añadir botones de cada sección.
+- `src/pages/Comprobante.tsx` *(nueva)* — página pública del token.
+- `src/App.tsx` — registrar ruta `/registro/comprobante`.
+- `src/config/api.ts` — URLs nuevas: `getRegistroEmailUrl`, `getRegistroPublicoUrl`, `getRegistroUnregisterUrl`, `getRegistroBajaUrl`.
 
 ---
 
-## Orden de implementación
+## Notas / Riesgos
 
-1. Migración SQL (documentada en `server/api/README.md` — el usuario la corre en su MySQL).
-2. Backend: nuevo `brackets.php` + ajustes en `competicion.php` / `competencias.php`.
-3. Frontend hooks + tipos + URLs.
-4. Reescribir `AdminBrackets.tsx`.
-5. Ajustar `BracketView.tsx` + `Competencias.tsx`.
-6. Renombrar tab en `Admin.tsx`.
-7. QA: generar bracket de prueba, capturar 1-2 scores, verificar avance y visibilidad.
-
----
-
-## Detalle técnico — separación por sexo (bugfix del PHP legacy)
-
-El archivo `listado_ganadores_put-2.php` filtra por `SEXO` solo en el `DISTINCT PREMIO`, pero el subquery por premio (`SELECT ... FROM v_puttjug WHERE torneoid=X AND premio=Y`) **no filtra por sexo**, así que jugadores del otro sexo se cuelan si comparten premio. Fix: agregar `AND EXISTS (SELECT 1 FROM jugadores j WHERE j.id = v_puttjug.jugadorid AND j.sexo = '$sexo')` (o JOIN equivalente) dentro de cada subquery del UNION.
-
----
-
-## Preguntas / dependencias del usuario
-
-1. **Captura de scores de match-play**: ¿se quedan en `bracket_matches` (capturadas en el nuevo admin) o existe una tabla legacy específica que ya recibe esos scores y debemos leer de ahí? Si es lo segundo, pasame el nombre de la tabla y el avance se hará 100% automático sin captura manual.
-2. **Confirmar correr la migración SQL** en producción cuando esté lista.
+- **PHPMailer no se puede instalar vía Composer en IONOS shared** — por eso lo subes manualmente como 3 archivos.
+- Si el SMTP de IONOS bloquea el envío desde la app, los correos saldrán como error y el admin verá un toast — el flujo del jugador no se rompe (puede pegarle el link a mano si hace falta).
+- El token es 256-bit y permite a cualquiera con el link adjuntar el comprobante. Es el modelo más simple; si más adelante quieres expiración o uso único, se agrega después.

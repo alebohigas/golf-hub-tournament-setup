@@ -213,6 +213,26 @@ export const getRegistroListUrl = (password: string): string => {
 export const getRegistroVerifyUrl = (): string =>
   `${API_BASE_URL}/registro.php?action=verify`;
 
+/** Admin: toggle status_pago entre 1 (registrado) y 99 (des-registrado). */
+export const getRegistroUnregisterUrl = (): string =>
+  `${API_BASE_URL}/registro.php?action=unregister`;
+
+/** Admin: marca jugadores.estatus = 'BAJA' usando el correo del registro. */
+export const getRegistroBajaUrl = (): string =>
+  `${API_BASE_URL}/registro.php?action=baja`;
+
+/** Admin: envía correo "su registro fue validado" (POST JSON {id,password}). */
+export const getRegistroEmailUrl = (): string =>
+  `${API_BASE_URL}/registro_email.php`;
+
+/** Public: GET datos del registro por token. */
+export const getRegistroPublicoUrl = (token: string): string =>
+  `${API_BASE_URL}/registro_publico.php?token=${encodeURIComponent(token)}`;
+
+/** Public: POST multipart (token + reg_archivo) para subir comprobante. */
+export const getRegistroPublicoSubmitUrl = (): string =>
+  `${API_BASE_URL}/registro_publico.php`;
+
 /** Stream binary attachment for a single registro row */
 export const getRegistroArchivoUrl = (id: number, password: string): string =>
   `${API_BASE_URL}/registro_archivo.php?id=${id}&password=${encodeURIComponent(password)}`;

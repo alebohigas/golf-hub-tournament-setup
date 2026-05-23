@@ -18,6 +18,7 @@
  * Resilient: any column the host DB doesn't have is silently skipped.
  */
 require_once 'config.php';
+require_once '_smtp.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
@@ -58,6 +59,33 @@ function registro_email_exists($conn, $torneoid, $email) {
 const REGISTROS_PASSWORD = 'registros2025';
 /** Max binary upload accepted into reg_archivo (LONGBLOB). 15 MB. */
 const MAX_REG_FILE_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Ensure the columns required by the 4-section admin flow exist on
+ * `registro`. Idempotent — safe to call on every request.
+ *  - `enviado`   TINYINT(1) DEFAULT 0  — set to 1 once the player has
+ *    either uploaded a payment receipt or selected "cargo a cuenta".
+ *  - `reg_token` VARCHAR(64) NULL UNIQUE — opaque per-row token used
+ *    in the public "adjuntar comprobante" link sent by email.
+ */
+function ensure_registro_flow_cols($conn) {
+    $needRefresh = false;
+    if (!registro_has($conn, 'enviado')) {
+        @$conn->query("ALTER TABLE registro ADD COLUMN enviado TINYINT(1) NOT NULL DEFAULT 0");
+        $needRefresh = true;
+    }
+    if (!registro_has($conn, 'reg_token')) {
+        @$conn->query("ALTER TABLE registro ADD COLUMN reg_token VARCHAR(64) NULL");
+        @$conn->query("ALTER TABLE registro ADD UNIQUE INDEX uk_registro_token (reg_token)");
+        $needRefresh = true;
+    }
+    if ($needRefresh) registro_columns($conn, true);
+}
+
+/** Generate a 256-bit hex token for a registro row's public upload link. */
+function gen_registro_token() {
+    return bin2hex(random_bytes(32));
+}
 
 /**
  * Map UI/legacy field_name -> actual DB column on `registro`.
@@ -244,6 +272,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     if (!$pkCol)     json_error('registro table has no recognizable primary key column.', 500);
     if (!$torneoCol) json_error('registro table has no recognizable torneo id column.',  500);
 
+    // Make sure the flow columns exist before we try to write to them.
+    ensure_registro_flow_cols($conn);
+
     /**
      * Duplicate-email guard. One email per tournament: if this torneoid
      * already has a registro row with the same correo, reject with 409 so
@@ -406,6 +437,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         $vals[] = '0';
     }
 
+    /**
+     * Always assign a per-row token so the player can be sent a public
+     * "adjuntar comprobante" link later via email (registro_publico.php).
+     */
+    if (registro_has($conn, 'reg_token') && !isset($writtenCols['reg_token'])) {
+        $writtenCols['reg_token'] = true;
+        $cols[] = 'reg_token';
+        $vals[] = "'" . gen_registro_token() . "'";
+    }
+
+    /**
+     * `enviado` semántico:
+     *  - 1 si el jugador subió comprobante con el formulario inicial.
+     *  - 1 si el jugador eligió cargo a cuenta (no requiere comprobante).
+     *  - 0 en cualquier otro caso (entra a "Sin validar" en el admin).
+     */
+    if (registro_has($conn, 'enviado') && !isset($writtenCols['enviado'])) {
+        $cargoPost = trim((string)($_POST['reg_cargo_socio'] ?? ''));
+        $esSocio   = strtoupper(trim((string)($_POST['reg_es_socio'] ?? '')));
+        $autoSent  = $haveFile || ($esSocio === 'SI' && $cargoPost === '1');
+        $writtenCols['enviado'] = true;
+        $cols[] = 'enviado';
+        $vals[] = $autoSent ? '1' : '0';
+    }
+
     $sql = "INSERT INTO registro (" . implode(',', $cols) . ") VALUES (" . implode(',', $vals) . ")";
     if (!$conn->query($sql)) {
         json_error('Failed to save registration: ' . $conn->error, 500);
@@ -477,18 +533,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
         json_error('Update failed: ' . $conn->error);
     }
 
-    /**
-     * Notificación por correo cuando un registro pasa a verificado.
-     * Se dispara solo si el toggle "verified" cambió a 1 en esta llamada.
-     * Usa la función mail() nativa de PHP (IONOS). Falla silenciosamente
-     * para no bloquear la respuesta al admin.
-     */
-    $emailSent = false;
-    if ($wantVerified && $newVerified === 1) {
-        $emailSent = send_verification_email($conn, $id);
+    // Verificación: ya NO dispara correo aquí — el correo de "registro
+    // validado, sube comprobante" se manda explícitamente desde la
+    // sección 1 del admin vía /api/registro_email.php.
+    json_response(['saved' => true]);
+}
+
+// ============= POST unregister/baja (admin) =============
+/**
+ * Acciones administrativas para la sección 4 ("Registros completados").
+ *
+ *   action=unregister  → toggle status_pago entre 1 (registrado) y 99
+ *                        (des-registrado / cancelado). Mismo botón
+ *                        cambia de "Des-registrar" a "Registrar".
+ *   action=baja        → marca al jugador correspondiente en la tabla
+ *                        `jugadores` con estatus='BAJA'. Match por
+ *                        correo (case-insensitive). No toca el registro.
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && in_array(optional_param('action'), ['unregister', 'baja'], true)) {
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    if (($body['password'] ?? '') !== REGISTROS_PASSWORD) json_error('Unauthorized', 401);
+
+    $pkCol = registro_pk_col($conn);
+    if (!$pkCol) json_error('registro PK not found', 500);
+    $id = (int)($body['id'] ?? 0);
+    if ($id <= 0) json_error('Missing id', 400);
+
+    $action = optional_param('action');
+
+    if ($action === 'unregister') {
+        if (!registro_has($conn, 'status_pago')) json_error('status_pago column missing', 500);
+        // Toggle between 1 (registrado) and 99 (des-registrado).
+        $r = $conn->query("SELECT status_pago FROM registro WHERE $pkCol = $id LIMIT 1");
+        if (!$r) json_error('Lookup failed', 500);
+        $row = $r->fetch_assoc(); $r->free();
+        if (!$row) json_error('Registro no encontrado', 404);
+        $cur = (int)$row['status_pago'];
+        $next = ($cur === 99) ? 1 : 99;
+        if (!$conn->query("UPDATE registro SET status_pago = $next WHERE $pkCol = $id LIMIT 1")) {
+            json_error('Update failed: ' . $conn->error);
+        }
+        json_response(['saved' => true, 'status_pago' => $next]);
     }
 
-    json_response(['saved' => true, 'email_sent' => $emailSent]);
+    if ($action === 'baja') {
+        // Resolve correo on the registro row, then match jugadores by it.
+        $emailCol = registro_email_col($conn);
+        if (!$emailCol) json_error('email column missing', 500);
+        $r = $conn->query("SELECT $emailCol AS correo FROM registro WHERE $pkCol = $id LIMIT 1");
+        if (!$r) json_error('Lookup failed', 500);
+        $row = $r->fetch_assoc(); $r->free();
+        $correo = trim((string)($row['correo'] ?? ''));
+        if ($correo === '') json_error('Registro sin correo', 400);
+
+        $updated = 0;
+        if (jug_has_reg($conn, 'estatus') && jug_has_reg($conn, 'correo')) {
+            $ok = @$conn->query(
+                "UPDATE jugadores SET estatus = 'BAJA' WHERE LOWER(correo) = LOWER('"
+                . esc($conn, $correo) . "')"
+            );
+            if ($ok) $updated = $conn->affected_rows;
+        }
+        json_response(['saved' => true, 'jugadores_updated' => $updated]);
+    }
 }
 
 /**
@@ -575,6 +683,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (optional_param('password') !== REGISTROS_PASSWORD) {
         json_error('Unauthorized', 401);
     }
+
+    // Make sure the flow columns are present before SELECTing them.
+    ensure_registro_flow_cols($conn);
+
     /**
      * torneoid es opcional en el GET admin:
      *   - Si se manda (>0): filtra por ese torneo (vista por dominio).
@@ -589,6 +701,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $pkCol     = registro_pk_col($conn);
     if (!$pkCol || !$torneoCol) json_error('registro table not configured properly.', 500);
 
+    // Backfill: any existing row without a token gets one now. Cheap,
+    // bounded by current row count, runs at most once per row.
+    if (registro_has($conn, 'reg_token')) {
+        $rs = @$conn->query("SELECT $pkCol AS id FROM registro WHERE reg_token IS NULL OR reg_token = ''");
+        if ($rs) {
+            while ($r = $rs->fetch_assoc()) {
+                $tok = gen_registro_token();
+                @$conn->query("UPDATE registro SET reg_token = '$tok' WHERE $pkCol = " . (int)$r['id'] . " LIMIT 1");
+            }
+            $rs->free();
+        }
+    }
 
     /** Fields to surface in the listing (skip blob). */
     $fields = ['r.' . $pkCol . ' AS id'];
@@ -613,6 +737,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = "r.$c";
+    // 4-section flow exposure: enviado (sección 1/2) y reg_token (link
+    // de adjuntar comprobante que el admin manda por correo).
+    if (registro_has($conn, 'enviado'))   $fields[] = 'r.enviado';
+    if (registro_has($conn, 'reg_token')) $fields[] = 'r.reg_token';
     /**
      * Verificación administrativa: las columnas canónicas en la BD son
      * `verificado` y `status_pago`. Las exponemos con alias hacia los
