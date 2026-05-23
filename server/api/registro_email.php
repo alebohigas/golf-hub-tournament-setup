@@ -157,13 +157,16 @@ $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5
     . 'en el concepto de su pago.'
     . '</p>'
     . $cuentaImgHtml
+    . $ctaHtml
     . '<h2 style="font-size:14px;margin:24px 0 8px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">Datos del registro</h2>'
     . '<table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #eee;border-radius:6px;border-collapse:collapse;">'
     . $rowsHtml
     . '</table>'
-    . $ctaHtml
     . '<p style="font-size:12px;color:#999;margin:32px 0 0;text-align:center;">'
     . ($torneoName ? htmlspecialchars($torneoName) : 'Pre-Registro')
+    . '</p>'
+    . '<p style="font-size:10px;color:#cccccc;margin:8px 0 0;text-align:center;">Ref: '
+    . htmlspecialchars($folio) . ' · ' . date('Y-m-d H:i:s')
     . '</p>'
     . '</td></tr></table>'
     . '</td></tr></table>'
