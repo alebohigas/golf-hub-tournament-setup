@@ -86,6 +86,10 @@ interface RegistroRow {
   enviado?: number | string;
   /** Token opaco para el link público de adjuntar comprobante. */
   reg_token?: string;
+  /** Contador de correos "registro validado" enviados al jugador. */
+  reg_email_count?: number | string;
+  /** Timestamp del último correo enviado al jugador. */
+  reg_email_last?: string;
 }
 
 // ============= Login form =============
@@ -302,11 +306,15 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    */
   const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' => {
     const enviado   = Number(r.enviado) === 1;
+    const hasFile   = Number(r.has_archivo) === 1;
+    const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
     const verified  = Number(r.reg_verificado) === 1;
     if (verified) return 'sec4';
     if (statusP === 1) return 'sec3';
-    if (enviado) return 'sec2';
+    // Auto-mover a sec2 si subió comprobante o eligió cargo a cuenta,
+    // aunque la columna `enviado` no se haya actualizado.
+    if (enviado || hasFile || cargo) return 'sec2';
     return 'sec1';
   };
 
