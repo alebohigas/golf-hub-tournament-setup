@@ -682,7 +682,11 @@ const Registro = () => {
         : countries.find(c => ['mexico', 'mx', 'mex'].includes(norm(c.name)));
     }
     if (country && values.reg_pais !== String(country.id)) {
-      setValues(v => ({ ...v, reg_pais: String(country.id) }));
+      // País cambia → invalidar estado/ciudad anteriores para que la
+      // cascada se recalcule contra las nuevas listas. Sin esto, los
+      // valores viejos persisten y bloquean la actualización al cambiar
+      // de club entre países/estados distintos.
+      setValues(v => ({ ...v, reg_pais: String(country.id), reg_estado: '', reg_ciudad: '' }));
       return; // wait for states to load on next render
     }
 
@@ -699,7 +703,14 @@ const Registro = () => {
       }
     }
     if (st && values.reg_estado !== String(st.id)) {
-      setValues(v => ({ ...v, reg_estado: String(st.id) }));
+      // Estado cambia → invalidar ciudad anterior por la misma razón.
+      setValues(v => ({ ...v, reg_estado: String(st.id), reg_ciudad: '' }));
+      return;
+    }
+    // Si el club no aporta estado y hay uno previo, límpialo para no
+    // dejar un valor huérfano del club anterior.
+    if (!st && states.length && values.reg_estado) {
+      setValues(v => ({ ...v, reg_estado: '', reg_ciudad: '' }));
       return;
     }
 
@@ -717,6 +728,9 @@ const Registro = () => {
     }
     if (ci && values.reg_ciudad !== String(ci.id)) {
       setValues(v => ({ ...v, reg_ciudad: String(ci.id) }));
+    } else if (!ci && cities.length && values.reg_ciudad) {
+      // Ciudad previa no existe para el nuevo club/estado → limpiar.
+      setValues(v => ({ ...v, reg_ciudad: '' }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.reg_club, clubs, countries, states, cities]);
