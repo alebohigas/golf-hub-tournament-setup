@@ -529,6 +529,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                           <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={verified}
+                              disabled={section !== 'sec3' && section !== 'sec4'}
                               onCheckedChange={(v) => updateRegistro(r, { verified: v ? 1 : 0 })}
                             />
                             {verified
@@ -536,11 +537,75 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               : <XCircle className="h-4 w-4 text-muted-foreground" />}
                           </div>
                         </td>
+                        {/*
+                          Acciones por sección:
+                          sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
+                          sec3 → "Verificar" marca verificado=1 (atajo del switch).
+                          sec4 → "Des-/Registrar" + "Dar de baja".
+                        */}
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-2 flex-wrap">
+                            {section === 'sec1' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                disabled={!!busy[`email-${r.id}`] || !r.reg_correo}
+                                onClick={() => sendEmail(r)}
+                              >
+                                {busy[`email-${r.id}`]
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <Mail className="h-4 w-4" />}
+                                Enviar correo
+                              </Button>
+                            )}
+                            {section === 'sec3' && !verified && (
+                              <Button
+                                size="sm"
+                                className="gap-1"
+                                onClick={() => updateRegistro(r, { verified: 1 })}
+                              >
+                                <UserCheck className="h-4 w-4" /> Verificar
+                              </Button>
+                            )}
+                            {section === 'sec4' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1"
+                                  disabled={!!busy[`unreg-${r.id}`]}
+                                  onClick={() => toggleUnregister(r)}
+                                >
+                                  {busy[`unreg-${r.id}`]
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <UserMinus className="h-4 w-4" />}
+                                  {Number(r.reg_pago_verificado) === 99 ? 'Registrar' : 'Des-registrar'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="gap-1"
+                                  disabled={!!busy[`baja-${r.id}`]}
+                                  onClick={() => darDeBaja(r)}
+                                >
+                                  {busy[`baja-${r.id}`]
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <UserX className="h-4 w-4" />}
+                                  Dar de baja
+                                </Button>
+                              </>
+                            )}
+                            {section === 'sec2' && (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={10} className="p-4">
+                          <td colSpan={11} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
