@@ -162,6 +162,10 @@ $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5
     . '<table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #eee;border-radius:6px;border-collapse:collapse;">'
     . $rowsHtml
     . '</table>'
+    . '<p style="font-size:13px;line-height:1.5;margin:32px 0 0;color:#c0392b;background:#ffeaea;padding:12px 16px;border-radius:6px;">'
+    . '<strong>IMPORTANTE:</strong> Esto no es una confirmación de registro al torneo. '
+    . 'Una vez que haya sido verificado su pago, se enviará un correo confirmando su registro oficial.'
+    . '</p>'
     . '<p style="font-size:12px;color:#999;margin:32px 0 0;text-align:center;">'
     . ($torneoName ? htmlspecialchars($torneoName) : 'Pre-Registro')
     . '</p>'
@@ -174,7 +178,9 @@ $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5
 
 $textAlt = "Hola $nombre,\n\nSu registro ha sido validado. Folio: #{$folio}\n"
     . "Por favor incluya el folio en el concepto de pago.\n"
-    . ($tokenUrl ? "Subir comprobante: $tokenUrl\n" : '');
+    . ($tokenUrl ? "Subir comprobante: $tokenUrl\n" : '')
+    . "\nIMPORTANTE: Esto no es una confirmación de registro al torneo. "
+    . "Una vez que haya sido verificado su pago, se enviará un correo confirmando su registro oficial.\n";
 
 $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt);
 if (!$res['ok']) {
