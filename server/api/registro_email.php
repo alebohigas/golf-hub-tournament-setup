@@ -60,6 +60,15 @@ $row = query_one($conn, $sql);
 if (!$row) json_error('Registro no encontrado', 404);
 if (empty($row['reg_correo'])) json_error('Registro sin correo', 400);
 
+/**
+ * Folio público mostrado al jugador y usado como concepto de pago.
+ * Formato: <reg_id_torneo>-<reg_id>  (p.ej. "12-345").
+ * Si por alguna razón no hay torneoid resuelto, cae a sólo el id.
+ */
+$folio = ((int)$row['torneoid'] > 0)
+    ? ((int)$row['torneoid'] . '-' . (int)$row['id'])
+    : ('' . (int)$row['id']);
+
 /** Resolve category name + tournament logo_cuentadeposito. */
 $catName = '';
 if (!empty($row['reg_categoria'])) {
@@ -89,7 +98,7 @@ $b = fn($v) => '<strong>' . htmlspecialchars((string)($v ?? '—'), ENT_QUOTES, 
 
 $rowsHtml = '';
 $entries = [
-    ['ID de registro', '#' . $row['id']],
+    ['Folio de registro', '#' . $folio],
     ['Nombre',        trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''))],
     ['Correo',        $row['reg_correo'] ?? ''],
     ['Teléfono',      $row['reg_telefono'] ?? ($row['reg_celular'] ?? '')],
@@ -131,7 +140,7 @@ if ($tokenUrl !== '') {
 $nombre = trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''));
 if ($nombre === '') $nombre = 'Jugador';
 
-$subject = 'Pre-registro validado · Folio #' . $row['id']
+$subject = 'Pre-registro validado · Folio #' . $folio
     . ($torneoName ? ' · ' . $torneoName : '');
 
 $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;">'
@@ -144,7 +153,7 @@ $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5
     . '<p style="font-size:14px;line-height:1.5;margin:0 0 16px;">'
     . 'Para terminar su registro, por favor realice el pago a la siguiente cuenta. '
     . '<strong>IMPORTANTE:</strong> agregar el folio de registro '
-    . '<span style="background:#fff3cd;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:16px;">#' . $row['id'] . '</span> '
+    . '<span style="background:#fff3cd;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:16px;">#' . htmlspecialchars($folio) . '</span> '
     . 'en el concepto de su pago.'
     . '</p>'
     . $cuentaImgHtml
@@ -160,7 +169,7 @@ $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5
     . '</td></tr></table>'
     . '</body></html>';
 
-$textAlt = "Hola $nombre,\n\nSu registro ha sido validado. Folio: #{$row['id']}\n"
+$textAlt = "Hola $nombre,\n\nSu registro ha sido validado. Folio: #{$folio}\n"
     . "Por favor incluya el folio en el concepto de pago.\n"
     . ($tokenUrl ? "Subir comprobante: $tokenUrl\n" : '');
 
@@ -169,4 +178,21 @@ if (!$res['ok']) {
     json_error('No se pudo enviar el correo: ' . ($res['error'] ?? 'desconocido'), 500);
 }
 
-json_response(['sent' => true, 'to' => $row['reg_correo']]);
+/**
+ * Persistir contador de envíos y timestamp del último envío exitoso.
+ * Auto-crea las columnas si no existen (idempotente). Esto alimenta la
+ * columna "Estatus Correo" en la sección 1 del admin y permite que el
+ * botón cambie a "Volver a enviar" tras el primer envío.
+ */
+if (!$has('reg_email_count')) {
+    @$conn->query("ALTER TABLE registro ADD COLUMN reg_email_count INT NOT NULL DEFAULT 0");
+}
+if (!$has('reg_email_last')) {
+    @$conn->query("ALTER TABLE registro ADD COLUMN reg_email_last DATETIME NULL");
+}
+@$conn->query(
+    "UPDATE registro SET reg_email_count = COALESCE(reg_email_count,0) + 1, "
+    . "reg_email_last = NOW() WHERE $pkCol = $id LIMIT 1"
+);
+
+json_response(['sent' => true, 'to' => $row['reg_correo'], 'folio' => $folio]);
