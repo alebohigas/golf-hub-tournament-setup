@@ -135,7 +135,14 @@ const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => boolean }) => {
 export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [rows, setRows] = useState<RegistroRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'verified'>('all');
+  /**
+   * Las 4 secciones del flujo de pre-registro:
+   *   sec1 — Sin validar registro (enviado=0)
+   *   sec2 — Pendiente verificación de pago (enviado=1, status_pago in {0})
+   *   sec3 — Verificar registro (status_pago=1, verificado=0)
+   *   sec4 — Registros completados (verificado=1, status_pago in {1,99})
+   */
+  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4'>('sec1');
   const [search, setSearch] = useState('');
   /** Set de IDs cuyos detalles están expandidos en la tabla. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -148,6 +155,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   /** Comprobante actualmente abierto en el modal de vista previa. */
   const [previewRow, setPreviewRow] = useState<RegistroRow | null>(null);
   const { toast } = useToast();
+
+  /** Tracks which rows have an in-flight action button (per id+kind). */
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const markBusy = (key: string, v: boolean) =>
+    setBusy(prev => ({ ...prev, [key]: v }));
 
   /** Fetch the latest list (always scoped to current torneoid). */
   const refresh = async () => {
@@ -194,25 +206,122 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         return next;
       }));
       if (patch.verified === 1) {
-        toast({
-          title: 'Registro verificado',
-          description: json.email_sent
-            ? 'Se envió correo de confirmación al jugador.'
-            : 'No se pudo enviar el correo (revisa la configuración SMTP).',
-        });
+        toast({ title: 'Registro verificado' });
       }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
     }
   };
 
-  /** Apply client-side filters (status + search). */
+  /**
+   * Sección 1 → POST /registro_email.php para mandarle al jugador el
+   * correo "registro validado, sube tu comprobante".
+   * NO marca enviado=1: eso ocurre cuando el jugador realmente sube
+   * el comprobante desde la página pública.
+   */
+  const sendEmail = async (row: RegistroRow) => {
+    const key = `email-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroEmailUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({ title: 'Correo enviado', description: `Enviado a ${json.to}` });
+    } catch (err: any) {
+      toast({ title: 'Error al enviar correo', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
+
+  /**
+   * Sección 4 → toggle status_pago entre 1 (registrado) y 99
+   * (des-registrado). Mismo botón cambia texto/icono según estado.
+   */
+  const toggleUnregister = async (row: RegistroRow) => {
+    const key = `unreg-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroUnregisterUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      setRows(prev => prev.map(r => r.id === row.id
+        ? { ...r, reg_pago_verificado: json.status_pago }
+        : r));
+      toast({
+        title: json.status_pago === 99 ? 'Des-registrado' : 'Registrado',
+      });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
+
+  /**
+   * Sección 4 → marca al jugador en `jugadores` con estatus='BAJA'.
+   * No toca el registro mismo.
+   */
+  const darDeBaja = async (row: RegistroRow) => {
+    if (!confirm(`¿Dar de baja al jugador ${row.reg_nombre || ''} ${row.reg_apellido || ''} en la tabla jugadores?`)) return;
+    const key = `baja-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroBajaUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({
+        title: 'Jugador dado de baja',
+        description: `${json.jugadores_updated} fila(s) actualizada(s) en jugadores.`,
+      });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
+
+  /**
+   * Clasifica una fila en una de las 4 secciones según el flujo:
+   *   sec1 — enviado=0
+   *   sec2 — enviado=1 AND status_pago=0
+   *   sec3 — status_pago=1 AND verificado=0
+   *   sec4 — verificado=1 (status_pago=1 o 99)
+   */
+  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' => {
+    const enviado   = Number(r.enviado) === 1;
+    const statusP   = Number(r.reg_pago_verificado);
+    const verified  = Number(r.reg_verificado) === 1;
+    if (verified) return 'sec4';
+    if (statusP === 1) return 'sec3';
+    if (enviado) return 'sec2';
+    return 'sec1';
+  };
+
+  /** Conteos por sección — alimentan los tabs. */
+  const counts = useMemo(() => {
+    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4', number>;
+    for (const r of rows) c[classify(r)]++;
+    return c;
+  }, [rows]);
+
+  /** Filtrado final por sección + búsqueda. */
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter(r => {
-      const v = Number(r.reg_verificado) === 1;
-      if (filter === 'pending' && v) return false;
-      if (filter === 'verified' && !v) return false;
+      if (classify(r) !== section) return false;
       if (term) {
         const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club]
           .filter(Boolean).join(' ').toLowerCase();
@@ -220,9 +329,15 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       }
       return true;
     });
-  }, [rows, filter, search]);
+  }, [rows, section, search]);
 
-  const verifiedCount = rows.filter(r => Number(r.reg_verificado) === 1).length;
+  /** Tabs definidos arriba — orden importa (botones). */
+  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'; label: string }[] = [
+    { id: 'sec1', label: 'Sin validar registro' },
+    { id: 'sec2', label: 'Pendiente verificación de pago' },
+    { id: 'sec3', label: 'Verificar registro' },
+    { id: 'sec4', label: 'Registros completados' },
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-4">
@@ -230,7 +345,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         <div>
           <h1 className="text-2xl font-bold">Pre-Registros</h1>
           <p className="text-muted-foreground">
-            {rows.length} pre-registros · {verifiedCount} verificados · {rows.length - verifiedCount} pendientes
+            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados
           </p>
         </div>
         <div className="flex gap-2">
@@ -240,13 +355,20 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Section tabs + search */}
       <Card>
         <CardContent className="pt-6 flex flex-col md:flex-row gap-3">
-          <div className="flex gap-2">
-            <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Todos</Button>
-            <Button variant={filter === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('pending')}>Pendientes</Button>
-            <Button variant={filter === 'verified' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('verified')}>Verificados</Button>
+          <div className="flex gap-2 flex-wrap">
+            {SECTIONS.map(s => (
+              <Button
+                key={s.id}
+                variant={section === s.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSection(s.id)}
+              >
+                {s.label} <span className="ml-2 opacity-70">({counts[s.id]})</span>
+              </Button>
+            ))}
           </div>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
