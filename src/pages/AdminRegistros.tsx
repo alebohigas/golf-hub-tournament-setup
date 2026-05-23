@@ -235,6 +235,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error');
       toast({ title: 'Correo enviado', description: `Enviado a ${json.to}` });
+      // Optimistic: incrementa el contador local para que el botón cambie
+      // a "Volver a enviar" sin esperar a un refresh manual.
+      setRows(prev => prev.map(rr => rr.id === row.id
+        ? { ...rr, reg_email_count: (Number(rr.reg_email_count) || 0) + 1 }
+        : rr));
     } catch (err: any) {
       toast({ title: 'Error al enviar correo', description: err.message, variant: 'destructive' });
     } finally {
@@ -647,7 +652,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={11} className="p-4">
+                          <td colSpan={section === 'sec1' ? 9 : 11} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
