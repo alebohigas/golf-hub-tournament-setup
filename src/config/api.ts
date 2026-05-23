@@ -225,6 +225,10 @@ export const getRegistroBajaUrl = (): string =>
 export const getRegistroEmailUrl = (): string =>
   `${API_BASE_URL}/registro_email.php`;
 
+/** Admin: envía correo de bienvenida "registrado oficialmente" (POST JSON {id,password,force?}). */
+export const getRegistroWelcomeEmailUrl = (): string =>
+  `${API_BASE_URL}/registro_welcome_email.php`;
+
 /** Public: GET datos del registro por token. */
 export const getRegistroPublicoUrl = (token: string): string =>
   `${API_BASE_URL}/registro_publico.php?token=${encodeURIComponent(token)}`;
