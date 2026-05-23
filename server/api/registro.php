@@ -728,6 +728,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_cargo_socio','reg_numsocio',
         // Monto confirmado por tesorería
         'reg_monto_confirmado',
+        // Contador de correos enviados al jugador (sección 1)
+        'reg_email_count','reg_email_last',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns
