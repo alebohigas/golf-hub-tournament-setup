@@ -1618,7 +1618,38 @@ const Registro = () => {
                   Hemos guardado tu solicitud. El comité revisará tus datos
                   y te contactará por correo para confirmar tu inscripción.
                 </p>
-                <Button variant="outline" onClick={() => { setSubmitted(false); setValues({}); setFile(null); }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    /*
+                     * Reset COMPLETO del formulario para permitir un segundo
+                     * pre-registro sin recargar. Limpiar sólo `values` deja
+                     * estado derivado obsoleto (teléfono, fecha, lookups,
+                     * autofill de socio…) que impide que las secciones
+                     * condicionales debajo de la info básica se desplieguen
+                     * al re-llenar los campos.
+                     */
+                    setSubmitted(false);
+                    setValues({});
+                    setFile(null);
+                    setPhoneCode('+52');
+                    setPhoneLocal('');
+                    setPhoneError('');
+                    setBirthDmy('');
+                    setBirthError('');
+                    setEmailError('');
+                    setEmailSuggestion('');
+                    setEmailChecking(false);
+                    setHandicapError('');
+                    setEdadAuto(false);
+                    setLastLookupKey('');
+                    setLastIdLookup('');
+                    setSocioClubAutofilled(false);
+                    setStates([]);
+                    setCities([]);
+                    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
                   Enviar otro pre-registro
                 </Button>
               </CardContent>
