@@ -91,6 +91,10 @@ interface RegistroRow {
   reg_email_count?: number | string;
   /** Timestamp del último correo enviado al jugador. */
   reg_email_last?: string;
+  /** Flag: correo de bienvenida ("registrado oficialmente") ya enviado. */
+  reg_welcome_sent?: number | string;
+  /** Timestamp del último envío del correo de bienvenida. */
+  reg_welcome_last?: string;
 }
 
 // ============= Login form =============
@@ -231,9 +235,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       }));
       if (patch.verified === 1) {
         toast({ title: 'Registro verificado' });
-        // Disparo "fire-and-forget" del correo de bienvenida. Idempotente
-        // en el backend vía `reg_welcome_sent` (no re-envía si ya se mandó).
-        sendWelcomeEmail(row).catch(() => { /* silenciado: error ya se notifica via toast */ });
       }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
@@ -241,28 +242,34 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
-   * Envía el correo de bienvenida ("estás oficialmente registrado al torneo
-   * en la categoría X") al jugador. Llamado automáticamente cuando un admin
-   * marca `verified=1`. El backend evita duplicados con `reg_welcome_sent`.
+   * Sección 4 → POST /registro_welcome_email.php para mandar el correo de
+   * bienvenida ("estás oficialmente registrado al torneo en la categoría X").
+   * Disparado manualmente desde el botón "Enviar bienvenida" en la columna
+   * "Registro completado". Se pasa `force=true` para permitir reenvíos
+   * explícitos desde el admin (el backend marca reg_welcome_sent=1 al enviar).
    */
   const sendWelcomeEmail = async (row: RegistroRow) => {
+    const key = `welcome-${row.id}`;
+    markBusy(key, true);
     try {
       const res = await fetch(getRegistroWelcomeEmailUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, password }),
+        body: JSON.stringify({ id: row.id, password, force: true }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error al enviar correo de bienvenida');
-      if (json.sent) {
-        toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to}` });
-      }
+      toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to}` });
+      // Optimistic: marca el flag local para que el botón cambie a "Volver a enviar".
+      setRows(prev => prev.map(rr => rr.id === row.id ? { ...rr, reg_welcome_sent: 1 } : rr));
     } catch (err: any) {
       toast({
         title: 'No se pudo enviar correo de bienvenida',
         description: err.message,
         variant: 'destructive',
       });
+    } finally {
+      markBusy(key, false);
     }
   };
 
@@ -470,6 +477,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <th className="text-center p-3">Registro verificado</th>
                       </>
                     )}
+                    {section === 'sec4' && (
+                      <th className="text-center p-3">Registro completado</th>
+                    )}
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
@@ -634,6 +644,28 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </>
                         )}
                         {/*
+                          Sección 4 — Columna "Registro completado":
+                          botón "Enviar bienvenida" que dispara el correo
+                          oficial "estás registrado al torneo en la categoría X".
+                          Cambia a "Volver a enviar" si ya se envió (reg_welcome_sent=1).
+                        */}
+                        {section === 'sec4' && (
+                          <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant={Number(r.reg_welcome_sent) === 1 ? 'outline' : 'default'}
+                              className="gap-1"
+                              disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
+                              onClick={() => sendWelcomeEmail(r)}
+                            >
+                              {busy[`welcome-${r.id}`]
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <Mail className="h-4 w-4" />}
+                              {Number(r.reg_welcome_sent) === 1 ? 'Volver a enviar' : 'Enviar bienvenida'}
+                            </Button>
+                          </td>
+                        )}
+                        {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
                           sec3 → "Verificar" marca verificado=1 (atajo del switch).
@@ -701,7 +733,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={section === 'sec1' ? 9 : 11} className="p-4">
+                          <td colSpan={section === 'sec1' ? 9 : section === 'sec4' ? 12 : 11} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
