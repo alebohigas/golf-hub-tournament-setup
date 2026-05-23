@@ -99,7 +99,6 @@ $b = fn($v) => '<strong>' . htmlspecialchars((string)($v ?? '—'), ENT_QUOTES, 
 $rowsHtml = '';
 $entries = [
     ['Folio de registro', '#' . $folio],
-    ['Folio', (isset($row['reg_id_club']) && $row['reg_id_club'] !== '' ? $row['reg_id_club'] : '0') . '-' . (int)$row['id']],
     ['Nombre',        trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''))],
     ['Correo',        $row['reg_correo'] ?? ''],
     ['Teléfono',      $row['reg_telefono'] ?? ($row['reg_celular'] ?? '')],
