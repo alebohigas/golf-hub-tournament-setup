@@ -69,6 +69,8 @@ interface RegistroRow {
   created_at?: string;
   /** Fallback adicional de timestamp de alta en esquemas antiguos. */
   fecha_alta?: string;
+  /** Timestamp de creación (esquema actual: TIMESTAMP `fecharegistro`). */
+  fecharegistro?: string;
   reg_verificado?: number | string;
   /** Toggle administrativo: pago confirmado por tesorería. */
   reg_pago_verificado?: number | string;
@@ -748,7 +750,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Tipo de socio', r.reg_tipo_socio],
                                 ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
                                 ['Clave de socio', r.reg_numsocio],
-                                ['Fecha registro', r.reg_fecha || r.created_at || (r as any).fecha_alta],
+                                ['Fecha registro', formatRegistroTimestamp(r.fecharegistro || r.reg_fecha || r.created_at || r.fecha_alta)],
                                 ['Precio estimado', r.reg_precio_estimado != null && String(r.reg_precio_estimado) !== '' ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.reg_precio_moneda || 'MXN'}` : ''],
                                 ['Monto confirmado', r.reg_monto_confirmado],
                                 ['Pago verificado', Number(r.reg_pago_verificado) === 1 ? 'Sí' : 'No'],

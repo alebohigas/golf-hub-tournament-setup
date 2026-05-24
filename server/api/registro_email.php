@@ -119,9 +119,13 @@ foreach ($entries as [$label, $val]) {
 
 $cuentaImgHtml = '';
 if ($cuentaImg !== '') {
+    // Imagen con datos bancarios — limitada a 500x300 px (manteniendo
+    // proporción) para evitar correos enormes en pantallas grandes.
     $cuentaImgHtml = '<div style="margin:24px 0;text-align:center;">'
         . '<img src="' . htmlspecialchars($cuentaImg, ENT_QUOTES) . '" alt="Datos de la cuenta" '
-        . 'style="max-width:100%;height:auto;border:1px solid #e5e5e5;border-radius:6px;" />'
+        . 'width="500" '
+        . 'style="max-width:500px;max-height:300px;width:auto;height:auto;'
+        . 'border:1px solid #e5e5e5;border-radius:6px;" />'
         . '</div>';
 }
 
