@@ -47,6 +47,24 @@ const formatPhone = (raw?: string | null): string => {
   return s;
 };
 
+/**
+ * Formatea un timestamp de registro (`fecharegistro` TIMESTAMP, o
+ * fallbacks como `reg_fecha` / `created_at` / `fecha_alta`) como
+ * `YYYY-MM-DD HH:MM:SS`. Acepta strings MySQL ("2026-05-24 10:15:30")
+ * y formato ISO. Si no es parseable devuelve el valor original.
+ */
+const formatRegistroTimestamp = (raw?: string | null): string => {
+  const s = (raw || '').toString().trim();
+  if (!s) return '';
+  // Normaliza "YYYY-MM-DD HH:MM:SS" → mantenemos tal cual (ya es el formato deseado).
+  const mysqlRe = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/;
+  const m = s.match(mysqlRe);
+  if (m) return `${m[1]} ${m[2]}`;
+  // Si solo trae fecha YYYY-MM-DD, devolver como está.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return s;
+};
+
 /** A single registro row from /api/registro.php */
 interface RegistroRow {
   id: number;
@@ -69,6 +87,8 @@ interface RegistroRow {
   created_at?: string;
   /** Fallback adicional de timestamp de alta en esquemas antiguos. */
   fecha_alta?: string;
+  /** Timestamp de creación (esquema actual: TIMESTAMP `fecharegistro`). */
+  fecharegistro?: string;
   reg_verificado?: number | string;
   /** Toggle administrativo: pago confirmado por tesorería. */
   reg_pago_verificado?: number | string;
@@ -748,7 +768,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Tipo de socio', r.reg_tipo_socio],
                                 ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
                                 ['Clave de socio', r.reg_numsocio],
-                                ['Fecha registro', r.reg_fecha || r.created_at || (r as any).fecha_alta],
+                                ['Fecha registro', formatRegistroTimestamp(r.fecharegistro || r.reg_fecha || r.created_at || r.fecha_alta)],
                                 ['Precio estimado', r.reg_precio_estimado != null && String(r.reg_precio_estimado) !== '' ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.reg_precio_moneda || 'MXN'}` : ''],
                                 ['Monto confirmado', r.reg_monto_confirmado],
                                 ['Pago verificado', Number(r.reg_pago_verificado) === 1 ? 'Sí' : 'No'],
