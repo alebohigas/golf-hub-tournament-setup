@@ -181,6 +181,16 @@ const saveSiteConfigApi = async (payload: SaveConfigPayload): Promise<{ domain: 
 export const useSiteConfig = () => {
   return useQuery<SiteConfig>({
     queryKey: ['site-config'],
+    /**
+     * El config del sitio cambia rara vez y en admin siempre se invalida
+     * manualmente tras guardar. Evitamos reintentos/refetches silenciosos
+     * para que pantallas como /admin → Registros no parpadeen por updates
+     * globales ajenos al botón "Actualizar" de ese módulo.
+     */
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const config = await fetchSiteConfig();
 
