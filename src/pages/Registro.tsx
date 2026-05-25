@@ -479,15 +479,20 @@ const Registro = () => {
       const res = await fetch(getEmailValidateUrl(v));
       const j = await res.json().catch(() => ({}));
       if (j?.valid) {
-        // Syntax/MX OK — now check duplicate for this tournament. One
-        // correo por torneo: si ya existe, bloquear con mensaje canónico.
+        // Syntax/MX OK — now check duplicate (nombre+apellido+correo).
+        // Sólo bloqueamos si los TRES campos coinciden con un registro
+        // previo de este torneo. Si nombre o apellido aún están vacíos,
+        // el servidor devuelve `exists:false` y el POST hará el chequeo
+        // definitivo.
+        const nombre   = (values.reg_nombre   || '').trim();
+        const apellido = (values.reg_apellido || '').trim();
         try {
-          const dupRes = await fetch(getRegistroEmailCheckUrl(v));
+          const dupRes = await fetch(getRegistroEmailCheckUrl(v, nombre, apellido));
           const dupJ = await dupRes.json().catch(() => ({}));
           if (dupJ?.exists) {
-            const msg = 'Este torneo ya tiene un jugador registrado con este correo. Si necesitas registrar otro jugador, utiliza otro correo';
+            const msg = 'Ya existe un pre-registro con el mismo nombre, apellido y correo en este torneo. Si necesitas registrar a otra persona, cambia el nombre o el apellido.';
             setEmailError(msg);
-            toast({ title: 'Correo ya registrado', description: msg, variant: 'destructive' });
+            toast({ title: 'Pre-registro duplicado', description: msg, variant: 'destructive' });
             return;
           }
         } catch { /* network error → no bloquear; el POST lo revalidará */ }
@@ -1087,7 +1092,10 @@ const Registro = () => {
         // Duplicate-email case (HTTP 409): surface the canonical message
         // inline next to the email field so el jugador lo vea sin scroll.
         if (res.status === 409) {
-          setEmailError((json as any).error || 'Correo ya registrado para este torneo.');
+          setEmailError(
+            (json as any).error
+            || 'Ya existe un pre-registro con el mismo nombre, apellido y correo en este torneo.'
+          );
         }
         throw new Error((json as any).error || 'Error al enviar el formulario');
       }

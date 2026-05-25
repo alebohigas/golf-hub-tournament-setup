@@ -36,19 +36,29 @@ function registro_email_col($conn) {
 }
 
 /**
- * Check whether a given email is already registered for a tournament.
- * Case-insensitive match. Returns true when a row exists. Silent (returns
- * false) if any required column is missing.
+ * Check whether a given (nombre, apellido, correo) triple is already
+ * registered for a tournament. Bloqueo SOLO cuando los TRES coinciden
+ * exactamente (case-insensitive, trim). Reglas:
+ *   - mismo nombre + mismo apellido + mismo correo → existe (BLOQUEAR)
+ *   - mismo nombre + DIFERENTE apellido + mismo correo → no existe (permitir)
+ *   - DIFERENTE nombre + mismo apellido + mismo correo → no existe (permitir)
+ * Devuelve false si falta cualquiera de los tres campos (no podemos
+ * decidir aún) o si alguna columna requerida falta en la BD.
  */
-function registro_email_exists($conn, $torneoid, $email) {
-    $email = trim((string)$email);
-    if ($email === '') return false;
+function registro_triple_exists($conn, $torneoid, $email, $nombre, $apellido) {
+    $email    = trim((string)$email);
+    $nombre   = trim((string)$nombre);
+    $apellido = trim((string)$apellido);
+    if ($email === '' || $nombre === '' || $apellido === '') return false;
     $emailCol  = registro_email_col($conn);
     $torneoCol = registro_torneo_col($conn);
     if (!$emailCol || !$torneoCol) return false;
+    if (!registro_has($conn, 'reg_nombre') || !registro_has($conn, 'reg_apellido')) return false;
     $sql = "SELECT 1 FROM registro
               WHERE $torneoCol = " . (int)$torneoid . "
-                AND LOWER($emailCol) = LOWER('" . esc($conn, $email) . "')
+                AND LOWER($emailCol)   = LOWER('" . esc($conn, $email) . "')
+                AND LOWER(TRIM(reg_nombre))   = LOWER('" . esc($conn, $nombre) . "')
+                AND LOWER(TRIM(reg_apellido)) = LOWER('" . esc($conn, $apellido) . "')
               LIMIT 1";
     $r = @$conn->query($sql);
     $found = ($r && $r->fetch_row());
@@ -276,15 +286,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     ensure_registro_flow_cols($conn);
 
     /**
-     * Duplicate-email guard. One email per tournament: if this torneoid
-     * already has a registro row with the same correo, reject with 409 so
-     * the client can show the canonical message. Case-insensitive.
+     * Duplicate guard: bloquear sólo cuando coinciden nombre+apellido+correo.
+     * Esto permite a un mismo correo registrar a múltiples jugadores con
+     * distinto nombre o distinto apellido (caso jugadores familiares que
+     * comparten cuenta de correo).
      */
-    $postedEmail = trim((string)($_POST['reg_correo'] ?? ''));
-    if ($postedEmail !== '' && registro_email_exists($conn, $torneoid, $postedEmail)) {
+    $postedEmail    = trim((string)($_POST['reg_correo']   ?? ''));
+    $postedNombre   = trim((string)($_POST['reg_nombre']   ?? ''));
+    $postedApellido = trim((string)($_POST['reg_apellido'] ?? ''));
+    if ($postedEmail !== '' && $postedNombre !== '' && $postedApellido !== ''
+        && registro_triple_exists($conn, $torneoid, $postedEmail, $postedNombre, $postedApellido)) {
         json_error(
-            'Este torneo ya tiene un jugador registrado con este correo. '
-          . 'Si necesitas registrar otro jugador, utiliza otro correo.',
+            'Ya existe un pre-registro con el mismo nombre, apellido y correo en este torneo. '
+          . 'Si necesitas registrar a otra persona, cambia el nombre o el apellido.',
             409
         );
     }
@@ -675,8 +689,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (optional_param('action') === 'check_email') {
         $torneoid = (int) require_param('torneoid');
         $email    = trim((string) optional_param('email', ''));
+        $nombre   = trim((string) optional_param('nombre', ''));
+        $apellido = trim((string) optional_param('apellido', ''));
         json_response([
-            'exists' => registro_email_exists($conn, $torneoid, $email),
+            // Solo reporta `exists: true` cuando los tres campos coinciden
+            // exactamente. Si falta cualquiera, devuelve false (el cliente
+            // hará el chequeo definitivo al enviar el formulario).
+            'exists' => registro_triple_exists($conn, $torneoid, $email, $nombre, $apellido),
         ]);
     }
 
