@@ -1600,7 +1600,7 @@ const Registro = () => {
             id={id}
             type="text"
             inputMode="decimal"
-            pattern="-?[0-9]+(\\.[0-9]+)?"
+            pattern="-?[0-9]+(\.[0-9])?"
             title={`El hándicap debe estar entre ${HANDICAP_MIN} y ${HANDICAP_MAX}.`}
             placeholder={PLACEHOLDERS[name]}
             required={required}
