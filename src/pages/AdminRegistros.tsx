@@ -153,7 +153,15 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec3 — Verificar registro (status_pago=1, verificado=0)
    *   sec4 — Registros completados (verificado=1, status_pago in {1,99})
    */
-  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4'>('sec1');
+  /**
+   * Las secciones del flujo de pre-registro:
+   *   sec1 — Sin validar registro
+   *   sec2 — Pendiente verificación de pago
+   *   sec3 — Verificar registro
+   *   sec4 — Registros completados
+   *   sec5 — Lista de espera (status_pago=67)
+   */
+  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
   const [search, setSearch] = useState('');
   /** Set de IDs cuyos detalles están expandidos en la tabla. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
