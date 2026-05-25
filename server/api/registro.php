@@ -730,6 +730,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_monto_confirmado',
         // Contador de correos enviados al jugador (sección 1)
         'reg_email_count','reg_email_last',
+        // Contador de correos de BIENVENIDA (sección 4)
+        'reg_welcome_count','reg_welcome_last',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns
