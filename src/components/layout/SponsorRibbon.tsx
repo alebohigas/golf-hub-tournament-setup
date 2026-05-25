@@ -288,7 +288,7 @@ const SponsorRibbon = () => {
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
   return (
-    <div className="bg-muted/50 border-y border-border py-4 overflow-hidden">
+    <div className="bg-white border-y border-border py-3 md:py-4 overflow-hidden">
       <div className="container mx-auto">
         <div ref={viewportRef} className="fade-edge-left">
           <div className="flex items-center sponsor-scroll" style={animationStyle}>
@@ -309,7 +309,7 @@ const SponsorRibbon = () => {
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
                       onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                      className="h-20 md:h-24 w-auto max-w-none object-contain transition-all duration-300"
+                      className="h-[74px] md:h-24 w-auto max-w-none object-contain transition-all duration-300"
                     />
                   </a>
                 ) : (
@@ -317,7 +317,7 @@ const SponsorRibbon = () => {
                     url={sponsor.logoUrl}
                     alt={sponsor.name}
                     onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-20 md:h-24 w-auto max-w-none object-contain transition-all duration-300"
+                    className="h-[74px] md:h-24 w-auto max-w-none object-contain transition-all duration-300"
                   />
                 )}
               </div>
