@@ -69,6 +69,8 @@ interface RegistroRow {
   created_at?: string;
   /** Fallback adicional de timestamp de alta en esquemas antiguos. */
   fecha_alta?: string;
+  /** Timestamp del registro (fecha y hora del alta). */
+  fecharegistro?: string;
   reg_verificado?: number | string;
   /** Toggle administrativo: pago confirmado por tesorería. */
   reg_pago_verificado?: number | string;
