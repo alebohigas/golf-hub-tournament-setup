@@ -1213,10 +1213,16 @@ const Registro = () => {
                   const label = unlimited
                     ? c.name
                     : full
-                      ? `${c.name} (${reg}/${max}) — LLENO`
+                      ? `${c.name} (${reg}/${max}) — LLENO (lista de espera)`
                       : `${c.name} (${reg}/${max}) ${left} espacios disponibles`;
                   return (
-                    <SelectItem key={c.id} value={c.id} disabled={full}>
+                    /*
+                     * No deshabilitar categorías llenas: el jugador puede
+                     * inscribirse de todos modos y entrará a "lista de
+                     * espera" (status_pago=67 en BD). Un confirm en el
+                     * submit le avisa antes de registrar.
+                     */
+                    <SelectItem key={c.id} value={c.id}>
                       {label}
                     </SelectItem>
                   );
