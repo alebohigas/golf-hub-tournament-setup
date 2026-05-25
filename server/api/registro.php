@@ -529,13 +529,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         }
     }
 
-    /** Auto timestamp if such a column exists. */
+    /**
+     * Marca de tiempo del registro. Preferimos el instante capturado por
+     * el cliente (`reg_client_utc`, ISO 8601 UTC) sobre NOW() del servidor
+     * para que la hora guardada sea independiente de la zona horaria del
+     * host de MySQL/PHP y refleje exactamente cuándo el jugador envió el
+     * formulario. Almacenamos siempre en UTC; el frontend convierte a la
+     * zona local del usuario al mostrarlo.
+     */
+    $clientUtc = trim((string)($_POST['reg_client_utc'] ?? ''));
+    $utcDateTime = null; // formato 'YYYY-MM-DD HH:MM:SS' UTC
+    if ($clientUtc !== '') {
+        $ts = strtotime($clientUtc);
+        if ($ts !== false) $utcDateTime = gmdate('Y-m-d H:i:s', $ts);
+    }
+    if ($utcDateTime === null) {
+        $utcDateTime = gmdate('Y-m-d H:i:s');
+    }
+    $utcLiteral = "'" . esc($conn, $utcDateTime) . "'";
+    // reg_fecha / created_at / fecha_alta (heredados): usar el UTC del cliente.
     foreach (['reg_fecha', 'created_at', 'fecha_alta'] as $tc) {
-        if (registro_has($conn, $tc)) {
+        if (registro_has($conn, $tc) && !isset($writtenCols[$tc])) {
+            $writtenCols[$tc] = true;
             $cols[] = $tc;
-            $vals[] = 'NOW()';
+            $vals[] = $utcLiteral;
             break;
         }
+    }
+    // fecharegistro (columna canónica nueva): guardar SIEMPRE el UTC.
+    if (registro_has($conn, 'fecharegistro') && !isset($writtenCols['fecharegistro'])) {
+        $writtenCols['fecharegistro'] = true;
+        $cols[] = 'fecharegistro';
+        $vals[] = $utcLiteral;
     }
 
     /**
