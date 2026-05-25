@@ -477,7 +477,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <th className="text-center p-3">Registro verificado</th>
                       </>
                     )}
-                    <th className="text-center p-3">Acciones</th>
+                    {section !== 'sec4' && (
+                      <th className="text-center p-3">Acciones</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
