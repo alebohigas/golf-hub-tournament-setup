@@ -42,33 +42,7 @@ function smtp_load_phpmailer() {
 function smtp_send($to, $toName, $subject, $html, $textAlt = '') {
     global $SMTP_HOST, $SMTP_PORT, $SMTP_USER, $SMTP_PASS, $SMTP_FROM_NAME;
 
-    /**
-     * Rotación de cuentas de envío
-     * ------------------------------------------------------------------
-     * La BD tiene un procedimiento `f_correo()` que devuelve la siguiente
-     * cuenta `cuentas_correo.cuenta_correo` disponible (límite diario de
-     * 250 envíos por cuenta, contador reseteado por día). Todas las
-     * cuentas IONOS comparten la MISMA contraseña SMTP (`$SMTP_PASS`),
-     * por lo que solo cambiamos el `Username`/`From` por envío. Si la
-     * llamada falla por cualquier razón, caemos a `$SMTP_USER` fijo.
-     */
     $fromAddr = $SMTP_USER ?? '';
-    global $conn;
-    if (isset($conn) && $conn instanceof \mysqli) {
-        try {
-            $r = @$conn->query("SELECT f_correo() AS c");
-            if ($r) {
-                $row = $r->fetch_assoc();
-                $r->free();
-                $rotated = trim((string)($row['c'] ?? ''));
-                if ($rotated !== '' && filter_var($rotated, FILTER_VALIDATE_EMAIL)) {
-                    $fromAddr = $rotated;
-                }
-            }
-        } catch (\Throwable $e) {
-            error_log('[smtp] f_correo() falló, usando SMTP_USER: ' . $e->getMessage());
-        }
-    }
     $fromName = $SMTP_FROM_NAME ?? 'Pre-Registro';
     if (!$fromAddr) {
         return ['ok' => false, 'error' => 'SMTP_USER no configurado en credentials.php'];
@@ -81,8 +55,7 @@ function smtp_send($to, $toName, $subject, $html, $textAlt = '') {
             $mail->isSMTP();
             $mail->Host       = $SMTP_HOST;
             $mail->SMTPAuth   = true;
-            // Username = cuenta rotada (misma contraseña para todas).
-            $mail->Username   = $fromAddr;
+            $mail->Username   = $SMTP_USER;
             $mail->Password   = $SMTP_PASS;
             $mail->Port       = (int)($SMTP_PORT ?? 587);
             $mail->SMTPSecure = ((int)$mail->Port === 465)

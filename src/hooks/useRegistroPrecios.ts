@@ -53,6 +53,7 @@ export const useRegistroPrecios = () => {
       return res.json();
     },
     enabled: !!torneoId,
+    staleTime: 30_000,
   });
 };
 

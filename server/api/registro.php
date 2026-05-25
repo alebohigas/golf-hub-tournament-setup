@@ -36,31 +36,19 @@ function registro_email_col($conn) {
 }
 
 /**
- * Check whether a given (nombre, apellido, correo) trio is already
- * registered for a tournament. Case-insensitive match — the three fields
- * must ALL match exactly (after trim/lower) for the row to be a dup.
- *
- * Reglas de bloqueo solicitadas:
- *   - mismo nombre + mismo apellido + mismo correo  → DUPLICADO (true)
- *   - mismo nombre + DIFERENTE apellido + mismo correo → permitir (false)
- *   - DIFERENTE nombre + mismo apellido + mismo correo → permitir (false)
- *
- * Devuelve false silencioso si falta alguna columna requerida.
+ * Check whether a given email is already registered for a tournament.
+ * Case-insensitive match. Returns true when a row exists. Silent (returns
+ * false) if any required column is missing.
  */
-function registro_dup_exists($conn, $torneoid, $email, $nombre, $apellido) {
-    $email    = trim((string)$email);
-    $nombre   = trim((string)$nombre);
-    $apellido = trim((string)$apellido);
-    if ($email === '' || $nombre === '' || $apellido === '') return false;
+function registro_email_exists($conn, $torneoid, $email) {
+    $email = trim((string)$email);
+    if ($email === '') return false;
     $emailCol  = registro_email_col($conn);
     $torneoCol = registro_torneo_col($conn);
     if (!$emailCol || !$torneoCol) return false;
-    if (!registro_has($conn, 'reg_nombre') || !registro_has($conn, 'reg_apellido')) return false;
     $sql = "SELECT 1 FROM registro
               WHERE $torneoCol = " . (int)$torneoid . "
-                AND LOWER($emailCol)    = LOWER('" . esc($conn, $email)    . "')
-                AND LOWER(reg_nombre)   = LOWER('" . esc($conn, $nombre)   . "')
-                AND LOWER(reg_apellido) = LOWER('" . esc($conn, $apellido) . "')
+                AND LOWER($emailCol) = LOWER('" . esc($conn, $email) . "')
               LIMIT 1";
     $r = @$conn->query($sql);
     $found = ($r && $r->fetch_row());
@@ -288,19 +276,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     ensure_registro_flow_cols($conn);
 
     /**
-     * Duplicate guard. Bloquea SOLO cuando el trio (nombre + apellido +
-     * correo) ya existe en este torneo (case-insensitive). Permite que
-     * dos jugadores compartan correo si tienen diferente nombre o
-     * apellido (típico: familiares que comparten una cuenta de email).
+     * Duplicate-email guard. One email per tournament: if this torneoid
+     * already has a registro row with the same correo, reject with 409 so
+     * the client can show the canonical message. Case-insensitive.
      */
-    $postedEmail    = trim((string)($_POST['reg_correo']   ?? ''));
-    $postedNombre   = trim((string)($_POST['reg_nombre']   ?? ''));
-    $postedApellido = trim((string)($_POST['reg_apellido'] ?? ''));
-    if ($postedEmail !== '' && $postedNombre !== '' && $postedApellido !== ''
-        && registro_dup_exists($conn, $torneoid, $postedEmail, $postedNombre, $postedApellido)) {
+    $postedEmail = trim((string)($_POST['reg_correo'] ?? ''));
+    if ($postedEmail !== '' && registro_email_exists($conn, $torneoid, $postedEmail)) {
         json_error(
-            'Este torneo ya tiene un jugador registrado con el mismo nombre, apellido y correo. '
-          . 'Si necesitas registrar otro jugador, cambia el nombre o apellido.',
+            'Este torneo ya tiene un jugador registrado con este correo. '
+          . 'Si necesitas registrar otro jugador, utiliza otro correo.',
             409
         );
     }
@@ -685,18 +669,14 @@ function send_verification_email($conn, $regId) {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     /**
      * Public action — no password required.
-     * GET /api/registro.php?action=check_email&torneoid=NN&email=&nombre=&apellido=
-     * Returns { exists: bool }. Solo reporta `exists:true` cuando los
-     * tres campos coinciden (ver `registro_dup_exists`). Si faltan
-     * nombre o apellido, devuelve false (no se puede determinar aún).
+     * GET /api/registro.php?action=check_email&torneoid=NN&email=foo@bar.com
+     * Returns { exists: bool } to let the form warn before submit.
      */
     if (optional_param('action') === 'check_email') {
         $torneoid = (int) require_param('torneoid');
         $email    = trim((string) optional_param('email', ''));
-        $nombre   = trim((string) optional_param('nombre', ''));
-        $apellido = trim((string) optional_param('apellido', ''));
         json_response([
-            'exists' => registro_dup_exists($conn, $torneoid, $email, $nombre, $apellido),
+            'exists' => registro_email_exists($conn, $torneoid, $email),
         ]);
     }
 
@@ -743,15 +723,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_handicap',
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
-        'reg_fecha','created_at','fecha_alta','fecharegistro','reg_archivo_nombre',
+        'reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
         // Cargo a cuenta de socio
         'reg_cargo_socio','reg_numsocio',
         // Monto confirmado por tesorería
         'reg_monto_confirmado',
         // Contador de correos enviados al jugador (sección 1)
         'reg_email_count','reg_email_last',
-        // Correo de bienvenida (sección 4 — registros completados)
-        'reg_welcome_sent','reg_welcome_last',
         // Tallas (optional columns)
         'reg_talla_gorra',
         // Canonical / akron columns

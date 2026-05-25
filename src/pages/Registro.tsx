@@ -479,10 +479,18 @@ const Registro = () => {
       const res = await fetch(getEmailValidateUrl(v));
       const j = await res.json().catch(() => ({}));
       if (j?.valid) {
-        // Sintaxis/MX OK. NO bloqueamos por correo duplicado aquí: la regla
-        // ahora exige que coincidan nombre + apellido + correo (ver
-        // server/api/registro.php → registro_dup_exists). El servidor valida
-        // al enviar el formulario y devuelve 409 con el mensaje canónico.
+        // Syntax/MX OK — now check duplicate for this tournament. One
+        // correo por torneo: si ya existe, bloquear con mensaje canónico.
+        try {
+          const dupRes = await fetch(getRegistroEmailCheckUrl(v));
+          const dupJ = await dupRes.json().catch(() => ({}));
+          if (dupJ?.exists) {
+            const msg = 'Este torneo ya tiene un jugador registrado con este correo. Si necesitas registrar otro jugador, utiliza otro correo';
+            setEmailError(msg);
+            toast({ title: 'Correo ya registrado', description: msg, variant: 'destructive' });
+            return;
+          }
+        } catch { /* network error → no bloquear; el POST lo revalidará */ }
         setEmailError('');
         return;
       }

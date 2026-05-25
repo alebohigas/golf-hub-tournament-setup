@@ -4,9 +4,10 @@
  * Protected by password authentication
  */
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -161,15 +162,6 @@ const AdminDashboard = () => {
   const menuItems = getAllMenuItems();
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
   const hiddenCount = menuItems.length - visibleCount;
-  /**
-   * Congela la instancia del dashboard de registros dentro de /admin para que
-   * no se remonte ni re-ejecute su carga inicial por re-renders del panel
-   * principal (configuración, contexto, tabs hermanas, etc.).
-   */
-  const registrosDashboardContent = useMemo(
-    () => <RegistrosDashboard password="registros2025" />,
-    []
-  );
 
   /**
    * Save a specific config field to the server for all visitors
@@ -535,7 +527,7 @@ const AdminDashboard = () => {
             el endpoint verify; el listado público sigue disponible en
             /admin/registros para personal del club / ayudantes. */}
         <TabsContent value="registros">
-          {registrosDashboardContent}
+          <RegistrosDashboard password="registros2025" />
         </TabsContent>
         {/* Brackets Putt Tab — config + visibilidad + captura de resultados
             (mode="full") para que el admin principal pueda hacerlo todo
@@ -567,13 +559,13 @@ const Admin = () => {
   const { isAdmin, loginAsAdmin } = usePageVisibility();
 
   return (
-    <div className="min-h-screen bg-background">
+    <Layout>
       {isAdmin ? (
         <AdminDashboard />
       ) : (
         <AdminLoginForm onLogin={loginAsAdmin} />
       )}
-    </div>
+    </Layout>
   );
 };
 

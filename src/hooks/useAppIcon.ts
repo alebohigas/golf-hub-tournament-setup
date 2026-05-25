@@ -14,13 +14,7 @@ import { useTournamentInfo } from '@/hooks/useTournamentData';
  * based on the tournament's logoHeaderUrl field from the database.
  */
 export const useAppIcon = () => {
-  /**
-   * En /admin y /admin/registros no necesitamos resolver branding dinámico.
-   * Desactivar esta query evita fetches globales a tournament.php y el
-   * parpadeo asociado cuando el endpoint falla o responde HTML.
-   */
-  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-  const { data: tournament } = useTournamentInfo({ enabled: !isAdminRoute });
+  const { data: tournament } = useTournamentInfo();
 
   useEffect(() => {
     if (!tournament?.logoHeaderUrl) return;

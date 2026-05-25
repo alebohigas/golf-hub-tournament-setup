@@ -16,15 +16,6 @@ import {
 } from '@/config/api';
 import type { MenuItem, Sponsor, TournamentInfo, TournamentStats, EventDay } from '@/data/mockData';
 
-/**
- * Opciones mínimas compartidas para queries semiestáticas.
- * `enabled` permite apagar completamente la consulta en pantallas como /admin,
- * donde no debe existir ningún fetch automático a tournament.php.
- */
-interface StaticQueryOptions {
-  enabled?: boolean;
-}
-
 // ============= Menu =============
 
 /** Fetch enabled menu items from API */
@@ -34,9 +25,6 @@ export const useMenuItems = () => {
     queryFn: () => apiFetch<MenuItem[]>(getMenuUrl()),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: POLL_STATIC || false,
-    retry: 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   });
 };
 
@@ -57,10 +45,9 @@ export const useSponsors = () => {
 // ============= Tournament Info =============
 
 /** Fetch tournament general info */
-export const useTournamentInfo = ({ enabled = true }: StaticQueryOptions = {}) => {
+export const useTournamentInfo = () => {
   return useQuery<TournamentInfo>({
     queryKey: ['tournament'],
-    enabled,
     queryFn: async () => {
       const data = await apiFetch<any>(getTournamentUrl());
       return {
@@ -76,9 +63,6 @@ export const useTournamentInfo = ({ enabled = true }: StaticQueryOptions = {}) =
     },
     staleTime: 5 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
-    retry: 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   });
 };
 
@@ -101,9 +85,6 @@ export const useTournamentStats = () => {
     },
     staleTime: 2 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
-    retry: 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   });
 };
 
@@ -116,8 +97,5 @@ export const useEventos = () => {
     queryFn: () => apiFetch<EventDay[]>(getEventosUrl()),
     staleTime: 5 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
-    retry: 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   });
 };

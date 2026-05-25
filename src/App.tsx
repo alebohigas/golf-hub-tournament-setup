@@ -37,20 +37,7 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // ============= Query Client =============
-/**
- * Global React Query client.
- * `refetchOnWindowFocus` is disabled to evitar refrescos automáticos
- * (parpadeo) en pantallas administrativas como /admin → Registros
- * cuando el usuario alterna entre ventanas. Cada hook decide
- * explícitamente su propio `refetchInterval` cuando necesita polling.
- */
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 /**
  * SiteConfigSync
@@ -63,59 +50,34 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
   /** Set apple-touch-icon & favicon dynamically from tournament logo */
   useAppIcon();
   const { 
-    visibilitySettings,
-    menuItemOrder,
-    menuGroups,
-    pageGroupAssignments,
     setMenuItemOrder, 
     setPageVisibility, 
     setMenuGroups, 
     setPageGroupAssignment,
+    isAdmin,
   } = usePageVisibility();
 
   /** Sync server config into context state when data arrives */
   useEffect(() => {
     if (!data) return;
 
-    if (
-      data.menu_order &&
-      JSON.stringify(data.menu_order) !== JSON.stringify(menuItemOrder)
-    ) {
+    if (data.menu_order) {
       setMenuItemOrder(data.menu_order);
     }
-    if (
-      data.visibility &&
-      JSON.stringify(data.visibility) !== JSON.stringify(visibilitySettings)
-    ) {
+    if (data.visibility) {
       Object.entries(data.visibility).forEach(([pageId, visible]) => {
         setPageVisibility(pageId, visible);
       });
     }
-    if (
-      data.menu_groups &&
-      JSON.stringify(data.menu_groups) !== JSON.stringify(menuGroups)
-    ) {
+    if (data.menu_groups) {
       setMenuGroups(data.menu_groups);
     }
-    if (
-      data.page_group_assignments &&
-      JSON.stringify(data.page_group_assignments) !== JSON.stringify(pageGroupAssignments)
-    ) {
+    if (data.page_group_assignments) {
       Object.entries(data.page_group_assignments).forEach(([pageId, groupId]) => {
         setPageGroupAssignment(pageId, groupId);
       });
     }
-  }, [
-    data,
-    menuGroups,
-    menuItemOrder,
-    pageGroupAssignments,
-    setMenuGroups,
-    setMenuItemOrder,
-    setPageGroupAssignment,
-    setPageVisibility,
-    visibilitySettings,
-  ]);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>{children}</>;
 };

@@ -36,6 +36,7 @@ export const useRegistroFields = () => {
       if (!res.ok) throw new Error('Failed to fetch registro fields');
       return res.json();
     },
+    staleTime: 30_000,
   });
 };
 
