@@ -17,6 +17,7 @@
  *   sponsors_config TEXT DEFAULT NULL COMMENT 'JSON object with sponsors page display settings (e.g. column count)',
  *   eventos_config TEXT DEFAULT NULL COMMENT 'JSON object with eventos page display settings (cols/gap per breakpoint)',
  *   avisos_config TEXT DEFAULT NULL COMMENT 'JSON object with avisos page display settings (cols/gap per breakpoint)',
+ *   theme_config TEXT DEFAULT NULL COMMENT 'JSON object with the active color palette {name, primary, secondary, accent, background} in HSL strings',
  *   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  * );
  */
@@ -106,6 +107,20 @@ function site_config_has_avisos_config($conn) {
 
 $hasAvisosConfig = site_config_has_avisos_config($conn);
 
+/**
+ * Detect whether the theme_config column exists.
+ * Keeps endpoint backward-compatible if the schema has not been migrated yet.
+ */
+function site_config_has_theme_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'theme_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasThemeConfig = site_config_has_theme_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -120,6 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if ($hasAvisosConfig) {
         $selectFields .= ', avisos_config';
+    }
+    if ($hasThemeConfig) {
+        $selectFields .= ', theme_config';
     }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
@@ -137,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'sponsors_config'       => $hasSponsorsConfig && !empty($row['sponsors_config']) ? json_decode($row['sponsors_config'], true) : null,
             'eventos_config'        => $hasEventosConfig && !empty($row['eventos_config']) ? json_decode($row['eventos_config'], true) : null,
             'avisos_config'         => $hasAvisosConfig && !empty($row['avisos_config']) ? json_decode($row['avisos_config'], true) : null,
+            'theme_config'          => $hasThemeConfig && !empty($row['theme_config']) ? json_decode($row['theme_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -150,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'sponsors_config'       => null,
             'eventos_config'        => null,
             'avisos_config'         => null,
+            'theme_config'          => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -247,6 +267,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['avisos_config'] !== null ? "'" . esc($conn, json_encode($body['avisos_config'])) . "'" : 'NULL';
         $fields[] = "avisos_config = $val";
         $insertFields[] = 'avisos_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('theme_config', $body)) {
+        if (!$hasThemeConfig) {
+            json_error("Missing DB column theme_config in site_config. Run: ALTER TABLE site_config ADD COLUMN theme_config TEXT DEFAULT NULL COMMENT 'JSON object with the active color palette';", 500);
+        }
+        $val = $body['theme_config'] !== null ? "'" . esc($conn, json_encode($body['theme_config'])) . "'" : 'NULL';
+        $fields[] = "theme_config = $val";
+        $insertFields[] = 'theme_config';
         $insertValues[] = $val;
     }
     
