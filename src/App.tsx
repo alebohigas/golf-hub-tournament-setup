@@ -63,34 +63,59 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
   /** Set apple-touch-icon & favicon dynamically from tournament logo */
   useAppIcon();
   const { 
+    visibilitySettings,
+    menuItemOrder,
+    menuGroups,
+    pageGroupAssignments,
     setMenuItemOrder, 
     setPageVisibility, 
     setMenuGroups, 
     setPageGroupAssignment,
-    isAdmin,
   } = usePageVisibility();
 
   /** Sync server config into context state when data arrives */
   useEffect(() => {
     if (!data) return;
 
-    if (data.menu_order) {
+    if (
+      data.menu_order &&
+      JSON.stringify(data.menu_order) !== JSON.stringify(menuItemOrder)
+    ) {
       setMenuItemOrder(data.menu_order);
     }
-    if (data.visibility) {
+    if (
+      data.visibility &&
+      JSON.stringify(data.visibility) !== JSON.stringify(visibilitySettings)
+    ) {
       Object.entries(data.visibility).forEach(([pageId, visible]) => {
         setPageVisibility(pageId, visible);
       });
     }
-    if (data.menu_groups) {
+    if (
+      data.menu_groups &&
+      JSON.stringify(data.menu_groups) !== JSON.stringify(menuGroups)
+    ) {
       setMenuGroups(data.menu_groups);
     }
-    if (data.page_group_assignments) {
+    if (
+      data.page_group_assignments &&
+      JSON.stringify(data.page_group_assignments) !== JSON.stringify(pageGroupAssignments)
+    ) {
       Object.entries(data.page_group_assignments).forEach(([pageId, groupId]) => {
         setPageGroupAssignment(pageId, groupId);
       });
     }
-  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    data,
+    menuGroups,
+    menuItemOrder,
+    pageGroupAssignments,
+    setMenuGroups,
+    setMenuItemOrder,
+    setPageGroupAssignment,
+    setPageVisibility,
+    visibilitySettings,
+  ]);
 
   return <>{children}</>;
 };

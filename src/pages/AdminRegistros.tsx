@@ -10,7 +10,6 @@
  */
 
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react';
-import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -834,9 +833,9 @@ const AdminRegistros = () => {
   };
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
       {authed ? <RegistrosDashboard password={REGISTROS_PASSWORD} /> : <LoginForm onLogin={onLogin} />}
-    </Layout>
+    </div>
   );
 };
 
