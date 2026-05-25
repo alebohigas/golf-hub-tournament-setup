@@ -1092,6 +1092,29 @@ const Registro = () => {
         fd.append('reg_precio_regla_id', String(precioMatch.id));
       }
 
+      /**
+       * Lista de espera: si la categoría seleccionada ya está llena
+       * (registeredCount >= maxjugadores y max>0/<>99), pedimos
+       * confirmación al jugador antes de enviar. El servidor revalida
+       * el cupo y marca status_pago=67 cuando aplica.
+       */
+      const selectedCatId = values.reg_categoria;
+      const selectedCat = eligibleCategories.find(c => String(c.id) === String(selectedCatId));
+      if (selectedCat) {
+        const maxC = Number(selectedCat.maxPlayers) || 0;
+        const regC = Number(selectedCat.registeredCount) || 0;
+        const unlimitedC = !maxC || maxC === 99;
+        if (!unlimitedC && regC >= maxC) {
+          const ok = window.confirm(
+            'La categoria seleccionada esta llena. Serás registrado en lista de espera '
+            + 'y si se desocupa el lugar de alguien registrado antes que tu, avanzarás '
+            + 'en la cola para la categoría seleccionada.'
+          );
+          if (!ok) { setSubmitting(false); return; }
+          fd.append('_waitlist', '1');
+        }
+      }
+
       const res = await fetch(getRegistroSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !(json as any).saved) {
@@ -1105,8 +1128,15 @@ const Registro = () => {
         }
         throw new Error((json as any).error || 'Error al enviar el formulario');
       }
+      const isWaitlist = !!(json as any).waitlist;
+      setSubmittedWaitlist(isWaitlist);
       setSubmitted(true);
-      toast({ title: '¡Pre-registro enviado!', description: 'Recibirás confirmación por correo.' });
+      toast({
+        title: isWaitlist ? '¡Pre-registro en lista de espera!' : '¡Pre-registro enviado!',
+        description: isWaitlist
+          ? 'Recibirás un correo con los detalles de tu registro en lista de espera.'
+          : 'Recibirás confirmación por correo.',
+      });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
