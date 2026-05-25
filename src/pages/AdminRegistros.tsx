@@ -29,6 +29,7 @@ import {
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
   getRegistroWelcomeEmailUrl,
+  getRegistroPromoteUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
@@ -97,6 +98,10 @@ interface RegistroRow {
   reg_welcome_count?: number | string;
   /** Timestamp del último correo de bienvenida enviado al jugador. */
   reg_welcome_last?: string;
+  /** Cupo máximo de la categoría asociada (categorias.maxjugadores). */
+  cat_max?: number | string | null;
+  /** Jugadores activos actualmente en categoría/torneo (excluye BAJA). */
+  cat_count?: number | string | null;
 }
 
 // ============= Login form =============
@@ -345,6 +350,35 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
+   * Sección 5 (Lista de espera) → POST /registro_promote.php para mover
+   * el registro al flujo normal: status_pago pasa de 67 a 0 y se envía
+   * automáticamente el correo con datos bancarios. Refresca la lista al
+   * terminar para que la fila desaparezca de sec5 y aparezca en sec2.
+   */
+  const promoteFromWaitlist = async (row: RegistroRow) => {
+    const key = `promote-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroPromoteUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({
+        title: 'Registro agregado a la categoría',
+        description: `Correo de pago enviado a ${json.to}.`,
+      });
+      await refresh();
+    } catch (err: any) {
+      toast({ title: 'Error al promover', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
+
+  /**
    * Clasifica una fila en una de las 4 secciones según el flujo:
    *   sec1 — enviado=0
    *   sec2 — enviado=1 AND status_pago=0
@@ -508,6 +542,30 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
                           <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
+                          {section === 'sec5' && (() => {
+                            /*
+                             * En lista de espera, mostrar conteo de ocupación
+                             * de la categoría: "n/max". max=0 o 99 se consideran
+                             * ilimitados (no debería ocurrir en sec5 pero se
+                             * cubre por completitud).
+                             */
+                            const maxC = Number(r.cat_max) || 0;
+                            const cnt  = Number(r.cat_count) || 0;
+                            const unlimited = !maxC || maxC === 99;
+                            return (
+                              <div className="text-xs mt-1">
+                                <span className="text-muted-foreground">Cupo: </span>
+                                <span className={cn(
+                                  'font-mono font-semibold',
+                                  unlimited
+                                    ? 'text-muted-foreground'
+                                    : cnt < maxC ? 'text-primary' : 'text-destructive'
+                                )}>
+                                  {unlimited ? `${cnt}/∞` : `${cnt}/${maxC}`}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-3">
                           <div>{r.reg_club || '—'}</div>
@@ -727,14 +785,36 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             {section === 'sec2' && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
-                            {section === 'sec5' && (
+                            {section === 'sec5' && (() => {
                               /*
-                               * Lista de espera (status_pago=67): no acciones
-                               * directas. El registro avanza automáticamente
-                               * cuando se libera un lugar en su categoría.
+                               * Lista de espera: el botón "Agregar a categoría"
+                               * sólo se habilita si hay cupo disponible
+                               * (cat_count < cat_max). Al hacer click, el
+                               * backend cambia status_pago=67 → 0 y envía el
+                               * correo de datos bancarios automáticamente.
                                */
-                              <Badge variant="secondary">En lista de espera</Badge>
-                            )}
+                              const maxC = Number(r.cat_max) || 0;
+                              const cnt  = Number(r.cat_count) || 0;
+                              const unlimited = !maxC || maxC === 99;
+                              const hasRoom = unlimited || cnt < maxC;
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant={hasRoom ? 'default' : 'outline'}
+                                  className="gap-1"
+                                  disabled={!hasRoom || !!busy[`promote-${r.id}`]}
+                                  title={hasRoom
+                                    ? 'Mover al flujo normal y enviar correo de pago'
+                                    : 'La categoría sigue llena'}
+                                  onClick={() => promoteFromWaitlist(r)}
+                                >
+                                  {busy[`promote-${r.id}`]
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <UserCheck className="h-4 w-4" />}
+                                  Agregar a categoría
+                                </Button>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
