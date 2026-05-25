@@ -104,6 +104,25 @@ export interface AvisosConfig {
   mobileOrder?: number[];
 }
 
+/**
+ * ThemeConfig
+ * Active color palette for the tournament's public-facing pages.
+ * Each color is stored as an HSL string of the form "H S% L%"
+ * (matching the values consumed by tailwind hsl(var(--token))).
+ */
+export interface ThemeConfig {
+  /** Human-readable palette name, e.g. "Verde Bosque" or "Custom". */
+  name: string;
+  /** Primary brand color (buttons, links, headers). */
+  primary: string;
+  /** Secondary accent color (badges, highlights). */
+  secondary: string;
+  /** Tertiary accent color (gold/highlight). */
+  accent: string;
+  /** Page background color. */
+  background: string;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -116,6 +135,7 @@ export interface SiteConfig {
   sponsors_config: SponsorsConfig | null;
   eventos_config: EventosConfig | null;
   avisos_config: AvisosConfig | null;
+  theme_config: ThemeConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -130,6 +150,7 @@ export interface SaveConfigPayload {
   sponsors_config?: SponsorsConfig | null;
   eventos_config?: EventosConfig | null;
   avisos_config?: AvisosConfig | null;
+  theme_config?: ThemeConfig | null;
 }
 
 // ============= Constants =============
