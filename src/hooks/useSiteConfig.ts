@@ -231,8 +231,6 @@ export const useSiteConfig = () => {
 
       return config;
     },
-    staleTime: 30 * 1000, // 30 seconds - keep fresh for admin changes
-    retry: 1,
   });
 };
 
