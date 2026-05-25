@@ -928,6 +928,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'akron_edad','akron_talla','akron_talla_guante','akron_calzado',
         'akron_codigo','akron_monto_pago',
         'reg_precio_estimado','reg_precio_moneda','reg_precio_regla_id',
+        // Timestamp original del registro (GMT en BD). El frontend lo convierte a -6.
+        'fecharegistro',
     ];
     foreach ($optional as $c) if (registro_has($conn, $c)) $fields[] = "r.$c";
     // 4-section flow exposure: enviado (sección 1/2) y reg_token (link
