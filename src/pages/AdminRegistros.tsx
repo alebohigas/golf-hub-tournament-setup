@@ -350,6 +350,35 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
+   * Sección 5 (Lista de espera) → POST /registro_promote.php para mover
+   * el registro al flujo normal: status_pago pasa de 67 a 0 y se envía
+   * automáticamente el correo con datos bancarios. Refresca la lista al
+   * terminar para que la fila desaparezca de sec5 y aparezca en sec2.
+   */
+  const promoteFromWaitlist = async (row: RegistroRow) => {
+    const key = `promote-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroPromoteUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({
+        title: 'Registro agregado a la categoría',
+        description: `Correo de pago enviado a ${json.to}.`,
+      });
+      await refresh();
+    } catch (err: any) {
+      toast({ title: 'Error al promover', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
+
+  /**
    * Clasifica una fila en una de las 4 secciones según el flujo:
    *   sec1 — enviado=0
    *   sec2 — enviado=1 AND status_pago=0
