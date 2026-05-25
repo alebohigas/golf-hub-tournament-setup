@@ -785,14 +785,36 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             {section === 'sec2' && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
-                            {section === 'sec5' && (
+                            {section === 'sec5' && (() => {
                               /*
-                               * Lista de espera (status_pago=67): no acciones
-                               * directas. El registro avanza automáticamente
-                               * cuando se libera un lugar en su categoría.
+                               * Lista de espera: el botón "Agregar a categoría"
+                               * sólo se habilita si hay cupo disponible
+                               * (cat_count < cat_max). Al hacer click, el
+                               * backend cambia status_pago=67 → 0 y envía el
+                               * correo de datos bancarios automáticamente.
                                */
-                              <Badge variant="secondary">En lista de espera</Badge>
-                            )}
+                              const maxC = Number(r.cat_max) || 0;
+                              const cnt  = Number(r.cat_count) || 0;
+                              const unlimited = !maxC || maxC === 99;
+                              const hasRoom = unlimited || cnt < maxC;
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant={hasRoom ? 'default' : 'outline'}
+                                  className="gap-1"
+                                  disabled={!hasRoom || !!busy[`promote-${r.id}`]}
+                                  title={hasRoom
+                                    ? 'Mover al flujo normal y enviar correo de pago'
+                                    : 'La categoría sigue llena'}
+                                  onClick={() => promoteFromWaitlist(r)}
+                                >
+                                  {busy[`promote-${r.id}`]
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <UserCheck className="h-4 w-4" />}
+                                  Agregar a categoría
+                                </Button>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
