@@ -28,7 +28,6 @@ import {
   getRegistroEmailUrl,
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
-  getRegistroWelcomeEmailUrl,
   getRegistroPromoteUrl,
 } from '@/config/api';
 
@@ -89,15 +88,12 @@ interface RegistroRow {
   /** Flag: jugador completó el flujo (subió comprobante o cargo a cuenta). */
   enviado?: number | string;
   /** Token opaco para el link público de adjuntar comprobante. */
+  /** Token opaco para el link público de adjuntar comprobante. */
   reg_token?: string;
   /** Contador de correos "registro validado" enviados al jugador. */
   reg_email_count?: number | string;
   /** Timestamp del último correo enviado al jugador. */
   reg_email_last?: string;
-  /** Contador de correos de BIENVENIDA (sec4) enviados al jugador. */
-  reg_welcome_count?: number | string;
-  /** Timestamp del último correo de bienvenida enviado al jugador. */
-  reg_welcome_last?: string;
   /** Cupo máximo de la categoría asociada (categorias.maxjugadores). */
   cat_max?: number | string | null;
   /** Jugadores activos actualmente en categoría/torneo (excluye BAJA). */
@@ -267,32 +263,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     }
   };
 
-  /**
-   * Sección 4 → POST /registro_welcome_email.php para mandarle al jugador
-   * el correo de BIENVENIDA / confirmación oficial de registro al torneo.
-   * Se habilita una vez que pago y registro están verificados.
-   */
-  const sendWelcomeEmail = async (row: RegistroRow) => {
-    const key = `welcome-${row.id}`;
-    markBusy(key, true);
-    try {
-      const res = await fetch(getRegistroWelcomeEmailUrl(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, password }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Error');
-      toast({ title: 'Bienvenida enviada', description: `Enviado a ${json.to}` });
-      setRows(prev => prev.map(rr => rr.id === row.id
-        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
-        : rr));
-    } catch (err: any) {
-      toast({ title: 'Error al enviar bienvenida', description: err.message, variant: 'destructive' });
-    } finally {
-      markBusy(key, false);
-    }
-  };
 
   /**
    * Sección 4 → toggle status_pago entre 1 (registrado) y 99
@@ -501,7 +471,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       </>
                     )}
                     {section === 'sec4' && (
-                      <th className="text-center p-3">Registro completado</th>
+                      <>
+                        <th className="text-center p-3">Monto confirmado recibido</th>
+                        <th className="text-center p-3">Pago verificado</th>
+                        <th className="text-center p-3">Registro verificado</th>
+                      </>
                     )}
                     <th className="text-center p-3">Acciones</th>
                   </tr>
@@ -690,39 +664,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         </>
                         )}
-                        {section === 'sec4' && (
-                          /*
-                           * Columna "Registro completado": botón para enviar
-                           * el correo de bienvenida oficial. Cambia a "Volver
-                           * a enviar" si ya se mandó al menos una vez.
-                           */
-                          <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                            {(() => {
-                              const wcount = Number(r.reg_welcome_count) || 0;
-                              return (
-                                <div className="flex flex-col items-center gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant={wcount > 0 ? 'outline' : 'default'}
-                                    className="gap-1"
-                                    disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
-                                    onClick={() => sendWelcomeEmail(r)}
-                                  >
-                                    {busy[`welcome-${r.id}`]
-                                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                                      : <Mail className="h-4 w-4" />}
-                                    {wcount > 0 ? 'Volver a enviar' : 'Enviar bienvenida'}
-                                  </Button>
-                                  {wcount > 0 && (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Enviado ({wcount}){r.reg_welcome_last ? ` · ${r.reg_welcome_last}` : ''}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </td>
-                        )}
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
@@ -821,7 +762,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : (section === 'sec4' ? 12 : 11)} className="p-4">
+                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : (section === 'sec4' ? 11 : 11)} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
