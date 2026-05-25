@@ -738,6 +738,16 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
                                 ['Clave de socio', r.reg_numsocio],
                                 ['Fecha registro', r.reg_fecha || r.created_at || (r as any).fecha_alta],
+                                ['Fecha y hora de registro',
+                                  r.fecharegistro
+                                    ? (() => {
+                                        const d = new Date(String(r.fecharegistro).replace(' ', 'T'));
+                                        const fecha = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                        const hora = d.toLocaleTimeString('es-MX', { hour12: false });
+                                        return `${fecha} ${hora}`;
+                                      })()
+                                    : '—'
+                                ],
                                 ['Precio estimado', r.reg_precio_estimado != null && String(r.reg_precio_estimado) !== '' ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.reg_precio_moneda || 'MXN'}` : ''],
                                 ['Monto confirmado', r.reg_monto_confirmado],
                                 ['Pago verificado', Number(r.reg_pago_verificado) === 1 ? 'Sí' : 'No'],
