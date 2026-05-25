@@ -165,6 +165,7 @@ export function applyThemeConfig(theme: ThemeConfig | null): void {
   ];
   if (!theme) {
     tokens.forEach(t => root.style.removeProperty(t));
+    root.style.removeProperty('--gradient-stats');
     return;
   }
   const primaryFg    = getLightness(theme.primary)    < 55 ? '0 0% 100%' : '0 0% 10%';
@@ -187,4 +188,15 @@ export function applyThemeConfig(theme: ThemeConfig | null): void {
   root.style.setProperty('--golf-gold-light', theme.secondary);
   root.style.setProperty('--sidebar-primary', theme.primary);
   root.style.setProperty('--sidebar-primary-foreground', primaryFg);
+
+  // Update gradient-stats so the StatsSection ("fun facts" ribbon)
+  // automatically follows the active primary color instead of staying
+  // hard-coded to the default green palette.
+  const primaryL = getLightness(theme.primary);
+  const darkerL = Math.max(0, primaryL - 4);
+  const darkerPrimary = theme.primary.replace(/\d+(\.\d+)?%\s*$/, `${darkerL}%`);
+  root.style.setProperty(
+    '--gradient-stats',
+    `linear-gradient(180deg, hsl(${darkerPrimary}) 0%, hsl(${theme.primary}) 100%)`
+  );
 }
