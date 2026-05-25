@@ -253,6 +253,33 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
+   * Sección 4 → POST /registro_welcome_email.php para mandarle al jugador
+   * el correo de BIENVENIDA / confirmación oficial de registro al torneo.
+   * Se habilita una vez que pago y registro están verificados.
+   */
+  const sendWelcomeEmail = async (row: RegistroRow) => {
+    const key = `welcome-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroWelcomeEmailUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({ title: 'Bienvenida enviada', description: `Enviado a ${json.to}` });
+      setRows(prev => prev.map(rr => rr.id === row.id
+        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
+        : rr));
+    } catch (err: any) {
+      toast({ title: 'Error al enviar bienvenida', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
+
+  /**
    * Sección 4 → toggle status_pago entre 1 (registrado) y 99
    * (des-registrado). Mismo botón cambia texto/icono según estado.
    */
