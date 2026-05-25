@@ -209,25 +209,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
   /**
-   * Auto-refresh: cada 20s vuelve a pedir la lista para detectar
-   * automáticamente cuando un jugador sube su comprobante (mueve la fila
-   * de "Sin validar" a "Pendiente verificación de pago") sin necesidad de F5.
-   * Pausa cuando la pestaña no está visible para no desperdiciar requests.
-   */
-  useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === 'visible') refresh();
-    };
-    const id = window.setInterval(tick, 20000);
-    document.addEventListener('visibilitychange', tick);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener('visibilitychange', tick);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /**
    * Admin update genérico: envía cualquier combinación de campos
    * (verified, pago_verificado, monto_confirmado) al endpoint verify
    * y aplica el cambio optimistamente en la fila local.
