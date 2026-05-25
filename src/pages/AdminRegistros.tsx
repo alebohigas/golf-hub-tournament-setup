@@ -834,9 +834,9 @@ const AdminRegistros = () => {
   };
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
       {authed ? <RegistrosDashboard password={REGISTROS_PASSWORD} /> : <LoginForm onLogin={onLogin} />}
-    </Layout>
+    </div>
   );
 };
 

@@ -559,13 +559,13 @@ const Admin = () => {
   const { isAdmin, loginAsAdmin } = usePageVisibility();
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
       {isAdmin ? (
         <AdminDashboard />
       ) : (
         <AdminLoginForm onLogin={loginAsAdmin} />
       )}
-    </Layout>
+    </div>
   );
 };
 
