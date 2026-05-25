@@ -9,7 +9,7 @@
  * Auth: independent password (`registros2025`) — not tied to /admin.
  */
 
-import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Fragment, memo, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -160,7 +160,7 @@ const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => boolean }) => {
 
 // ============= Dashboard =============
 
-export const RegistrosDashboard = ({ password }: { password: string }) => {
+export const RegistrosDashboard = memo(({ password }: { password: string }) => {
   const [rows, setRows] = useState<RegistroRow[]>([]);
   const [loading, setLoading] = useState(false);
   /**
@@ -815,7 +815,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       </Dialog>
     </div>
   );
-};
+});
 
 // ============= Page =============
 
