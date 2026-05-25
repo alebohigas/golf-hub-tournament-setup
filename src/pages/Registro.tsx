@@ -1092,7 +1092,10 @@ const Registro = () => {
         // Duplicate-email case (HTTP 409): surface the canonical message
         // inline next to the email field so el jugador lo vea sin scroll.
         if (res.status === 409) {
-          setEmailError((json as any).error || 'Correo ya registrado para este torneo.');
+          setEmailError(
+            (json as any).error
+            || 'Ya existe un pre-registro con el mismo nombre, apellido y correo en este torneo.'
+          );
         }
         throw new Error((json as any).error || 'Error al enviar el formulario');
       }
