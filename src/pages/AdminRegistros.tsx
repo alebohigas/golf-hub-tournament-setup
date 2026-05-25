@@ -28,7 +28,6 @@ import {
   getRegistroEmailUrl,
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
-  getRegistroWelcomeEmailUrl,
   getRegistroPromoteUrl,
 } from '@/config/api';
 
