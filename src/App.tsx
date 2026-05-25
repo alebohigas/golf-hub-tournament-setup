@@ -12,6 +12,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PageVisibilityProvider, usePageVisibility } from "@/contexts/PageVisibilityContext";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import { useAppIcon } from "@/hooks/useAppIcon";
+import { applyThemeConfig } from "@/lib/theme-palettes";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import Convocatoria from "./pages/Convocatoria";
@@ -77,6 +78,8 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
         setPageGroupAssignment(pageId, groupId);
       });
     }
+    // Apply the active color palette (if any) to CSS variables on :root
+    applyThemeConfig(data.theme_config ?? null);
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>{children}</>;
