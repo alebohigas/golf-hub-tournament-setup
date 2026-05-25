@@ -46,6 +46,7 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                (SELECT COUNT(*) FROM jugadores j
                   WHERE j.torneoid    = a.torneo_id
                     AND j.categoriaid = a.categoria_id
+                    AND j.posicion = 9999
                     AND (j.estatus IS NULL OR j.estatus <> 'BAJA')) AS registeredCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
