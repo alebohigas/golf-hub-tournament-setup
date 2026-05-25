@@ -477,7 +477,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <th className="text-center p-3">Registro verificado</th>
                       </>
                     )}
-                    <th className="text-center p-3">Acciones</th>
+                    {section !== 'sec4' && (
+                      <th className="text-center p-3">Acciones</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -664,11 +666,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         </>
                         )}
+                        {section !== 'sec4' && (
+                        <>
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
                           sec3 → "Verificar" marca verificado=1 (atajo del switch).
-                          sec4 → "Des-/Registrar" + "Dar de baja".
                         */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -694,34 +697,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               >
                                 <UserCheck className="h-4 w-4" /> Verificar
                               </Button>
-                            )}
-                            {section === 'sec4' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1"
-                                  disabled={!!busy[`unreg-${r.id}`]}
-                                  onClick={() => toggleUnregister(r)}
-                                >
-                                  {busy[`unreg-${r.id}`]
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <UserMinus className="h-4 w-4" />}
-                                  {Number(r.reg_pago_verificado) === 99 ? 'Registrar' : 'Des-registrar'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="gap-1"
-                                  disabled={!!busy[`baja-${r.id}`]}
-                                  onClick={() => darDeBaja(r)}
-                                >
-                                  {busy[`baja-${r.id}`]
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <UserX className="h-4 w-4" />}
-                                  Dar de baja
-                                </Button>
-                              </>
                             )}
                             {section === 'sec2' && (
                               <span className="text-muted-foreground text-xs">—</span>
@@ -758,11 +733,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             })()}
                           </div>
                         </td>
+                        </>
+                        )}
                       </tr>
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : (section === 'sec4' ? 11 : 11)} className="p-4">
+                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : 11} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
