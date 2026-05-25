@@ -37,7 +37,20 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // ============= Query Client =============
-const queryClient = new QueryClient();
+/**
+ * Global React Query client.
+ * `refetchOnWindowFocus` is disabled to evitar refrescos automáticos
+ * (parpadeo) en pantallas administrativas como /admin → Registros
+ * cuando el usuario alterna entre ventanas. Cada hook decide
+ * explícitamente su propio `refetchInterval` cuando necesita polling.
+ */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 /**
  * SiteConfigSync
