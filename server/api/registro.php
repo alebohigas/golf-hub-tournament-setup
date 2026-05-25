@@ -948,6 +948,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     // JOIN a categorias para exponer el nombre legible de la categoría.
     $fields[] = "c.categoria AS categoria_name";
+    /**
+     * Cupo de la categoría asociada al registro. `cat_max` = maxjugadores
+     * (NULL/0/99 = ilimitado en la UI); `cat_count` = jugadores activos
+     * actualmente en esa categoría/torneo (excluye BAJA). Lo usa la
+     * sección "Lista de espera" del admin para mostrar n/max y habilitar
+     * el botón "Agregar a categoría" cuando se libera un lugar.
+     */
+    $fields[] = "c.maxjugadores AS cat_max";
+    $fields[] = "(SELECT COUNT(*) FROM jugadores j
+                   WHERE j.torneoid    = r.$torneoCol
+                     AND j.categoriaid = r.reg_categoria
+                     AND (j.estatus IS NULL OR j.estatus <> 'BAJA')) AS cat_count";
 
     $orderCol = "r.$pkCol";
     if (registro_has($conn, 'reg_fecha'))   $orderCol = 'r.reg_fecha';
