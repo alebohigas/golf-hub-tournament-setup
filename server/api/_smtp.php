@@ -31,28 +31,72 @@ function smtp_load_phpmailer() {
 }
 
 /**
- * Pick the next sender mailbox from `cuentas_correo` using the MySQL
- * stored function `f_correo()`. The function:
- *   - Resets `numcorreos` to 0 for rows whose `fecha` is older than today
- *   - Selects the first account with `numcorreos < 250`
- *   - Increments that account's `numcorreos` by 1 (for the primary TO)
- * Returns the picked email address, or null on failure (caller falls back
- * to the static $SMTP_USER from credentials.php).
+ * Pick the next sender mailbox from `cuentas_correo`.
  *
- * @param mysqli|null $conn Active DB connection (optional; uses global $conn).
- * @return string|null Picked sender email or null.
+ * Política de rotación (replicada en PHP para tener control fino sobre el
+ * fallback — la función MySQL f_correo() corta en 250 y devuelve vacío si
+ * todas pasaron de ese umbral):
+ *
+ *   1) Reset diario: pone `numcorreos = 0` en las filas cuya `fecha` es
+ *      anterior a hoy (mismo comportamiento que f_correo).
+ *   2) Modo normal: elige la cuenta con `numcorreos < 250`, priorizando
+ *      la de menor contador (ORDER BY numcorreos ASC, id ASC). Cambia de
+ *      buzón en cuanto el actual llega a 250.
+ *   3) Modo emergencia: si TODAS las cuentas ya pasaron de 250 (no
+ *      debería ocurrir), se eligen cuentas con `numcorreos < 500` rotando
+ *      cada 50 envíos. Se usa ORDER BY FLOOR(numcorreos/50) ASC, id ASC
+ *      → la misma cuenta atiende un bloque de 50 antes de saltar a otra.
+ *      Limite duro: 500/día (IONOS = 500, dejamos margen).
+ *   4) Incrementa `numcorreos` y refresca `fecha` para el destinatario
+ *      principal (los CC se cargan después vía smtp_bump_counter()).
+ *
+ * Devuelve el correo elegido, o null si no hay ninguno bajo 500 (en cuyo
+ * caso el caller cae al $SMTP_USER estático de credentials.php).
  */
 function smtp_pick_sender($conn = null) {
     if (!$conn) { global $conn; }
     if (!$conn) return null;
-    $res = @$conn->query("SELECT f_correo() AS c");
-    if (!$res) {
-        error_log('[smtp] f_correo() failed: ' . $conn->error);
+
+    // 1) Reset diario (mismo criterio que f_correo()).
+    @$conn->query(
+        "UPDATE cuentas_correo SET numcorreos = 0 "
+        . "WHERE LEFT(fecha,10) < LEFT(CURDATE(),10)"
+    );
+
+    // 2) Modo normal: la primera cuenta con < 250 envíos del día.
+    $sql = "SELECT id, cuenta_correo FROM cuentas_correo "
+         . "WHERE numcorreos < 250 "
+         . "ORDER BY numcorreos ASC, id ASC LIMIT 1";
+    $res = @$conn->query($sql);
+    $row = $res ? $res->fetch_assoc() : null;
+    if ($res) $res->free();
+
+    // 3) Modo emergencia: nadie bajo 250 → rotar cada 50 hasta tope 500.
+    if (!$row) {
+        $sql2 = "SELECT id, cuenta_correo FROM cuentas_correo "
+              . "WHERE numcorreos < 500 "
+              . "ORDER BY FLOOR(numcorreos/50) ASC, id ASC LIMIT 1";
+        $res2 = @$conn->query($sql2);
+        $row = $res2 ? $res2->fetch_assoc() : null;
+        if ($res2) $res2->free();
+        if ($row) {
+            error_log('[smtp] cuentas_correo en modo emergencia: todas las cuentas > 250, rotando cada 50.');
+        }
+    }
+
+    if (!$row) {
+        error_log('[smtp] cuentas_correo agotado: todas las cuentas llegaron al limite diario (500).');
         return null;
     }
-    $row = $res->fetch_assoc();
-    $res->free();
-    $picked = trim((string)($row['c'] ?? ''));
+
+    // 4) Reservar +1 envío (TO) y refrescar fecha para el reset diario.
+    $idv = (int)$row['id'];
+    @$conn->query(
+        "UPDATE cuentas_correo SET numcorreos = numcorreos + 1, fecha = NOW() "
+        . "WHERE id = $idv LIMIT 1"
+    );
+
+    $picked = trim((string)$row['cuenta_correo']);
     return $picked !== '' ? $picked : null;
 }
 
