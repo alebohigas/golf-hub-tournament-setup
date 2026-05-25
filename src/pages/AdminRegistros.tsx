@@ -153,7 +153,15 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec3 — Verificar registro (status_pago=1, verificado=0)
    *   sec4 — Registros completados (verificado=1, status_pago in {1,99})
    */
-  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4'>('sec1');
+  /**
+   * Las secciones del flujo de pre-registro:
+   *   sec1 — Sin validar registro
+   *   sec2 — Pendiente verificación de pago
+   *   sec3 — Verificar registro
+   *   sec4 — Registros completados
+   *   sec5 — Lista de espera (status_pago=67)
+   */
+  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
   const [search, setSearch] = useState('');
   /** Set de IDs cuyos detalles están expandidos en la tabla. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -343,12 +351,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec3 — status_pago=1 AND verificado=0
    *   sec4 — verificado=1 (status_pago=1 o 99)
    */
-  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' => {
+  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' => {
     const enviado   = Number(r.enviado) === 1;
     const hasFile   = Number(r.has_archivo) === 1;
     const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
     const verified  = Number(r.reg_verificado) === 1;
+    // Lista de espera tiene prioridad: status_pago=67 sale del flujo normal.
+    if (statusP === 67) return 'sec5';
     if (verified) return 'sec4';
     if (statusP === 1) return 'sec3';
     // Auto-mover a sec2 si subió comprobante o eligió cargo a cuenta,
@@ -359,7 +369,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
   /** Conteos por sección — alimentan los tabs. */
   const counts = useMemo(() => {
-    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4', number>;
+    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0, sec5: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4'|'sec5', number>;
     for (const r of rows) c[classify(r)]++;
     return c;
   }, [rows]);
@@ -379,11 +389,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   }, [rows, section, search]);
 
   /** Tabs definidos arriba — orden importa (botones). */
-  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'; label: string }[] = [
+  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'; label: string }[] = [
     { id: 'sec1', label: 'Sin validar registro' },
     { id: 'sec2', label: 'Pendiente verificación de pago' },
     { id: 'sec3', label: 'Verificar registro' },
     { id: 'sec4', label: 'Registros completados' },
+    { id: 'sec5', label: 'Lista de espera' },
   ];
 
   return (
@@ -392,7 +403,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         <div>
           <h1 className="text-2xl font-bold">Pre-Registros</h1>
           <p className="text-muted-foreground">
-            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados
+            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados · {counts.sec5} en lista de espera
           </p>
         </div>
         <div className="flex gap-2">
@@ -446,7 +457,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    {section === 'sec1' ? (
+                    {(section === 'sec1' || section === 'sec5') ? (
                       <th className="text-center p-3">Estatus Correo</th>
                     ) : (
                       <>
@@ -531,7 +542,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {section === 'sec1' ? (
+                        {(section === 'sec1' || section === 'sec5') ? (
                           /*
                            * Estatus de correo: en la sección 1 reemplaza a las 3
                            * columnas de tesorería. Muestra "Enviado (N)" si ya se
@@ -716,13 +727,21 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             {section === 'sec2' && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
+                            {section === 'sec5' && (
+                              /*
+                               * Lista de espera (status_pago=67): no acciones
+                               * directas. El registro avanza automáticamente
+                               * cuando se libera un lugar en su categoría.
+                               */
+                              <Badge variant="secondary">En lista de espera</Badge>
+                            )}
                           </div>
                         </td>
                       </tr>
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={section === 'sec1' ? 9 : (section === 'sec4' ? 12 : 11)} className="p-4">
+                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : (section === 'sec4' ? 12 : 11)} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
