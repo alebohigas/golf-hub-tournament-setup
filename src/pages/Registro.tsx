@@ -1689,10 +1689,15 @@ const Registro = () => {
             <Card>
               <CardContent className="py-12 text-center space-y-4">
                 <CheckCircle2 className="w-16 h-16 mx-auto text-primary" />
-                <h2 className="text-2xl font-bold">¡Pre-registro recibido!</h2>
+                <h2 className="text-2xl font-bold">
+                  {submittedWaitlist
+                    ? '¡Pre-registro en lista de espera!'
+                    : '¡Pre-registro recibido!'}
+                </h2>
                 <p className="text-muted-foreground">
-                  Hemos guardado tu solicitud. El comité revisará tus datos
-                  y te contactará por correo para confirmar tu inscripción.
+                  {submittedWaitlist
+                    ? 'La categoría seleccionada está llena. Has sido agregado a la lista de espera por orden de fecha de solicitud. Recibirás un correo con los detalles de tu pre-registro y se te contactará si se libera un lugar.'
+                    : 'Hemos guardado tu solicitud. El comité revisará tus datos y te contactará por correo para confirmar tu inscripción.'}
                 </p>
                 <Button
                   variant="outline"
@@ -1707,6 +1712,7 @@ const Registro = () => {
                      */
                     setFormInstanceKey(k => k + 1);
                     setSubmitted(false);
+                    setSubmittedWaitlist(false);
                     setValues({});
                     setFile(null);
                     setPhoneCode('+52');
