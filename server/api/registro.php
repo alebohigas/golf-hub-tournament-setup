@@ -36,6 +36,155 @@ function registro_email_col($conn) {
 }
 
 /**
+ * Verifica si una categoría está llena en función de jugadores reales
+ * inscritos (tabla `jugadores`, excluyendo BAJA). Devuelve true cuando
+ * `categorias.maxjugadores` está definido (>0 y <>99, donde 99 = ilimitado)
+ * y el conteo actual alcanza o supera el máximo. False si no aplica cupo.
+ */
+function categoria_esta_llena($conn, $torneoid, $categoriaId) {
+    $torneoid    = (int)$torneoid;
+    $categoriaId = (int)$categoriaId;
+    if ($torneoid <= 0 || $categoriaId <= 0) return false;
+    $r = @$conn->query(
+        "SELECT maxjugadores FROM categorias "
+        . "WHERE categoria_id = $categoriaId AND torneo_id = $torneoid LIMIT 1"
+    );
+    if (!$r) return false;
+    $row = $r->fetch_assoc(); $r->free();
+    if (!$row) return false;
+    $max = (int)$row['maxjugadores'];
+    if ($max <= 0 || $max === 99) return false; // ilimitado
+    $rc = @$conn->query(
+        "SELECT COUNT(*) AS n FROM jugadores "
+        . "WHERE torneoid = $torneoid AND categoriaid = $categoriaId "
+        . "AND (estatus IS NULL OR estatus <> 'BAJA')"
+    );
+    if (!$rc) return false;
+    $cnt = (int)($rc->fetch_assoc()['n'] ?? 0);
+    $rc->free();
+    return $cnt >= $max;
+}
+
+/**
+ * Envía el correo automático para registros en LISTA DE ESPERA
+ * (status_pago=67). Misma estructura visual que el correo de bienvenida
+ * pero SIN imagen de datos bancarios y SIN CTA para subir comprobante;
+ * agrega un encabezado destacado explicando la cola y prioridad por
+ * fecha de pre-registro. Best-effort: errores se loguean y no rompen
+ * el flujo de inserción.
+ */
+function send_waitlist_email($conn, $registroId) {
+    $registroId = (int)$registroId;
+    if ($registroId <= 0) return;
+
+    $cols = query_all($conn, "SHOW COLUMNS FROM registro");
+    $set  = [];
+    foreach ($cols as $c) $set[$c['Field']] = true;
+    $has  = fn($c) => isset($set[$c]);
+
+    $pkCol = $has('id') ? 'id' : ($has('reg_id') ? 'reg_id' : null);
+    if (!$pkCol) return;
+    $torneoCol = null;
+    foreach (['reg_id_torneo','torneo_id','id_torneo','idtorneo','torneoid'] as $c) {
+        if ($has($c)) { $torneoCol = $c; break; }
+    }
+    if (!$torneoCol) return;
+
+    $sel = ["$pkCol AS id", "$torneoCol AS torneoid"];
+    foreach (['reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_celular',
+              'reg_handicap','reg_categoria','reg_club','reg_es_socio','reg_tipo_socio',
+              'reg_precio_estimado','reg_precio_moneda'] as $c) {
+        if ($has($c)) $sel[] = $c;
+    }
+    $row = query_one($conn, "SELECT " . implode(',', $sel) . " FROM registro WHERE $pkCol = $registroId LIMIT 1");
+    if (!$row || empty($row['reg_correo'])) return;
+
+    $folio = ((int)$row['torneoid'] > 0)
+        ? ((int)$row['torneoid'] . '-' . (int)$row['id'])
+        : ('' . (int)$row['id']);
+
+    $catName = '';
+    if (!empty($row['reg_categoria'])) {
+        $cr = @$conn->query("SELECT categoria FROM categorias WHERE categoria_id = " . (int)$row['reg_categoria'] . " LIMIT 1");
+        if ($cr) { $cc = $cr->fetch_assoc(); $cr->free(); if ($cc) $catName = $cc['categoria']; }
+    }
+    $torneoName = '';
+    $tr = @$conn->query("SELECT nombre FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
+    if ($tr) { $tt = $tr->fetch_assoc(); $tr->free(); if ($tt) $torneoName = $tt['nombre'] ?? ''; }
+
+    $nombre = trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''));
+    if ($nombre === '') $nombre = 'Jugador';
+
+    $b = fn($v) => '<strong>' . htmlspecialchars((string)($v ?? '—'), ENT_QUOTES, 'UTF-8') . '</strong>';
+    $entries = [
+        ['Folio',     '#' . $folio],
+        ['Jugador',   $nombre],
+        ['Categoría', $catName ?: '—'],
+        ['Club',      $row['reg_club'] ?? '—'],
+        ['Handicap',  $row['reg_handicap'] ?? '—'],
+    ];
+    if ($torneoName) array_unshift($entries, ['Torneo', $torneoName]);
+    $rowsHtml = '';
+    foreach ($entries as [$label, $val]) {
+        $rowsHtml .= '<tr>'
+            . '<td style="padding:6px 12px;color:#666;font-size:13px;white-space:nowrap;">' . htmlspecialchars($label) . '</td>'
+            . '<td style="padding:6px 12px;font-size:14px;">' . $b($val) . '</td>'
+            . '</tr>';
+    }
+
+    $subject = 'Pre-registro en LISTA DE ESPERA · Folio #' . $folio
+        . ($torneoName ? ' · ' . $torneoName : '');
+
+    // Encabezado destacado pedido por el cliente (negritas + tamaño mayor).
+    $waitHeader = '<div style="background:#fff3cd;border:1px solid #f1c40f;'
+        . 'border-radius:6px;padding:16px 18px;margin:0 0 20px;'
+        . 'font-size:17px;font-weight:bold;line-height:1.45;color:#5b3a00;">'
+        . 'Este jugador está en lista de espera, se enviará un correo para procesar '
+        . 'su pago si es que se abre un lugar y su registro lo ocupa automaticamente. '
+        . 'La prioridad para entrar al espacio disponible es por orden fecha de '
+        . 'solicitud de pre-registro de la categoria seleccionada.'
+        . '</div>';
+
+    $html = '<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;">'
+        . '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f4f4f5;padding:24px 0;">'
+        . '<tr><td align="center">'
+        . '<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:8px;padding:32px;">'
+        . '<tr><td>'
+        . $waitHeader
+        . '<h1 style="font-size:20px;margin:0 0 8px;color:#0a7d3e;">Pre-registro recibido</h1>'
+        . '<p style="font-size:14px;line-height:1.5;margin:0 0 16px;">Hola ' . htmlspecialchars($nombre) . ',</p>'
+        . '<p style="font-size:14px;line-height:1.6;margin:0 0 16px;">'
+        . 'Hemos recibido tu pre-registro. A continuación los detalles de tu solicitud:'
+        . '</p>'
+        . '<h2 style="font-size:13px;margin:24px 0 8px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">Detalles de tu pre-registro</h2>'
+        . '<table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #eee;border-radius:6px;border-collapse:collapse;">'
+        . $rowsHtml
+        . '</table>'
+        . '<p style="font-size:12px;color:#999;margin:32px 0 0;text-align:center;">'
+        . ($torneoName ? htmlspecialchars($torneoName) : 'Pre-Registro')
+        . '</p>'
+        . '<p style="font-size:10px;color:#cccccc;margin:8px 0 0;text-align:center;">Ref: '
+        . htmlspecialchars($folio) . ' · ' . date('Y-m-d H:i:s')
+        . '</p>'
+        . '</td></tr></table>'
+        . '</td></tr></table>'
+        . '</body></html>';
+
+    $textAlt = "Hola $nombre,\n\n"
+        . "ESTE JUGADOR ESTÁ EN LISTA DE ESPERA. Se enviará un correo para procesar su pago "
+        . "si se abre un lugar y su registro lo ocupa automáticamente. La prioridad es por orden "
+        . "de fecha de solicitud de pre-registro de la categoría seleccionada.\n\n"
+        . "Folio: #$folio\n"
+        . ($catName ? "Categoría: $catName\n" : '')
+        . ($torneoName ? "Torneo: $torneoName\n" : '');
+
+    $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt);
+    if (!$res['ok']) {
+        error_log('[registro_waitlist_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
+    }
+}
+
+/**
  * Check whether a given (nombre, apellido, correo) triple is already
  * registered for a tournament. Bloqueo SOLO cuando los TRES coinciden
  * exactamente (case-insensitive, trim). Reglas:
