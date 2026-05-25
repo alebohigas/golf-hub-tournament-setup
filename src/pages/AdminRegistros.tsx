@@ -758,10 +758,19 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Fecha y hora de registro',
                                   r.fecharegistro
                                     ? (() => {
-                                        const d = new Date(String(r.fecharegistro).replace(' ', 'T'));
-                                        const fecha = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                                        const hora = d.toLocaleTimeString('es-MX', { hour12: false });
-                                        return `${fecha} ${hora}`;
+                                        /**
+                                         * `fecharegistro` viene como DATETIME MySQL en GMT (sin
+                                         * sufijo de zona). Lo parseamos como UTC y restamos 6h
+                                         * para mostrarlo en la zona horaria local del torneo (-6).
+                                         */
+                                        const s = String(r.fecharegistro).trim();
+                                        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+                                        if (!m) return s;
+                                        const [, Y, Mo, D, H, Mi, S] = m.map(Number);
+                                        const utcMs = Date.UTC(Y, Mo - 1, D, H, Mi, S);
+                                        const local = new Date(utcMs - 6 * 60 * 60 * 1000);
+                                        const pad = (n: number) => String(n).padStart(2, '0');
+                                        return `${pad(local.getUTCDate())}/${pad(local.getUTCMonth() + 1)}/${local.getUTCFullYear()} ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
                                       })()
                                     : '—'
                                 ],
