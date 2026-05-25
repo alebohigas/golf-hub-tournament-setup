@@ -200,3 +200,80 @@ export function applyThemeConfig(theme: ThemeConfig | null): void {
     `linear-gradient(180deg, hsl(${darkerPrimary}) 0%, hsl(${theme.primary}) 100%)`
   );
 }
+
+/**
+ * ============= Custom Palette Presets (user-saved) =============
+ * Custom palettes built via the admin "Crear nueva paleta" builder are
+ * persisted in localStorage keyed by domain, so each tournament site
+ * keeps its own library of saved presets that show alongside the
+ * built-in ones in the admin grid.
+ */
+
+/** A user-saved palette preset. Same shape as a built-in preset but flagged as custom. */
+export interface CustomPalettePreset extends PalettePreset {
+  /** Always true — distinguishes user-saved presets from built-ins. */
+  custom: true;
+  /** Epoch ms when the preset was saved (for sorting / debugging). */
+  createdAt: number;
+}
+
+/** localStorage key for the custom-preset library (per domain). */
+const CUSTOM_PRESETS_KEY = 'tournament_custom_palettes';
+
+/**
+ * loadCustomPresets
+ * Read the user-saved palette library from localStorage. Returns an
+ * empty array if nothing has been saved yet or the value is malformed.
+ */
+export function loadCustomPresets(): CustomPalettePreset[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PRESETS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * saveCustomPreset
+ * Append (or replace by id/name) a palette in the custom library.
+ * Returns the updated library so callers can refresh state immediately.
+ */
+export function saveCustomPreset(theme: ThemeConfig): CustomPalettePreset[] {
+  const existing = loadCustomPresets();
+  const id = `custom-${theme.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
+  const next: CustomPalettePreset = {
+    id,
+    name: theme.name.trim() || 'Personalizada',
+    description: 'Paleta personalizada guardada por el administrador.',
+    primary: theme.primary,
+    secondary: theme.secondary,
+    accent: theme.accent,
+    background: theme.background,
+    custom: true,
+    createdAt: Date.now(),
+  };
+  // De-dup by exact color match: replace if a custom preset with the
+  // same 4 colors already exists (avoid library bloat from re-saves).
+  const filtered = existing.filter(
+    p => !(p.primary === theme.primary &&
+           p.secondary === theme.secondary &&
+           p.accent === theme.accent &&
+           p.background === theme.background),
+  );
+  const updated = [...filtered, next];
+  localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+/**
+ * deleteCustomPreset
+ * Remove a custom preset by id. Returns the updated library.
+ */
+export function deleteCustomPreset(id: string): CustomPalettePreset[] {
+  const updated = loadCustomPresets().filter(p => p.id !== id);
+  localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(updated));
+  return updated;
+}

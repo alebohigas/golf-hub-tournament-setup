@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Palette, Check, Loader2, Sparkles } from 'lucide-react';
+import { Palette, Check, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
@@ -20,6 +20,10 @@ import {
   applyThemeConfig,
   hexToHslString,
   hslStringToHex,
+  loadCustomPresets,
+  saveCustomPreset,
+  deleteCustomPreset,
+  type CustomPalettePreset,
 } from '@/lib/theme-palettes';
 
 /** Small color swatch rendered from an HSL string. */
@@ -56,6 +60,9 @@ const AdminThemePalette = () => {
   const [custom, setCustom] = useState<ThemeConfig>(saved ?? DEFAULT_CUSTOM);
   const [showCustom, setShowCustom] = useState(false);
 
+  /** User-saved custom palettes library (persisted in localStorage). */
+  const [customPresets, setCustomPresets] = useState<CustomPalettePreset[]>(() => loadCustomPresets());
+
   // Keep editor state synced if the server response arrives after mount.
   useEffect(() => {
     if (saved) setCustom(saved);
@@ -64,14 +71,15 @@ const AdminThemePalette = () => {
   /** Identify if the saved palette matches one of the presets. */
   const activePresetId = useMemo(() => {
     if (!saved) return null;
-    const match = PALETTE_PRESETS.find(p =>
+    const all = [...PALETTE_PRESETS, ...customPresets];
+    const match = all.find(p =>
       p.primary === saved.primary &&
       p.secondary === saved.secondary &&
       p.accent === saved.accent &&
       p.background === saved.background,
     );
     return match?.id ?? null;
-  }, [saved]);
+  }, [saved, customPresets]);
 
   /** Persist a palette to site_config and live-preview it immediately. */
   const persist = (theme: ThemeConfig) => {
@@ -103,6 +111,27 @@ const AdminThemePalette = () => {
     const next = { ...custom, [key]: hsl };
     setCustom(next);
     applyThemeConfig(next); // live preview while editing
+  };
+
+  /**
+   * Save the current custom palette into the local preset library AND
+   * apply it as the active palette for the domain. Triggered by the
+   * "Agregar a página y guardar preset" button.
+   */
+  const saveAndApplyCustom = () => {
+    if (!custom.name.trim()) return;
+    const updated = saveCustomPreset(custom);
+    setCustomPresets(updated);
+    persist(custom);
+  };
+
+  /** Remove a custom preset from the saved library. */
+  const removeCustomPreset = (id: string, name: string) => {
+    setCustomPresets(deleteCustomPreset(id));
+    toast({
+      title: 'Preset eliminado',
+      description: `"${name}" se quitó de tu biblioteca de paletas.`,
+    });
   };
 
   return (
@@ -172,6 +201,76 @@ const AdminThemePalette = () => {
               })}
             </div>
 
+            {/* Custom (user-saved) presets — rendered as a separate group */}
+            {customPresets.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Sparkles className="h-3 w-3" />
+                  Mis paletas guardadas
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customPresets.map(preset => {
+                    const isActive = activePresetId === preset.id;
+                    return (
+                      <div
+                        key={preset.id}
+                        className={cn(
+                          'relative rounded-lg border-2 p-3 transition-all',
+                          isActive
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : 'border-border bg-card hover:border-primary hover:shadow-md',
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => persist({
+                            name: preset.name,
+                            primary: preset.primary,
+                            secondary: preset.secondary,
+                            accent: preset.accent,
+                            background: preset.background,
+                          })}
+                          disabled={saveSiteConfig.isPending}
+                          className="w-full text-left"
+                        >
+                          <div className="flex items-center justify-between mb-2 pr-7">
+                            <span className="font-semibold text-sm truncate">{preset.name}</span>
+                            {isActive && (
+                              <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+                                <Check className="h-3 w-3" /> Activa
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-1.5 mb-2">
+                            <Swatch hsl={preset.primary} size="md" />
+                            <Swatch hsl={preset.secondary} size="md" />
+                            <Swatch hsl={preset.accent} size="md" />
+                            <Swatch hsl={preset.background} size="md" />
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {preset.description}
+                          </p>
+                        </button>
+                        {/* Delete preset button (top-right corner) */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeCustomPreset(preset.id, preset.name);
+                          }}
+                          className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          aria-label={`Eliminar preset ${preset.name}`}
+                          title="Eliminar preset"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Custom builder toggle */}
             <div className="pt-2 border-t border-border">
               <Button
@@ -229,7 +328,7 @@ const AdminThemePalette = () => {
 
                 <div className="flex items-center gap-2 pt-2">
                   <Button
-                    onClick={() => persist(custom)}
+                    onClick={saveAndApplyCustom}
                     disabled={saveSiteConfig.isPending || !custom.name.trim()}
                     className="gap-2"
                   >
@@ -238,7 +337,7 @@ const AdminThemePalette = () => {
                     ) : (
                       <Check className="h-4 w-4" />
                     )}
-                    Guardar paleta personalizada
+                    Agregar a página y guardar preset
                   </Button>
                   <Button
                     variant="ghost"
@@ -252,8 +351,9 @@ const AdminThemePalette = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Los cambios se previsualizan en vivo. Solo se guardan al hacer click en
-                  "Guardar paleta personalizada".
+                  Los cambios se previsualizan en vivo. Al guardar, la paleta se aplica
+                  al sitio y se agrega con su nombre a "Mis paletas guardadas" para
+                  reutilizarla en cualquier momento.
                 </p>
               </div>
             )}
