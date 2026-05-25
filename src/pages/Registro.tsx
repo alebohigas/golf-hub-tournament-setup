@@ -1084,6 +1084,18 @@ const Registro = () => {
         if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
       });
       if (file) fd.append('reg_archivo', file);
+      /**
+       * Marca de tiempo de envío capturada en el cliente. Enviamos:
+       *  - `reg_client_utc`: ISO 8601 en UTC (Z), lo que el servidor guarda
+       *    en `registro.fecharegistro` como hora absoluta de referencia.
+       *  - `reg_client_tz_offset`: minutos de offset respecto a UTC del
+       *    navegador del jugador (auditoría / soporte de zona horaria).
+       * Esto reemplaza el uso de NOW() del servidor, que dependía de la zona
+       * horaria del host y producía desfases al mostrarse en otras regiones.
+       */
+      const nowClient = new Date();
+      fd.append('reg_client_utc', nowClient.toISOString());
+      fd.append('reg_client_tz_offset', String(-nowClient.getTimezoneOffset()));
       // Snapshot del precio mostrado al jugador (auditoría / referencia
       // para el comité). Se calcula en la BD vía registro_precios; aquí
       // sólo persistimos lo que el jugador vio al pulsar enviar.
