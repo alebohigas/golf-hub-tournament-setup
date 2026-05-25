@@ -290,12 +290,22 @@ export const getEmailValidateUrl = (email: string): string =>
   `${API_BASE_URL}/email_validate.php?email=${encodeURIComponent(email)}`;
 
 /**
- * Check whether an email is already registered for the active tournament.
- * One email per torneo is enforced server-side; this lets the form warn
- * the user before they submit. torneoid is auto-appended by buildQuery().
+ * Check whether a (nombre, apellido, correo) triple is already registered
+ * for the active tournament. El backend SOLO marca `exists: true` cuando
+ * coinciden los tres campos (case-insensitive). Permite al formulario
+ * advertir antes del submit. `torneoid` lo añade buildQuery().
  */
-export const getRegistroEmailCheckUrl = (email: string): string =>
-  `${API_BASE_URL}/registro.php${buildQuery({ action: 'check_email', email })}`;
+export const getRegistroEmailCheckUrl = (
+  email: string,
+  nombre?: string,
+  apellido?: string,
+): string =>
+  `${API_BASE_URL}/registro.php${buildQuery({
+    action: 'check_email',
+    email,
+    nombre: nombre ?? '',
+    apellido: apellido ?? '',
+  })}`;
 
 /**
  * Lookup an existing player's stored club by name + birthdate.
