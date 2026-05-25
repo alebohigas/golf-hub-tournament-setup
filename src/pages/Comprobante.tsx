@@ -45,6 +45,11 @@ interface PublicRegistro {
   has_archivo?: number;
   reg_archivo_nombre?: string;
   torneo_name?: string;
+  // Tallas (editables si vienen con valor desde el registro)
+  akron_talla?: string | null;
+  akron_talla_guante?: string | null;
+  reg_talla_gorra?: string | null;
+  akron_calzado?: string | null;
 }
 
 /** Read the `token` query parameter from the current URL. */
@@ -75,6 +80,12 @@ const Comprobante = () => {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  /**
+   * Tallas editables — se inicializan desde el registro y solo se muestran
+   * los campos cuyo valor original NO es NULL/empty.
+   */
+  const [tallas, setTallas] = useState<Record<string, string>>({});
+  const [tallasVisibles, setTallasVisibles] = useState<string[]>([]);
 
   /** Initial load — fetch registro by token. */
   useEffect(() => {
@@ -85,6 +96,25 @@ const Comprobante = () => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'No se pudo cargar el registro');
         setRegistro(json.registro);
+        // Determinar qué tallas mostrar (solo no-null)
+        const r = json.registro || {};
+        const candidatos: Array<{ key: string; label: string }> = [
+          { key: 'akron_talla',        label: 'Talla de camisa' },
+          { key: 'akron_talla_guante', label: 'Talla de guante' },
+          { key: 'reg_talla_gorra',    label: 'Talla de gorra' },
+          { key: 'akron_calzado',      label: 'Talla de calzado' },
+        ];
+        const visibles: string[] = [];
+        const init: Record<string, string> = {};
+        for (const c of candidatos) {
+          const v = r[c.key];
+          if (v !== null && v !== undefined && String(v).trim() !== '') {
+            visibles.push(c.key);
+            init[c.key] = String(v);
+          }
+        }
+        setTallas(init);
+        setTallasVisibles(visibles);
       } catch (e: any) {
         setError(e.message || 'Error desconocido');
       } finally {
@@ -104,6 +134,10 @@ const Comprobante = () => {
       const fd = new FormData();
       fd.append('token', token);
       fd.append('reg_archivo', file);
+      // Enviar tallas editadas (solo las visibles/no-null originales)
+      for (const k of tallasVisibles) {
+        fd.append(k, tallas[k] ?? '');
+      }
       const res = await fetch(getRegistroPublicoSubmitUrl(), { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error al subir');
