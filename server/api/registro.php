@@ -595,10 +595,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         $cols[] = 'verificado';
         $vals[] = '0';
     }
-    /** Default status_pago = 0 si la columna existe. */
+    /**
+     * Decisión de cupo: si la categoría seleccionada ya está llena
+     * (jugadores reales >= categorias.maxjugadores), el registro entra
+     * en LISTA DE ESPERA con status_pago=67. El flag `_waitlist=1` del
+     * cliente sólo es una pista — la decisión real es del servidor.
+     */
+    $postedCategoriaId = (int)($_POST['reg_categoria'] ?? 0);
+    $isWaitlist = ($postedCategoriaId > 0)
+        && categoria_esta_llena($conn, $torneoid, $postedCategoriaId);
     if (registro_has($conn, 'status_pago') && !isset($writtenCols['status_pago'])) {
         $cols[] = 'status_pago';
-        $vals[] = '0';
+        $vals[] = $isWaitlist ? '67' : '0';
     }
 
     /**
