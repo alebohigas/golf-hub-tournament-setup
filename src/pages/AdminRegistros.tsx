@@ -619,6 +619,39 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         </>
                         )}
+                        {section === 'sec4' && (
+                          /*
+                           * Columna "Registro completado": botón para enviar
+                           * el correo de bienvenida oficial. Cambia a "Volver
+                           * a enviar" si ya se mandó al menos una vez.
+                           */
+                          <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const wcount = Number(r.reg_welcome_count) || 0;
+                              return (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant={wcount > 0 ? 'outline' : 'default'}
+                                    className="gap-1"
+                                    disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
+                                    onClick={() => sendWelcomeEmail(r)}
+                                  >
+                                    {busy[`welcome-${r.id}`]
+                                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                                      : <Mail className="h-4 w-4" />}
+                                    {wcount > 0 ? 'Volver a enviar' : 'Enviar bienvenida'}
+                                  </Button>
+                                  {wcount > 0 && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Enviado ({wcount}){r.reg_welcome_last ? ` · ${r.reg_welcome_last}` : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        )}
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
