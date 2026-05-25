@@ -542,6 +542,30 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
                           <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
+                          {section === 'sec5' && (() => {
+                            /*
+                             * En lista de espera, mostrar conteo de ocupación
+                             * de la categoría: "n/max". max=0 o 99 se consideran
+                             * ilimitados (no debería ocurrir en sec5 pero se
+                             * cubre por completitud).
+                             */
+                            const maxC = Number(r.cat_max) || 0;
+                            const cnt  = Number(r.cat_count) || 0;
+                            const unlimited = !maxC || maxC === 99;
+                            return (
+                              <div className="text-xs mt-1">
+                                <span className="text-muted-foreground">Cupo: </span>
+                                <span className={cn(
+                                  'font-mono font-semibold',
+                                  unlimited
+                                    ? 'text-muted-foreground'
+                                    : cnt < maxC ? 'text-primary' : 'text-destructive'
+                                )}>
+                                  {unlimited ? `${cnt}/∞` : `${cnt}/${maxC}`}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-3">
                           <div>{r.reg_club || '—'}</div>
