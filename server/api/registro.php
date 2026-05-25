@@ -642,7 +642,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     // Best-effort sync to jugadores when SPEI/GHIN provided.
     sync_jugadores_from_registro($conn, $_POST, $birth);
 
-    json_response(['saved' => true, 'id' => $conn->insert_id]);
+    $newId = $conn->insert_id;
+
+    // Lista de espera: enviar correo automático con detalles del registro
+    // (sin imagen bancaria, sin CTA de pago, con encabezado destacado).
+    if ($isWaitlist) {
+        send_waitlist_email($conn, $newId);
+    }
+
+    json_response([
+        'saved'    => true,
+        'id'       => $newId,
+        'waitlist' => $isWaitlist,
+    ]);
 }
 
 // ============= POST verify (admin) =============
