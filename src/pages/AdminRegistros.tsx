@@ -351,12 +351,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec3 — status_pago=1 AND verificado=0
    *   sec4 — verificado=1 (status_pago=1 o 99)
    */
-  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' => {
+  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' => {
     const enviado   = Number(r.enviado) === 1;
     const hasFile   = Number(r.has_archivo) === 1;
     const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
     const verified  = Number(r.reg_verificado) === 1;
+    // Lista de espera tiene prioridad: status_pago=67 sale del flujo normal.
+    if (statusP === 67) return 'sec5';
     if (verified) return 'sec4';
     if (statusP === 1) return 'sec3';
     // Auto-mover a sec2 si subió comprobante o eligió cargo a cuenta,
@@ -367,7 +369,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
   /** Conteos por sección — alimentan los tabs. */
   const counts = useMemo(() => {
-    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4', number>;
+    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0, sec5: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4'|'sec5', number>;
     for (const r of rows) c[classify(r)]++;
     return c;
   }, [rows]);
@@ -387,11 +389,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   }, [rows, section, search]);
 
   /** Tabs definidos arriba — orden importa (botones). */
-  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'; label: string }[] = [
+  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'; label: string }[] = [
     { id: 'sec1', label: 'Sin validar registro' },
     { id: 'sec2', label: 'Pendiente verificación de pago' },
     { id: 'sec3', label: 'Verificar registro' },
     { id: 'sec4', label: 'Registros completados' },
+    { id: 'sec5', label: 'Lista de espera' },
   ];
 
   return (
