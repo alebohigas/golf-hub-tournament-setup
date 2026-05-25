@@ -336,6 +336,12 @@ const Registro = () => {
   /** Submission state */
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  /**
+   * Cuando el backend marca al registro como lista de espera
+   * (status_pago=67), el mensaje de éxito cambia para informar al
+   * jugador que aún no tiene lugar confirmado.
+   */
+  const [submittedWaitlist, setSubmittedWaitlist] = useState(false);
   /** Forces a fresh form DOM tree after "Enviar otro pre-registro" to prevent browser autofill from restoring stale values. */
   const [formInstanceKey, setFormInstanceKey] = useState(0);
 
