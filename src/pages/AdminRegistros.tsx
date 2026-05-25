@@ -403,7 +403,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         <div>
           <h1 className="text-2xl font-bold">Pre-Registros</h1>
           <p className="text-muted-foreground">
-            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados
+            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados · {counts.sec5} en lista de espera
           </p>
         </div>
         <div className="flex gap-2">
