@@ -87,30 +87,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // ============= POST: subir comprobante =============
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_FILES['reg_archivo']) || !is_uploaded_file($_FILES['reg_archivo']['tmp_name'])) {
+    $hasFile = isset($_FILES['reg_archivo']) && is_uploaded_file($_FILES['reg_archivo']['tmp_name']);
+
+    // Tallas editables que el jugador puede confirmar/cambiar al adjuntar
+    // el comprobante. Se aceptan solo si la columna existe en `registro`.
+    $tallaCols = ['akron_talla', 'akron_talla_guante', 'reg_talla_gorra', 'akron_calzado'];
+    $sets = [];
+    foreach ($tallaCols as $col) {
+        if (!array_key_exists($col, $_POST)) continue;
+        if (!pub_has($conn, $col)) continue;
+        $v = trim((string)$_POST[$col]);
+        $sets[] = "`$col` = '" . esc($conn, $v) . "'";
+    }
+
+    if (!$hasFile && empty($sets)) {
         json_error('Falta el archivo', 400);
     }
-    if ($_FILES['reg_archivo']['size'] > MAX_PUB_FILE_BYTES) {
+    if ($hasFile && $_FILES['reg_archivo']['size'] > MAX_PUB_FILE_BYTES) {
         json_error('Archivo demasiado grande (máx 15 MB).', 400);
     }
-    if (!pub_has($conn, 'reg_archivo')) {
+    if ($hasFile && !pub_has($conn, 'reg_archivo')) {
         json_error('La tabla no tiene reg_archivo', 500);
     }
 
-    $bin  = file_get_contents($_FILES['reg_archivo']['tmp_name']);
-    $name = basename($_FILES['reg_archivo']['name']);
-    $mime = $_FILES['reg_archivo']['type'] ?: 'application/octet-stream';
-
-    $sets = ["reg_archivo = '" . $conn->real_escape_string($bin) . "'"];
-    if (pub_has($conn, 'reg_archivo_nombre')) {
-        $sets[] = "reg_archivo_nombre = '" . esc($conn, $name) . "'";
-    }
-    if (pub_has($conn, 'reg_archivo_mime')) {
-        $sets[] = "reg_archivo_mime = '" . esc($conn, $mime) . "'";
-    }
-    // Subir comprobante → pasa a "Pendiente verificación de pago".
-    if (pub_has($conn, 'enviado')) {
-        $sets[] = "enviado = 1";
+    if ($hasFile) {
+        $bin  = file_get_contents($_FILES['reg_archivo']['tmp_name']);
+        $name = basename($_FILES['reg_archivo']['name']);
+        $mime = $_FILES['reg_archivo']['type'] ?: 'application/octet-stream';
+        $sets[] = "reg_archivo = '" . $conn->real_escape_string($bin) . "'";
+        if (pub_has($conn, 'reg_archivo_nombre')) {
+            $sets[] = "reg_archivo_nombre = '" . esc($conn, $name) . "'";
+        }
+        if (pub_has($conn, 'reg_archivo_mime')) {
+            $sets[] = "reg_archivo_mime = '" . esc($conn, $mime) . "'";
+        }
+        // Subir comprobante → pasa a "Pendiente verificación de pago".
+        if (pub_has($conn, 'enviado')) {
+            $sets[] = "enviado = 1";
+        }
     }
 
     if (!$conn->query("UPDATE registro SET " . implode(',', $sets) . " WHERE $pkCol = $id LIMIT 1")) {
