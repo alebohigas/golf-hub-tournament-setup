@@ -25,6 +25,7 @@ import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
+import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -445,6 +446,9 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Theme palette picker — applies per-domain via site_config.theme_config */}
+          <AdminThemePalette />
         </TabsContent>
 
         {/* Archivos Tab — upload images + PDFs to the server */}
