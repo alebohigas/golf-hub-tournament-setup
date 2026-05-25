@@ -28,6 +28,7 @@ import {
   getRegistroEmailUrl,
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
+  getRegistroWelcomeEmailUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
@@ -90,6 +91,10 @@ interface RegistroRow {
   reg_email_count?: number | string;
   /** Timestamp del último correo enviado al jugador. */
   reg_email_last?: string;
+  /** Contador de correos de BIENVENIDA (sec4) enviados al jugador. */
+  reg_welcome_count?: number | string;
+  /** Timestamp del último correo de bienvenida enviado al jugador. */
+  reg_welcome_last?: string;
 }
 
 // ============= Login form =============
