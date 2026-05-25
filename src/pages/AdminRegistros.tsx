@@ -727,6 +727,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             {section === 'sec2' && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
+                            {section === 'sec5' && (
+                              /*
+                               * Lista de espera (status_pago=67): no acciones
+                               * directas. El registro avanza automáticamente
+                               * cuando se libera un lugar en su categoría.
+                               */
+                              <Badge variant="secondary">En lista de espera</Badge>
+                            )}
                           </div>
                         </td>
                       </tr>
