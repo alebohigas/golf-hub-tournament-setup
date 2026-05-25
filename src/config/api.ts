@@ -229,6 +229,14 @@ export const getRegistroEmailUrl = (): string =>
 export const getRegistroWelcomeEmailUrl = (): string =>
   `${API_BASE_URL}/registro_welcome_email.php`;
 
+/**
+ * Admin: promueve un registro de lista de espera (status_pago=67) al
+ * flujo normal (status_pago=0) y envía automáticamente el correo con
+ * datos bancarios. POST JSON {id, password}.
+ */
+export const getRegistroPromoteUrl = (): string =>
+  `${API_BASE_URL}/registro_promote.php`;
+
 /** Public: GET datos del registro por token. */
 export const getRegistroPublicoUrl = (token: string): string =>
   `${API_BASE_URL}/registro_publico.php?token=${encodeURIComponent(token)}`;
