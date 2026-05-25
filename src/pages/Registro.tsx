@@ -436,12 +436,13 @@ const Registro = () => {
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
   /**
-   * Strict numeric handicap regex: optional minus sign, digits, optional single dot, digits.
+   * Strict numeric handicap regex: optional minus sign, digits, optional single decimal digit.
+   * Accepts integers or numbers with exactly one decimal place (e.g. -5, -4.9, 14.2, 54.0).
    * Empty string is treated as "not yet entered" (no error).
    */
-  const HANDICAP_RE = /^-?\d+(\.\d+)?$/;
+  const HANDICAP_RE = /^-?\d+(\.\d)?$/;
   /** Accepted handicap range for pre-registro (inclusive). */
-  const HANDICAP_MIN = -6;
+  const HANDICAP_MIN = -5;
   const HANDICAP_MAX = 54.0;
 
   /** onBlur validator for the handicap field. */
@@ -449,7 +450,7 @@ const Registro = () => {
     const v = (values.reg_handicap || '').trim();
     if (v === '') { setHandicapError(''); return; }
     if (!HANDICAP_RE.test(v)) {
-      const msg = 'Hándicap inválido. Usa solo números y punto decimal (ej: 14.2)';
+      const msg = 'Hándicap inválido. Usa números enteros o con un solo decimal (ej: 14.2)';
       setHandicapError(msg);
       toast({ title: 'Hándicap inválido', description: msg, variant: 'destructive' });
       return;
