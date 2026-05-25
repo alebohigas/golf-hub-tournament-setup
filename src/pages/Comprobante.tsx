@@ -235,6 +235,40 @@ const Comprobante = () => {
               </div>
             )}
 
+            {/* Tallas — editables, solo las que tienen valor en el registro */}
+            {tallasVisibles.length > 0 && (
+              <div className="space-y-3 rounded-md border p-4">
+                <div>
+                  <h3 className="text-sm font-semibold">Confirma tus tallas</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Verifica y, si es necesario, corrige los siguientes datos.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {tallasVisibles.map((k) => {
+                    const labels: Record<string, string> = {
+                      akron_talla: 'Talla de camisa',
+                      akron_talla_guante: 'Talla de guante',
+                      reg_talla_gorra: 'Talla de gorra',
+                      akron_calzado: 'Talla de calzado',
+                    };
+                    return (
+                      <div key={k} className="space-y-1">
+                        <Label htmlFor={k} className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {labels[k]}
+                        </Label>
+                        <Input
+                          id={k}
+                          value={tallas[k] ?? ''}
+                          onChange={(e) => setTallas((prev) => ({ ...prev, [k]: e.target.value }))}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* File picker */}
             <div className="space-y-2">
               <Label htmlFor="file" className="text-sm font-medium">Comprobante (imagen o PDF)</Label>
