@@ -15,7 +15,6 @@
  */
 require_once 'config.php';
 require_once '_smtp.php';
-require_once 'registro.php'; // for send_comprobante_received_email()
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
