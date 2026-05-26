@@ -471,7 +471,7 @@ const Header = () => {
                   // Desktop: enlarged to h-[5.5rem] with auto width so the
                   // wide lockup (icon + wordmark) renders at its real aspect
                   // ratio and visually fills the ribbon.
-                  className="block h-18 w-auto max-w-[13.3rem] origin-left scale-100 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
+                  className="block h-[4.4rem] w-auto max-w-[13.3rem] origin-left scale-100 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
