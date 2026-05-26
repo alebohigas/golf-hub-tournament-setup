@@ -467,9 +467,11 @@ const Header = () => {
                   // Desktop: enlarged to h-[5.5rem] with auto width so the
                   // wide lockup (icon + wordmark) renders at its real aspect
                   // ratio and visually fills the ribbon.
-                  // Mobile logo height reduced 5% (5.8rem → 5.51rem); max-w
-                  // proportionally reduced (14rem → 13.3rem). Desktop unchanged.
-                  className="block h-[5.51rem] w-auto max-w-[13.3rem] origin-left scale-110 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
+                  // Mobile logo height set to 4rem (h-16) per user request.
+                  // Desktop: enlarged to h-[5.5rem] with auto width so the
+                  // wide lockup (icon + wordmark) renders at its real aspect
+                  // ratio and visually fills the ribbon.
+                  className="block h-16 w-auto max-w-[13.3rem] origin-left scale-110 object-contain object-left md:h-[5.5rem] md:w-auto md:max-w-[16rem] md:scale-100 rounded-lg"
                 />
               ) : (
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg gradient-hero flex items-center justify-center text-primary-foreground font-display font-bold text-xl">
