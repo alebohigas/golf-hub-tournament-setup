@@ -19,6 +19,7 @@
  */
 require_once 'config.php';
 require_once '_smtp.php';
+require_once '_registro_emails.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
