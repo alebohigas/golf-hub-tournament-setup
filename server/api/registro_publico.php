@@ -14,6 +14,8 @@
  *        Stores the file into reg_archivo LONGBLOB and marks enviado=1.
  */
 require_once 'config.php';
+require_once '_smtp.php';
+require_once 'registro.php'; // for send_comprobante_received_email()
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
@@ -129,6 +131,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$conn->query("UPDATE registro SET " . implode(',', $sets) . " WHERE $pkCol = $id LIMIT 1")) {
         json_error('No se pudo guardar: ' . $conn->error, 500);
+    }
+
+    // Notificar al jugador que su comprobante llegó (best-effort).
+    if ($hasFile && function_exists('send_comprobante_received_email')) {
+        @send_comprobante_received_email($conn, $id);
     }
 
     json_response(['saved' => true]);
