@@ -19,6 +19,7 @@
  */
 require_once 'config.php';
 require_once '_smtp.php';
+require_once '_registro_emails.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
@@ -673,6 +674,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     // (sin imagen bancaria, sin CTA de pago, con encabezado destacado).
     if ($isWaitlist) {
         send_waitlist_email($conn, $newId);
+    } else {
+        // Pre-registro normal: confirmar al jugador que su registro entró.
+        send_registration_ack_email($conn, $newId);
     }
 
     json_response([
