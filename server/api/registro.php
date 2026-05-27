@@ -737,6 +737,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
         $pv = !empty($body['pago_verificado']) ? 1 : 0;
         $sets[] = "status_pago = $pv";
     }
+    /**
+     * Nuevo: dropdown de status_pago con valores del catálogo `estatuspago`
+     * (primeras 6 opciones). Acepta cualquier entero >= 0; el frontend se
+     * encarga de restringir a las opciones permitidas.
+     */
+    if (array_key_exists('status_pago', $body) && registro_has($conn, 'status_pago')) {
+        $sp = (int)$body['status_pago'];
+        $sets[] = "status_pago = $sp";
+    }
     if (array_key_exists('monto_confirmado', $body) && registro_has($conn, 'reg_monto_confirmado')) {
         $raw = trim((string)$body['monto_confirmado']);
         if ($raw === '' || !is_numeric($raw)) {
