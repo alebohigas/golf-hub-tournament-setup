@@ -674,14 +674,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
-                      <th className="text-center p-3">Estatus Correo</th>
-                    ) : (
-                      <>
-                        <th className="text-center p-3">Monto confirmado recibido</th>
-                        <th className="text-center p-3">Estatus de pago</th>
-                      </>
-                    )}
+                    {/*
+                      Columnas siempre visibles en todas las secciones para
+                      que el admin pueda capturar monto confirmado y mover
+                      el `status_pago` desde cualquier vista.
+                    */}
+                    <th className="text-center p-3">Monto confirmado recibido</th>
+                    <th className="text-center p-3">Estatus de pago</th>
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
