@@ -665,10 +665,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
         json_error('Failed to save registration: ' . $conn->error, 500);
     }
 
+    /**
+     * Capturar el ID inmediatamente después del INSERT. Cualquier query
+     * posterior (por ejemplo el sync hacia jugadores) puede resetear
+     * mysqli->insert_id a 0 y evitar que se mande el correo automático.
+     */
+    $newId = $conn->insert_id;
+
     // Best-effort sync to jugadores when SPEI/GHIN provided.
     sync_jugadores_from_registro($conn, $_POST, $birth);
-
-    $newId = $conn->insert_id;
 
     // Lista de espera: enviar correo automático con detalles del registro
     // (sin imagen bancaria, sin CTA de pago, con encabezado destacado).
