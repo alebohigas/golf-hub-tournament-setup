@@ -31,6 +31,7 @@ import {
   getRegistroBajaUrl,
   getRegistroPromoteUrl,
   getRegistroWelcomeEmailUrl,
+  getEstatuspagoUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
@@ -96,6 +97,10 @@ interface RegistroRow {
   reg_email_count?: number | string;
   /** Timestamp del último correo enviado al jugador. */
   reg_email_last?: string;
+  /** Contador de correos de BIENVENIDA enviados (sección 4). */
+  reg_welcome_count?: number | string;
+  /** Timestamp del último correo de bienvenida enviado. */
+  reg_welcome_last?: string;
   /** Cupo máximo de la categoría asociada (categorias.maxjugadores). */
   cat_max?: number | string | null;
   /** Jugadores activos actualmente en categoría/torneo (excluye BAJA). */
@@ -179,6 +184,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
   const [search, setSearch] = useState('');
   /**
+   * Opciones del dropdown de status_pago — primeras 6 filas del
+   * catálogo `estatuspago` cargadas una sola vez al montar.
+   */
+  const [estatusOpts, setEstatusOpts] = useState<{ value: number; label: string }[]>([]);
+  /**
    * Filtros adicionales (folio exacto, categoría, fecha de registro).
    * El estado vive sólo en este componente, por lo que cada admin tiene
    * sus propios filtros sin afectar a otros revisores en sesiones
@@ -225,6 +235,19 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
+  /** Cargar catálogo `estatuspago` (primeras 6 opciones) una sola vez. */
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(getEstatuspagoUrl());
+        const json = await res.json();
+        if (Array.isArray(json.rows)) setEstatusOpts(json.rows);
+      } catch {
+        /* silencioso: el dropdown queda vacío si falla */
+      }
+    })();
+  }, []);
+
   /**
    * Admin update genérico: envía cualquier combinación de campos
    * (verified, pago_verificado, monto_confirmado) al endpoint verify
@@ -233,7 +256,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    */
   const updateRegistro = async (
     row: RegistroRow,
-    patch: { verified?: 0 | 1; pago_verificado?: 0 | 1; monto_confirmado?: string | null },
+    patch: { verified?: 0 | 1; pago_verificado?: 0 | 1; status_pago?: number; monto_confirmado?: string | null },
   ) => {
     try {
       const res = await fetch(getRegistroVerifyUrl(), {
@@ -248,29 +271,41 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         const next: RegistroRow = { ...r };
         if (patch.verified !== undefined)         next.reg_verificado       = patch.verified;
         if (patch.pago_verificado !== undefined)  next.reg_pago_verificado  = patch.pago_verificado;
+        if (patch.status_pago !== undefined)      next.reg_pago_verificado  = patch.status_pago;
         if (patch.monto_confirmado !== undefined) next.reg_monto_confirmado = patch.monto_confirmado ?? '';
         return next;
       }));
-      if (patch.verified === 1) {
-        toast({ title: 'Registro verificado' });
-        // Dispara correo de bienvenida al jugador (sección 4). Es
-        // best-effort: si falla, lo notificamos pero no revertimos
-        // el cambio de verificado en BD.
-        try {
-          const wres = await fetch(getRegistroWelcomeEmailUrl(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: row.id, password }),
-          });
-          const wjson = await wres.json().catch(() => ({}));
-          if (!wres.ok) throw new Error(wjson.error || 'Error');
-          toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${wjson.to || ''}` });
-        } catch (e: any) {
-          toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
-        }
-      }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  /**
+   * Sección 3/4 → enviar correo de BIENVENIDA al jugador. Reemplaza al
+   * toggle "Registro verificado": YA NO actualiza el campo `verificado`
+   * en la tabla `registro`, sólo dispara el correo e incrementa el
+   * contador `reg_welcome_count` que se muestra en la UI.
+   */
+  const sendWelcome = async (row: RegistroRow) => {
+    const key = `welcome-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroWelcomeEmailUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to || ''}` });
+      // Optimistic: incrementa contador local sin esperar refresh.
+      setRows(prev => prev.map(rr => rr.id === row.id
+        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
+        : rr));
+    } catch (e: any) {
+      toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
     }
   };
 
@@ -627,13 +662,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     ) : (
                       <>
                         <th className="text-center p-3">Monto confirmado recibido</th>
-                        <th className="text-center p-3">Pago verificado</th>
-                        <th className="text-center p-3">Registro verificado</th>
+                        <th className="text-center p-3">Estatus de pago</th>
                       </>
                     )}
-                    {section !== 'sec4' && (
-                      <th className="text-center p-3">Acciones</th>
-                    )}
+                    <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -799,44 +831,51 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               Number.isFinite(cobradoNum) &&
                               Number.isFinite(confirmadoNum) &&
                               cobradoNum === confirmadoNum;
-                            const canToggle = montosCoinciden;
+                            /**
+                             * Dropdown alimentado por la tabla `estatuspago`
+                             * (primeras 6 opciones). El valor (PK) se guarda
+                             * directamente en `registro.status_pago`.
+                             *
+                             * Sólo se habilita si los montos coinciden — misma
+                             * regla que tenía el toggle anterior, para evitar
+                             * cambios accidentales antes de cuadrar el pago.
+                             */
+                            const canEdit = montosCoinciden;
+                            const current = Number(r.reg_pago_verificado);
+                            const currentStr = Number.isFinite(current) ? String(current) : '';
                             return (
                               <div
                                 className="flex items-center justify-center gap-2"
-                                title={canToggle ? '' : 'El monto confirmado debe coincidir con el monto cobrado'}
+                                title={canEdit ? '' : 'El monto confirmado debe coincidir con el monto cobrado'}
                               >
-                                <Switch
-                                  checked={pagoVerif}
-                                  disabled={!canToggle}
-                                  onCheckedChange={(v) => updateRegistro(r, { pago_verificado: v ? 1 : 0 })}
-                                />
-                                {pagoVerif
-                                  ? <CheckCircle2 className="h-4 w-4 text-primary" />
-                                  : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                                <Select
+                                  value={currentStr}
+                                  disabled={!canEdit || estatusOpts.length === 0}
+                                  onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
+                                >
+                                  <SelectTrigger className="h-8 w-44 text-xs">
+                                    <SelectValue placeholder="—" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {estatusOpts.map(opt => (
+                                      <SelectItem key={opt.value} value={String(opt.value)}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
                             );
                           })()}
                         </td>
-                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-2">
-                            <Switch
-                              checked={verified}
-                              disabled={section !== 'sec3' && section !== 'sec4'}
-                              onCheckedChange={(v) => updateRegistro(r, { verified: v ? 1 : 0 })}
-                            />
-                            {verified
-                              ? <CheckCircle2 className="h-4 w-4 text-primary" />
-                              : <XCircle className="h-4 w-4 text-muted-foreground" />}
-                          </div>
-                        </td>
                         </>
                         )}
-                        {section !== 'sec4' && (
-                        <>
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
-                          sec3 → "Verificar" marca verificado=1 (atajo del switch).
+                          sec3/sec4 → "Enviar bienvenida" dispara el correo de
+                                      bienvenida y muestra el contador de envíos.
+                                      YA NO actualiza el campo `verificado`.
                         */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -854,15 +893,30 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 {Number(r.reg_email_count) > 0 ? 'Volver a enviar' : 'Enviar correo'}
                               </Button>
                             )}
-                            {section === 'sec3' && !verified && (
-                              <Button
-                                size="sm"
-                                className="gap-1"
-                                onClick={() => updateRegistro(r, { verified: 1 })}
-                              >
-                                <UserCheck className="h-4 w-4" /> Verificar
-                              </Button>
-                            )}
+                            {(section === 'sec3' || section === 'sec4') && (() => {
+                              const wcount = Number(r.reg_welcome_count) || 0;
+                              return (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    className="gap-1"
+                                    disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
+                                    onClick={() => sendWelcome(r)}
+                                  >
+                                    {busy[`welcome-${r.id}`]
+                                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                                      : <Mail className="h-4 w-4" />}
+                                    {wcount > 0 ? 'Reenviar bienvenida' : 'Enviar bienvenida'}
+                                  </Button>
+                                  {wcount > 0 && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Enviados: {wcount}
+                                      {r.reg_welcome_last ? ` · ${r.reg_welcome_last}` : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {section === 'sec2' && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
@@ -898,13 +952,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             })()}
                           </div>
                         </td>
-                        </>
-                        )}
                       </tr>
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : 11} className="p-4">
+                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : 10} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[

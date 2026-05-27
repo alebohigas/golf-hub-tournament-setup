@@ -230,6 +230,13 @@ export const getRegistroWelcomeEmailUrl = (): string =>
   `${API_BASE_URL}/registro_welcome_email.php`;
 
 /**
+ * Catálogo `estatuspago` (primeras 6 opciones). Alimenta el dropdown
+ * de status_pago en el dashboard de pre-registros.
+ */
+export const getEstatuspagoUrl = (): string =>
+  `${API_BASE_URL}/estatuspago.php`;
+
+/**
  * Admin: promueve un registro de lista de espera (status_pago=67) al
  * flujo normal (status_pago=0) y envía automáticamente el correo con
  * datos bancarios. POST JSON {id, password}.

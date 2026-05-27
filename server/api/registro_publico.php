@@ -127,6 +127,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (pub_has($conn, 'enviado')) {
             $sets[] = "enviado = 1";
         }
+        /**
+         * Al adjuntar comprobante también marcamos status_pago = 1
+         * (catálogo estatuspago) — el pago queda "registrado/recibido"
+         * y avanza al siguiente paso del flujo administrativo.
+         */
+        if (pub_has($conn, 'status_pago')) {
+            $sets[] = "status_pago = 1";
+        }
     }
 
     if (!$conn->query("UPDATE registro SET " . implode(',', $sets) . " WHERE $pkCol = $id LIMIT 1")) {
