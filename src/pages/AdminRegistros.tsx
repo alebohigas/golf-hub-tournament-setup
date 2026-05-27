@@ -299,9 +299,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Error');
       toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to || ''}` });
-      // Optimistic: incrementa contador local sin esperar refresh.
+      // Optimistic: incrementa contador local y marca verificado=1 para
+      // que la fila se mueva inmediatamente a "Registros completados".
       setRows(prev => prev.map(rr => rr.id === row.id
-        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
+        ? {
+            ...rr,
+            reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1,
+            reg_verificado: 1,
+          }
         : rr));
     } catch (e: any) {
       toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
@@ -669,14 +674,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
-                      <th className="text-center p-3">Estatus Correo</th>
-                    ) : (
-                      <>
-                        <th className="text-center p-3">Monto confirmado recibido</th>
-                        <th className="text-center p-3">Estatus de pago</th>
-                      </>
-                    )}
+                    {/*
+                      Columnas siempre visibles en todas las secciones para
+                      que el admin pueda capturar monto confirmado y mover
+                      el `status_pago` desde cualquier vista.
+                    */}
+                    <th className="text-center p-3">Monto confirmado recibido</th>
+                    <th className="text-center p-3">Estatus de pago</th>
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
@@ -785,33 +789,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
-                          /*
-                           * Estatus de correo: en la sección 1 reemplaza a las 3
-                           * columnas de tesorería. Muestra "Enviado (N)" si ya se
-                           * mandó al menos un correo de validación; "—" en otro caso.
-                           */
-                          <td className="p-3 text-center">
-                            {(() => {
-                              const count = Number(r.reg_email_count) || 0;
-                              if (count > 0) {
-                                return (
-                                  <div className="flex flex-col items-center gap-0.5">
-                                    <Badge variant="default" className="bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
-                                      Enviado ({count})
-                                    </Badge>
-                                    {r.reg_email_last && (
-                                      <span className="text-[10px] text-muted-foreground">{r.reg_email_last}</span>
-                                    )}
-                                  </div>
-                                );
-                              }
-                              return <span className="text-muted-foreground text-xs">—</span>;
-                            })()}
-                          </td>
-                        ) : (
-                        <>
-                        {/* Campo: monto confirmado recibido (se persiste onBlur). */}
+                        {/* Campo: monto confirmado recibido (se persiste onBlur). Disponible en todas las secciones. */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
                             type="number"
@@ -868,8 +846,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             );
                           })()}
                         </td>
-                        </>
-                        )}
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
@@ -956,7 +932,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={(section === 'sec1' || section === 'sec5' || section === 'sec6') ? 9 : 10} className="p-4">
+                          <td colSpan={10} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
