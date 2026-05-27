@@ -179,9 +179,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec2 — Pendiente verificación de pago
    *   sec3 — Verificar registro
    *   sec4 — Registros completados
-   *   sec5 — Lista de espera (status_pago=67)
+   *   sec5 — Lista de espera (status_pago=5)
+   *   sec6 — Registros cancelados (status_pago=6)
    */
-  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
+  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' | 'sec6'>('sec1');
   const [search, setSearch] = useState('');
   /**
    * Opciones del dropdown de status_pago — primeras 6 filas del
