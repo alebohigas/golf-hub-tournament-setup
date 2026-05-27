@@ -669,7 +669,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    {(section === 'sec1' || section === 'sec5') ? (
+                    {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
                       <th className="text-center p-3">Estatus Correo</th>
                     ) : (
                       <>
@@ -785,7 +785,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {(section === 'sec1' || section === 'sec5') ? (
+                        {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
                           /*
                            * Estatus de correo: en la sección 1 reemplaza a las 3
                            * columnas de tesorería. Muestra "Enviado (N)" si ya se
@@ -834,35 +834,23 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           {(() => {
-                            const cobradoNum = Number(r.reg_precio_estimado);
-                            const confirmadoRaw = r.reg_monto_confirmado;
-                            const confirmadoNum = confirmadoRaw != null && String(confirmadoRaw).trim() !== ''
-                              ? Number(confirmadoRaw)
-                              : NaN;
-                            const montosCoinciden =
-                              Number.isFinite(cobradoNum) &&
-                              Number.isFinite(confirmadoNum) &&
-                              cobradoNum === confirmadoNum;
                             /**
                              * Dropdown alimentado por la tabla `estatuspago`
                              * (primeras 6 opciones). El valor (PK) se guarda
                              * directamente en `registro.status_pago`.
                              *
-                             * Sólo se habilita si los montos coinciden — misma
-                             * regla que tenía el toggle anterior, para evitar
-                             * cambios accidentales antes de cuadrar el pago.
+                             * Siempre habilitado (siempre que existan opciones):
+                             * el admin puede mover el estatus libremente, sin
+                             * importar si el monto confirmado coincide o no
+                             * con el monto cobrado.
                              */
-                            const canEdit = montosCoinciden;
                             const current = Number(r.reg_pago_verificado);
                             const currentStr = Number.isFinite(current) ? String(current) : '';
                             return (
-                              <div
-                                className="flex items-center justify-center gap-2"
-                                title={canEdit ? '' : 'El monto confirmado debe coincidir con el monto cobrado'}
-                              >
+                              <div className="flex items-center justify-center gap-2">
                                 <Select
                                   value={currentStr}
-                                  disabled={!canEdit || estatusOpts.length === 0}
+                                  disabled={estatusOpts.length === 0}
                                   onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
                                 >
                                   <SelectTrigger className="h-8 w-44 text-xs">
@@ -929,7 +917,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 </div>
                               );
                             })()}
-                            {section === 'sec2' && (
+                            {(section === 'sec2' || section === 'sec6') && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
                             {section === 'sec5' && (() => {
@@ -968,7 +956,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : 10} className="p-4">
+                          <td colSpan={(section === 'sec1' || section === 'sec5' || section === 'sec6') ? 9 : 10} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
