@@ -184,6 +184,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
   const [search, setSearch] = useState('');
   /**
+   * Opciones del dropdown de status_pago — primeras 6 filas del
+   * catálogo `estatuspago` cargadas una sola vez al montar.
+   */
+  const [estatusOpts, setEstatusOpts] = useState<{ value: number; label: string }[]>([]);
+  /**
    * Filtros adicionales (folio exacto, categoría, fecha de registro).
    * El estado vive sólo en este componente, por lo que cada admin tiene
    * sus propios filtros sin afectar a otros revisores en sesiones
@@ -230,6 +235,19 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, []);
 
+  /** Cargar catálogo `estatuspago` (primeras 6 opciones) una sola vez. */
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(getEstatuspagoUrl());
+        const json = await res.json();
+        if (Array.isArray(json.rows)) setEstatusOpts(json.rows);
+      } catch {
+        /* silencioso: el dropdown queda vacío si falla */
+      }
+    })();
+  }, []);
+
   /**
    * Admin update genérico: envía cualquier combinación de campos
    * (verified, pago_verificado, monto_confirmado) al endpoint verify
@@ -238,7 +256,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    */
   const updateRegistro = async (
     row: RegistroRow,
-    patch: { verified?: 0 | 1; pago_verificado?: 0 | 1; monto_confirmado?: string | null },
+    patch: { verified?: 0 | 1; pago_verificado?: 0 | 1; status_pago?: number; monto_confirmado?: string | null },
   ) => {
     try {
       const res = await fetch(getRegistroVerifyUrl(), {
@@ -253,29 +271,41 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         const next: RegistroRow = { ...r };
         if (patch.verified !== undefined)         next.reg_verificado       = patch.verified;
         if (patch.pago_verificado !== undefined)  next.reg_pago_verificado  = patch.pago_verificado;
+        if (patch.status_pago !== undefined)      next.reg_pago_verificado  = patch.status_pago;
         if (patch.monto_confirmado !== undefined) next.reg_monto_confirmado = patch.monto_confirmado ?? '';
         return next;
       }));
-      if (patch.verified === 1) {
-        toast({ title: 'Registro verificado' });
-        // Dispara correo de bienvenida al jugador (sección 4). Es
-        // best-effort: si falla, lo notificamos pero no revertimos
-        // el cambio de verificado en BD.
-        try {
-          const wres = await fetch(getRegistroWelcomeEmailUrl(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: row.id, password }),
-          });
-          const wjson = await wres.json().catch(() => ({}));
-          if (!wres.ok) throw new Error(wjson.error || 'Error');
-          toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${wjson.to || ''}` });
-        } catch (e: any) {
-          toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
-        }
-      }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  /**
+   * Sección 3/4 → enviar correo de BIENVENIDA al jugador. Reemplaza al
+   * toggle "Registro verificado": YA NO actualiza el campo `verificado`
+   * en la tabla `registro`, sólo dispara el correo e incrementa el
+   * contador `reg_welcome_count` que se muestra en la UI.
+   */
+  const sendWelcome = async (row: RegistroRow) => {
+    const key = `welcome-${row.id}`;
+    markBusy(key, true);
+    try {
+      const res = await fetch(getRegistroWelcomeEmailUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, password }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error');
+      toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to || ''}` });
+      // Optimistic: incrementa contador local sin esperar refresh.
+      setRows(prev => prev.map(rr => rr.id === row.id
+        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
+        : rr));
+    } catch (e: any) {
+      toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
     }
   };
 
