@@ -299,14 +299,11 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Error');
       toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to || ''}` });
-      // Optimistic: incrementa contador local y marca verificado=1 para
-      // que la fila se mueva inmediatamente a "Registros completados".
+      // Optimistic: incrementa el contador de bienvenidas. El clasificador
+      // usa `reg_welcome_count > 0` para mover la fila a "Registros
+      // completados" — NO se toca `registro.verificado`.
       setRows(prev => prev.map(rr => rr.id === row.id
-        ? {
-            ...rr,
-            reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1,
-            reg_verificado: 1,
-          }
+        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
         : rr));
     } catch (e: any) {
       toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
@@ -445,15 +442,24 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec5 — Lista de espera (status_pago = 5)
    *   sec6 — Registros cancelados (status_pago = 6)
    */
+  /**
+   * Helper: una fila se considera "completada" cuando ya se le envió al
+   * menos un correo de BIENVENIDA (`reg_welcome_count > 0`). NUNCA se
+   * usa `registro.verificado` para esta decisión — ese campo se respeta
+   * tal cual está en la BD y no se modifica desde este dashboard.
+   */
+  const isCompletado = (r: RegistroRow): boolean =>
+    (Number(r.reg_welcome_count) || 0) > 0;
+
   const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' | 'sec6' => {
     const hasFile   = Number(r.has_archivo) === 1;
     const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
-    const verified  = Number(r.reg_verificado) === 1;
     // Estados terminales/laterales tienen prioridad sobre el flujo normal.
     if (statusP === 5) return 'sec5';
     if (statusP === 6) return 'sec6';
-    if (verified) return 'sec4';
+    // "Completado" = ya recibió correo de bienvenida (no depende de verificado).
+    if (isCompletado(r)) return 'sec4';
     // PAGADO o CORTESIA → listos para verificar registro.
     if (statusP === 2 || statusP === 4) return 'sec3';
     // POR VALIDAR / POR COBRAR → pendiente de verificación de pago.
