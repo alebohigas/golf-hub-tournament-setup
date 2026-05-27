@@ -299,9 +299,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Error');
       toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${json.to || ''}` });
-      // Optimistic: incrementa contador local sin esperar refresh.
+      // Optimistic: incrementa contador local y marca verificado=1 para
+      // que la fila se mueva inmediatamente a "Registros completados".
       setRows(prev => prev.map(rr => rr.id === row.id
-        ? { ...rr, reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1 }
+        ? {
+            ...rr,
+            reg_welcome_count: (Number(rr.reg_welcome_count) || 0) + 1,
+            reg_verificado: 1,
+          }
         : rr));
     } catch (e: any) {
       toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
