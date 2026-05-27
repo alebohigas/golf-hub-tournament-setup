@@ -789,33 +789,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
-                          /*
-                           * Estatus de correo: en la sección 1 reemplaza a las 3
-                           * columnas de tesorería. Muestra "Enviado (N)" si ya se
-                           * mandó al menos un correo de validación; "—" en otro caso.
-                           */
-                          <td className="p-3 text-center">
-                            {(() => {
-                              const count = Number(r.reg_email_count) || 0;
-                              if (count > 0) {
-                                return (
-                                  <div className="flex flex-col items-center gap-0.5">
-                                    <Badge variant="default" className="bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
-                                      Enviado ({count})
-                                    </Badge>
-                                    {r.reg_email_last && (
-                                      <span className="text-[10px] text-muted-foreground">{r.reg_email_last}</span>
-                                    )}
-                                  </div>
-                                );
-                              }
-                              return <span className="text-muted-foreground text-xs">—</span>;
-                            })()}
-                          </td>
-                        ) : (
-                        <>
-                        {/* Campo: monto confirmado recibido (se persiste onBlur). */}
+                        {/* Campo: monto confirmado recibido (se persiste onBlur). Disponible en todas las secciones. */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
                             type="number"
@@ -872,8 +846,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                             );
                           })()}
                         </td>
-                        </>
-                        )}
                         {/*
                           Acciones por sección:
                           sec1 → "Enviar correo" siempre disponible (recordatorio al jugador).
