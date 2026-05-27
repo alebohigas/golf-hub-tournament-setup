@@ -128,13 +128,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sets[] = "enviado = 1";
         }
         /**
-         * Al adjuntar comprobante también marcamos status_pago = 1
-         * (catálogo estatuspago) — el pago queda "registrado/recibido"
-         * y avanza al siguiente paso del flujo administrativo.
+         * NO modificamos status_pago al subir comprobante.
+         * El registro debe quedar en sección 2 ("Pendiente verificación
+         * de pago": enviado=1 AND status_pago=0). El admin actualizará
+         * status_pago manualmente desde el dropdown cuando verifique.
          */
-        if (pub_has($conn, 'status_pago')) {
-            $sets[] = "status_pago = 1";
-        }
     }
 
     if (!$conn->query("UPDATE registro SET " . implode(',', $sets) . " WHERE $pkCol = $id LIMIT 1")) {
