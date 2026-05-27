@@ -163,37 +163,54 @@ function smtp_send($to, $toName, $subject, $html, $textAlt = '', $cc = []) {
 
     // Preferred path: PHPMailer over SMTP with credentials.
     if (smtp_load_phpmailer() && !empty($SMTP_HOST) && !empty($SMTP_PASS)) {
-        try {
-            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host       = $SMTP_HOST;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $fromAddr;  // rotated mailbox
-            $mail->Password   = $SMTP_PASS;
-            $mail->Port       = (int)($SMTP_PORT ?? 587);
-            $mail->SMTPSecure = ((int)$mail->Port === 465)
-                ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
-                : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->CharSet    = 'UTF-8';
-            $mail->setFrom($fromAddr, $fromName);
-            $mail->addAddress($to, $toName ?: $to);
-            foreach ($ccList as [$ccAddr, $ccName]) {
-                $mail->addCC($ccAddr, $ccName ?: $ccAddr);
-            }
-            $mail->addReplyTo($replyTo, $fromName);
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body    = $html;
-            if ($textAlt) $mail->AltBody = $textAlt;
-            $mail->send();
-            // Charge each CC recipient to the same rotated mailbox.
-            // f_correo() already counted +1 for the primary TO.
-            smtp_bump_counter($conn, $fromAddr, count($ccList));
-            return ['ok' => true, 'error' => null];
-        } catch (\Throwable $e) {
-            error_log('[smtp] PHPMailer failed: ' . $e->getMessage());
-            return ['ok' => false, 'error' => $e->getMessage()];
+        /**
+         * Intento principal con la cuenta rotada; si la auth/envío falla
+         * y la cuenta rotada es DISTINTA al $SMTP_USER estático, hacemos
+         * un único reintento con $SMTP_USER (la cuenta "maestra" que
+         * sabemos que funciona) para que el correo igualmente llegue.
+         */
+        $candidates = [$fromAddr];
+        $staticUser = trim((string)($SMTP_USER ?? ''));
+        if ($staticUser !== '' && strcasecmp($staticUser, $fromAddr) !== 0) {
+            $candidates[] = $staticUser;
         }
+        $lastErr = null;
+        foreach ($candidates as $idx => $senderAddr) {
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host       = $SMTP_HOST;
+                $mail->SMTPAuth   = true;
+                $mail->Username   = $senderAddr;
+                $mail->Password   = $SMTP_PASS;
+                $mail->Port       = (int)($SMTP_PORT ?? 587);
+                $mail->SMTPSecure = ((int)$mail->Port === 465)
+                    ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+                    : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->CharSet    = 'UTF-8';
+                $mail->setFrom($senderAddr, $fromName);
+                $mail->addAddress($to, $toName ?: $to);
+                foreach ($ccList as [$ccAddr, $ccName]) {
+                    $mail->addCC($ccAddr, $ccName ?: $ccAddr);
+                }
+                $mail->addReplyTo($replyTo, $fromName);
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
+                $mail->Body    = $html;
+                if ($textAlt) $mail->AltBody = $textAlt;
+                $mail->send();
+                smtp_bump_counter($conn, $senderAddr, count($ccList));
+                if ($idx > 0) {
+                    error_log("[smtp] envío OK con fallback $senderAddr tras fallar $fromAddr");
+                }
+                return ['ok' => true, 'error' => null];
+            } catch (\Throwable $e) {
+                $lastErr = $e->getMessage();
+                error_log("[smtp] PHPMailer falló con $senderAddr: $lastErr");
+                continue;
+            }
+        }
+        return ['ok' => false, 'error' => $lastErr ?: 'SMTP send failed'];
     }
 
     // Fallback: PHP mail() with HTML headers (deliverability not guaranteed).
