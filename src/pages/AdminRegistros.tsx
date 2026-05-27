@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye, Mail, UserMinus, UserCheck, UserX } from 'lucide-react';
+import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye, Mail, UserMinus, UserCheck, UserX, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -176,6 +177,18 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    */
   const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
   const [search, setSearch] = useState('');
+  /**
+   * Filtros adicionales (folio exacto, categoría, fecha de registro).
+   * El estado vive sólo en este componente, por lo que cada admin tiene
+   * sus propios filtros sin afectar a otros revisores en sesiones
+   * distintas (no se persisten en backend).
+   */
+  const [folioFilter, setFolioFilter] = useState('');
+  const [categoriaFilter, setCategoriaFilter] = useState<string>('__all__');
+  /** Modo de comparación de fecha: 'on' = en, 'after' = después, 'before' = antes. */
+  const [dateMode, setDateMode] = useState<'on' | 'after' | 'before'>('on');
+  /** Fecha (YYYY-MM-DD) usada con `dateMode` para filtrar `reg_fecha`. */
+  const [dateValue, setDateValue] = useState('');
   /** Set de IDs cuyos detalles están expandidos en la tabla. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) =>
@@ -390,19 +403,74 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     return c;
   }, [rows]);
 
-  /** Filtrado final por sección + búsqueda. */
+  /**
+   * Extrae la fecha (YYYY-MM-DD) de un registro intentando varios
+   * campos posibles. Devuelve '' si no hay ninguno.
+   */
+  const getRowDate = (r: RegistroRow): string => {
+    const raw = (r.reg_fecha || r.created_at || (r as any).fecha_alta || r.fecharegistro || '') as string;
+    const m = String(raw).match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
+  };
+
+  /**
+   * Lista única y ordenada de categorías presentes en los registros
+   * actuales — se usa para alimentar el <Select> de filtro de categoría.
+   */
+  const categoriasDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      const c = (r.categoria_name || '').trim();
+      if (c) set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [rows]);
+
+  /** Filtrado final por sección + búsqueda libre + filtros explícitos. */
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term  = search.trim().toLowerCase();
+    const folio = folioFilter.trim();
     return rows.filter(r => {
       if (classify(r) !== section) return false;
+
+      // Búsqueda libre (nombre, correo, teléfono, club).
       if (term) {
         const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club]
           .filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(term)) return false;
       }
+
+      // Folio (id exacto o prefijo numérico).
+      if (folio && !String(r.id).startsWith(folio)) return false;
+
+      // Categoría (match exacto por nombre legible).
+      if (categoriaFilter !== '__all__') {
+        if ((r.categoria_name || '').trim() !== categoriaFilter) return false;
+      }
+
+      // Fecha de registro: comparación lexicográfica YYYY-MM-DD.
+      if (dateValue) {
+        const d = getRowDate(r);
+        if (!d) return false;
+        if (dateMode === 'on'     && d !== dateValue) return false;
+        if (dateMode === 'after'  && !(d >  dateValue)) return false;
+        if (dateMode === 'before' && !(d <  dateValue)) return false;
+      }
+
       return true;
     });
-  }, [rows, section, search]);
+  }, [rows, section, search, folioFilter, categoriaFilter, dateMode, dateValue]);
+
+  /** Limpia todos los filtros (excepto la sección activa). */
+  const clearFilters = () => {
+    setSearch('');
+    setFolioFilter('');
+    setCategoriaFilter('__all__');
+    setDateMode('on');
+    setDateValue('');
+  };
+  const hasActiveFilters =
+    !!search || !!folioFilter || categoriaFilter !== '__all__' || !!dateValue;
 
   /** Tabs definidos arriba — orden importa (botones). */
   const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'; label: string }[] = [
@@ -431,7 +499,8 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
       {/* Section tabs + search */}
       <Card>
-        <CardContent className="pt-6 flex flex-col md:flex-row gap-3">
+        <CardContent className="pt-6 space-y-3">
+          {/* Tabs de sección */}
           <div className="flex gap-2 flex-wrap">
             {SECTIONS.map(s => (
               <Button
@@ -444,9 +513,73 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
               </Button>
             ))}
           </div>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-10" placeholder="Buscar por nombre, correo, club…" value={search} onChange={e => setSearch(e.target.value)} />
+
+          {/*
+            Barra de filtros. Cada control es independiente y combinable
+            (AND). El estado vive sólo en este navegador, así que dos
+            admins revisando al mismo tiempo no comparten filtros.
+          */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
+            {/* Búsqueda libre */}
+            <div className="relative md:col-span-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10"
+                placeholder="Buscar nombre, correo, club…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Folio (#id) */}
+            <Input
+              className="md:col-span-2"
+              placeholder="Folio (#id)"
+              inputMode="numeric"
+              value={folioFilter}
+              onChange={e => setFolioFilter(e.target.value.replace(/\D+/g, ''))}
+            />
+
+            {/* Categoría */}
+            <div className="md:col-span-3">
+              <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+                <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas las categorías</SelectItem>
+                  {categoriasDisponibles.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fecha: modo + valor */}
+            <div className="md:col-span-2">
+              <Select value={dateMode} onValueChange={(v) => setDateMode(v as 'on'|'after'|'before')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="on">Fecha: en</SelectItem>
+                  <SelectItem value="after">Fecha: después de</SelectItem>
+                  <SelectItem value="before">Fecha: antes de</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Input
+              type="date"
+              className="md:col-span-1"
+              value={dateValue}
+              onChange={e => setDateValue(e.target.value)}
+            />
+          </div>
+
+          {/* Resumen + botón limpiar */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{filtered.length} resultado(s)</span>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="gap-1 h-7" onClick={clearFilters}>
+                <X className="h-3 w-3" /> Limpiar filtros
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
