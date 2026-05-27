@@ -426,31 +426,41 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
-   * Clasifica una fila en una de las 4 secciones según el flujo:
-   *   sec1 — enviado=0
-   *   sec2 — enviado=1 AND status_pago=0
-   *   sec3 — status_pago=1 AND verificado=0
-   *   sec4 — verificado=1 (status_pago=1 o 99)
+   * Clasifica una fila en una de las secciones según `status_pago`
+   * (PK del catálogo `estatuspago`):
+   *   sec1 — sin evidencia (sin comprobante ni cargo) y status_pago=0
+   *   sec2 — Pendiente verificación de pago:
+   *            • status_pago = 0 con comprobante/cargo, o
+   *            • status_pago = 1 (POR VALIDAR)
+   *            • status_pago = 3 (POR COBRAR)
+   *   sec3 — Verificar registro:
+   *            • status_pago = 2 (PAGADO)
+   *            • status_pago = 4 (CORTESIA)
+   *   sec4 — Completados (verificado=1)
+   *   sec5 — Lista de espera (status_pago = 5)
+   *   sec6 — Registros cancelados (status_pago = 6)
    */
-  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' => {
+  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' | 'sec6' => {
     const hasFile   = Number(r.has_archivo) === 1;
     const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
     const verified  = Number(r.reg_verificado) === 1;
-    // Lista de espera tiene prioridad: status_pago=67 sale del flujo normal.
-    if (statusP === 67) return 'sec5';
+    // Estados terminales/laterales tienen prioridad sobre el flujo normal.
+    if (statusP === 5) return 'sec5';
+    if (statusP === 6) return 'sec6';
     if (verified) return 'sec4';
-    if (statusP === 1) return 'sec3';
-    // Pasa a sec2 SOLO si el jugador adjuntó comprobante o eligió
-    // cargo a cuenta. La columna `enviado` ya no se considera aquí
-    // para evitar mover registros sin evidencia real de pago.
+    // PAGADO o CORTESIA → listos para verificar registro.
+    if (statusP === 2 || statusP === 4) return 'sec3';
+    // POR VALIDAR / POR COBRAR → pendiente de verificación de pago.
+    if (statusP === 1 || statusP === 3) return 'sec2';
+    // status_pago = 0: pasa a sec2 sólo si hay evidencia real (comprobante o cargo).
     if (hasFile || cargo) return 'sec2';
     return 'sec1';
   };
 
   /** Conteos por sección — alimentan los tabs. */
   const counts = useMemo(() => {
-    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0, sec5: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4'|'sec5', number>;
+    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0, sec5: 0, sec6: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4'|'sec5'|'sec6', number>;
     for (const r of rows) c[classify(r)]++;
     return c;
   }, [rows]);
