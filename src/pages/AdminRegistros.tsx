@@ -662,13 +662,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     ) : (
                       <>
                         <th className="text-center p-3">Monto confirmado recibido</th>
-                        <th className="text-center p-3">Pago verificado</th>
-                        <th className="text-center p-3">Registro verificado</th>
+                        <th className="text-center p-3">Estatus de pago</th>
                       </>
                     )}
-                    {section !== 'sec4' && (
-                      <th className="text-center p-3">Acciones</th>
-                    )}
+                    <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
