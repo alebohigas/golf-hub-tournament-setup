@@ -98,6 +98,18 @@ interface RegistroRow {
   cat_max?: number | string | null;
   /** Jugadores activos actualmente en categoría/torneo (excluye BAJA). */
   cat_count?: number | string | null;
+  /** Talla de gorra capturada en el formulario. */
+  reg_talla_gorra?: string | null;
+  /** Talla de playera (campo akron). */
+  akron_talla?: string | null;
+  /** Talla de guante (campo akron). */
+  akron_talla_guante?: string | null;
+  /** Talla de calzado/tenis (campo akron). */
+  akron_calzado?: string | null;
+  /** Código de promoción capturado por el jugador. */
+  akron_codigo?: string | null;
+  /** Monto pagado (campo akron, revisión admin). */
+  akron_monto_pago?: string | number | null;
 }
 
 // ============= Login form =============
@@ -779,6 +791,21 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Pago verificado', Number(r.reg_pago_verificado) === 1 ? 'Sí' : 'No'],
                                 ['Registro verificado', Number(r.reg_verificado) === 1 ? 'Sí' : 'No'],
                                 ['Comprobante', Number(r.has_archivo) === 1 ? (r.reg_archivo_nombre || 'archivo cargado') : ''],
+                                /**
+                                 * Campos opcionales (tallas / akron). Solo se incluyen en la
+                                 * lista cuando el jugador los llenó — así no aparecen como
+                                 * "—" en registros donde el admin no habilitó esos campos.
+                                 */
+                                ...([
+                                  ['Talla de playera',       r.akron_talla],
+                                  ['Talla de guante',        r.akron_talla_guante],
+                                  ['Talla de gorra',         r.reg_talla_gorra],
+                                  ['Talla de calzado/tenis', r.akron_calzado],
+                                  ['Código de promoción',    r.akron_codigo],
+                                  ['Monto pagado',           r.akron_monto_pago],
+                                ] as Array<[string, unknown]>).filter(([, v]) =>
+                                  v != null && String(v).trim() !== ''
+                                ),
                               ].map(([label, value]) => {
                                 const v = value == null || value === '' ? '—' : String(value);
                                 return (
