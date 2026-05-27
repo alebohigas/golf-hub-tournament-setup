@@ -98,6 +98,18 @@ interface RegistroRow {
   cat_max?: number | string | null;
   /** Jugadores activos actualmente en categoría/torneo (excluye BAJA). */
   cat_count?: number | string | null;
+  /** Talla de gorra capturada en el formulario. */
+  reg_talla_gorra?: string | null;
+  /** Talla de playera (campo akron). */
+  akron_talla?: string | null;
+  /** Talla de guante (campo akron). */
+  akron_talla_guante?: string | null;
+  /** Talla de calzado/tenis (campo akron). */
+  akron_calzado?: string | null;
+  /** Código de promoción capturado por el jugador. */
+  akron_codigo?: string | null;
+  /** Monto pagado (campo akron, revisión admin). */
+  akron_monto_pago?: string | number | null;
 }
 
 // ============= Login form =============
