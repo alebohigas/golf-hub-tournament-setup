@@ -535,12 +535,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     !!search || !!folioFilter || categoriaFilter !== '__all__' || !!dateValue;
 
   /** Tabs definidos arriba — orden importa (botones). */
-  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'; label: string }[] = [
+  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'|'sec6'; label: string }[] = [
     { id: 'sec1', label: 'Sin validar registro' },
     { id: 'sec2', label: 'Pendiente verificación de pago' },
     { id: 'sec3', label: 'Verificar registro' },
     { id: 'sec4', label: 'Registros completados' },
     { id: 'sec5', label: 'Lista de espera' },
+    { id: 'sec6', label: 'Registros cancelados' },
   ];
 
   return (
@@ -549,7 +550,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         <div>
           <h1 className="text-2xl font-bold">Pre-Registros</h1>
           <p className="text-muted-foreground">
-            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados · {counts.sec5} en lista de espera
+            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados · {counts.sec5} en lista de espera · {counts.sec6} cancelados
           </p>
         </div>
         <div className="flex gap-2">
