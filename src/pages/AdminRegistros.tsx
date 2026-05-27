@@ -30,6 +30,7 @@ import {
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
   getRegistroPromoteUrl,
+  getRegistroWelcomeEmailUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
