@@ -320,7 +320,7 @@ const PreviewFrame = ({
                     src={src}
                     alt={`Poster ${posterIdx + 1}`}
                     loading="lazy"
-                    className="h-full w-full object-cover pointer-events-none"
+                    className="h-full w-full object-contain pointer-events-none"
                   />
                 </div>
               </div>
