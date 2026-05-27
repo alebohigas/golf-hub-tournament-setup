@@ -179,9 +179,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec2 — Pendiente verificación de pago
    *   sec3 — Verificar registro
    *   sec4 — Registros completados
-   *   sec5 — Lista de espera (status_pago=67)
+   *   sec5 — Lista de espera (status_pago=5)
+   *   sec6 — Registros cancelados (status_pago=6)
    */
-  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5'>('sec1');
+  const [section, setSection] = useState<'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' | 'sec6'>('sec1');
   const [search, setSearch] = useState('');
   /**
    * Opciones del dropdown de status_pago — primeras 6 filas del
@@ -425,31 +426,41 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   };
 
   /**
-   * Clasifica una fila en una de las 4 secciones según el flujo:
-   *   sec1 — enviado=0
-   *   sec2 — enviado=1 AND status_pago=0
-   *   sec3 — status_pago=1 AND verificado=0
-   *   sec4 — verificado=1 (status_pago=1 o 99)
+   * Clasifica una fila en una de las secciones según `status_pago`
+   * (PK del catálogo `estatuspago`):
+   *   sec1 — sin evidencia (sin comprobante ni cargo) y status_pago=0
+   *   sec2 — Pendiente verificación de pago:
+   *            • status_pago = 0 con comprobante/cargo, o
+   *            • status_pago = 1 (POR VALIDAR)
+   *            • status_pago = 3 (POR COBRAR)
+   *   sec3 — Verificar registro:
+   *            • status_pago = 2 (PAGADO)
+   *            • status_pago = 4 (CORTESIA)
+   *   sec4 — Completados (verificado=1)
+   *   sec5 — Lista de espera (status_pago = 5)
+   *   sec6 — Registros cancelados (status_pago = 6)
    */
-  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' => {
+  const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' | 'sec6' => {
     const hasFile   = Number(r.has_archivo) === 1;
     const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
     const verified  = Number(r.reg_verificado) === 1;
-    // Lista de espera tiene prioridad: status_pago=67 sale del flujo normal.
-    if (statusP === 67) return 'sec5';
+    // Estados terminales/laterales tienen prioridad sobre el flujo normal.
+    if (statusP === 5) return 'sec5';
+    if (statusP === 6) return 'sec6';
     if (verified) return 'sec4';
-    if (statusP === 1) return 'sec3';
-    // Pasa a sec2 SOLO si el jugador adjuntó comprobante o eligió
-    // cargo a cuenta. La columna `enviado` ya no se considera aquí
-    // para evitar mover registros sin evidencia real de pago.
+    // PAGADO o CORTESIA → listos para verificar registro.
+    if (statusP === 2 || statusP === 4) return 'sec3';
+    // POR VALIDAR / POR COBRAR → pendiente de verificación de pago.
+    if (statusP === 1 || statusP === 3) return 'sec2';
+    // status_pago = 0: pasa a sec2 sólo si hay evidencia real (comprobante o cargo).
     if (hasFile || cargo) return 'sec2';
     return 'sec1';
   };
 
   /** Conteos por sección — alimentan los tabs. */
   const counts = useMemo(() => {
-    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0, sec5: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4'|'sec5', number>;
+    const c = { sec1: 0, sec2: 0, sec3: 0, sec4: 0, sec5: 0, sec6: 0 } as Record<'sec1'|'sec2'|'sec3'|'sec4'|'sec5'|'sec6', number>;
     for (const r of rows) c[classify(r)]++;
     return c;
   }, [rows]);
@@ -524,12 +535,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     !!search || !!folioFilter || categoriaFilter !== '__all__' || !!dateValue;
 
   /** Tabs definidos arriba — orden importa (botones). */
-  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'; label: string }[] = [
+  const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'|'sec6'; label: string }[] = [
     { id: 'sec1', label: 'Sin validar registro' },
     { id: 'sec2', label: 'Pendiente verificación de pago' },
     { id: 'sec3', label: 'Verificar registro' },
     { id: 'sec4', label: 'Registros completados' },
     { id: 'sec5', label: 'Lista de espera' },
+    { id: 'sec6', label: 'Registros cancelados' },
   ];
 
   return (
@@ -538,7 +550,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         <div>
           <h1 className="text-2xl font-bold">Pre-Registros</h1>
           <p className="text-muted-foreground">
-            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados · {counts.sec5} en lista de espera
+            {rows.length} pre-registros · {counts.sec1} sin validar · {counts.sec2} pendiente pago · {counts.sec3} por verificar · {counts.sec4} completados · {counts.sec5} en lista de espera · {counts.sec6} cancelados
           </p>
         </div>
         <div className="flex gap-2">
@@ -657,7 +669,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    {(section === 'sec1' || section === 'sec5') ? (
+                    {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
                       <th className="text-center p-3">Estatus Correo</th>
                     ) : (
                       <>
@@ -773,7 +785,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {(section === 'sec1' || section === 'sec5') ? (
+                        {(section === 'sec1' || section === 'sec5' || section === 'sec6') ? (
                           /*
                            * Estatus de correo: en la sección 1 reemplaza a las 3
                            * columnas de tesorería. Muestra "Enviado (N)" si ya se
@@ -822,35 +834,23 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           {(() => {
-                            const cobradoNum = Number(r.reg_precio_estimado);
-                            const confirmadoRaw = r.reg_monto_confirmado;
-                            const confirmadoNum = confirmadoRaw != null && String(confirmadoRaw).trim() !== ''
-                              ? Number(confirmadoRaw)
-                              : NaN;
-                            const montosCoinciden =
-                              Number.isFinite(cobradoNum) &&
-                              Number.isFinite(confirmadoNum) &&
-                              cobradoNum === confirmadoNum;
                             /**
                              * Dropdown alimentado por la tabla `estatuspago`
                              * (primeras 6 opciones). El valor (PK) se guarda
                              * directamente en `registro.status_pago`.
                              *
-                             * Sólo se habilita si los montos coinciden — misma
-                             * regla que tenía el toggle anterior, para evitar
-                             * cambios accidentales antes de cuadrar el pago.
+                             * Siempre habilitado (siempre que existan opciones):
+                             * el admin puede mover el estatus libremente, sin
+                             * importar si el monto confirmado coincide o no
+                             * con el monto cobrado.
                              */
-                            const canEdit = montosCoinciden;
                             const current = Number(r.reg_pago_verificado);
                             const currentStr = Number.isFinite(current) ? String(current) : '';
                             return (
-                              <div
-                                className="flex items-center justify-center gap-2"
-                                title={canEdit ? '' : 'El monto confirmado debe coincidir con el monto cobrado'}
-                              >
+                              <div className="flex items-center justify-center gap-2">
                                 <Select
                                   value={currentStr}
-                                  disabled={!canEdit || estatusOpts.length === 0}
+                                  disabled={estatusOpts.length === 0}
                                   onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
                                 >
                                   <SelectTrigger className="h-8 w-44 text-xs">
@@ -917,7 +917,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 </div>
                               );
                             })()}
-                            {section === 'sec2' && (
+                            {(section === 'sec2' || section === 'sec6') && (
                               <span className="text-muted-foreground text-xs">—</span>
                             )}
                             {section === 'sec5' && (() => {
@@ -956,7 +956,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={(section === 'sec1' || section === 'sec5') ? 9 : 10} className="p-4">
+                          <td colSpan={(section === 'sec1' || section === 'sec5' || section === 'sec6') ? 9 : 10} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
