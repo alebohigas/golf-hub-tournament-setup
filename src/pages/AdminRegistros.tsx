@@ -31,6 +31,7 @@ import {
   getRegistroBajaUrl,
   getRegistroPromoteUrl,
   getRegistroWelcomeEmailUrl,
+  getEstatuspagoUrl,
 } from '@/config/api';
 
 /** localStorage key for the registros admin session token. */
@@ -96,6 +97,10 @@ interface RegistroRow {
   reg_email_count?: number | string;
   /** Timestamp del último correo enviado al jugador. */
   reg_email_last?: string;
+  /** Contador de correos de BIENVENIDA enviados (sección 4). */
+  reg_welcome_count?: number | string;
+  /** Timestamp del último correo de bienvenida enviado. */
+  reg_welcome_last?: string;
   /** Cupo máximo de la categoría asociada (categorias.maxjugadores). */
   cat_max?: number | string | null;
   /** Jugadores activos actualmente en categoría/torneo (excluye BAJA). */
