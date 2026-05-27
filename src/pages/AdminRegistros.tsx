@@ -368,7 +368,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
    *   sec4 — verificado=1 (status_pago=1 o 99)
    */
   const classify = (r: RegistroRow): 'sec1' | 'sec2' | 'sec3' | 'sec4' | 'sec5' => {
-    const enviado   = Number(r.enviado) === 1;
     const hasFile   = Number(r.has_archivo) === 1;
     const cargo     = String(r.reg_cargo_socio ?? '') === '1';
     const statusP   = Number(r.reg_pago_verificado);
@@ -377,9 +376,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     if (statusP === 67) return 'sec5';
     if (verified) return 'sec4';
     if (statusP === 1) return 'sec3';
-    // Auto-mover a sec2 si subió comprobante o eligió cargo a cuenta,
-    // aunque la columna `enviado` no se haya actualizado.
-    if (enviado || hasFile || cargo) return 'sec2';
+    // Pasa a sec2 SOLO si el jugador adjuntó comprobante o eligió
+    // cargo a cuenta. La columna `enviado` ya no se considera aquí
+    // para evitar mover registros sin evidencia real de pago.
+    if (hasFile || cargo) return 'sec2';
     return 'sec1';
   };
 
@@ -571,20 +571,31 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                           )}
                         </td>
                         <td className="p-3 text-center">
-                          {cargoCuenta ? (
-                            <Badge variant="default" className="bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
-                              Cargo a cuenta
-                            </Badge>
-                          ) : hasFile ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1"
-                              onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
-                            >
-                              <Eye className="h-4 w-4" /> Ver
-                            </Button>
-                          ) : <span className="text-muted-foreground text-xs">—</span>}
+                          {/*
+                            Muestra el badge "Cargo a cuenta" y/o el botón
+                            "Ver comprobante" — pueden coexistir si el jugador
+                            eligió cargo a cuenta y además subió archivo.
+                          */}
+                          <div className="flex flex-col items-center gap-1">
+                            {cargoCuenta && (
+                              <Badge variant="default" className="bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
+                                Cargo a cuenta
+                              </Badge>
+                            )}
+                            {hasFile && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
+                              >
+                                <Eye className="h-4 w-4" /> Ver comprobante
+                              </Button>
+                            )}
+                            {!cargoCuenta && !hasFile && (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </div>
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
