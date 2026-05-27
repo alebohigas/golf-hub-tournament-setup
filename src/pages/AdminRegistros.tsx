@@ -253,6 +253,21 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       }));
       if (patch.verified === 1) {
         toast({ title: 'Registro verificado' });
+        // Dispara correo de bienvenida al jugador (sección 4). Es
+        // best-effort: si falla, lo notificamos pero no revertimos
+        // el cambio de verificado en BD.
+        try {
+          const wres = await fetch(getRegistroWelcomeEmailUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: row.id, password }),
+          });
+          const wjson = await wres.json().catch(() => ({}));
+          if (!wres.ok) throw new Error(wjson.error || 'Error');
+          toast({ title: 'Correo de bienvenida enviado', description: `Enviado a ${wjson.to || ''}` });
+        } catch (e: any) {
+          toast({ title: 'Error al enviar bienvenida', description: e.message, variant: 'destructive' });
+        }
       }
     } catch (err: any) {
       toast({ title: 'Error al actualizar', description: err.message, variant: 'destructive' });
