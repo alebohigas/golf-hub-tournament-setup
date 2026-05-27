@@ -160,4 +160,13 @@ if (!$has('reg_welcome_last')) {
     . "reg_welcome_last = NOW() WHERE $pkCol = $id LIMIT 1"
 );
 
+/**
+ * Al enviar el correo de bienvenida, marcamos `verificado = 1` en el
+ * registro para que la fila se mueva automáticamente a la sección
+ * "Registros completados" en el dashboard admin.
+ */
+if ($has('reg_verificado')) {
+    @$conn->query("UPDATE registro SET reg_verificado = 1 WHERE $pkCol = $id LIMIT 1");
+}
+
 json_response(['sent' => true, 'to' => $row['reg_correo'], 'folio' => $folio]);
