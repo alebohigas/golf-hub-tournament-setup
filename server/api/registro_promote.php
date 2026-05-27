@@ -65,9 +65,9 @@ $row = query_one($conn,
 if (!$row) json_error('Registro no encontrado', 404);
 if (empty($row['reg_correo'])) json_error('Registro sin correo', 400);
 
-// Sólo registros en lista de espera (status_pago=67) pueden promoverse.
-if ((int)($row['status_pago'] ?? 0) !== 67) {
-    json_error('El registro no está en lista de espera (status_pago != 67).', 400);
+// Sólo registros en lista de espera (status_pago=5) pueden promoverse.
+if ((int)($row['status_pago'] ?? 0) !== 5) {
+    json_error('El registro no está en lista de espera (status_pago != 5).', 400);
 }
 
 /**
