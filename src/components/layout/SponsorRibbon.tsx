@@ -299,7 +299,7 @@ const SponsorRibbon = () => {
   return (
     <div
       className={`bg-white border-y border-border py-3 md:py-4 overflow-hidden ${
-        isStickyMobile ? 'sticky top-0 z-40 shadow-sm' : ''
+        isStickyMobile ? 'sticky top-[6.65rem] z-40 shadow-sm' : ''
       }`}
     >
       <div className="container mx-auto">
