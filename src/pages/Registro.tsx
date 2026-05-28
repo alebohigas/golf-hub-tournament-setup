@@ -956,6 +956,8 @@ const Registro = () => {
    */
   const { data: precioMatchData, isFetching: precioFetching } = useRegistroPrecioMatch({
     tipo_socio: tipoSocioForPricing,
+    genero: (values.reg_sexo || '').toUpperCase() || undefined,
+    edad: ageForPricing ?? undefined,
     enabled: !!(selectedCategoryName && tipoSocioForPricing),
   });
   const precioMatch = precioMatchData?.match || null;
