@@ -179,7 +179,7 @@ const AvisosPostersSection = () => {
         {/* ---------- Section header ---------- */}
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-            Comunicados y Costos del Torneo
+            Comunicados Importantes del Torneo
           </h2>
           <p className="text-muted-foreground">
             Avisos importantes, tablas de inscripción y accesos para participantes
