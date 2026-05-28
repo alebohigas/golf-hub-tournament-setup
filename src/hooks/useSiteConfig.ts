@@ -31,6 +31,14 @@ export interface SponsorsConfig {
    */
   ribbonVisiblePages?: Record<string, boolean>;
   /**
+   * Map of route paths → boolean indicating whether the sponsor ribbon should
+   * be rendered as `position: sticky` (stuck to the top of the viewport while
+   * the page scrolls) **on mobile viewports only**. Desktop always renders
+   * the ribbon in its normal in-flow position. When undefined or false for a
+   * given path, the ribbon scrolls away with the page as usual.
+   */
+  ribbonStickyMobilePages?: Record<string, boolean>;
+  /**
    * Carousel/ribbon presentation settings.
    *  - order:         Custom sponsor display order as an array of sponsor IDs (numbers).
    *                   Sponsors not present in this list fall back to alphabetical order
