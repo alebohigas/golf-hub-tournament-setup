@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Loader2, Save, Eye, EyeOff, CheckCircle2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,13 @@ const buildDefaultRibbonVisibility = (): Record<string, boolean> =>
     return acc;
   }, {});
 
+/** Build a default sticky-on-mobile map (sticky disabled everywhere). */
+const buildDefaultStickyMobile = (): Record<string, boolean> =>
+  RIBBON_PAGES.reduce<Record<string, boolean>>((acc, p) => {
+    acc[p.path] = false;
+    return acc;
+  }, {});
+
 // ============= Component =============
 
 /**
@@ -80,6 +87,15 @@ const AdminSponsorsRibbon = () => {
     buildDefaultRibbonVisibility()
   );
 
+  /**
+   * Local draft state — per-route sticky-on-mobile flag.
+   * When true, the ribbon is rendered with `position: sticky` on mobile
+   * viewports for that page (desktop always renders in-flow).
+   */
+  const [stickyMobilePages, setStickyMobilePages] = useState<Record<string, boolean>>(
+    buildDefaultStickyMobile()
+  );
+
   // Sync local draft with server config on load. Newly added pages default to visible.
   useEffect(() => {
     const stored = siteConfig?.sponsors_config?.ribbonVisiblePages;
@@ -88,9 +104,22 @@ const AdminSponsorsRibbon = () => {
     }
   }, [siteConfig?.sponsors_config?.ribbonVisiblePages]);
 
+  // Sync sticky-mobile draft from server config.
+  useEffect(() => {
+    const stored = siteConfig?.sponsors_config?.ribbonStickyMobilePages;
+    if (stored) {
+      setStickyMobilePages({ ...buildDefaultStickyMobile(), ...stored });
+    }
+  }, [siteConfig?.sponsors_config?.ribbonStickyMobilePages]);
+
   /** Toggle ribbon visibility for a given route path */
   const toggleRibbonForPath = (path: string, value: boolean) => {
     setRibbonVisiblePages((prev) => ({ ...prev, [path]: value }));
+  };
+
+  /** Toggle sticky-on-mobile for a given route path */
+  const toggleStickyMobileForPath = (path: string, value: boolean) => {
+    setStickyMobilePages((prev) => ({ ...prev, [path]: value }));
   };
 
   /** Bulk action: enable/disable ribbon on all pages */
@@ -113,6 +142,7 @@ const AdminSponsorsRibbon = () => {
         sponsors_config: {
           ...(siteConfig?.sponsors_config ?? { columns: 4 }),
           ribbonVisiblePages,
+          ribbonStickyMobilePages: stickyMobilePages,
         },
       },
       {
@@ -137,10 +167,17 @@ const AdminSponsorsRibbon = () => {
   // Detect changes vs server-saved state
   const savedRibbonVisible =
     siteConfig?.sponsors_config?.ribbonVisiblePages ?? buildDefaultRibbonVisibility();
-  const hasChanges = RIBBON_PAGES.some(
-    (p) => (ribbonVisiblePages[p.path] ?? true) !== (savedRibbonVisible[p.path] ?? true)
-  );
+  const savedStickyMobile =
+    siteConfig?.sponsors_config?.ribbonStickyMobilePages ?? buildDefaultStickyMobile();
+  const hasChanges =
+    RIBBON_PAGES.some(
+      (p) => (ribbonVisiblePages[p.path] ?? true) !== (savedRibbonVisible[p.path] ?? true)
+    ) ||
+    RIBBON_PAGES.some(
+      (p) => (stickyMobilePages[p.path] ?? false) !== (savedStickyMobile[p.path] ?? false)
+    );
   const visibleCount = Object.values(ribbonVisiblePages).filter(Boolean).length;
+  const stickyCount = Object.values(stickyMobilePages).filter(Boolean).length;
 
   return (
     <Card>
@@ -168,6 +205,10 @@ const AdminSponsorsRibbon = () => {
                 Visible en{' '}
                 <span className="font-mono font-bold">{visibleCount}</span> de{' '}
                 <span className="font-mono font-bold">{RIBBON_PAGES.length}</span> páginas
+                <span className="mx-2 text-muted-foreground/40">·</span>
+                <Smartphone className="h-4 w-4 text-primary" />
+                Sticky móvil en{' '}
+                <span className="font-mono font-bold">{stickyCount}</span>
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setAll(true)}>
@@ -196,6 +237,7 @@ const AdminSponsorsRibbon = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {RIBBON_PAGES.map((page) => {
                 const checked = ribbonVisiblePages[page.path] ?? true;
+                const sticky = stickyMobilePages[page.path] ?? false;
                 // A page with no managed pageId is always considered visible.
                 // Default to visible (true) when the visibility setting is undefined,
                 // matching the behavior of AdminPageCard / PageVisibilityContext.
@@ -203,15 +245,17 @@ const AdminSponsorsRibbon = () => {
                   ? visibilitySettings[page.pageId] ?? true
                   : true;
                 return (
-                  <label
+                  <div
                     key={page.path}
-                    htmlFor={`ribbon-${page.path}`}
                     className={cn(
-                      'flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors',
+                      'flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors',
                       checked && 'border-primary/40 bg-primary/5'
                     )}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <label
+                      htmlFor={`ribbon-${page.path}`}
+                      className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
+                    >
                       {/* Visibility indicator: open eye when the page is visible to users,
                           struck-through eye when the page is hidden via Admin → Página → Visibilidad. */}
                       {pageVisibleForUsers ? (
@@ -238,13 +282,33 @@ const AdminSponsorsRibbon = () => {
                           {page.path}
                         </span>
                       </div>
+                    </label>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {/* Sticky-on-mobile toggle. Disabled when the ribbon
+                          itself is hidden for this page (nothing to stick). */}
+                      <label
+                        htmlFor={`sticky-${page.path}`}
+                        className={cn(
+                          'flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide',
+                          checked ? 'text-muted-foreground cursor-pointer' : 'text-muted-foreground/40 cursor-not-allowed'
+                        )}
+                        title="Sticky en móvil (la barra se mantiene fija al hacer scroll en móvil)"
+                      >
+                        <Smartphone className="h-3.5 w-3.5" />
+                        <Switch
+                          id={`sticky-${page.path}`}
+                          checked={sticky && checked}
+                          disabled={!checked}
+                          onCheckedChange={(v) => toggleStickyMobileForPath(page.path, v)}
+                        />
+                      </label>
+                      <Switch
+                        id={`ribbon-${page.path}`}
+                        checked={checked}
+                        onCheckedChange={(v) => toggleRibbonForPath(page.path, v)}
+                      />
                     </div>
-                    <Switch
-                      id={`ribbon-${page.path}`}
-                      checked={checked}
-                      onCheckedChange={(v) => toggleRibbonForPath(page.path, v)}
-                    />
-                  </label>
+                  </div>
                 );
               })}
             </div>
