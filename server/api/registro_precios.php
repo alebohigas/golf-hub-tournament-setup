@@ -90,7 +90,7 @@ function normalize_rule($r) {
  * Para tipo_socio: si la regla pide 'SOCIO' aceptamos cualquier subtipo
  * (TITULAR/EMERITO/DEPENDIENTE). Si pide un subtipo específico, debe coincidir.
  */
-function rule_matches($rule, $tipoSocio) {
+function rule_matches($rule, $tipoSocio, $genero = null, $edad = null) {
     if ($rule['tipo_socio'] !== null) {
         $rt = $rule['tipo_socio'];
         $ut = (string)$tipoSocio;
@@ -103,15 +103,38 @@ function rule_matches($rule, $tipoSocio) {
             if (strcasecmp($rt, $ut) !== 0) return false;
         }
     }
+    // Filtro por género: si la regla define M/F y el jugador tiene un valor
+    // declarado, debe coincidir. Si el jugador no declara género, se omite
+    // la regla específica (no se asume).
+    if ($rule['genero'] !== null) {
+        $rg = strtoupper((string)$rule['genero']);
+        $ug = strtoupper((string)($genero ?? ''));
+        if ($ug === '' || $ug !== $rg) return false;
+    }
+    // Filtro por edad: si la regla define un rango y conocemos la edad,
+    // debe caer dentro. Si no conocemos la edad pero la regla la exige,
+    // descartamos para no mostrar precios incorrectos.
+    if ($rule['edad_min'] !== null || $rule['edad_max'] !== null) {
+        if ($edad === null || $edad === '') return false;
+        $ageNum = (int)$edad;
+        if ($rule['edad_min'] !== null && $ageNum < (int)$rule['edad_min']) return false;
+        if ($rule['edad_max'] !== null && $ageNum > (int)$rule['edad_max']) return false;
+    }
     return true;
 }
 
 /**
- * Especificidad simplificada: una regla con tipo_socio definido gana a
- * la regla wildcard. Después decide `prioridad` y luego id.
+ * Especificidad: cuantos más filtros explícitos tenga la regla, más
+ * específica es. Se suma 1 por cada filtro definido (tipo_socio, genero,
+ * edad_min, edad_max). Después decide `prioridad` y luego id.
  */
 function rule_specificity($rule) {
-    return $rule['tipo_socio'] !== null ? 1 : 0;
+    $s = 0;
+    if ($rule['tipo_socio'] !== null) $s++;
+    if ($rule['genero']     !== null) $s++;
+    if ($rule['edad_min']   !== null) $s++;
+    if ($rule['edad_max']   !== null) $s++;
+    return $s;
 }
 
 // ===========================================================================
@@ -136,13 +159,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows  = array_map('normalize_rule', query_all($conn, $sql));
 
     if ($action === 'match') {
-        // Sólo se usa tipo_socio. categoria/genero/edad/handicap son
-        // aceptados pero ignorados (compat. con clientes antiguos).
-        $tipo  = optional_param('tipo_socio', null);
+        // Matching por tipo_socio + genero + edad. categoria/handicap se
+        // siguen aceptando para compatibilidad pero NO entran al match
+        // (las restricciones de categoría viven en categorias_reglas).
+        $tipo   = optional_param('tipo_socio', null);
+        $genero = optional_param('genero', null);
+        $edadP  = optional_param('edad', null);
+        $edad   = ($edadP === null || $edadP === '') ? null : (int)$edadP;
 
-        $candidates = array_filter($rows, function($r) use ($tipo) {
+        $candidates = array_filter($rows, function($r) use ($tipo, $genero, $edad) {
             if (!$r['is_active']) return false;
-            return rule_matches($r, $tipo);
+            return rule_matches($r, $tipo, $genero, $edad);
         });
 
         if (count($candidates) === 0) {

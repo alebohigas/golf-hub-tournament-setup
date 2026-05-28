@@ -275,10 +275,13 @@ export const getRegistroPrecioMatchUrl = (params: {
 }): string => {
   const clean: Record<string, string> = { action: 'match' };
   if (params.tipo_socio)  clean.tipo_socio = params.tipo_socio;
-  // categoria/genero/edad/handicap se ignoran en el match nuevo —
-  // se mantienen en la firma por compatibilidad de tipos con llamadores
-  // existentes y para reactividad de React Query (cambiar de tipo de
-  // socio re-fetchea aunque el resto cambie también).
+  // Genero y edad participan en el matching del backend (precios
+  // diferenciados por sexo y por rango de edad, p.ej. menores de 18).
+  if (params.genero) clean.genero = params.genero;
+  if (params.edad !== undefined && params.edad !== null && params.edad !== '') {
+    clean.edad = String(params.edad);
+  }
+  // categoria/handicap se ignoran — viven en categorias_reglas.
   return `${API_BASE_URL}/registro_precios.php${buildQuery(clean)}`;
 };
 
