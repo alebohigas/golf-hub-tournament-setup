@@ -176,6 +176,15 @@ const SponsorRibbon = () => {
     return null;
   }
 
+  /**
+   * Per-page sticky-on-mobile configuration. When enabled for the current
+   * route AND the viewport is mobile, render the ribbon container with
+   * `sticky top-0 z-40` so it stays pinned while the user scrolls the page.
+   * Desktop always renders the ribbon in-flow.
+   */
+  const ribbonStickyMobilePages = siteConfig?.sponsors_config?.ribbonStickyMobilePages;
+  const isStickyMobile = isMobile && ribbonStickyMobilePages?.[pathname] === true;
+
   // No need for separate probes anymore: every sponsor with a URL is in
   // `orderedSponsors` (broken ones drop out once their <img> errors).
   const probeSponsors: typeof sponsors = [];
@@ -288,7 +297,11 @@ const SponsorRibbon = () => {
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;
 
   return (
-    <div className="bg-white border-y border-border py-3 md:py-4 overflow-hidden">
+    <div
+      className={`bg-white border-y border-border py-3 md:py-4 overflow-hidden ${
+        isStickyMobile ? 'sticky top-0 z-40 shadow-sm' : ''
+      }`}
+    >
       <div className="container mx-auto">
         <div ref={viewportRef} className="fade-edge-left">
           <div className="flex items-center sponsor-scroll" style={animationStyle}>
