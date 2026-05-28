@@ -164,7 +164,7 @@ export const eventosAdicionalesText = "";
 
 /** Inscripciones text — V Torneo Anual Terralta 2026 */
 export const inscripcionesText: string =
-  "Socios: 16 de Abril 2026 · Invitados: 1 de Mayo 2026 · Cierre: 22 de Junio 2026. Inscripciones en https://terralta.speitour.com";
+  "Socios: 16 de Abril 2026 · Invitados: 1 de Mayo 2026 · Cierre: 22 de Junio 2026. Inscripciones en https://terralta.speitour.com.mx/registro . La inscripción no es transferible.";
 
 export interface PricingTier {
   categoria: string;
