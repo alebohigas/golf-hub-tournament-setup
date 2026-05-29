@@ -15,17 +15,35 @@
 
 /**
  * Try to load PHPMailer classes from /api/PHPMailer/.
+ * Supports both deployment layouts:
+ *   - /api/PHPMailer/{PHPMailer,SMTP,Exception}.php
+ *   - /api/PHPMailer/src/{PHPMailer,SMTP,Exception}.php
  * Returns true if all three required files are loaded.
  */
 function smtp_load_phpmailer() {
     static $loaded = null;
     if ($loaded !== null) return $loaded;
-    $base = __DIR__ . '/PHPMailer';
+    $baseCandidates = [
+        __DIR__ . '/PHPMailer',
+        __DIR__ . '/PHPMailer/src',
+    ];
     $files = ['Exception.php', 'PHPMailer.php', 'SMTP.php'];
-    foreach ($files as $f) {
-        if (!file_exists("$base/$f")) { $loaded = false; return false; }
+    $base = null;
+    foreach ($baseCandidates as $candidate) {
+        $hasAllFiles = true;
+        foreach ($files as $f) {
+            if (!file_exists("$candidate/$f")) { $hasAllFiles = false; break; }
+        }
+        if ($hasAllFiles) { $base = $candidate; break; }
     }
-    foreach ($files as $f) require_once "$base/$f";
+    if (!$base) {
+        error_log('[smtp] PHPMailer no encontrado. Esperado en /api/PHPMailer/ o /api/PHPMailer/src/');
+        $loaded = false;
+        return false;
+    }
+    foreach ($files as $f) {
+        require_once "$base/$f";
+    }
     $loaded = class_exists('\\PHPMailer\\PHPMailer\\PHPMailer');
     return $loaded;
 }
