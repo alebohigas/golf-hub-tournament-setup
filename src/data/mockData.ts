@@ -164,9 +164,9 @@ export const premiosText = "";
 /** Eventos adicionales */
 export const eventosAdicionalesText = "";
 
-/** Inscripciones text — V Torneo Anual Terralta 2026 */
+/** Inscripciones text — 56° Atlas Country Club 2026 */
 export const inscripcionesText: string =
-  "Socios: 16 de Abril 2026 · Invitados: 1 de Mayo 2026 · Cierre: 22 de Junio 2026. Inscripciones en https://terralta.speitour.com.mx/registro . La inscripción no es transferible.";
+  "Cuota de recuperación: $19,950.00. Cierre de inscripciones: 8 de Julio 2026 a las 18:00 hrs (o antes si se completa el cupo). Inscripciones en https://torneoscountry.atlas.com.mx . Información general: https://anualgolf.atlas.com.mx . WhatsApp: 33 2257 1913.";
 
 export interface PricingTier {
   categoria: string;
