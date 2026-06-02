@@ -365,24 +365,12 @@ export interface DesempatesData {
   nota?: string;
 }
 
-/** Cómo decidir empates — V Torneo Anual Terralta 2026 */
+/** Desempates — no publicado en la convocatoria del 56° Atlas 2026 */
 export const desempatesData: DesempatesData = {
-  intro: 'Lineamientos oficiales de desempate individual del V Torneo Anual Terralta 2026.',
-  paraTrofeos: [
-    'Desempate por 1er lugar: se jugará en el campo, iniciando en el hoyo que designe el Comité. Solo habrá un ganador absoluto.',
-    'En caso de triple empate o más, el 1er lugar se decide por juego en el campo; el 2°, 3° y demás posiciones por comparación de tarjetas.',
-    'Si no hay luz natural o el clima lo impide, el 1er lugar se decide por comparación de tarjetas.',
-    'En competencias Gross y Neto, solo el trofeo Gross va a juego en campo; el 1° Neto se decide por comparación de tarjetas.',
-  ],
-  paraCorte: [
-    'Para 2°, 3° y demás posiciones (trofeo Gross/Neto) y para el corte se aplica Regla 5A — Método de Comparación de Tarjetas:',
-    '1) Mejor ronda del último día.',
-    '2) Si persiste: mejor score hoyos 10–18, luego 13–18, luego 16–18 y por último hoyo 18.',
-    '3) Si continúa: mismo procedimiento con hoyos 1–9.',
-    '4) Si aún persiste: comparación hoyo por hoyo, del hoyo 18 hacia el hoyo 1.',
-    'En categorías con hándicap: los desempates Neto se definen con score Neto y los Gross con score Gross, conservando la modalidad (Stroke Play o Stableford).',
-  ],
-  nota: 'Una categoría se declara desierta con menos de 9 participantes (fecha límite jueves 25 de Junio 2026); el Comité podrá fusionarla con otra. Ronda estipulada: 9 hoyos. Ningún jugador podrá solicitar cambio de horario o día de juego.',
+  intro: '',
+  paraTrofeos: [],
+  paraCorte: [],
+  nota: '',
 };
 
 /** Reglas locales - structured rules */
