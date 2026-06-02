@@ -216,24 +216,24 @@ export interface ContactInfo {
   telefonoDirecto: string;
 }
 
-/** Pricing note — Terralta 2026 */
+/** Pricing note — Atlas Country Club 2026 */
 export const pricingNote =
-  "Los cargos de inscripción de Socios se aplicarán de la siguiente manera: en Abril a 3 meses (Abril, Mayo y Junio); en Mayo a 2 meses (Mayo y Junio); en Junio en un solo cargo. Invitados: pago en una sola exhibición.";
+  "Todos los participantes deberán inscribirse en la página web de registro https://torneoscountry.atlas.com.mx, con su INDEX vigente, número de GHIN, datos de su tarjeta de crédito y datos de su invitación. Sin este proceso no será válida su inscripción. Recibirá un correo de confirmación; revise también la bandeja de spam. Si su pago se realiza posterior a la fecha de anuncio de lleno, no será válida su inscripción.";
 
-/** Contact / banking info — Terralta A.C. (Bancrea) */
+/** Contact / banking info — Atlas Country Club */
 export const contactInfo: ContactInfo = {
-  bankName: 'Bancrea',
-  clabe: '152580120000725303',
-  cuenta: '12000072530',
-  nombre: 'Terralta A.C.',
+  bankName: '',
+  clabe: '',
+  cuenta: '',
+  nombre: 'Atlas Country Club',
   email: '',
-  telefono: '81 8093 1078',
+  telefono: '33 2257 1913',
   telefonoDirecto: '',
 };
 
-/** Contact warning — Terralta 2026 */
+/** Contact warning — Atlas Country Club 2026 */
 export const contactWarning =
-  "Una vez realizado el depósito, enviar comprobante a través de https://terralta.speitour.com para validar la inscripción.";
+  "Si después de inscribirse no recibe correo de confirmación, favor de enviar un mensaje por WhatsApp al 33 2257 1913.";
 
 /** Día de práctica */
 export const diaDePracticaText = "";
