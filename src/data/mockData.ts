@@ -100,15 +100,18 @@ export const tournamentInfo: TournamentInfo = {
 };
 
 export const categories: Category[] = [
-  { id: '1', name: 'PRIMERA', handicapMin: 0.4, handicapMax: 6.9, format: 'STROKE PLAY', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'AZULES' },
-  { id: '2', name: 'A', handicapMin: 7.0, handicapMax: 11.5, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '3', name: 'B', handicapMin: 11.6, handicapMax: 16.2, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '4', name: 'C', handicapMin: 16.3, handicapMax: 20.8, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '5', name: 'D', handicapMin: 20.9, handicapMax: 31.9, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '6', name: 'SENIOR PRIMERA', handicapMin: 0.0, handicapMax: 15.0, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'DORADAS' },
-  { id: '7', name: 'SENIOR PRIMERA', handicapMin: 16.0, handicapMax: 29.0, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'DORADAS' },
-  { id: '8', name: 'DAMAS', handicapMin: 0.0, handicapMax: 35.2, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'ROJAS' },
-  { id: '9', name: 'NOVATOS', handicapMin: 0, handicapMax: 54, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '9 HOYOS P/DÍA', teeMarker: 'BLANCAS' },
+  // 56° Torneo Anual de Golf — Atlas Country Club (20–25 Julio 2026)
+  { id: '1',  name: 'CAMPEONATO',    handicapMin: 0,    handicapMax: 1.3,  format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 20, rounds: '54 HOYOS', teeMarker: 'NEGRAS' },
+  { id: '2',  name: 'PRIMERA',       handicapMin: 1.4,  handicapMax: 2.2,  format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 42, rounds: '54 HOYOS', teeMarker: 'AZULES' },
+  { id: '3',  name: 'SEGUNDA',       handicapMin: 0,    handicapMax: 0,    format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 60, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '4',  name: 'TERCERA',       handicapMin: 0,    handicapMax: 0,    format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 60, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '5',  name: 'CUARTA',        handicapMin: 0,    handicapMax: 0,    format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 60, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '6',  name: 'QUINTA',        handicapMin: 0,    handicapMax: 0,    format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 48, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '7',  name: 'SEXTA',         handicapMin: 0,    handicapMax: 25.9, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 48, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '8',  name: '1RA SENIORS',   handicapMin: 0,    handicapMax: 19.0, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 28, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
+  { id: '9',  name: '2DA SENIORS',   handicapMin: 19.1, handicapMax: 30.8, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 28, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
+  { id: '10', name: 'SUPER SENIOR',  handicapMin: 0,    handicapMax: 37.2, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 24, rounds: '54 HOYOS', teeMarker: 'PLATINO' },
+  { id: '11', name: 'DAMAS',         handicapMin: 0,    handicapMax: 25.6, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 10, rounds: '54 HOYOS', teeMarker: 'ROJAS' },
 ];
 
 export const tournamentStats: TournamentStats = {
