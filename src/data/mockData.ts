@@ -100,15 +100,18 @@ export const tournamentInfo: TournamentInfo = {
 };
 
 export const categories: Category[] = [
-  { id: '1', name: 'PRIMERA', handicapMin: 0.4, handicapMax: 6.9, format: 'STROKE PLAY', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'AZULES' },
-  { id: '2', name: 'A', handicapMin: 7.0, handicapMax: 11.5, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '3', name: 'B', handicapMin: 11.6, handicapMax: 16.2, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '4', name: 'C', handicapMin: 16.3, handicapMax: 20.8, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '5', name: 'D', handicapMin: 20.9, handicapMax: 31.9, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'BLANCAS' },
-  { id: '6', name: 'SENIOR PRIMERA', handicapMin: 0.0, handicapMax: 15.0, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'DORADAS' },
-  { id: '7', name: 'SENIOR PRIMERA', handicapMin: 16.0, handicapMax: 29.0, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'DORADAS' },
-  { id: '8', name: 'DAMAS', handicapMin: 0.0, handicapMax: 35.2, format: 'STABLEFORD', ventajas: '80%', maxPlayers: 0, rounds: '18 HOYOS', teeMarker: 'ROJAS' },
-  { id: '9', name: 'NOVATOS', handicapMin: 0, handicapMax: 54, format: 'STABLEFORD', ventajas: 'SIN VENTAJA', maxPlayers: 0, rounds: '9 HOYOS P/DÍA', teeMarker: 'BLANCAS' },
+  // 56° Torneo Anual de Golf — Atlas Country Club (20–25 Julio 2026)
+  { id: '1',  name: 'CAMPEONATO',    handicapMin: 0,    handicapMax: 1.3,  format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 20, rounds: '54 HOYOS', teeMarker: 'NEGRAS' },
+  { id: '2',  name: 'PRIMERA',       handicapMin: 1.4,  handicapMax: 2.2,  format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 42, rounds: '54 HOYOS', teeMarker: 'AZULES' },
+  { id: '3',  name: 'SEGUNDA',       handicapMin: 0,    handicapMax: 0,    format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 60, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '4',  name: 'TERCERA',       handicapMin: 0,    handicapMax: 0,    format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 60, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '5',  name: 'CUARTA',        handicapMin: 0,    handicapMax: 0,    format: 'STROKE PLAY', ventajas: 'SIN VENTAJA', maxPlayers: 60, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '6',  name: 'QUINTA',        handicapMin: 0,    handicapMax: 0,    format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 48, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '7',  name: 'SEXTA',         handicapMin: 0,    handicapMax: 25.9, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 48, rounds: '54 HOYOS', teeMarker: 'BLANCAS' },
+  { id: '8',  name: '1RA SENIORS',   handicapMin: 0,    handicapMax: 19.0, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 28, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
+  { id: '9',  name: '2DA SENIORS',   handicapMin: 19.1, handicapMax: 30.8, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 28, rounds: '54 HOYOS', teeMarker: 'DORADAS' },
+  { id: '10', name: 'SUPER SENIOR',  handicapMin: 0,    handicapMax: 37.2, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 24, rounds: '54 HOYOS', teeMarker: 'PLATINO' },
+  { id: '11', name: 'DAMAS',         handicapMin: 0,    handicapMax: 25.6, format: 'STABLEFORD',  ventajas: '80%',         maxPlayers: 10, rounds: '54 HOYOS', teeMarker: 'ROJAS' },
 ];
 
 export const tournamentStats: TournamentStats = {
@@ -118,20 +121,19 @@ export const tournamentStats: TournamentStats = {
   maxCategories: 12,
 };
 
-/** Eligibility requirements — V Torneo Anual Terralta 2026 */
+/** Eligibility requirements — 56° Torneo Anual de Golf Atlas Country Club 2026 */
 export const eligibilityText =
-  "Podrán participar Damas y Caballeros mayores de 18 años con estatus de amateur que tengan hándicap GHIN vigente registrado en la FMG, publicado al 15 de mayo del 2026 (el más bajo si pertenece a dos o más clubes). En las categorías Campeonato y Premier se permitirá participar a jugadores de 14 años en adelante con 0.0 de H.I., deberán tener registros en torneos juveniles con scores debajo de 85 golpes para poder participar. En la 1ª categoría de Damas se permitirá participar a jugadoras de 14 años en adelante con +5.0 a 14.8 de H.I. Los jugadores Seniors deberán tener de 50 a 60 años cumplidos al 15 de mayo del 2026 y los Super Seniors 61 años cumplidos en adelante a la misma fecha.";
+  "Solamente podrán participar jugadores mayores de 18 años. Cada participante quedará registrado de acuerdo con su GHIN o carta constancia de su INDEX debidamente acreditado por su Club con la firma del Profesional, Gerente o Comisión de Golf; cada jugador es responsable de entregar su hándicap, no se aceptarán jugadores sin ese requisito. El INDEX vigente será válido al día 15 de Junio del 2026, determinando éste la categoría del jugador. Seniors: 60 años en adelante (salida de marcas doradas). Super Senior: 70 años en adelante (salida de marcas platino).";
 
-/** Important notes for eligibility section — V Torneo Anual Terralta 2026 */
+/** Important notes for eligibility section — 56° Atlas Country Club 2026 */
 export const notesText: string[] = [
-  "Inicio de inscripciones — Socios: 16 de Abril de 2026.",
-  "Inicio de inscripciones — Invitados: 1 de Mayo de 2026.",
-  "Cierre de inscripciones: 22 de Junio de 2026.",
-  "Handicap: se jugará con el hándicap federado al 15 de Mayo de 2026.",
-  "Durante el desarrollo del Torneo queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación.",
-  "Solo está autorizado el acceso a menores de edad que jueguen en la categoría Premier de Caballeros y 1ª Categoría de Damas.",
-  "Cancelaciones: no se aceptan bonificaciones por cancelación posterior al 25 de Mayo; la cancelación deberá ser por medio de https://terralta.speitour.com sin excepción. La inscripción no es transferible.",
-  "Brazalete: será indispensable el registro diario en la recepción del Club para contar con el brazalete de acceso a alimentos y bebidas (deberán portarlo sin excepción en la muñeca).",
+  "La comisión se reserva el derecho de revisar el Hándicap/INDEX, cotejando ante el GHIN, su club o aplicaciones para manejo de hándicap digital, contra el comprobante presentado por el jugador registrado.",
+  "Durante las rondas de juego los caballeros deberán utilizar ropa apropiada para la práctica del golf; no se permite el uso de shorts, bermudas ni jeans. Las damas deberán utilizar playera tipo polo, pantalón o falda propia de golf.",
+  "Marcas de salida: Campeonato — negras; 1a. — azules; 2a a 6a. — blancas; Seniors — doradas; Super Senior — platino; Damas — rojas.",
+  "Las categorías 2a, 3a, 4a, 5a y 6a (salidas de marcas blancas) serán determinadas dividiendo el número de jugadores inscritos de manera cronológica y de acuerdo a su INDEX; el límite de la división de las categorías se notificará en cuanto queden definidas.",
+  "Se permitirá el uso de carritos de golf (propiedad del Club) en todas las categorías.",
+  "Cierre de inscripciones: 8 de Julio de 2026 a las 18:00 hrs, o antes si se completa el cupo. El pago del torneo no garantiza su participación.",
+  "La cuota de inscripción deberá estar liquidada en su totalidad, su registro en la plataforma de inscripciones concluido y su carta de hándicap INDEX entregada a más tardar el 7 de Julio de 2026 para ser acreedor a algún premio.",
 ];
 
 export interface ScheduleSlot {
@@ -162,9 +164,9 @@ export const premiosText = "";
 /** Eventos adicionales */
 export const eventosAdicionalesText = "";
 
-/** Inscripciones text — V Torneo Anual Terralta 2026 */
+/** Inscripciones text — 56° Atlas Country Club 2026 */
 export const inscripcionesText: string =
-  "Socios: 16 de Abril 2026 · Invitados: 1 de Mayo 2026 · Cierre: 22 de Junio 2026. Inscripciones en https://terralta.speitour.com.mx/registro . La inscripción no es transferible.";
+  "Cuota de recuperación: $19,950.00. Cierre de inscripciones: 8 de Julio 2026 a las 18:00 hrs (o antes si se completa el cupo). Inscripciones en https://torneoscountry.atlas.com.mx . Información general: https://anualgolf.atlas.com.mx . WhatsApp: 33 2257 1913.";
 
 export interface PricingTier {
   categoria: string;
@@ -182,30 +184,13 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing — V Torneo Anual Terralta 2026 (Socios e Invitados). */
+/** Pricing — 56° Torneo Anual Atlas Country Club 2026. Cuota única de recuperación. */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costos de Inscripción — Socios',
-    subtitle: 'Incluye Kit de bienvenida, torneos satélite, premios de O´yes y alimentos/bebidas en centros de consumo (Jugador y Cónyuge).',
+    title: 'Costo de Inscripción',
+    subtitle: 'Cuota única. Incluye kit de regalos y cortesías para ingresar a los eventos sociales. Acceso a rondas de práctica ilimitadas a partir del 12 de Julio de 2026 (previa reservación de tee time).',
     tiers: [
-      { categoria: 'Caballeros Socios (incluye cónyuge en C.C.)', costo: '$14,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Socias',                                 costo: '$8,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Socias (cónyuge también juega — 50%)',   costo: '$4,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Caballeros Hijos',                             costo: '$11,200', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Hijas',                                  costo: '$5,800',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Socios menores de 18 años',                    costo: '$4,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-    ],
-  },
-  {
-    title: 'Costos de Inscripción — Invitados',
-    subtitle: 'Pago en una sola exhibición. Incluye los mismos beneficios para el Jugador y Cónyuge en centros de consumo.',
-    tiers: [
-      { categoria: 'Caballeros Invitados (incluye cónyuge en C.C.)', costo: '$17,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Invitadas',                                 costo: '$9,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Invitadas (cónyuge también juega — 50%)',   costo: '$4,500',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitados menores de 18 años',                    costo: '$6,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitado C.C. no jugador (por día)',              costo: '$2,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitado C.C. no jugador (semana completa)',      costo: '$8,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Cuota de recuperación (todas las categorías)', costo: '$19,950.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
@@ -231,24 +216,24 @@ export interface ContactInfo {
   telefonoDirecto: string;
 }
 
-/** Pricing note — Terralta 2026 */
+/** Pricing note — Atlas Country Club 2026 */
 export const pricingNote =
-  "Los cargos de inscripción de Socios se aplicarán de la siguiente manera: en Abril a 3 meses (Abril, Mayo y Junio); en Mayo a 2 meses (Mayo y Junio); en Junio en un solo cargo. Invitados: pago en una sola exhibición.";
+  "Todos los participantes deberán inscribirse en la página web de registro https://torneoscountry.atlas.com.mx, con su INDEX vigente, número de GHIN, datos de su tarjeta de crédito y datos de su invitación. Sin este proceso no será válida su inscripción. Recibirá un correo de confirmación; revise también la bandeja de spam. Si su pago se realiza posterior a la fecha de anuncio de lleno, no será válida su inscripción.";
 
-/** Contact / banking info — Terralta A.C. (Bancrea) */
+/** Contact / banking info — Atlas Country Club */
 export const contactInfo: ContactInfo = {
-  bankName: 'Bancrea',
-  clabe: '152580120000725303',
-  cuenta: '12000072530',
-  nombre: 'Terralta A.C.',
+  bankName: '',
+  clabe: '',
+  cuenta: '',
+  nombre: 'Atlas Country Club',
   email: '',
-  telefono: '81 8093 1078',
+  telefono: '33 2257 1913',
   telefonoDirecto: '',
 };
 
-/** Contact warning — Terralta 2026 */
+/** Contact warning — Atlas Country Club 2026 */
 export const contactWarning =
-  "Una vez realizado el depósito, enviar comprobante a través de https://terralta.speitour.com para validar la inscripción.";
+  "Si después de inscribirse no recibe correo de confirmación, favor de enviar un mensaje por WhatsApp al 33 2257 1913.";
 
 /** Día de práctica */
 export const diaDePracticaText = "";
@@ -264,26 +249,26 @@ export interface ConvocatoriaSection {
   order: number;
 }
 
-/** Default 8 sections for convocatoria page - disabled if no info */
+/** Default sections for convocatoria page — disabled if no info */
 export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'descripcion', label: 'Descripción', enabled: true, order: 1 },
-  { id: 'elegibilidad', label: 'Elegibilidad', enabled: false, order: 2 },
+  { id: 'elegibilidad', label: 'Elegibilidad', enabled: true, order: 2 },
   { id: 'costos', label: 'Costos', enabled: true, order: 3 },
   { id: 'categorias', label: 'Categorías y Sistema de Juego', enabled: true, order: 4 },
   { id: 'premiacion', label: 'Premiación', enabled: true, order: 5 },
-  { id: 'desempates', label: 'Desempates para Corte', enabled: true, order: 6 },
-  { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
+  { id: 'desempates', label: 'Desempates para Corte', enabled: false, order: 6 },
+  { id: 'reglas', label: 'Reglas Locales', enabled: true, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
-  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: true, order: 9 },
+  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: false, order: 9 },
   { id: 'calendarioJuego', label: 'Calendario y Horarios de Juego', enabled: true, order: 10 },
   { id: 'patrocinadoresOficiales', label: 'Patrocinadores Oficiales', enabled: true, order: 11 },
 ];
 
-/** Description text — V Torneo Anual Terralta 2026 */
+/** Description text — 56° Torneo Anual Atlas Country Club 2026 */
 export const convocatoriaDescripcion =
-  "Terralta A.C. celebra su V Torneo Anual de Invitación edición 2026, que se llevará a cabo del 26 de Junio al 4 de Julio en las instalaciones del Club.\n\n" +
-  "La inscripción al Torneo Anual incluye: Kit de bienvenida, Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O´yes y alimentos/bebidas en los centros de consumo (Jugador y Cónyuge).\n\n" +
-  "Premio de Hole In One: $1,000,000 MXN al primer Hole In One en cualquiera de los 5 hoyos par 3. En caso de no haber Hole In One durante el torneo, el premio será rifado entre los jugadores inscritos al cierre de la Ceremonia de Premiación del 4 de Julio de 2026 (indispensable estar presente).";
+  "Atlas Country Club celebra su 56° Torneo Anual de Golf, que se llevará a cabo del 20 al 25 de Julio de 2026.\n\n" +
+  "Se jugará a 54 hoyos stroke play, excepto las categorías 5a, 6a, Seniors y Damas, que se jugarán en formato Stableford al 80% del handicap. Sin corte, de acuerdo con las reglas de la U.S.G.A., F.M.G. y las reglas locales. Será responsabilidad de cada jugador leer las reglas, bases y términos de competencia antes de iniciar su salida.\n\n" +
+  "Premios destacados: O´yes en los hoyos par 3 (4, 7, 14 y 17) con bolsa de hasta $350,000 al primer lugar, autos y motocicletas para Hole In One en cada par 3, y un premio especial de $1.5 millones de pesos al primer Hole In One en el Hoyo 14 durante la última ronda de juego.";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
@@ -291,39 +276,77 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación / Trofeos — V Torneo Anual Terralta 2026 */
+/** Premiación / Trofeos — 56° Atlas Country Club 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Caballeros',
-    premios: ['Campeonato, Premier, AA, A, B, C y D — 1°, 2° y 3° lugar (trofeos institucionales).'],
-  },
-  {
-    categoria: 'Seniors / Super Seniors',
-    premios: ['1°, 2° y 3° lugar de cada categoría.'],
-  },
-  {
-    categoria: 'Damas — 1ª Categoría',
-    premios: ['1er lugar Gross', '1°, 2° y 3° lugar Neto'],
-  },
-  {
-    categoria: 'Damas — 2ª, 3ª, 4ª y Estrellal',
-    premios: ['1°, 2° y 3° lugar Neto'],
-  },
-  {
-    categoria: 'Hole In One',
+    categoria: 'Trofeos por Categoría',
     premios: [
-      '$1,000,000 MXN al primer Hole In One en cualquiera de los 5 par 3 (hoyos 3, 5, 7, 12 y 16).',
-      'Hoyo 3 — INFINITI QX60 2026 (Autopolis).',
-      'Hoyo 5 — LEXUS UX 2026 (Cleber Lexus).',
-      'Hoyo 7 — Carrito de Golf Club Car Tempo 2026.',
-      'Hoyo 12 — Cadillac Optiq 2026.',
-      'Hoyo 16 — XPENG G9 2026 (Cleber Xpeng).',
-      '2° o más Hole In One: Socio — un año de cuotas de mantenimiento sin costo; Invitado — membresía anual de golf sin cuota de mantenimiento ($226,200 MXN, no transferible).',
+      'Trofeos de colección, obra del escultor jalisciense Álvaro Cuevas, a los tres primeros lugares de cada categoría.',
     ],
   },
   {
-    categoria: 'Mejor O´yes del Torneo',
-    premios: ['Sistema fotovoltaico Tigä de 20 paneles solares (12,000 W) — no aplica para Hole In One.'],
+    categoria: 'Premio Adicional — Mejor Score del Día',
+    premios: [
+      '$7,750.00 (siete mil setecientos cincuenta pesos 00/100 M.N.) al mejor score del día por categoría. No repetible.',
+      'En categorías formato Stableford (Damas, D, E y Seniors) el ganador será la tarjeta con el mayor puntaje.',
+    ],
+  },
+  {
+    categoria: "O´YES — Hoyos 4, 7, 14 y 17 (Premios por hoyo par 3)",
+    premios: [
+      '1° Lugar: $350,000 pesos',
+      '2° Lugar: $155,000 pesos',
+      '3° Lugar: $75,000 pesos',
+      '4° Lugar: $37,500 pesos',
+      '5° Lugar: Inscripción Anual 2027',
+      '6° Lugar: Reloj Hamilton',
+      '7° Lugar: Apple iPad 10.2"',
+      '8° Lugar: Apple iPad 10.2"',
+      '9° Lugar: Bocina Bose',
+      '10° Lugar: Bocina Bose',
+      'En caso de empate en O´yes se calificará en orden cronológico, considerando mejor posicionado al que se haya marcado primero. El O´yes no podrá ser repetible por la misma persona en el mismo hoyo.',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 4',
+    premios: [
+      'SUV Geely Monjaro GF 2026',
+      'Carrito de golf SEVEN 2026',
+      'Motocicleta Triumph Speed 400 2026',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 7',
+    premios: [
+      'SUV GAC Enkoo HEV 2025',
+      'Carrito de golf Club Car 2026',
+      'Motocicleta Indian Sixty Bobber',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 14',
+    premios: [
+      'Automóvil de lujo',
+      'Moto Triumph Scrambler 400 2026',
+      'Carrito de golf Hardy Carts',
+      '1.5 millones de pesos al primer Hole In One en el Hoyo 14 durante la última ronda del torneo (premio especial).',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 17',
+    premios: [
+      'BMW 220i Coupé 2027',
+      'Moto Triumph Scrambler 1200 X 2026',
+      'Carrito de golf Golf Lozano',
+    ],
+  },
+  {
+    categoria: 'Notas Hole In One',
+    premios: [
+      'En caso de un segundo Hole In One se considerará como mejor O´yes y así sucesivamente, siguiendo el orden cronológico del evento.',
+      'El deducible será pagado por el ganador.',
+      'El premio de 1.5 millones de pesos del Hoyo 14 aplica únicamente en la tercera ronda de juego de cada una de las categorías.',
+    ],
   },
 ];
 
@@ -342,24 +365,12 @@ export interface DesempatesData {
   nota?: string;
 }
 
-/** Cómo decidir empates — V Torneo Anual Terralta 2026 */
+/** Desempates — no publicado en la convocatoria del 56° Atlas 2026 */
 export const desempatesData: DesempatesData = {
-  intro: 'Lineamientos oficiales de desempate individual del V Torneo Anual Terralta 2026.',
-  paraTrofeos: [
-    'Desempate por 1er lugar: se jugará en el campo, iniciando en el hoyo que designe el Comité. Solo habrá un ganador absoluto.',
-    'En caso de triple empate o más, el 1er lugar se decide por juego en el campo; el 2°, 3° y demás posiciones por comparación de tarjetas.',
-    'Si no hay luz natural o el clima lo impide, el 1er lugar se decide por comparación de tarjetas.',
-    'En competencias Gross y Neto, solo el trofeo Gross va a juego en campo; el 1° Neto se decide por comparación de tarjetas.',
-  ],
-  paraCorte: [
-    'Para 2°, 3° y demás posiciones (trofeo Gross/Neto) y para el corte se aplica Regla 5A — Método de Comparación de Tarjetas:',
-    '1) Mejor ronda del último día.',
-    '2) Si persiste: mejor score hoyos 10–18, luego 13–18, luego 16–18 y por último hoyo 18.',
-    '3) Si continúa: mismo procedimiento con hoyos 1–9.',
-    '4) Si aún persiste: comparación hoyo por hoyo, del hoyo 18 hacia el hoyo 1.',
-    'En categorías con hándicap: los desempates Neto se definen con score Neto y los Gross con score Gross, conservando la modalidad (Stroke Play o Stableford).',
-  ],
-  nota: 'Una categoría se declara desierta con menos de 9 participantes (fecha límite jueves 25 de Junio 2026); el Comité podrá fusionarla con otra. Ronda estipulada: 9 hoyos. Ningún jugador podrá solicitar cambio de horario o día de juego.',
+  intro: '',
+  paraTrofeos: [],
+  paraCorte: [],
+  nota: '',
 };
 
 /** Reglas locales - structured rules */
@@ -368,48 +379,15 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Condiciones de la Competencia y Reglas Locales — V Torneo Anual Terralta 2026. */
+/** Reglas y Condiciones — 56° Atlas Country Club 2026. */
 export const reglasData: ReglaItem[] = [
-  {
-    titulo: 'Aviso a los Jugadores',
-    contenido:
-      'Las reglas del Torneo serán las que rigen en la U.S.G.A. adoptadas por la Federación Mexicana de Golf y las locales del Club. Las condiciones de competencia y reglas locales se publicarán en las pantallas y se entregarán junto con las tarjetas de score. Las decisiones del Comité Organizador y del Comité de Reglas serán inapelables.',
-  },
-  {
-    titulo: 'Modificaciones por Clima',
-    contenido:
-      'Las rondas y días de juego están sujetas a cambios sin previo aviso para beneficio general del Torneo. En caso de condiciones climatológicas adversas, se tomará como primer criterio rondas de 9 hoyos cuando aplique.',
-  },
-  {
-    titulo: 'Aceptación y Siembra de Jugadores',
-    contenido:
-      'El Comité Organizador se reserva el derecho de aceptar a cualquier Jugador o sembrarlo en una categoría distinta. Jugador sin GHIN deberá firmar una carta donde acepte cualquier reclamación por parte de otro jugador y solo podrá participar por los premios de habilidades, los O´yes, los Hole In One y las rifas, renunciando a la competencia principal.',
-  },
-  {
-    titulo: 'Entrega de Tarjetas',
-    contenido:
-      'Los jugadores son responsables de entregar sus tarjetas firmadas y con el número de golpes sin ventajas (Gross) escritos claramente en cada casilla de los hoyos de la tarjeta oficial; deberán estar firmadas también por su anotador.',
-  },
-  {
-    titulo: 'Verificación de Scores Anómalos',
-    contenido:
-      'Si un Jugador tira en la suma de los dos días de competencia -8 golpes de su hándicap y existe una reclamación oficial y por escrito, el Comité Organizador investigará al jugador consultando las rondas registradas en el GHIN en Enero, Febrero, Marzo y Abril 2026. Si no tiene registrados scores suficientes que avalen un hándicap real y actualizado, podrá ser descalificado. La decisión del Comité de Reglas será definitiva.',
-  },
-  {
-    titulo: 'Cortes — Avisos del Jugador',
-    contenido:
-      'El Jugador que no pueda asistir a la ronda final tendrá que dar aviso a la Oficina de Golf o al Comité Organizador inmediatamente después de terminar su 2ª ronda para asignar su retiro y permitir el siguiente en lista. Si entregan la tarjeta y no se retira y luego no asiste a la final, ningún Jugador podrá tomar su lugar. Quien no avise será asignado por el Comité a la categoría que su hándicap original lo ubique, o a Senior si tiene 50 años o más.',
-  },
-  {
-    titulo: 'Hole In One y O´yes',
-    contenido:
-      'Habrá premios de Hole In One en los par 3: hoyos 3, 5, 7, 12 y 16. En caso de un 2° Hole In One en el mismo hoyo, se considerará como el mejor O´yes de 0.0 m; si hay un 3° en el mismo hoyo, el desempate lo ganará quien lo haga primero. Se premiará al mejor O´yes general de cada par 3 de todo el torneo (en caso de empate gana el primer tiro). Un jugador puede ganar dos o más O´yes con tiros diferentes. Los resultados pueden moverse hasta el último día. Las hojas firmadas por los jugadores de confirmación de distancia son inapelables.',
-  },
-  {
-    titulo: 'Cierre de la Competencia',
-    contenido:
-      'Se considera cerrada la competencia al iniciar la Ceremonia de Premiación (sábado 4 de Julio de 2026, 4:00 P.M. en Hoyo 19).',
-  },
+  { titulo: 'Reglas Generales', contenido: 'Se jugará a 54 hoyos stroke play, excepto las categorías 5a, 6a, Seniors y Damas que se jugarán en formato Stableford al 80% del handicap, sin corte, de acuerdo con las reglas de la U.S.G.A., F.M.G. y las reglas locales. Será responsabilidad de cada jugador leer las reglas, bases y términos de competencia antes de iniciar su salida.' },
+  { titulo: 'Handicap / INDEX', contenido: 'Cada participante quedará registrado de acuerdo con su GHIN o carta constancia de su INDEX debidamente acreditado por su Club con la firma del Profesional, Gerente o Comisión de Golf. Cada jugador es responsable de entregar su hándicap; no se aceptarán jugadores sin este requisito. El INDEX vigente será válido al día 15 de Junio del 2026, determinando éste la categoría del jugador.' },
+  { titulo: 'Vestimenta', contenido: 'Durante las rondas de juego los caballeros deberán utilizar ropa apropiada para la práctica del golf; no se permite el uso de shorts, bermudas ni jeans. Las damas deberán utilizar playera tipo polo, pantalón o falda propia de golf.' },
+  { titulo: 'Marcas de Salida', contenido: 'Campeonato: marcas negras. 1ª: marcas azules. 2ª a 6ª: marcas blancas. Seniors: marcas doradas. Super Senior: marcas platino. Damas: marcas rojas.' },
+  { titulo: 'División de Categorías (2ª a 6ª)', contenido: 'Las categorías 2ª, 3ª, 4ª, 5ª y 6ª (salidas de marcas blancas) serán determinadas dividiendo el número de jugadores inscritos de manera cronológica y de acuerdo a su INDEX. El límite de la división de las categorías se notificará en cuanto queden definidas.' },
+  { titulo: 'Carritos de Golf', contenido: 'Se permitirá el uso de carritos de golf (propiedad del Club) en todas las categorías.' },
+  { titulo: 'Notas Generales', contenido: 'La cuota de inscripción deberá estar liquidada en su totalidad, su registro en la plataforma concluido y su carta de hándicap INDEX entregada a más tardar el 7 de Julio de 2026 para ser acreedor a algún premio. El pago del torneo no garantiza su participación a menos que esté confirmado por el área de Inscripciones. Cualquier controversia será resuelta por la Comisión de Golf. La Comisión se reserva el derecho de hacer los cambios pertinentes para el mejor funcionamiento del torneo.' },
 ];
 
 /** Reglamento local - structured local rules with collapsible sections */
@@ -617,43 +595,15 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Eventos deportivos / Competencias especiales — V Torneo Anual Terralta 2026. */
+/** Competencias especiales — 56° Atlas Country Club 2026. */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
-  {
-    nombre: 'Torneo de Driver de Distancia Caballeros',
-    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 1. Días de competencia: Viernes 26 de Junio al Viernes 3 de Julio. Categorías: Seniors, D, C, B, A, AA. Patrocinado por Dr. Gerardo González Saldívar y Technogym.',
-    premios: 'Premio: Technogym Connected Dumbbells.',
-  },
-  {
-    nombre: 'Torneo de Driver de Precisión Damas',
-    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el hoyo 10 de los tres días de la competencia. Días de competencia: Viernes 26, Lunes 29 de Junio y Miércoles 1 de Julio. Durante la ronda de juego — Hoyo 10.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Long Driver Caballeros',
-    descripcion: 'Día de competencia: Jueves 2 de Julio (17:00 a 19:30 hrs). Lugar: Terraza Bar "La Vista". Patrocinado por Dr. Gerardo González Saldívar y Back 9 Golf.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Approach Mixto',
-    descripcion: 'Calificación: Viernes 26 de Junio al Jueves 2 de Julio, 14:00–18:00 hrs en el Tee de Práctica. Cada jugador tendrá 3 oportunidades de hacer el mejor O´yes del día; calificarán los 7 mejores tiros (más cercanos) por día. En los 7 días calificarán 42 caballeros y 10 damas. Final: Viernes 3 de Julio, 20:30 hrs en Terraza Bar "La Vista". En la final cada participante realiza 3 tiros y cuenta el más cercano; en caso de empate, un tiro adicional define al ganador.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Putt Caballeros',
-    descripcion: 'Calificación: Viernes 26, Sábado 27, Domingo 28 de Junio y Jueves 2 de Julio, 14:00–18:30 hrs en el Putting Green. Final: Viernes 3 de Julio, 18:00 hrs en el Putting Green.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Putt Damas',
-    descripcion: 'Fecha: Lunes 29 de Junio, 16:00 hrs en el Putting Green.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Premios O´yes',
-    descripcion: 'Se premiarán los mejores O´yes diarios del torneo en los hoyos par 3: 3, 5, 7, 12 y 16. Un jugador puede ganar dos o más O´yes con tiros diferentes; en caso de empate, gana quien tiró primero.',
-    premios: 'Premios diarios para los mejores O´yes en cada par 3. Mejor O´yes del Torneo: Sistema Fotovoltaico Tigä de 20 paneles solares (12,000 W) — no aplica para Hole In One.',
-  },
+  { nombre: 'O´YES (Closest to the Pin)', descripcion: 'Premios en los hoyos par 3 (4, 7, 14 y 17). En caso de empate se califica en orden cronológico (mejor posicionado el que se marcó primero). El O´yes no es repetible por la misma persona en el mismo hoyo.', premios: '1°: $350,000 · 2°: $155,000 · 3°: $75,000 · 4°: $37,500 · 5°: Inscripción Anual 2027 · 6°: Reloj Hamilton · 7°-8°: Apple iPad 10.2" · 9°-10°: Bocina Bose.' },
+  { nombre: 'Hole In One — Hoyo 4', descripcion: 'Premio al primer Hole In One en el Hoyo 4. El deducible será pagado por el ganador.', premios: 'SUV Geely Monjaro GF 2026 + Carrito SEVEN 2026 + Motocicleta Triumph Speed 400 2026.' },
+  { nombre: 'Hole In One — Hoyo 7', descripcion: 'Premio al primer Hole In One en el Hoyo 7.', premios: 'SUV GAC Enkoo HEV 2025 + Carrito Club Car 2026 + Motocicleta Indian Sixty Bobber.' },
+  { nombre: 'Hole In One — Hoyo 14', descripcion: 'Premio al primer Hole In One en el Hoyo 14. El premio especial de 1.5 millones aplica únicamente en la tercera (última) ronda de juego de cada categoría.', premios: 'Automóvil de lujo + Moto Triumph Scrambler 400 2026 + Carrito Hardy Carts + 1.5 millones de pesos (última ronda).' },
+  { nombre: 'Hole In One — Hoyo 17', descripcion: 'Premio al primer Hole In One en el Hoyo 17.', premios: 'BMW 220i Coupé 2027 + Moto Triumph Scrambler 1200 X 2026 + Carrito Golf Lozano.' },
+  { nombre: 'Premio Adicional — Mejor Score del Día', descripcion: 'Premio al mejor score del día por categoría. No repetible. En categorías Stableford (Damas, D, E y Seniors) gana la tarjeta con mayor puntaje.', premios: '$7,750.00 por día por categoría.' },
+  { nombre: '¡Grandes Sorpresas!', descripcion: 'Rifas durante la feria del pueblo y la ceremonia de premiación entre los participantes inscritos.', premios: 'Diversos premios sorpresa.' },
 ];
 
 // ============= Servicios y Horarios del Club =============
@@ -666,45 +616,8 @@ export interface ServicioDia {
   servicios: string[];
 }
 
-/**
- * Servicios y Horarios del Club — V Torneo Anual Terralta 2026.
- * Horarios uniformes del 26 de Junio al 4 de Julio en La Roca y Casa Club.
- */
-export const serviciosHorariosData: ServicioDia[] = [
-  {
-    dia: 'La Roca — del 26 de Junio al 4 de Julio',
-    servicios: [
-      'Desayuno: 6:00 A.M. – 12:00 P.M.',
-      'Comida: 12:00 P.M. – 5:00 P.M.',
-    ],
-  },
-  {
-    dia: 'Casa Club — del 26 de Junio al 4 de Julio',
-    servicios: [
-      'Comida: 12:00 P.M. – 5:00 P.M.',
-      'Cena: 5:00 P.M. – 9:30 P.M.',
-    ],
-  },
-  {
-    dia: 'Plaza "Los Olivos" — Música en Vivo',
-    servicios: [
-      '26 de Junio al 4 de Julio · 2:00 P.M. – 4:00 P.M.',
-    ],
-  },
-  {
-    dia: 'Hoyo 19 — Evento Estelar',
-    servicios: [
-      '26 de Junio al 4 de Julio · 5:00 P.M. – 7:00 P.M.',
-      'Música de DJ: 8:00 P.M. – 10:00 P.M.',
-    ],
-  },
-  {
-    dia: 'Activación Technogym Check Up — Gimnasio Casa Club',
-    servicios: [
-      'Martes 30 de Junio y Viernes 3 de Julio · 8:00 A.M. – 6:00 P.M. (cortesía).',
-    ],
-  },
-];
+/** Servicios y Horarios — no publicado en la convocatoria del 56° Atlas 2026 */
+export const serviciosHorariosData: ServicioDia[] = [];
 const _serviciosHorariosArchived: ServicioDia[] = [
   {
     dia: 'Viernes 26 de Junio',
@@ -799,46 +712,13 @@ export interface PatrocinadorOficial {
   descripcion: string;
 }
 
-/**
- * Patrocinadores oficiales — V Torneo Anual Terralta 2026.
- * Premios principales de Hole In One y O´yes según la convocatoria oficial.
- */
+/** Patrocinadores oficiales — 56° Atlas Country Club 2026. */
 export const patrocinadoresOficialesData: PatrocinadorOficial[] = [
-  {
-    premio: 'Hole In One — Hoyo 3 (Mayores de 18 años)',
-    patrocinador: 'Autopolis Infiniti',
-    descripcion: 'INFINITI QX60 2026 al primer Hole In One del torneo en el Hoyo 3.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 5 (Mayores de 18 años)',
-    patrocinador: 'Cleber Lexus',
-    descripcion: 'LEXUS UX 2026 al primer Hole In One del torneo en el Hoyo 5.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 7 (Mayores de 18 años)',
-    patrocinador: 'Club Car',
-    descripcion: 'Carrito de Golf Club Car Tempo 2026 al primer Hole In One del torneo en el Hoyo 7.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 12 (Mayores de 18 años)',
-    patrocinador: 'Cadillac',
-    descripcion: 'Cadillac Optiq 2026 al primer Hole In One del torneo en el Hoyo 12.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 16 (Mayores de 18 años)',
-    patrocinador: 'Cleber Xpeng',
-    descripcion: 'XPENG G9 2026 al primer Hole In One del torneo en el Hoyo 16.',
-  },
-  {
-    premio: 'Premio de Hole In One General',
-    patrocinador: 'Terralta A.C.',
-    descripcion: '$1,000,000 MXN al primer Hole In One en cualquiera de los 5 par 3. Si no se realiza, se rifa entre los jugadores inscritos durante la Ceremonia de Premiación (4 de Julio).',
-  },
-  {
-    premio: 'Mejor O´yes del Torneo',
-    patrocinador: 'Tigä',
-    descripcion: 'Sistema Fotovoltaico de 20 paneles solares — 12,000 W de potencia (incluye inversor, estructura, instalación, material eléctrico, ingeniería, app de monitoreo y trámite ante CFE). No aplica para Hole In One.',
-  },
+  { premio: 'Hole In One — Hoyo 4',  patrocinador: 'Geely / SEVEN / Triumph',                  descripcion: 'SUV Geely Monjaro GF 2026, Carrito SEVEN 2026 y Motocicleta Triumph Speed 400 2026.' },
+  { premio: 'Hole In One — Hoyo 7',  patrocinador: 'GAC / Club Car / Indian Motorcycle',       descripcion: 'SUV GAC Enkoo HEV 2025, Carrito Club Car 2026 y Motocicleta Indian Sixty Bobber.' },
+  { premio: 'Hole In One — Hoyo 14', patrocinador: 'Triumph / Hardy Carts / Atlas Country Club', descripcion: 'Automóvil de lujo, Moto Triumph Scrambler 400 2026, Carrito Hardy Carts y $1.5 millones de pesos al primer Hole In One en la última ronda.' },
+  { premio: 'Hole In One — Hoyo 17', patrocinador: 'BMW / Triumph / Golf Lozano',              descripcion: 'BMW 220i Coupé 2027, Moto Triumph Scrambler 1200 X 2026 y Carrito Golf Lozano.' },
+  { premio: 'World Amateur Golf Ranking', patrocinador: 'WAGR',                                descripcion: 'Torneo reconocido por el World Amateur Golf Ranking.' },
 ];
 
 // ============= Eventos Sociales (Lifestyle) =============
