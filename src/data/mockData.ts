@@ -85,8 +85,8 @@ export const sponsors: Sponsor[] = [
 
 export const tournamentInfo: TournamentInfo = {
   id: '70',
-  name: 'LXX Torneo Anual Valle Alto 2026',
-  club: 'Club de Golf Valle Alto',
+  name: '56° Torneo Anual de Golf Atlas Country Club 2026',
+  club: 'Atlas CC',
   logoUrl: '',
   heroImageUrl: '',
   logoHeaderUrl: '',
