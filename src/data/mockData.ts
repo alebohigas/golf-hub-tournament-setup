@@ -738,68 +738,47 @@ export interface EventoSocial {
 }
 
 /**
- * Eventos sociales / lifestyle — V Torneo Anual Terralta 2026.
+ * Eventos sociales / lifestyle — 56° Torneo Anual de Golf Atlas Country Club 2026.
+ * Fuente: posters publicados en /admin → Archivos → Eventos del sitio
+ * https://atlascc.speitour.mx (evento-1, evento-2, evento-5, evento-3).
  * Mostrados en /eventos como subsección "Sociales".
  */
 export const eventosSocialesData: EventoSocial[] = [
-  // ---------- Viernes 24 de Abril ----------
-  { dia: 'Viernes 24 de Abril',   hora: '13:00 – 17:00 hrs', titulo: 'Buffet Norestense' },
-  { dia: 'Viernes 24 de Abril',   hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
+  // ---------- Lunes 20 de Julio ----------
+  {
+    dia: 'Lunes 20 de Julio',
+    hora: '19:00 hrs',
+    titulo: 'Ceremonia de Inauguración',
+    lugar: 'Salón La Hacienda',
+    descripcion: 'Apertura oficial del 56° Torneo Anual de Golf — Atlas Country Club.',
+  },
 
-  // ---------- Sábado 25 de Abril ----------
-  { dia: 'Sábado 25 de Abril',    hora: '11:00 – 17:00 hrs', titulo: 'Calificación Approach y Putt' },
-  { dia: 'Sábado 25 de Abril',    hora: '13:00 – 17:00 hrs', titulo: 'Buffet Mexicano' },
-  { dia: 'Sábado 25 de Abril',    hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Sábado 25 de Abril',    hora: '17:20 hrs',         titulo: 'Misa' },
-  { dia: 'Sábado 25 de Abril',    hora: '18:30 hrs',         titulo: 'Inauguración' },
-  { dia: 'Sábado 25 de Abril',    hora: '19:00 hrs',         titulo: 'Coctel' },
+  // ---------- Miércoles 22 de Julio ----------
+  {
+    dia: 'Miércoles 22 de Julio',
+    hora: '19:00 hrs',
+    titulo: 'Feria del Pueblo',
+    lugar: 'Salón La Hacienda',
+    descripcion: 'Jugador en cortesía. Invitado adulto $500 · Invitado niño $250.',
+  },
 
-  // ---------- Domingo 26 de Abril ----------
-  { dia: 'Domingo 26 de Abril',   hora: '11:00 – 17:00 hrs', titulo: 'Calificación Approach y Putt' },
-  { dia: 'Domingo 26 de Abril',   hora: '13:00 – 17:00 hrs', titulo: 'Festival de la Paella' },
-  { dia: 'Domingo 26 de Abril',   hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Domingo 26 de Abril',   hora: 'Todo el día',       titulo: 'Family Day' },
+  // ---------- Viernes 24 de Julio ----------
+  {
+    dia: 'Viernes 24 de Julio',
+    hora: '19:00 hrs',
+    titulo: 'Bingo',
+    lugar: 'Salón La Hacienda',
+    descripcion: 'Jugador en cortesía. Invitado adulto $500 · Invitado niño $250.',
+  },
 
-  // ---------- Lunes 27 de Abril ----------
-  { dia: 'Lunes 27 de Abril',     hora: '11:00 – 17:00 hrs', titulo: 'Calificación Approach y Putt' },
-  { dia: 'Lunes 27 de Abril',     hora: '13:00 – 17:00 hrs', titulo: 'Buffet Italiano' },
-  { dia: 'Lunes 27 de Abril',     hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Lunes 27 de Abril',     hora: '19:00 – 21:00 hrs', titulo: 'Taquiza' },
-
-  // ---------- Martes 28 de Abril ----------
-  { dia: 'Martes 28 de Abril',    hora: '11:00 – 17:00 hrs', titulo: 'Calificación Approach y Putt' },
-  { dia: 'Martes 28 de Abril',    hora: '13:00 – 17:00 hrs', titulo: 'Buffet Internacional' },
-  { dia: 'Martes 28 de Abril',    hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Martes 28 de Abril',    hora: '16:00 hrs',         titulo: 'Bingo Damas' },
-  { dia: 'Martes 28 de Abril',    hora: '19:00 – 21:00 hrs', titulo: 'Taquiza' },
-
-  // ---------- Miércoles 29 de Abril ----------
-  { dia: 'Miércoles 29 de Abril', hora: '13:00 – 17:00 hrs', titulo: 'Buffet Árabe' },
-  { dia: 'Miércoles 29 de Abril', hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Miércoles 29 de Abril', hora: '18:30 hrs',         titulo: 'Tiro Approach' },
-  { dia: 'Miércoles 29 de Abril', hora: '19:00 – 21:00 hrs', titulo: 'Taquiza Especial' },
-  { dia: 'Miércoles 29 de Abril', hora: '21:00 hrs',         titulo: 'Rogelio Ramos', descripcion: 'Presentación en vivo.' },
-
-  // ---------- Jueves 30 de Abril ----------
-  { dia: 'Jueves 30 de Abril',    hora: '13:00 – 17:00 hrs', titulo: 'Buffet Latino' },
-  { dia: 'Jueves 30 de Abril',    hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Jueves 30 de Abril',    hora: '18:30 hrs',         titulo: 'Torneo Driver Caballeros' },
-  { dia: 'Jueves 30 de Abril',    hora: '19:00 – 21:00 hrs', titulo: 'Taquiza' },
-  { dia: 'Jueves 30 de Abril',    hora: '21:00 hrs',         titulo: 'Noche de Rock' },
-
-  // ---------- Viernes 1 de Mayo ----------
-  { dia: 'Viernes 1 de Mayo',     hora: '13:00 – 17:00 hrs', titulo: 'Buffet Mar y Tierra' },
-  { dia: 'Viernes 1 de Mayo',     hora: '13:00 – 21:00 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Viernes 1 de Mayo',     hora: '18:00 hrs',         titulo: 'Final Putt Damas' },
-  { dia: 'Viernes 1 de Mayo',     hora: '19:30 hrs',         titulo: 'Final Putt Caballeros' },
-  { dia: 'Viernes 1 de Mayo',     hora: '19:30 hrs',         titulo: 'Cena "Pollo Loco"' },
-  { dia: 'Viernes 1 de Mayo',     hora: 'Por confirmar',     titulo: 'Tiro Espectacular' },
-
-  // ---------- Sábado 2 de Mayo ----------
-  { dia: 'Sábado 2 de Mayo',      hora: '13:00 – 17:00 hrs', titulo: 'Buffet Norteño' },
-  { dia: 'Sábado 2 de Mayo',      hora: '13:00 – 17:30 hrs', titulo: 'Rincón Mexicano' },
-  { dia: 'Sábado 2 de Mayo',      hora: '18:00 hrs',         titulo: 'Premiación', lugar: 'Tee del Hoyo 16' },
-  { dia: 'Sábado 2 de Mayo',      hora: 'Noche',             titulo: 'Show de Clausura — María José', descripcion: 'Gira "Ahora o Nunca".' },
+  // ---------- Sábado 25 de Julio ----------
+  {
+    dia: 'Sábado 25 de Julio',
+    hora: '19:00 hrs',
+    titulo: 'Ceremonia de Clausura',
+    lugar: 'Salón La Hacienda',
+    descripcion: 'Premiación y cierre del torneo. Jugador en cortesía. Entrada general $600.',
+  },
 ];
 const _eventosSocialesArchived: EventoSocial[] = [
   {
