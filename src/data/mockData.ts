@@ -595,43 +595,15 @@ export interface CompetenciaEspecial {
   premios?: string;
 }
 
-/** Eventos deportivos / Competencias especiales — V Torneo Anual Terralta 2026. */
+/** Competencias especiales — 56° Atlas Country Club 2026. */
 export const competenciasEspecialesData: CompetenciaEspecial[] = [
-  {
-    nombre: 'Torneo de Driver de Distancia Caballeros',
-    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el Hoyo 1. Días de competencia: Viernes 26 de Junio al Viernes 3 de Julio. Categorías: Seniors, D, C, B, A, AA. Patrocinado por Dr. Gerardo González Saldívar y Technogym.',
-    premios: 'Premio: Technogym Connected Dumbbells.',
-  },
-  {
-    nombre: 'Torneo de Driver de Precisión Damas',
-    descripcion: 'Sistema de juego: tendrá solo el primer golpe en el hoyo 10 de los tres días de la competencia. Días de competencia: Viernes 26, Lunes 29 de Junio y Miércoles 1 de Julio. Durante la ronda de juego — Hoyo 10.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Long Driver Caballeros',
-    descripcion: 'Día de competencia: Jueves 2 de Julio (17:00 a 19:30 hrs). Lugar: Terraza Bar "La Vista". Patrocinado por Dr. Gerardo González Saldívar y Back 9 Golf.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Approach Mixto',
-    descripcion: 'Calificación: Viernes 26 de Junio al Jueves 2 de Julio, 14:00–18:00 hrs en el Tee de Práctica. Cada jugador tendrá 3 oportunidades de hacer el mejor O´yes del día; calificarán los 7 mejores tiros (más cercanos) por día. En los 7 días calificarán 42 caballeros y 10 damas. Final: Viernes 3 de Julio, 20:30 hrs en Terraza Bar "La Vista". En la final cada participante realiza 3 tiros y cuenta el más cercano; en caso de empate, un tiro adicional define al ganador.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Putt Caballeros',
-    descripcion: 'Calificación: Viernes 26, Sábado 27, Domingo 28 de Junio y Jueves 2 de Julio, 14:00–18:30 hrs en el Putting Green. Final: Viernes 3 de Julio, 18:00 hrs en el Putting Green.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Torneo de Putt Damas',
-    descripcion: 'Fecha: Lunes 29 de Junio, 16:00 hrs en el Putting Green.',
-    premios: '1°: $10,000 · 2°: $6,000 · 3°: $4,000 (en certificados de regalo Back 9).',
-  },
-  {
-    nombre: 'Premios O´yes',
-    descripcion: 'Se premiarán los mejores O´yes diarios del torneo en los hoyos par 3: 3, 5, 7, 12 y 16. Un jugador puede ganar dos o más O´yes con tiros diferentes; en caso de empate, gana quien tiró primero.',
-    premios: 'Premios diarios para los mejores O´yes en cada par 3. Mejor O´yes del Torneo: Sistema Fotovoltaico Tigä de 20 paneles solares (12,000 W) — no aplica para Hole In One.',
-  },
+  { nombre: 'O´YES (Closest to the Pin)', descripcion: 'Premios en los hoyos par 3 (4, 7, 14 y 17). En caso de empate se califica en orden cronológico (mejor posicionado el que se marcó primero). El O´yes no es repetible por la misma persona en el mismo hoyo.', premios: '1°: $350,000 · 2°: $155,000 · 3°: $75,000 · 4°: $37,500 · 5°: Inscripción Anual 2027 · 6°: Reloj Hamilton · 7°-8°: Apple iPad 10.2" · 9°-10°: Bocina Bose.' },
+  { nombre: 'Hole In One — Hoyo 4', descripcion: 'Premio al primer Hole In One en el Hoyo 4. El deducible será pagado por el ganador.', premios: 'SUV Geely Monjaro GF 2026 + Carrito SEVEN 2026 + Motocicleta Triumph Speed 400 2026.' },
+  { nombre: 'Hole In One — Hoyo 7', descripcion: 'Premio al primer Hole In One en el Hoyo 7.', premios: 'SUV GAC Enkoo HEV 2025 + Carrito Club Car 2026 + Motocicleta Indian Sixty Bobber.' },
+  { nombre: 'Hole In One — Hoyo 14', descripcion: 'Premio al primer Hole In One en el Hoyo 14. El premio especial de 1.5 millones aplica únicamente en la tercera (última) ronda de juego de cada categoría.', premios: 'Automóvil de lujo + Moto Triumph Scrambler 400 2026 + Carrito Hardy Carts + 1.5 millones de pesos (última ronda).' },
+  { nombre: 'Hole In One — Hoyo 17', descripcion: 'Premio al primer Hole In One en el Hoyo 17.', premios: 'BMW 220i Coupé 2027 + Moto Triumph Scrambler 1200 X 2026 + Carrito Golf Lozano.' },
+  { nombre: 'Premio Adicional — Mejor Score del Día', descripcion: 'Premio al mejor score del día por categoría. No repetible. En categorías Stableford (Damas, D, E y Seniors) gana la tarjeta con mayor puntaje.', premios: '$7,750.00 por día por categoría.' },
+  { nombre: '¡Grandes Sorpresas!', descripcion: 'Rifas durante la feria del pueblo y la ceremonia de premiación entre los participantes inscritos.', premios: 'Diversos premios sorpresa.' },
 ];
 
 // ============= Servicios y Horarios del Club =============
