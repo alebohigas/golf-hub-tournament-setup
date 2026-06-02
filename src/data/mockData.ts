@@ -712,46 +712,13 @@ export interface PatrocinadorOficial {
   descripcion: string;
 }
 
-/**
- * Patrocinadores oficiales — V Torneo Anual Terralta 2026.
- * Premios principales de Hole In One y O´yes según la convocatoria oficial.
- */
+/** Patrocinadores oficiales — 56° Atlas Country Club 2026. */
 export const patrocinadoresOficialesData: PatrocinadorOficial[] = [
-  {
-    premio: 'Hole In One — Hoyo 3 (Mayores de 18 años)',
-    patrocinador: 'Autopolis Infiniti',
-    descripcion: 'INFINITI QX60 2026 al primer Hole In One del torneo en el Hoyo 3.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 5 (Mayores de 18 años)',
-    patrocinador: 'Cleber Lexus',
-    descripcion: 'LEXUS UX 2026 al primer Hole In One del torneo en el Hoyo 5.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 7 (Mayores de 18 años)',
-    patrocinador: 'Club Car',
-    descripcion: 'Carrito de Golf Club Car Tempo 2026 al primer Hole In One del torneo en el Hoyo 7.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 12 (Mayores de 18 años)',
-    patrocinador: 'Cadillac',
-    descripcion: 'Cadillac Optiq 2026 al primer Hole In One del torneo en el Hoyo 12.',
-  },
-  {
-    premio: 'Hole In One — Hoyo 16 (Mayores de 18 años)',
-    patrocinador: 'Cleber Xpeng',
-    descripcion: 'XPENG G9 2026 al primer Hole In One del torneo en el Hoyo 16.',
-  },
-  {
-    premio: 'Premio de Hole In One General',
-    patrocinador: 'Terralta A.C.',
-    descripcion: '$1,000,000 MXN al primer Hole In One en cualquiera de los 5 par 3. Si no se realiza, se rifa entre los jugadores inscritos durante la Ceremonia de Premiación (4 de Julio).',
-  },
-  {
-    premio: 'Mejor O´yes del Torneo',
-    patrocinador: 'Tigä',
-    descripcion: 'Sistema Fotovoltaico de 20 paneles solares — 12,000 W de potencia (incluye inversor, estructura, instalación, material eléctrico, ingeniería, app de monitoreo y trámite ante CFE). No aplica para Hole In One.',
-  },
+  { premio: 'Hole In One — Hoyo 4',  patrocinador: 'Geely / SEVEN / Triumph',                  descripcion: 'SUV Geely Monjaro GF 2026, Carrito SEVEN 2026 y Motocicleta Triumph Speed 400 2026.' },
+  { premio: 'Hole In One — Hoyo 7',  patrocinador: 'GAC / Club Car / Indian Motorcycle',       descripcion: 'SUV GAC Enkoo HEV 2025, Carrito Club Car 2026 y Motocicleta Indian Sixty Bobber.' },
+  { premio: 'Hole In One — Hoyo 14', patrocinador: 'Triumph / Hardy Carts / Atlas Country Club', descripcion: 'Automóvil de lujo, Moto Triumph Scrambler 400 2026, Carrito Hardy Carts y $1.5 millones de pesos al primer Hole In One en la última ronda.' },
+  { premio: 'Hole In One — Hoyo 17', patrocinador: 'BMW / Triumph / Golf Lozano',              descripcion: 'BMW 220i Coupé 2027, Moto Triumph Scrambler 1200 X 2026 y Carrito Golf Lozano.' },
+  { premio: 'World Amateur Golf Ranking', patrocinador: 'WAGR',                                descripcion: 'Torneo reconocido por el World Amateur Golf Ranking.' },
 ];
 
 // ============= Eventos Sociales (Lifestyle) =============
