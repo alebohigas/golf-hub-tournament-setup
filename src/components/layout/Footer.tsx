@@ -51,7 +51,7 @@ const Footer = () => {
               </div>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
-              El torneo amateur de golf más prestigioso de la región.
+              El torneo de golf amateur más importante del país.
             </p>
           </div>
 

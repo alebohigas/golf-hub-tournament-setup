@@ -194,7 +194,7 @@ const Patrocinadores = () => {
               ¿Desea ser patrocinador?
             </h3>
             <p className="text-muted-foreground mb-6">
-              Contáctenos para conocer los beneficios de patrocinar el torneo de golf más prestigioso de la región.
+              Contáctenos para conocer los beneficios de patrocinar el torneo de golf amateur más importante del país.
             </p>
             <a 
               href={mailtoHref}
