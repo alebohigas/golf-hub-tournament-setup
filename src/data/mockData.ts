@@ -249,26 +249,26 @@ export interface ConvocatoriaSection {
   order: number;
 }
 
-/** Default 8 sections for convocatoria page - disabled if no info */
+/** Default sections for convocatoria page — disabled if no info */
 export const convocatoriaSections: ConvocatoriaSection[] = [
   { id: 'descripcion', label: 'Descripción', enabled: true, order: 1 },
-  { id: 'elegibilidad', label: 'Elegibilidad', enabled: false, order: 2 },
+  { id: 'elegibilidad', label: 'Elegibilidad', enabled: true, order: 2 },
   { id: 'costos', label: 'Costos', enabled: true, order: 3 },
   { id: 'categorias', label: 'Categorías y Sistema de Juego', enabled: true, order: 4 },
   { id: 'premiacion', label: 'Premiación', enabled: true, order: 5 },
-  { id: 'desempates', label: 'Desempates para Corte', enabled: true, order: 6 },
-  { id: 'reglas', label: 'Reglas Locales', enabled: false, order: 7 },
+  { id: 'desempates', label: 'Desempates para Corte', enabled: false, order: 6 },
+  { id: 'reglas', label: 'Reglas Locales', enabled: true, order: 7 },
   { id: 'competencias', label: 'Competencias Especiales', enabled: true, order: 8 },
-  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: true, order: 9 },
+  { id: 'servicios', label: 'Servicios y Horarios del Club', enabled: false, order: 9 },
   { id: 'calendarioJuego', label: 'Calendario y Horarios de Juego', enabled: true, order: 10 },
   { id: 'patrocinadoresOficiales', label: 'Patrocinadores Oficiales', enabled: true, order: 11 },
 ];
 
-/** Description text — V Torneo Anual Terralta 2026 */
+/** Description text — 56° Torneo Anual Atlas Country Club 2026 */
 export const convocatoriaDescripcion =
-  "Terralta A.C. celebra su V Torneo Anual de Invitación edición 2026, que se llevará a cabo del 26 de Junio al 4 de Julio en las instalaciones del Club.\n\n" +
-  "La inscripción al Torneo Anual incluye: Kit de bienvenida, Torneo de Putt Damas y Caballeros, Torneo de Approach Mixto, Torneo de Driver de Precisión Damas, Torneo de Driver de Distancia Caballeros, Torneo de Long Driver Caballeros, Premios de O´yes y alimentos/bebidas en los centros de consumo (Jugador y Cónyuge).\n\n" +
-  "Premio de Hole In One: $1,000,000 MXN al primer Hole In One en cualquiera de los 5 hoyos par 3. En caso de no haber Hole In One durante el torneo, el premio será rifado entre los jugadores inscritos al cierre de la Ceremonia de Premiación del 4 de Julio de 2026 (indispensable estar presente).";
+  "Atlas Country Club celebra su 56° Torneo Anual de Golf, que se llevará a cabo del 20 al 25 de Julio de 2026.\n\n" +
+  "Se jugará a 54 hoyos stroke play, excepto las categorías 5a, 6a, Seniors y Damas, que se jugarán en formato Stableford al 80% del handicap. Sin corte, de acuerdo con las reglas de la U.S.G.A., F.M.G. y las reglas locales. Será responsabilidad de cada jugador leer las reglas, bases y términos de competencia antes de iniciar su salida.\n\n" +
+  "Premios destacados: O´yes en los hoyos par 3 (4, 7, 14 y 17) con bolsa de hasta $350,000 al primer lugar, autos y motocicletas para Hole In One en cada par 3, y un premio especial de $1.5 millones de pesos al primer Hole In One en el Hoyo 14 durante la última ronda de juego.";
 
 /** Premiación data - structured prize descriptions */
 export interface PremioCategoria {
