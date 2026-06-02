@@ -616,45 +616,8 @@ export interface ServicioDia {
   servicios: string[];
 }
 
-/**
- * Servicios y Horarios del Club — V Torneo Anual Terralta 2026.
- * Horarios uniformes del 26 de Junio al 4 de Julio en La Roca y Casa Club.
- */
-export const serviciosHorariosData: ServicioDia[] = [
-  {
-    dia: 'La Roca — del 26 de Junio al 4 de Julio',
-    servicios: [
-      'Desayuno: 6:00 A.M. – 12:00 P.M.',
-      'Comida: 12:00 P.M. – 5:00 P.M.',
-    ],
-  },
-  {
-    dia: 'Casa Club — del 26 de Junio al 4 de Julio',
-    servicios: [
-      'Comida: 12:00 P.M. – 5:00 P.M.',
-      'Cena: 5:00 P.M. – 9:30 P.M.',
-    ],
-  },
-  {
-    dia: 'Plaza "Los Olivos" — Música en Vivo',
-    servicios: [
-      '26 de Junio al 4 de Julio · 2:00 P.M. – 4:00 P.M.',
-    ],
-  },
-  {
-    dia: 'Hoyo 19 — Evento Estelar',
-    servicios: [
-      '26 de Junio al 4 de Julio · 5:00 P.M. – 7:00 P.M.',
-      'Música de DJ: 8:00 P.M. – 10:00 P.M.',
-    ],
-  },
-  {
-    dia: 'Activación Technogym Check Up — Gimnasio Casa Club',
-    servicios: [
-      'Martes 30 de Junio y Viernes 3 de Julio · 8:00 A.M. – 6:00 P.M. (cortesía).',
-    ],
-  },
-];
+/** Servicios y Horarios — no publicado en la convocatoria del 56° Atlas 2026 */
+export const serviciosHorariosData: ServicioDia[] = [];
 const _serviciosHorariosArchived: ServicioDia[] = [
   {
     dia: 'Viernes 26 de Junio',
