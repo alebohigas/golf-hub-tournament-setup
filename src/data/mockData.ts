@@ -276,39 +276,77 @@ export interface PremioCategoria {
   premios: string[];
 }
 
-/** Premiación / Trofeos — V Torneo Anual Terralta 2026 */
+/** Premiación / Trofeos — 56° Atlas Country Club 2026 */
 export const premiacionData: PremioCategoria[] = [
   {
-    categoria: 'Caballeros',
-    premios: ['Campeonato, Premier, AA, A, B, C y D — 1°, 2° y 3° lugar (trofeos institucionales).'],
-  },
-  {
-    categoria: 'Seniors / Super Seniors',
-    premios: ['1°, 2° y 3° lugar de cada categoría.'],
-  },
-  {
-    categoria: 'Damas — 1ª Categoría',
-    premios: ['1er lugar Gross', '1°, 2° y 3° lugar Neto'],
-  },
-  {
-    categoria: 'Damas — 2ª, 3ª, 4ª y Estrellal',
-    premios: ['1°, 2° y 3° lugar Neto'],
-  },
-  {
-    categoria: 'Hole In One',
+    categoria: 'Trofeos por Categoría',
     premios: [
-      '$1,000,000 MXN al primer Hole In One en cualquiera de los 5 par 3 (hoyos 3, 5, 7, 12 y 16).',
-      'Hoyo 3 — INFINITI QX60 2026 (Autopolis).',
-      'Hoyo 5 — LEXUS UX 2026 (Cleber Lexus).',
-      'Hoyo 7 — Carrito de Golf Club Car Tempo 2026.',
-      'Hoyo 12 — Cadillac Optiq 2026.',
-      'Hoyo 16 — XPENG G9 2026 (Cleber Xpeng).',
-      '2° o más Hole In One: Socio — un año de cuotas de mantenimiento sin costo; Invitado — membresía anual de golf sin cuota de mantenimiento ($226,200 MXN, no transferible).',
+      'Trofeos de colección, obra del escultor jalisciense Álvaro Cuevas, a los tres primeros lugares de cada categoría.',
     ],
   },
   {
-    categoria: 'Mejor O´yes del Torneo',
-    premios: ['Sistema fotovoltaico Tigä de 20 paneles solares (12,000 W) — no aplica para Hole In One.'],
+    categoria: 'Premio Adicional — Mejor Score del Día',
+    premios: [
+      '$7,750.00 (siete mil setecientos cincuenta pesos 00/100 M.N.) al mejor score del día por categoría. No repetible.',
+      'En categorías formato Stableford (Damas, D, E y Seniors) el ganador será la tarjeta con el mayor puntaje.',
+    ],
+  },
+  {
+    categoria: "O´YES — Hoyos 4, 7, 14 y 17 (Premios por hoyo par 3)",
+    premios: [
+      '1° Lugar: $350,000 pesos',
+      '2° Lugar: $155,000 pesos',
+      '3° Lugar: $75,000 pesos',
+      '4° Lugar: $37,500 pesos',
+      '5° Lugar: Inscripción Anual 2027',
+      '6° Lugar: Reloj Hamilton',
+      '7° Lugar: Apple iPad 10.2"',
+      '8° Lugar: Apple iPad 10.2"',
+      '9° Lugar: Bocina Bose',
+      '10° Lugar: Bocina Bose',
+      'En caso de empate en O´yes se calificará en orden cronológico, considerando mejor posicionado al que se haya marcado primero. El O´yes no podrá ser repetible por la misma persona en el mismo hoyo.',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 4',
+    premios: [
+      'SUV Geely Monjaro GF 2026',
+      'Carrito de golf SEVEN 2026',
+      'Motocicleta Triumph Speed 400 2026',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 7',
+    premios: [
+      'SUV GAC Enkoo HEV 2025',
+      'Carrito de golf Club Car 2026',
+      'Motocicleta Indian Sixty Bobber',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 14',
+    premios: [
+      'Automóvil de lujo',
+      'Moto Triumph Scrambler 400 2026',
+      'Carrito de golf Hardy Carts',
+      '1.5 millones de pesos al primer Hole In One en el Hoyo 14 durante la última ronda del torneo (premio especial).',
+    ],
+  },
+  {
+    categoria: 'HOLE IN ONE — Hoyo 17',
+    premios: [
+      'BMW 220i Coupé 2027',
+      'Moto Triumph Scrambler 1200 X 2026',
+      'Carrito de golf Golf Lozano',
+    ],
+  },
+  {
+    categoria: 'Notas Hole In One',
+    premios: [
+      'En caso de un segundo Hole In One se considerará como mejor O´yes y así sucesivamente, siguiendo el orden cronológico del evento.',
+      'El deducible será pagado por el ganador.',
+      'El premio de 1.5 millones de pesos del Hoyo 14 aplica únicamente en la tercera ronda de juego de cada una de las categorías.',
+    ],
   },
 ];
 
