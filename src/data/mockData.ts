@@ -379,48 +379,15 @@ export interface ReglaItem {
   contenido: string;
 }
 
-/** Condiciones de la Competencia y Reglas Locales — V Torneo Anual Terralta 2026. */
+/** Reglas y Condiciones — 56° Atlas Country Club 2026. */
 export const reglasData: ReglaItem[] = [
-  {
-    titulo: 'Aviso a los Jugadores',
-    contenido:
-      'Las reglas del Torneo serán las que rigen en la U.S.G.A. adoptadas por la Federación Mexicana de Golf y las locales del Club. Las condiciones de competencia y reglas locales se publicarán en las pantallas y se entregarán junto con las tarjetas de score. Las decisiones del Comité Organizador y del Comité de Reglas serán inapelables.',
-  },
-  {
-    titulo: 'Modificaciones por Clima',
-    contenido:
-      'Las rondas y días de juego están sujetas a cambios sin previo aviso para beneficio general del Torneo. En caso de condiciones climatológicas adversas, se tomará como primer criterio rondas de 9 hoyos cuando aplique.',
-  },
-  {
-    titulo: 'Aceptación y Siembra de Jugadores',
-    contenido:
-      'El Comité Organizador se reserva el derecho de aceptar a cualquier Jugador o sembrarlo en una categoría distinta. Jugador sin GHIN deberá firmar una carta donde acepte cualquier reclamación por parte de otro jugador y solo podrá participar por los premios de habilidades, los O´yes, los Hole In One y las rifas, renunciando a la competencia principal.',
-  },
-  {
-    titulo: 'Entrega de Tarjetas',
-    contenido:
-      'Los jugadores son responsables de entregar sus tarjetas firmadas y con el número de golpes sin ventajas (Gross) escritos claramente en cada casilla de los hoyos de la tarjeta oficial; deberán estar firmadas también por su anotador.',
-  },
-  {
-    titulo: 'Verificación de Scores Anómalos',
-    contenido:
-      'Si un Jugador tira en la suma de los dos días de competencia -8 golpes de su hándicap y existe una reclamación oficial y por escrito, el Comité Organizador investigará al jugador consultando las rondas registradas en el GHIN en Enero, Febrero, Marzo y Abril 2026. Si no tiene registrados scores suficientes que avalen un hándicap real y actualizado, podrá ser descalificado. La decisión del Comité de Reglas será definitiva.',
-  },
-  {
-    titulo: 'Cortes — Avisos del Jugador',
-    contenido:
-      'El Jugador que no pueda asistir a la ronda final tendrá que dar aviso a la Oficina de Golf o al Comité Organizador inmediatamente después de terminar su 2ª ronda para asignar su retiro y permitir el siguiente en lista. Si entregan la tarjeta y no se retira y luego no asiste a la final, ningún Jugador podrá tomar su lugar. Quien no avise será asignado por el Comité a la categoría que su hándicap original lo ubique, o a Senior si tiene 50 años o más.',
-  },
-  {
-    titulo: 'Hole In One y O´yes',
-    contenido:
-      'Habrá premios de Hole In One en los par 3: hoyos 3, 5, 7, 12 y 16. En caso de un 2° Hole In One en el mismo hoyo, se considerará como el mejor O´yes de 0.0 m; si hay un 3° en el mismo hoyo, el desempate lo ganará quien lo haga primero. Se premiará al mejor O´yes general de cada par 3 de todo el torneo (en caso de empate gana el primer tiro). Un jugador puede ganar dos o más O´yes con tiros diferentes. Los resultados pueden moverse hasta el último día. Las hojas firmadas por los jugadores de confirmación de distancia son inapelables.',
-  },
-  {
-    titulo: 'Cierre de la Competencia',
-    contenido:
-      'Se considera cerrada la competencia al iniciar la Ceremonia de Premiación (sábado 4 de Julio de 2026, 4:00 P.M. en Hoyo 19).',
-  },
+  { titulo: 'Reglas Generales', contenido: 'Se jugará a 54 hoyos stroke play, excepto las categorías 5a, 6a, Seniors y Damas que se jugarán en formato Stableford al 80% del handicap, sin corte, de acuerdo con las reglas de la U.S.G.A., F.M.G. y las reglas locales. Será responsabilidad de cada jugador leer las reglas, bases y términos de competencia antes de iniciar su salida.' },
+  { titulo: 'Handicap / INDEX', contenido: 'Cada participante quedará registrado de acuerdo con su GHIN o carta constancia de su INDEX debidamente acreditado por su Club con la firma del Profesional, Gerente o Comisión de Golf. Cada jugador es responsable de entregar su hándicap; no se aceptarán jugadores sin este requisito. El INDEX vigente será válido al día 15 de Junio del 2026, determinando éste la categoría del jugador.' },
+  { titulo: 'Vestimenta', contenido: 'Durante las rondas de juego los caballeros deberán utilizar ropa apropiada para la práctica del golf; no se permite el uso de shorts, bermudas ni jeans. Las damas deberán utilizar playera tipo polo, pantalón o falda propia de golf.' },
+  { titulo: 'Marcas de Salida', contenido: 'Campeonato: marcas negras. 1ª: marcas azules. 2ª a 6ª: marcas blancas. Seniors: marcas doradas. Super Senior: marcas platino. Damas: marcas rojas.' },
+  { titulo: 'División de Categorías (2ª a 6ª)', contenido: 'Las categorías 2ª, 3ª, 4ª, 5ª y 6ª (salidas de marcas blancas) serán determinadas dividiendo el número de jugadores inscritos de manera cronológica y de acuerdo a su INDEX. El límite de la división de las categorías se notificará en cuanto queden definidas.' },
+  { titulo: 'Carritos de Golf', contenido: 'Se permitirá el uso de carritos de golf (propiedad del Club) en todas las categorías.' },
+  { titulo: 'Notas Generales', contenido: 'La cuota de inscripción deberá estar liquidada en su totalidad, su registro en la plataforma concluido y su carta de hándicap INDEX entregada a más tardar el 7 de Julio de 2026 para ser acreedor a algún premio. El pago del torneo no garantiza su participación a menos que esté confirmado por el área de Inscripciones. Cualquier controversia será resuelta por la Comisión de Golf. La Comisión se reserva el derecho de hacer los cambios pertinentes para el mejor funcionamiento del torneo.' },
 ];
 
 /** Reglamento local - structured local rules with collapsible sections */
