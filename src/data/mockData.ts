@@ -121,20 +121,19 @@ export const tournamentStats: TournamentStats = {
   maxCategories: 12,
 };
 
-/** Eligibility requirements — V Torneo Anual Terralta 2026 */
+/** Eligibility requirements — 56° Torneo Anual de Golf Atlas Country Club 2026 */
 export const eligibilityText =
-  "Podrán participar Damas y Caballeros mayores de 18 años con estatus de amateur que tengan hándicap GHIN vigente registrado en la FMG, publicado al 15 de mayo del 2026 (el más bajo si pertenece a dos o más clubes). En las categorías Campeonato y Premier se permitirá participar a jugadores de 14 años en adelante con 0.0 de H.I., deberán tener registros en torneos juveniles con scores debajo de 85 golpes para poder participar. En la 1ª categoría de Damas se permitirá participar a jugadoras de 14 años en adelante con +5.0 a 14.8 de H.I. Los jugadores Seniors deberán tener de 50 a 60 años cumplidos al 15 de mayo del 2026 y los Super Seniors 61 años cumplidos en adelante a la misma fecha.";
+  "Solamente podrán participar jugadores mayores de 18 años. Cada participante quedará registrado de acuerdo con su GHIN o carta constancia de su INDEX debidamente acreditado por su Club con la firma del Profesional, Gerente o Comisión de Golf; cada jugador es responsable de entregar su hándicap, no se aceptarán jugadores sin ese requisito. El INDEX vigente será válido al día 15 de Junio del 2026, determinando éste la categoría del jugador. Seniors: 60 años en adelante (salida de marcas doradas). Super Senior: 70 años en adelante (salida de marcas platino).";
 
-/** Important notes for eligibility section — V Torneo Anual Terralta 2026 */
+/** Important notes for eligibility section — 56° Atlas Country Club 2026 */
 export const notesText: string[] = [
-  "Inicio de inscripciones — Socios: 16 de Abril de 2026.",
-  "Inicio de inscripciones — Invitados: 1 de Mayo de 2026.",
-  "Cierre de inscripciones: 22 de Junio de 2026.",
-  "Handicap: se jugará con el hándicap federado al 15 de Mayo de 2026.",
-  "Durante el desarrollo del Torneo queda restringido el acceso a menores de edad a la Casa Club, eventos sociales y premiación.",
-  "Solo está autorizado el acceso a menores de edad que jueguen en la categoría Premier de Caballeros y 1ª Categoría de Damas.",
-  "Cancelaciones: no se aceptan bonificaciones por cancelación posterior al 25 de Mayo; la cancelación deberá ser por medio de https://terralta.speitour.com sin excepción. La inscripción no es transferible.",
-  "Brazalete: será indispensable el registro diario en la recepción del Club para contar con el brazalete de acceso a alimentos y bebidas (deberán portarlo sin excepción en la muñeca).",
+  "La comisión se reserva el derecho de revisar el Hándicap/INDEX, cotejando ante el GHIN, su club o aplicaciones para manejo de hándicap digital, contra el comprobante presentado por el jugador registrado.",
+  "Durante las rondas de juego los caballeros deberán utilizar ropa apropiada para la práctica del golf; no se permite el uso de shorts, bermudas ni jeans. Las damas deberán utilizar playera tipo polo, pantalón o falda propia de golf.",
+  "Marcas de salida: Campeonato — negras; 1a. — azules; 2a a 6a. — blancas; Seniors — doradas; Super Senior — platino; Damas — rojas.",
+  "Las categorías 2a, 3a, 4a, 5a y 6a (salidas de marcas blancas) serán determinadas dividiendo el número de jugadores inscritos de manera cronológica y de acuerdo a su INDEX; el límite de la división de las categorías se notificará en cuanto queden definidas.",
+  "Se permitirá el uso de carritos de golf (propiedad del Club) en todas las categorías.",
+  "Cierre de inscripciones: 8 de Julio de 2026 a las 18:00 hrs, o antes si se completa el cupo. El pago del torneo no garantiza su participación.",
+  "La cuota de inscripción deberá estar liquidada en su totalidad, su registro en la plataforma de inscripciones concluido y su carta de hándicap INDEX entregada a más tardar el 7 de Julio de 2026 para ser acreedor a algún premio.",
 ];
 
 export interface ScheduleSlot {
