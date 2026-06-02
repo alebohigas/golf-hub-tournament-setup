@@ -184,30 +184,13 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing — V Torneo Anual Terralta 2026 (Socios e Invitados). */
+/** Pricing — 56° Torneo Anual Atlas Country Club 2026. Cuota única de recuperación. */
 export const sociosPricing: PricingTable[] = [
   {
-    title: 'Costos de Inscripción — Socios',
-    subtitle: 'Incluye Kit de bienvenida, torneos satélite, premios de O´yes y alimentos/bebidas en centros de consumo (Jugador y Cónyuge).',
+    title: 'Costo de Inscripción',
+    subtitle: 'Cuota única. Incluye kit de regalos y cortesías para ingresar a los eventos sociales. Acceso a rondas de práctica ilimitadas a partir del 12 de Julio de 2026 (previa reservación de tee time).',
     tiers: [
-      { categoria: 'Caballeros Socios (incluye cónyuge en C.C.)', costo: '$14,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Socias',                                 costo: '$8,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Socias (cónyuge también juega — 50%)',   costo: '$4,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Caballeros Hijos',                             costo: '$11,200', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Hijas',                                  costo: '$5,800',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Socios menores de 18 años',                    costo: '$4,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-    ],
-  },
-  {
-    title: 'Costos de Inscripción — Invitados',
-    subtitle: 'Pago en una sola exhibición. Incluye los mismos beneficios para el Jugador y Cónyuge en centros de consumo.',
-    tiers: [
-      { categoria: 'Caballeros Invitados (incluye cónyuge en C.C.)', costo: '$17,500', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Invitadas',                                 costo: '$9,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Damas Invitadas (cónyuge también juega — 50%)',   costo: '$4,500',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitados menores de 18 años',                    costo: '$6,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitado C.C. no jugador (por día)',              costo: '$2,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-      { categoria: 'Invitado C.C. no jugador (semana completa)',      costo: '$8,000',  mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
+      { categoria: 'Cuota de recuperación (todas las categorías)', costo: '$19,950.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
     ],
   },
 ];
