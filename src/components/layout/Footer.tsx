@@ -87,11 +87,11 @@ const Footer = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.totalHistoricalPlayers?.toLocaleString() || '—'}+</span>
-                <p className="text-sm text-primary-foreground/70">Participantes Históricos</p>
+                <p className="text-sm text-primary-foreground/70">Participantes Históricos de los últimos 2 años</p>
               </div>
               <div>
                 <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistoryDisplay || '—'}</span>
-                <p className="text-sm text-primary-foreground/70">Años de Historia</p>
+                <p className="text-sm text-primary-foreground/70">Últimos Años de Historia</p>
               </div>
               <div>
                 <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.maxCategories || '—'}+</span>
