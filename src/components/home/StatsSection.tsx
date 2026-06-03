@@ -15,7 +15,7 @@ const StatsSection = () => {
   /** Stats display configuration */
   const statsData = [
     { value: `${stats.totalHistoricalPlayers.toLocaleString()}+`, label: 'Participantes Registrados' },
-    { value: stats.yearsHistoryDisplay, label: 'Años de Historia' },
+    { value: stats.yearsHistoryDisplay, label: 'Años de Historia reciente' },
     { value: `${stats.maxCategories}+`, label: 'Categorías en un Torneo' },
   ];
 
