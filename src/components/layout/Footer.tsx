@@ -26,7 +26,7 @@ const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto py-12 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Tournament Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -81,20 +81,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Stats */}
-          <div>
-            <h4 className="font-display font-semibold text-lg mb-4">En Números</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.totalHistoricalPlayers?.toLocaleString() || '​'}</span>
-                <p className="text-sm text-primary-foreground/70">Participantes Históricos de los últimos 2 años</p>
-              </div>
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistoryDisplay || '—'}</span>
-                <p className="text-sm text-primary-foreground/70">Últimos 2 Años de Historia</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Copyright with club name */}
