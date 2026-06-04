@@ -777,7 +777,7 @@ export const eventosSocialesData: EventoSocial[] = [
     hora: '19:00 hrs',
     titulo: 'Ceremonia de Clausura',
     lugar: 'Salón La Hacienda',
-    descripcion: 'Premiación y cierre del torneo. Jugador en cortesía. Entrada general $600.',
+    descripcion: 'Premiación y cierre del torneo. Jugador en cortesía. Entrada general $500.',
   },
 ];
 const _eventosSocialesArchived: EventoSocial[] = [
