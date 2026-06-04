@@ -93,10 +93,6 @@ const Footer = () => {
                 <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistoryDisplay || '—'}</span>
                 <p className="text-sm text-primary-foreground/70">Últimos 2 Años de Historia</p>
               </div>
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.maxCategories || '​'}</span>
-                <p className="text-sm text-primary-foreground/70">​</p>
-              </div>
             </div>
           </div>
         </div>
