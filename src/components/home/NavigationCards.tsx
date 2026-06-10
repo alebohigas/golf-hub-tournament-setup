@@ -70,7 +70,7 @@ const NavigationCards = () => {
             Explora el Torneo
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Todo lo que necesitas saber sobre el torneo de golf más prestigioso de la región
+            Todo lo que necesitas saber sobre el torneo de golf amateur más importante del país
           </p>
         </div>
 

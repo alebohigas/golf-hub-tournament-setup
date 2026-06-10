@@ -26,6 +26,7 @@ import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
+import AdminStats from '@/components/admin/AdminStats';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -51,6 +52,7 @@ import {
   ClipboardList,
   Trophy,
   ListChecks,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -311,7 +313,7 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="config" className="gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -355,6 +357,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="brackets" className="gap-2">
             <Trophy className="h-4 w-4" />
             <span className="hidden sm:inline">Brackets Putt</span>
+          </TabsTrigger>
+          <TabsTrigger value="stats" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Estadísticas</span>
           </TabsTrigger>
         </TabsList>
 
@@ -538,6 +544,12 @@ const AdminDashboard = () => {
             desde /admin. Ayudantes usan /admin/brackets (mode="scores"). */}
         <TabsContent value="brackets">
           <AdminBrackets mode="full" />
+        </TabsContent>
+
+        {/* Estadísticas Tab — override or auto-compute the home stats ribbon
+            numbers per tournament (domain). See AdminStats.tsx. */}
+        <TabsContent value="stats">
+          <AdminStats />
         </TabsContent>
       </Tabs>
 

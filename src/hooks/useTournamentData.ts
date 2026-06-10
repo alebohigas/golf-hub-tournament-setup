@@ -6,6 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import {
   getMenuUrl,
   getSponsorsUrl,
@@ -68,19 +69,46 @@ export const useTournamentInfo = () => {
 
 // ============= Tournament Stats =============
 
-/** Fetch tournament statistics, mapping API shape to TournamentStats */
+/**
+ * Fetch tournament statistics, mapping API shape to TournamentStats.
+ * Applies per-domain admin overrides from site_config.stats_config:
+ *   - When an override field is a number it REPLACES the auto value.
+ *   - When null/undefined the auto-computed value from the API is used.
+ */
 export const useTournamentStats = () => {
+  /** Site config provides optional admin overrides (set in /admin → Stats tab) */
+  const { data: siteConfig } = useSiteConfig();
+  const overrides = siteConfig?.stats_config ?? null;
+
   return useQuery<TournamentStats>({
-    queryKey: ['tournament-stats'],
+    queryKey: ['tournament-stats', overrides],
     queryFn: async () => {
       const data = await apiFetch<any>(getTournamentStatsUrl());
-      const years = data?.stats?.yearsHistory ?? 0;
-      const rounded = data?.stats?.yearsHistoryRounded ?? (Math.floor(years / 2) * 2);
+
+      /** Auto-computed values from the tournament endpoint */
+      const autoYears = data?.stats?.yearsHistory ?? 0;
+      const autoTotal = data?.stats?.totalHistoricalPlayers ?? 0;
+      const autoMaxCat = data?.stats?.maxCategories ?? 0;
+
+      /** Apply overrides when provided; otherwise keep auto values */
+      const years = (overrides?.yearsHistory ?? null) !== null
+        ? Number(overrides!.yearsHistory)
+        : autoYears;
+      const total = (overrides?.totalHistoricalPlayers ?? null) !== null
+        ? Number(overrides!.totalHistoricalPlayers)
+        : autoTotal;
+      const maxCat = (overrides?.maxCategories ?? null) !== null
+        ? Number(overrides!.maxCategories)
+        : autoMaxCat;
+
+      /** Round years down to nearest multiple of 2 for the "+" display */
+      const rounded = Math.floor(years / 2) * 2;
+
       return {
-        totalHistoricalPlayers: data?.stats?.totalHistoricalPlayers ?? 0,
+        totalHistoricalPlayers: total,
         yearsHistory: years,
         yearsHistoryDisplay: `${rounded}+`,
-        maxCategories: data?.stats?.maxCategories ?? 0,
+        maxCategories: maxCat,
       };
     },
     staleTime: 2 * 60 * 1000,

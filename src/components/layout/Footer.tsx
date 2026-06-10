@@ -26,7 +26,7 @@ const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto py-12 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Tournament Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -51,7 +51,7 @@ const Footer = () => {
               </div>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
-              El torneo amateur de golf más prestigioso de la región.
+              El torneo de golf amateur más importante del país.
             </p>
           </div>
 
@@ -81,24 +81,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Stats */}
-          <div>
-            <h4 className="font-display font-semibold text-lg mb-4">En Números</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.totalHistoricalPlayers?.toLocaleString() || '—'}+</span>
-                <p className="text-sm text-primary-foreground/70">Participantes Históricos</p>
-              </div>
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.yearsHistoryDisplay || '—'}</span>
-                <p className="text-sm text-primary-foreground/70">Años de Historia</p>
-              </div>
-              <div>
-                <span className="text-2xl font-display font-bold text-secondary">{tournamentStats?.maxCategories || '—'}+</span>
-                <p className="text-sm text-primary-foreground/70">Categorías en un Torneo</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Copyright with club name */}
