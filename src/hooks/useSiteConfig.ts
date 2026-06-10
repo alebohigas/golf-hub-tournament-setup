@@ -131,6 +131,23 @@ export interface ThemeConfig {
   background: string;
 }
 
+/**
+ * StatsConfig
+ * Per-tournament overrides for the home Stats ribbon numbers.
+ * Each field is optional: a `null` or missing value means
+ * "use the auto-computed value from the tournament API".
+ * Numeric value (>= 0) forces the displayed number.
+ *
+ *  - totalHistoricalPlayers: Big number for "Participantes Registrados".
+ *  - yearsHistory:           Raw years of history (used to derive display).
+ *  - maxCategories:          Max categories shown ribbon (e.g. "12+").
+ */
+export interface StatsConfig {
+  totalHistoricalPlayers?: number | null;
+  yearsHistory?: number | null;
+  maxCategories?: number | null;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -144,6 +161,7 @@ export interface SiteConfig {
   eventos_config: EventosConfig | null;
   avisos_config: AvisosConfig | null;
   theme_config: ThemeConfig | null;
+  stats_config: StatsConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -159,6 +177,7 @@ export interface SaveConfigPayload {
   eventos_config?: EventosConfig | null;
   avisos_config?: AvisosConfig | null;
   theme_config?: ThemeConfig | null;
+  stats_config?: StatsConfig | null;
 }
 
 // ============= Constants =============
