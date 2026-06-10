@@ -121,6 +121,22 @@ function site_config_has_theme_config($conn) {
 
 $hasThemeConfig = site_config_has_theme_config($conn);
 
+/**
+ * Detect whether the stats_config column exists.
+ * Stores per-domain overrides for the home Stats ribbon (numbers shown
+ * to users). Missing column => endpoint silently returns null so the
+ * frontend always falls back to auto-computed values.
+ */
+function site_config_has_stats_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'stats_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasStatsConfig = site_config_has_stats_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -139,6 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasThemeConfig) {
         $selectFields .= ', theme_config';
     }
+    if ($hasStatsConfig) {
+        $selectFields .= ', stats_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -156,6 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'eventos_config'        => $hasEventosConfig && !empty($row['eventos_config']) ? json_decode($row['eventos_config'], true) : null,
             'avisos_config'         => $hasAvisosConfig && !empty($row['avisos_config']) ? json_decode($row['avisos_config'], true) : null,
             'theme_config'          => $hasThemeConfig && !empty($row['theme_config']) ? json_decode($row['theme_config'], true) : null,
+            'stats_config'          => $hasStatsConfig && !empty($row['stats_config']) ? json_decode($row['stats_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -170,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'eventos_config'        => null,
             'avisos_config'         => null,
             'theme_config'          => null,
+            'stats_config'          => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -277,6 +298,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['theme_config'] !== null ? "'" . esc($conn, json_encode($body['theme_config'])) . "'" : 'NULL';
         $fields[] = "theme_config = $val";
         $insertFields[] = 'theme_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('stats_config', $body)) {
+        if (!$hasStatsConfig) {
+            json_error("Missing DB column stats_config in site_config. Run: ALTER TABLE site_config ADD COLUMN stats_config TEXT DEFAULT NULL COMMENT 'JSON object overriding home stats ribbon values';", 500);
+        }
+        $val = $body['stats_config'] !== null ? "'" . esc($conn, json_encode($body['stats_config'])) . "'" : 'NULL';
+        $fields[] = "stats_config = $val";
+        $insertFields[] = 'stats_config';
         $insertValues[] = $val;
     }
     
