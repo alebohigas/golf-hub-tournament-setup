@@ -1255,10 +1255,12 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    a.distancia,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.logo, c.nombre as club
             FROM puttjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.premiosjugcol = '$descripcionEsc' AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $limit";
@@ -1276,6 +1278,7 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
             'position'  => $pos,
             'name'      => $w['jugador'],
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'],
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
