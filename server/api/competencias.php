@@ -1309,11 +1309,13 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    CONCAT(b.nombre, ' ', b.apellido) as jugador,
                    cl.nombre as club, b.categoriaid,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.descripcion,
                    cl.logo as logo
             FROM approachjug a
             JOIN jugadores b ON (a.jugadorid = b.id)
             JOIN clubs cl ON (b.clubid = cl.id)
+            LEFT JOIN categorias cat ON (b.categoriaid = cat.categoria_id)
             JOIN v_approach c ON (a.campo = c.campo AND b.categoriaid = c.categoriaid AND a.premiosjugcol = c.descripcion)
             WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
             ORDER BY c.descripcion, a.distancia ASC
@@ -1331,6 +1333,7 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
             'position'  => $pos,
             'name'      => $w['jugador'],
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'] ?? '',
             'clubLogo'  => $logoPath ? $LOGOS_BASE_URL . $logoPath : '',
         ];
