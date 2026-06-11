@@ -773,6 +773,7 @@ if ($tipo === '' || $tipo === 'driverd') {
                     ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                     ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                     ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                    ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                     ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '100px', 'format' => 'distance'],
                 ],
             ];
