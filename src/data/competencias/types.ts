@@ -12,6 +12,8 @@ export interface CompetenciaPlayer {
   name: string;
   club: string;
   clubLogo?: string;
+  /** Player category abbreviation (e.g. "AA+A", "1A"). Shown in the "Cat" column. */
+  category?: string;
   /** Additional fields based on competition type */
   distance?: number;       // For driver distance
   precision?: number;      // For driver precision (0-100%)
