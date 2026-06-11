@@ -1101,10 +1101,12 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    a.hoyo,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM premiosjug a
             JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
             JOIN clubs cl ON (j.clubid = cl.id)
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             JOIN premios c ON (a.fecha = c.fecha AND a.campo = c.campo
                                AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
             WHERE a.torneoid = $tid AND c.premio = $premioId
@@ -1123,6 +1125,7 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
             'name'      => $w['jugador'],
             'hole'      => (int)$w['hoyo'],
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'],
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
