@@ -515,6 +515,7 @@ if ($tipo === '' || $tipo === 'putt') {
                 ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                 ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
             ];
