@@ -1153,10 +1153,12 @@ function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    CONCAT(b.nombre, ' ', b.apellido) as jugador,
                    cl.nombre as club, cl.logo as logo,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.descripcion
             FROM driverjugp a
             JOIN jugadores b ON (a.jugadorid = b.id)
             JOIN clubs cl ON (b.clubid = cl.id)
+            LEFT JOIN categorias cat ON (b.categoriaid = cat.categoria_id)
             JOIN v_driverp c ON (a.campo = c.campo
                                  AND b.categoriaid = c.categoriaid
                                  AND a.premiosjugcol = c.descripcion)
@@ -1176,6 +1178,7 @@ function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
             'name'      => $w['jugador'],
             'hole'      => (int)($w['hoyo'] ?? 0),
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'] ?? '',
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
