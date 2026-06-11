@@ -294,6 +294,7 @@ if ($tipo === '' || $tipo === 'oyes') {
                 ['key' => 'position', 'label' => 'Po', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                 ['key' => 'hole', 'label' => 'Ho', 'align' => 'center', 'width' => '60px'],
                 ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
@@ -380,6 +381,7 @@ if ($tipo === '' || $tipo === 'approach') {
                 ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                 ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
             ];
@@ -513,6 +515,7 @@ if ($tipo === '' || $tipo === 'putt') {
                 ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                 ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                 ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                 ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
             ],
             ];
@@ -642,6 +645,7 @@ if ($tipo === '' || $tipo === 'driverp') {
                     ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                     ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                     ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                    ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                     ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
                 ],
             ];
@@ -769,6 +773,7 @@ if ($tipo === '' || $tipo === 'driverd') {
                     ['key' => 'position', 'label' => 'Pos', 'align' => 'center', 'width' => '50px', 'format' => 'medal'],
                     ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                     ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
+                    ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '60px'],
                     ['key' => 'distance', 'label' => 'Distancia', 'align' => 'center', 'width' => '100px', 'format' => 'distance'],
                 ],
             ];
@@ -1096,10 +1101,12 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    a.hoyo,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM premiosjug a
             JOIN jugadores j ON (a.jugadorid = j.id AND a.orden = 1)
             JOIN clubs cl ON (j.clubid = cl.id)
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             JOIN premios c ON (a.fecha = c.fecha AND a.campo = c.campo
                                AND a.hoyo = c.hoyo AND j.categoriaid = c.categoriaid)
             WHERE a.torneoid = $tid AND c.premio = $premioId
@@ -1118,6 +1125,7 @@ function get_oyes_players($conn, $tid, $premioId, $numPrem) {
             'name'      => $w['jugador'],
             'hole'      => (int)$w['hoyo'],
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'],
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
@@ -1145,10 +1153,12 @@ function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    CONCAT(b.nombre, ' ', b.apellido) as jugador,
                    cl.nombre as club, cl.logo as logo,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.descripcion
             FROM driverjugp a
             JOIN jugadores b ON (a.jugadorid = b.id)
             JOIN clubs cl ON (b.clubid = cl.id)
+            LEFT JOIN categorias cat ON (b.categoriaid = cat.categoria_id)
             JOIN v_driverp c ON (a.campo = c.campo
                                  AND b.categoriaid = c.categoriaid
                                  AND a.premiosjugcol = c.descripcion)
@@ -1168,6 +1178,7 @@ function get_driverp_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
             'name'      => $w['jugador'],
             'hole'      => (int)($w['hoyo'] ?? 0),
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'] ?? '',
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
@@ -1188,10 +1199,12 @@ function get_driverd_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    CONCAT(b.nombre, ' ', b.apellido) as jugador,
                    cl.nombre as club, cl.logo as logo,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    b.categoriaid, c.descripcion
             FROM driverjug a
             JOIN jugadores b ON (a.jugadorid = b.id)
             JOIN clubs cl ON (b.clubid = cl.id)
+            LEFT JOIN categorias cat ON (b.categoriaid = cat.categoria_id)
             JOIN v_driver c ON (a.campo = c.campo
                                 AND b.categoriaid = c.categoriaid
                                 AND a.premiosjugcol = c.descripcion)
@@ -1211,6 +1224,7 @@ function get_driverd_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
             'name'      => $w['jugador'],
             'hole'      => (int)($w['hoyo'] ?? 0),
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'] ?? '',
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
@@ -1241,10 +1255,12 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    a.distancia,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.logo, c.nombre as club
             FROM puttjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.premiosjugcol = '$descripcionEsc' AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $limit";
@@ -1262,6 +1278,7 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
             'position'  => $pos,
             'name'      => $w['jugador'],
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'],
             'clubLogo'  => $w['logo'] ? $LOGOS_BASE_URL . $w['logo'] : '',
         ];
@@ -1292,11 +1309,13 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
                    ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
                    CONCAT(b.nombre, ' ', b.apellido) as jugador,
                    cl.nombre as club, b.categoriaid,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.descripcion,
                    cl.logo as logo
             FROM approachjug a
             JOIN jugadores b ON (a.jugadorid = b.id)
             JOIN clubs cl ON (b.clubid = cl.id)
+            LEFT JOIN categorias cat ON (b.categoriaid = cat.categoria_id)
             JOIN v_approach c ON (a.campo = c.campo AND b.categoriaid = c.categoriaid AND a.premiosjugcol = c.descripcion)
             WHERE a.torneoid = $tid AND c.descripcion = '$descripcion'
             ORDER BY c.descripcion, a.distancia ASC
@@ -1314,6 +1333,7 @@ function get_approach_players($conn, $tid, $descripcion, $limit) {
             'position'  => $pos,
             'name'      => $w['jugador'],
             'distance'  => (float)$w['distancia'],
+            'category'  => $w['categoria'] ?? '',
             'club'      => $w['club'] ?? '',
             'clubLogo'  => $logoPath ? $LOGOS_BASE_URL . $logoPath : '',
         ];
