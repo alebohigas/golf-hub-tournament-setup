@@ -12,6 +12,7 @@ import convocatoriaHero from '@/assets/convocatoria-hero.jpg';
 import PageSubmenu from '@/components/convocatoria/PageSubmenu';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
+import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 import { useUploadsList } from '@/hooks/useUploads';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
@@ -48,6 +49,14 @@ import {
   serviciosHorariosData,
   patrocinadoresOficialesData,
 } from '@/data/mockData';
+import type {
+  PremioCategoria,
+  ReglaItem,
+  CompetenciaEspecial,
+  ServicioDia,
+  PatrocinadorOficial,
+  DesempatesData,
+} from '@/data/mockData';
 import { useCalendarioData } from '@/hooks/useCalendarioData';
 import { useHorariosData } from '@/hooks/useHorariosData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
@@ -81,11 +90,25 @@ const formatDate = (start: string, end: string) => {
 
 // ============= Section Renderer =============
 
-/** Map section ID to its component */
-const renderSection = (sectionId: string) => {
+/**
+ * Map section ID to its component.
+ * `dbRow` (optional) overrides mockData when a DB-backed row exists
+ * for the active tournament in `convocatoria_content`.
+ */
+const renderSection = (sectionId: string, dbRow?: ConvocatoriaContentRow) => {
+  /** Pick DB content when present, fall back to provided mock value. */
+  const pick = <T,>(dbValue: unknown, fallback: T): T =>
+    dbValue !== undefined && dbValue !== null ? (dbValue as T) : fallback;
+  /** Shorthand: DB content payload (already parsed JSON). */
+  const c = dbRow?.content as any;
+
   switch (sectionId) {
     case 'descripcion':
-      return <DescripcionSection descripcion={convocatoriaDescripcion} />;
+      return (
+        <DescripcionSection
+          descripcion={pick<string>(c?.text, convocatoriaDescripcion)}
+        />
+      );
     case 'elegibilidad':
       return (
         <ElegibilidadSection
@@ -108,19 +131,41 @@ const renderSection = (sectionId: string) => {
     case 'categorias':
       return <CategoriasSection />;
     case 'premiacion':
-      return <PremiacionSection data={premiacionData} />;
+      return (
+        <PremiacionSection
+          data={pick<PremioCategoria[]>(c?.items, premiacionData)}
+        />
+      );
     case 'desempates':
-      return <DesempatesSection data={desempatesData} />;
+      return (
+        <DesempatesSection
+          data={pick<DesempatesData>(c, desempatesData)}
+        />
+      );
     case 'reglas':
-      return <ReglasSection data={reglasData} />;
+      return (
+        <ReglasSection data={pick<ReglaItem[]>(c?.items, reglasData)} />
+      );
     case 'competencias':
-      return <CompetenciasEspecialesSection data={competenciasEspecialesData} />;
+      return (
+        <CompetenciasEspecialesSection
+          data={pick<CompetenciaEspecial[]>(c?.items, competenciasEspecialesData)}
+        />
+      );
     case 'servicios':
-      return <ServiciosSection data={serviciosHorariosData} />;
+      return (
+        <ServiciosSection
+          data={pick<ServicioDia[]>(c?.items, serviciosHorariosData)}
+        />
+      );
     case 'calendarioJuego':
       return <CalendarioJuegoSection />;
     case 'patrocinadoresOficiales':
-      return <PatrocinadoresOficialesSection data={patrocinadoresOficialesData} />;
+      return (
+        <PatrocinadoresOficialesSection
+          data={pick<PatrocinadorOficial[]>(c?.items, patrocinadoresOficialesData)}
+        />
+      );
     default:
       return null;
   }
@@ -132,6 +177,10 @@ const Convocatoria = () => {
   const [activeSection, setActiveSection] = useState('descripcion');
   const { data: tournamentData } = useTournamentInfo();
   const { sections } = useConvocatoriaSections();
+  // DB-backed convocatoria content for the active tournament.
+  // When a row exists for a given section_id we use it; otherwise the
+  // page falls back to the static mockData values below.
+  const { bySectionId: dbContent } = useConvocatoriaContent();
   // Resolve the convocatoria PDF URL.
   // ONLY the admin-uploaded PDF (via /admin → "convocatoria" section) is used.
   // The legacy `pdfs` bucket fallback and the build-time `/convocatoria-torneo.pdf`
@@ -155,8 +204,20 @@ const Convocatoria = () => {
     (isPageVisible('calendario') && (calData?.entries?.length ?? 0) > 0) ||
     (isPageVisible('horarios')   && (horData?.entries?.length ?? 0) > 0);
 
-  /** Returns true when the section has data worth rendering. */
+  /**
+   * Returns true when the section has data worth rendering.
+   * Prefers a DB row when present (and respects its `enabled` flag);
+   * otherwise falls back to the legacy mockData presence check.
+   */
   const sectionHasContent = (id: string): boolean => {
+    const dbRow = dbContent.get(id);
+    if (dbRow) {
+      // DB row explicitly disabled -> hide.
+      if (!dbRow.enabled) return false;
+      // DB row present + enabled -> render (let component decide on empty content).
+      // Calendario still depends on derived data, fall through.
+      if (id !== 'calendarioJuego') return true;
+    }
     switch (id) {
       case 'descripcion':
         return !!convocatoriaDescripcion && convocatoriaDescripcion.trim() !== '';
@@ -297,7 +358,7 @@ const Convocatoria = () => {
           {/* Dynamic sections rendered in order */}
           {enabledSections.map((section) => (
             <div key={section.id} id={section.id} className="mb-16 scroll-mt-32">
-              {renderSection(section.id)}
+              {renderSection(section.id, dbContent.get(section.id))}
             </div>
           ))}
         </div>
