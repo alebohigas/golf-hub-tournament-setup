@@ -112,20 +112,20 @@ const renderSection = (sectionId: string, dbRow?: ConvocatoriaContentRow) => {
     case 'elegibilidad':
       return (
         <ElegibilidadSection
-          eligibilityText={eligibilityText}
-          notesText={notesText}
-          inscripcionesText={inscripcionesText}
+          eligibilityText={pick<string>(c?.eligibilityText, eligibilityText)}
+          notesText={pick<string[]>(c?.notesText, notesText)}
+          inscripcionesText={pick<string>(c?.inscripcionesText, inscripcionesText)}
         />
       );
     case 'costos':
       return (
         <CostosSection
-          sociosPricing={sociosPricing}
-          foraneosPricing={foraneosPricing}
-          pricingNote={pricingNote}
-          contactInfo={contactInfo}
-          contactWarning={contactWarning}
-          inscripcionesText={inscripcionesText}
+          sociosPricing={pick(c?.sociosPricing, sociosPricing)}
+          foraneosPricing={pick(c?.foraneosPricing, foraneosPricing)}
+          pricingNote={pick<string>(c?.pricingNote, pricingNote)}
+          contactInfo={pick(c?.contactInfo, contactInfo)}
+          contactWarning={pick<string>(c?.contactWarning, contactWarning)}
+          inscripcionesText={pick<string>(c?.inscripcionesText, inscripcionesText)}
         />
       );
     case 'categorias':
