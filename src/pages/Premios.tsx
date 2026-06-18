@@ -28,7 +28,7 @@ const Premios = () => {
     <Layout>
       <PageHero
         title="Premios"
-        subtitle="Conoce los premios del torneo: rifas, hoyo en uno, ganadores de putt, drive de distancia y los primeros lugares de cada categoría."
+        subtitle="Conoce los premios del torneo: rifas, hoyo en uno, reconocimientos y trofeos."
         backgroundImage={premiosHero}
         backgroundPosition="center 55%"
       />
@@ -45,9 +45,8 @@ const Premios = () => {
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
               Aún no hay premios publicados para este torneo. Aquí verás los
-              premios de rifas, hoyo en uno, los reconocimientos al putt y al
-              drive de mayor distancia, y los trofeos para los primeros lugares
-              de cada competición.
+              premios de rifas, hoyo en uno, los reconocimientos y los trofeos
+              para los primeros lugares de cada competición.
             </p>
           </div>
         </section>
