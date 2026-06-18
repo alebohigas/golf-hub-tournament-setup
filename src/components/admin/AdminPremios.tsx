@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Loader2,
-  Bell,
+  Trophy,
   Save,
   CheckCircle2,
   Monitor,
@@ -444,7 +444,7 @@ const AdminPremios = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-primary" />
+          <Trophy className="h-5 w-5 text-primary" />
           Configuración de Premios
         </CardTitle>
         <CardDescription>
