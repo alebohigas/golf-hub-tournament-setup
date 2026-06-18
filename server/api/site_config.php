@@ -137,6 +137,23 @@ function site_config_has_stats_config($conn) {
 
 $hasStatsConfig = site_config_has_stats_config($conn);
 
+/**
+ * Detect whether the popup_config column exists.
+ * Stores the site-wide POP UP overlay configuration (active image URL,
+ * which routes it shows on, auto-dismiss duration, and rendered width).
+ * Missing column => endpoint silently returns null so the frontend
+ * disables the overlay until the schema is migrated.
+ */
+function site_config_has_popup_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'popup_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasPopupConfig = site_config_has_popup_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -158,6 +175,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasStatsConfig) {
         $selectFields .= ', stats_config';
     }
+    if ($hasPopupConfig) {
+        $selectFields .= ', popup_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -176,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'avisos_config'         => $hasAvisosConfig && !empty($row['avisos_config']) ? json_decode($row['avisos_config'], true) : null,
             'theme_config'          => $hasThemeConfig && !empty($row['theme_config']) ? json_decode($row['theme_config'], true) : null,
             'stats_config'          => $hasStatsConfig && !empty($row['stats_config']) ? json_decode($row['stats_config'], true) : null,
+            'popup_config'          => $hasPopupConfig && !empty($row['popup_config']) ? json_decode($row['popup_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -191,6 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'avisos_config'         => null,
             'theme_config'          => null,
             'stats_config'          => null,
+            'popup_config'          => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -308,6 +330,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['stats_config'] !== null ? "'" . esc($conn, json_encode($body['stats_config'])) . "'" : 'NULL';
         $fields[] = "stats_config = $val";
         $insertFields[] = 'stats_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('popup_config', $body)) {
+        if (!$hasPopupConfig) {
+            json_error("Missing DB column popup_config in site_config. Run: ALTER TABLE site_config ADD COLUMN popup_config TEXT DEFAULT NULL COMMENT 'JSON object with site-wide popup overlay settings';", 500);
+        }
+        $val = $body['popup_config'] !== null ? "'" . esc($conn, json_encode($body['popup_config'])) . "'" : 'NULL';
+        $fields[] = "popup_config = $val";
+        $insertFields[] = 'popup_config';
         $insertValues[] = $val;
     }
     
