@@ -28,7 +28,7 @@ const Premios = () => {
     <Layout>
       <PageHero
         title="Premios"
-        subtitle="Conoce los premios del torneo: rifas, hoyo en uno, reconocimientos y trofeos."
+        subtitle="Conoce los premios del torneo: rifas, premios a ganadores de competencias y demás."
         backgroundImage={premiosHero}
         backgroundPosition="center 55%"
       />
