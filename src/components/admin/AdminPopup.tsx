@@ -1,0 +1,411 @@
+/**
+ * AdminPopup
+ * -----------------------------------------------------------------------
+ * Admin tab to manage the site-wide POP UP overlay. Lets the admin:
+ *   - upload one or more candidate images (stored under the `popup`
+ *     uploads section: /api/uploads/{domain}/popup/...)
+ *   - pick which uploaded image is "active"
+ *   - choose on which routes the popup should appear
+ *   - set the auto-dismiss duration (seconds; 0 = stay open until X)
+ *   - adjust the rendered image width (pixels)
+ *   - toggle the overlay on/off entirely
+ *
+ * The resulting settings persist to `site_config.popup_config` and are
+ * read globally by <SitePopup /> mounted in <Layout />. One popup per
+ * domain — same multi-tenant scoping as every other admin tab.
+ */
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import {
+  Loader2,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
+  CheckCircle2,
+  MonitorPlay,
+} from 'lucide-react';
+import {
+  useUploadsList,
+  useUploadFiles,
+  useDeleteFile,
+  type UploadedFile,
+} from '@/hooks/useUploads';
+import { useSiteConfig, useSaveSiteConfig, type PopupConfig } from '@/hooks/useSiteConfig';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { menuConfig } from '@/data/mockData';
+
+/** Shared admin password (mirrors site_config.php usage). */
+const ADMIN_PASSWORD = 'admin2025';
+
+/** Default popup config when none has been saved yet. */
+const DEFAULT_POPUP: PopupConfig = {
+  enabled: false,
+  imageUrl: '',
+  paths: ['/'],
+  durationSeconds: 0,
+  widthPx: 480,
+  altText: '',
+};
+
+/** Format bytes → human-readable string. */
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+/**
+ * AdminPopup — main exported component for the Admin > POP tab.
+ */
+const AdminPopup = () => {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Uploads (image bank for the popup overlay)
+  const { data: uploadsData, isLoading: isLoadingUploads, refetch } =
+    useUploadsList('popup');
+  const uploadMutation = useUploadFiles('popup');
+  const deleteMutation = useDeleteFile('popup');
+
+  // Site config (where the popup configuration lives)
+  const { data: siteConfig, isLoading: isLoadingConfig } = useSiteConfig();
+  const saveSiteConfig = useSaveSiteConfig();
+
+  // Local editable copy of the popup config — hydrated from server.
+  const [config, setConfig] = useState<PopupConfig>(DEFAULT_POPUP);
+
+  // Hydrate the local form whenever server config changes.
+  useEffect(() => {
+    if (siteConfig?.popup_config) {
+      setConfig({ ...DEFAULT_POPUP, ...siteConfig.popup_config });
+    }
+  }, [siteConfig?.popup_config]);
+
+  const files: UploadedFile[] = uploadsData?.files ?? [];
+
+  /** Routes the admin can pick from (mirrors public menu). */
+  const routeOptions = useMemo(
+    () =>
+      menuConfig.map((m) => ({
+        id: m.id,
+        label: m.label,
+        path: m.path,
+      })),
+    []
+  );
+
+  /** Upload selected files immediately. */
+  const handleFiles = (filesList: FileList | null) => {
+    if (!filesList || filesList.length === 0) return;
+    const filesArr = Array.from(filesList);
+    uploadMutation.mutate(
+      { files: filesArr, password: ADMIN_PASSWORD },
+      {
+        onSuccess: (res) => {
+          if (res.saved.length > 0) {
+            toast({
+              title: `${res.saved.length} imagen(es) subida(s)`,
+              description: 'Selecciónala abajo para usarla como POP UP.',
+            });
+          }
+          if (res.errors.length > 0) {
+            toast({
+              title: 'Algunos archivos fallaron',
+              description: res.errors.map((e) => `${e.name}: ${e.error}`).join(' · '),
+              variant: 'destructive',
+            });
+          }
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        },
+        onError: (err) =>
+          toast({ title: 'Error al subir', description: err.message, variant: 'destructive' }),
+      }
+    );
+  };
+
+  /** Delete a candidate image from the popup bank. */
+  const handleDelete = (file: UploadedFile) => {
+    deleteMutation.mutate(
+      { name: file.name, password: ADMIN_PASSWORD },
+      {
+        onSuccess: () => {
+          toast({ title: 'Imagen eliminada', description: file.name });
+          // If the active image was just deleted, clear it from config.
+          if (config.imageUrl === file.url) {
+            setConfig((c) => ({ ...c, imageUrl: '', enabled: false }));
+          }
+        },
+        onError: (err) =>
+          toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' }),
+      }
+    );
+  };
+
+  /** Toggle a single route in the config.paths array. */
+  const togglePath = (path: string) => {
+    setConfig((c) => {
+      const has = c.paths.includes(path);
+      return { ...c, paths: has ? c.paths.filter((p) => p !== path) : [...c.paths, path] };
+    });
+  };
+
+  /** Persist the current config to the server. */
+  const handleSave = () => {
+    if (config.enabled && !config.imageUrl) {
+      toast({
+        title: 'Selecciona una imagen',
+        description: 'Activa una imagen del banco antes de habilitar el POP UP.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    saveSiteConfig.mutate(
+      { password: ADMIN_PASSWORD, popup_config: config },
+      {
+        onSuccess: () =>
+          toast({
+            title: 'POP UP guardado',
+            description: 'La configuración se aplicó a todos los visitantes.',
+          }),
+        onError: (err) =>
+          toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ===== 1. Image bank ===== */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-primary" />
+            Imágenes del POP UP
+          </CardTitle>
+          <CardDescription>
+            Sube las imágenes candidatas y elige cuál se usará en el pop-up.
+            Máx. 15 MB por archivo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/webp,image/jpeg,image/png,image/gif"
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <Button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadMutation.isPending}
+            className="gap-2"
+          >
+            {uploadMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            Subir imagen
+          </Button>
+
+          {isLoadingUploads ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+              <Loader2 className="h-4 w-4 animate-spin" /> Cargando imágenes...
+            </div>
+          ) : files.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              Aún no hay imágenes. Sube una para empezar.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {files.map((file) => {
+                const isActive = config.imageUrl === file.url;
+                return (
+                  <div
+                    key={file.name}
+                    className={cn(
+                      'group relative rounded-lg border-2 overflow-hidden bg-white cursor-pointer transition-all',
+                      isActive ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/50'
+                    )}
+                    onClick={() =>
+                      setConfig((c) => ({ ...c, imageUrl: file.url, altText: c.altText || file.alt }))
+                    }
+                  >
+                    <img
+                      src={file.url}
+                      alt={file.alt}
+                      className="w-full h-32 object-contain bg-white"
+                      loading="lazy"
+                    />
+                    {isActive && (
+                      <Badge className="absolute top-1 left-1 gap-1 bg-primary">
+                        <CheckCircle2 className="h-3 w-3" /> Activa
+                      </Badge>
+                    )}
+                    <div className="px-2 py-1 text-[10px] text-muted-foreground bg-card flex items-center justify-between">
+                      <span className="truncate">{file.name}</span>
+                      <span>{formatBytes(file.size)}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="absolute top-1 right-1 h-7 w-7 bg-background/80 text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(file);
+                      }}
+                      aria-label={`Eliminar ${file.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ===== 2. Behavior + page targeting ===== */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MonitorPlay className="h-5 w-5 text-primary" />
+            Configuración del POP UP
+          </CardTitle>
+          <CardDescription>
+            Define en qué páginas se muestra, por cuánto tiempo y a qué resolución.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Master switch */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <Label className="text-base">Activar POP UP</Label>
+              <p className="text-xs text-muted-foreground">
+                Cuando esté apagado, ningún visitante verá el pop-up.
+              </p>
+            </div>
+            <Switch
+              checked={config.enabled}
+              onCheckedChange={(v) => setConfig((c) => ({ ...c, enabled: v }))}
+            />
+          </div>
+
+          {/* Width (image resolution / size) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Ancho de la imagen</Label>
+              <span className="text-sm font-mono text-muted-foreground">{config.widthPx}px</span>
+            </div>
+            <Slider
+              min={240}
+              max={1200}
+              step={20}
+              value={[config.widthPx]}
+              onValueChange={([v]) => setConfig((c) => ({ ...c, widthPx: v }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              La imagen se renderiza a este ancho máximo; el alto se escala
+              proporcionalmente y se limita al viewport en móvil.
+            </p>
+          </div>
+
+          {/* Duration */}
+          <div className="space-y-2">
+            <Label htmlFor="popup-duration">Duración (segundos)</Label>
+            <Input
+              id="popup-duration"
+              type="number"
+              min={0}
+              max={120}
+              value={config.durationSeconds}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  durationSeconds: Math.max(0, Number(e.target.value) || 0),
+                }))
+              }
+              className="max-w-[160px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              0 = permanece abierto hasta que el usuario lo cierre con la X.
+            </p>
+          </div>
+
+          {/* Alt text */}
+          <div className="space-y-2">
+            <Label htmlFor="popup-alt">Texto alternativo (accesibilidad)</Label>
+            <Input
+              id="popup-alt"
+              type="text"
+              value={config.altText ?? ''}
+              onChange={(e) => setConfig((c) => ({ ...c, altText: e.target.value }))}
+              placeholder="Promoción, aviso, anuncio..."
+            />
+          </div>
+
+          {/* Pages */}
+          <div className="space-y-2">
+            <Label>Páginas donde se mostrará</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg border border-border p-3 max-h-64 overflow-auto">
+              {routeOptions.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 px-2 py-1 rounded"
+                >
+                  <Checkbox
+                    checked={config.paths.includes(opt.path)}
+                    onCheckedChange={() => togglePath(opt.path)}
+                  />
+                  <span className="font-medium">{opt.label}</span>
+                  <span className="text-xs text-muted-foreground font-mono ml-auto">
+                    {opt.path}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Selecciona al menos una página. Se mostrará al inicio cada vez
+              que el visitante abra la página.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={saveSiteConfig.isPending || isLoadingConfig}
+            className="gap-2"
+          >
+            {saveSiteConfig.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            Guardar configuración
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AdminPopup;

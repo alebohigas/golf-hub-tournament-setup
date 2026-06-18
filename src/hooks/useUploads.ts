@@ -10,6 +10,7 @@
  *   - 'convocatoria' → reserved poster grid for the Convocatoria page
  *   - 'reglas'       → reserved poster grid for the Reglas page
  *   - 'pdfs'         → PDFs referenced by Convocatoria/Reglas pages
+ *   - 'popup'        → images used by the site-wide POP UP overlay
  *
  * The list endpoint is public (read-only). Upload + delete require the
  * shared admin password (`admin2025`) sent in the multipart/JSON body.
@@ -19,7 +20,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/apiClient';
 
 /** Section identifiers accepted by the uploads endpoint. */
-export type UploadSection = 'eventos' | 'avisos' | 'convocatoria' | 'reglas' | 'pdfs';
+export type UploadSection = 'eventos' | 'avisos' | 'convocatoria' | 'reglas' | 'pdfs' | 'popup';
 
 /** Single uploaded file as returned by the listing endpoint. */
 export interface UploadedFile {
