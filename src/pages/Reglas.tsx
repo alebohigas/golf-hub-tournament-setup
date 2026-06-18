@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } from 'lucide-react';
-import { reglasData, reglamentoLocalData } from '@/data/mockData';
 import reglasHero from '@/assets/reglas-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
@@ -30,11 +29,16 @@ const ICONS: Record<string, typeof BookOpen> = {
 };
 const getIcon = (key?: string | null) => (key && ICONS[key]) || BookOpen;
 
-/** Return `value` when it looks usable; otherwise the fallback. */
-const pick = <T,>(value: T | null | undefined, fallback: T): T => {
-  if (value === null || value === undefined) return fallback;
-  if (Array.isArray(value) && value.length === 0) return fallback;
-  if (typeof value === 'string' && value.trim() === '') return fallback;
+/**
+ * STRICT DB-ONLY: return the DB value when usable, otherwise the provided
+ * empty value. We no longer fall back to hardcoded mock content because it
+ * leaked across tournaments. If the DB has nothing for a section, the page
+ * simply hides that block — content must be added via /admin.
+ */
+const pick = <T,>(value: T | null | undefined, empty: T): T => {
+  if (value === null || value === undefined) return empty;
+  if (Array.isArray(value) && value.length === 0) return empty;
+  if (typeof value === 'string' && value.trim() === '') return empty;
   return value;
 };
 
@@ -61,49 +65,29 @@ const Reglas = () => {
   // DB-backed content (per active torneoid). Falls back to hardcoded defaults.
   const { bySectionId } = useConvocatoriaContent();
 
-  // Intro cards (top of the page)
-  const introCardsDefault: IntroCard[] = [
-    {
-      icon: 'BookOpen',
-      title: 'Reglas de Golf',
-      body: 'El torneo se rige por las Reglas de Golf vigentes de la R&A y la USGA, así como por las reglas locales establecidas por el Club.',
-    },
-    {
-      icon: 'Scale',
-      title: 'Sistema de Handicap',
-      body: 'Se utilizará el Sistema Universal de Handicap (WHS) para el cálculo del handicap de juego.',
-    },
-  ];
+  // Intro cards (top of the page) — strictly DB-backed.
   const introCardsRow = bySectionId.get('reglas_intro_cards');
   const introCards: IntroCard[] = introCardsRow?.enabled === false
     ? []
-    : pick(introCardsRow?.content as IntroCard[] | undefined, introCardsDefault);
+    : pick(introCardsRow?.content as IntroCard[] | undefined, [] as IntroCard[]);
 
-  // Reglas locales (accordion)
+  // Reglas locales (accordion) — strictly DB-backed.
   const reglasLocalesRow = bySectionId.get('reglas_locales');
   const reglasLocales: AccordionItemData[] = reglasLocalesRow?.enabled === false
     ? []
-    : pick(reglasLocalesRow?.content as AccordionItemData[] | undefined, reglasData);
+    : pick(reglasLocalesRow?.content as AccordionItemData[] | undefined, [] as AccordionItemData[]);
 
-  // Reglamento / Términos de la competencia (accordion)
+  // Reglamento / Términos de la competencia (accordion) — strictly DB-backed.
   const reglamentoRow = bySectionId.get('reglamento_local');
   const reglamentoLocal: AccordionItemData[] = reglamentoRow?.enabled === false
     ? []
-    : pick(reglamentoRow?.content as AccordionItemData[] | undefined, reglamentoLocalData);
+    : pick(reglamentoRow?.content as AccordionItemData[] | undefined, [] as AccordionItemData[]);
 
-  // Código de Conducta (accordion)
-  const codigoConductaDefault: AccordionItemData[] = [
-    { icon: 'Clock', titulo: 'Puntualidad', contenido: 'Los jugadores deberán presentarse en su hoyo de salida 5 minutos antes de la hora programada y estar listos para jugar a la hora estipulada. Si el jugador se presenta hasta con cinco minutos de retraso a su mesa de salida, tendrá 2 golpes de penalidad en el primer hoyo. Después de estos 5 minutos será descalificado.' },
-    { icon: 'AlertTriangle', titulo: 'Ritmo de Juego', contenido: 'El tiempo máximo para completar 18 hoyos será de 4 horas y 40 minutos. Los grupos fuera de posición serán cronometrados con un máximo de 40 segundos por golpe. Penalidad: 1er mal tiempo, un golpe de castigo; 2do mal tiempo, penalidad general; 3er mal tiempo, descalificación.' },
-    { titulo: 'Código de Vestimenta', contenido: 'Vestimenta según el código interno del Reglamento de Golf del club: playera con cuello, pantalón o bermuda de vestir, y zapatos de golf. No se permiten jeans, playeras sin cuello o sandalias.' },
-    { titulo: 'Dispositivos Electrónicos', contenido: 'Se permite el uso de dispositivos de medición de distancia. Queda prohibido utilizar funciones que midan velocidad del viento, slope u otros parámetros (Regla 4.3a). El uso de teléfonos celulares está permitido siempre que sea con discreción, sin retrasar el juego ni distraer a los demás jugadores. Durante la ronda está prohibido escuchar música (1ª infracción: amonestación; 2ª: penalidad general; 3ª: descalificación).' },
-    { titulo: 'Transportación y Caddie', contenido: 'Los jugadores podrán utilizar transportación automotriz para ellos mismos, su equipo y su caddie. Es obligatorio contratar los servicios de un caddie (siempre y cuando el club pueda proporcionarlo), el cual puede ser compartido con otro jugador.' },
-    { titulo: 'Conducta Deportiva', contenido: 'Se espera que todos los participantes mantengan una conducta deportiva ejemplar. Cualquier comportamiento antideportivo será sancionado y puede resultar en descalificación.' },
-  ];
+  // Código de Conducta (accordion) — strictly DB-backed.
   const codigoRow = bySectionId.get('codigo_conducta');
   const codigoConducta: AccordionItemData[] = codigoRow?.enabled === false
     ? []
-    : pick(codigoRow?.content as AccordionItemData[] | undefined, codigoConductaDefault);
+    : pick(codigoRow?.content as AccordionItemData[] | undefined, [] as AccordionItemData[]);
 
   // PDF button label (optional override)
   const pdfLabelRow = bySectionId.get('reglas_pdf_label');
