@@ -321,60 +321,61 @@ const AdminDashboard = () => {
           each row reflow naturally per breakpoint; `h-auto` overrides the
           shadcn default fixed height. Every trigger carries an icon.
         */}
-        <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
-          <TabsTrigger value="config" className="gap-2 flex-1 min-w-[120px]">
-            <Database className="h-4 w-4" />
-            <span className="hidden sm:inline">Config</span>
-          </TabsTrigger>
-          <TabsTrigger value="archivos" className="gap-2 flex-1 min-w-[120px]">
-            <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Archivos</span>
-          </TabsTrigger>
-          <TabsTrigger value="pagina" className="gap-2 flex-1 min-w-[120px]">
-            <LayoutPanelTop className="h-4 w-4" />
-            <span className="hidden sm:inline">Página</span>
-          </TabsTrigger>
-          <TabsTrigger value="convocatoria" className="gap-2 flex-1 min-w-[120px]">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Convocatoria</span>
-          </TabsTrigger>
-          <TabsTrigger value="eventos" className="gap-2 flex-1 min-w-[120px]">
-            <CalendarDays className="h-4 w-4" />
-            <span className="hidden sm:inline">Eventos</span>
-          </TabsTrigger>
-          <TabsTrigger value="avisos" className="gap-2 flex-1 min-w-[120px]">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Avisos</span>
-          </TabsTrigger>
-          <TabsTrigger value="popup" className="gap-2 flex-1 min-w-[120px]">
-            <MonitorPlay className="h-4 w-4" />
-            <span className="hidden sm:inline">POP</span>
-          </TabsTrigger>
-          <TabsTrigger value="live" className="gap-2 flex-1 min-w-[120px]">
-            <Radio className="h-4 w-4" />
-            <span className="hidden sm:inline">Live</span>
-          </TabsTrigger>
-          <TabsTrigger value="sponsors" className="gap-2 flex-1 min-w-[120px]">
-            <ImageIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Patrocinadores</span>
-          </TabsTrigger>
-          <TabsTrigger value="registro" className="gap-2 flex-1 min-w-[120px]">
-            <ClipboardList className="h-4 w-4" />
-            <span className="hidden sm:inline">Pre-Registro</span>
-          </TabsTrigger>
-          <TabsTrigger value="registros" className="gap-2 flex-1 min-w-[120px]">
-            <ListChecks className="h-4 w-4" />
-            <span className="hidden sm:inline">Registros</span>
-          </TabsTrigger>
-          <TabsTrigger value="brackets" className="gap-2 flex-1 min-w-[120px]">
-            <Trophy className="h-4 w-4" />
-            <span className="hidden sm:inline">Brackets Putt</span>
-          </TabsTrigger>
-          <TabsTrigger value="stats" className="gap-2 flex-1 min-w-[120px]">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Estadísticas</span>
-          </TabsTrigger>
-        </TabsList>
+        {/*
+          Admin tab strip — always rendered in TWO rows. When the total
+          count is odd, the FIRST row gets the larger half (ceil(n/2)).
+          Each row is its own <TabsList> (Radix supports multiple lists in
+          one <Tabs> root and keeps the shared active state). Every trigger
+          carries an icon for visual scanability.
+        */}
+        {(() => {
+          /**
+           * adminTabs
+           * Centralized definition of every admin tab so the two-row
+           * split stays in sync if tabs are added/removed. Order here
+           * = display order across row 1 then row 2.
+           */
+          const adminTabs: { value: string; icon: any; label: string }[] = [
+            { value: 'config',       icon: Database,        label: 'Config' },
+            { value: 'archivos',     icon: Upload,          label: 'Archivos' },
+            { value: 'pagina',       icon: LayoutPanelTop,  label: 'Página' },
+            { value: 'convocatoria', icon: FileText,        label: 'Convocatoria' },
+            { value: 'eventos',      icon: CalendarDays,    label: 'Eventos' },
+            { value: 'avisos',       icon: Bell,            label: 'Avisos' },
+            { value: 'popup',        icon: MonitorPlay,     label: 'POP' },
+            { value: 'live',         icon: Radio,           label: 'Live' },
+            { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
+            { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
+            { value: 'registros',    icon: ListChecks,      label: 'Registros' },
+            { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
+            { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
+          ];
+          // Split: first row = ceil(n/2) so odd counts give the bigger
+          // half to the top row, per the design directive.
+          const firstCount = Math.ceil(adminTabs.length / 2);
+          const row1 = adminTabs.slice(0, firstCount);
+          const row2 = adminTabs.slice(firstCount);
+          const renderRow = (rowTabs: typeof adminTabs) => (
+            <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
+              {rowTabs.map(({ value, icon: Icon, label }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="gap-2 flex-1 min-w-[120px]"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          );
+          return (
+            <div className="space-y-2">
+              {renderRow(row1)}
+              {renderRow(row2)}
+            </div>
+          );
+        })()}
 
         {/* Configuration Tab */}
         <TabsContent value="config" className="space-y-4">
