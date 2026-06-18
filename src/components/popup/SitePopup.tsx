@@ -105,7 +105,7 @@ const SitePopup = () => {
     >
       <div
         className={cn(
-          'relative rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden',
+          'relative rounded-2xl bg-white shadow-2xl ring-1 ring-black/10',
           'animate-in zoom-in-95 duration-200'
         )}
         style={{ width: '100%', maxWidth: `${widthPx}px` }}
@@ -117,7 +117,7 @@ const SitePopup = () => {
           aria-label="Cerrar"
           onClick={() => setOpen(false)}
           className={cn(
-            'absolute -top-3 -right-3 z-10 inline-flex h-9 w-9 items-center justify-center',
+            'absolute -top-3 -right-3 z-20 inline-flex h-9 w-9 items-center justify-center',
             'rounded-full bg-white text-foreground shadow-lg ring-1 ring-black/10',
             'hover:bg-muted transition-colors'
           )}
@@ -125,25 +125,31 @@ const SitePopup = () => {
           <X className="h-5 w-5" />
         </button>
 
-        {/* Unified card: optional caption + image stacked together so the
-            text reads as part of the same announcement, not a separate UI. */}
-        {hasText && textPosition === 'above' && (
-          <div className="px-5 pt-5 pb-3" style={textStyle}>
-            {popup.text}
-          </div>
-        )}
-        {hasImage && (
-          <img
-            src={popup.imageUrl}
-            alt={popup.altText || 'Anuncio'}
-            className="block w-full h-auto max-h-[70vh] object-contain bg-white"
-          />
-        )}
-        {hasText && textPosition === 'below' && (
-          <div className="px-5 pt-3 pb-5" style={textStyle}>
-            {popup.text}
-          </div>
-        )}
+        {/*
+          Inner wrapper carries `overflow-hidden` so the rounded image
+          corners are clipped, while the outer card stays unclipped so
+          the close button (positioned at -top-3 / -right-3) renders
+          completely outside the card edges.
+        */}
+        <div className="rounded-2xl overflow-hidden">
+          {hasText && textPosition === 'above' && (
+            <div className="px-5 pt-5 pb-3" style={textStyle}>
+              {popup.text}
+            </div>
+          )}
+          {hasImage && (
+            <img
+              src={popup.imageUrl}
+              alt={popup.altText || 'Anuncio'}
+              className="block w-full h-auto max-h-[70vh] object-contain bg-white"
+            />
+          )}
+          {hasText && textPosition === 'below' && (
+            <div className="px-5 pt-3 pb-5" style={textStyle}>
+              {popup.text}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
