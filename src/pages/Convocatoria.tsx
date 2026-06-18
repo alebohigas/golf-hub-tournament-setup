@@ -187,52 +187,32 @@ const Convocatoria = () => {
    * otherwise falls back to the legacy mockData presence check.
    */
   const sectionHasContent = (id: string): boolean => {
+    // API-driven sections: presence is decided by their own data sources,
+    // not by `convocatoria_content`.
+    if (id === 'categorias') return true;
+    if (id === 'calendarioJuego') return hasCalendarioJuego;
+
+    // DB-only sections: render only when there is an enabled DB row
+    // with non-empty content for the active torneoid. No mock fallback.
     const dbRow = dbContent.get(id);
-    if (dbRow) {
-      // DB row explicitly disabled -> hide.
-      if (!dbRow.enabled) return false;
-      // DB row present + enabled -> render (let component decide on empty content).
-      // Calendario still depends on derived data, fall through.
-      if (id !== 'calendarioJuego') return true;
+    if (!dbRow || !dbRow.enabled) return false;
+    const c = dbRow.content as any;
+    if (c === null || c === undefined) return false;
+    if (Array.isArray(c)) return c.length > 0;
+    if (typeof c === 'object') {
+      // Items-based payload ({ items: [...] }) -> require at least one item.
+      if (Array.isArray(c.items)) return c.items.length > 0;
+      // Otherwise: render if any field is non-empty.
+      return Object.values(c).some((v) =>
+        typeof v === 'string'
+          ? v.trim() !== ''
+          : Array.isArray(v)
+            ? v.length > 0
+            : v != null
+      );
     }
-    switch (id) {
-      case 'descripcion':
-        return !!convocatoriaDescripcion && convocatoriaDescripcion.trim() !== '';
-      case 'elegibilidad':
-        return (
-          (!!eligibilityText && eligibilityText.trim() !== '') ||
-          (notesText && notesText.length > 0) ||
-          (!!inscripcionesText && inscripcionesText.trim() !== '')
-        );
-      case 'costos':
-        return (
-          (sociosPricing && sociosPricing.length > 0) ||
-          (foraneosPricing && foraneosPricing.length > 0) ||
-          !!(contactInfo && (contactInfo.clabe || contactInfo.cuenta))
-        );
-      case 'categorias':
-        // Driven by API; assume present (CategoryTable shows its own empty state).
-        return true;
-      case 'premiacion':
-        return premiacionData && premiacionData.length > 0;
-      case 'desempates':
-        return !!desempatesData && (
-          (desempatesData.paraCorte?.length ?? 0) > 0 ||
-          (desempatesData.paraTrofeos?.length ?? 0) > 0
-        );
-      case 'reglas':
-        return reglasData && reglasData.length > 0;
-      case 'competencias':
-        return competenciasEspecialesData && competenciasEspecialesData.length > 0;
-      case 'servicios':
-        return serviciosHorariosData && serviciosHorariosData.length > 0;
-      case 'calendarioJuego':
-        return hasCalendarioJuego;
-      case 'patrocinadoresOficiales':
-        return patrocinadoresOficialesData && patrocinadoresOficialesData.length > 0;
-      default:
-        return true;
-    }
+    if (typeof c === 'string') return c.trim() !== '';
+    return true;
   };
 
   /** Enabled sections, additionally filtered by content presence. */
