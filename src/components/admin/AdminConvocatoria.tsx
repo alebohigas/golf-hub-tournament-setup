@@ -8,7 +8,6 @@ import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,9 +18,13 @@ import {
   ChevronUp,
   FileText,
   AlertTriangle,
+  Database,
+  CircleSlash,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
+import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
+import SectionEditor from '@/components/admin/convocatoria/SectionEditor';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // ============= Section icons by ID =============
@@ -44,8 +47,9 @@ const AdminConvocatoria = () => {
     sections,
     setSectionEnabled,
     reorderSections,
-    setSectionContent,
   } = useConvocatoriaSections();
+  /** DB-backed status per section (drives the BD / Vacío badge). */
+  const { hasContent } = useConvocatoriaContent();
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
@@ -72,7 +76,9 @@ const AdminConvocatoria = () => {
         </CardTitle>
         <CardDescription>
           Arrastra para reordenar, activa/desactiva secciones y edita el contenido.
-          Las secciones deshabilitadas no se muestran en la página.
+          Las secciones deshabilitadas no se muestran en la página. El
+          contenido es estrictamente DB-only: si una sección está vacía en BD,
+          NO se muestra en la página pública (no hay fallback a mocks).
         </CardDescription>
         <div className="flex gap-3 mt-2">
           <Badge variant="default" className="gap-1">
@@ -131,6 +137,20 @@ const AdminConvocatoria = () => {
                               )}>
                                 {section.label}
                               </span>
+                              {/* BD / Vacío badge: green when a non-empty
+                                  convocatoria_content row exists for the
+                                  active torneoid; grey otherwise. */}
+                              {hasContent(section.id) ? (
+                                <Badge variant="outline" className="text-xs gap-1 text-emerald-700 border-emerald-300 bg-emerald-50">
+                                  <Database className="h-3 w-3" />
+                                  BD
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+                                  <CircleSlash className="h-3 w-3" />
+                                  Vacío
+                                </Badge>
+                              )}
                               {!section.enabled && (
                                 <Badge variant="outline" className="text-xs gap-1 text-amber-600 border-amber-300">
                                   <AlertTriangle className="h-3 w-3" />
@@ -165,18 +185,17 @@ const AdminConvocatoria = () => {
                           </Collapsible>
                         </div>
 
-                        {/* Expandable content editor */}
+                        {/* Expandable structured editor with live preview.
+                            Renders the proper editor for the section shape
+                            (text / items repeater / JSON fallback) plus a
+                            preview that uses the SAME public Section
+                            component for visual fidelity. */}
                         {expandedSection === section.id && (
                           <div className="px-4 pb-4 border-t border-border/50 pt-3">
-                            <label className="text-xs text-muted-foreground block mb-2">
-                              Texto adicional (opcional, se muestra encima del contenido predefinido):
-                            </label>
-                            <Textarea
-                              placeholder="Escribe aquí para agregar texto personalizado a esta sección..."
-                              value={section.content || ''}
-                              onChange={(e) => setSectionContent(section.id, e.target.value)}
-                              rows={3}
-                              className="text-sm"
+                            <SectionEditor
+                              sectionId={section.id}
+                              label={section.label}
+                              sortOrder={section.order}
                             />
                             {!section.enabled && (
                               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
