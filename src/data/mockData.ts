@@ -745,48 +745,69 @@ export interface EventoSocial {
 }
 
 /**
- * Eventos sociales / lifestyle — 56° Torneo Anual de Golf Atlas Country Club 2026.
- * Fuente: posters publicados en /admin → Archivos → Eventos del sitio
- * https://atlascc.speitour.mx (evento-1, evento-2, evento-5, evento-3).
- * Mostrados en /eventos como subsección "Sociales".
+ * Eventos sociales / lifestyle — datos por torneo.
+ *
+ * IMPORTANT: This content is tournament-specific. It must NEVER bleed across
+ * tournaments. Each torneoid that has social events declares them here under
+ * its own key. Tournaments not listed have NO social events (empty array).
+ *
+ * - 354 → 56° Torneo Anual de Golf Atlas Country Club 2026.
+ *   Fuente: posters publicados en /admin → Archivos → Eventos del sitio
+ *   https://atlascc.speitour.mx (evento-1, evento-2, evento-5, evento-3).
+ *
+ * Consumed by /eventos via `getEventosSocialesByTorneo(torneoId)`.
  */
-export const eventosSocialesData: EventoSocial[] = [
-  // ---------- Lunes 20 de Julio ----------
-  {
-    dia: 'Lunes 20 de Julio',
-    hora: '19:00 hrs',
-    titulo: 'Ceremonia de Inauguración',
-    lugar: 'Salón La Hacienda',
-    descripcion: 'Apertura oficial del 56° Torneo Anual de Golf — Atlas Country Club.',
-  },
+export const EVENTOS_SOCIALES_BY_TORNEO: Record<string, EventoSocial[]> = {
+  // ---------- torneoid 354 — Atlas Country Club ----------
+  '354': [
+    {
+      dia: 'Lunes 20 de Julio',
+      hora: '19:00 hrs',
+      titulo: 'Ceremonia de Inauguración',
+      lugar: 'Salón La Hacienda',
+      descripcion: 'Apertura oficial del 56° Torneo Anual de Golf — Atlas Country Club.',
+    },
+    {
+      dia: 'Miércoles 22 de Julio',
+      hora: '19:00 hrs',
+      titulo: 'Feria del Pueblo',
+      lugar: 'Salón La Hacienda',
+      descripcion: 'Jugador en cortesía. Invitado adulto $500 · Invitado niño $250.',
+    },
+    {
+      dia: 'Viernes 24 de Julio',
+      hora: '19:00 hrs',
+      titulo: 'Bingo',
+      lugar: 'Salón La Hacienda',
+      descripcion: 'Jugador en cortesía. Invitado adulto $500 · Invitado niño $250.',
+    },
+    {
+      dia: 'Sábado 25 de Julio',
+      hora: '19:00 hrs',
+      titulo: 'Ceremonia de Clausura',
+      lugar: 'Salón La Hacienda',
+      descripcion: 'Premiación y cierre del torneo. Jugador en cortesía. Entrada general $500.',
+    },
+  ],
+};
 
-  // ---------- Miércoles 22 de Julio ----------
-  {
-    dia: 'Miércoles 22 de Julio',
-    hora: '19:00 hrs',
-    titulo: 'Feria del Pueblo',
-    lugar: 'Salón La Hacienda',
-    descripcion: 'Jugador en cortesía. Invitado adulto $500 · Invitado niño $250.',
-  },
+/**
+ * getEventosSocialesByTorneo
+ * Returns the social events list for the given torneoid, or [] when the
+ * tournament has no registered social events. Prevents Atlas (354) data
+ * from bleeding into Valle Alto (346) or any other tournament.
+ */
+export const getEventosSocialesByTorneo = (torneoId: string | number | null | undefined): EventoSocial[] => {
+  if (torneoId === null || torneoId === undefined || torneoId === '') return [];
+  return EVENTOS_SOCIALES_BY_TORNEO[String(torneoId)] ?? [];
+};
 
-  // ---------- Viernes 24 de Julio ----------
-  {
-    dia: 'Viernes 24 de Julio',
-    hora: '19:00 hrs',
-    titulo: 'Bingo',
-    lugar: 'Salón La Hacienda',
-    descripcion: 'Jugador en cortesía. Invitado adulto $500 · Invitado niño $250.',
-  },
-
-  // ---------- Sábado 25 de Julio ----------
-  {
-    dia: 'Sábado 25 de Julio',
-    hora: '19:00 hrs',
-    titulo: 'Ceremonia de Clausura',
-    lugar: 'Salón La Hacienda',
-    descripcion: 'Premiación y cierre del torneo. Jugador en cortesía. Entrada general $500.',
-  },
-];
+/**
+ * @deprecated Do not use. Kept only as a fallback alias that resolves to
+ * an empty array so unrelated tournaments never inherit Atlas content.
+ * Use `getEventosSocialesByTorneo(torneoId)` instead.
+ */
+export const eventosSocialesData: EventoSocial[] = [];
 const _eventosSocialesArchived: EventoSocial[] = [
   {
     dia: 'Viernes 26 de Junio',
