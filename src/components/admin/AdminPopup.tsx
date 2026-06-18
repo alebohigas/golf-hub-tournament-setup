@@ -30,6 +30,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Loader2,
   Upload,
@@ -37,6 +46,12 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   MonitorPlay,
+  Bold,
+  Italic,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Type as TypeIcon,
 } from 'lucide-react';
 import {
   useUploadsList,
@@ -60,6 +75,14 @@ const DEFAULT_POPUP: PopupConfig = {
   durationSeconds: 0,
   widthPx: 480,
   altText: '',
+  text: '',
+  textFontSize: 16,
+  textFontFamily: 'sans',
+  textBold: false,
+  textItalic: false,
+  textColor: '#0f172a',
+  textAlign: 'center',
+  textPosition: 'below',
 };
 
 /** Format bytes → human-readable string. */
@@ -166,10 +189,11 @@ const AdminPopup = () => {
 
   /** Persist the current config to the server. */
   const handleSave = () => {
-    if (config.enabled && !config.imageUrl) {
+    const hasText = Boolean(config.text && config.text.trim().length > 0);
+    if (config.enabled && !config.imageUrl && !hasText) {
       toast({
-        title: 'Selecciona una imagen',
-        description: 'Activa una imagen del banco antes de habilitar el POP UP.',
+        title: 'Falta contenido',
+        description: 'Selecciona una imagen o escribe un texto antes de activar el POP UP.',
         variant: 'destructive',
       });
       return;
