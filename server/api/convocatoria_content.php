@@ -14,7 +14,7 @@
  */
 
 require_once 'config.php';
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
 
 /**
  * Detect whether the convocatoria_content table exists, so a missing
@@ -108,6 +108,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     json_response(['saved' => true, 'torneoid' => $torneoid, 'section_id' => $sectionId]);
+
+} elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    /**
+     * DELETE /api/convocatoria_content.php
+     * Body: { password, torneoid, section_id }
+     *
+     * Removes a single (torneoid, section_id) row. Used by the admin
+     * "Limpiar" action so the badge returns to "Vacío" and the public
+     * page hides the section entirely (no mock fallback).
+     */
+    $body = json_decode(file_get_contents('php://input'), true);
+    if (!$body) json_error('Invalid JSON body', 400);
+
+    if (($body['password'] ?? '') !== 'admin2025') {
+        json_error('Unauthorized', 401);
+    }
+
+    if (!convocatoria_content_table_exists($conn)) {
+        json_response(['deleted' => true, 'note' => 'table not present']);
+    }
+
+    $torneoid  = isset($body['torneoid']) ? (int) $body['torneoid'] : 0;
+    $sectionId = trim((string)($body['section_id'] ?? ''));
+    if ($torneoid <= 0 || $sectionId === '') {
+        json_error('torneoid and section_id are required', 400);
+    }
+    $sectionIdEsc = esc($conn, $sectionId);
+
+    $sql = "DELETE FROM convocatoria_content
+            WHERE torneoid = $torneoid AND section_id = '$sectionIdEsc'";
+    if (!$conn->query($sql)) {
+        json_error('Failed to delete convocatoria section: ' . $conn->error, 500);
+    }
+
+    json_response([
+        'deleted'    => true,
+        'torneoid'   => $torneoid,
+        'section_id' => $sectionId,
+        'rows'       => $conn->affected_rows,
+    ]);
 
 } else {
     json_error('Method not allowed', 405);
