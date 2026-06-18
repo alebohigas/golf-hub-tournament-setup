@@ -428,6 +428,224 @@ const AdminPopup = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* ===== 3. Caption text (rendered together with the image) ===== */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TypeIcon className="h-5 w-5 text-primary" />
+            Texto del POP UP
+          </CardTitle>
+          <CardDescription>
+            Texto opcional que se muestra dentro del mismo recuadro que la
+            imagen para formar un pop-up cohesivo. Déjalo vacío para mostrar
+            solo la imagen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Body */}
+          <div className="space-y-2">
+            <Label htmlFor="popup-text">Contenido</Label>
+            <Textarea
+              id="popup-text"
+              value={config.text ?? ''}
+              onChange={(e) => setConfig((c) => ({ ...c, text: e.target.value }))}
+              placeholder="Escribe el mensaje del pop-up..."
+              rows={4}
+            />
+          </div>
+
+          {/* Typography row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Font family */}
+            <div className="space-y-2">
+              <Label>Fuente</Label>
+              <Select
+                value={config.textFontFamily ?? 'sans'}
+                onValueChange={(v) =>
+                  setConfig((c) => ({ ...c, textFontFamily: v as PopupConfig['textFontFamily'] }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sans">Sans-serif (moderna)</SelectItem>
+                  <SelectItem value="serif">Serif (clásica)</SelectItem>
+                  <SelectItem value="mono">Monoespaciada</SelectItem>
+                  <SelectItem value="display">Display (Playfair)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Position */}
+            <div className="space-y-2">
+              <Label>Posición respecto a la imagen</Label>
+              <Select
+                value={config.textPosition ?? 'below'}
+                onValueChange={(v) =>
+                  setConfig((c) => ({ ...c, textPosition: v as PopupConfig['textPosition'] }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="above">Arriba de la imagen</SelectItem>
+                  <SelectItem value="below">Debajo de la imagen</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Size + color row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Tamaño de fuente</Label>
+                <span className="text-sm font-mono text-muted-foreground">
+                  {config.textFontSize ?? 16}px
+                </span>
+              </div>
+              <Slider
+                min={12}
+                max={48}
+                step={1}
+                value={[config.textFontSize ?? 16]}
+                onValueChange={([v]) => setConfig((c) => ({ ...c, textFontSize: v }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="popup-color">Color del texto</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="popup-color"
+                  type="color"
+                  value={config.textColor ?? '#0f172a'}
+                  onChange={(e) => setConfig((c) => ({ ...c, textColor: e.target.value }))}
+                  className="h-10 w-16 p-1"
+                />
+                <Input
+                  type="text"
+                  value={config.textColor ?? '#0f172a'}
+                  onChange={(e) => setConfig((c) => ({ ...c, textColor: e.target.value }))}
+                  className="font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Style toggles */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="space-y-2">
+              <Label>Estilo</Label>
+              <ToggleGroup
+                type="multiple"
+                value={[
+                  ...(config.textBold ? ['bold'] : []),
+                  ...(config.textItalic ? ['italic'] : []),
+                ]}
+                onValueChange={(vals) =>
+                  setConfig((c) => ({
+                    ...c,
+                    textBold: vals.includes('bold'),
+                    textItalic: vals.includes('italic'),
+                  }))
+                }
+              >
+                <ToggleGroupItem value="bold" aria-label="Negritas">
+                  <Bold className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="italic" aria-label="Cursiva">
+                  <Italic className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Alineación</Label>
+              <ToggleGroup
+                type="single"
+                value={config.textAlign ?? 'center'}
+                onValueChange={(v) => {
+                  if (!v) return;
+                  setConfig((c) => ({ ...c, textAlign: v as PopupConfig['textAlign'] }));
+                }}
+              >
+                <ToggleGroupItem value="left" aria-label="Izquierda">
+                  <AlignLeft className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="center" aria-label="Centrado">
+                  <AlignCenter className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="right" aria-label="Derecha">
+                  <AlignRight className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          </div>
+
+          {/* Live preview of the unified card */}
+          <div className="space-y-2">
+            <Label>Vista previa</Label>
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 flex justify-center">
+              <div
+                className="rounded-2xl bg-white shadow-lg ring-1 ring-black/10 overflow-hidden w-full"
+                style={{ maxWidth: `${config.widthPx}px` }}
+              >
+                {config.text && (config.textPosition ?? 'below') === 'above' && (
+                  <div
+                    className="px-5 pt-5 pb-3"
+                    style={{
+                      fontFamily:
+                        config.textFontFamily === 'serif' ? 'Georgia, serif' :
+                        config.textFontFamily === 'mono' ? 'ui-monospace, monospace' :
+                        config.textFontFamily === 'display' ? '"Playfair Display", Georgia, serif' :
+                        'ui-sans-serif, system-ui, sans-serif',
+                      fontSize: `${config.textFontSize ?? 16}px`,
+                      fontWeight: config.textBold ? 700 : 400,
+                      fontStyle: config.textItalic ? 'italic' : 'normal',
+                      color: config.textColor ?? '#0f172a',
+                      textAlign: (config.textAlign ?? 'center') as React.CSSProperties['textAlign'],
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {config.text}
+                  </div>
+                )}
+                {config.imageUrl && (
+                  <img
+                    src={config.imageUrl}
+                    alt={config.altText || 'Vista previa'}
+                    className="block w-full h-auto max-h-[40vh] object-contain bg-white"
+                  />
+                )}
+                {config.text && (config.textPosition ?? 'below') === 'below' && (
+                  <div
+                    className="px-5 pt-3 pb-5"
+                    style={{
+                      fontFamily:
+                        config.textFontFamily === 'serif' ? 'Georgia, serif' :
+                        config.textFontFamily === 'mono' ? 'ui-monospace, monospace' :
+                        config.textFontFamily === 'display' ? '"Playfair Display", Georgia, serif' :
+                        'ui-sans-serif, system-ui, sans-serif',
+                      fontSize: `${config.textFontSize ?? 16}px`,
+                      fontWeight: config.textBold ? 700 : 400,
+                      fontStyle: config.textItalic ? 'italic' : 'normal',
+                      color: config.textColor ?? '#0f172a',
+                      textAlign: (config.textAlign ?? 'center') as React.CSSProperties['textAlign'],
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {config.text}
+                  </div>
+                )}
+                {!config.imageUrl && !config.text && (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Sin contenido todavía.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
