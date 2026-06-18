@@ -171,6 +171,22 @@ export interface PopupConfig {
   durationSeconds: number;
   widthPx: number;
   altText?: string;
+  /** Optional caption text shown together with the image inside the popup card. */
+  text?: string;
+  /** Caption font size in pixels (12–48). */
+  textFontSize?: number;
+  /** Font family preset for the caption. */
+  textFontFamily?: 'sans' | 'serif' | 'mono' | 'display';
+  /** Bold weight toggle for the caption. */
+  textBold?: boolean;
+  /** Italic toggle for the caption. */
+  textItalic?: boolean;
+  /** Hex color for the caption text. */
+  textColor?: string;
+  /** Horizontal text alignment. */
+  textAlign?: 'left' | 'center' | 'right';
+  /** Whether the caption sits above or below the image inside the popup card. */
+  textPosition?: 'above' | 'below';
 }
 
 /** Full server response for site config */
