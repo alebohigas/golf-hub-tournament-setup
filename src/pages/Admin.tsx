@@ -20,6 +20,7 @@ import AdminSponsors from '@/components/admin/AdminSponsors';
 import AdminPagina from '@/components/admin/AdminPagina';
 import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
+import AdminPremios from '@/components/admin/AdminPremios';
 import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
@@ -342,6 +343,7 @@ const AdminDashboard = () => {
             { value: 'convocatoria', icon: FileText,        label: 'Convocatoria' },
             { value: 'eventos',      icon: CalendarDays,    label: 'Eventos' },
             { value: 'avisos',       icon: Bell,            label: 'Avisos' },
+            { value: 'premios',      icon: Trophy,          label: 'Premios' },
             { value: 'popup',        icon: MonitorPlay,     label: 'POP' },
             { value: 'live',         icon: Radio,           label: 'Live' },
             { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
@@ -514,6 +516,11 @@ const AdminDashboard = () => {
         {/* Avisos Tab — controls Avisos page poster grid layout (desktop & mobile) */}
         <TabsContent value="avisos">
           <AdminAvisos />
+        </TabsContent>
+
+        {/* Premios Tab — manages Premios page poster grid (uploads + layout). */}
+        <TabsContent value="premios">
+          <AdminPremios />
         </TabsContent>
 
         {/* POP UP Tab — site-wide popup overlay (image + target pages + duration). */}

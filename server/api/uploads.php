@@ -58,6 +58,12 @@ $SECTION_RULES = [
         'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
         'kind'  => 'imagen',
     ],
+    'premios' => [
+        // Premios poster grid (mirrors eventos/avisos behavior). Image-only.
+        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
+        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
+        'kind'  => 'imagen',
+    ],
     'convocatoria' => [
         // Convocatoria mixes a poster gallery (images) with the official
         // tournament PDF — both upload through the same section so admins
