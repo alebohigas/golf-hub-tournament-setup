@@ -31,24 +31,8 @@ import ServiciosSection from '@/components/convocatoria/ServiciosSection';
 import PatrocinadoresOficialesSection from '@/components/convocatoria/PatrocinadoresOficialesSection';
 import CalendarioJuegoSection from '@/components/convocatoria/CalendarioJuegoSection';
 
-// Data
-import {
-  eligibilityText,
-  notesText,
-  inscripcionesText,
-  sociosPricing,
-  foraneosPricing,
-  pricingNote,
-  contactInfo,
-  contactWarning,
-  convocatoriaDescripcion,
-  premiacionData,
-  desempatesData,
-  reglasData,
-  competenciasEspecialesData,
-  serviciosHorariosData,
-  patrocinadoresOficialesData,
-} from '@/data/mockData';
+// Shared types (no runtime mock fallbacks — Convocatoria is strictly DB-backed
+// per torneoid via the `convocatoria_content` MySQL table).
 import type {
   PremioCategoria,
   ReglaItem,
@@ -56,6 +40,9 @@ import type {
   ServicioDia,
   PatrocinadorOficial,
   DesempatesData,
+  PricingTable,
+  ForaneosPricing,
+  ContactInfo,
 } from '@/data/mockData';
 import { useCalendarioData } from '@/hooks/useCalendarioData';
 import { useHorariosData } from '@/hooks/useHorariosData';
@@ -92,85 +79,68 @@ const formatDate = (start: string, end: string) => {
 
 /**
  * Map section ID to its component.
- * `dbRow` (optional) overrides mockData when a DB-backed row exists
- * for the active tournament in `convocatoria_content`.
+ *
+ * STRICT DB-ONLY POLICY:
+ * Every items/text-based section receives ONLY the DB payload (or empty
+ * value). We intentionally do NOT fall back to mockData — leaking another
+ * tournament's seeded content across torneos has caused real bugs
+ * (e.g. torneoid=346 showing 354's "Patrocinadores Oficiales").
+ * Each Section component already returns null when its data is empty,
+ * so the page naturally hides sections with nothing to show.
  */
 const renderSection = (sectionId: string, dbRow?: ConvocatoriaContentRow) => {
-  /** Pick DB content when present, fall back to provided mock value. */
-  const pick = <T,>(dbValue: unknown, fallback: T): T =>
-    dbValue !== undefined && dbValue !== null ? (dbValue as T) : fallback;
   /** Shorthand: DB content payload (already parsed JSON). */
   const c = dbRow?.content as any;
 
   switch (sectionId) {
     case 'descripcion':
-      return (
-        <DescripcionSection
-          descripcion={pick<string>(c?.text, convocatoriaDescripcion)}
-        />
-      );
+      return <DescripcionSection descripcion={(c?.text as string) ?? ''} />;
     case 'elegibilidad':
       return (
         <ElegibilidadSection
-          eligibilityText={pick<string>(c?.eligibilityText, eligibilityText)}
-          notesText={pick<string[]>(c?.notesText, notesText)}
-          inscripcionesText={pick<string>(c?.inscripcionesText, inscripcionesText)}
+          eligibilityText={(c?.eligibilityText as string) ?? ''}
+          notesText={(c?.notesText as string[]) ?? []}
+          inscripcionesText={(c?.inscripcionesText as string) ?? ''}
         />
       );
     case 'costos':
       return (
         <CostosSection
-          sociosPricing={pick(c?.sociosPricing, sociosPricing)}
-          foraneosPricing={pick(c?.foraneosPricing, foraneosPricing)}
-          pricingNote={pick<string>(c?.pricingNote, pricingNote)}
-          contactInfo={pick(c?.contactInfo, contactInfo)}
-          contactWarning={pick<string>(c?.contactWarning, contactWarning)}
-          inscripcionesText={pick<string>(c?.inscripcionesText, inscripcionesText)}
+          sociosPricing={(c?.sociosPricing as PricingTable[]) ?? []}
+          foraneosPricing={(c?.foraneosPricing as ForaneosPricing[]) ?? []}
+          pricingNote={(c?.pricingNote as string) ?? ''}
+          contactInfo={
+            (c?.contactInfo as ContactInfo) ?? {
+              bankName: '', clabe: '', cuenta: '', nombre: '',
+              email: '', telefono: '', telefonoDirecto: '',
+            }
+          }
+          contactWarning={(c?.contactWarning as string) ?? ''}
+          inscripcionesText={(c?.inscripcionesText as string) ?? ''}
         />
       );
     case 'categorias':
       return <CategoriasSection />;
     case 'premiacion':
-      return (
-        <PremiacionSection
-          data={pick<PremioCategoria[]>(c?.items, premiacionData)}
-        />
-      );
+      return <PremiacionSection data={(c?.items as PremioCategoria[]) ?? []} />;
     case 'desempates':
       return (
         <DesempatesSection
-          data={pick<DesempatesData>(c, desempatesData)}
+          data={(c as DesempatesData) ?? { intro: '', paraCorte: [], paraTrofeos: [] }}
         />
       );
     case 'reglas':
-      return (
-        <ReglasSection data={pick<ReglaItem[]>(c?.items, reglasData)} />
-      );
+      return <ReglasSection data={(c?.items as ReglaItem[]) ?? []} />;
     case 'competencias':
-      return (
-        <CompetenciasEspecialesSection
-          data={pick<CompetenciaEspecial[]>(c?.items, competenciasEspecialesData)}
-        />
-      );
+      return <CompetenciasEspecialesSection data={(c?.items as CompetenciaEspecial[]) ?? []} />;
     case 'servicios':
-      return (
-        <ServiciosSection
-          data={pick<ServicioDia[]>(c?.items, serviciosHorariosData)}
-        />
-      );
+      return <ServiciosSection data={(c?.items as ServicioDia[]) ?? []} />;
     case 'calendarioJuego':
       return <CalendarioJuegoSection />;
     case 'patrocinadoresOficiales':
       return (
         <PatrocinadoresOficialesSection
-          /**
-           * Patrocinadores Oficiales is strictly DB-backed per tournament.
-           * We intentionally do NOT fall back to mock data, because the mock
-           * belongs to a specific tournament (354) and would leak into other
-           * torneos (e.g. 346) that simply have no sponsors configured.
-           * If there are no DB items, render nothing (component returns null).
-           */
-          data={(c?.items as PatrocinadorOficial[] | undefined) ?? []}
+          data={(c?.items as PatrocinadorOficial[]) ?? []}
         />
       );
     default:
@@ -217,52 +187,32 @@ const Convocatoria = () => {
    * otherwise falls back to the legacy mockData presence check.
    */
   const sectionHasContent = (id: string): boolean => {
+    // API-driven sections: presence is decided by their own data sources,
+    // not by `convocatoria_content`.
+    if (id === 'categorias') return true;
+    if (id === 'calendarioJuego') return hasCalendarioJuego;
+
+    // DB-only sections: render only when there is an enabled DB row
+    // with non-empty content for the active torneoid. No mock fallback.
     const dbRow = dbContent.get(id);
-    if (dbRow) {
-      // DB row explicitly disabled -> hide.
-      if (!dbRow.enabled) return false;
-      // DB row present + enabled -> render (let component decide on empty content).
-      // Calendario still depends on derived data, fall through.
-      if (id !== 'calendarioJuego') return true;
+    if (!dbRow || !dbRow.enabled) return false;
+    const c = dbRow.content as any;
+    if (c === null || c === undefined) return false;
+    if (Array.isArray(c)) return c.length > 0;
+    if (typeof c === 'object') {
+      // Items-based payload ({ items: [...] }) -> require at least one item.
+      if (Array.isArray(c.items)) return c.items.length > 0;
+      // Otherwise: render if any field is non-empty.
+      return Object.values(c).some((v) =>
+        typeof v === 'string'
+          ? v.trim() !== ''
+          : Array.isArray(v)
+            ? v.length > 0
+            : v != null
+      );
     }
-    switch (id) {
-      case 'descripcion':
-        return !!convocatoriaDescripcion && convocatoriaDescripcion.trim() !== '';
-      case 'elegibilidad':
-        return (
-          (!!eligibilityText && eligibilityText.trim() !== '') ||
-          (notesText && notesText.length > 0) ||
-          (!!inscripcionesText && inscripcionesText.trim() !== '')
-        );
-      case 'costos':
-        return (
-          (sociosPricing && sociosPricing.length > 0) ||
-          (foraneosPricing && foraneosPricing.length > 0) ||
-          !!(contactInfo && (contactInfo.clabe || contactInfo.cuenta))
-        );
-      case 'categorias':
-        // Driven by API; assume present (CategoryTable shows its own empty state).
-        return true;
-      case 'premiacion':
-        return premiacionData && premiacionData.length > 0;
-      case 'desempates':
-        return !!desempatesData && (
-          (desempatesData.paraCorte?.length ?? 0) > 0 ||
-          (desempatesData.paraTrofeos?.length ?? 0) > 0
-        );
-      case 'reglas':
-        return reglasData && reglasData.length > 0;
-      case 'competencias':
-        return competenciasEspecialesData && competenciasEspecialesData.length > 0;
-      case 'servicios':
-        return serviciosHorariosData && serviciosHorariosData.length > 0;
-      case 'calendarioJuego':
-        return hasCalendarioJuego;
-      case 'patrocinadoresOficiales':
-        return patrocinadoresOficialesData && patrocinadoresOficialesData.length > 0;
-      default:
-        return true;
-    }
+    if (typeof c === 'string') return c.trim() !== '';
+    return true;
   };
 
   /** Enabled sections, additionally filtered by content presence. */
