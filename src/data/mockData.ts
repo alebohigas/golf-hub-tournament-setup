@@ -164,9 +164,13 @@ export const premiosText = "";
 /** Eventos adicionales */
 export const eventosAdicionalesText = "";
 
-/** Inscripciones text — 56° Atlas Country Club 2026 */
-export const inscripcionesText: string =
-  "Cuota de recuperación: $19,950.00. Cierre de inscripciones: 8 de Julio 2026 a las 18:00 hrs (o antes si se completa el cupo). Inscripciones en https://torneoscountry.atlas.com.mx . Información general: https://anualgolf.atlas.com.mx . WhatsApp: 33 2257 1913.";
+/**
+ * Inscripciones text default.
+ * NOTE: Atlas-specific content (torneoid=354) is provided via the
+ * `convocatoria_content` table — keep this empty so other tournaments
+ * do not inherit Atlas data.
+ */
+export const inscripcionesText: string = "";
 
 export interface PricingTier {
   categoria: string;
@@ -184,16 +188,12 @@ export interface PricingTable {
   tiers: PricingTier[];
 }
 
-/** Pricing — 56° Torneo Anual Atlas Country Club 2026. Cuota única de recuperación. */
-export const sociosPricing: PricingTable[] = [
-  {
-    title: 'Costo de Inscripción',
-    subtitle: 'Cuota única. Incluye kit de regalos y cortesías para ingresar a los eventos sociales. Acceso a rondas de práctica ilimitadas a partir del 12 de Julio de 2026 (previa reservación de tee time).',
-    tiers: [
-      { categoria: 'Cuota de recuperación (todas las categorías)', costo: '$19,950.00', mayo6: '', junio5: '', julio4: '', agosto3: '', sept2: '' },
-    ],
-  },
-];
+/**
+ * Default socios pricing.
+ * Atlas-specific cost table (torneoid=354) lives in `convocatoria_content`.
+ * Keep empty here so it never shows for other torneos as fallback.
+ */
+export const sociosPricing: PricingTable[] = [];
 
 /** Foráneos pricing interface */
 export interface ForaneosPricing {
@@ -216,24 +216,31 @@ export interface ContactInfo {
   telefonoDirecto: string;
 }
 
-/** Pricing note — Atlas Country Club 2026 */
-export const pricingNote =
-  "Todos los participantes deberán inscribirse en la página web de registro https://torneoscountry.atlas.com.mx, con su INDEX vigente, número de GHIN, datos de su tarjeta de crédito y datos de su invitación. Sin este proceso no será válida su inscripción. Recibirá un correo de confirmación; revise también la bandeja de spam. Si su pago se realiza posterior a la fecha de anuncio de lleno, no será válida su inscripción.";
+/**
+ * Pricing note default — empty so non-Atlas torneos don't inherit
+ * Atlas instructions. Atlas content lives in convocatoria_content (354).
+ */
+export const pricingNote = "";
 
-/** Contact / banking info — Atlas Country Club */
+/**
+ * Default contact info — empty so non-Atlas torneos don't show
+ * Atlas phone/data. Tournament-specific overrides live in convocatoria_content.
+ */
 export const contactInfo: ContactInfo = {
   bankName: '',
   clabe: '',
   cuenta: '',
-  nombre: 'Atlas Country Club',
+  nombre: '',
   email: '',
-  telefono: '33 2257 1913',
+  telefono: '',
   telefonoDirecto: '',
 };
 
-/** Contact warning — Atlas Country Club 2026 */
-export const contactWarning =
-  "Si después de inscribirse no recibe correo de confirmación, favor de enviar un mensaje por WhatsApp al 33 2257 1913.";
+/**
+ * Default contact warning — empty so non-Atlas torneos don't show
+ * Atlas WhatsApp instructions. Overrides live in convocatoria_content (354).
+ */
+export const contactWarning = "";
 
 /** Día de práctica */
 export const diaDePracticaText = "";
