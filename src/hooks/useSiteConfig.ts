@@ -148,6 +148,31 @@ export interface StatsConfig {
   maxCategories?: number | null;
 }
 
+/**
+ * PopupConfig
+ * -----------------------------------------------------------------------
+ * Site-wide POP UP overlay configuration set from Admin > POP tab.
+ * The overlay renders once per page load on any route listed in `paths`,
+ * centered over a darkened backdrop, with a close button. When
+ * `durationSeconds > 0`, it auto-dismisses after that many seconds.
+ *  - enabled:         master on/off switch.
+ *  - imageUrl:        absolute or app-relative URL of the popup image.
+ *  - paths:           list of route pathnames where the popup is shown.
+ *                     Use ['*'] (or empty) to show on every page.
+ *  - durationSeconds: auto-close delay in seconds (0 = stay until X click).
+ *  - widthPx:         rendered max-width in pixels (image scales to fit,
+ *                     clamped by the viewport on small screens).
+ *  - altText:         accessible alt text for the popup image.
+ */
+export interface PopupConfig {
+  enabled: boolean;
+  imageUrl: string;
+  paths: string[];
+  durationSeconds: number;
+  widthPx: number;
+  altText?: string;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -162,6 +187,7 @@ export interface SiteConfig {
   avisos_config: AvisosConfig | null;
   theme_config: ThemeConfig | null;
   stats_config: StatsConfig | null;
+  popup_config: PopupConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -178,6 +204,7 @@ export interface SaveConfigPayload {
   avisos_config?: AvisosConfig | null;
   theme_config?: ThemeConfig | null;
   stats_config?: StatsConfig | null;
+  popup_config?: PopupConfig | null;
 }
 
 // ============= Constants =============
