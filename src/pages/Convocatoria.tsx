@@ -163,7 +163,14 @@ const renderSection = (sectionId: string, dbRow?: ConvocatoriaContentRow) => {
     case 'patrocinadoresOficiales':
       return (
         <PatrocinadoresOficialesSection
-          data={pick<PatrocinadorOficial[]>(c?.items, patrocinadoresOficialesData)}
+          /**
+           * Patrocinadores Oficiales is strictly DB-backed per tournament.
+           * We intentionally do NOT fall back to mock data, because the mock
+           * belongs to a specific tournament (354) and would leak into other
+           * torneos (e.g. 346) that simply have no sponsors configured.
+           * If there are no DB items, render nothing (component returns null).
+           */
+          data={(c?.items as PatrocinadorOficial[] | undefined) ?? []}
         />
       );
     default:
