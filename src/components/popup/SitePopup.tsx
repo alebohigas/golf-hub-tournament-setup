@@ -34,9 +34,12 @@ const SitePopup = () => {
     return popup.paths.includes(location.pathname);
   })();
 
-  const isActive = Boolean(
-    popup && popup.enabled && popup.imageUrl && matchesRoute
+  // Active if there's an image OR caption text — either alone is enough
+  // for a meaningful pop-up.
+  const hasContent = Boolean(
+    popup && (popup.imageUrl || (popup.text && popup.text.trim().length > 0))
   );
+  const isActive = Boolean(popup && popup.enabled && hasContent && matchesRoute);
 
   // Re-open on route change so visitors see it at the start of every
   // matching page. Reset open state whenever the active route changes.
