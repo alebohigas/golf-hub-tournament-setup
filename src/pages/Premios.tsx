@@ -14,6 +14,7 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import PremiosPostersSection, { PREMIOS_POSTERS } from '@/components/premios/PremiosPostersSection';
 import { useUploadsList } from '@/hooks/useUploads';
+import premiosHero from '@/assets/premios-hero.jpg';
 
 const Premios = () => {
   // Show the posters section as long as either build-time fallback assets
@@ -27,7 +28,9 @@ const Premios = () => {
     <Layout>
       <PageHero
         title="Premios"
-        subtitle="Reconocimientos y premiación del torneo"
+        subtitle="Conoce los premios del torneo: rifas, hoyo en uno, ganadores de putt, drive de distancia y los primeros lugares de cada categoría."
+        backgroundImage={premiosHero}
+        backgroundPosition="center 55%"
       />
 
       {/* Poster grid + lightbox (mirrors Eventos / Avisos visual style). */}
@@ -41,8 +44,10 @@ const Premios = () => {
               Próximamente
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Aún no hay premios publicados para este torneo. Vuelve pronto
-              para consultar trofeos, reconocimientos y premios especiales.
+              Aún no hay premios publicados para este torneo. Aquí verás los
+              premios de rifas, hoyo en uno, los reconocimientos al putt y al
+              drive de mayor distancia, y los trofeos para los primeros lugares
+              de cada competición.
             </p>
           </div>
         </section>
