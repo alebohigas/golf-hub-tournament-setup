@@ -27,6 +27,7 @@ import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminStats from '@/components/admin/AdminStats';
+import AdminPopup from '@/components/admin/AdminPopup';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -53,6 +54,7 @@ import {
   Trophy,
   ListChecks,
   BarChart3,
+  MonitorPlay,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -313,52 +315,62 @@ const AdminDashboard = () => {
 
       {/* Tabs for different admin sections */}
       <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-12">
-          <TabsTrigger value="config" className="gap-2">
+        {/*
+          Admin tab strip — split across two wrapping rows so 13+ tabs no
+          longer cram into a single 12-column grid. `flex flex-wrap` lets
+          each row reflow naturally per breakpoint; `h-auto` overrides the
+          shadcn default fixed height. Every trigger carries an icon.
+        */}
+        <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
+          <TabsTrigger value="config" className="gap-2 flex-1 min-w-[120px]">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
           </TabsTrigger>
-          <TabsTrigger value="archivos" className="gap-2">
+          <TabsTrigger value="archivos" className="gap-2 flex-1 min-w-[120px]">
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">Archivos</span>
           </TabsTrigger>
-          <TabsTrigger value="pagina" className="gap-2">
+          <TabsTrigger value="pagina" className="gap-2 flex-1 min-w-[120px]">
             <LayoutPanelTop className="h-4 w-4" />
             <span className="hidden sm:inline">Página</span>
           </TabsTrigger>
-          <TabsTrigger value="convocatoria" className="gap-2">
+          <TabsTrigger value="convocatoria" className="gap-2 flex-1 min-w-[120px]">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Convocatoria</span>
           </TabsTrigger>
-          <TabsTrigger value="eventos" className="gap-2">
+          <TabsTrigger value="eventos" className="gap-2 flex-1 min-w-[120px]">
             <CalendarDays className="h-4 w-4" />
             <span className="hidden sm:inline">Eventos</span>
           </TabsTrigger>
-          <TabsTrigger value="avisos" className="gap-2">
+          <TabsTrigger value="avisos" className="gap-2 flex-1 min-w-[120px]">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Avisos</span>
           </TabsTrigger>
-          <TabsTrigger value="live" className="gap-2">
+          <TabsTrigger value="popup" className="gap-2 flex-1 min-w-[120px]">
+            <MonitorPlay className="h-4 w-4" />
+            <span className="hidden sm:inline">POP</span>
+          </TabsTrigger>
+          <TabsTrigger value="live" className="gap-2 flex-1 min-w-[120px]">
             <Radio className="h-4 w-4" />
             <span className="hidden sm:inline">Live</span>
           </TabsTrigger>
-          <TabsTrigger value="sponsors" className="gap-2">
+          <TabsTrigger value="sponsors" className="gap-2 flex-1 min-w-[120px]">
             <ImageIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Patrocinadores</span>
           </TabsTrigger>
-          <TabsTrigger value="registro" className="gap-2">
+          <TabsTrigger value="registro" className="gap-2 flex-1 min-w-[120px]">
             <ClipboardList className="h-4 w-4" />
             <span className="hidden sm:inline">Pre-Registro</span>
           </TabsTrigger>
-          <TabsTrigger value="registros" className="gap-2">
+          <TabsTrigger value="registros" className="gap-2 flex-1 min-w-[120px]">
             <ListChecks className="h-4 w-4" />
             <span className="hidden sm:inline">Registros</span>
           </TabsTrigger>
-          <TabsTrigger value="brackets" className="gap-2">
+          <TabsTrigger value="brackets" className="gap-2 flex-1 min-w-[120px]">
             <Trophy className="h-4 w-4" />
             <span className="hidden sm:inline">Brackets Putt</span>
           </TabsTrigger>
-          <TabsTrigger value="stats" className="gap-2">
+          <TabsTrigger value="stats" className="gap-2 flex-1 min-w-[120px]">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Estadísticas</span>
           </TabsTrigger>
@@ -501,6 +513,11 @@ const AdminDashboard = () => {
         {/* Avisos Tab — controls Avisos page poster grid layout (desktop & mobile) */}
         <TabsContent value="avisos">
           <AdminAvisos />
+        </TabsContent>
+
+        {/* POP UP Tab — site-wide popup overlay (image + target pages + duration). */}
+        <TabsContent value="popup">
+          <AdminPopup />
         </TabsContent>
 
         {/* Live Scoring Tab */}
