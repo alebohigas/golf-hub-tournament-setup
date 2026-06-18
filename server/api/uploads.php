@@ -79,6 +79,13 @@ $SECTION_RULES = [
         'mimes' => ['application/pdf'],
         'kind'  => 'PDF',
     ],
+    'popup' => [
+        // Images used by the site-wide POP UP overlay configured from the
+        // Admin > POP tab. Image-only — the overlay never renders PDFs.
+        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
+        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
+        'kind'  => 'imagen',
+    ],
 ];
 
 // ============= Helpers =============
