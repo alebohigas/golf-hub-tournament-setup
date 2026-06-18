@@ -45,6 +45,7 @@ import {
   BookOpen,
   HardDrive,
   Info,
+  Trophy,
 } from 'lucide-react';
 import {
   useUploadsList,
@@ -96,6 +97,15 @@ const SECTIONS: SectionMeta[] = [
     Icon: Bell,
     description:
       'Imágenes para el grid de Avisos (clima, costos, comunicados). Mismo formato y reglas de orden que Eventos.',
+    accept: 'image/webp,image/jpeg,image/png,image/gif',
+    kind: 'image',
+  },
+  {
+    id: 'premios',
+    label: 'Premios',
+    Icon: Trophy,
+    description:
+      'Imágenes que aparecen en el grid de pósters de la página Premios. Súbelas con prefijos numéricos (01-, 02-...) para controlar el orden.',
     accept: 'image/webp,image/jpeg,image/png,image/gif',
     kind: 'image',
   },
