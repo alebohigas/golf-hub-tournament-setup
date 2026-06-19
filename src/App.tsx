@@ -34,6 +34,7 @@ import Registro from "./pages/Registro";
 import AdminRegistros from "./pages/AdminRegistros";
 import Comprobante from "./pages/Comprobante";
 import AdminBracketsPage from "./pages/AdminBracketsPage";
+import Showcase300 from "./pages/Showcase300";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
