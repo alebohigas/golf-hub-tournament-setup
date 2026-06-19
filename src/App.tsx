@@ -120,6 +120,9 @@ const App = () => (
               <Route path="/patrocinadores" element={<ProtectedRoute pageId="patrocinadores"><Patrocinadores /></ProtectedRoute>} />
               <Route path="/reglas" element={<ProtectedRoute pageId="reglas"><Reglas /></ProtectedRoute>} />
               <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
+
+              {/* Standalone Showcase 300 reports (no Layout, auto-refresh 5min) */}
+              <Route path="/showcase/:tipo" element={<Showcase300 />} />
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
