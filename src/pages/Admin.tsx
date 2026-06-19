@@ -27,6 +27,7 @@ import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
+import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminPopup from '@/components/admin/AdminPopup';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
@@ -470,6 +471,9 @@ const AdminDashboard = () => {
 
           {/* Theme palette picker — applies per-domain via site_config.theme_config */}
           <AdminThemePalette />
+
+          {/* Showcase 300 — buttons to open lobby/TV reports in new windows */}
+          <AdminShowcase300 />
         </TabsContent>
 
         {/* Archivos Tab — upload images + PDFs to the server */}
