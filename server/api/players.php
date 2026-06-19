@@ -25,7 +25,7 @@ $sql = "SELECT p.id, p.numjugador,
             SELECT cat.categoria_id, cj.campo as campoid, cat.porcentaje
             FROM categorias cat
             JOIN caljuego cj ON (cat.categoria_id = cj.categoriaid)
-            WHERE cat.categoria_id = '$cid'
+            WHERE cat.categoria_id = '$cid' and campo>0
             LIMIT 1
         ) cat ON (p.categoriaid = cat.categoria_id)
         WHERE p.categoriaid = '$cid' AND p.torneoid = $tid
