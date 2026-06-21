@@ -419,7 +419,13 @@ const Resultados = () => {
                                   </TableCell>
                                   {/* Club Logo */}
                                   <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
-                                    {player.clubLogo ? (
+                                    {/* Parejas: si hay 2 logos, los mostramos lado a lado más pequeños. */}
+                                    {categoryDetail?.isParejas && player.clubLogo2 ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <img src={player.clubLogo} alt="Club 1" className="object-contain" style={{ height: '1.7rem' }} />
+                                        <img src={player.clubLogo2} alt="Club 2" className="object-contain" style={{ height: '1.7rem' }} />
+                                      </div>
+                                    ) : player.clubLogo ? (
                                       <img
                                         src={player.clubLogo}
                                         alt="Club"
@@ -476,12 +482,20 @@ const Resultados = () => {
                                         Cargando tarjeta...
                                       </TableCell>
                                     </TableRow>
+                                  ) : parejaScorecardData && categoryDetail?.isParejas ? (
+                                    <ScorecardParejas
+                                      scorecard={parejaScorecardData}
+                                      pairLabel={player.pairName || player.name}
+                                      roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); setParejaScorecardData(null); }}
+                                      colSpan={totalCols}
+                                    />
                                   ) : scorecardData ? (
                                     <ScorecardRow
                                       scorecard={scorecardData}
                                       playerName={player.name}
                                       roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
-                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); setParejaScorecardData(null); }}
                                       colSpan={totalCols}
                                     />
                                   ) : null
