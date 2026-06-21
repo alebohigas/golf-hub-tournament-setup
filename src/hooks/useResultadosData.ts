@@ -357,10 +357,6 @@ export interface ParejaHoleScore {
   p2Hcp: number;
   /** Neto del equipo (h{n}_a de la tabla tarjetas) */
   neto: number;
-  /** Bola baja seleccionada para el hoyo + qué jugador la aportó (1|2|0). */
-  bolaBaja: { value: number; fromPlayer: 0 | 1 | 2 };
-  /** Suma de scores de ambos jugadores (modo Suma Scores). */
-  suma: number;
 }
 
 /** Respuesta normalizada de /api/tarjeta_parejas.php para el componente. */
@@ -395,8 +391,6 @@ export const fetchParejasScorecardFromApi = async (
   const p2SO = raw.player2?.scoreSO || [];
   const p2Hcp = raw.player2?.hcpStrokes || [];
   const neto = raw.neto || [];
-  const bola = raw.bolaBaja || [];
-  const suma = raw.suma || [];
   for (let i = 0; i < 18; i++) {
     const meta = baseHoles[i] || { hole: i + 1, par: 0, ventaja: 0, yardaje: 0 };
     holes.push({
@@ -409,8 +403,6 @@ export const fetchParejasScorecardFromApi = async (
       p2SO: Number(p2SO[i] ?? 0),
       p2Hcp: Number(p2Hcp[i] ?? 0),
       neto: Number(neto[i] ?? 0),
-      bolaBaja: bola[i] || { value: 0, fromPlayer: 0 },
-      suma: Number(suma[i] ?? 0),
     });
   }
   return {

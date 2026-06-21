@@ -1,14 +1,14 @@
 /**
  * ScorecardParejas Component
- * Tarjeta detallada para torneos de parejas. Renderiza 3 variantes según
- * `estilojuego`:
- *   - Go Go         → tarjeta única (los dos jugadores comparten 1 score por hoyo).
- *   - Bola Baja     → 2 tarjetas + fila resaltada con el mejor score por hoyo.
- *   - Suma Scores   → 2 tarjetas + fila resaltada con la suma de ambos.
+ * Tarjeta detallada para torneos de parejas. Réplica fiel del legacy
+ * (`tarjeta_gogo_handicap.php` y `bola_baja_suma_scores.php`):
+ *   - Go Go                   → Par · Vtja · Gross(j1) · hcp(j1) · Neto.
+ *   - Bola Baja / Suma Scores → Par · Vtja · Gross(j1) · hcp(j1) · Gross(j2) · hcp(j2) · Neto.
+ * La fila "Neto" sale de `tarjetas.h{n}_a` y la BD ya tiene aplicada la
+ * lógica de cada estilojuego (best ball, suma, etc.). No se recalcula nada
+ * aquí — es exactamente lo que el legacy mostraba.
  *
- * Datos vienen de `fetchParejasScorecardFromApi` (server/api/tarjeta_parejas.php),
- * que a su vez es el port a JSON de los PHP legacy `tarjeta_gogo_handicap.php`
- * y `bola_baja_suma_scores.php`.
+ * Datos vienen de `fetchParejasScorecardFromApi` (server/api/tarjeta_parejas.php).
  */
 
 import { TableRow, TableCell } from '@/components/ui/table';
@@ -42,8 +42,13 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
   const back9 = holes.slice(9, 18);
 
   const isGoGo = estilojuego === 'Go Go';
-  const isBolaBaja = estilojuego === 'Bola Baja';
-  const isSuma = estilojuego === 'Suma Scores';
+  /**
+   * Bola Baja y Suma Scores se renderizan idénticos: muestran ambos
+   * jugadores y la fila Neto agregada del equipo. La diferencia entre
+   * estilos vive en la BD (h{n}_a ya viene calculado como best-ball o
+   * suma según corresponda), no en el layout.
+   */
+  const showPartner = !isGoGo;
 
   /** Sub-totales (front/back) sumando una propiedad numérica de los hoyos. */
   const sum = (arr: ParejaHoleScore[], key: keyof ParejaHoleScore) =>
@@ -83,7 +88,7 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             <td className="px-2 py-1 text-center text-muted-foreground">-</td>
           </tr>
 
-          {/* Jugador 1 — siempre visible (Go Go usa una sola tarjeta, así que omitimos j2 abajo) */}
+          {/* Jugador 1 — Gross (siempre visible). En Go Go la etiqueta es genérica "Gross". */}
           <tr>
             <td className="px-2 py-1 font-semibold text-center">
               {isGoGo ? 'Gross' : player1.name.split(' ')[0]}
@@ -105,8 +110,8 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p1Hcp')}</td>
           </tr>
 
-          {/* Jugador 2 — sólo Bola Baja y Suma Scores */}
-          {!isGoGo && (
+          {/* Jugador 2 — sólo Bola Baja / Suma Scores (Go Go omite por replicar legacy). */}
+          {showPartner && (
             <>
               <tr>
                 <td className="px-2 py-1 font-semibold text-center">{player2.name.split(' ')[0]}</td>
@@ -127,45 +132,18 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             </>
           )}
 
-          {/* Bola Baja resaltada — fila destacada con el menor neto entre los dos */}
-          {isBolaBaja && (
-            <tr className="bg-primary/15 ring-1 ring-primary/40">
-              <td className="px-2 py-1 font-bold text-center text-primary">Bola Baja</td>
-              {chunk.map((h) => (
-                <td
-                  key={h.hole}
-                  className="px-2 py-1 text-center font-extrabold text-primary"
-                  title={h.bolaBaja.fromPlayer ? `Jugador ${h.bolaBaja.fromPlayer}` : ''}
-                >
-                  {h.bolaBaja.value || '-'}
-                </td>
-              ))}
-              <td className="px-2 py-1 text-center font-extrabold text-primary">
-                {chunk.reduce((s, h) => s + (h.bolaBaja.value || 0), 0)}
-              </td>
-            </tr>
-          )}
-
-          {/* Suma Scores resaltada */}
-          {isSuma && (
-            <tr className="bg-primary/15 ring-1 ring-primary/40">
-              <td className="px-2 py-1 font-bold text-center text-primary">Suma</td>
-              {chunk.map((h) => (
-                <td key={h.hole} className="px-2 py-1 text-center font-extrabold text-primary">
-                  {h.suma || '-'}
-                </td>
-              ))}
-              <td className="px-2 py-1 text-center font-extrabold text-primary">{sum(chunk, 'suma')}</td>
-            </tr>
-          )}
-
-          {/* Neto del equipo (h{n}_a en tabla tarjetas) — siempre visible */}
-          <tr className="bg-muted/40">
+          {/*
+           * Neto del equipo — h{n}_a en la tabla tarjetas. Esta única fila
+           * representa el resultado final del estilojuego del día (Go Go usa
+           * el handicap personal, Bola Baja toma la mejor, Suma Scores
+           * acumula). Coincide 1:1 con la última fila del PHP legacy.
+           */}
+          <tr className="bg-primary/15 ring-1 ring-primary/40">
             <td className="px-2 py-1 font-semibold text-center text-muted-foreground">Neto</td>
             {chunk.map((h) => (
-              <td key={h.hole} className="px-2 py-1 text-center font-semibold">{h.neto || '-'}</td>
+              <td key={h.hole} className="px-2 py-1 text-center font-extrabold text-primary">{h.neto || '-'}</td>
             ))}
-            <td className="px-2 py-1 text-center font-bold">{sum(chunk, 'neto')}</td>
+            <td className="px-2 py-1 text-center font-extrabold text-primary">{sum(chunk, 'neto')}</td>
           </tr>
         </tbody>
       </table>
