@@ -78,6 +78,14 @@ $SECTION_RULES = [
         'mimes' => ['application/pdf'],
         'kind'  => 'PDF',
     ],
+    'banderas' => [
+        // Banderas (pin sheet) — fallback / scanned copy of the official
+        // pin sheet PDF or image. The page renders a custom visualization
+        // first; uploaded files appear below as a downloadable poster grid.
+        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif', 'pdf'],
+        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
+        'kind'  => 'imagen o PDF',
+    ],
     'pdfs' => [
         // Legacy bucket — still listable/deletable so admins can clean up
         // pre-existing files, but no new uploads are routed here from the UI.
