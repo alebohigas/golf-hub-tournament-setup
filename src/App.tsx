@@ -35,6 +35,7 @@ import AdminRegistros from "./pages/AdminRegistros";
 import Comprobante from "./pages/Comprobante";
 import AdminBracketsPage from "./pages/AdminBracketsPage";
 import Showcase300 from "./pages/Showcase300";
+import Banderas from "./pages/Banderas";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -120,6 +121,7 @@ const App = () => (
               <Route path="/patrocinadores" element={<ProtectedRoute pageId="patrocinadores"><Patrocinadores /></ProtectedRoute>} />
               <Route path="/reglas" element={<ProtectedRoute pageId="reglas"><Reglas /></ProtectedRoute>} />
               <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
+              <Route path="/banderas" element={<ProtectedRoute pageId="banderas"><Banderas /></ProtectedRoute>} />
 
               {/* Standalone Showcase 300 reports (no Layout, auto-refresh 5min) */}
               <Route path="/showcase/:tipo" element={<Showcase300 />} />
