@@ -179,6 +179,40 @@ const GROUPS: Group[] = [
  *  - Celdas con tipografía display + tokens semánticos.
  */
 const CalendarioEventosTable = () => {
+  /**
+   * Fallback de seguridad: si por alguna razón no hay días o grupos
+   * configurados (p. ej. un torneo activó el flag pero aún no tiene
+   * datos), mostramos un mensaje amable en vez de renderizar una
+   * tabla vacía y rota. Las secciones siguientes (Atracciones,
+   * Sociales) en `Eventos.tsx` se renderizan independientemente,
+   * por lo que la página nunca queda vacía por este componente.
+   */
+  const hasData =
+    DAYS.length > 0 &&
+    GROUPS.length > 0 &&
+    GROUPS.some((g) => g.rows.length > 0);
+
+  if (!hasData) {
+    return (
+      <section className="py-12 md:py-16 bg-background">
+        <div className="container mx-auto px-3 md:px-4">
+          <div className="text-center mb-6 md:mb-10">
+            <h2 className="text-2xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+              Calendario de Eventos
+            </h2>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-8 md:p-12 text-center shadow-card">
+            <p className="text-muted-foreground text-sm md:text-base">
+              El calendario matriz aún no está disponible para este torneo.
+              Consulta las secciones siguientes para ver el programa de
+              actividades.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-12 md:py-16 bg-background">
       <div className="container mx-auto px-3 md:px-4">
