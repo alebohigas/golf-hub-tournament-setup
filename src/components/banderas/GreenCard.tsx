@@ -119,8 +119,11 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
         {/* Green surface */}
         <defs>
           <radialGradient id={`green-grad-${hole}`} cx="50%" cy="40%" r="70%">
-            <stop offset="0%" stopColor="hsl(var(--primary) / 0.35)" />
-            <stop offset="100%" stopColor="hsl(var(--primary) / 0.10)" />
+            {/* Brighter, more saturated green fill so the surface reads as
+                a green and not a gray oval. Uses a fixed hue rather than
+                the theme primary to guarantee a clearly "green" look. */}
+            <stop offset="0%" stopColor="hsl(140 55% 70%)" />
+            <stop offset="100%" stopColor="hsl(140 45% 55%)" />
           </radialGradient>
         </defs>
         <ellipse
@@ -129,18 +132,18 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           rx={rx}
           ry={ry}
           fill={`url(#green-grad-${hole})`}
-          stroke="hsl(var(--primary))"
+          stroke="hsl(140 50% 30%)"
           strokeWidth={1.5}
         />
 
         {/* Reference dotted center cross (subtle) */}
         <line
           x1={cx} y1={ovalTop} x2={cx} y2={ovalBottom}
-          stroke="hsl(var(--border))" strokeWidth={0.5} strokeDasharray="2 3"
+          stroke="hsl(140 45% 25% / 0.7)" strokeWidth={1} strokeDasharray="3 3"
         />
         <line
           x1={ovalLeft} y1={cy} x2={ovalRight} y2={cy}
-          stroke="hsl(var(--border))" strokeWidth={0.5} strokeDasharray="2 3"
+          stroke="hsl(140 45% 25% / 0.7)" strokeWidth={1} strokeDasharray="3 3"
         />
 
         {/* Front edge label (where the ball lands) */}
