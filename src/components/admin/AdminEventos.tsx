@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Loader2,
   CalendarDays,
@@ -70,6 +71,7 @@ export const DEFAULT_EVENTOS_CONFIG: EventosConfig = {
   mobileColumns: 2,
   desktopGap: 'md',
   mobileGap: 'sm',
+  showCalendarioMatriz: false,
 };
 
 /**
@@ -402,6 +404,7 @@ const AdminEventos = () => {
       draft.mobileColumns !== savedConfig.mobileColumns ||
       draft.desktopGap !== savedConfig.desktopGap ||
       draft.mobileGap !== savedConfig.mobileGap ||
+      (draft.showCalendarioMatriz ?? false) !== (savedConfig.showCalendarioMatriz ?? false) ||
       !arraysEqual(posterOrder, savedPosterOrder),
     [draft, savedConfig, posterOrder, savedPosterOrder]
   );
@@ -418,6 +421,7 @@ const AdminEventos = () => {
           mobileColumns: draft.mobileColumns,
           desktopGap: draft.desktopGap,
           mobileGap: draft.mobileGap,
+          showCalendarioMatriz: draft.showCalendarioMatriz ?? false,
           posterOrder,
         },
       },
@@ -471,6 +475,30 @@ const AdminEventos = () => {
                 Mobile {savedConfig.mobileColumns}c/{savedConfig.mobileGap}
               </span>
             </p>
+
+            {/* Toggle: matriz "Calendario de Eventos" en /eventos.
+                Esta tabla (días × áreas con sticky headers) es opcional y se
+                activa por torneo desde aquí. Útil para torneos como Terralta
+                que tienen un calendario detallado de actividades. */}
+            <div className="flex items-start justify-between gap-4 p-4 rounded-lg border border-border bg-muted/20">
+              <div className="space-y-1">
+                <Label htmlFor="show-calendario-matriz" className="text-sm font-semibold">
+                  Mostrar matriz "Calendario de Eventos"
+                </Label>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  Activa la tabla con días en columnas y áreas (La Roca, Casa
+                  Club, Golf, Eventos) en filas, con encabezados fijos. Solo
+                  recomendable para torneos con programa estructurado por día.
+                </p>
+              </div>
+              <Switch
+                id="show-calendario-matriz"
+                checked={draft.showCalendarioMatriz ?? false}
+                onCheckedChange={(v) =>
+                  setDraft((d) => ({ ...d, showCalendarioMatriz: v }))
+                }
+              />
+            </div>
 
             {/* Selectors: side-by-side on desktop, stacked on mobile */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-lg border border-border bg-muted/20">

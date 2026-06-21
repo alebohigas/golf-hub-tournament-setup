@@ -78,6 +78,14 @@ export interface EventosConfig {
   desktopGap: EventosGap;
   mobileGap: EventosGap;
   /**
+   * Toggle de visibilidad para la matriz "Calendario de Eventos"
+   * (componente CalendarioEventosTable). Cuando es `true`, la página
+   * /eventos renderiza la tabla con días en columnas + áreas en filas
+   * (sticky headers). Default: `false` — solo torneos que lo hayan
+   * habilitado explícitamente desde /admin lo verán.
+   */
+  showCalendarioMatriz?: boolean;
+  /**
    * Custom poster order shared between desktop and mobile. Stored as a
    * list of zero-based indices into the static poster array defined in
    * the public component. Indices not present in the list fall back to

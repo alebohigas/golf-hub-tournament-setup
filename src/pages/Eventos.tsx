@@ -9,14 +9,7 @@ import PageHero from '@/components/shared/PageHero';
 import AtraccionesSection from '@/components/eventos/AtraccionesSection';
 import SocialesSection from '@/components/eventos/SocialesSection';
 import CalendarioEventosTable from '@/components/eventos/CalendarioEventosTable';
-
-/**
- * Hostnames donde el calendario matriz es válido.
- * Por ahora es exclusivo de Terralta (torneo 349). Si en el futuro
- * otros torneos requieren su propio calendario, conviene mover esta
- * data a la BD y reemplazar este gate por un fetch por torneoid.
- */
-const CALENDARIO_HOSTS = ['terralta.speitour.com.mx'];
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { getEventosSocialesByTorneo } from '@/data/mockData';
 import { useTorneoId } from '@/hooks/useTorneoId';
 // Hero background: terraza de gala con escenario y campo de golf al atardecer.
@@ -36,10 +29,13 @@ const Eventos = () => {
   const hasSociales = eventosSociales.length > 0;
   const hasAnyContent = hasAtracciones || hasSociales;
 
-  // Mostrar la matriz del calendario únicamente en el dominio de Terralta.
-  // `window` no existe en SSR, pero esta app es SPA pura así que es seguro.
-  const host = typeof window !== 'undefined' ? window.location.hostname : '';
-  const showCalendarioMatriz = CALENDARIO_HOSTS.includes(host);
+  // Bandera controlada desde /admin → site_config.eventos_config.showCalendarioMatriz.
+  // Cuando está activa, la página renderiza la matriz visual del calendario
+  // de eventos (días × áreas). Default `false` para no mostrarla en torneos
+  // que aún no la han configurado.
+  const { data: siteConfig } = useSiteConfig();
+  const showCalendarioMatriz =
+    siteConfig?.eventos_config?.showCalendarioMatriz === true;
 
   return (
     <Layout>
