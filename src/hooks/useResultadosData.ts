@@ -336,6 +336,104 @@ export const fetchPlayerScorecardFromApi = async (
 
 // ============= Live Scorecard =============
 
+// ============= Parejas Scorecard =============
+
+/** Estilos de juego de pareja soportados por la tarjeta detallada. */
+export type EstiloJuegoParejas = 'Go Go' | 'Bola Baja' | 'Suma Scores' | 'Personal';
+
+/** Por-hoyo del componente ScorecardParejas. */
+export interface ParejaHoleScore {
+  hole: number;
+  par: number;
+  ventaja: number;
+  yardaje: number;
+  /** Score original del jugador 1 (gross) */
+  p1SO: number;
+  /** Ventajas (hcp strokes) del jugador 1 en el hoyo */
+  p1Hcp: number;
+  /** Score original del jugador 2 (gross) */
+  p2SO: number;
+  /** Ventajas (hcp strokes) del jugador 2 en el hoyo */
+  p2Hcp: number;
+  /** Neto del equipo (h{n}_a de la tabla tarjetas) */
+  neto: number;
+  /** Bola baja seleccionada para el hoyo + qué jugador la aportó (1|2|0). */
+  bolaBaja: { value: number; fromPlayer: 0 | 1 | 2 };
+  /** Suma de scores de ambos jugadores (modo Suma Scores). */
+  suma: number;
+}
+
+/** Respuesta normalizada de /api/tarjeta_parejas.php para el componente. */
+export interface ParejaScorecard {
+  estilojuego: EstiloJuegoParejas;
+  player1: { id: string; name: string; club: string; logo: string };
+  player2: { id: string; name: string; club: string; logo: string };
+  holes: ParejaHoleScore[];
+  fecha: string;
+  campo: string;
+  totals: {
+    pair: { SO: number; SA: number };
+    player1: { SO: number; SA: number };
+    player2: { SO: number; SA: number };
+  };
+}
+
+/**
+ * Descarga la tarjeta detallada de una pareja para un día específico.
+ * Reemplaza `fetchPlayerScorecardFromApi` cuando la categoría es de parejas.
+ */
+export const fetchParejasScorecardFromApi = async (
+  playerId: string,
+  categoryId: string,
+  fecha: string,
+): Promise<ParejaScorecard> => {
+  const raw = await apiFetch<any>(getTarjetaParejasUrl(playerId, categoryId, fecha));
+  const holes: ParejaHoleScore[] = [];
+  const baseHoles = raw.holes || [];
+  const p1SO = raw.player1?.scoreSO || [];
+  const p1Hcp = raw.player1?.hcpStrokes || [];
+  const p2SO = raw.player2?.scoreSO || [];
+  const p2Hcp = raw.player2?.hcpStrokes || [];
+  const neto = raw.neto || [];
+  const bola = raw.bolaBaja || [];
+  const suma = raw.suma || [];
+  for (let i = 0; i < 18; i++) {
+    const meta = baseHoles[i] || { hole: i + 1, par: 0, ventaja: 0, yardaje: 0 };
+    holes.push({
+      hole: meta.hole ?? i + 1,
+      par: meta.par ?? 0,
+      ventaja: meta.ventaja ?? 0,
+      yardaje: meta.yardaje ?? 0,
+      p1SO: Number(p1SO[i] ?? 0),
+      p1Hcp: Number(p1Hcp[i] ?? 0),
+      p2SO: Number(p2SO[i] ?? 0),
+      p2Hcp: Number(p2Hcp[i] ?? 0),
+      neto: Number(neto[i] ?? 0),
+      bolaBaja: bola[i] || { value: 0, fromPlayer: 0 },
+      suma: Number(suma[i] ?? 0),
+    });
+  }
+  return {
+    estilojuego: (raw.estilojuego || 'Personal') as EstiloJuegoParejas,
+    player1: {
+      id: raw.player1?.id || '',
+      name: raw.player1?.name || '',
+      club: raw.player1?.club || '',
+      logo: raw.player1?.logo || '',
+    },
+    player2: {
+      id: raw.player2?.id || '',
+      name: raw.player2?.name || '',
+      club: raw.player2?.club || '',
+      logo: raw.player2?.logo || '',
+    },
+    holes,
+    fecha: raw.fecha || fecha,
+    campo: raw.campo || '',
+    totals: raw.totals || { pair: { SO: 0, SA: 0 }, player1: { SO: 0, SA: 0 }, player2: { SO: 0, SA: 0 } },
+  };
+};
+
 /**
  * Fetch a player's live (real-time) scorecard from live_tarjeta.php
  * Maps the flat response into the same RoundScorecard structure used by Resultados
