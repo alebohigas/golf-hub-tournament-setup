@@ -1,20 +1,29 @@
 /**
  * Banderas (Pin Sheet) Page
  * ---------------------------------------------------------------
- * Public page that shows the official pin sheet uploaded by admins
- * for the current round. Single source of truth: files uploaded
- * through /admin → Archivos → Banderas (`/api/uploads/{domain}/banderas/`).
+ * Página pública que muestra el pin sheet oficial del torneo activo.
+ * Dos fuentes complementarias, ambas ligadas al `torneo_id` activo:
  *
- * No hard-coded data. When there are no uploaded files for the active
- * tournament, the page renders a brief apology so visitors aren't
- * confused by stale information from another round. Admins can also
- * hide the page entirely from /admin → Páginas → Visibilidad.
+ *   1. Datos estructurados — tabla `banderas_pin_sheet` (BD MySQL).
+ *      El admin captura los 18 hoyos desde /admin → Banderas. La
+ *      página los renderiza con la visualización custom (GreenCard).
+ *
+ *   2. Documentos oficiales — archivos subidos por el admin desde
+ *      /admin → Archivos → Banderas (PDF + imágenes). Se muestran
+ *      debajo de la grid como respaldo descargable.
+ *
+ * Si NO hay datos estructurados ni archivos para el torneo activo,
+ * la página muestra un mensaje de disculpa para no confundir a los
+ * jugadores con información de otro torneo. El admin puede ocultar
+ * la ruta entera desde /admin → Páginas → Visibilidad.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
+import { useBanderas } from '@/hooks/useBanderas';
+import GreenCard from '@/components/banderas/GreenCard';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X, FileText, Download, Flag } from 'lucide-react';
@@ -25,15 +34,21 @@ import banderasHero from '@/assets/banderas-hero.jpg';
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 
 const Banderas = () => {
-  // ----- Server-side uploads (PDF + image scans) -----
-  // These are the ONLY source of pin sheet data on this page. No fallback,
-  // no hard-coded sample — if the active tournament hasn't uploaded
-  // anything, the page shows an apology so users aren't misled.
+  // ----- Datos estructurados desde la BD (por torneo) -----
+  const { data: banderasData } = useBanderas();
+  const holes = banderasData?.holes ?? [];
+  const round = banderasData?.round ?? null;
+  const hasHoles = holes.length > 0;
+
+  // ----- Archivos subidos (PDF + escaneos) -----
   const { data: uploads } = useUploadsList('banderas');
   const files: UploadedFile[] = uploads?.files ?? [];
   const pdfs = files.filter((f) => isPdf(f.name));
   const images = files.filter((f) => !isPdf(f.name));
-  const hasContent = pdfs.length > 0 || images.length > 0;
+  const hasFiles = pdfs.length > 0 || images.length > 0;
+
+  /** Si nada hay (ni datos ni archivos) mostramos disculpa. */
+  const hasContent = hasHoles || hasFiles;
 
   // ----- Lightbox state for image gallery -----
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -58,7 +73,11 @@ const Banderas = () => {
     <Layout>
       <PageHero
         title="Posición de Banderas"
-        subtitle="Pin sheet oficial del día — distancias y posición de la bandera por hoyo."
+        subtitle={
+          round?.round_label || round?.round_date
+            ? [round?.round_label, round?.round_date].filter(Boolean).join(' · ')
+            : 'Pin sheet oficial del día — distancias y posición de la bandera por hoyo.'
+        }
         backgroundImage={banderasHero}
         backgroundPosition="center 60%"
       />
@@ -84,8 +103,8 @@ const Banderas = () => {
         </section>
       )}
 
-      {/* ====== Legend (only when there is content) ====== */}
-      {hasContent && (
+      {/* ====== Legend (sólo cuando hay datos estructurados) ====== */}
+      {hasHoles && (
         <section className="bg-muted/40 border-b border-border">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto">
@@ -147,16 +166,29 @@ const Banderas = () => {
         </section>
       )}
 
-      {/* ====== Optional uploaded copies (PDF + scans) ====== */}
-      {hasContent && (
+      {/* ====== Grid de los 18 greens (visualización custom) ====== */}
+      {hasHoles && (
+        <section className="py-12 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {holes.map((h) => (
+                <GreenCard key={h.hole_number} data={h} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ====== Documentos oficiales subidos (PDF + escaneos) ====== */}
+      {hasFiles && (
         <section className="py-12 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-                Pin Sheet Oficial
+                Documento Oficial
               </h2>
               <p className="text-muted-foreground">
-                Documento publicado por el comité del torneo.
+                Versión publicada por el comité del torneo.
               </p>
             </div>
 
