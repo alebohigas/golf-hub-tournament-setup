@@ -122,8 +122,9 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
             {/* Brighter, more saturated green fill so the surface reads as
                 a green and not a gray oval. Uses a fixed hue rather than
                 the theme primary to guarantee a clearly "green" look. */}
-            <stop offset="0%" stopColor="hsl(140 55% 70%)" />
-            <stop offset="100%" stopColor="hsl(140 45% 55%)" />
+            {/* Realistic turf green — deeper, less neon. */}
+            <stop offset="0%" stopColor="hsl(120 35% 48%)" />
+            <stop offset="100%" stopColor="hsl(125 40% 32%)" />
           </radialGradient>
         </defs>
         <ellipse
@@ -132,18 +133,18 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           rx={rx}
           ry={ry}
           fill={`url(#green-grad-${hole})`}
-          stroke="hsl(140 50% 30%)"
+          stroke="hsl(125 45% 22%)"
           strokeWidth={1.5}
         />
 
         {/* Reference dotted center cross (subtle) */}
         <line
           x1={cx} y1={ovalTop} x2={cx} y2={ovalBottom}
-          stroke="hsl(140 45% 25% / 0.7)" strokeWidth={1} strokeDasharray="3 3"
+          stroke="hsl(120 25% 95% / 0.75)" strokeWidth={1} strokeDasharray="3 3"
         />
         <line
           x1={ovalLeft} y1={cy} x2={ovalRight} y2={cy}
-          stroke="hsl(140 45% 25% / 0.7)" strokeWidth={1} strokeDasharray="3 3"
+          stroke="hsl(120 25% 95% / 0.75)" strokeWidth={1} strokeDasharray="3 3"
         />
 
         {/* Front edge label (where the ball lands) */}
