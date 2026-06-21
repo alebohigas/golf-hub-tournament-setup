@@ -1,168 +1,58 @@
-
 ## Objetivo
+Hacer que `/resultados` + clic en `r{n}` repliquen 1:1 el flujo legacy para parejas:
+1. `resultados_jug_parejas.php` → ya portado en `server/api/resultados_parejas.php`. Validar ORDER BY.
+2. `tarjeta_gogo_handicap.php` y `bola_baja_suma_scores.php` → un solo endpoint JSON `tarjeta_parejas.php` que devuelve los **mismos datos crudos** que usa el legacy (sin recomputar nada — la BD ya trae el Neto correcto en `tarjetas.h{n}_a`).
+3. El frontend debe consultar el `estilojuego` **del día específico** antes de pedir la tarjeta y renderizar la variante visual correcta.
 
-Hacer que el sitio detecte automáticamente cuándo una categoría/día es de **parejas** y ajuste 3 vistas:
+## Hallazgos clave del legacy
+- `bola_baja_suma_scores.php` y `tarjeta_gogo_handicap.php` son **casi idénticos**. Única diferencia visual:
+  - **Go Go** → muestra UNA fila de Gross + UNA de hcp (sólo jugador1) + fila Neto.
+  - **Bola Baja / Suma Scores** → muestra DOS filas Gross + DOS hcp (jugador1 y jugador2 con `arsopar`/`arvtjpar`) + fila Neto.
+- En ambos, la fila Neto sale de `h1_a..h18_a` de `tarjetas`. Esa view ya tiene aplicada la lógica de cada estilo. No se debe inventar "bola baja = min(j1,j2)" ni "suma = j1+j2" en el frontend.
+- `estilojuego` se lee de `caljuego` por **fecha+categoría** (no por toda la categoría). Por eso al hacer clic en R1 puede ser Go Go y en R2 Bola Baja.
 
-- **/jugadores**: agrupa parejas por `jugadores.grupoid` (ej. "Grupo C24") ordenadas por HCP asc.
-- **/resultados**: tabla por **grupo** (pareja), no por jugador individual.
-- **Tarjeta detallada**: cambia layout según `caljuego.estilojuego` del día seleccionado:
-  - `Personal` → flujo individual actual (sin cambios).
-  - `Go Go` → 1 sola tarjeta compartida con HCP.
-  - `Bola Baja` → 2 tarjetas; resalta el hoyo con la bola más baja.
-  - `Suma Scores` → 2 tarjetas; total = suma de ambas.
+## Cambios
 
-Torneos individuales puros (todas las categorías con `formato='INDIVIDUAL'`) **no cambian**.
+### Backend
+1. **`server/api/resultados_parejas.php`** — verificar contra legacy:
+   - Quitar prefijos `u.` espurios de `c1..c5` en ORDER BY (legacy usa bare). 
+   - GROSS countback: `(j.cd1+j.cd2+cd3+cd4+cd5)` (mezcla prefijos como en legacy).
+   - Confirmar que `f_torneoso(...) > 0` (no `f_torneosa`).
+   - Confirmar que sólo-Neto excluye `j.campgross=0`.
+2. **`server/api/tarjeta_parejas.php`** — simplificar payload:
+   - **Quitar** `bolaBaja[]` y `suma[]` (legacy no los calcula).
+   - Mantener: `estilojuego`, `player1` (arso/arvtj/arsa), `player2` (arsopar/arvtjpar/arsapar), `holes` (par/ventaja), `neto[]` (h{n}_a), totals.
+   - Asegurar SQL idéntico al legacy: mismo join `v_sal_jug + campos + tarjetas`, mismo select de `h{n}_a`, `arso`, `arsa`, `arvtj` (= `ventajasjug`), `arsopar`, `arvtjpar`, `arsapar`.
 
-## Reglas de detección
+### Frontend
+3. **`src/hooks/useResultadosData.ts`** — exponer helper `fetchEstiloDelDia(catid, fecha)` que llame `caljuego_estilo.php` antes de cargar tarjeta.
+4. **`src/pages/Resultados.tsx`** (handler de clic en `r{n}` para categoría de parejas):
+   - Mapear `r{n}` → `days[n-1]` (fecha).
+   - Llamar `caljuego_estilo.php` para esa fecha → recibir `estilojuego`.
+   - Llamar `tarjeta_parejas.php` con esa fecha.
+   - Pasar `estilojuego` al `ScorecardParejas`.
+5. **`src/components/resultados/ScorecardParejas.tsx`** — rehacer fiel al legacy:
+   - Quitar filas computadas "Bola Baja" / "Suma" — el valor ya está en la fila Neto.
+   - **Go Go**: filas → Par · Vtja · Gross(j1) · hcp(j1) · Neto.
+   - **Bola Baja / Suma Scores**: filas → Par · Vtja · j1 Gross · j1 hcp · j2 Gross · j2 hcp · Neto.
+   - Header conserva chip de `estilojuego` para que el usuario distinga.
+6. **`src/config/api.ts`** — sin cambios (URLs ya existen).
+7. **`src/hooks/useResultadosData.ts`** types: quitar `bolaBaja` y `suma` de `ParejaHoleScore` / `ParejaScorecard`.
 
-| Caso | Comportamiento |
-| --- | --- |
-| `categorias.formato='INDIVIDUAL'` o `caljuego.campo=0` para todos los días | Categoría individual — flujo actual |
-| `categorias.formato='PAREJAS'` y al menos un día con `caljuego.campo>0` | Categoría de parejas — flujo nuevo |
-| Mezcla de categorías INDIVIDUAL + PAREJAS en un mismo torneo | Cada categoría se trata independientemente |
+## Detalles técnicos
+- Endpoint `caljuego_estilo.php` ya existe y devuelve `{estilojuego, formato, campo, isParejas}`. Lo reutilizamos.
+- Los días vienen ordenados (`days[]`) desde `resultados_parejas.php`; el índice 1-based corresponde a `r1..rN`.
+- No se modifica nada del flujo individual — sólo la rama parejas (`isParejas=true`).
 
-`estilojuego` se lee **por día** desde `caljuego.estilojuego`. Una misma categoría puede tener `Go Go` el día 1 y `Bola Baja` el día 2.
+## Archivos a editar
+- `server/api/resultados_parejas.php` (verificación ORDER BY)
+- `server/api/tarjeta_parejas.php` (simplificar — quitar bolaBaja/suma)
+- `src/components/resultados/ScorecardParejas.tsx` (rehacer fiel)
+- `src/hooks/useResultadosData.ts` (helper estilo del día + tipos)
+- `src/pages/Resultados.tsx` (handler clic r{n} → consultar estilo)
 
-## Cambios backend (PHP / `server/api/`)
-
-### 1. `categories.php` (modificado)
-Agregar campo `formato` (ya está) + `isParejas: bool` al payload. Sin cambios SQL mayores.
-
-### 2. `players.php` (modificado)
-Si la categoría es PAREJAS, hace JOIN con `v_jugadores_parejas` y devuelve:
-```json
-{
-  "isParejas": true,
-  "groups": [
-    {
-      "grupoid": "C24",
-      "handicapTotal": 18,
-      "players": [ {jugador1...}, {jugador2...} ]
-    }
-  ]
-}
-```
-Si es INDIVIDUAL devuelve el formato actual sin cambios.
-
-### 3. `resultados_jug.php` (modificado)
-- Detecta si la categoría es PAREJAS.
-- Si es PAREJAS:
-  - Usa `v_jugadores_parejas` para listar grupos.
-  - Reutiliza las queries legacy de `resultados_parejas.php` (ya existe) usando `f_torneosox/sax` y `f_score_dia_sox/sax`.
-  - Devuelve filas con `grupoid`, `name`, `partner`, `r1..rN`, `total`.
-- Si es INDIVIDUAL: sin cambios.
-
-### 4. `caljuego_estilo.php` (NUEVO)
-Pequeño endpoint:
-```
-GET /api/caljuego_estilo.php?catid=X&fecha=YYYY-MM-DD
-→ { estilojuego: "Go Go" | "Bola Baja" | "Suma Scores" | "Personal", formato: "PAREJAS" | "INDIVIDUAL", campo: 1 }
-```
-Usado por el frontend antes de cargar la tarjeta para saber qué layout renderizar.
-
-### 5. `tarjeta_parejas.php` (NUEVO — port a JSON de los 2 PHP)
-Endpoint unificado que reemplaza ambos PHP adjuntos manteniendo las SQL **exactamente** como vienen:
-
-```
-GET /api/tarjeta_parejas.php?jugadorid=X&categoriaid=Y&fecha=Z
-```
-
-Devuelve un único JSON con:
-```json
-{
-  "estilojuego": "Go Go",            // viene de caljuego del día
-  "player1": { "id":..., "name":..., "club":..., "logo":..., "scoreSO":[...], "scoreSA":[...], "ventajas":[...] },
-  "player2": { ... },                // mismo shape (null en Go Go puro si comparten tarjeta)
-  "holes": [ {hole, par, ventaja, yardaje}, ... ],
-  "totals": { p1: {so, sa}, p2: {so, sa}, pair: {so, sa} },
-  "neto": [9 nums para bola baja/go go], // viene de tarjetas.h{n}_a
-  "fecha": "2026-...",
-  "campo": "Nombre Campo",
-  "categoria": "..."
-}
-```
-
-Internamente arma las queries de los 2 PHP (que son casi idénticas — usan `v_sal_jug_par`, `tarjetas`, `hoyosxsalida`, `valorstable`). El frontend decide layout por `estilojuego`.
-
-## Cambios frontend
-
-### 1. `src/data/playersData.ts`
-Tipos nuevos:
-```ts
-export interface PareaGroup { grupoid: string; players: Player[]; handicapTotal: number }
-export interface PlayersResponse {
-  isParejas: boolean;
-  players?: Player[];     // individual
-  groups?: PareaGroup[];  // parejas
-  fechaHandicap: string;
-}
-```
-
-### 2. `src/hooks/usePlayersData.ts`
-`usePlayers` devuelve el shape unificado, pasa `isParejas` y `groups` cuando aplica.
-
-### 3. `src/pages/Jugadores.tsx`
-Si `isParejas`: renderiza una **lista de cards "Grupo C24"** cada una con tabla de 2 jugadores. Sin cambios para individual.
-
-### 4. `src/data/resultadosData.ts`
-Agregar `isParejas`, `pairName`, `partnerName`, `clubLogo2` al `PlayerResult`.
-
-### 5. `src/hooks/useResultadosData.ts`
-Detecta `isParejas` en la respuesta y mapea grupos. `fetchPlayerScorecardFromApi` toma una rama nueva: si parejas, golpea `/api/tarjeta_parejas.php` en vez de `/api/resultados_tarjeta.php`.
-
-### 6. `src/pages/Resultados.tsx`
-- Encabezado de tabla: "Pareja" (en vez de "Jugador") cuando es parejas; columna Club se vuelve dos mini-logos.
-- Posición + medallas iguales.
-- Click en R{n} abre la tarjeta nueva.
-
-### 7. `src/components/resultados/ScorecardParejas.tsx` (NUEVO)
-Componente nuevo que renderiza la tarjeta de parejas con 3 variantes según `estilojuego`:
-
-- **Go Go**: tabla única — filas: Par, Vtja, Gross (compartido), hcp, Neto.
-- **Bola Baja**: filas: Par, Vtja, J1 Gross, J1 hcp, J2 Gross, J2 hcp, **Bola Baja** (resaltada en verde) + Neto.
-- **Suma Scores**: filas: Par, Vtja, J1, hcp1, J2, hcp2, **Suma** (resaltada) + Neto.
-
-Diseño respeta tokens (`bg-primary`, `bg-muted`) — no hardcodear colores estilo bootstrap del PHP original.
-
-El `ScorecardRow` actual se mantiene intacto para individuales. `Resultados.tsx` elige uno u otro según `categoryDetail.isParejas`.
-
-## Detalles técnicos importantes
-
-- **Multi-día con estilos diferentes**: la decisión de qué tarjeta mostrar viene del `estilojuego` del **día** clickeado (no de la categoría). Por eso `tarjeta_parejas.php` lee `caljuego` filtrando por `fecha`.
-- **grupoid**: vive en `jugadores.grupoid` (string libre tipo "C24"). Se muestra literal: `Grupo {grupoid}`.
-- **Cuando un día es `Personal` dentro de una categoría PAREJAS**: la tarjeta de ese día usa el flujo individual (raro pero soportado).
-- **Sin cambios** a `resultados_parejas.php` existente — lo absorberemos como referencia y consolidaremos su lógica en `resultados_jug.php`.
-- Las SQL de los dos PHP adjuntos se copian **textuales** dentro de `tarjeta_parejas.php` con escape via `esc($conn, …)` para evitar inyección.
-
-## Archivos a tocar
-
-**Backend (nuevos):**
-- `server/api/tarjeta_parejas.php`
-- `server/api/caljuego_estilo.php`
-
-**Backend (modificados):**
-- `server/api/categories.php` (agregar `isParejas`)
-- `server/api/players.php` (agregar grupos para parejas)
-- `server/api/resultados_jug.php` (rama parejas)
-
-**Frontend (nuevos):**
-- `src/components/resultados/ScorecardParejas.tsx`
-
-**Frontend (modificados):**
-- `src/config/api.ts` (2 nuevos endpoints)
-- `src/data/playersData.ts` (tipos)
-- `src/hooks/usePlayersData.ts` (parseo)
-- `src/pages/Jugadores.tsx` (render grupos)
-- `src/data/resultadosData.ts` (tipos)
-- `src/hooks/useResultadosData.ts` (parseo + ruteo tarjeta)
-- `src/pages/Resultados.tsx` (header columnas + render parejas + abre tarjeta correcta)
-
-**Total estimado: ~12 archivos, ~1500 LoC nuevas/modificadas.**
-
-## Lo que NO hago en esta pasada
-
-- **`/live`** (live scoring): por ahora se queda como está; pedirías un seguimiento aparte para parejas en LIVE.
-- **Match Play parejas** (`resultados_parejas.php` ya separado): se mantiene su flujo.
-- Admin tooling para `grupoid` o `estilojuego`: ya se administran desde el sistema legacy.
-
-¿Apruebas el plan o quieres ajustar algo (alcance, naming, manejo de día Personal mezclado con día Go Go, etc.) antes de implementar?
+## Validación
+- Probar `/resultados` con torneo 323, cat 6316.
+- Clic en R1 → debe pedir `caljuego_estilo` (fecha 2026-03-13) → recibir "Go Go" → mostrar variante 1-jugador.
+- Clic en R2 → "Bola Baja" → 2 jugadores + Neto.
+- Clic en R3 → "Suma Scores" → 2 jugadores + Neto.
