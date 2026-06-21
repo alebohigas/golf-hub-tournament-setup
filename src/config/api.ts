@@ -291,6 +291,12 @@ export const getRegistroPrecioMatchUrl = (params: {
 export const getCategoriasReglasUrl = (): string =>
   `${API_BASE_URL}/categorias_reglas.php${buildQuery()}`;
 
+// ============= Banderas (Pin Sheet) =============
+
+/** Pin sheet por torneo (lectura pública + POST admin). */
+export const getBanderasUrl = (): string =>
+  `${API_BASE_URL}/banderas.php${buildQuery()}`;
+
 /** Cascading location dropdowns */
 export const getLocationsCountriesUrl = (): string =>
   `${API_BASE_URL}/locations.php?kind=countries`;
