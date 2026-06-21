@@ -112,7 +112,7 @@ const AdminBanderas = () => {
       seen.add(r.hole);
     }
     save.mutate(
-      { torneoid: torneoId, holes: rows, password: 'admin2025' },
+      { torneoid: parseInt(String(torneoId), 10), holes: rows, password: 'admin2025' },
       {
         onSuccess: (json) => {
           toast({ title: 'Guardado', description: `${json.count} hoyos guardados.` });

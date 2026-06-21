@@ -530,6 +530,11 @@ const AdminDashboard = () => {
           <AdminPopup />
         </TabsContent>
 
+        {/* Banderas Tab — pin sheet por hoyo (tabla `banderas`). */}
+        <TabsContent value="banderas">
+          <AdminBanderas />
+        </TabsContent>
+
         {/* Live Scoring Tab */}
         <TabsContent value="live">
           <AdminLiveScoring />
