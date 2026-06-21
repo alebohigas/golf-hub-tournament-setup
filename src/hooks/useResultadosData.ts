@@ -78,72 +78,29 @@ export const useAllResults = () => {
         categories = [...sp, ...mp];
       }
 
-      // Step 2: For each category, fetch NETO results; if gross=1, also fetch GROSS
-      const categoriesWithDetails = await Promise.all(
-        categories.map(async (cat) => {
-          try {
-            // Always fetch NETO (gross=0)
-            const netoResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '0'));
-            const netoDaysLen = Array.isArray(netoResp.days) ? netoResp.days.length : undefined;
-            const netoPlayers = (netoResp.players || []).map((p: any, idx: number) => ({
-              ...mapRoundScores(p),
-              id: p.playerId || String(idx),
-              position: p.position ?? idx + 1,
-              name: p.pairName || p.name || '',
-              club: p.club || '',
-              clubLogo: p.clubLogo || '',
-              clubLogo2: p.clubLogo2 || '',
-              partner: p.partner || '',
-              pairName: p.pairName || '',
-              total: p.total ?? p.totalSA ?? 0,
-              handicapIndex: p.handicapIndex,
-            }));
+      // Step 2: Build navigation metadata only. Do NOT fetch every category's
+      // leaderboard here: legacy loads the category list first, then requests
+      // `/resultados_jug*.php` only after the user opens a category. Prefetching
+      // every detail made `/resultados` look stuck when one heavy query failed.
+      return categories.map((cat) => {
+        const scoringTypes: ResultCategory['scoringTypes'] = [
+          { scoringType: 'NETO', players: [] },
+        ];
 
-            const scoringTypes: Array<{ scoringType: string; players: any[] }> = [
-              { scoringType: 'NETO', players: netoPlayers },
-            ];
+        if (Number(cat.gross) === 1) {
+          scoringTypes.push({ scoringType: 'GROSS', players: [] });
+        }
 
-            // If category has gross enabled, also fetch GROSS results
-            if (cat.gross === 1) {
-              const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
-              const grosDaysLen = Array.isArray(grosResp.days) ? grosResp.days.length : undefined;
-              const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
-                ...mapRoundScores(p),
-                id: p.playerId || String(idx),
-                position: p.position ?? idx + 1,
-                name: p.pairName || p.name || '',
-                club: p.club || '',
-                clubLogo: p.clubLogo || '',
-                clubLogo2: p.clubLogo2 || '',
-                partner: p.partner || '',
-                pairName: p.pairName || '',
-                total: p.total ?? p.totalSO ?? 0,
-                handicapIndex: p.handicapIndex,
-              }));
-              scoringTypes.push({ scoringType: 'GROSS', players: grosPlayers });
-            }
-
-            return {
-              categoryId: cat.categoryId,
-              categoryName: cat.name || '',
-              shortName: cat.shortName || '',
-              isParejas: !!(cat as any).isParejas || (cat as any).format === 'PAREJAS',
-              format: (cat as any).format,
-              scoringTypes,
-            } as ResultCategory;
-          } catch (err) {
-            console.error(`Failed to fetch details for category ${cat.categoryId}:`, err);
-            return {
-              categoryId: cat.categoryId,
-              categoryName: cat.name || '',
-              shortName: cat.shortName || '',
-              scoringTypes: [],
-            } as ResultCategory;
-          }
-        })
-      );
-
-      return categoriesWithDetails;
+        return {
+          categoryId: cat.categoryId,
+          categoryName: cat.name || '',
+          shortName: cat.shortName || '',
+          system: (cat as any).system || '',
+          isParejas: !!(cat as any).isParejas || (cat as any).format === 'PAREJAS',
+          format: (cat as any).format,
+          scoringTypes,
+        } as ResultCategory;
+      });
     },
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
