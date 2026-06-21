@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
+import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, getTarjetaParejasUrl, POLL_ACTIVE } from '@/config/api';
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlayer } from '@/data/resultadosData';
 
 /**
@@ -89,9 +89,12 @@ export const useAllResults = () => {
               ...mapRoundScores(p),
               id: p.playerId || String(idx),
               position: p.position ?? idx + 1,
-              name: p.name || '',
+              name: p.pairName || p.name || '',
               club: p.club || '',
               clubLogo: p.clubLogo || '',
+              clubLogo2: p.clubLogo2 || '',
+              partner: p.partner || '',
+              pairName: p.pairName || '',
               total: p.total ?? p.totalSA ?? 0,
               handicapIndex: p.handicapIndex,
             }));
@@ -108,9 +111,12 @@ export const useAllResults = () => {
                 ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
-                name: p.name || '',
+                name: p.pairName || p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
+                clubLogo2: p.clubLogo2 || '',
+                partner: p.partner || '',
+                pairName: p.pairName || '',
                 total: p.total ?? p.totalSO ?? 0,
                 handicapIndex: p.handicapIndex,
               }));
@@ -121,6 +127,8 @@ export const useAllResults = () => {
               categoryId: cat.categoryId,
               categoryName: cat.name || '',
               shortName: cat.shortName || '',
+              isParejas: !!(cat as any).isParejas || (cat as any).format === 'PAREJAS',
+              format: (cat as any).format,
               scoringTypes,
             } as ResultCategory;
           } catch (err) {
@@ -170,9 +178,12 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
                 ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
-                name: p.name || '',
+                name: p.pairName || p.name || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
+                clubLogo2: p.clubLogo2 || '',
+                partner: p.partner || '',
+                pairName: p.pairName || '',
                 total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
                 // Number of CLOSED scorecards (statlsc=1) — used to compute Stroke diff total.
                 closedRounds: typeof p.closedRounds === 'number' ? p.closedRounds : 0,
@@ -200,6 +211,8 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         categoryName: raw.categoryName || '',
         shortName: raw.shortName || '',
         system: raw.system || '',
+        isParejas: !!raw.isParejas || (raw.format === 'PAREJAS'),
+        format: raw.format,
         days: raw.days || [],
         daysPartial: Array.isArray(raw.daysPartial)
           ? raw.daysPartial.map((v: unknown) => Boolean(v))
