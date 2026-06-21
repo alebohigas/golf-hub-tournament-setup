@@ -119,28 +119,12 @@ foreach ($holesRows as $hr) {
     ];
 }
 
-/** Bola baja por hoyo (mínimo neto entre los dos jugadores) — usado en variante Bola Baja */
-$bolaBaja = [];
-for ($i = 0; $i < 18; $i++) {
-    $n1 = ($arso1[$i] ?? 0) - ($arvtj1[$i] ?? 0);
-    $n2 = ($arso2[$i] ?? 0) - ($arvtj2[$i] ?? 0);
-    // Si alguno no jugó (0) tomamos el otro; si ambos 0, 0
-    if ($arso1[$i] > 0 && $arso2[$i] > 0) {
-        $bolaBaja[] = ['value' => min($n1, $n2), 'fromPlayer' => $n1 <= $n2 ? 1 : 2];
-    } elseif ($arso1[$i] > 0) {
-        $bolaBaja[] = ['value' => $n1, 'fromPlayer' => 1];
-    } elseif ($arso2[$i] > 0) {
-        $bolaBaja[] = ['value' => $n2, 'fromPlayer' => 2];
-    } else {
-        $bolaBaja[] = ['value' => 0, 'fromPlayer' => 0];
-    }
-}
-
-/** Suma por hoyo (variante Suma Scores) */
-$suma = [];
-for ($i = 0; $i < 18; $i++) {
-    $suma[] = (int)$arso1[$i] + (int)$arso2[$i];
-}
+/**
+ * NOTA: el legacy (`tarjeta_gogo_handicap.php` y `bola_baja_suma_scores.php`)
+ * NO calcula "bola baja" ni "suma" en el render. Sólo muestra ambos jugadores
+ * y la fila Neto (h{n}_a). La BD ya aplica la lógica del estilojuego al
+ * generar h{n}_a en `tarjetas`, así que el frontend tampoco recalcula nada.
+ */
 
 // ============= Respuesta =============
 json_response([
@@ -172,10 +156,6 @@ json_response([
     'holes'    => $holes,
     /** Neto del equipo por hoyo (h{n}_a en tarjetas) */
     'neto'     => $neto,
-    /** Bola baja por hoyo (variante Bola Baja) */
-    'bolaBaja' => $bolaBaja,
-    /** Suma por hoyo (variante Suma Scores) */
-    'suma'     => $suma,
     'totals' => [
         'pair' => [
             'SO' => (int)($tarjRow['SO'] ?? 0),

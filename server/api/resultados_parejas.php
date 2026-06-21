@@ -61,8 +61,11 @@ function build_parejas_sql($cid, $sistema, $gross, array $dias, $estatusFilter) 
             $lastDayFn  = "f_score_dia_satblU";
             $cbDir      = "DESC";
         }
-        // countback GROSS usa j.cd1..cd6 (jugadores)
-        $cbCols = "(j.cd1+j.cd2+j.cd3+j.cd4+j.cd5) $cbDir, (j.cd1+j.cd2+j.cd3+j.cd4) $cbDir, (j.cd1+j.cd2+j.cd3) $cbDir, j.cd1 $cbDir";
+        // countback GROSS — legacy usa cd1..cd6 (mayormente sin prefijo j.):
+        //   (j.cd1+j.cd2+cd3+cd4+cd5),(cd1+cd2+cd3+cd4),(cd1+cd2+cd3),cd1
+        // Como `cd*` viven en `jugadores j`, el prefijo es opcional para MySQL,
+        // pero replicamos el patrón legacy literalmente.
+        $cbCols = "(j.cd1+j.cd2+cd3+cd4+cd5) $cbDir, (cd1+cd2+cd3+cd4) $cbDir, (cd1+cd2+cd3) $cbDir, cd1 $cbDir";
     } else {
         if ($isStroke) {
             $totalExpr  = "f_torneosax(a.jugadorid, a.torneoid)";    // neto stroke
@@ -75,8 +78,9 @@ function build_parejas_sql($cid, $sistema, $gross, array $dias, $estatusFilter) 
             $lastDayFn  = "f_score_dia_saxU";
             $cbDir      = "DESC";
         }
-        // countback NETO usa u.c1..c5 (view v_cd_ulttar_sa)
-        $cbCols = "(u.c1+u.c2+u.c3+u.c4+u.c5) $cbDir, (u.c1+u.c2+u.c3+u.c4) $cbDir, (u.c1+u.c2+u.c3) $cbDir, u.c1 $cbDir";
+        // countback NETO — legacy usa bare c1..c5 (vienen de v_cd_ulttar_sa):
+        //   (c1+c2+c3+c4+c5),(c1+c2+c3+c4),(c1+c2+c3),c1
+        $cbCols = "(c1+c2+c3+c4+c5) $cbDir, (c1+c2+c3+c4) $cbDir, (c1+c2+c3) $cbDir, c1 $cbDir";
     }
 
     // Totales SA/SO también se devuelven siempre para que el frontend pueda alternar.
