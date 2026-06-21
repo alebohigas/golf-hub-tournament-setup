@@ -1,32 +1,28 @@
 /**
  * Banderas (Pin Sheet) Page
  * ---------------------------------------------------------------
- * Página pública que muestra el pin sheet oficial del torneo activo.
- * Dos fuentes complementarias, ambas ligadas al `torneo_id` activo:
+ * Public page that visualizes the pin positions for the current
+ * tournament round. Layout:
+ *   1. PageHero with banderas-hero.jpg
+ *   2. Custom 18-hole grid built from `PIN_SHEET_HOLES` (GreenCard.tsx)
+ *   3. Optional gallery of admin-uploaded copies (PDF + scans) coming
+ *      from `/api/uploads/{domain}/banderas/`. PDFs render as a
+ *      downloadable row, images as a thumbnail grid + lightbox — same
+ *      visual treatment used in Eventos / Premios / Avisos.
  *
- *   1. Datos estructurados — tabla `banderas_pin_sheet` (BD MySQL).
- *      El admin captura los 18 hoyos desde /admin → Banderas. La
- *      página los renderiza con la visualización custom (GreenCard).
- *
- *   2. Documentos oficiales — archivos subidos por el admin desde
- *      /admin → Archivos → Banderas (PDF + imágenes). Se muestran
- *      debajo de la grid como respaldo descargable.
- *
- * Si NO hay datos estructurados ni archivos para el torneo activo,
- * la página muestra un mensaje de disculpa para no confundir a los
- * jugadores con información de otro torneo. El admin puede ocultar
- * la ruta entera desde /admin → Páginas → Visibilidad.
+ * Admins manage uploads from /admin → tab "Archivos" → sub-tab
+ * "Banderas".
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
-import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
-import { useBanderas } from '@/hooks/useBanderas';
 import GreenCard from '@/components/banderas/GreenCard';
+import { PIN_SHEET_HOLES, PIN_SHEET_META } from '@/data/banderasData';
+import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, FileText, Download, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, FileText, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import banderasHero from '@/assets/banderas-hero.jpg';
 
@@ -34,21 +30,11 @@ import banderasHero from '@/assets/banderas-hero.jpg';
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 
 const Banderas = () => {
-  // ----- Datos estructurados desde la BD (por torneo) -----
-  const { data: banderasData } = useBanderas();
-  const holes = banderasData?.holes ?? [];
-  const round = banderasData?.round ?? null;
-  const hasHoles = holes.length > 0;
-
-  // ----- Archivos subidos (PDF + escaneos) -----
+  // ----- Server-side uploads (PDF + image scans) -----
   const { data: uploads } = useUploadsList('banderas');
   const files: UploadedFile[] = uploads?.files ?? [];
   const pdfs = files.filter((f) => isPdf(f.name));
   const images = files.filter((f) => !isPdf(f.name));
-  const hasFiles = pdfs.length > 0 || images.length > 0;
-
-  /** Si nada hay (ni datos ni archivos) mostramos disculpa. */
-  const hasContent = hasHoles || hasFiles;
 
   // ----- Lightbox state for image gallery -----
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -72,47 +58,21 @@ const Banderas = () => {
   return (
     <Layout>
       <PageHero
-        title="Posición de Banderas"
-        subtitle={
-          round?.round_label || round?.round_date
-            ? [round?.round_label, round?.round_date].filter(Boolean).join(' · ')
-            : 'Pin sheet oficial del día — distancias y posición de la bandera por hoyo.'
-        }
+        title={PIN_SHEET_META.title}
+        subtitle={`${PIN_SHEET_META.subtitle} · ${PIN_SHEET_META.dateLabel}`}
         backgroundImage={banderasHero}
         backgroundPosition="center 60%"
       />
 
-      {/* ====== Empty state ====== */}
-      {!hasContent && (
-        <section className="py-20 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="max-w-xl mx-auto text-center">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-5">
-                <Flag className="h-7 w-7 text-muted-foreground" />
-              </div>
-              <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-3">
-                Pin sheet no disponible
-              </h2>
-              <p className="text-muted-foreground">
-                Una disculpa — todavía no se ha publicado la posición de banderas
-                para este torneo. En cuanto el comité suba el documento oficial
-                aparecerá aquí automáticamente.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ====== Legend (sólo cuando hay datos estructurados) ====== */}
-      {hasHoles && (
-        <section className="bg-muted/40 border-b border-border">
+      {/* ====== Legend ====== */}
+      <section className="bg-muted/40 border-b border-border">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-1">
-              Cómo leer el pin sheet
+              Cómo leer cada green
             </h2>
             <p className="text-sm text-muted-foreground mb-5">
-              Cada green se muestra visto desde arriba, con el frente del green hacia abajo. Los números significan:
+              Cada tarjeta representa un green visto desde arriba, con el frente abajo. Los números significan:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
@@ -163,32 +123,29 @@ const Banderas = () => {
             </div>
           </div>
         </div>
-        </section>
-      )}
+      </section>
 
-      {/* ====== Grid de los 18 greens (visualización custom) ====== */}
-      {hasHoles && (
-        <section className="py-12 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {holes.map((h) => (
-                <GreenCard key={h.hole_number} data={h} />
-              ))}
-            </div>
+      {/* ====== Custom 18-hole grid ====== */}
+      <section className="py-12 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {PIN_SHEET_HOLES.map((h) => (
+              <GreenCard key={h.hole} data={h} />
+            ))}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {/* ====== Documentos oficiales subidos (PDF + escaneos) ====== */}
-      {hasFiles && (
-        <section className="py-12 bg-background">
+      {/* ====== Optional uploaded copies (PDF + scans) ====== */}
+      {(pdfs.length > 0 || images.length > 0) && (
+        <section className="py-12 bg-muted/30 border-t border-border">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-                Documento Oficial
+                Documentos Oficiales
               </h2>
               <p className="text-muted-foreground">
-                Versión publicada por el comité del torneo.
+                Versiones originales del pin sheet — descarga o consulta.
               </p>
             </div>
 
