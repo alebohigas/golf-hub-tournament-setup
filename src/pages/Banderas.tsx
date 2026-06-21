@@ -1,28 +1,23 @@
 /**
  * Banderas (Pin Sheet) Page
  * ---------------------------------------------------------------
- * Public page that visualizes the pin positions for the current
- * tournament round. Layout:
- *   1. PageHero with banderas-hero.jpg
- *   2. Custom 18-hole grid built from `PIN_SHEET_HOLES` (GreenCard.tsx)
- *   3. Optional gallery of admin-uploaded copies (PDF + scans) coming
- *      from `/api/uploads/{domain}/banderas/`. PDFs render as a
- *      downloadable row, images as a thumbnail grid + lightbox — same
- *      visual treatment used in Eventos / Premios / Avisos.
+ * Public page that shows the official pin sheet uploaded by admins
+ * for the current round. Single source of truth: files uploaded
+ * through /admin → Archivos → Banderas (`/api/uploads/{domain}/banderas/`).
  *
- * Admins manage uploads from /admin → tab "Archivos" → sub-tab
- * "Banderas".
+ * No hard-coded data. When there are no uploaded files for the active
+ * tournament, the page renders a brief apology so visitors aren't
+ * confused by stale information from another round. Admins can also
+ * hide the page entirely from /admin → Páginas → Visibilidad.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
-import GreenCard from '@/components/banderas/GreenCard';
-import { PIN_SHEET_HOLES, PIN_SHEET_META } from '@/data/banderasData';
 import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, FileText, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, FileText, Download, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import banderasHero from '@/assets/banderas-hero.jpg';
 
@@ -31,10 +26,14 @@ const isPdf = (name: string) => /\.pdf$/i.test(name);
 
 const Banderas = () => {
   // ----- Server-side uploads (PDF + image scans) -----
+  // These are the ONLY source of pin sheet data on this page. No fallback,
+  // no hard-coded sample — if the active tournament hasn't uploaded
+  // anything, the page shows an apology so users aren't misled.
   const { data: uploads } = useUploadsList('banderas');
   const files: UploadedFile[] = uploads?.files ?? [];
   const pdfs = files.filter((f) => isPdf(f.name));
   const images = files.filter((f) => !isPdf(f.name));
+  const hasContent = pdfs.length > 0 || images.length > 0;
 
   // ----- Lightbox state for image gallery -----
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -58,21 +57,43 @@ const Banderas = () => {
   return (
     <Layout>
       <PageHero
-        title={PIN_SHEET_META.title}
-        subtitle={`${PIN_SHEET_META.subtitle} · ${PIN_SHEET_META.dateLabel}`}
+        title="Posición de Banderas"
+        subtitle="Pin sheet oficial del día — distancias y posición de la bandera por hoyo."
         backgroundImage={banderasHero}
         backgroundPosition="center 60%"
       />
 
-      {/* ====== Legend ====== */}
-      <section className="bg-muted/40 border-b border-border">
+      {/* ====== Empty state ====== */}
+      {!hasContent && (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="max-w-xl mx-auto text-center">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-5">
+                <Flag className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-3">
+                Pin sheet no disponible
+              </h2>
+              <p className="text-muted-foreground">
+                Una disculpa — todavía no se ha publicado la posición de banderas
+                para este torneo. En cuanto el comité suba el documento oficial
+                aparecerá aquí automáticamente.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ====== Legend (only when there is content) ====== */}
+      {hasContent && (
+        <section className="bg-muted/40 border-b border-border">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-1">
-              Cómo leer cada green
+              Cómo leer el pin sheet
             </h2>
             <p className="text-sm text-muted-foreground mb-5">
-              Cada tarjeta representa un green visto desde arriba, con el frente abajo. Los números significan:
+              Cada green se muestra visto desde arriba, con el frente del green hacia abajo. Los números significan:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
@@ -123,29 +144,19 @@ const Banderas = () => {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* ====== Custom 18-hole grid ====== */}
-      <section className="py-12 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {PIN_SHEET_HOLES.map((h) => (
-              <GreenCard key={h.hole} data={h} />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ====== Optional uploaded copies (PDF + scans) ====== */}
-      {(pdfs.length > 0 || images.length > 0) && (
-        <section className="py-12 bg-muted/30 border-t border-border">
+      {hasContent && (
+        <section className="py-12 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-                Documentos Oficiales
+                Pin Sheet Oficial
               </h2>
               <p className="text-muted-foreground">
-                Versiones originales del pin sheet — descarga o consulta.
+                Documento publicado por el comité del torneo.
               </p>
             </div>
 
