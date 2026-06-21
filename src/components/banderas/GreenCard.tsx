@@ -65,17 +65,19 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
       ? ovalLeft + sideFrac * (ovalRight - ovalLeft)
       : ovalRight - sideFrac * (ovalRight - ovalLeft);
 
-  // ----- Slope styling --------------------------------------------
-  // Positive slope = uphill (green tint); negative = downhill (amber).
-  // Magnitude tints intensity but we keep two tone classes for clarity.
-  const slopeIsPositive = slope > 0;
-  const slopeIsNeutral = slope === 0;
-  const slopeBadgeClass = slopeIsNeutral
+  // ----- Offset badge styling -------------------------------------
+  // The boxed +/- number on the original sheet is the pin offset
+  // relative to the CENTER of the green (positive = past center toward
+  // back, negative = before center toward front). Color-coded for
+  // quick reading; magnitude is shown literally.
+  const offsetIsPositive = slope > 0;
+  const offsetIsNeutral = slope === 0;
+  const badgeClass = offsetIsNeutral
     ? 'bg-muted text-foreground border-border'
-    : slopeIsPositive
+    : offsetIsPositive
     ? 'bg-primary/15 text-primary border-primary/30'
     : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30';
-  const slopeLabel = slope > 0 ? `+${slope}` : `${slope}`;
+  const offsetLabel = slope > 0 ? `+${slope}` : `${slope}`;
 
   return (
     <div
@@ -98,12 +100,12 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
         <div
           className={cn(
             'flex flex-col items-center px-2.5 py-1.5 rounded-lg border text-xs font-mono',
-            slopeBadgeClass,
+            badgeClass,
           )}
-          title="Pendiente del pin (positivo = subida, negativo = bajada)"
+          title="Posición del pin respecto al centro del green (positivo = hacia el fondo, negativo = hacia el frente)"
         >
-          <span className="text-[10px] uppercase tracking-wide opacity-80">Pendiente</span>
-          <span className="text-base font-bold leading-none mt-0.5">{slopeLabel}</span>
+          <span className="text-[10px] uppercase tracking-wide opacity-80">vs Centro</span>
+          <span className="text-base font-bold leading-none mt-0.5">{offsetLabel}</span>
         </div>
       </div>
 
