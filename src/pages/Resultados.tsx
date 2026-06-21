@@ -165,6 +165,7 @@ const Resultados = () => {
   const handleBack = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
+    setParejaScorecardData(null);
     if (selectedScoringType) {
       const cat = categories.find(c => c.categoryId === selectedCategoryId);
       if (cat && cat.scoringTypes.length <= 1) {
