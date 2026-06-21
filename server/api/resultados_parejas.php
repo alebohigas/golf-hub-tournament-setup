@@ -70,10 +70,16 @@ if ($gross != '1') {
 
 if ($gross == '1') {
     $sql .= " ORDER BY f_torneosox(a.jugadorid, a.torneoid) ASC,
-                       u.cd1 ASC, u.cd2 ASC, u.cd3 ASC";
+                       (u.c1+u.c2+u.c3+u.c4+u.c5) ASC,
+                       (u.c1+u.c2+u.c3+u.c4) ASC,
+                       (u.c1+u.c2+u.c3) ASC,
+                       u.c1 ASC";
 } else {
     $sql .= " ORDER BY f_torneosax(a.jugadorid, a.torneoid) ASC,
-                       u.cd1 ASC, u.cd2 ASC, u.cd3 ASC";
+                       (u.c1+u.c2+u.c3+u.c4+u.c5) ASC,
+                       (u.c1+u.c2+u.c3+u.c4) ASC,
+                       (u.c1+u.c2+u.c3) ASC,
+                       u.c1 ASC";
 }
 
 $rows = query_all($conn, $sql);
