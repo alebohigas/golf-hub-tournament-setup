@@ -46,6 +46,7 @@ import {
   HardDrive,
   Info,
   Trophy,
+  Flag,
 } from 'lucide-react';
 import {
   useUploadsList,
@@ -126,6 +127,15 @@ const SECTIONS: SectionMeta[] = [
       'PDF de Reglas y Términos de Competencia. El primer PDF que subas se usará como "Ver Reglas y T. de Competencia" en la página pública (no importa el nombre del archivo).',
     accept: 'application/pdf',
     kind: 'pdf',
+  },
+  {
+    id: 'banderas',
+    label: 'Banderas',
+    Icon: Flag,
+    description:
+      'Pin sheet (posición de banderas) del día. Sube el PDF oficial o imágenes/escaneos como respaldo. La página /banderas muestra primero la visualización custom de los 18 greens y debajo los archivos subidos como galería descargable.',
+    accept: 'image/webp,image/jpeg,image/png,image/gif,application/pdf',
+    kind: 'mixed',
   },
 ];
 
