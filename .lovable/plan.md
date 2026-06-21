@@ -1,122 +1,168 @@
 
 ## Objetivo
 
-1. Eliminar TODO fallback a mock en `/convocatoria` y `/reglas`. Si no hay datos en BD para el `torneoid` activo, la sección/página simplemente no se renderiza.
-2. En `/admin` mostrar un badge por sección: **"BD"** (verde) si hay fila guardada, **"Vacío"** (gris) si no.
-3. Reemplazar el `Textarea` actual del editor por un **editor estructurado con preview en vivo** que reproduce el aspecto visual de cada sección pública, para que el usuario edite manteniendo la estética.
-4. Lo mismo para `/reglas`.
+Hacer que el sitio detecte automáticamente cuándo una categoría/día es de **parejas** y ajuste 3 vistas:
 
----
+- **/jugadores**: agrupa parejas por `jugadores.grupoid` (ej. "Grupo C24") ordenadas por HCP asc.
+- **/resultados**: tabla por **grupo** (pareja), no por jugador individual.
+- **Tarjeta detallada**: cambia layout según `caljuego.estilojuego` del día seleccionado:
+  - `Personal` → flujo individual actual (sin cambios).
+  - `Go Go` → 1 sola tarjeta compartida con HCP.
+  - `Bola Baja` → 2 tarjetas; resalta el hoyo con la bola más baja.
+  - `Suma Scores` → 2 tarjetas; total = suma de ambas.
 
-## Cambios por área
+Torneos individuales puros (todas las categorías con `formato='INDIVIDUAL'`) **no cambian**.
 
-### 1. Eliminar fallbacks (frontend público)
+## Reglas de detección
 
-**`src/pages/Convocatoria.tsx`**
-- Quitar el helper `pick()` y todas las referencias a `*Data` de `mockData`.
-- Pasar directamente `c?.text`, `c?.items`, etc. (o `[]` / `undefined`).
-- Cada `*Section` ya debe manejar "sin datos" devolviendo `null` o un placeholder neutro. Ajustar las que aún esperan props obligatorios.
-- Quitar el `import` de mocks.
+| Caso | Comportamiento |
+| --- | --- |
+| `categorias.formato='INDIVIDUAL'` o `caljuego.campo=0` para todos los días | Categoría individual — flujo actual |
+| `categorias.formato='PAREJAS'` y al menos un día con `caljuego.campo>0` | Categoría de parejas — flujo nuevo |
+| Mezcla de categorías INDIVIDUAL + PAREJAS en un mismo torneo | Cada categoría se trata independientemente |
 
-**`src/pages/Reglas.tsx`** (revisar contenido)
-- Mismo tratamiento: si no hay fila `reglas_content` para el torneo, mostrar estado vacío.
+`estilojuego` se lee **por día** desde `caljuego.estilojuego`. Una misma categoría puede tener `Go Go` el día 1 y `Bola Baja` el día 2.
 
-### 2. Badge BD/Vacío en `/admin`
+## Cambios backend (PHP / `server/api/`)
 
-**`src/components/admin/AdminConvocatoria.tsx`**
-- El hook `useConvocatoriaSections` ya carga las secciones. Añadir info por sección: `hasDbContent: boolean` (basado en si `convocatoria_content` tiene fila para `torneoid + section_id` con `content` no vacío).
-- En cada fila del listado, junto a "Oculta" añadir:
-  - `<Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-300">BD</Badge>` si `hasDbContent`.
-  - `<Badge variant="outline" className="text-muted-foreground">Vacío</Badge>` si no.
+### 1. `categories.php` (modificado)
+Agregar campo `formato` (ya está) + `isParejas: bool` al payload. Sin cambios SQL mayores.
 
-**Hook `useConvocatoriaSections`** (`src/hooks/`)
-- Extender el GET de `/api/convocatoria_content.php?torneoid=...` para devolver, por cada section_id, si existe fila con contenido.
-- Exponer `hasDbContent(sectionId): boolean`.
+### 2. `players.php` (modificado)
+Si la categoría es PAREJAS, hace JOIN con `v_jugadores_parejas` y devuelve:
+```json
+{
+  "isParejas": true,
+  "groups": [
+    {
+      "grupoid": "C24",
+      "handicapTotal": 18,
+      "players": [ {jugador1...}, {jugador2...} ]
+    }
+  ]
+}
+```
+Si es INDIVIDUAL devuelve el formato actual sin cambios.
 
-### 3. Editor estructurado con preview en vivo
+### 3. `resultados_jug.php` (modificado)
+- Detecta si la categoría es PAREJAS.
+- Si es PAREJAS:
+  - Usa `v_jugadores_parejas` para listar grupos.
+  - Reutiliza las queries legacy de `resultados_parejas.php` (ya existe) usando `f_torneosox/sax` y `f_score_dia_sox/sax`.
+  - Devuelve filas con `grupoid`, `name`, `partner`, `r1..rN`, `total`.
+- Si es INDIVIDUAL: sin cambios.
 
-Reemplazar el `Textarea` actual por un componente nuevo:
+### 4. `caljuego_estilo.php` (NUEVO)
+Pequeño endpoint:
+```
+GET /api/caljuego_estilo.php?catid=X&fecha=YYYY-MM-DD
+→ { estilojuego: "Go Go" | "Bola Baja" | "Suma Scores" | "Personal", formato: "PAREJAS" | "INDIVIDUAL", campo: 1 }
+```
+Usado por el frontend antes de cargar la tarjeta para saber qué layout renderizar.
 
-**`src/components/admin/convocatoria/SectionEditor.tsx`**
-- Router por `section.id` → editor específico de cada sección.
-- Layout: dos columnas (form a la izquierda, preview a la derecha en desktop; apilado en mobile).
-- El preview usa el MISMO componente público (`<DescripcionSection/>`, `<PremiacionSection/>`, etc.) alimentado por el state local del form.
+### 5. `tarjeta_parejas.php` (NUEVO — port a JSON de los 2 PHP)
+Endpoint unificado que reemplaza ambos PHP adjuntos manteniendo las SQL **exactamente** como vienen:
 
-**Editores por tipo de sección:**
-- `descripcion`, `inscripciones`, `contacto`, etc. → textarea grande con preview.
-- `premiacion` → repeater de categorías con lista de premios.
-- `reglas` → repeater de `{titulo, contenido}` + sección `reglamento`.
-- `competenciasEspeciales` → repeater.
-- `servicios` → repeater por día.
-- `patrocinadoresOficiales` → repeater `{premio, patrocinador, descripcion}`.
-- `costos` → grid de `sociosPricing` / `foraneosPricing` con notas y contacto.
-- `desempates` → editor de listas.
-- `categorias` / `calendarioJuego` → tabla editable.
-
-Cada editor:
-- Botón **Guardar** que llama a `setSectionContent(id, structuredJson)` (ya existe; ajustar para aceptar objeto y serializar a JSON al persistir).
-- Botón **Limpiar** que elimina la fila de BD (badge vuelve a "Vacío").
-- Indicador "Cambios sin guardar".
-
-### 4. Persistencia backend
-
-**`server/api/convocatoria_content.php`**
-- Asegurar GET y POST/PUT por `torneoid + section_id` con payload `content` JSON.
-- Endpoint DELETE para "Limpiar" (vuelve la sección a Vacío).
-
-**`server/api/reglas_content.php`** (mismo patrón si no existe).
-
-### 5. Reglas página y admin
-
-Replicar 1–4 para `/reglas`:
-- `src/pages/Reglas.tsx` sin fallback.
-- Nuevo `src/components/admin/AdminReglas.tsx` (o reusar `AdminCategoriasReglas.tsx` existente) con el mismo patrón de editor + preview + badge.
-
----
-
-## Detalles técnicos
-
-- **No tocar mockData todavía**: lo dejaremos sin usar en runtime. En una iteración futura se puede borrar.
-- **Tipos compartidos**: mover los tipos `PremioCategoria`, `ReglaItem`, `PatrocinadorOficial`, etc., de `mockData.ts` a `src/types/convocatoria.ts` para que editor y vista pública compartan contrato.
-- **Preview en vivo**: el editor mantiene `draftContent` en `useState`; el preview consume `draftContent` directamente (no espera al guardado). Al guardar, se persiste vía hook.
-- **Validación mínima**: campos requeridos por sección marcados con `*`. Sin validación de schema dura para no bloquear edición.
-
----
-
-## Entregables
-
-```text
-Frontend:
-- src/pages/Convocatoria.tsx              (eliminar fallbacks)
-- src/pages/Reglas.tsx                    (eliminar fallbacks)
-- src/types/convocatoria.ts               (NUEVO – tipos compartidos)
-- src/components/admin/AdminConvocatoria.tsx          (badges + abrir SectionEditor)
-- src/components/admin/AdminReglas.tsx                (NUEVO o refactor)
-- src/components/admin/convocatoria/SectionEditor.tsx (NUEVO – router)
-- src/components/admin/convocatoria/editors/
-    DescripcionEditor.tsx
-    PremiacionEditor.tsx
-    ReglasEditor.tsx
-    PatrocinadoresEditor.tsx
-    CompetenciasEditor.tsx
-    ServiciosEditor.tsx
-    CostosEditor.tsx
-    DesempatesEditor.tsx
-    CategoriasEditor.tsx
-    CalendarioEditor.tsx
-- src/hooks/useConvocatoriaSections.ts    (hasDbContent + clearSection)
-
-Backend:
-- server/api/convocatoria_content.php     (asegurar GET/POST/DELETE)
-- server/api/reglas_content.php           (mismo patrón)
+```
+GET /api/tarjeta_parejas.php?jugadorid=X&categoriaid=Y&fecha=Z
 ```
 
----
+Devuelve un único JSON con:
+```json
+{
+  "estilojuego": "Go Go",            // viene de caljuego del día
+  "player1": { "id":..., "name":..., "club":..., "logo":..., "scoreSO":[...], "scoreSA":[...], "ventajas":[...] },
+  "player2": { ... },                // mismo shape (null en Go Go puro si comparten tarjeta)
+  "holes": [ {hole, par, ventaja, yardaje}, ... ],
+  "totals": { p1: {so, sa}, p2: {so, sa}, pair: {so, sa} },
+  "neto": [9 nums para bola baja/go go], // viene de tarjetas.h{n}_a
+  "fecha": "2026-...",
+  "campo": "Nombre Campo",
+  "categoria": "..."
+}
+```
 
-## Alcance / fuera de alcance
+Internamente arma las queries de los 2 PHP (que son casi idénticas — usan `v_sal_jug_par`, `tarjetas`, `hoyosxsalida`, `valorstable`). El frontend decide layout por `estilojuego`.
 
-- IN: comportamiento descrito arriba para Convocatoria y Reglas.
-- OUT: editor para otras secciones del admin (Eventos, Avisos, Premios) – ya tienen sus propios flujos.
-- OUT: borrado físico de `src/data/mockData.ts` (queda como referencia muerta esta iteración).
+## Cambios frontend
 
-¿Apruebo y construyo, o ajustas algo?
+### 1. `src/data/playersData.ts`
+Tipos nuevos:
+```ts
+export interface PareaGroup { grupoid: string; players: Player[]; handicapTotal: number }
+export interface PlayersResponse {
+  isParejas: boolean;
+  players?: Player[];     // individual
+  groups?: PareaGroup[];  // parejas
+  fechaHandicap: string;
+}
+```
+
+### 2. `src/hooks/usePlayersData.ts`
+`usePlayers` devuelve el shape unificado, pasa `isParejas` y `groups` cuando aplica.
+
+### 3. `src/pages/Jugadores.tsx`
+Si `isParejas`: renderiza una **lista de cards "Grupo C24"** cada una con tabla de 2 jugadores. Sin cambios para individual.
+
+### 4. `src/data/resultadosData.ts`
+Agregar `isParejas`, `pairName`, `partnerName`, `clubLogo2` al `PlayerResult`.
+
+### 5. `src/hooks/useResultadosData.ts`
+Detecta `isParejas` en la respuesta y mapea grupos. `fetchPlayerScorecardFromApi` toma una rama nueva: si parejas, golpea `/api/tarjeta_parejas.php` en vez de `/api/resultados_tarjeta.php`.
+
+### 6. `src/pages/Resultados.tsx`
+- Encabezado de tabla: "Pareja" (en vez de "Jugador") cuando es parejas; columna Club se vuelve dos mini-logos.
+- Posición + medallas iguales.
+- Click en R{n} abre la tarjeta nueva.
+
+### 7. `src/components/resultados/ScorecardParejas.tsx` (NUEVO)
+Componente nuevo que renderiza la tarjeta de parejas con 3 variantes según `estilojuego`:
+
+- **Go Go**: tabla única — filas: Par, Vtja, Gross (compartido), hcp, Neto.
+- **Bola Baja**: filas: Par, Vtja, J1 Gross, J1 hcp, J2 Gross, J2 hcp, **Bola Baja** (resaltada en verde) + Neto.
+- **Suma Scores**: filas: Par, Vtja, J1, hcp1, J2, hcp2, **Suma** (resaltada) + Neto.
+
+Diseño respeta tokens (`bg-primary`, `bg-muted`) — no hardcodear colores estilo bootstrap del PHP original.
+
+El `ScorecardRow` actual se mantiene intacto para individuales. `Resultados.tsx` elige uno u otro según `categoryDetail.isParejas`.
+
+## Detalles técnicos importantes
+
+- **Multi-día con estilos diferentes**: la decisión de qué tarjeta mostrar viene del `estilojuego` del **día** clickeado (no de la categoría). Por eso `tarjeta_parejas.php` lee `caljuego` filtrando por `fecha`.
+- **grupoid**: vive en `jugadores.grupoid` (string libre tipo "C24"). Se muestra literal: `Grupo {grupoid}`.
+- **Cuando un día es `Personal` dentro de una categoría PAREJAS**: la tarjeta de ese día usa el flujo individual (raro pero soportado).
+- **Sin cambios** a `resultados_parejas.php` existente — lo absorberemos como referencia y consolidaremos su lógica en `resultados_jug.php`.
+- Las SQL de los dos PHP adjuntos se copian **textuales** dentro de `tarjeta_parejas.php` con escape via `esc($conn, …)` para evitar inyección.
+
+## Archivos a tocar
+
+**Backend (nuevos):**
+- `server/api/tarjeta_parejas.php`
+- `server/api/caljuego_estilo.php`
+
+**Backend (modificados):**
+- `server/api/categories.php` (agregar `isParejas`)
+- `server/api/players.php` (agregar grupos para parejas)
+- `server/api/resultados_jug.php` (rama parejas)
+
+**Frontend (nuevos):**
+- `src/components/resultados/ScorecardParejas.tsx`
+
+**Frontend (modificados):**
+- `src/config/api.ts` (2 nuevos endpoints)
+- `src/data/playersData.ts` (tipos)
+- `src/hooks/usePlayersData.ts` (parseo)
+- `src/pages/Jugadores.tsx` (render grupos)
+- `src/data/resultadosData.ts` (tipos)
+- `src/hooks/useResultadosData.ts` (parseo + ruteo tarjeta)
+- `src/pages/Resultados.tsx` (header columnas + render parejas + abre tarjeta correcta)
+
+**Total estimado: ~12 archivos, ~1500 LoC nuevas/modificadas.**
+
+## Lo que NO hago en esta pasada
+
+- **`/live`** (live scoring): por ahora se queda como está; pedirías un seguimiento aparte para parejas en LIVE.
+- **Match Play parejas** (`resultados_parejas.php` ya separado): se mantiene su flujo.
+- Admin tooling para `grupoid` o `estilojuego`: ya se administran desde el sistema legacy.
+
+¿Apruebas el plan o quieres ajustar algo (alcance, naming, manejo de día Personal mezclado con día Go Go, etc.) antes de implementar?
