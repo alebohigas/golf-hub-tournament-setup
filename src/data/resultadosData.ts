@@ -48,6 +48,12 @@ export interface PlayerResult {
   club: string;
   /** Club logo URL (proxied via logo.php) */
   clubLogo?: string;
+  /** Segundo logo de club (sólo en torneos de parejas). */
+  clubLogo2?: string;
+  /** Nombre del compañero (sólo en parejas). */
+  partner?: string;
+  /** Nombre formateado "Jugador 1 / Jugador 2" (sólo en parejas). */
+  pairName?: string;
   /** Dynamic round scores keyed as r1, r2, r3, r4... from the API. */
   [roundKey: `r${number}`]: number | undefined;
   total: number;
@@ -91,6 +97,13 @@ export interface ResultCategory {
   categoryId: string;
   categoryName: string;
   shortName: string;
+  /** True cuando la categoría es de parejas (formato='PAREJAS'). El frontend
+   *  usa esto en /resultados para renderizar 2 logos + nombres de pareja, y
+   *  para enrutar el click de R{n} a `tarjeta_parejas.php` en vez de
+   *  `resultados_tarjeta.php`. */
+  isParejas?: boolean;
+  /** Format genérico ('INDIVIDUAL' | 'PAREJAS') del backend. */
+  format?: string;
   /** Default scorecard type for this category (can be overridden per scoring) */
   defaultScorecardType?: ScorecardType;
   /** Scoring system from the API: STROKE PLAY, STABLEFORD, etc. */

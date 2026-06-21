@@ -7,7 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getCategoriesUrl, getPlayersApiUrl, POLL_SLOW } from '@/config/api';
-import type { Player, CategoryDetail } from '@/data/playersData';
+import type { Player, CategoryDetail, ParejaGroup } from '@/data/playersData';
 
 // ============= Types =============
 
@@ -21,8 +21,12 @@ interface PlayersApiResponse {
     hi: string;
     hj: string;
     hn: string;
+    grupoid?: string;
   }[];
   fechaHandicap: string;  // Handicap date for the category (empty or YYYY-MM-DD)
+  /** Bandera de la categoría (formato='PAREJAS'). Si true, el frontend
+   *  agrupa por `grupoid` para mostrar parejas. */
+  isParejas?: boolean;
 }
 
 // ============= Categories =============
@@ -45,10 +49,10 @@ export const useCategories = () => {
  * @param enabled - Whether to enable the query
  */
 export const usePlayers = (catId: string | null, enabled = true) => {
-  return useQuery<{ players: Player[]; fechaHandicap: string }>({
+  return useQuery<{ players: Player[]; fechaHandicap: string; isParejas: boolean; groups: ParejaGroup[] }>({
     queryKey: ['players', catId],
     queryFn: async () => {
-      if (!catId) return { players: [], fechaHandicap: '' };
+      if (!catId) return { players: [], fechaHandicap: '', isParejas: false, groups: [] };
       const data = await apiFetch<PlayersApiResponse>(getPlayersApiUrl(catId));
 
       // Transform API response to Player format and sort alphabetically by first name
@@ -60,9 +64,31 @@ export const usePlayers = (catId: string | null, enabled = true) => {
         handicapJuego: parseFloat(p.hj) || 0,
         handicapNeto: parseFloat(p.hn) || 0,
         categoryId: catId,
+        grupoid: (p.grupoid || '').trim(),
       })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
-      return { players, fechaHandicap: data.fechaHandicap || '' };
+      const isParejas = !!data.isParejas;
+      let groups: ParejaGroup[] = [];
+      if (isParejas) {
+        // Agrupar por grupoid; ordenar grupos por suma de HN ascendente.
+        const byGrupo = new Map<string, Player[]>();
+        players.forEach((pl) => {
+          const key = pl.grupoid || '— Sin grupo —';
+          if (!byGrupo.has(key)) byGrupo.set(key, []);
+          byGrupo.get(key)!.push(pl);
+        });
+        groups = Array.from(byGrupo.entries())
+          .map(([grupoid, pls]) => ({
+            grupoid,
+            handicapTotal: pls.reduce((s, p) => s + (p.handicapNeto || 0), 0),
+            // Dentro del grupo: HCP neto ascendente para que el de menor HN
+            // (el mejor jugador) aparezca arriba.
+            players: [...pls].sort((a, b) => a.handicapNeto - b.handicapNeto),
+          }))
+          .sort((a, b) => a.handicapTotal - b.handicapTotal);
+      }
+
+      return { players, fechaHandicap: data.fechaHandicap || '', isParejas, groups };
     },
     enabled: enabled && !!catId,
     staleTime: POLL_SLOW,
