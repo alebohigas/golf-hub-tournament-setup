@@ -61,11 +61,8 @@ function build_parejas_sql($cid, $sistema, $gross, array $dias, $estatusFilter) 
             $lastDayFn  = "f_score_dia_satblU";
             $cbDir      = "DESC";
         }
-        // countback GROSS — legacy usa cd1..cd6 (mayormente sin prefijo j.):
-        //   (j.cd1+j.cd2+cd3+cd4+cd5),(cd1+cd2+cd3+cd4),(cd1+cd2+cd3),cd1
-        // Como `cd*` viven en `jugadores j`, el prefijo es opcional para MySQL,
-        // pero replicamos el patrón legacy literalmente.
-        $cbCols = "(j.cd1+j.cd2+cd3+cd4+cd5) $cbDir, (cd1+cd2+cd3+cd4) $cbDir, (cd1+cd2+cd3) $cbDir, cd1 $cbDir";
+        // Countback GROSS: proteger NULL para que ORDER BY no rompa empates ni mande filas al fondo.
+        $cbCols = "(COALESCE(j.cd1,0)+COALESCE(j.cd2,0)+COALESCE(j.cd3,0)+COALESCE(j.cd4,0)+COALESCE(j.cd5,0)) $cbDir, (COALESCE(j.cd1,0)+COALESCE(j.cd2,0)+COALESCE(j.cd3,0)+COALESCE(j.cd4,0)) $cbDir, (COALESCE(j.cd1,0)+COALESCE(j.cd2,0)+COALESCE(j.cd3,0)) $cbDir, COALESCE(j.cd1,0) $cbDir";
     } else {
         if ($isStroke) {
             $totalExpr  = "f_torneosax(a.jugadorid, a.torneoid)";    // neto stroke
@@ -78,19 +75,28 @@ function build_parejas_sql($cid, $sistema, $gross, array $dias, $estatusFilter) 
             $lastDayFn  = "f_score_dia_saxU";
             $cbDir      = "DESC";
         }
-        // countback NETO — legacy usa bare c1..c5 (vienen de v_cd_ulttar_sa):
-        //   (c1+c2+c3+c4+c5),(c1+c2+c3+c4),(c1+c2+c3),c1
-        $cbCols = "(c1+c2+c3+c4+c5) $cbDir, (c1+c2+c3+c4) $cbDir, (c1+c2+c3) $cbDir, c1 $cbDir";
+        // Countback NETO: v_cd_ulttar_sa puede venir vacío en parejas; usar COALESCE evita NULL.
+        $cbCols = "(COALESCE(u.c1,0)+COALESCE(u.c2,0)+COALESCE(u.c3,0)+COALESCE(u.c4,0)+COALESCE(u.c5,0)) $cbDir, (COALESCE(u.c1,0)+COALESCE(u.c2,0)+COALESCE(u.c3,0)+COALESCE(u.c4,0)) $cbDir, (COALESCE(u.c1,0)+COALESCE(u.c2,0)+COALESCE(u.c3,0)) $cbDir, COALESCE(u.c1,0) $cbDir";
     }
+
+    // Suma dinámica de los scores por fecha. En algunas categorías de parejas las funciones
+    // acumuladas f_torneo* regresan 0, aunque f_score_dia_* sí trae lo que muestra legacy.
+    $dayScoreExprs = [];
+    foreach ($dias as $fecha) {
+        $dayScoreExprs[] = "$diaFn(a.jugadorid, '$fecha')";
+    }
+    $sumDayScores = !empty($dayScoreExprs) ? '(' . implode(' + ', $dayScoreExprs) . ')' : '0';
+    $resolvedTotalExpr = "IF($totalExpr <> 0, $totalExpr, $sumDayScores)";
+    $hasAnyDayScore = !empty($dayScoreExprs) ? '(' . implode(' <> 0 OR ', $dayScoreExprs) . ' <> 0)' : '1=1';
 
     // Totales SA/SO también se devuelven siempre para que el frontend pueda alternar.
     $sql = "SELECT a.jugadorid, j.numjugador, j2.grupoid AS gpo,
                    CONCAT(j.nombre, ' ', j.apellido) AS jugador,
                    CONCAT(j2.nombre, ' ', j2.apellido) AS jugador2,
                    j.estatus, j.muertesubita,
-                   f_torneosax(a.jugadorid, a.torneoid) AS sa,
+                   IF(f_torneosax(a.jugadorid, a.torneoid) <> 0, f_torneosax(a.jugadorid, a.torneoid), $sumDayScores) AS sa,
                    f_torneosox(a.jugadorid, a.torneoid) AS so,
-                   $totalExpr AS total_main";
+                   $resolvedTotalExpr AS total_main";
     foreach ($dias as $i => $fecha) {
         $sql .= ", $diaFn(a.jugadorid, '$fecha') AS d{$i}";
     }
@@ -98,13 +104,13 @@ function build_parejas_sql($cid, $sistema, $gross, array $dias, $estatusFilter) 
                b.abr, b.logo, b2.logo AS logo2,
                REPLACE(pareja, '|', ' / ') AS pareja
          FROM v_jugadores_parejas a
-         JOIN v_cd_ulttar_sa u   ON (a.jugadorid = u.jugadorid)
+         LEFT JOIN v_cd_ulttar_sa u ON (a.jugadorid = u.jugadorid)
          JOIN jugadores j        ON (a.jugadorid  = j.id)
          JOIN jugadores j2       ON (a.jugadorid2 = j2.id)
          JOIN clubs b            ON (j.clubid  = b.id)
          JOIN clubs b2           ON (j2.clubid = b2.id)
          WHERE j.categoriaid = $cid
-           AND f_torneoso(a.jugadorid, a.torneoid) > 0";
+           AND $hasAnyDayScore";
 
     // Filtro estatus: NORMAL (activos) vs <>'NORMAL' (cortados/abandono/desc).
     if ($estatusFilter === 'NORMAL') {
@@ -120,7 +126,7 @@ function build_parejas_sql($cid, $sistema, $gross, array $dias, $estatusFilter) 
     // ORDER BY legacy completo: total → muerte súbita → último día → countback (→ score último día como cierre).
     $dir = $cbDir;
     $tieLastDay = $lastDayFn . "(a.jugadorid)";
-    $sql .= " ORDER BY j.estatus DESC, $totalExpr $dir, j.muertesubita DESC, $tieLastDay $dir, $cbCols";
+    $sql .= " ORDER BY j.estatus DESC, $resolvedTotalExpr $dir, j.muertesubita DESC, $tieLastDay $dir, $cbCols";
     if (!$isStroke || $gross === '1') {
         // legacy añade un cierre extra con score del día previo
         $sql .= ", $diaFn(a.jugadorid, '$diax') $dir";
