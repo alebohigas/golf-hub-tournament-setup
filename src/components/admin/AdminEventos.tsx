@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Loader2,
   CalendarDays,
@@ -70,6 +71,7 @@ export const DEFAULT_EVENTOS_CONFIG: EventosConfig = {
   mobileColumns: 2,
   desktopGap: 'md',
   mobileGap: 'sm',
+  showCalendarioMatriz: false,
 };
 
 /**
@@ -402,6 +404,7 @@ const AdminEventos = () => {
       draft.mobileColumns !== savedConfig.mobileColumns ||
       draft.desktopGap !== savedConfig.desktopGap ||
       draft.mobileGap !== savedConfig.mobileGap ||
+      (draft.showCalendarioMatriz ?? false) !== (savedConfig.showCalendarioMatriz ?? false) ||
       !arraysEqual(posterOrder, savedPosterOrder),
     [draft, savedConfig, posterOrder, savedPosterOrder]
   );
@@ -418,6 +421,7 @@ const AdminEventos = () => {
           mobileColumns: draft.mobileColumns,
           desktopGap: draft.desktopGap,
           mobileGap: draft.mobileGap,
+          showCalendarioMatriz: draft.showCalendarioMatriz ?? false,
           posterOrder,
         },
       },
