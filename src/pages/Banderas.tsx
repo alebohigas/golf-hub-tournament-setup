@@ -66,50 +66,59 @@ const Banderas = () => {
 
       {/* ====== Legend ====== */}
       <section className="bg-muted/40 border-b border-border">
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary font-bold text-xs">
-                F
-              </span>
-              <div>
-                <p className="font-semibold text-foreground">Frente</p>
-                <p className="text-muted-foreground text-xs">
-                  Pasos desde el borde frontal del green hasta el pin.
-                </p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-1">
+              Cómo leer cada green
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Cada tarjeta representa un green visto desde arriba, con el frente abajo. Los números significan:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                  Depth
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">Profundidad total del green</p>
+                  <p className="text-muted-foreground text-xs">
+                    Distancia completa del frente al fondo del green (en pasos / yardas).
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary font-bold text-xs">
-                I/D
-              </span>
-              <div>
-                <p className="font-semibold text-foreground">Izq / Der</p>
-                <p className="text-muted-foreground text-xs">
-                  Pasos desde el borde lateral más cercano al pin.
-                </p>
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                  ↕
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">Número vertical</p>
+                  <p className="text-muted-foreground text-xs">
+                    Distancia desde el <strong>frente del green</strong> hasta la bandera.
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary font-bold text-xs">
-                D
-              </span>
-              <div>
-                <p className="font-semibold text-foreground">Depth</p>
-                <p className="text-muted-foreground text-xs">
-                  Profundidad total del green: frente → fondo.
-                </p>
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                  ↔
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">Número horizontal</p>
+                  <p className="text-muted-foreground text-xs">
+                    Distancia desde el <strong>lado indicado</strong> (izquierdo o derecho) hasta la bandera.
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary font-bold text-xs">
-                ±
-              </span>
-              <div>
-                <p className="font-semibold text-foreground">Pendiente</p>
-                <p className="text-muted-foreground text-xs">
-                  Inclinación del green en el lugar del pin. Positivo = subida, negativo = bajada.
-                </p>
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                  ±
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">Número en cuadrito (vs Centro)</p>
+                  <p className="text-muted-foreground text-xs">
+                    Posición de la bandera respecto al <strong>centro del green</strong>:
+                    {' '}positivo = hacia el fondo, negativo = hacia el frente.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
