@@ -8,6 +8,7 @@ import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import AtraccionesSection from '@/components/eventos/AtraccionesSection';
 import SocialesSection from '@/components/eventos/SocialesSection';
+import CalendarioEventosTable from '@/components/eventos/CalendarioEventosTable';
 import { getEventosSocialesByTorneo } from '@/data/mockData';
 import { useTorneoId } from '@/hooks/useTorneoId';
 // Hero background: terraza de gala con escenario y campo de golf al atardecer.
@@ -34,6 +35,10 @@ const Eventos = () => {
         subtitle="Programa de actividades del torneo"
         backgroundImage={eventosHero}
       />
+      {/* Matriz interactiva del calendario — encabezado de fechas y
+          columna de áreas con sticky-positioning para una lectura clara
+          en desktop y mobile. */}
+      <CalendarioEventosTable />
       {/* Visual posters of daily attractions (concerts, raffles, food, etc.).
           Hidden automatically when there are no posters configured. */}
       {hasAtracciones && <AtraccionesSection />}
