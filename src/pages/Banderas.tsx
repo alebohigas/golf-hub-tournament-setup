@@ -1,42 +1,44 @@
 /**
  * Banderas (Pin Sheet) Page
  * ---------------------------------------------------------------
- * Public page that visualizes the pin positions for the current
- * tournament round. Layout:
- *   1. PageHero with banderas-hero.jpg
- *   2. Custom 18-hole grid built from `PIN_SHEET_HOLES` (GreenCard.tsx)
- *   3. Optional gallery of admin-uploaded copies (PDF + scans) coming
- *      from `/api/uploads/{domain}/banderas/`. PDFs render as a
- *      downloadable row, images as a thumbnail grid + lightbox — same
- *      visual treatment used in Eventos / Premios / Avisos.
+ * Página pública del pin sheet del torneo activo.
  *
- * Admins manage uploads from /admin → tab "Archivos" → sub-tab
- * "Banderas".
+ *  - Los datos vienen 100% de la BD (tabla `banderas`) vía `useBanderas()`.
+ *  - Si el torneo no tiene filas cargadas, se muestra un mensaje de
+ *    disculpa al jugador (NO valores hardcodeados). El admin puede
+ *    además ocultar la página completa desde /admin → Página.
+ *  - Si hay PDF / imágenes subidas en /admin → Archivos → Banderas, se
+ *    muestran como "Documentos Oficiales" (descarga + lightbox).
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import GreenCard from '@/components/banderas/GreenCard';
-import { PIN_SHEET_HOLES, PIN_SHEET_META } from '@/data/banderasData';
+import { useBanderas } from '@/hooks/useBanderasData';
 import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, FileText, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, FileText, Download, Loader2, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import banderasHero from '@/assets/banderas-hero.jpg';
 
-/** Decide whether an uploaded file is a PDF based on its extension. */
+/** ¿Es un PDF? Decide cómo se renderiza el archivo subido. */
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 
 const Banderas = () => {
-  // ----- Server-side uploads (PDF + image scans) -----
+  // ----- Datos del pin sheet (BD) ----------------------------------
+  const { data: banderasData, isLoading } = useBanderas();
+  const holes = banderasData?.holes ?? [];
+  const hasHoles = holes.length > 0;
+
+  // ----- Archivos subidos (PDF + scans) ----------------------------
   const { data: uploads } = useUploadsList('banderas');
   const files: UploadedFile[] = uploads?.files ?? [];
   const pdfs = files.filter((f) => isPdf(f.name));
   const images = files.filter((f) => !isPdf(f.name));
 
-  // ----- Lightbox state for image gallery -----
+  // ----- Lightbox para galería de imágenes -------------------------
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const goPrev = useCallback(() => {
     setOpenIndex((i) => (i === null ? null : (i - 1 + images.length) % images.length));
@@ -58,85 +60,118 @@ const Banderas = () => {
   return (
     <Layout>
       <PageHero
-        title={PIN_SHEET_META.title}
-        subtitle={`${PIN_SHEET_META.subtitle} · ${PIN_SHEET_META.dateLabel}`}
+        title="Posición de Banderas"
+        subtitle="Pin sheet oficial del torneo"
         backgroundImage={banderasHero}
         backgroundPosition="center 60%"
       />
 
-      {/* ====== Legend ====== */}
-      <section className="bg-muted/40 border-b border-border">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-1">
-              Cómo leer cada green
+      {/* ====== Estado: cargando ====== */}
+      {isLoading && (
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-4 flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            Cargando pin sheet…
+          </div>
+        </section>
+      )}
+
+      {/* ====== Estado: sin datos cargados (mensaje de disculpa) ====== */}
+      {!isLoading && !hasHoles && pdfs.length === 0 && images.length === 0 && (
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-4 max-w-2xl text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Flag className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-3">
+              Pin sheet aún no disponible
             </h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              Cada tarjeta representa un green visto desde arriba, con el frente abajo. Los números significan:
+            <p className="text-muted-foreground">
+              Disculpa las molestias — todavía no hay información de posición de banderas
+              cargada para este torneo. Vuelve a revisar más cerca de la fecha de juego.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
-                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
-                  Depth
-                </span>
-                <div>
-                  <p className="font-semibold text-foreground">Profundidad total del green</p>
-                  <p className="text-muted-foreground text-xs">
-                    Distancia completa del frente al fondo del green (en pasos / yardas).
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
-                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
-                  ↕
-                </span>
-                <div>
-                  <p className="font-semibold text-foreground">Número vertical</p>
-                  <p className="text-muted-foreground text-xs">
-                    Distancia desde el <strong>frente del green</strong> hasta la bandera.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
-                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
-                  ↔
-                </span>
-                <div>
-                  <p className="font-semibold text-foreground">Número horizontal</p>
-                  <p className="text-muted-foreground text-xs">
-                    Distancia desde el <strong>lado indicado</strong> (izquierdo o derecho) hasta la bandera.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
-                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
-                  ±
-                </span>
-                <div>
-                  <p className="font-semibold text-foreground">Número en cuadrito (vs Centro)</p>
-                  <p className="text-muted-foreground text-xs">
-                    Posición de la bandera respecto al <strong>centro del green</strong>:
-                    {' '}positivo = hacia el fondo, negativo = hacia el frente.
-                  </p>
+          </div>
+        </section>
+      )}
+
+      {/* ====== Leyenda + grid de hoyos (sólo si hay datos) ====== */}
+      {!isLoading && hasHoles && (
+        <>
+          {/* ===== Leyenda ===== */}
+          <section className="bg-muted/40 border-b border-border">
+            <div className="container mx-auto px-4 py-8">
+              <div className="max-w-5xl mx-auto">
+                <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-1">
+                  Cómo leer cada green
+                </h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Cada tarjeta representa un green visto desde arriba, con el frente abajo. Los números significan:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                    <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                      Depth
+                    </span>
+                    <div>
+                      <p className="font-semibold text-foreground">Profundidad total del green</p>
+                      <p className="text-muted-foreground text-xs">
+                        Distancia completa del frente al fondo del green (en pasos / yardas).
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                    <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                      ↕
+                    </span>
+                    <div>
+                      <p className="font-semibold text-foreground">Número vertical</p>
+                      <p className="text-muted-foreground text-xs">
+                        Distancia desde el <strong>frente del green</strong> hasta la bandera.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                    <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                      ↔
+                    </span>
+                    <div>
+                      <p className="font-semibold text-foreground">Número horizontal</p>
+                      <p className="text-muted-foreground text-xs">
+                        Distancia desde el <strong>lado indicado</strong> (izquierdo o derecho) hasta la bandera.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                    <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary font-bold text-xs">
+                      ±
+                    </span>
+                    <div>
+                      <p className="font-semibold text-foreground">Número en cuadrito (vs Centro)</p>
+                      <p className="text-muted-foreground text-xs">
+                        Posición de la bandera respecto al <strong>centro del green</strong>:
+                        {' '}positivo = hacia el fondo, negativo = hacia el frente.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* ====== Custom 18-hole grid ====== */}
-      <section className="py-12 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {PIN_SHEET_HOLES.map((h) => (
-              <GreenCard key={h.hole} data={h} />
-            ))}
-          </div>
-        </div>
-      </section>
+          {/* ===== Grid 18 hoyos ===== */}
+          <section className="py-12 bg-background">
+            <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {holes.map((h) => (
+                  <GreenCard key={h.hole} data={h} />
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
-      {/* ====== Optional uploaded copies (PDF + scans) ====== */}
+      {/* ====== Documentos oficiales (PDF / imágenes) ====== */}
       {(pdfs.length > 0 || images.length > 0) && (
         <section className="py-12 bg-muted/30 border-t border-border">
           <div className="container mx-auto px-4">
@@ -149,7 +184,7 @@ const Banderas = () => {
               </p>
             </div>
 
-            {/* PDFs as a list */}
+            {/* PDFs */}
             {pdfs.length > 0 && (
               <ul className="max-w-2xl mx-auto divide-y divide-border rounded-lg border border-border bg-card mb-8">
                 {pdfs.map((p) => (
@@ -167,7 +202,7 @@ const Banderas = () => {
               </ul>
             )}
 
-            {/* Images as a poster grid + lightbox */}
+            {/* Imágenes */}
             {images.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {images.map((img, idx) => (

@@ -30,6 +30,7 @@ import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminPopup from '@/components/admin/AdminPopup';
+import AdminBanderas from '@/components/admin/AdminBanderas';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -57,6 +58,7 @@ import {
   ListChecks,
   BarChart3,
   MonitorPlay,
+  Flag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -346,6 +348,7 @@ const AdminDashboard = () => {
             { value: 'avisos',       icon: Bell,            label: 'Avisos' },
             { value: 'premios',      icon: Trophy,          label: 'Premios' },
             { value: 'popup',        icon: MonitorPlay,     label: 'POP' },
+            { value: 'banderas',     icon: Flag,            label: 'Banderas' },
             { value: 'live',         icon: Radio,           label: 'Live' },
             { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
@@ -525,6 +528,11 @@ const AdminDashboard = () => {
         {/* POP UP Tab — site-wide popup overlay (image + target pages + duration). */}
         <TabsContent value="popup">
           <AdminPopup />
+        </TabsContent>
+
+        {/* Banderas Tab — pin sheet por hoyo (tabla `banderas`). */}
+        <TabsContent value="banderas">
+          <AdminBanderas />
         </TabsContent>
 
         {/* Live Scoring Tab */}
