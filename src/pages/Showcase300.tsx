@@ -21,7 +21,6 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
-import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -35,62 +34,46 @@ import { Loader2 } from 'lucide-react';
 
 // ============= Types =============
 
-/** Single player row inside a prize group returned by the JSON API */
+/** Single player row inside a prize group returned by /api/showcase300.php */
 interface ShowcasePlayer {
   position: number;
-  playerId: string | number;
   name: string;
-  distance: number;
-  hole: number;
   club: string;
   clubLogo: string;
+  hole: number | '';
+  distance: number;
 }
 
-/** Prize group returned by oyes.php / oyesx.php / putt.php */
+/** Prize group returned by /api/showcase300.php */
 interface ShowcasePrize {
-  prizeId: string | number;
   description: string;
-  hole: number;
+  lugares: number;
   lastUpdated: string | null;
   players: ShowcasePlayer[];
 }
 
-/** JSON payload shape returned by all three endpoints */
+/** JSON payload returned by /api/showcase300.php */
 interface ShowcaseResponse {
+  tipo: string;
+  tournament: { name: string; club: string; logo: string };
   prizes: ShowcasePrize[];
 }
 
 // ============= Config =============
 
 /**
- * Map of supported showcase types → endpoint URL builder + display title.
- * Driver and Approach reuse oyesx.php with the `tipo` filter that exists
- * in the backend (see server/api/oyesx.php).
+ * Map of supported showcase types → display title. The backend endpoint
+ * is the same for all five (`/api/showcase300.php?tipo=...`) — it mirrors
+ * the legacy *300.php reports query-for-query and is INTENTIONALLY
+ * separate from /api/oyes.php, /api/oyesx.php and /api/putt.php
+ * (different tables, different join logic).
  */
-const SHOWCASE_CONFIG: Record<
-  string,
-  { title: string; buildUrl: (torneoid: string) => string }
-> = {
-  driver: {
-    title: 'DRIVER',
-    buildUrl: (tid) => `${API_BASE_URL}/oyesx.php?torneoid=${tid}&tipo=driver`,
-  },
-  approach: {
-    title: 'APPROACH',
-    buildUrl: (tid) => `${API_BASE_URL}/oyesx.php?torneoid=${tid}&tipo=approach`,
-  },
-  putt: {
-    title: 'PUTT',
-    buildUrl: (tid) => `${API_BASE_URL}/putt.php?torneoid=${tid}`,
-  },
-  oyes: {
-    title: "O'YES",
-    buildUrl: (tid) => `${API_BASE_URL}/oyes.php?torneoid=${tid}`,
-  },
-  oyesx: {
-    title: 'OYES-X',
-    buildUrl: (tid) => `${API_BASE_URL}/oyesx.php?torneoid=${tid}`,
-  },
+const SHOWCASE_TITLES: Record<string, string> = {
+  driver: 'DRIVES',
+  approach: 'APPROACH',
+  putt: 'PUTT',
+  oyes: "O'YES",
+  oyesx: 'OYES-X',
 };
 
 /** Reload the entire page every 300 seconds (matches PHP meta refresh) */
@@ -105,9 +88,8 @@ const RELOAD_INTERVAL_MS = 300_000;
  */
 const Showcase300 = () => {
   const { tipo } = useParams<{ tipo: string }>();
-  const config = tipo ? SHOWCASE_CONFIG[tipo] : undefined;
+  const title = tipo ? SHOWCASE_TITLES[tipo] : undefined;
   const torneoid = getTorneoId() || '';
-  const { data: tournament } = useTournamentInfo();
 
   // ----- Auto-reload every 300s to mirror legacy <meta refresh="300"> -----
   useEffect(() => {
@@ -120,14 +102,17 @@ const Showcase300 = () => {
   // ----- Fetch the matching prize feed -----
   const { data, isLoading, error } = useQuery<ShowcaseResponse>({
     queryKey: ['showcase300', tipo, torneoid],
-    queryFn: () => apiFetch<ShowcaseResponse>(config!.buildUrl(torneoid)),
-    enabled: !!config && !!torneoid,
+    queryFn: () =>
+      apiFetch<ShowcaseResponse>(
+        `${API_BASE_URL}/showcase300.php?torneoid=${torneoid}&tipo=${tipo}`,
+      ),
+    enabled: !!title && !!torneoid,
     refetchInterval: POLL_ACTIVE,
     staleTime: POLL_ACTIVE,
   });
 
   // ----- Invalid tipo guard -----
-  if (!config) {
+  if (!title) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <p className="text-lg">
@@ -136,6 +121,8 @@ const Showcase300 = () => {
       </div>
     );
   }
+
+  const tournament = data?.tournament;
 
   return (
     <div className="min-h-screen bg-background text-foreground py-6 px-4 md:px-8">
@@ -146,9 +133,9 @@ const Showcase300 = () => {
             {tournament.name}
           </h2>
         )}
-        {tournament?.logoUrl && (
+        {tournament?.logo && (
           <img
-            src={tournament.logoUrl}
+            src={tournament.logo}
             alt={tournament?.name || 'Club logo'}
             className="mx-auto my-3 h-16 object-contain"
           />
@@ -163,7 +150,7 @@ const Showcase300 = () => {
       {/* Section title */}
       <div className="max-w-6xl mx-auto mb-4">
         <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2">
-          {config.title}
+          {title}
         </h1>
       </div>
 
@@ -186,8 +173,8 @@ const Showcase300 = () => {
 
       {/* Prize sections */}
       <div className="max-w-6xl mx-auto space-y-6">
-        {data?.prizes.map((prize) => (
-          <PrizeSection key={String(prize.prizeId)} prize={prize} />
+        {data?.prizes.map((prize, idx) => (
+          <PrizeSection key={`${prize.description}-${idx}`} prize={prize} showHole={tipo === 'oyes'} />
         ))}
       </div>
 
@@ -203,19 +190,28 @@ const Showcase300 = () => {
 
 /**
  * PrizeSection
- * Renders a single prize group (description + hole + winners table).
+ * Renders a single prize group (description + lugares + winners table).
+ * `showHole` is true only for `tipo=oyes`, matching the legacy oyes300
+ * report (driver/approach/putt/oyesx hide the hole column).
  */
-const PrizeSection = ({ prize }: { prize: ShowcasePrize }) => {
+const PrizeSection = ({
+  prize,
+  showHole,
+}: {
+  prize: ShowcasePrize;
+  showHole: boolean;
+}) => {
   return (
     <Card className="overflow-hidden">
       <div className="bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
         <div>
           <h4 className="text-lg font-bold text-foreground">
-            {prize.description}
+            GRUPO: {prize.description}
           </h4>
-          {prize.hole > 0 && (
-            <p className="text-sm text-muted-foreground">Hoyo {prize.hole}</p>
-          )}
+          <p className="text-sm">
+            <span className="text-muted-foreground">Lugares: </span>
+            <span className="font-bold text-primary">{prize.lugares}</span>
+          </p>
         </div>
         {prize.lastUpdated && (
           <span className="text-xs text-muted-foreground">
@@ -229,19 +225,21 @@ const PrizeSection = ({ prize }: { prize: ShowcasePrize }) => {
           <TableHeader>
             <TableRow className="bg-primary hover:bg-primary">
               <TableHead className="text-primary-foreground font-bold w-16 text-center">
-                #
+                Po
+              </TableHead>
+              <TableHead className="text-primary-foreground font-bold w-20 text-center">
+                Club
               </TableHead>
               <TableHead className="text-primary-foreground font-bold">
                 Jugador
               </TableHead>
-              <TableHead className="text-primary-foreground font-bold">
-                Club
-              </TableHead>
-              <TableHead className="text-primary-foreground font-bold text-center w-20">
-                Hoyo
-              </TableHead>
+              {showHole && (
+                <TableHead className="text-primary-foreground font-bold text-center w-20">
+                  Ho
+                </TableHead>
+              )}
               <TableHead className="text-primary-foreground font-bold text-right w-32">
-                Distancia
+                Dist
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -249,34 +247,35 @@ const PrizeSection = ({ prize }: { prize: ShowcasePrize }) => {
             {prize.players.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={showHole ? 5 : 4}
                   className="text-center text-muted-foreground py-6"
                 >
                   Sin ganadores registrados.
                 </TableCell>
               </TableRow>
             ) : (
-              prize.players.map((p) => (
-                <TableRow key={`${prize.prizeId}-${p.playerId}`}>
+              prize.players.map((p, i) => (
+                <TableRow key={`${prize.description}-${p.position}-${i}`}>
                   <TableCell className="text-center font-bold">
                     {p.position}
                   </TableCell>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {p.clubLogo && (
-                        <img
-                          src={p.clubLogo}
-                          alt={p.club}
-                          className="h-6 object-contain"
-                        />
-                      )}
-                      <span>{p.club}</span>
-                    </div>
+                  <TableCell className="text-center">
+                    {p.clubLogo && (
+                      <img
+                        src={p.clubLogo}
+                        alt={p.club || 'Club'}
+                        className="h-6 mx-auto object-contain"
+                      />
+                    )}
                   </TableCell>
-                  <TableCell className="text-center">{p.hole || '-'}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    {p.distance} mts
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  {showHole && (
+                    <TableCell className="text-center font-bold">
+                      {p.hole || ''}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right font-mono font-bold text-primary">
+                    {p.distance}
                   </TableCell>
                 </TableRow>
               ))
