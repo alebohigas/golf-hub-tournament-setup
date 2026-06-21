@@ -30,6 +30,7 @@ import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminPopup from '@/components/admin/AdminPopup';
+import AdminBanderas from '@/components/admin/AdminBanderas';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -57,6 +58,7 @@ import {
   ListChecks,
   BarChart3,
   MonitorPlay,
+  Flag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -352,6 +354,7 @@ const AdminDashboard = () => {
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
+            { value: 'banderas',     icon: Flag,            label: 'Banderas' },
           ];
           // Split: first row = ceil(n/2) so odd counts give the bigger
           // half to the top row, per the design directive.
