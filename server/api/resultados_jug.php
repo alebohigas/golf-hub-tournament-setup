@@ -95,6 +95,18 @@ if (!$catInfo) {
     json_error('Category not found', 404);
 }
 
+/**
+ * Dispatcher: cuando la categoría es de parejas (formato='PAREJAS'), delegamos
+ * a `resultados_parejas.php` que ya implementa la lógica legacy de torneos en
+ * pareja (v_jugadores_parejas, f_torneosax/sox, f_score_dia_sax/sox). El
+ * endpoint devuelve el mismo shape (con `isParejas: true`, `clubLogo2`, etc.)
+ * para que el frontend lo consuma de forma transparente.
+ */
+if (strtoupper($catInfo['formato'] ?? '') === 'PAREJAS') {
+    require __DIR__ . '/resultados_parejas.php';
+    exit;
+}
+
 $sistema = strtoupper($catInfo['sistema']);
 $formato = strtoupper($catInfo['formato']);
 $medalCountNeto  = (int)$catInfo['numganadorneto'];

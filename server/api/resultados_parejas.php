@@ -109,7 +109,15 @@ json_response([
     'shortName'    => $catInfo['abreviatura'],
     'system'       => $catInfo['sistema'],
     'format'       => 'PAREJAS',
+    /** Bandera consumida por el frontend para activar layout/render de parejas */
+    'isParejas'    => true,
     'gross'        => (int)$gross,
     'days'         => array_values($dias),
+    'daysPartial'  => array_fill(0, count($dias), false),
+    'medalCount'      => 3,
+    'medalCountNeto'  => 3,
+    'medalCountGross' => 1,
+    /** Cut players para parejas no soportado todavía — devolver array vacío para compatibilidad. */
+    'cutPlayers'   => [],
     'players'      => $players
 ]);

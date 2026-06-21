@@ -42,7 +42,9 @@ foreach ($rows as $row) {
         'style'       => $row['estilo'],
         'gross'       => (int)$row['gross'],
         'playerCount' => (int)$row['playerCount'],
-        'relatedCat'  => $row['catrel']
+        'relatedCat'  => $row['catrel'],
+        /** Detección de torneo de parejas — la categoría es de parejas cuando formato='PAREJAS'. */
+        'isParejas'   => (strtoupper($row['formato']) === 'PAREJAS')
     ];
 
     if (strtoupper($row['sistema']) === 'MATCH PLAY') {

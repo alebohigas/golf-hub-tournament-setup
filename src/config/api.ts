@@ -297,6 +297,30 @@ export const getCategoriasReglasUrl = (): string =>
 export const getBanderasUrl = (): string =>
   `${API_BASE_URL}/banderas.php${buildQuery()}`;
 
+// ============= Parejas (Tarjetas y Estilo de Juego) =============
+
+/**
+ * Devuelve el estilojuego (Personal | Go Go | Bola Baja | Suma Scores) y el
+ * formato (INDIVIDUAL | PAREJAS) para una categoría en una fecha específica.
+ */
+export const getCaljuegoEstiloUrl = (catId: string, fecha: string): string =>
+  `${API_BASE_URL}/caljuego_estilo.php${buildQuery({ catid: catId, fecha })}`;
+
+/**
+ * Tarjeta detallada de una pareja para un día específico.
+ * Reemplaza a `resultados_tarjeta.php` cuando la categoría es de parejas.
+ */
+export const getTarjetaParejasUrl = (
+  jugadorId: string,
+  categoriaId: string,
+  fecha: string,
+): string =>
+  `${API_BASE_URL}/tarjeta_parejas.php${buildQuery({
+    jugadorid: jugadorId,
+    categoriaid: categoriaId,
+    fecha,
+  })}`;
+
 /** Cascading location dropdowns */
 export const getLocationsCountriesUrl = (): string =>
   `${API_BASE_URL}/locations.php?kind=countries`;

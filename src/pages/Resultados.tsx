@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
 import { useState, Fragment } from 'react';
-import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
+import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi, fetchParejasScorecardFromApi } from '@/hooks/useResultadosData';
+import type { ParejaScorecard } from '@/hooks/useResultadosData';
 import type { 
   ResultCategory, 
   ScoringType, 
@@ -24,6 +25,7 @@ import type {
   CutPlayer,
 } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
+import ScorecardParejas from '@/components/resultados/ScorecardParejas';
 
 // ============= Helper Functions =============
 
@@ -99,6 +101,8 @@ const Resultados = () => {
   /** Track which scorecard is expanded: "playerId-round" */
   const [expandedScorecard, setExpandedScorecard] = useState<string | null>(null);
   const [scorecardData, setScorecardData] = useState<RoundScorecard | null>(null);
+  /** Datos cuando la categoría es de parejas (Go Go / Bola Baja / Suma Scores). */
+  const [parejaScorecardData, setParejaScorecardData] = useState<ParejaScorecard | null>(null);
   const [scorecardLoading, setScorecardLoading] = useState(false);
 
   // Fetch all categories from API
@@ -161,6 +165,7 @@ const Resultados = () => {
   const handleBack = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
+    setParejaScorecardData(null);
     if (selectedScoringType) {
       const cat = categories.find(c => c.categoryId === selectedCategoryId);
       if (cat && cat.scoringTypes.length <= 1) {
@@ -193,6 +198,7 @@ const Resultados = () => {
     if (expandedScorecard === key) {
       setExpandedScorecard(null);
       setScorecardData(null);
+      setParejaScorecardData(null);
       return;
     }
 
@@ -203,26 +209,41 @@ const Resultados = () => {
       console.warn('No date found for round', round, 'days:', days);
       setExpandedScorecard(key);
       setScorecardData(null);
+      setParejaScorecardData(null);
       return;
     }
 
     setExpandedScorecard(key);
     setScorecardData(null);
+    setParejaScorecardData(null);
     setScorecardLoading(true);
 
     try {
-      const scorecard = await fetchPlayerScorecardFromApi(
-        player.id,
-        categoryDetail.categoryId,
-        fecha,
-        categoryDetail.system || '',
-        selectedScoringType || 'NETO',
-        round
-      );
-      setScorecardData(scorecard);
+      // Cuando la categoría es de parejas, golpeamos el endpoint específico
+      // (`tarjeta_parejas.php`) que detecta el estilojuego del día y devuelve
+      // los datos crudos para que ScorecardParejas elija el layout.
+      if (categoryDetail.isParejas) {
+        const pareja = await fetchParejasScorecardFromApi(
+          player.id,
+          categoryDetail.categoryId,
+          fecha,
+        );
+        setParejaScorecardData(pareja);
+      } else {
+        const scorecard = await fetchPlayerScorecardFromApi(
+          player.id,
+          categoryDetail.categoryId,
+          fecha,
+          categoryDetail.system || '',
+          selectedScoringType || 'NETO',
+          round
+        );
+        setScorecardData(scorecard);
+      }
     } catch (err) {
       console.error('Failed to fetch scorecard:', err);
       setScorecardData(null);
+      setParejaScorecardData(null);
     } finally {
       setScorecardLoading(false);
     }
@@ -398,7 +419,13 @@ const Resultados = () => {
                                   </TableCell>
                                   {/* Club Logo */}
                                   <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
-                                    {player.clubLogo ? (
+                                    {/* Parejas: si hay 2 logos, los mostramos lado a lado más pequeños. */}
+                                    {categoryDetail?.isParejas && player.clubLogo2 ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <img src={player.clubLogo} alt="Club 1" className="object-contain" style={{ height: '1.7rem' }} />
+                                        <img src={player.clubLogo2} alt="Club 2" className="object-contain" style={{ height: '1.7rem' }} />
+                                      </div>
+                                    ) : player.clubLogo ? (
                                       <img
                                         src={player.clubLogo}
                                         alt="Club"
@@ -455,12 +482,20 @@ const Resultados = () => {
                                         Cargando tarjeta...
                                       </TableCell>
                                     </TableRow>
+                                  ) : parejaScorecardData && categoryDetail?.isParejas ? (
+                                    <ScorecardParejas
+                                      scorecard={parejaScorecardData}
+                                      pairLabel={player.pairName || player.name}
+                                      roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); setParejaScorecardData(null); }}
+                                      colSpan={totalCols}
+                                    />
                                   ) : scorecardData ? (
                                     <ScorecardRow
                                       scorecard={scorecardData}
                                       playerName={player.name}
                                       roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
-                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); setParejaScorecardData(null); }}
                                       colSpan={totalCols}
                                     />
                                   ) : null

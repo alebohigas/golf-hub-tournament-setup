@@ -56,4 +56,21 @@ export interface Player {
   handicapJuego: number;   // HJ - Handicap de Juego
   handicapNeto: number;    // HN - Handicap Neto
   categoryId: string;      // Category ID reference
+  /** Grupo de parejas (jugadores.grupoid). Vacío para categorías individuales. */
+  grupoid?: string;
+}
+
+// ============= Parejas Grouping =============
+/**
+ * Agrupación de jugadores por `grupoid` (ej. "C24" → "Grupo C24").
+ * Solo se construye en el frontend cuando la respuesta de players.php trae
+ * `isParejas: true`.
+ */
+export interface ParejaGroup {
+  /** Identificador del grupo (jugadores.grupoid). Usado como display label. */
+  grupoid: string;
+  /** Suma de HN de los jugadores del grupo (clave de ordenamiento ascendente). */
+  handicapTotal: number;
+  /** Jugadores que componen la pareja (típicamente 2). */
+  players: Player[];
 }
