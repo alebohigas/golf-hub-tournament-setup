@@ -578,6 +578,11 @@ const AdminDashboard = () => {
         <TabsContent value="stats">
           <AdminStats />
         </TabsContent>
+
+        {/* Banderas Tab — pin sheet captura por torneo (BD). */}
+        <TabsContent value="banderas">
+          <AdminBanderas />
+        </TabsContent>
       </Tabs>
 
       {/* Info Note */}
