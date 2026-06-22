@@ -32,7 +32,7 @@ require_once 'config.php';
 $torneoid = (int) require_param('torneoid');
 $tipo     = strtolower(optional_param('tipo', ''));
 
-$VALID = ['driver', 'approach', 'putt', 'oyes', 'oyesx'];
+$VALID = ['driver', 'driverp', 'approach', 'putt', 'oyes', 'oyesx'];
 if (!in_array($tipo, $VALID, true)) {
     json_error("Invalid tipo. Expected one of: " . implode(',', $VALID), 400);
 }
@@ -124,6 +124,64 @@ if ($tipo === 'driver') {
                   AND a.premiosjugcol = c.descripcion)
             WHERE a.torneoid = $tid AND c.descripcion = '$decrip'
             ORDER BY c.descripcion, a.distancia DESC
+            LIMIT $numjug
+        ");
+
+        $players = [];
+        $pos = 0;
+        foreach ($rows as $r) {
+            if ($r['distancia'] === '' || $r['distancia'] === null) continue;
+            $pos++;
+            $players[] = build_player_row($pos, $r, '');
+        }
+
+        $prizes[] = [
+            'description' => $g['descripcion'],
+            'lugares'     => $numjug,
+            'lastUpdated' => $g['ultact'],
+            'players'     => $players,
+        ];
+    }
+}
+
+// ============================================================
+// DRIVERP — Driver Precisión (mirrors competencias.php driverp)
+// Uses `driverp` / `driverjugp` / `v_driverp` / `v_driverunicop`.
+// Ordered ASC (closer to centerline wins).
+// ============================================================
+if ($tipo === 'driverp') {
+    $groups = safe_query($conn, "
+        SELECT premio, descripcion, hoyo,
+               LEFT(f_ultfechadriverp(descripcion, torneoid), 16) AS ultact
+        FROM `driverp`
+        WHERE torneoid = $tid AND premio > 0
+        GROUP BY premio, descripcion, hoyo
+    ");
+
+    foreach ($groups as $g) {
+        $numjug = (int) $g['hoyo'];
+        $decrip = esc($conn, $g['descripcion']);
+
+        safe_exec($conn, "UPDATE `driverjugp` AS a SET a.orden = 0 WHERE a.torneoid = $tid");
+        safe_exec($conn, "
+            UPDATE `driverjugp` AS a
+            JOIN v_driverunicop AS b
+              ON (a.jugadorid = b.jugadorid AND a.distancia = b.mindistancia AND a.torneoid = $tid)
+            SET orden = 1
+        ");
+
+        $rows = safe_query($conn, "
+            SELECT ROUND(TRUNCATE(a.distancia, 3), 2) AS distancia,
+                   CONCAT(j.nombre, ' ', j.apellido) AS jugador,
+                   j.club AS club_id, c.descripcion, f_logo(j.club) AS logo
+            FROM driverjugp a
+            JOIN jugadores j ON (a.jugadorid = j.id)
+            JOIN v_driverp c
+              ON (a.campo = c.campo
+                  AND j.categoriaid = c.categoriaid
+                  AND a.premiosjugcol = c.descripcion)
+            WHERE a.torneoid = $tid AND c.descripcion = '$decrip'
+            ORDER BY c.descripcion, a.distancia ASC
             LIMIT $numjug
         ");
 
