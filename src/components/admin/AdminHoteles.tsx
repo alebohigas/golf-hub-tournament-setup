@@ -1,10 +1,10 @@
 /**
  * AdminHoteles Component
  * -------------------------------------------------------------
- * Admin tab for configuring the Premios page poster grid.
+ * Admin tab for configuring the Hoteles page poster grid.
  *
  * Mirrors AdminEventos in structure and behavior, but persists to a
- * separate `hoteles_config` field on `site_config` so the Premios page
+ * separate `hoteles_config` field on `site_config` so the Hoteles page
  * can be tuned independently from Eventos.
  *
  * Features:
@@ -14,7 +14,7 @@
  *    (~390px) widths, mirroring the AdminEventos pattern.
  *  - Persists settings server-side via `site_config.hoteles_config`.
  *
- * The public Premios page (`PremiosPostersSection`) reads this config from
+ * The public Hoteles page (`HotelesPostersSection`) reads this config from
  * `useSiteConfig` and applies the appropriate columns/gap per breakpoint.
  */
 
@@ -47,12 +47,12 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
-// Auto-discovered Premios posters from `src/assets/hotels/`.
-// Mirrors what PremiosPostersSection renders on the public page so the
+// Auto-discovered Premios posters from `src/assets/hoteles/`.
+// Mirrors what HotelesPostersSection renders on the public page so the
 // admin preview always matches the live site.
 import { HOTELES_POSTERS } from '@/lib/posterAssets';
 // Server-uploaded posters take precedence over build-time assets so the
-// admin preview matches what visitors actually see on /hotels.
+// admin preview matches what visitors actually see on /hoteles.
 import { useUploadsList } from '@/hooks/useUploads';
 
 // ============= Constants =============
@@ -77,7 +77,7 @@ export const DEFAULT_HOTELES_CONFIG: HotelesConfig = {
 };
 
 /**
- * Build-time fallback poster URLs from `src/assets/hotels/`. Used only when
+ * Build-time fallback poster URLs from `src/assets/hoteles/`. Used only when
  * no images have been uploaded to the server via `/admin` → tab "Archivos".
  */
 const BUILT_IN_PREVIEW_POSTERS: string[] = HOTELES_POSTERS.map((p) => p.src);
@@ -349,7 +349,7 @@ const AdminHoteles = () => {
 
   /**
    * Server-uploaded posters for this section. When present, they are the
-   * source of truth shown by the public `PremiosPostersSection` page, so
+   * source of truth shown by the public `HotelesPostersSection` page, so
    * the admin preview MUST mirror them — otherwise drag-to-reorder would
    * generate indices into the wrong list and persisted orders would not
    * match what visitors see.
