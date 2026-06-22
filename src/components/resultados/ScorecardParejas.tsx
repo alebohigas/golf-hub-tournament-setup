@@ -200,7 +200,7 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
                   return (
                     <td
                       key={h.hole}
-                      className={`px-2 py-1 text-center text-muted-foreground ${used ? USED_RING + ' rounded' : ''}`}
+                      className="px-2 py-1 text-center text-muted-foreground"
                     >
                       {h.p2Hcp}
                     </td>
