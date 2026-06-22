@@ -262,50 +262,83 @@ if ($tipo === 'approach') {
 // PUTT  (putt300.php)
 // ============================================================
 if ($tipo === 'putt') {
+    // Putt usa la misma detección robusta que /api/competencias.php:
+    // 1) el catálogo sale de `putt`; 2) si la función de última fecha cambia
+    // de firma o no existe, se vuelve a intentar sin ella; 3) como último
+    // fallback se arma el catálogo desde `puttjug` para no ocultar resultados.
     $groups = safe_query($conn, "
-        SELECT premio AS premioid, descripcion, hoyo,
-               LEFT(f_ultfechaputt(torneoid), 16) AS ultact
-        FROM `putt`
-        WHERE torneoid = $tid AND premio > 0
-        GROUP BY premio, descripcion, hoyo
+        SELECT p.premio AS premioid,
+               TRIM(p.descripcion) AS descripcion,
+               MIN(NULLIF(p.hoyo, 0)) AS hoyo,
+               LEFT(f_ultfechaputt(p.descripcion, p.torneoid), 16) AS ultact
+        FROM `putt` p
+        WHERE p.torneoid = $tid AND p.premio > 0
+        GROUP BY p.premio, p.descripcion
+        ORDER BY p.premio ASC
+    ");
+    if (empty($groups)) {
+        $groups = safe_query($conn, "
+            SELECT p.premio AS premioid,
+                   TRIM(p.descripcion) AS descripcion,
+                   MIN(NULLIF(p.hoyo, 0)) AS hoyo,
+                   NULL AS ultact
+            FROM `putt` p
+            WHERE p.torneoid = $tid AND p.premio > 0
+            GROUP BY p.premio, p.descripcion
+            ORDER BY p.premio ASC
+        ");
+    }
+    if (empty($groups)) {
+        $groups = safe_query($conn, "
+            SELECT pj.premio AS premioid,
+                   TRIM(pj.premiosjugcol) AS descripcion,
+                   NULL AS hoyo,
+                   NULL AS ultact
+            FROM puttjug pj
+            WHERE pj.torneoid = $tid AND pj.premio > 0
+            GROUP BY pj.premio, pj.premiosjugcol
+            ORDER BY pj.premio ASC
+        ");
+    }
+
+    safe_exec($conn, "UPDATE `puttjug` AS a SET a.orden = 0 WHERE a.torneoid = $tid");
+    safe_exec($conn, "
+        UPDATE `puttjug` AS a
+        JOIN (
+            SELECT torneoid, premio, premiosjugcol, jugadorid, MIN(distancia) AS mind
+            FROM puttjug
+            WHERE torneoid = $tid
+            GROUP BY torneoid, premio, premiosjugcol, jugadorid
+        ) AS b
+          ON (a.torneoid = b.torneoid
+              AND a.premio = b.premio
+              AND a.premiosjugcol <=> b.premiosjugcol
+              AND a.jugadorid = b.jugadorid
+              AND a.distancia = b.mind)
+        SET a.orden = 1
+        WHERE a.torneoid = $tid
     ");
 
     foreach ($groups as $g) {
-        $numjug = (int) $g['hoyo'];
+        $numjug = (int) ($g['hoyo'] ?? 0);
+        if ($numjug <= 0) $numjug = $oyesnumprem;
         $decrip = esc($conn, $g['descripcion']);
         $premioId = (int) $g['premioid'];
-
-        safe_exec($conn, "UPDATE `puttjug` AS a SET a.orden = 0 WHERE a.torneoid = $tid");
-        // Mirror competencias.php: set orden=1 to the minimal distance
-        // per (jugadorid, premio, premiosjugcol) so each player keeps only
-        // their best attempt for THIS specific prize group.
-        safe_exec($conn, "
-            UPDATE `puttjug` AS a
-            JOIN (
-                SELECT jugadorid, premio, premiosjugcol, MIN(distancia) AS mind
-                FROM puttjug
-                WHERE torneoid = $tid AND premio = $premioId AND premiosjugcol = '$decrip'
-                GROUP BY jugadorid, premio, premiosjugcol
-            ) AS b
-              ON (a.jugadorid = b.jugadorid
-                  AND a.premio = b.premio
-                  AND a.premiosjugcol = b.premiosjugcol
-                  AND a.distancia = b.mind
-                  AND a.torneoid = $tid)
-            SET orden = 1
-        ");
 
         // Direct filter on puttjug — same approach competencias.php uses
         // (v_putt is missing/empty on some tournaments, breaking the join).
         $rows = safe_query($conn, "
             SELECT ROUND(TRUNCATE(a.distancia, 3), 2) AS distancia,
                    CONCAT(j.nombre, ' ', j.apellido) AS jugador,
-                   j.club AS club_id, f_logo(j.club) AS logo
+                   cl.nombre AS club, cl.logo AS logo,
+                   COALESCE(cat.abreviatura, cat.categoria, '') AS categoria
             FROM puttjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
+            JOIN clubs cl ON (j.clubid = cl.id)
+            LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             WHERE a.torneoid = $tid
               AND a.premio = $premioId
-              AND a.premiosjugcol = '$decrip'
+              AND TRIM(a.premiosjugcol) = '$decrip'
               AND a.orden = 1
             ORDER BY a.distancia ASC
             LIMIT $numjug
