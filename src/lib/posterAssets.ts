@@ -131,6 +131,15 @@ export const PREMIOS_POSTERS: DiscoveredPoster[] = buildPosterList(
   }) as Record<string, string>
 );
 
+/** All Hoteles posters discovered under `src/assets/hoteles/`. */
+export const HOTELES_POSTERS: DiscoveredPoster[] = buildPosterList(
+  import.meta.glob('/src/assets/hoteles/*.{webp,jpg,jpeg,png,gif,WEBP,JPG,JPEG,PNG,GIF}', {
+    eager: true,
+    query: '?url',
+    import: 'default',
+  }) as Record<string, string>
+);
+
 /**
  * All Convocatoria posters discovered under `src/assets/convocatoria/`.
  * Reserved for future use — the Convocatoria page does not currently
