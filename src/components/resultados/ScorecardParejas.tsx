@@ -147,9 +147,10 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
               return (
                 <td
                   key={h.hole}
-                  className={`px-2 py-1 text-center font-bold ${scoreColor(h.p1SO, h.par)} ${used ? USED_RING + ' rounded' : ''}`}
+                  className={`relative px-2 py-1 text-center font-bold ${scoreColor(h.p1SO, h.par)}`}
                 >
                   {h.p1SO || '-'}
+                  {used && <Dot />}
                 </td>
               );
             })}
