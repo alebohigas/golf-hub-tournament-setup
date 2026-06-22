@@ -94,8 +94,10 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
     return { p1: false, p2: false };
   };
 
-  /** Outline amarillo aplicado a la celda del score usado y a su hcp. */
-  const USED_RING = 'ring-2 ring-yellow-400 ring-inset';
+  /** Indicador puntito amarillo para el score que aporta al Neto del hoyo. */
+  const Dot = () => (
+    <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400" />
+  );
 
   /** Sub-totales (front/back) sumando una propiedad numérica de los hoyos. */
   const sum = (arr: ParejaHoleScore[], key: keyof ParejaHoleScore) =>
@@ -145,9 +147,10 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
               return (
                 <td
                   key={h.hole}
-                  className={`px-2 py-1 text-center font-bold ${scoreColor(h.p1SO, h.par)} ${used ? USED_RING + ' rounded' : ''}`}
+                  className={`relative px-2 py-1 text-center font-bold ${scoreColor(h.p1SO, h.par)}`}
                 >
                   {h.p1SO || '-'}
+                  {used && <Dot />}
                 </td>
               );
             })}
@@ -162,7 +165,7 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
               return (
                 <td
                   key={h.hole}
-                  className={`px-2 py-1 text-center text-muted-foreground ${used ? USED_RING + ' rounded' : ''}`}
+                  className="px-2 py-1 text-center text-muted-foreground"
                 >
                   {h.p1Hcp}
                 </td>
@@ -181,9 +184,10 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
                   return (
                     <td
                       key={h.hole}
-                      className={`px-2 py-1 text-center font-bold ${scoreColor(h.p2SO, h.par)} ${used ? USED_RING + ' rounded' : ''}`}
+                      className={`relative px-2 py-1 text-center font-bold ${scoreColor(h.p2SO, h.par)}`}
                     >
                       {h.p2SO || '-'}
+                      {used && <Dot />}
                     </td>
                   );
                 })}
@@ -196,7 +200,7 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
                   return (
                     <td
                       key={h.hole}
-                      className={`px-2 py-1 text-center text-muted-foreground ${used ? USED_RING + ' rounded' : ''}`}
+                      className="px-2 py-1 text-center text-muted-foreground"
                     >
                       {h.p2Hcp}
                     </td>
