@@ -48,6 +48,7 @@ interface ShowcaseResponse {
 /** Títulos por tipo, idéntico al usado en Showcase300.tsx. */
 const TITLES: Record<string, string> = {
   driver: 'DRIVES',
+  driverp: 'DRIVER PRECISIÓN',
   approach: 'APPROACH',
   putt: 'PUTT',
   oyes: "O'YES",

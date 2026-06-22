@@ -70,6 +70,7 @@ interface ShowcaseResponse {
  */
 const SHOWCASE_TITLES: Record<string, string> = {
   driver: 'DRIVES',
+  driverp: 'DRIVER PRECISIÓN',
   approach: 'APPROACH',
   putt: 'PUTT',
   oyes: "O'YES",
