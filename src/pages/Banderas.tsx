@@ -54,8 +54,10 @@ const Banderas = () => {
   /** Fechas pasadas (<= hoy) disponibles para que el jugador navegue. */
   const availableDates: string[] = banderasData?.availableDates ?? [];
   const today = banderasData?.today ?? null;
-  /** Otras fechas (≠ la activa) — el "histórico" navegable. */
-  const olderDates = availableDates.filter((d) => d !== activeDate);
+  /** Fechas ≠ la activa, separadas en pasadas y la próxima (futura cercana). */
+  const otherDates = availableDates.filter((d) => d !== activeDate);
+  const olderDates = today ? otherDates.filter((d) => d <= today) : otherDates;
+  const upcomingDates = today ? otherDates.filter((d) => d > today) : [];
 
   // ----- Archivos subidos (PDF + scans) ----------------------------
   const { data: uploads } = useUploadsList('banderas');
@@ -224,6 +226,34 @@ const Banderas = () => {
                   <GreenCard key={h.hole} data={h} />
                 ))}
               </div>
+
+              {/* ===== Próxima fecha (pin sheet del día siguiente) ===== */}
+              {upcomingDates.length > 0 && (
+                <div className="mt-10 max-w-3xl mx-auto rounded-lg border border-primary/40 bg-primary/5 p-5">
+                  <h3 className="text-base md:text-lg font-display font-bold text-foreground mb-1 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    Próxima fecha disponible
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Adelanto del pin sheet del próximo día de juego.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {upcomingDates.map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setSelectedFecha(d)}
+                        className={cn(
+                          'inline-flex items-center rounded-full border border-primary/40 bg-background px-3 py-1 text-xs font-semibold capitalize text-primary',
+                          'transition-colors hover:bg-primary/15',
+                        )}
+                      >
+                        {fmtFecha(d)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* ===== Posición de fechas anteriores ===== */}
               {olderDates.length > 0 && (
