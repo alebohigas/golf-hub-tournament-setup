@@ -293,9 +293,27 @@ export const getCategoriasReglasUrl = (): string =>
 
 // ============= Banderas (Pin Sheet) =============
 
-/** Pin sheet por torneo (lectura pública + POST admin). */
-export const getBanderasUrl = (): string =>
-  `${API_BASE_URL}/banderas.php${buildQuery()}`;
+/**
+ * Pin sheet por torneo (lectura pública + POST admin).
+ *
+ * @param opts.fecha  Fecha específica (YYYY-MM-DD). Si se omite, el backend
+ *                    devuelve la fecha activa (más reciente <= hoy con datos).
+ * @param opts.admin  Modo admin: incluye `admin=1&password=...` para que el
+ *                    backend devuelva también fechas futuras (lectura).
+ */
+export const getBanderasUrl = (opts: {
+  fecha?: string;
+  admin?: boolean;
+  password?: string;
+} = {}): string => {
+  const params: Record<string, string> = {};
+  if (opts.fecha) params.fecha = opts.fecha;
+  if (opts.admin) {
+    params.admin = '1';
+    if (opts.password) params.password = opts.password;
+  }
+  return `${API_BASE_URL}/banderas.php${buildQuery(params)}`;
+};
 
 // ============= Parejas (Tarjetas y Estilo de Juego) =============
 
