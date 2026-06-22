@@ -110,19 +110,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                && (($_GET['password'] ?? '') === BANDERAS_ADMIN_PWD);
 
     // --- Lista de fechas disponibles --------------------------------------
-    $whereFutureFilter = $isAdmin ? '' : " AND fecha <= '$today'";
-    $sqlDates = "SELECT DISTINCT DATE_FORMAT(fecha, '%Y-%m-%d') AS f
-                   FROM banderas
-                  WHERE torneo_id = $torneoid $whereFutureFilter
-                  ORDER BY fecha ASC";
-    $dates = [];
-    foreach (query_all($conn, $sqlDates) as $r) $dates[] = $r['f'];
+    // Público: todas las fechas <= hoy + la PRÓXIMA fecha futura más cercana
+    // (para que el jugador pueda anticipar el pin sheet del día siguiente).
+    // Admin: todas las fechas existentes.
+    $sqlAllDates = "SELECT DISTINCT DATE_FORMAT(fecha, '%Y-%m-%d') AS f
+                      FROM banderas
+                     WHERE torneo_id = $torneoid
+                     ORDER BY fecha ASC";
+    $allDates = [];
+    foreach (query_all($conn, $sqlAllDates) as $r) $allDates[] = $r['f'];
+
+    /** Próxima fecha futura (> hoy) o null. */
+    $nextDate = null;
+    foreach ($allDates as $d) { if ($d > $today) { $nextDate = $d; break; } }
+
+    if ($isAdmin) {
+        $dates = $allDates;
+    } else {
+        $dates = array_values(array_filter(
+            $allDates,
+            fn($d) => $d <= $today || $d === $nextDate
+        ));
+    }
 
     // --- Determinar fecha solicitada / activa -----------------------------
     $requested = banderas_parse_fecha($_GET['fecha'] ?? null);
 
-    // Público no puede pedir fechas futuras.
-    if ($requested !== null && !$isAdmin && $requested > $today) {
+    // Público sólo puede pedir fechas <= hoy o la próxima fecha más cercana.
+    if ($requested !== null && !$isAdmin
+        && $requested > $today && $requested !== $nextDate) {
         json_response([
             'holes'          => [],
             'today'          => $today,
