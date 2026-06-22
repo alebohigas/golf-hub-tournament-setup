@@ -76,6 +76,7 @@ function normalize_bandera($r) {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $torneoid = (int) require_param('torneoid');
     $today    = date('Y-m-d');
+    $tomorrow = date('Y-m-d', strtotime('+1 day'));
 
     if (!banderas_table_exists($conn)) {
         json_response([
@@ -109,10 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $isAdmin = (isset($_GET['admin']) && $_GET['admin'] === '1')
                && (($_GET['password'] ?? '') === BANDERAS_ADMIN_PWD);
 
-    // --- Lista de fechas disponibles --------------------------------------
-    // Público: todas las fechas <= hoy + la PRÓXIMA fecha futura más cercana
-    // (para que el jugador pueda anticipar el pin sheet del día siguiente).
-    // Admin: todas las fechas existentes.
+    // --- Lista de TODAS las fechas con datos para este torneo -------------
     $sqlAllDates = "SELECT DISTINCT DATE_FORMAT(fecha, '%Y-%m-%d') AS f
                       FROM banderas
                      WHERE torneo_id = $torneoid
@@ -120,43 +118,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $allDates = [];
     foreach (query_all($conn, $sqlAllDates) as $r) $allDates[] = $r['f'];
 
-    /** Próxima fecha futura (> hoy) o null. */
-    $nextDate = null;
-    foreach ($allDates as $d) { if ($d > $today) { $nextDate = $d; break; } }
-
-    if ($isAdmin) {
-        $dates = $allDates;
-    } else {
-        $dates = array_values(array_filter(
-            $allDates,
-            fn($d) => $d <= $today || $d === $nextDate
-        ));
+    /**
+     * Reglas de visibilidad pública (cliente final):
+     *   1. Sólo se muestra UNA fecha — la del día de hoy si existe.
+     *   2. Si NO existe hoy pero existe mañana, sólo se muestra mañana
+     *      cuando ya nadie está jugando hoy (todas las tarjetas del torneo
+     *      con fecha_juego = hoy tienen statlsc = 1).
+     *   3. Mientras haya jugadores con tarjeta abierta hoy, NO se publica
+     *      mañana (aunque ya esté cargada en BD por el admin).
+     *   4. Fechas pasadas y futuras (más allá de mañana) no son visibles.
+     *
+     * `playersStillPlayingToday` es true cuando existe al menos UNA tarjeta
+     * con fecha_juego = hoy y statlsc <> 1.
+     */
+    $playersStillPlayingToday = false;
+    $sqlOpen = "SELECT COUNT(*) AS n
+                  FROM tarjetas
+                 WHERE torneoid = $torneoid
+                   AND DATE(fecha_juego) = '$today'
+                   AND (statlsc IS NULL OR statlsc <> 1)";
+    $openRow = @$conn->query($sqlOpen);
+    if ($openRow && $row = $openRow->fetch_assoc()) {
+        $playersStillPlayingToday = ((int)$row['n']) > 0;
     }
+
+    $hasToday    = in_array($today, $allDates, true);
+    $hasTomorrow = in_array($tomorrow, $allDates, true);
 
     // --- Determinar fecha solicitada / activa -----------------------------
     $requested = banderas_parse_fecha($_GET['fecha'] ?? null);
 
-    // Público sólo puede pedir fechas <= hoy o la próxima fecha más cercana.
-    if ($requested !== null && !$isAdmin
-        && $requested > $today && $requested !== $nextDate) {
-        json_response([
-            'holes'          => [],
-            'today'          => $today,
-            'activeDate'     => null,
-            'availableDates' => $dates,
-            'error'          => 'future_date_forbidden',
-        ]);
-    }
-
-    /** Fecha que efectivamente se va a leer. */
-    $activeDate = $requested;
-    if ($activeDate === null) {
-        // Default: la fecha más reciente con datos cuyo valor sea <= hoy.
-        $sqlBest = "SELECT DATE_FORMAT(MAX(fecha), '%Y-%m-%d') AS f
-                      FROM banderas
-                     WHERE torneo_id = $torneoid AND fecha <= '$today'";
-        $best = query_all($conn, $sqlBest);
-        $activeDate = $best && !empty($best[0]['f']) ? $best[0]['f'] : null;
+    if ($isAdmin) {
+        // Admin: puede ver/editar cualquier fecha existente o nueva.
+        $dates      = $allDates;
+        $activeDate = $requested ?? ($hasToday ? $today : (count($allDates) ? end($allDates) : $today));
+    } else {
+        // Público: ignoramos `requested` — siempre devolvemos la única
+        // fecha visible permitida por las reglas.
+        $activeDate = null;
+        if ($hasToday) {
+            $activeDate = $today;
+        } elseif ($hasTomorrow && !$playersStillPlayingToday) {
+            $activeDate = $tomorrow;
+        }
+        $dates = $activeDate !== null ? [$activeDate] : [];
     }
 
     // --- Cargar holes para la fecha activa --------------------------------
@@ -174,6 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'today'          => $today,
         'activeDate'     => $activeDate,
         'availableDates' => $dates,
+        'playersStillPlayingToday' => $playersStillPlayingToday,
     ]);
 }
 
