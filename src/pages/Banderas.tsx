@@ -4,14 +4,15 @@
  * Página pública del pin sheet del torneo activo.
  *
  *  - Los datos vienen 100% de la BD (tabla `banderas`) vía `useBanderas()`.
- *  - El pin sheet está organizado por fecha. Por defecto se muestra la
- *    fecha activa (la más reciente <= hoy con datos cargadas por el admin).
- *    Debajo aparece un selector "posición de fechas anteriores" que permite
- *    cambiar a cualquier fecha pasada con datos. Las fechas futuras NUNCA
- *    se muestran al jugador (el backend las filtra).
- *  - Si el torneo no tiene filas cargadas para ninguna fecha <= hoy, se
- *    muestra un mensaje de disculpa. El admin puede además ocultar la
- *    página completa desde /admin → Página.
+ *  - El público ve EXACTAMENTE UNA fecha (la que el backend determine):
+ *      • El pin sheet de hoy si está cargado.
+ *      • El pin sheet de mañana — sólo si ya nadie está jugando hoy
+ *        (todas las tarjetas con fecha_juego = hoy cerradas).
+ *      • Mientras haya tarjetas abiertas hoy, el de mañana NO se publica
+ *        (aunque el admin ya lo tenga capturado).
+ *  - NO se muestran fechas pasadas ni listas de "próximas fechas":
+ *    el pin sheet es válido sólo para el día correspondiente.
+ *  - Si no hay nada visible, se muestra un mensaje explicando el motivo.
  *  - Si hay PDF / imágenes subidas en /admin → Archivos → Banderas, se
  *    muestran como "Documentos Oficiales" (descarga + lightbox).
  */
@@ -42,22 +43,20 @@ const fmtFecha = (s: string): string => {
 };
 
 const Banderas = () => {
-  // ----- Fecha seleccionada por el jugador (null = "hoy / fecha activa") --
-  const [selectedFecha, setSelectedFecha] = useState<string | undefined>(undefined);
-
-  // ----- Datos del pin sheet (BD) ----------------------------------
-  const { data: banderasData, isLoading } = useBanderas({ fecha: selectedFecha });
+  // ----- Datos del pin sheet (BD) -----------------------------------------
+  // El público NO elige fecha: el backend decide qué única fecha mostrar
+  // según las reglas (ver doc-comment del archivo).
+  const { data: banderasData, isLoading } = useBanderas();
   const holes = banderasData?.holes ?? [];
   const hasHoles = holes.length > 0;
-  /** Fecha que realmente se está mostrando (la activa o la elegida). */
+  /** Fecha que realmente se está mostrando (decidida por el backend). */
   const activeDate = banderasData?.activeDate ?? null;
-  /** Fechas pasadas (<= hoy) disponibles para que el jugador navegue. */
-  const availableDates: string[] = banderasData?.availableDates ?? [];
   const today = banderasData?.today ?? null;
-  /** Fechas ≠ la activa, separadas en pasadas y la próxima (futura cercana). */
-  const otherDates = availableDates.filter((d) => d !== activeDate);
-  const olderDates = today ? otherDates.filter((d) => d <= today) : otherDates;
-  const upcomingDates = today ? otherDates.filter((d) => d > today) : [];
+  /**
+   * Si el backend reporta que hay jugadores aún en el campo, mostramos un
+   * aviso explicando por qué el pinsheet de mañana sigue oculto.
+   */
+  const playersStillPlaying = banderasData?.playersStillPlayingToday === true;
 
   // ----- Archivos subidos (PDF + scans) ----------------------------
   const { data: uploads } = useUploadsList('banderas');
@@ -114,8 +113,9 @@ const Banderas = () => {
               Pin sheet aún no disponible
             </h2>
             <p className="text-muted-foreground">
-              Disculpa las molestias — todavía no hay información de posición de banderas
-              cargada para este torneo. Vuelve a revisar más cerca de la fecha de juego.
+              {playersStillPlaying
+                ? 'El pin sheet del día siguiente se publica una vez que todos los jugadores hayan terminado su ronda. Aún hay tarjetas abiertas en el campo — vuelve a revisar más tarde.'
+                : 'Todavía no hay información de posición de banderas cargada para hoy. Vuelve a revisar más cerca de la fecha de juego.'}
             </p>
           </div>
         </section>
@@ -137,22 +137,12 @@ const Banderas = () => {
                       Hoy
                     </span>
                   )}
-                  {today && activeDate !== today && (
-                    <span className="ml-1 inline-flex items-center rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-xs font-medium">
-                      Última disponible
+                  {today && activeDate > today && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 text-xs font-semibold">
+                      Próximo día
                     </span>
                   )}
                 </div>
-                {selectedFecha && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedFecha(undefined)}
-                    className="text-xs"
-                  >
-                    Volver al día actual
-                  </Button>
-                )}
               </div>
             </section>
           )}
