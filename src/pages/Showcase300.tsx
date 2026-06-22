@@ -125,7 +125,7 @@ const Showcase300 = () => {
   const tournament = data?.tournament;
 
   return (
-    <div className="min-h-screen bg-background text-foreground py-6 px-4 md:px-8">
+    <div className="showcase-tv min-h-screen bg-background text-foreground py-6 px-4 md:px-8">
       {/* Tournament header — name + club + logo */}
       <header className="max-w-6xl mx-auto mb-6 text-center">
         {tournament?.name && (

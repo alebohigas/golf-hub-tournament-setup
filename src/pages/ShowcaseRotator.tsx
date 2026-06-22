@@ -157,7 +157,7 @@ const ShowcaseRotator = () => {
   const tournament = tInfo?.tournament;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="showcase-tv min-h-screen bg-background text-foreground">
       {/* Barra de progreso superior */}
       <div className="sticky top-0 z-20 h-1 bg-muted/50">
         <div
