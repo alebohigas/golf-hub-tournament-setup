@@ -37,6 +37,7 @@ import AdminBracketsPage from "./pages/AdminBracketsPage";
 import Showcase300 from "./pages/Showcase300";
 import ShowcaseRotator from "./pages/ShowcaseRotator";
 import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
+import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -130,7 +131,9 @@ const App = () => (
               <Route path="/showcase/:tipo" element={<Showcase300 />} />
               {/* Rotador customizable de slides (lee config del #hash). */}
               <Route path="/showcase/rotacion" element={<ShowcaseRotator />} />
-              
+              {/* Standalone: clasificados Putt Finales por sexo (m|f). */}
+              <Route path="/showcase/calificados/:sexo" element={<PuttCalificados />} />
+
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>

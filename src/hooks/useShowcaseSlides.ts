@@ -22,6 +22,7 @@ import {
   buildBracketSlideId,
   buildMejorSlideId,
   buildS300SlideId,
+  buildQualSlideId,
   type ShowcaseSlideMeta,
 } from '@/lib/showcaseSlides';
 
@@ -146,6 +147,16 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
     const totalRounds = Math.log2(size);
     const matches = side.matches || [];
     const groupLabel = sexo === 'M' ? 'Brackets Caballeros' : 'Brackets Damas';
+
+    // ----- Clasificados al bracket (lista de seeds que ya entraron) -----
+    // Slide independiente que muestra cómo se va llenando el cupo 1..N.
+    if ((side.qualifiers?.length ?? 0) > 0) {
+      push({
+        id: buildQualSlideId(sexo),
+        label: `Calificados ${sexo === 'M' ? 'Caballeros' : 'Damas'}`,
+        group: groupLabel,
+      });
+    }
 
     if (size <= 16) {
       // un único slide con el bracket completo
