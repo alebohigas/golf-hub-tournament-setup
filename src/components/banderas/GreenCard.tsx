@@ -189,28 +189,34 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
 
         {/* Distance labels */}
         <text
-          x={pinX + (pinSide === 'L' ? 4 : -4)}
-          y={(ovalBottom + pinY) / 2}
+          x={pinX + (pinSide === 'L' ? 6 : -6)}
+          y={(ovalBottom + pinY) / 2 + 1}
           textAnchor={pinSide === 'L' ? 'start' : 'end'}
-          fontSize={11}
-          fontWeight={700}
+          fontSize={14}
+          fontWeight={800}
           fill="hsl(var(--foreground))"
+          stroke="hsl(var(--card))"
+          strokeWidth={3}
+          paintOrder="stroke"
         >
           {pinFromFront}
         </text>
         <text
           x={(pinX + (pinSide === 'L' ? ovalLeft : ovalRight)) / 2}
-          y={pinY - 4}
+          y={pinY - 6}
           textAnchor="middle"
-          fontSize={11}
-          fontWeight={700}
+          fontSize={14}
+          fontWeight={800}
           fill="hsl(var(--foreground))"
+          stroke="hsl(var(--card))"
+          strokeWidth={3}
+          paintOrder="stroke"
         >
           {pinFromSide}
         </text>
 
-        {/* Pin: small circle (hole) + flagstick + flag */}
-        <circle cx={pinX} cy={pinY} r={2.2} fill="hsl(var(--foreground))" />
+        {/* Pin: larger circle (hole) + flagstick + flag */}
+        <circle cx={pinX} cy={pinY} r={3} fill="hsl(var(--foreground))" />
         <line
           x1={pinX} y1={pinY}
           x2={pinX} y2={pinY - 26}
