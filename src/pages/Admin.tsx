@@ -21,6 +21,7 @@ import AdminPagina from '@/components/admin/AdminPagina';
 import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
 import AdminPremios from '@/components/admin/AdminPremios';
+import AdminHoteles from '@/components/admin/AdminHoteles';
 import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
@@ -59,6 +60,7 @@ import {
   BarChart3,
   MonitorPlay,
   Flag,
+  Hotel,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -347,6 +349,7 @@ const AdminDashboard = () => {
             { value: 'eventos',      icon: CalendarDays,    label: 'Eventos' },
             { value: 'avisos',       icon: Bell,            label: 'Avisos' },
             { value: 'premios',      icon: Trophy,          label: 'Premios' },
+            { value: 'hoteles',      icon: Hotel,           label: 'Hoteles' },
             { value: 'popup',        icon: MonitorPlay,     label: 'POP' },
             { value: 'banderas',     icon: Flag,            label: 'Banderas' },
             { value: 'live',         icon: Radio,           label: 'Live' },
@@ -523,6 +526,11 @@ const AdminDashboard = () => {
         {/* Premios Tab — manages Premios page poster grid (uploads + layout). */}
         <TabsContent value="premios">
           <AdminPremios />
+        </TabsContent>
+
+        {/* Hoteles Tab — manages Hoteles page poster grid (uploads + layout). */}
+        <TabsContent value="hoteles">
+          <AdminHoteles />
         </TabsContent>
 
         {/* POP UP Tab — site-wide popup overlay (image + target pages + duration). */}
