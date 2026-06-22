@@ -122,6 +122,20 @@ function site_config_has_premios_config($conn) {
 $hasPremiosConfig = site_config_has_premios_config($conn);
 
 /**
+ * Detect whether the hoteles_config column exists.
+ * Keeps endpoint backward-compatible until the schema migration runs.
+ */
+function site_config_has_hoteles_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'hoteles_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasHotelesConfig = site_config_has_hoteles_config($conn);
+
+/**
  * Detect whether the theme_config column exists.
  * Keeps endpoint backward-compatible if the schema has not been migrated yet.
  */
@@ -186,6 +200,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasPremiosConfig) {
         $selectFields .= ', premios_config';
     }
+    if ($hasHotelesConfig) {
+        $selectFields .= ', hoteles_config';
+    }
     if ($hasThemeConfig) {
         $selectFields .= ', theme_config';
     }
@@ -212,6 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'eventos_config'        => $hasEventosConfig && !empty($row['eventos_config']) ? json_decode($row['eventos_config'], true) : null,
             'avisos_config'         => $hasAvisosConfig && !empty($row['avisos_config']) ? json_decode($row['avisos_config'], true) : null,
             'premios_config'        => $hasPremiosConfig && !empty($row['premios_config']) ? json_decode($row['premios_config'], true) : null,
+            'hoteles_config'        => $hasHotelesConfig && !empty($row['hoteles_config']) ? json_decode($row['hoteles_config'], true) : null,
             'theme_config'          => $hasThemeConfig && !empty($row['theme_config']) ? json_decode($row['theme_config'], true) : null,
             'stats_config'          => $hasStatsConfig && !empty($row['stats_config']) ? json_decode($row['stats_config'], true) : null,
             'popup_config'          => $hasPopupConfig && !empty($row['popup_config']) ? json_decode($row['popup_config'], true) : null,
@@ -229,6 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'eventos_config'        => null,
             'avisos_config'         => null,
             'premios_config'        => null,
+            'hoteles_config'        => null,
             'theme_config'          => null,
             'stats_config'          => null,
             'popup_config'          => null,
@@ -340,6 +359,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['premios_config'] !== null ? "'" . esc($conn, json_encode($body['premios_config'])) . "'" : 'NULL';
         $fields[] = "premios_config = $val";
         $insertFields[] = 'premios_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('hoteles_config', $body)) {
+        if (!$hasHotelesConfig) {
+            json_error("Missing DB column hoteles_config in site_config. Run: ALTER TABLE site_config ADD COLUMN hoteles_config TEXT DEFAULT NULL COMMENT 'JSON object with hoteles page display settings';", 500);
+        }
+
+        $val = $body['hoteles_config'] !== null ? "'" . esc($conn, json_encode($body['hoteles_config'])) . "'" : 'NULL';
+        $fields[] = "hoteles_config = $val";
+        $insertFields[] = 'hoteles_config';
         $insertValues[] = $val;
     }
 
