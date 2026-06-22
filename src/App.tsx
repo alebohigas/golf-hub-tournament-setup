@@ -131,7 +131,9 @@ const App = () => (
               <Route path="/showcase/:tipo" element={<Showcase300 />} />
               {/* Rotador customizable de slides (lee config del #hash). */}
               <Route path="/showcase/rotacion" element={<ShowcaseRotator />} />
-              
+              {/* Standalone: clasificados Putt Finales por sexo (m|f). */}
+              <Route path="/showcase/calificados/:sexo" element={<PuttCalificados />} />
+
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>

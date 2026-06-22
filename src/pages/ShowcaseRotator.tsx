@@ -25,6 +25,7 @@ import { useShowcaseSlides } from '@/hooks/useShowcaseSlides';
 import Showcase300Slide from '@/components/showcase/slides/Showcase300Slide';
 import MejorScoreSlide from '@/components/showcase/slides/MejorScoreSlide';
 import BracketSlide from '@/components/showcase/slides/BracketSlide';
+import PuttCalificadosSlide from '@/components/showcase/slides/PuttCalificadosSlide';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getTournamentUrl, POLL_SLOW } from '@/config/api';
@@ -52,6 +53,9 @@ const renderSlide = (id: string) => {
   }
   if (kind === 'bracket') {
     return <BracketSlide sexo={parts[0] as 'M' | 'F'} kind={parts[1]} />;
+  }
+  if (kind === 'qual') {
+    return <PuttCalificadosSlide sexo={parts[0] as 'M' | 'F'} />;
   }
   return (
     <div className="max-w-4xl mx-auto p-6 rounded bg-card text-muted-foreground text-center">
