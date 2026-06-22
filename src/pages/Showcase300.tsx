@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
+import { useAutoScrollLoop } from '@/hooks/useAutoScrollLoop';
 
 // ============= Types =============
 
@@ -99,6 +100,11 @@ const Showcase300 = () => {
     }, RELOAD_INTERVAL_MS);
     return () => window.clearTimeout(timer);
   }, []);
+
+  // ----- Autoscroll en loop (igual UX que /showcase/calificados) -----
+  // Si el reporte excede la ventana, hace scroll lento hasta el fondo y
+  // vuelve arriba en bucle. Si cabe, simplemente se queda arriba.
+  useAutoScrollLoop({ speedPxPerSec: 30, holdTopMs: 2500, holdBottomMs: 3000 });
 
   // ----- Fetch the matching prize feed -----
   const { data, isLoading, error } = useQuery<ShowcaseResponse>({
