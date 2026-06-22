@@ -111,27 +111,76 @@ const ShowcaseRotator = () => {
   /** Reset índice si la lista cambia bajo nuestros pies. */
   useEffect(() => { setIdx(0); }, [effective?.slides.length]);
 
-  /** Timer de rotación + barra de progreso. */
+  /**
+   * Timer de rotación + barra de progreso + AUTO-SCROLL.
+   * --------------------------------------------------------------------
+   * Para cada slide:
+   *   1. Snap a top.
+   *   2. Mide overflow vertical (scrollHeight − innerHeight).
+   *   3. Si hay overflow, calcula el tiempo necesario para hacer scroll
+   *      lineal a SCROLL_SPEED_PX_PER_SEC y garantiza que la duración
+   *      del slide alcance: HOLD_TOP + scroll + HOLD_BOTTOM. Esto asegura
+   *      que el autoscroll SIEMPRE termina antes de rotar al siguiente.
+   *   4. Si no hay overflow, mantiene la duración configurada por slide.
+   */
   useEffect(() => {
     if (!effective || effective.slides.length === 0) return;
     const slide = effective.slides[idx % effective.slides.length];
     const sec = (slide.seconds ?? effective.defaultSeconds) || 30;
-    const totalMs = sec * 1000;
-    const startedAt = Date.now();
+    const baseMs = sec * 1000;
+
+    const SCROLL_SPEED_PX_PER_SEC = 40; // velocidad de lectura cómoda en TV
+    const HOLD_TOP_MS = 1500;
+    const HOLD_BOTTOM_MS = 1800;
+
     setProgress(0);
+    window.scrollTo(0, 0);
 
-    const tick = window.setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      setProgress(Math.min(1, elapsed / totalMs));
-    }, 250);
+    let rafId = 0;
+    let advanceTimer = 0;
 
-    const next = window.setTimeout(() => {
-      setIdx((i) => (i + 1) % effective.slides.length);
-    }, totalMs);
+    // Pequeño delay para que el slide monte y cargue datos antes de medir.
+    const startTimer = window.setTimeout(() => {
+      const overflow = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      const scrollMs =
+        overflow > 0 ? (overflow / SCROLL_SPEED_PX_PER_SEC) * 1000 : 0;
+      const neededMs = overflow > 0 ? HOLD_TOP_MS + scrollMs + HOLD_BOTTOM_MS : baseMs;
+      const totalMs = Math.max(baseMs, neededMs);
+      const startedAt = Date.now();
+
+      const tick = () => {
+        const elapsed = Date.now() - startedAt;
+        setProgress(Math.min(1, elapsed / totalMs));
+
+        if (overflow > 0) {
+          if (elapsed < HOLD_TOP_MS) {
+            window.scrollTo(0, 0);
+          } else if (elapsed < HOLD_TOP_MS + scrollMs) {
+            const p = (elapsed - HOLD_TOP_MS) / scrollMs;
+            window.scrollTo(0, p * overflow);
+          } else {
+            window.scrollTo(0, overflow);
+          }
+        }
+
+        if (elapsed < totalMs) {
+          rafId = window.requestAnimationFrame(tick);
+        }
+      };
+      rafId = window.requestAnimationFrame(tick);
+
+      advanceTimer = window.setTimeout(() => {
+        setIdx((i) => (i + 1) % effective.slides.length);
+      }, totalMs);
+    }, 500);
 
     return () => {
-      window.clearInterval(tick);
-      window.clearTimeout(next);
+      window.clearTimeout(startTimer);
+      window.clearTimeout(advanceTimer);
+      if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, [idx, effective]);
 

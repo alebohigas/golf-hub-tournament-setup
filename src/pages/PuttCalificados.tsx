@@ -38,6 +38,49 @@ const PuttCalificados = () => {
     return () => window.clearTimeout(t);
   }, []);
 
+  /**
+   * Auto-scroll en loop (single-report mode).
+   * --------------------------------------------------------------------
+   * Fases: TOP (pausa) → SCROLL (lineal a SPEED px/s) → BOTTOM (pausa) → TOP…
+   * Si el contenido cabe en viewport (sin overflow), simplemente mantiene
+   * la posición en top.
+   */
+  useEffect(() => {
+    const SCROLL_SPEED_PX_PER_SEC = 30; // un poco más lento que el rotator
+    const HOLD_TOP_MS = 2500;
+    const HOLD_BOTTOM_MS = 3000;
+
+    let rafId = 0;
+    let phase: 'top' | 'scroll' | 'bottom' = 'top';
+    let phaseStart = Date.now();
+
+    const tick = () => {
+      const overflow = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      const now = Date.now();
+      const elapsed = now - phaseStart;
+
+      if (overflow <= 0) {
+        window.scrollTo(0, 0);
+      } else if (phase === 'top') {
+        window.scrollTo(0, 0);
+        if (elapsed >= HOLD_TOP_MS) { phase = 'scroll'; phaseStart = now; }
+      } else if (phase === 'scroll') {
+        const dur = (overflow / SCROLL_SPEED_PX_PER_SEC) * 1000;
+        const p = Math.min(1, elapsed / dur);
+        window.scrollTo(0, p * overflow);
+        if (p >= 1) { phase = 'bottom'; phaseStart = now; }
+      } else {
+        if (elapsed >= HOLD_BOTTOM_MS) { phase = 'top'; phaseStart = now; }
+      }
+      rafId = window.requestAnimationFrame(tick);
+    };
+    rafId = window.requestAnimationFrame(tick);
+    return () => { if (rafId) window.cancelAnimationFrame(rafId); };
+  }, []);
+
   // ----- Header (nombre/club/logo del torneo) -----
   const { data: tInfo } = useQuery<TournamentInfo>({
     queryKey: ['calificados-tournament'],
