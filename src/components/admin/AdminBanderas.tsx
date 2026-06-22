@@ -1,12 +1,18 @@
 /**
  * AdminBanderas
+ * ---------------------------------------------------------------
  * Pestaña admin para editar el pin sheet (tabla `banderas`) del torneo
- * activo. Tabla con 18 filas (1..18) por defecto; se puede agregar /
- * eliminar hoyos. Replace-all al guardar.
+ * activo, organizado **por fecha** (cada fecha = pin sheet de ese día).
  *
- * Si el torneo no tiene datos guardados, /banderas mostrará un mensaje
- * de disculpa al jugador. El admin puede ocultar la página completamente
- * desde la pestaña "Página".
+ *  - Selector de fecha arriba: permite editar la fecha del día, una pasada
+ *    o una futura (pre-cargar todas las posiciones del torneo).
+ *  - Botones rápidos para cargar cualquier fecha ya guardada.
+ *  - Permite "duplicar" la configuración de otra fecha como punto de partida.
+ *  - Replace-all SCOPED a la (torneo, fecha) seleccionada.
+ *
+ * Si el torneo no tiene datos guardados para una fecha <= hoy, la página
+ * pública /banderas mostrará un mensaje de disculpa. El admin puede
+ * además ocultarla completamente desde la pestaña "Página".
  */
 
 import { useEffect, useState } from 'react';
@@ -14,11 +20,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, Flag, Plus, Trash2, RotateCcw } from 'lucide-react';
+import { Loader2, Save, Flag, Plus, Trash2, RotateCcw, Calendar, Copy } from 'lucide-react';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useBanderas, useSaveBanderas } from '@/hooks/useBanderasData';
 import type { PinSheetHole, PinSide } from '@/data/banderasData';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 /** Fila vacía para un hoyo nuevo. */
 const blankHole = (hole: number): PinSheetHole => ({
@@ -35,22 +42,50 @@ const blankHole = (hole: number): PinSheetHole => ({
 const seed18 = (): PinSheetHole[] =>
   Array.from({ length: 18 }, (_, i) => blankHole(i + 1));
 
+/** Hoy en YYYY-MM-DD usando timezone local del navegador. */
+const todayLocal = (): string => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/** Render legible de una fecha YYYY-MM-DD (timezone-safe). */
+const fmtFecha = (s: string): string => {
+  const [y, m, d] = s.split('-').map(n => parseInt(n, 10));
+  if (!y || !m || !d) return s;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('es-MX', {
+    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+  });
+};
+
 const AdminBanderas = () => {
   const { torneoId } = useTorneoId();
-  const { data, isLoading } = useBanderas();
   const save = useSaveBanderas();
   const { toast } = useToast();
+
+  /** Fecha que se está editando. Default = hoy. */
+  const [fecha, setFecha] = useState<string>(todayLocal());
+
+  /** Trae los holes de la fecha seleccionada + lista de TODAS las fechas (admin). */
+  const { data, isLoading } = useBanderas({ fecha, admin: true });
 
   /** Copia editable local. */
   const [rows, setRows] = useState<PinSheetHole[]>([]);
 
-  /** Hidrata al cargar. Si no hay datos, deja la tabla vacía
-   *  (el admin elige si seedea 1..18 con el botón). */
+  /** Hidrata cada vez que cambia la fecha o llegan datos. Si la fecha aún
+   *  no tiene datos, deja la tabla vacía (admin elige seedear). */
   useEffect(() => {
-    if (data?.holes) {
-      setRows([...data.holes].sort((a, b) => a.hole - b.hole));
-    }
-  }, [data?.holes]);
+    const holes = data?.holes ?? [];
+    setRows([...holes].sort((a, b) => a.hole - b.hole));
+    // se hidrata por (fecha, data) — el queryKey ya cambia con `fecha`.
+  }, [data, fecha]);
+
+  /** Fechas conocidas para este torneo (incluye futuras porque admin=true). */
+  const knownDates: string[] = data?.availableDates ?? [];
+  const today = data?.today ?? todayLocal();
 
   /** Patch in-place de una fila. */
   const update = (idx: number, patch: Partial<PinSheetHole>) => {
@@ -93,9 +128,32 @@ const AdminBanderas = () => {
     setRows([]);
   };
 
+  /** Duplica los holes de otra fecha conocida al editor actual.
+   *  Usa el endpoint admin para no depender del estado actual. */
+  const duplicateFrom = async (srcFecha: string) => {
+    if (!srcFecha || srcFecha === fecha) return;
+    if (rows.length > 0 && !window.confirm(
+      `Reemplazar el editor con los datos de ${fmtFecha(srcFecha)}? (No se guarda hasta presionar "Guardar".)`,
+    )) return;
+    try {
+      const url = `/api/banderas.php?torneoid=${torneoId}&fecha=${srcFecha}&admin=1&password=admin2025`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const holes: PinSheetHole[] = (json.holes ?? []).map((h: PinSheetHole) => ({ ...h }));
+      setRows(holes.sort((a, b) => a.hole - b.hole));
+      toast({ title: 'Duplicado', description: `Cargué ${holes.length} hoyos desde ${fmtFecha(srcFecha)}. No olvides guardar.` });
+    } catch (e) {
+      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+    }
+  };
+
   const onSave = () => {
     if (!torneoId) {
       toast({ title: 'Sin torneo activo', description: 'Configura el torneo en la pestaña Config.', variant: 'destructive' });
+      return;
+    }
+    if (!fecha) {
+      toast({ title: 'Fecha requerida', description: 'Selecciona la fecha que vas a guardar.', variant: 'destructive' });
       return;
     }
     // Validación mínima: hoyo único y > 0.
@@ -112,10 +170,10 @@ const AdminBanderas = () => {
       seen.add(r.hole);
     }
     save.mutate(
-      { torneoid: parseInt(String(torneoId), 10), holes: rows, password: 'admin2025' },
+      { torneoid: parseInt(String(torneoId), 10), fecha, holes: rows, password: 'admin2025' },
       {
         onSuccess: (json) => {
-          toast({ title: 'Guardado', description: `${json.count} hoyos guardados.` });
+          toast({ title: 'Guardado', description: `${json.count} hoyos guardados para ${fmtFecha(fecha)}.` });
         },
         onError: (err) => {
           toast({ title: 'Error al guardar', description: (err as Error).message, variant: 'destructive' });
@@ -132,12 +190,97 @@ const AdminBanderas = () => {
           Banderas (Pin Sheet)
         </CardTitle>
         <CardDescription>
-          Edita la posición de cada bandera para el torneo activo. Si esta tabla
-          está vacía, la página <code>/banderas</code> mostrará un mensaje de disculpa.
-          Para ocultar completamente la página, usa la pestaña "Página".
+          Edita la posición de cada bandera <strong>por fecha</strong>. Puedes
+          precargar el pin sheet de los días siguientes del torneo: los
+          jugadores sólo verán fechas <code>≤ hoy</code> en la página pública.
+          Si una fecha no tiene datos, <code>/banderas</code> mostrará un
+          mensaje de disculpa. Para ocultar la página entera, usa "Página".
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* ===== Selector de fecha ===== */}
+        <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Fecha del pin sheet
+              </label>
+              <Input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="h-9 w-[180px]"
+              />
+            </div>
+            <div className="text-xs text-muted-foreground pb-2">
+              Hoy: <strong>{fmtFecha(today)}</strong>
+              {fecha > today && (
+                <span className="ml-2 inline-flex items-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 font-semibold">
+                  Fecha futura — invisible al público
+                </span>
+              )}
+              {fecha < today && (
+                <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-medium">
+                  Fecha pasada
+                </span>
+              )}
+              {fecha === today && (
+                <span className="ml-2 inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 font-semibold">
+                  Día activo
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Chips: fechas ya guardadas para este torneo */}
+          {knownDates.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Fechas guardadas:</span>
+              {knownDates.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setFecha(d)}
+                  className={cn(
+                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                    d === fecha
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : d > today
+                        ? 'border-amber-400/60 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+                        : 'border-border bg-card hover:bg-muted',
+                  )}
+                  title={d > today ? 'Fecha futura (invisible al público)' : 'Fecha guardada'}
+                >
+                  {fmtFecha(d)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Duplicar desde otra fecha */}
+          {knownDates.filter((d) => d !== fecha).length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                <Copy className="h-3.5 w-3.5" />
+                Duplicar pin sheet desde:
+              </span>
+              <Select onValueChange={(v) => duplicateFrom(v)}>
+                <SelectTrigger className="h-8 w-[220px]">
+                  <SelectValue placeholder="Elegir fecha origen…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {knownDates
+                    .filter((d) => d !== fecha)
+                    .map((d) => (
+                      <SelectItem key={d} value={d}>{fmtFecha(d)}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
         {/* Toolbar */}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={fill18} className="gap-2">
@@ -155,7 +298,7 @@ const AdminBanderas = () => {
           <div className="ml-auto">
             <Button onClick={onSave} disabled={save.isPending} className="gap-2">
               {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Guardar
+              Guardar fecha
             </Button>
           </div>
         </div>
