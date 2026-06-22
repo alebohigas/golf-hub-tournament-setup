@@ -112,16 +112,14 @@ const ShowcaseRotator = () => {
   useEffect(() => { setIdx(0); }, [effective?.slides.length]);
 
   /**
-   * Timer de rotación + barra de progreso + AUTO-SCROLL.
+   * Rotación + AUTO-SCROLL dinámico por fases.
    * --------------------------------------------------------------------
-   * Para cada slide:
-   *   1. Snap a top.
-   *   2. Mide overflow vertical (scrollHeight − innerHeight).
-   *   3. Si hay overflow, calcula el tiempo necesario para hacer scroll
-   *      lineal a SCROLL_SPEED_PX_PER_SEC y garantiza que la duración
-   *      del slide alcance: HOLD_TOP + scroll + HOLD_BOTTOM. Esto asegura
-   *      que el autoscroll SIEMPRE termina antes de rotar al siguiente.
-   *   4. Si no hay overflow, mantiene la duración configurada por slide.
+   * Cada slide pasa por fases TOP → SCROLL → BOTTOM y SOLO entonces rota.
+   * El overflow se re-mide en CADA tick, así si los datos llegan tarde
+   * (queries async, imágenes), el autoscroll sigue funcionando — incluso
+   * si al inicio el contenido aún cabía en pantalla. La duración mínima
+   * del slide es la configurada por el usuario (`sec`); puede extenderse
+   * si el autoscroll requiere más tiempo para completarse.
    */
   useEffect(() => {
     if (!effective || effective.slides.length === 0) return;
@@ -129,57 +127,68 @@ const ShowcaseRotator = () => {
     const sec = (slide.seconds ?? effective.defaultSeconds) || 30;
     const baseMs = sec * 1000;
 
-    const SCROLL_SPEED_PX_PER_SEC = 40; // velocidad de lectura cómoda en TV
+    const SCROLL_SPEED_PX_PER_SEC = 40; // velocidad cómoda en TV
     const HOLD_TOP_MS = 1500;
     const HOLD_BOTTOM_MS = 1800;
+    /** Margen mínimo antes de medir overflow por primera vez (montaje + 1ra carga). */
+    const INITIAL_SETTLE_MS = 700;
 
     setProgress(0);
     window.scrollTo(0, 0);
 
     let rafId = 0;
-    let advanceTimer = 0;
+    const slideStart = Date.now();
+    let phase: 'top' | 'scroll' | 'bottom' | 'done' = 'top';
+    let phaseStart = slideStart;
+    let advanced = false;
 
-    // Pequeño delay para que el slide monte y cargue datos antes de medir.
-    const startTimer = window.setTimeout(() => {
+    const advance = () => {
+      if (advanced) return;
+      advanced = true;
+      setIdx((i) => (i + 1) % effective.slides.length);
+    };
+
+    const tick = () => {
+      const now = Date.now();
+      const slideElapsed = now - slideStart;
+      const phaseElapsed = now - phaseStart;
       const overflow = Math.max(
         0,
-        document.documentElement.scrollHeight - window.innerHeight
+        document.documentElement.scrollHeight - window.innerHeight,
       );
-      const scrollMs =
-        overflow > 0 ? (overflow / SCROLL_SPEED_PX_PER_SEC) * 1000 : 0;
-      const neededMs = overflow > 0 ? HOLD_TOP_MS + scrollMs + HOLD_BOTTOM_MS : baseMs;
-      const totalMs = Math.max(baseMs, neededMs);
-      const startedAt = Date.now();
 
-      const tick = () => {
-        const elapsed = Date.now() - startedAt;
-        setProgress(Math.min(1, elapsed / totalMs));
-
-        if (overflow > 0) {
-          if (elapsed < HOLD_TOP_MS) {
-            window.scrollTo(0, 0);
-          } else if (elapsed < HOLD_TOP_MS + scrollMs) {
-            const p = (elapsed - HOLD_TOP_MS) / scrollMs;
-            window.scrollTo(0, p * overflow);
-          } else {
-            window.scrollTo(0, overflow);
-          }
+      if (phase === 'top') {
+        window.scrollTo(0, 0);
+        // Espera mínima a que el contenido se asiente antes de decidir si hay overflow.
+        const minTop = Math.max(HOLD_TOP_MS, INITIAL_SETTLE_MS);
+        if (phaseElapsed >= minTop) {
+          if (overflow > 0) { phase = 'scroll'; phaseStart = now; }
+          else { phase = 'done'; phaseStart = now; }
         }
+      } else if (phase === 'scroll') {
+        const dur = (overflow / SCROLL_SPEED_PX_PER_SEC) * 1000;
+        const p = dur > 0 ? Math.min(1, phaseElapsed / dur) : 1;
+        window.scrollTo(0, p * overflow);
+        if (p >= 1) { phase = 'bottom'; phaseStart = now; }
+      } else if (phase === 'bottom') {
+        window.scrollTo(0, overflow);
+        if (phaseElapsed >= HOLD_BOTTOM_MS) { phase = 'done'; phaseStart = now; }
+      }
 
-        if (elapsed < totalMs) {
-          rafId = window.requestAnimationFrame(tick);
-        }
-      };
+      // Estimación visual de progreso: 50 % cuando termina TOP, 100 % al avanzar.
+      const visualTotal = Math.max(baseMs, phase === 'done' ? slideElapsed : slideElapsed + 1);
+      setProgress(Math.min(1, slideElapsed / visualTotal));
+
+      // Avanza solo cuando: fase = done Y se cumplió la duración mínima configurada.
+      if (phase === 'done' && slideElapsed >= baseMs) {
+        advance();
+        return;
+      }
       rafId = window.requestAnimationFrame(tick);
-
-      advanceTimer = window.setTimeout(() => {
-        setIdx((i) => (i + 1) % effective.slides.length);
-      }, totalMs);
-    }, 500);
+    };
+    rafId = window.requestAnimationFrame(tick);
 
     return () => {
-      window.clearTimeout(startTimer);
-      window.clearTimeout(advanceTimer);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, [idx, effective]);
