@@ -29,7 +29,8 @@ interface ShowcaseEntry {
 
 /** All available showcase reports, in display order */
 const SHOWCASES: ShowcaseEntry[] = [
-  { tipo: 'driver',   label: 'Driver',   description: 'Mayor distancia de driver',         Icon: Target },
+  { tipo: 'driver',   label: 'Driver',         description: 'Mayor distancia de driver',         Icon: Target },
+  { tipo: 'driverp',  label: 'Driver Prec.',   description: 'Driver más cercano a la línea',     Icon: Crosshair },
   { tipo: 'approach', label: 'Approach', description: 'Mejor approach a bandera',         Icon: Crosshair },
   { tipo: 'putt',     label: 'Putt',     description: 'Putt más largo embocado',          Icon: MousePointerClick },
   { tipo: 'oyes',     label: "O'Yes",    description: 'Closest to pin (par 3)',           Icon: Flag },

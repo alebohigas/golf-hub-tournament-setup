@@ -44,6 +44,7 @@ interface MejorResponse {
 /** Reportes 300 disponibles (mismo orden que en el admin). */
 const TIPOS_300: { tipo: string; label: string }[] = [
   { tipo: 'driver',   label: 'Driver' },
+  { tipo: 'driverp',  label: 'Driver Precisión' },
   { tipo: 'approach', label: 'Approach' },
   { tipo: 'putt',     label: 'Putt' },
   { tipo: 'oyes',     label: "O'Yes" },
@@ -81,11 +82,12 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
       staleTime: POLL_ACTIVE,
     });
   const qDriver   = make300Query('driver');
+  const qDriverP  = make300Query('driverp');
   const qApproach = make300Query('approach');
   const qPutt     = make300Query('putt');
   const qOyes     = make300Query('oyes');
   const qOyesx    = make300Query('oyesx');
-  const s300Queries = [qDriver, qApproach, qPutt, qOyes, qOyesx];
+  const s300Queries = [qDriver, qDriverP, qApproach, qPutt, qOyes, qOyesx];
 
   // ----- Mejor Score Diario -----
   const mejor = useQuery<MejorResponse[]>({
