@@ -42,6 +42,8 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
   const back9 = holes.slice(9, 18);
 
   const isGoGo = estilojuego === 'Go Go';
+  const isBolaBaja = estilojuego === 'Bola Baja';
+  const isSuma = estilojuego === 'Suma Scores';
   /**
    * Bola Baja y Suma Scores se renderizan idénticos: muestran ambos
    * jugadores y la fila Neto agregada del equipo. La diferencia entre
@@ -49,6 +51,51 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
    * suma según corresponda), no en el layout.
    */
   const showPartner = !isGoGo;
+
+  /**
+   * Devuelve las iniciales del nombre completo. Toma la primera letra de
+   * cada palabra significativa (ignora conectores cortos como "de", "la").
+   * Usado en la columna de etiqueta de la fila del jugador para evitar
+   * ambigüedad cuando dos jugadores comparten el primer nombre.
+   */
+  const getInitials = (fullName: string): string => {
+    if (!fullName) return '';
+    const SKIP = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'do']);
+    return fullName
+      .trim()
+      .split(/\s+/)
+      .filter((w) => !SKIP.has(w.toLowerCase()))
+      .map((w) => w.charAt(0).toUpperCase())
+      .join('');
+  };
+
+  /**
+   * Para cada hoyo decide qué jugador(es) aportaron el score usado para el
+   * Neto del equipo. En Bola Baja gana el mejor neto individual (SO-hcp);
+   * empate destaca ambos. En Suma Scores siempre cuentan los dos. En Go Go
+   * sólo aplica el jugador 1 (no hay pareja en pantalla).
+   * Devuelve { p1, p2 } booleans indicando qué celdas se marcan en amarillo.
+   */
+  const getUsedFor = (h: ParejaHoleScore): { p1: boolean; p2: boolean } => {
+    if (isGoGo) return { p1: true, p2: false };
+    if (isSuma) return { p1: true, p2: true };
+    if (isBolaBaja) {
+      const n1 = (h.p1SO || 0) - (h.p1Hcp || 0);
+      const n2 = (h.p2SO || 0) - (h.p2Hcp || 0);
+      const has1 = (h.p1SO || 0) > 0;
+      const has2 = (h.p2SO || 0) > 0;
+      if (has1 && has2) {
+        if (n1 < n2) return { p1: true, p2: false };
+        if (n2 < n1) return { p1: false, p2: true };
+        return { p1: true, p2: true };
+      }
+      return { p1: has1, p2: has2 };
+    }
+    return { p1: false, p2: false };
+  };
+
+  /** Outline amarillo aplicado a la celda del score usado y a su hcp. */
+  const USED_RING = 'ring-2 ring-yellow-400 ring-inset';
 
   /** Sub-totales (front/back) sumando una propiedad numérica de los hoyos. */
   const sum = (arr: ParejaHoleScore[], key: keyof ParejaHoleScore) =>
@@ -91,22 +138,36 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
           {/* Jugador 1 — Gross (siempre visible). En Go Go la etiqueta es genérica "Gross". */}
           <tr>
             <td className="px-2 py-1 font-semibold text-center">
-              {isGoGo ? 'Gross' : player1.name.split(' ')[0]}
+              {isGoGo ? 'Gross' : getInitials(player1.name)}
             </td>
-            {chunk.map((h) => (
-              <td key={h.hole} className={`px-2 py-1 text-center font-bold ${scoreColor(h.p1SO, h.par)}`}>
-                {h.p1SO || '-'}
-              </td>
-            ))}
+            {chunk.map((h) => {
+              const used = getUsedFor(h).p1;
+              return (
+                <td
+                  key={h.hole}
+                  className={`px-2 py-1 text-center font-bold ${scoreColor(h.p1SO, h.par)} ${used ? USED_RING + ' rounded' : ''}`}
+                >
+                  {h.p1SO || '-'}
+                </td>
+              );
+            })}
             <td className="px-2 py-1 text-center font-bold">{sum(chunk, 'p1SO')}</td>
           </tr>
 
           {/* Hcp jugador 1 */}
           <tr className="bg-muted/10">
             <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
-            {chunk.map((h) => (
-              <td key={h.hole} className="px-2 py-1 text-center text-muted-foreground">{h.p1Hcp}</td>
-            ))}
+            {chunk.map((h) => {
+              const used = getUsedFor(h).p1;
+              return (
+                <td
+                  key={h.hole}
+                  className={`px-2 py-1 text-center text-muted-foreground ${used ? USED_RING + ' rounded' : ''}`}
+                >
+                  {h.p1Hcp}
+                </td>
+              );
+            })}
             <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p1Hcp')}</td>
           </tr>
 
@@ -114,19 +175,33 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
           {showPartner && (
             <>
               <tr>
-                <td className="px-2 py-1 font-semibold text-center">{player2.name.split(' ')[0]}</td>
-                {chunk.map((h) => (
-                  <td key={h.hole} className={`px-2 py-1 text-center font-bold ${scoreColor(h.p2SO, h.par)}`}>
-                    {h.p2SO || '-'}
-                  </td>
-                ))}
+                <td className="px-2 py-1 font-semibold text-center">{getInitials(player2.name)}</td>
+                {chunk.map((h) => {
+                  const used = getUsedFor(h).p2;
+                  return (
+                    <td
+                      key={h.hole}
+                      className={`px-2 py-1 text-center font-bold ${scoreColor(h.p2SO, h.par)} ${used ? USED_RING + ' rounded' : ''}`}
+                    >
+                      {h.p2SO || '-'}
+                    </td>
+                  );
+                })}
                 <td className="px-2 py-1 text-center font-bold">{sum(chunk, 'p2SO')}</td>
               </tr>
               <tr className="bg-muted/10">
                 <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
-                {chunk.map((h) => (
-                  <td key={h.hole} className="px-2 py-1 text-center text-muted-foreground">{h.p2Hcp}</td>
-                ))}
+                {chunk.map((h) => {
+                  const used = getUsedFor(h).p2;
+                  return (
+                    <td
+                      key={h.hole}
+                      className={`px-2 py-1 text-center text-muted-foreground ${used ? USED_RING + ' rounded' : ''}`}
+                    >
+                      {h.p2Hcp}
+                    </td>
+                  );
+                })}
                 <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p2Hcp')}</td>
               </tr>
             </>
