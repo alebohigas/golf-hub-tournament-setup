@@ -25,6 +25,9 @@ export interface BanderasResponse {
   today: string;
   activeDate: string | null;
   availableDates: string[];
+  /** True si hay tarjetas con fecha_juego = hoy y statlsc != 1 (bloquea
+   *  publicar el pin sheet de mañana). */
+  playersStillPlayingToday?: boolean;
   error?: string;
 }
 
