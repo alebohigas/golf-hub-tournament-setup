@@ -66,8 +66,10 @@ export interface UseShowcaseSlidesResult {
 export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
   const torneoid = getTorneoId() || '';
 
-  // ----- Reportes 300 (uno por tipo) -----
-  const s300Queries = TIPOS_300.map(({ tipo }) =>
+  // ----- Reportes 300 (uno por tipo) — desenrollado para respetar
+  // las rules-of-hooks (no llamar hooks dentro de loops). El orden y
+  // longitud de TIPOS_300 es constante. -----
+  const make300Query = (tipo: string) =>
     useQuery<S300Response>({
       queryKey: ['showcase300', tipo, torneoid, 'meta'],
       queryFn: () =>
@@ -76,8 +78,13 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
         ),
       enabled: !!torneoid,
       staleTime: POLL_ACTIVE,
-    }),
-  );
+    });
+  const qDriver   = make300Query('driver');
+  const qApproach = make300Query('approach');
+  const qPutt     = make300Query('putt');
+  const qOyes     = make300Query('oyes');
+  const qOyesx    = make300Query('oyesx');
+  const s300Queries = [qDriver, qApproach, qPutt, qOyes, qOyesx];
 
   // ----- Mejor Score Diario -----
   const mejor = useQuery<MejorResponse[]>({
