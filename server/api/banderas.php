@@ -2,19 +2,33 @@
 /**
  * Banderas (Pin Sheet) Endpoint
  * -----------------------------------------------------------------------
- * GET  /api/banderas.php?torneoid=XXX
- *      → { holes: [{ hole, depth, pinFromFront, pinFromSide, pinSide, slope, title }] }
- *      Si la tabla no existe o no hay filas, devuelve `holes: []`.
+ * GET  /api/banderas.php?torneoid=XXX[&fecha=YYYY-MM-DD][&admin=1&password=...]
+ *      Sin `fecha`: devuelve la fecha activa (la más reciente <= hoy con datos)
+ *        más la lista de fechas disponibles (sólo <= hoy salvo admin=1).
+ *      Con `fecha`: devuelve `holes` para esa fecha. Fechas futuras se
+ *        rechazan al público (sólo admin las puede pedir).
+ *      Respuesta:
+ *        {
+ *          today:           'YYYY-MM-DD',
+ *          activeDate:      'YYYY-MM-DD' | null,
+ *          availableDates:  ['YYYY-MM-DD', ...],   // ordenadas asc
+ *          holes:           [{ hole, depth, pinFromFront, pinFromSide,
+ *                              pinSide, slope, title }]
+ *        }
  *
  * POST /api/banderas.php
- *      Body JSON: { password, torneoid, holes: [...] }
- *      Replace-all para el torneo. Sólo guarda filas con `hoyo` > 0.
+ *      Body JSON: { password, torneoid, fecha: 'YYYY-MM-DD', holes: [...] }
+ *      Replace-all para (torneo, fecha). Sólo guarda filas con `hoyo` > 0.
+ *      Si `fecha` viene vacía se usa CURDATE().
  *
- * Tabla: `banderas` (migración 2026_06_21).
+ * Tabla: `banderas` (migración 2026_06_21 + 2026_06_22_banderas_fecha).
  */
 require_once 'config.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+
+/** Password admin compartido (mismo que el resto del panel). */
+const BANDERAS_ADMIN_PWD = 'admin2025';
 
 /** ¿Existe la tabla? Cacheado. */
 function banderas_table_exists($conn) {
@@ -23,6 +37,24 @@ function banderas_table_exists($conn) {
     $r = $conn->query("SHOW TABLES LIKE 'banderas'");
     $exists = $r && $r->num_rows > 0;
     return $exists;
+}
+
+/** ¿La columna `fecha` ya está aplicada (migración 2026_06_22)? Cacheado. */
+function banderas_has_fecha_column($conn) {
+    static $has = null;
+    if ($has !== null) return $has;
+    $r = $conn->query("SHOW COLUMNS FROM banderas LIKE 'fecha'");
+    $has = $r && $r->num_rows > 0;
+    return $has;
+}
+
+/** Valida string de fecha (YYYY-MM-DD). Devuelve la fecha o null si inválida. */
+function banderas_parse_fecha($s) {
+    if (!is_string($s) || $s === '') return null;
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return null;
+    $d = DateTime::createFromFormat('Y-m-d', $s);
+    if (!$d) return null;
+    return $d->format('Y-m-d');
 }
 
 /** Normaliza fila de BD a JSON consumido por el cliente. */
@@ -43,17 +75,90 @@ function normalize_bandera($r) {
 // ---------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $torneoid = (int) require_param('torneoid');
+    $today    = date('Y-m-d');
 
     if (!banderas_table_exists($conn)) {
-        json_response(['holes' => [], 'source' => 'no_table']);
+        json_response([
+            'holes'          => [],
+            'today'          => $today,
+            'activeDate'     => null,
+            'availableDates' => [],
+            'source'         => 'no_table',
+        ]);
     }
 
-    $sql = "SELECT hoyo, depth, frente, lateral, lateral_lado, desde_centro, titulo
-              FROM banderas
-             WHERE torneo_id = $torneoid
-             ORDER BY hoyo ASC";
-    $rows = array_map('normalize_bandera', query_all($conn, $sql));
-    json_response(['holes' => $rows]);
+    $hasFecha = banderas_has_fecha_column($conn);
+
+    // --- Modo legacy: tabla sin columna `fecha` (migración no corrida) ----
+    if (!$hasFecha) {
+        $sql = "SELECT hoyo, depth, frente, lateral, lateral_lado, desde_centro, titulo
+                  FROM banderas
+                 WHERE torneo_id = $torneoid
+                 ORDER BY hoyo ASC";
+        $rows = array_map('normalize_bandera', query_all($conn, $sql));
+        json_response([
+            'holes'          => $rows,
+            'today'          => $today,
+            'activeDate'     => $today,
+            'availableDates' => [$today],
+            'source'         => 'legacy_no_fecha',
+        ]);
+    }
+
+    // --- ¿Admin? Si manda password válido puede ver fechas futuras --------
+    $isAdmin = (isset($_GET['admin']) && $_GET['admin'] === '1')
+               && (($_GET['password'] ?? '') === BANDERAS_ADMIN_PWD);
+
+    // --- Lista de fechas disponibles --------------------------------------
+    $whereFutureFilter = $isAdmin ? '' : " AND fecha <= '$today'";
+    $sqlDates = "SELECT DISTINCT DATE_FORMAT(fecha, '%Y-%m-%d') AS f
+                   FROM banderas
+                  WHERE torneo_id = $torneoid $whereFutureFilter
+                  ORDER BY fecha ASC";
+    $dates = [];
+    foreach (query_all($conn, $sqlDates) as $r) $dates[] = $r['f'];
+
+    // --- Determinar fecha solicitada / activa -----------------------------
+    $requested = banderas_parse_fecha($_GET['fecha'] ?? null);
+
+    // Público no puede pedir fechas futuras.
+    if ($requested !== null && !$isAdmin && $requested > $today) {
+        json_response([
+            'holes'          => [],
+            'today'          => $today,
+            'activeDate'     => null,
+            'availableDates' => $dates,
+            'error'          => 'future_date_forbidden',
+        ]);
+    }
+
+    /** Fecha que efectivamente se va a leer. */
+    $activeDate = $requested;
+    if ($activeDate === null) {
+        // Default: la fecha más reciente con datos cuyo valor sea <= hoy.
+        $sqlBest = "SELECT DATE_FORMAT(MAX(fecha), '%Y-%m-%d') AS f
+                      FROM banderas
+                     WHERE torneo_id = $torneoid AND fecha <= '$today'";
+        $best = query_all($conn, $sqlBest);
+        $activeDate = $best && !empty($best[0]['f']) ? $best[0]['f'] : null;
+    }
+
+    // --- Cargar holes para la fecha activa --------------------------------
+    $holes = [];
+    if ($activeDate !== null) {
+        $sql = "SELECT hoyo, depth, frente, lateral, lateral_lado, desde_centro, titulo
+                  FROM banderas
+                 WHERE torneo_id = $torneoid AND fecha = '$activeDate'
+                 ORDER BY hoyo ASC";
+        $holes = array_map('normalize_bandera', query_all($conn, $sql));
+    }
+
+    json_response([
+        'holes'          => $holes,
+        'today'          => $today,
+        'activeDate'     => $activeDate,
+        'availableDates' => $dates,
+    ]);
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$body) json_error('Invalid JSON body', 400);
 
     $password = $body['password'] ?? '';
-    if ($password !== 'admin2025') json_error('Unauthorized', 401);
+    if ($password !== BANDERAS_ADMIN_PWD) json_error('Unauthorized', 401);
 
     $torneoid = isset($body['torneoid']) ? (int)$body['torneoid'] : 0;
     if ($torneoid <= 0) json_error('Missing torneoid', 400);
@@ -73,10 +178,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         json_error('Tabla banderas no existe. Corre la migración 2026_06_21_banderas.sql.', 500);
     }
 
+    $hasFecha = banderas_has_fecha_column($conn);
+    if (!$hasFecha) {
+        json_error('Falta correr la migración 2026_06_22_banderas_fecha.sql.', 500);
+    }
+
+    $fecha = banderas_parse_fecha($body['fecha'] ?? null);
+    if ($fecha === null) $fecha = date('Y-m-d');
+
     $holes = $body['holes'] ?? [];
     if (!is_array($holes)) json_error('holes must be an array', 400);
 
-    $conn->query("DELETE FROM banderas WHERE torneo_id = $torneoid");
+    $conn->query("DELETE FROM banderas WHERE torneo_id = $torneoid AND fecha = '$fecha'");
 
     $count = 0;
     foreach ($holes as $h) {
@@ -93,14 +206,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             : "'" . esc($conn, (string)$titulo) . "'";
 
         $sql = "INSERT INTO banderas
-                  (torneo_id, hoyo, depth, frente, lateral, lateral_lado,
+                  (torneo_id, fecha, hoyo, depth, frente, lateral, lateral_lado,
                    desde_centro, titulo)
                 VALUES
-                  ($torneoid, $hole, $depth, $frente, $lateral, '$side',
-                   $desdeCentro, $tituloSql)";
+                  ($torneoid, '$fecha', $hole, $depth, $frente, $lateral,
+                   '$side', $desdeCentro, $tituloSql)";
         if ($conn->query($sql)) $count++;
     }
-    json_response(['saved' => true, 'count' => $count]);
+    json_response(['saved' => true, 'count' => $count, 'fecha' => $fecha]);
 }
 
 json_error('Method not allowed', 405);
