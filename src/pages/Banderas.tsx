@@ -4,9 +4,14 @@
  * Página pública del pin sheet del torneo activo.
  *
  *  - Los datos vienen 100% de la BD (tabla `banderas`) vía `useBanderas()`.
- *  - Si el torneo no tiene filas cargadas, se muestra un mensaje de
- *    disculpa al jugador (NO valores hardcodeados). El admin puede
- *    además ocultar la página completa desde /admin → Página.
+ *  - El pin sheet está organizado por fecha. Por defecto se muestra la
+ *    fecha activa (la más reciente <= hoy con datos cargadas por el admin).
+ *    Debajo aparece un selector "posición de fechas anteriores" que permite
+ *    cambiar a cualquier fecha pasada con datos. Las fechas futuras NUNCA
+ *    se muestran al jugador (el backend las filtra).
+ *  - Si el torneo no tiene filas cargadas para ninguna fecha <= hoy, se
+ *    muestra un mensaje de disculpa. El admin puede además ocultar la
+ *    página completa desde /admin → Página.
  *  - Si hay PDF / imágenes subidas en /admin → Archivos → Banderas, se
  *    muestran como "Documentos Oficiales" (descarga + lightbox).
  */
@@ -19,18 +24,38 @@ import { useBanderas } from '@/hooks/useBanderasData';
 import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, FileText, Download, Loader2, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, FileText, Download, Loader2, Flag, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import banderasHero from '@/assets/banderas-hero.jpg';
 
 /** ¿Es un PDF? Decide cómo se renderiza el archivo subido. */
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 
+/** Formatea una fecha YYYY-MM-DD a texto legible (timezone-safe). */
+const fmtFecha = (s: string): string => {
+  const [y, m, d] = s.split('-').map((n) => parseInt(n, 10));
+  if (!y || !m || !d) return s;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('es-MX', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+  });
+};
+
 const Banderas = () => {
+  // ----- Fecha seleccionada por el jugador (null = "hoy / fecha activa") --
+  const [selectedFecha, setSelectedFecha] = useState<string | undefined>(undefined);
+
   // ----- Datos del pin sheet (BD) ----------------------------------
-  const { data: banderasData, isLoading } = useBanderas();
+  const { data: banderasData, isLoading } = useBanderas({ fecha: selectedFecha });
   const holes = banderasData?.holes ?? [];
   const hasHoles = holes.length > 0;
+  /** Fecha que realmente se está mostrando (la activa o la elegida). */
+  const activeDate = banderasData?.activeDate ?? null;
+  /** Fechas pasadas (<= hoy) disponibles para que el jugador navegue. */
+  const availableDates: string[] = banderasData?.availableDates ?? [];
+  const today = banderasData?.today ?? null;
+  /** Otras fechas (≠ la activa) — el "histórico" navegable. */
+  const olderDates = availableDates.filter((d) => d !== activeDate);
 
   // ----- Archivos subidos (PDF + scans) ----------------------------
   const { data: uploads } = useUploadsList('banderas');
@@ -97,6 +122,39 @@ const Banderas = () => {
       {/* ====== Leyenda + grid de hoyos (sólo si hay datos) ====== */}
       {!isLoading && hasHoles && (
         <>
+          {/* ===== Banner con la fecha activa ===== */}
+          {activeDate && (
+            <section className="bg-primary/5 border-b border-border">
+              <div className="container mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm md:text-base">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span className="text-muted-foreground">Mostrando pin sheet del</span>
+                  <strong className="text-foreground capitalize">{fmtFecha(activeDate)}</strong>
+                  {today && activeDate === today && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-semibold">
+                      Hoy
+                    </span>
+                  )}
+                  {today && activeDate !== today && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-xs font-medium">
+                      Última disponible
+                    </span>
+                  )}
+                </div>
+                {selectedFecha && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFecha(undefined)}
+                    className="text-xs"
+                  >
+                    Volver al día actual
+                  </Button>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* ===== Leyenda ===== */}
           <section className="bg-muted/40 border-b border-border">
             <div className="container mx-auto px-4 py-8">
@@ -166,6 +224,35 @@ const Banderas = () => {
                   <GreenCard key={h.hole} data={h} />
                 ))}
               </div>
+
+              {/* ===== Posición de fechas anteriores ===== */}
+              {olderDates.length > 0 && (
+                <div className="mt-10 max-w-3xl mx-auto rounded-lg border border-border bg-card p-5">
+                  <h3 className="text-base md:text-lg font-display font-bold text-foreground mb-1 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    Posición de fechas anteriores
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Consulta el pin sheet de días pasados del torneo. Las fechas
+                    futuras se publican el día correspondiente.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {olderDates.map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setSelectedFecha(d)}
+                        className={cn(
+                          'inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-xs font-medium capitalize',
+                          'transition-colors hover:bg-primary/10 hover:border-primary/40 hover:text-primary',
+                        )}
+                      >
+                        {fmtFecha(d)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         </>
