@@ -165,17 +165,28 @@ const Showcase300 = () => {
           Error al cargar datos: {(error as Error).message}
         </div>
       )}
-      {data && data.prizes.length === 0 && (
+      {/* Filtra premios sin jugadores: en torneos multi-día el backend
+          devuelve un grupo por día (ej. "Approach día 1/2/3"), pero los
+          días futuros aún no tienen ganadores. Sólo mostramos los grupos
+          con al menos un jugador registrado. */}
+      {(() => null)()}
+      {data && data.prizes.filter((p) => p.players.length > 0).length === 0 && (
         <div className="max-w-6xl mx-auto p-6 rounded bg-card text-muted-foreground text-center">
-          No hay premios registrados para este torneo.
+          Aún no hay resultados registrados para este reporte.
         </div>
       )}
 
       {/* Prize sections */}
       <div className="max-w-6xl mx-auto space-y-6">
-        {data?.prizes.map((prize, idx) => (
-          <PrizeSection key={`${prize.description}-${idx}`} prize={prize} showHole={tipo === 'oyes'} />
-        ))}
+        {data?.prizes
+          .filter((prize) => prize.players.length > 0)
+          .map((prize, idx) => (
+            <PrizeSection
+              key={`${prize.description}-${idx}`}
+              prize={prize}
+              showHole={tipo === 'oyes'}
+            />
+          ))}
       </div>
 
       {/* Footer — refresh hint */}
