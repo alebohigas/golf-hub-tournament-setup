@@ -94,8 +94,10 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
     return { p1: false, p2: false };
   };
 
-  /** Outline amarillo aplicado a la celda del score usado y a su hcp. */
-  const USED_RING = 'ring-2 ring-yellow-400 ring-inset';
+  /** Indicador puntito amarillo para el score que aporta al Neto del hoyo. */
+  const Dot = () => (
+    <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400" />
+  );
 
   /** Sub-totales (front/back) sumando una propiedad numérica de los hoyos. */
   const sum = (arr: ParejaHoleScore[], key: keyof ParejaHoleScore) =>
