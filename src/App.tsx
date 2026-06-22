@@ -35,6 +35,8 @@ import AdminRegistros from "./pages/AdminRegistros";
 import Comprobante from "./pages/Comprobante";
 import AdminBracketsPage from "./pages/AdminBracketsPage";
 import Showcase300 from "./pages/Showcase300";
+import ShowcaseRotator from "./pages/ShowcaseRotator";
+import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
 import Banderas from "./pages/Banderas";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -102,6 +104,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/registros" element={<AdminRegistros />} />
               <Route path="/admin/brackets" element={<AdminBracketsPage />} />
+              <Route path="/admin/showcase-rotacion" element={<AdminShowcaseRotacionPage />} />
               {/* Public: player upload page after admin sends the email link */}
               <Route path="/registro/comprobante" element={<Comprobante />} />
               
@@ -125,6 +128,8 @@ const App = () => (
 
               {/* Standalone Showcase 300 reports (no Layout, auto-refresh 5min) */}
               <Route path="/showcase/:tipo" element={<Showcase300 />} />
+              {/* Rotador customizable de slides (lee config del #hash). */}
+              <Route path="/showcase/rotacion" element={<ShowcaseRotator />} />
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />

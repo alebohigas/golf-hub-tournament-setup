@@ -11,7 +11,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Target, Flag, MousePointerClick, Crosshair, Layers } from 'lucide-react';
+import { ExternalLink, Target, Flag, MousePointerClick, Crosshair, Layers, MonitorPlay } from 'lucide-react';
 
 // ============= Showcase definitions =============
 
@@ -79,6 +79,25 @@ const AdminShowcase300 = () => {
               </span>
             </Button>
           ))}
+        </div>
+
+        {/* Acceso al constructor de vistas rotativas (brackets, multi-300,
+            customizado). Se abre en la misma pestaña porque es un panel
+            de configuración, no una vista de TV. */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <Button
+            variant="default"
+            className="gap-2"
+            onClick={() => window.open('/admin/showcase-rotacion', '_blank')}
+          >
+            <MonitorPlay className="h-4 w-4" />
+            Abrir constructor de rotación
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            Permite rotar varios reportes en la misma pantalla, incluyendo
+            brackets putt (grupos, semis, final) y selecciones customizadas.
+          </p>
         </div>
       </CardContent>
     </Card>
