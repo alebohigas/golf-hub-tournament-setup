@@ -71,27 +71,24 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
 
   /**
    * Para cada hoyo decide qué jugador(es) aportaron el score usado para el
-   * Neto del equipo. En Bola Baja gana el mejor neto individual (SO-hcp);
-   * empate destaca ambos. En Suma Scores siempre cuentan los dos. En Go Go
-   * sólo aplica el jugador 1 (no hay pareja en pantalla).
-   * Devuelve { p1, p2 } booleans indicando qué celdas se marcan en amarillo.
+   * Neto del equipo. El puntito amarillo solo se muestra en Bola Baja porque
+   * es el único modo donde hay que identificar cuál de los dos scores cuenta.
+   * Go Go siempre usa jugador 1 y Suma Scores usa ambos, por lo que no hay
+   * ambigüedad que resolver visualmente.
+   * Devuelve { p1, p2 } booleans indicando qué celdas se marcan.
    */
   const getUsedFor = (h: ParejaHoleScore): { p1: boolean; p2: boolean } => {
-    if (isGoGo) return { p1: true, p2: false };
-    if (isSuma) return { p1: true, p2: true };
-    if (isBolaBaja) {
-      const n1 = (h.p1SO || 0) - (h.p1Hcp || 0);
-      const n2 = (h.p2SO || 0) - (h.p2Hcp || 0);
-      const has1 = (h.p1SO || 0) > 0;
-      const has2 = (h.p2SO || 0) > 0;
-      if (has1 && has2) {
-        if (n1 < n2) return { p1: true, p2: false };
-        if (n2 < n1) return { p1: false, p2: true };
-        return { p1: true, p2: true };
-      }
-      return { p1: has1, p2: has2 };
+    if (!isBolaBaja) return { p1: false, p2: false };
+    const n1 = (h.p1SO || 0) - (h.p1Hcp || 0);
+    const n2 = (h.p2SO || 0) - (h.p2Hcp || 0);
+    const has1 = (h.p1SO || 0) > 0;
+    const has2 = (h.p2SO || 0) > 0;
+    if (has1 && has2) {
+      if (n1 < n2) return { p1: true, p2: false };
+      if (n2 < n1) return { p1: false, p2: true };
+      return { p1: true, p2: true };
     }
-    return { p1: false, p2: false };
+    return { p1: has1, p2: has2 };
   };
 
   /** Indicador puntito amarillo para el score que aporta al Neto del hoyo. */
