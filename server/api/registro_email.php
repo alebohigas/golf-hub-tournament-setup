@@ -51,7 +51,8 @@ if (!$torneoCol) json_error('Columna de torneo no encontrada', 500);
 $select = ["$pkCol AS id", "$torneoCol AS torneoid"];
 foreach (['reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_celular',
           'reg_handicap','reg_categoria','reg_club','reg_es_socio','reg_tipo_socio',
-          'reg_precio_estimado','reg_precio_moneda','reg_token','reg_id_club'] as $c) {
+          'reg_precio_estimado','reg_precio_moneda','reg_token','reg_id_club',
+          'reg_email_count'] as $c) {
     if ($has($c)) $select[] = $c;
 }
 
