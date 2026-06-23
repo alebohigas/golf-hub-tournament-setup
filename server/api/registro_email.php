@@ -51,7 +51,8 @@ if (!$torneoCol) json_error('Columna de torneo no encontrada', 500);
 $select = ["$pkCol AS id", "$torneoCol AS torneoid"];
 foreach (['reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_celular',
           'reg_handicap','reg_categoria','reg_club','reg_es_socio','reg_tipo_socio',
-          'reg_precio_estimado','reg_precio_moneda','reg_token','reg_id_club'] as $c) {
+          'reg_precio_estimado','reg_precio_moneda','reg_token','reg_id_club',
+          'reg_email_count'] as $c) {
     if ($has($c)) $select[] = $c;
 }
 
@@ -188,7 +189,16 @@ $textAlt = "Hola $nombre,\n\nSu registro ha sido validado. Folio: #{$folio}\n"
     . "\nIMPORTANTE: Esto no es una confirmación de registro al torneo. "
     . "Una vez que haya sido verificado su pago, se enviará un correo confirmando su registro oficial.\n";
 
-$res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt);
+/**
+ * CC interno a info@speitour.mx ÚNICAMENTE en el primer envío
+ * (cuando el usuario termina por primera vez el formulario de
+ * pre-registro). Reenvíos posteriores no llevan CC para evitar
+ * ruido en la bandeja interna.
+ */
+$isFirstSend = ((int)($row['reg_email_count'] ?? 0)) === 0;
+$ccList = $isFirstSend ? [['info@speitour.mx', 'Speitour']] : [];
+
+$res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccList);
 if (!$res['ok']) {
     json_error('No se pudo enviar el correo: ' . ($res['error'] ?? 'desconocido'), 500);
 }
