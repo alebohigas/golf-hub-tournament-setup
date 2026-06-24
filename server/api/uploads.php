@@ -274,6 +274,20 @@ if ($action === 'upload') {
     require_admin($_POST);
 
     if (empty($_FILES)) {
+        // When the request body exceeds post_max_size, PHP discards both
+        // $_POST and $_FILES *before* this script runs. CONTENT_LENGTH is
+        // still set by the web server, so we can detect the silent drop
+        // and return a useful error instead of a generic "no files" 400.
+        $postMax = ini_get('post_max_size');
+        $uploadMax = ini_get('upload_max_filesize');
+        $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($contentLength > 0) {
+            json_error(
+                "El archivo excede el límite del servidor PHP (post_max_size=$postMax, upload_max_filesize=$uploadMax). " .
+                "Sube un archivo más pequeño o aumenta los límites en .user.ini.",
+                413
+            );
+        }
         json_error('No files received. Use multipart/form-data with field "files[]".', 400);
     }
 
@@ -304,7 +318,20 @@ if ($action === 'upload') {
         $original = $item['name'] ?? 'unknown';
 
         if (($item['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $errors[] = ['name' => $original, 'error' => 'Upload error code ' . $item['error']];
+            // Map PHP upload error codes to actionable Spanish messages so the
+            // admin UI can show why a specific file was rejected (size, partial
+            // upload, missing tmp dir, etc.) instead of a bare numeric code.
+            $errCode = $item['error'];
+            $errMsg = [
+                UPLOAD_ERR_INI_SIZE   => 'Excede upload_max_filesize del servidor PHP',
+                UPLOAD_ERR_FORM_SIZE  => 'Excede MAX_FILE_SIZE del formulario',
+                UPLOAD_ERR_PARTIAL    => 'Subida incompleta — reintenta',
+                UPLOAD_ERR_NO_FILE    => 'No se recibió archivo',
+                UPLOAD_ERR_NO_TMP_DIR => 'Falta directorio temporal en el servidor',
+                UPLOAD_ERR_CANT_WRITE => 'No se pudo escribir al disco',
+                UPLOAD_ERR_EXTENSION  => 'Una extensión PHP bloqueó la subida',
+            ][$errCode] ?? ('Upload error code ' . $errCode);
+            $errors[] = ['name' => $original, 'error' => $errMsg];
             continue;
         }
         if ($item['size'] > MAX_UPLOAD_BYTES) {
