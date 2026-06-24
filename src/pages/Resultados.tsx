@@ -556,11 +556,19 @@ const Resultados = () => {
                               </TableRow>
 
                               {/* Non-NORMAL players (S/R/D) */}
-                              {cutPlayers.map((cp) => (
+                              {cutPlayers.map((cp) => {
+                                /* Mismo patrón que la sección NORMAL: parejas se renderizan en 2
+                                 * renglones, columnas compartidas con rowSpan=2. */
+                                const isPair = !!(categoryDetail?.isParejas && cp.partner);
+                                const rowSpan = isPair ? 2 : 1;
+                                const name1 = isPair
+                                  ? (cp.pairName?.split('/')[0]?.trim() || cp.name)
+                                  : cp.name;
+                                return (
                                 <Fragment key={cp.playerId}>
                                 <TableRow className="bg-muted/20">
                                   {/* Status code instead of position */}
-                                  <TableCell className="font-semibold text-center sticky left-0 z-10 bg-muted/20" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
+                                  <TableCell rowSpan={rowSpan} className="font-semibold text-center sticky left-0 z-10 bg-muted/20 align-middle" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
                                       {cp.statusCode}
                                     </span>
@@ -590,7 +598,7 @@ const Resultados = () => {
                                    * column / scrolls the table horizontally.
                                    */}
                                   <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
-                                    <span className="block leading-tight">{cp.name}</span>
+                                    <span className="block leading-tight">{name1}</span>
                                     <span className="block text-[11px] leading-tight text-muted-foreground/70">
                                       ({cp.statusLabel})
                                     </span>
@@ -608,11 +616,11 @@ const Resultados = () => {
                                     // RESULTADOS: raw round total — never the diff-vs-par.
                                     if (score === undefined || score === null) {
                                       return (
-                                        <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
+                                        <TableCell key={round} rowSpan={rowSpan} className="text-center text-muted-foreground align-middle">—</TableCell>
                                       );
                                     }
                                     return (
-                                      <TableCell key={round} className="text-center p-0">
+                                      <TableCell key={round} rowSpan={rowSpan} className="text-center p-0 align-middle">
                                         <button
                                           onClick={() => handleRoundClick(
                                             // Reuse PlayerResult-shaped object so handler signature stays the same
@@ -630,11 +638,33 @@ const Resultados = () => {
                                     );
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
-                                  <TableCell className="text-center font-bold text-muted-foreground">
+                                  <TableCell rowSpan={rowSpan} className="text-center font-bold text-muted-foreground align-middle">
                                     {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {cp.total && cp.total > 0 ? cp.total : '—'}
                                   </TableCell>
                                 </TableRow>
+
+                                {/* Segundo integrante (parejas) */}
+                                {isPair && (
+                                  <TableRow className="bg-muted/20">
+                                    <TableCell className="p-1 text-center align-middle sticky z-10" style={{ left: '4rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
+                                      {cp.clubLogo2 ? (
+                                        <img
+                                          src={cp.clubLogo2}
+                                          alt="Club 2"
+                                          className="w-auto object-contain rounded inline-block opacity-60"
+                                          style={{ height: '2.1375rem' }}
+                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
+                                      <span className="block leading-tight">{cp.partner}</span>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
 
                                 {/* Expanded scorecard row for cut players (same UX as NORMAL players) */}
                                 {expandedScorecard?.startsWith(`${cp.playerId}-`) && (
@@ -655,7 +685,8 @@ const Resultados = () => {
                                   ) : null
                                 )}
                                 </Fragment>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
                         </TableBody>
