@@ -33,6 +33,17 @@ import salidasHero from '@/assets/salidas-hero.jpg';
 const countGroupRows = (players: SalidasGroup['players']): number =>
   (players ?? []).reduce((acc, p) => acc + (p.partner ? 2 : 1), 0);
 
+/**
+ * Detecta si un conjunto de jugadores corresponde a categoría de PAREJAS.
+ * Se usa para decidir si la tabla muestra la columna "Equipo" (código de
+ * grupo/pareja, p.ej. C05) y para ajustar el colSpan del footer.
+ */
+const hasAnyPair = (players: SalidasGroup['players']): boolean =>
+  (players ?? []).some((p) => !!p.partner);
+
+const groupsHaveAnyPair = (groups: SalidasGroup[] | undefined): boolean =>
+  (groups ?? []).some((g) => hasAnyPair(g.players ?? []));
+
 // ============= Search Result Type =============
 
 /** Represents a player search match with full group context */
@@ -343,6 +354,9 @@ const Salidas = () => {
                                   <TableRow className="bg-primary hover:bg-primary">
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Hora</TableHead>
+                                    {hasAnyPair(result.group.players ?? []) && (
+                                      <TableHead className="text-primary-foreground font-bold text-center w-20">Equipo</TableHead>
+                                    )}
                                     <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
                                     <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
@@ -354,6 +368,7 @@ const Salidas = () => {
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
                                     const players = result.group.players ?? [];
                                     const totalRows = countGroupRows(players);
+                                    const showTeam = hasAnyPair(players);
                                     let firstRowEmitted = false;
                                     const rows: JSX.Element[] = [];
                                     players.forEach((player, pIdx) => {
@@ -365,7 +380,9 @@ const Salidas = () => {
                                       rows.push(
                                         <TableRow
                                           key={`${pIdx}-a`}
-                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''}`}
+                                          /* `border-b-0` en el primer renglón de una pareja para que no aparezca
+                                           * una línea entre los dos integrantes del mismo equipo. */
+                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
                                         >
                                           {renderHoleHora ? (
                                             <>
@@ -377,6 +394,13 @@ const Salidas = () => {
                                               </TableCell>
                                             </>
                                           ) : null}
+                                          {showTeam && (
+                                            /* Código de pareja/equipo (p.ej. C05). Abarca ambos renglones
+                                             * de la pareja con rowSpan=2 para que se centre verticalmente. */
+                                            <TableCell className="text-center font-bold text-foreground align-middle" rowSpan={isPair ? 2 : 1}>
+                                              {player.groupId || '—'}
+                                            </TableCell>
+                                          )}
                                           <TableCell className="p-1 text-center align-middle">
                                             {player.clubLogo ? (
                                               <img src={player.clubLogo} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -416,7 +440,10 @@ const Salidas = () => {
                                 {/* Footer with category name */}
                                 <tfoot>
                                   <tr className="bg-primary">
-                                    <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
+                                    <td
+                                      colSpan={hasAnyPair(result.group.players ?? []) ? 6 : 5}
+                                      className="text-primary-foreground font-bold text-center py-2 text-sm"
+                                    >
                                       CATEGORÍA: {result.categoryName}
                                     </td>
                                   </tr>
@@ -547,6 +574,9 @@ const Salidas = () => {
                               <TableRow className="bg-primary hover:bg-primary">
                                 <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
                                 <TableHead className="text-primary-foreground font-bold text-center w-20">Hora</TableHead>
+                                {groupsHaveAnyPair(detail.groups) && (
+                                  <TableHead className="text-primary-foreground font-bold text-center w-20">Equipo</TableHead>
+                                )}
                                 <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
                                 <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                                 <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
@@ -559,6 +589,7 @@ const Salidas = () => {
                                  * Score abarca los 2 renglones de cada pareja. */
                                 const players = group.players ?? [];
                                 const totalRows = countGroupRows(players);
+                                const showTeam = groupsHaveAnyPair(detail.groups);
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
                                 let firstRowEmitted = false;
                                 const rows: JSX.Element[] = [];
@@ -572,7 +603,12 @@ const Salidas = () => {
                                   const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
                                   // ----- Renglón principal -----
                                   rows.push(
-                                    <TableRow key={`${group.id}-${pIdx}-a`} className={`bg-white hover:bg-white ${separatorRow1}`}>
+                                    <TableRow
+                                      key={`${group.id}-${pIdx}-a`}
+                                      /* `border-b-0` cuando es pareja: oculta la línea divisoria por defecto
+                                       * entre los dos integrantes del mismo equipo. */
+                                      className={`bg-white hover:bg-white ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
+                                    >
                                       {renderHoleHora ? (
                                         <>
                                           <TableCell className="text-center font-bold text-base text-foreground" rowSpan={totalRows}>
@@ -583,6 +619,13 @@ const Salidas = () => {
                                           </TableCell>
                                         </>
                                       ) : null}
+                                      {showTeam && (
+                                        /* Columna "Equipo": código de pareja/grupo (p.ej. C05).
+                                         * rowSpan=2 cuando hay pareja para centrar verticalmente. */
+                                        <TableCell className="text-center font-bold text-foreground align-middle" rowSpan={isPair ? 2 : 1}>
+                                          {player.groupId || '—'}
+                                        </TableCell>
+                                      )}
                                       <TableCell className="p-1 text-center align-middle">
                                         {player.clubLogo ? (
                                           <img src={player.clubLogo} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -618,7 +661,10 @@ const Salidas = () => {
                             {/* Footer row repeating category name */}
                             <tfoot>
                               <tr className="bg-primary">
-                                <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
+                                <td
+                                  colSpan={groupsHaveAnyPair(detail.groups) ? 6 : 5}
+                                  className="text-primary-foreground font-bold text-center py-2 text-sm"
+                                >
                                   CATEGORÍA: {detail.categoryName}
                                 </td>
                               </tr>
