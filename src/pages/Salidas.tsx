@@ -33,6 +33,17 @@ import salidasHero from '@/assets/salidas-hero.jpg';
 const countGroupRows = (players: SalidasGroup['players']): number =>
   (players ?? []).reduce((acc, p) => acc + (p.partner ? 2 : 1), 0);
 
+/**
+ * Detecta si un conjunto de jugadores corresponde a categoría de PAREJAS.
+ * Se usa para decidir si la tabla muestra la columna "Equipo" (código de
+ * grupo/pareja, p.ej. C05) y para ajustar el colSpan del footer.
+ */
+const hasAnyPair = (players: SalidasGroup['players']): boolean =>
+  (players ?? []).some((p) => !!p.partner);
+
+const groupsHaveAnyPair = (groups: SalidasGroup[] | undefined): boolean =>
+  (groups ?? []).some((g) => hasAnyPair(g.players ?? []));
+
 // ============= Search Result Type =============
 
 /** Represents a player search match with full group context */
