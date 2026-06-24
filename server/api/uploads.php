@@ -32,6 +32,12 @@ require_once 'config.php';
 
 // Allow POST + DELETE for management operations
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+// Upload lists are dynamic admin-managed JSON. Prevent browser/proxy 304
+// responses from leaving the public galleries with an empty/stale file list.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+header('Vary: Host');
 
 // ============= Configuration =============
 
@@ -172,6 +178,40 @@ function public_url($section, $filename) {
 }
 
 /**
+ * Build a cache-busted public URL for a listed file.
+ * The server intentionally overwrites files with the same sanitized name;
+ * adding mtime+size prevents browsers from reusing a stale 304 image after
+ * an admin replaces a problematic upload with a corrected version.
+ */
+function public_versioned_url($section, $filename, $fullPath) {
+    $mtime = @filemtime($fullPath) ?: time();
+    $size = @filesize($fullPath) ?: 0;
+    return public_url($section, $filename) . '?v=' . rawurlencode($mtime . '-' . $size);
+}
+
+/**
+ * Validate browser-compatible image dimensions before accepting an upload.
+ * Very tall/wide images can be under 15 MB but exceed browser decoder limits,
+ * which makes galleries appear blank with no useful console/network error.
+ */
+function validate_image_dimensions($tmpPath, $originalName) {
+    $info = @getimagesize($tmpPath);
+    if ($info === false || empty($info[0]) || empty($info[1])) {
+        return "No se pudo leer como imagen válida";
+    }
+
+    $width = (int)$info[0];
+    $height = (int)$info[1];
+    $maxSide = 32767;
+
+    if ($width > $maxSide || $height > $maxSide) {
+        return "Dimensiones demasiado grandes ({$width}×{$height}px). Máximo recomendado: {$maxSide}px por lado para que el navegador la pueda mostrar.";
+    }
+
+    return null;
+}
+
+/**
  * Convert a snake/dash filename stem into a Title Case alt label.
  * Example: "01-clima-aviso" → "01 Clima Aviso"
  */
@@ -225,7 +265,7 @@ if ($method === 'GET') {
             if (!in_array($ext, $rules['exts'], true)) continue;
             $files[] = [
                 'name'     => $entry,
-                'url'      => public_url($section, $entry),
+                'url'      => public_versioned_url($section, $entry, $full),
                 'alt'      => filename_to_alt($entry),
                 'size'     => filesize($full),
                 'modified' => filemtime($full),
@@ -361,6 +401,14 @@ if ($action === 'upload') {
             continue;
         }
 
+        if (strpos($detectedMime, 'image/') === 0) {
+            $dimensionError = validate_image_dimensions($item['tmp_name'], $original);
+            if ($dimensionError !== null) {
+                $errors[] = ['name' => $original, 'error' => $dimensionError];
+                continue;
+            }
+        }
+
         $cleanName = safe_filename($original);
         $target = $dir . '/' . $cleanName;
 
@@ -375,7 +423,7 @@ if ($action === 'upload') {
         $saved[] = [
             'name'     => $cleanName,
             'original' => $original,
-            'url'      => public_url($section, $cleanName),
+            'url'      => public_versioned_url($section, $cleanName, $target),
             'size'     => filesize($target),
         ];
     }

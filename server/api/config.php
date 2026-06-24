@@ -100,15 +100,23 @@ function debug_context($extra = []) {
 function json_response($data, $status = 200) {
     global $DEBUG_MODE, $DEBUG_QUERIES;
     http_response_code($status);
+    $jsonOptions = JSON_UNESCAPED_UNICODE | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0);
     // In debug mode, wrap response with query info
     if ($DEBUG_MODE) {
-        echo json_encode([
+        $encoded = json_encode([
             '_debug_queries' => $DEBUG_QUERIES,
             '_debug_query_count' => count($DEBUG_QUERIES),
             'data' => $data
-        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        ], $jsonOptions | JSON_PRETTY_PRINT);
     } else {
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        $encoded = json_encode($data, $jsonOptions);
+    }
+
+    if ($encoded === false) {
+        http_response_code(500);
+        echo '{"error":"JSON encoding failed"}';
+    } else {
+        echo $encoded;
     }
     exit;
 }
@@ -122,13 +130,14 @@ function json_response($data, $status = 200) {
 function json_error($message, $status = 500, $extraDebug = []) {
     global $DEBUG_MODE;
     http_response_code($status);
+    $jsonOptions = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0);
 
     $payload = ['error' => $message];
     if ($DEBUG_MODE) {
         $payload['_debug'] = debug_context($extraDebug);
     }
 
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    echo json_encode($payload, $jsonOptions);
     exit;
 }
 
