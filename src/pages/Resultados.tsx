@@ -412,12 +412,12 @@ const Resultados = () => {
                                * de Jugadores que pidió el usuario. */
                               const isPair = !!(categoryDetail?.isParejas && player.partner);
                               const rowSpan = isPair ? 2 : 1;
-                              // Nombre del primer integrante. En parejas usamos `player.name`
-                              // (que ya viene como nombre del jugador 1) ó parsea `pairName` si
-                              // viniera como "Nombre1 / Nombre2".
-                              const name1 = isPair
-                                ? (player.pairName?.split('/')[0]?.trim() || player.name)
-                                : player.name;
+                              /* `player.name` ya es el nombre del JUGADOR 1 (capitán) tal cual
+                               * lo regresa la API, y `player.partner` es el segundo integrante.
+                               * No parseamos pairName aquí porque el orden de pairName puede
+                               * NO coincidir con el orden (name, partner) de la API (la BD
+                               * legacy concatena los nombres en orden alfabético). */
+                              const name1 = player.name;
                               return (
                               <Fragment key={player.id}>
                                 <TableRow className={`bg-white hover:bg-white ${isPair ? 'border-b-0' : ''}`}>
