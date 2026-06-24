@@ -83,7 +83,8 @@ foreach ($groupRows as $group) {
         ? "CONCAT(j.nombre, ' ', j.apellido) as jugador,
            CONCAT(j2.nombre, ' ', j2.apellido) as jugador2"
         : "CONCAT(nombre, ' ', apellido) as jugador";
-    $logoCols = $isParejas ? "v.logo, v.logo2" : "logo";
+    // v_sal_jug_par no expone `logo2`; el segundo logo se trae desde la pareja j2->club.
+    $logoCols = $isParejas ? "v.logo, c2.logo as logo2" : "logo";
 
     /*
      * En parejas hacemos JOIN extra a v_jugadores_parejas + jugadores para
@@ -94,11 +95,15 @@ foreach ($groupRows as $group) {
     $parejasJoin = $isParejas
         ? " JOIN v_jugadores_parejas vp ON (v.jugadorid = vp.jugadorid)
             JOIN jugadores j  ON (vp.jugadorid  = j.id)
-            JOIN jugadores j2 ON (vp.jugadorid2 = j2.id)"
+            JOIN jugadores j2 ON (vp.jugadorid2 = j2.id)
+            LEFT JOIN clubs c2 ON (j2.clubid = c2.id)"
         : "";
     /* En parejas aliasamos la tabla principal como `v` para evitar columnas ambiguas
-     * (logo) cuando hacemos JOIN a jugadores/clubs adicionales. */
+     * (logo, jugadorid, salidagrupoid) cuando hacemos JOIN a jugadores/clubs adicionales. */
     $fromExpr = $isParejas ? "$viewName v" : $viewName;
+
+    // Prefijos para resolver ambigüedad de columnas en la rama de parejas.
+    $P = $isParejas ? 'v.' : '';
 
     if ($sistema === 'STABLEFORD') {
         if ($gross == 1 || $grossstb == 1) {
