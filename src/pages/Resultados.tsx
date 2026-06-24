@@ -420,7 +420,7 @@ const Resultados = () => {
                                 : player.name;
                               return (
                               <Fragment key={player.id}>
-                                <TableRow className="bg-white hover:bg-white">
+                                <TableRow className={`bg-white hover:bg-white ${isPair ? 'border-b-0' : ''}`}>
                                   {/* Position con medalla — abarca los 2 renglones en parejas */}
                                   <TableCell rowSpan={rowSpan} className="font-semibold sticky left-0 z-10 bg-white align-middle">
                                     <div className="flex items-center gap-2">
@@ -566,7 +566,7 @@ const Resultados = () => {
                                   : cp.name;
                                 return (
                                 <Fragment key={cp.playerId}>
-                                <TableRow className="bg-muted/20">
+                                <TableRow className={`bg-muted/20 ${isPair ? 'border-b-0' : ''}`}>
                                   {/* Status code instead of position */}
                                   <TableCell rowSpan={rowSpan} className="font-semibold text-center sticky left-0 z-10 bg-muted/20 align-middle" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
