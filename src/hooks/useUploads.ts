@@ -67,39 +67,6 @@ const deleteUrl = (section: UploadSection) =>
 export const uploadsQueryKey = (section: UploadSection) => ['uploads', section] as const;
 
 /**
- * Maximum per-file size enforced on the client BEFORE the upload starts.
- * Set to 2 MB to match the practical IONOS shared-hosting POST limit —
- * uploads larger than this fail at the web-server layer (before PHP can
- * respond) and produce opaque 500 errors. Catching them here gives the
- * admin a clear, actionable error.
- */
-export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB
-
-/** Human readable cap used in UI strings/toasts. */
-export const MAX_UPLOAD_LABEL = '2 MB';
-
-/** Format bytes as MB with one decimal — used in oversized-file messages. */
-const formatMB = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-
-/**
- * Validate a list of selected files against the client-side size cap.
- * Returns `{ ok, oversized }` so callers can decide whether to proceed
- * with the remaining files or abort outright.
- */
-export const validateUploadFiles = (files: File[]) => {
-  const ok: File[] = [];
-  const oversized: Array<{ name: string; size: number }> = [];
-  for (const f of files) {
-    if (f.size > MAX_UPLOAD_BYTES) {
-      oversized.push({ name: f.name, size: f.size });
-    } else {
-      ok.push(f);
-    }
-  }
-  return { ok, oversized, formatMB };
-};
-
-/**
  * useUploadsList
  * Lists files currently present in the given section folder on the server.
  * Cached for 30 s; invalidated automatically after upload/delete mutations.
@@ -125,46 +92,18 @@ export const useUploadFiles = (section: UploadSection) => {
       if (files.length === 0) {
         throw new Error('Selecciona al menos un archivo.');
       }
-      // Defensive client-side cap. The Admin UI already filters oversized
-      // files before calling the mutation, but this guard ensures any other
-      // caller still gets a clear error instead of an opaque server 500.
-      const tooBig = files.find((f) => f.size > MAX_UPLOAD_BYTES);
-      if (tooBig) {
-        throw new Error(
-          `El archivo "${tooBig.name}" pesa ${formatMB(tooBig.size)} y supera el máximo permitido de ${MAX_UPLOAD_LABEL}. Reduce su tamaño (por ejemplo exportándolo como JPG/WebP comprimido) antes de subirlo.`
-        );
-      }
       const formData = new FormData();
       formData.append('password', password);
       // Backend accepts repeated `files[]` field for multi-file uploads.
       files.forEach((file) => formData.append('files[]', file, file.name));
 
-      let response: Response;
-      try {
-        response = await fetch(uploadUrl(section), { method: 'POST', body: formData });
-      } catch (networkErr) {
-        // Network errors here on large uploads usually mean the host
-        // (e.g. IONOS) rejected the POST size before PHP could respond.
-        throw new Error(
-          `No se pudo contactar al servidor. Si subiste un archivo grande, puede que supere el límite del hosting (intenta uno por uno o reduce el tamaño).`
-        );
-      }
+      const response = await fetch(uploadUrl(section), {
+        method: 'POST',
+        body: formData,
+      });
       const text = await response.text();
       let parsed: any = null;
       try { parsed = text ? JSON.parse(text) : null; } catch { parsed = null; }
-
-      // 413 / 500 with HTML body → almost always an oversized POST that
-      // tripped the web server's body limit. Surface a friendly hint.
-      if (response.status === 413 || (!response.ok && !parsed)) {
-        const totalMB = formatMB(files.reduce((s, f) => s + f.size, 0));
-        throw new ApiError(
-          `El servidor rechazó la subida (HTTP ${response.status}). El total enviado fue ${totalMB}; probablemente excede el límite del hosting. Intenta subir un archivo a la vez o reducir el tamaño/peso de la imagen.`,
-          response.status,
-          uploadUrl(section),
-          text,
-          parsed
-        );
-      }
 
       if (!response.ok) {
         const message = parsed?.error || `Error subiendo archivos (HTTP ${response.status})`;

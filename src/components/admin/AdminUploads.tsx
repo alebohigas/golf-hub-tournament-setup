@@ -53,8 +53,6 @@ import {
   useUploadsList,
   useUploadFiles,
   useDeleteFile,
-  validateUploadFiles,
-  MAX_UPLOAD_LABEL,
   type UploadSection,
   type UploadedFile,
 } from '@/hooks/useUploads';
@@ -200,27 +198,8 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
   const handleFiles = (filesList: FileList | null, inputEl: HTMLInputElement | null) => {
     if (!filesList || filesList.length === 0) return;
     const files = Array.from(filesList);
-
-    // Client-side size validation BEFORE hitting the network. Surfaces an
-    // immediate, specific error for each oversized file so admins know
-    // exactly which asset must be compressed (instead of getting an opaque
-    // server 500 from PHP's `post_max_size` / IONOS body-limit).
-    const { ok: validFiles, oversized, formatMB } = validateUploadFiles(files);
-    if (oversized.length > 0) {
-      const detail = oversized
-        .map((f) => `${f.name} (${formatMB(f.size)})`)
-        .join(', ');
-      toast({
-        title: `Archivo${oversized.length === 1 ? '' : 's'} demasiado grande${oversized.length === 1 ? '' : 's'}`,
-        description: `Máximo ${MAX_UPLOAD_LABEL} por archivo. Comprime o reduce la resolución antes de subir: ${detail}.`,
-        variant: 'destructive',
-      });
-      if (inputEl) inputEl.value = '';
-      if (validFiles.length === 0) return;
-    }
-
     uploadMutation.mutate(
-      { files: validFiles, password: ADMIN_PASSWORD },
+      { files, password: ADMIN_PASSWORD },
       {
         onSuccess: (response) => {
           const okCount = response.saved.length;
