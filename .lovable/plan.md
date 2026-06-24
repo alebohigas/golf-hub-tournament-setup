@@ -1,58 +1,63 @@
 ## Objetivo
-Hacer que `/resultados` + clic en `r{n}` repliquen 1:1 el flujo legacy para parejas:
-1. `resultados_jug_parejas.php` → ya portado en `server/api/resultados_parejas.php`. Validar ORDER BY.
-2. `tarjeta_gogo_handicap.php` y `bola_baja_suma_scores.php` → un solo endpoint JSON `tarjeta_parejas.php` que devuelve los **mismos datos crudos** que usa el legacy (sin recomputar nada — la BD ya trae el Neto correcto en `tarjetas.h{n}_a`).
-3. El frontend debe consultar el `estilojuego` **del día específico** antes de pedir la tarjeta y renderizar la variante visual correcta.
 
-## Hallazgos clave del legacy
-- `bola_baja_suma_scores.php` y `tarjeta_gogo_handicap.php` son **casi idénticos**. Única diferencia visual:
-  - **Go Go** → muestra UNA fila de Gross + UNA de hcp (sólo jugador1) + fila Neto.
-  - **Bola Baja / Suma Scores** → muestra DOS filas Gross + DOS hcp (jugador1 y jugador2 con `arsopar`/`arvtjpar`) + fila Neto.
-- En ambos, la fila Neto sale de `h1_a..h18_a` de `tarjetas`. Esa view ya tiene aplicada la lógica de cada estilo. No se debe inventar "bola baja = min(j1,j2)" ni "suma = j1+j2" en el frontend.
-- `estilojuego` se lee de `caljuego` por **fecha+categoría** (no por toda la categoría). Por eso al hacer clic en R1 puede ser Go Go y en R2 Bola Baja.
+Que las páginas **Salidas**, **Resultados** y **Live** muestren las parejas con la misma estructura que ya tiene **Jugadores** (imagen 1): un renglón por jugador dentro del bloque del grupo/pareja, y los datos compartidos (Hoyo/Hora en Salidas, R1/R2/Total en Resultados/Live) centrados verticalmente al medio de los dos renglones usando `rowSpan`.
 
-## Cambios
+---
 
-### Backend
-1. **`server/api/resultados_parejas.php`** — verificar contra legacy:
-   - Quitar prefijos `u.` espurios de `c1..c5` en ORDER BY (legacy usa bare). 
-   - GROSS countback: `(j.cd1+j.cd2+cd3+cd4+cd5)` (mezcla prefijos como en legacy).
-   - Confirmar que `f_torneoso(...) > 0` (no `f_torneosa`).
-   - Confirmar que sólo-Neto excluye `j.campgross=0`.
-2. **`server/api/tarjeta_parejas.php`** — simplificar payload:
-   - **Quitar** `bolaBaja[]` y `suma[]` (legacy no los calcula).
-   - Mantener: `estilojuego`, `player1` (arso/arvtj/arsa), `player2` (arsopar/arvtjpar/arsapar), `holes` (par/ventaja), `neto[]` (h{n}_a), totals.
-   - Asegurar SQL idéntico al legacy: mismo join `v_sal_jug + campos + tarjetas`, mismo select de `h{n}_a`, `arso`, `arsa`, `arvtj` (= `ventajasjug`), `arsopar`, `arvtjpar`, `arsapar`.
+## Cambios por página
 
-### Frontend
-3. **`src/hooks/useResultadosData.ts`** — exponer helper `fetchEstiloDelDia(catid, fecha)` que llame `caljuego_estilo.php` antes de cargar tarjeta.
-4. **`src/pages/Resultados.tsx`** (handler de clic en `r{n}` para categoría de parejas):
-   - Mapear `r{n}` → `days[n-1]` (fecha).
-   - Llamar `caljuego_estilo.php` para esa fecha → recibir `estilojuego`.
-   - Llamar `tarjeta_parejas.php` con esa fecha.
-   - Pasar `estilojuego` al `ScorecardParejas`.
-5. **`src/components/resultados/ScorecardParejas.tsx`** — rehacer fiel al legacy:
-   - Quitar filas computadas "Bola Baja" / "Suma" — el valor ya está en la fila Neto.
-   - **Go Go**: filas → Par · Vtja · Gross(j1) · hcp(j1) · Neto.
-   - **Bola Baja / Suma Scores**: filas → Par · Vtja · j1 Gross · j1 hcp · j2 Gross · j2 hcp · Neto.
-   - Header conserva chip de `estilojuego` para que el usuario distinga.
-6. **`src/config/api.ts`** — sin cambios (URLs ya existen).
-7. **`src/hooks/useResultadosData.ts`** types: quitar `bolaBaja` y `suma` de `ParejaHoleScore` / `ParejaScorecard`.
+### 1) Salidas (`src/pages/Salidas.tsx` + `server/api/salidas_det.php`)
+
+**Problema:** en categorías de parejas el endpoint devuelve sólo 1 fila por pareja (el primer jugador), por eso "salen 2" cuando realmente son 4.
+
+- En `salidas_det.php`:
+  - Quitar el hard-code `$formato='individual';` (línea 11).
+  - Cuando `formato=parejas`, en lugar de usar `v_sal_jug_par` con un sólo nombre, hacer la misma query que ya hace `resultados_parejas.php` (vía `v_jugadores_parejas` + doble JOIN a `jugadores`/`clubs`) para devolver por pareja: `name`, `partner`, `clubLogo`, `clubLogo2`, `score`, `grupoid`. Mantener orden y filtrado por `salidagrupoid` para no romper el resto.
+  - Mantener el shape actual de `groups[].players`, agregando `partner` y `clubLogo2` cuando aplique (campos opcionales, no rompen individual).
+
+- En `Salidas.tsx`:
+  - Si `player.partner` existe, renderizar **dos `<TableRow>`** dentro del mismo grupo de salida (uno por jugador), con la columna **Hoyo** y **Hora** usando `rowSpan = 2 × nº de parejas del grupo` (igual que ya se hace pero contando jugadores reales).
+  - Cada jugador con su propio logo (`clubLogo` / `clubLogo2`) y nombre en su renglón.
+  - La columna **Score** se centra verticalmente con `rowSpan={2}` por pareja porque es score compartido.
+  - Aplicar el mismo patrón en el bloque de búsqueda (`searchResults`).
+
+### 2) Resultados (`src/pages/Resultados.tsx`)
+
+Hoy en parejas se muestra una sola fila con `"Nombre1 / Nombre2"` y un par de logos pequeños lado a lado.
+
+- Cuando `categoryDetail?.isParejas`:
+  - Renderizar **dos `<TableRow>`** consecutivas por pareja.
+  - Renglón 1: club logo 1, nombre 1.
+  - Renglón 2: club logo 2, nombre 2 (`player.partner`).
+  - Columnas compartidas (Pos, R1, R2, …, Total) con `rowSpan={2}` y `align-middle` para que queden centradas verticalmente entre los dos renglones (como en la imagen 3 deseada por el usuario).
+  - Mantener el sticky-left para Pos/Club/Jugador con `rowSpan={2}` en la primera fila.
+  - El click para expandir scorecard sigue actuando sobre la pareja (no se duplica).
+- Mismo tratamiento en la tabla de `cutPlayers`.
+
+### 3) Live (`src/pages/Live.tsx`)
+
+Aplicar el mismo patrón "dos renglones por pareja + rowSpan en columnas compartidas" que en Resultados, respetando los colores de score diff vs par que ya existen en Live.
+
+---
 
 ## Detalles técnicos
-- Endpoint `caljuego_estilo.php` ya existe y devuelve `{estilojuego, formato, campo, isParejas}`. Lo reutilizamos.
-- Los días vienen ordenados (`days[]`) desde `resultados_parejas.php`; el índice 1-based corresponde a `r1..rN`.
-- No se modifica nada del flujo individual — sólo la rama parejas (`isParejas=true`).
 
-## Archivos a editar
-- `server/api/resultados_parejas.php` (verificación ORDER BY)
-- `server/api/tarjeta_parejas.php` (simplificar — quitar bolaBaja/suma)
-- `src/components/resultados/ScorecardParejas.tsx` (rehacer fiel)
-- `src/hooks/useResultadosData.ts` (helper estilo del día + tipos)
-- `src/pages/Resultados.tsx` (handler clic r{n} → consultar estilo)
+- No se toca el modelo de datos del frontend: `Player` ya tiene `partner`, `clubLogo2` y `pairName` (ver `useResultadosData.ts` líneas 138-143).
+- En Salidas hay que extender `SalidasPlayer` para incluir `partner?: string` y `clubLogo2?: string`.
+- `rowSpan` en parejas = 2 (un jugador + su compañero). En grupos multi-pareja en Salidas, las columnas `Hoyo`/`Hora` siguen abarcando todos los renglones del grupo (`2 × nº parejas`), y `Score` abarca 2 (por pareja).
+- No se altera ningún cálculo de scoring, ordenamiento, ni keys dinámicas `r{n}` (respeta la regla de memoria).
+- Cambios localizados; no toca competencias, brackets ni pre-registros.
 
-## Validación
-- Probar `/resultados` con torneo 323, cat 6316.
-- Clic en R1 → debe pedir `caljuego_estilo` (fecha 2026-03-13) → recibir "Go Go" → mostrar variante 1-jugador.
-- Clic en R2 → "Bola Baja" → 2 jugadores + Neto.
-- Clic en R3 → "Suma Scores" → 2 jugadores + Neto.
+---
+
+## Archivos a modificar
+
+```text
+server/api/salidas_det.php          (parejas: doble JOIN y devolver partner+clubLogo2)
+src/hooks/useSalidasData.ts         (tipo SalidasPlayer: +partner, +clubLogo2)
+src/pages/Salidas.tsx               (render dos renglones por pareja + rowSpan)
+src/pages/Resultados.tsx            (parejas: dos renglones + rowSpan centrado)
+src/pages/Live.tsx                  (parejas: dos renglones + rowSpan centrado)
+```
+
+¿Procedo así?
