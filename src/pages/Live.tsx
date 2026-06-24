@@ -580,11 +580,16 @@ const Live = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {leaderboard.players.map((player) => (
+                          {leaderboard.players.map((player) => {
+                            /* En categorías PAREJAS (cuando el backend manda `partner`) la pareja
+                             * se renderiza como 2 renglones; columnas compartidas con rowSpan=2. */
+                            const isPair = !!(player as { partner?: string }).partner;
+                            const rs = isPair ? 2 : 1;
+                            return (
                             <Fragment key={player.playerId}>
                               <TableRow className="bg-white">
                                 {/* Position */}
-                                <TableCell className="text-center font-bold sticky left-0 z-10 bg-white">
+                                <TableCell rowSpan={rs} className="text-center font-bold sticky left-0 z-10 bg-white align-middle">
                                   {player.position}
                                 </TableCell>
 
