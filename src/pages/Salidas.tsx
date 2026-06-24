@@ -354,6 +354,9 @@ const Salidas = () => {
                                   <TableRow className="bg-primary hover:bg-primary">
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Hoyo</TableHead>
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Hora</TableHead>
+                                    {hasAnyPair(result.group.players ?? []) && (
+                                      <TableHead className="text-primary-foreground font-bold text-center w-20">Equipo</TableHead>
+                                    )}
                                     <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
                                     <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
                                     <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
@@ -365,6 +368,7 @@ const Salidas = () => {
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
                                     const players = result.group.players ?? [];
                                     const totalRows = countGroupRows(players);
+                                    const showTeam = hasAnyPair(players);
                                     let firstRowEmitted = false;
                                     const rows: JSX.Element[] = [];
                                     players.forEach((player, pIdx) => {
@@ -376,7 +380,9 @@ const Salidas = () => {
                                       rows.push(
                                         <TableRow
                                           key={`${pIdx}-a`}
-                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''}`}
+                                          /* `border-b-0` en el primer renglón de una pareja para que no aparezca
+                                           * una línea entre los dos integrantes del mismo equipo. */
+                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
                                         >
                                           {renderHoleHora ? (
                                             <>
@@ -388,6 +394,13 @@ const Salidas = () => {
                                               </TableCell>
                                             </>
                                           ) : null}
+                                          {showTeam && (
+                                            /* Código de pareja/equipo (p.ej. C05). Abarca ambos renglones
+                                             * de la pareja con rowSpan=2 para que se centre verticalmente. */
+                                            <TableCell className="text-center font-bold text-foreground align-middle" rowSpan={isPair ? 2 : 1}>
+                                              {player.groupId || '—'}
+                                            </TableCell>
+                                          )}
                                           <TableCell className="p-1 text-center align-middle">
                                             {player.clubLogo ? (
                                               <img src={player.clubLogo} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -427,7 +440,10 @@ const Salidas = () => {
                                 {/* Footer with category name */}
                                 <tfoot>
                                   <tr className="bg-primary">
-                                    <td colSpan={5} className="text-primary-foreground font-bold text-center py-2 text-sm">
+                                    <td
+                                      colSpan={hasAnyPair(result.group.players ?? []) ? 6 : 5}
+                                      className="text-primary-foreground font-bold text-center py-2 text-sm"
+                                    >
                                       CATEGORÍA: {result.categoryName}
                                     </td>
                                   </tr>
