@@ -553,59 +553,67 @@ const Salidas = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {(detail.groups ?? []).map((group, gIdx) => (
-                                (group.players ?? []).map((player, pIdx) => (
-                                  <TableRow
-                                    key={`${group.id}-${pIdx}`}
-                                    className={`bg-white hover:bg-white ${
-                                      pIdx === (group.players ?? []).length - 1 && gIdx < (detail.groups ?? []).length - 1
-                                        ? 'border-b-2 border-primary/20'
-                                        : ''
-                                    }`}
-                                  >
-                                    {pIdx === 0 ? (
-                                      <>
-                                        <TableCell
-                                          // H01 matched in size with the tee time for visual balance
-                                          className="text-center font-bold text-base text-foreground"
-                                          rowSpan={(group.players ?? []).length}
-                                        >
-                                          {group.tee}
+                              {(detail.groups ?? []).map((group, gIdx) => {
+                                /* Igual que el bloque de búsqueda: parejas → 2 renglones por jugador.
+                                 * Hoyo/Hora abarcan TODOS los renglones del grupo;
+                                 * Score abarca los 2 renglones de cada pareja. */
+                                const players = group.players ?? [];
+                                const totalRows = countGroupRows(players);
+                                const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
+                                let firstRowEmitted = false;
+                                const rows: JSX.Element[] = [];
+                                players.forEach((player, pIdx) => {
+                                  const isPair = !!player.partner;
+                                  const isLastPlayer = pIdx === players.length - 1;
+                                  const renderHoleHora = !firstRowEmitted;
+                                  firstRowEmitted = true;
+                                  // Separador entre grupos: aplica sólo al ÚLTIMO renglón del último jugador.
+                                  const separatorRow2 = isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
+                                  const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
+                                  // ----- Renglón principal -----
+                                  rows.push(
+                                    <TableRow key={`${group.id}-${pIdx}-a`} className={`bg-white hover:bg-white ${separatorRow1}`}>
+                                      {renderHoleHora ? (
+                                        <>
+                                          <TableCell className="text-center font-bold text-base text-foreground" rowSpan={totalRows}>
+                                            {group.tee}
+                                          </TableCell>
+                                          <TableCell className="text-center font-bold text-base text-foreground" rowSpan={totalRows}>
+                                            {group.time}
+                                          </TableCell>
+                                        </>
+                                      ) : null}
+                                      <TableCell className="p-1 text-center align-middle">
+                                        {player.clubLogo ? (
+                                          <img src={player.clubLogo} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                        ) : (<span className="text-xs text-muted-foreground">—</span>)}
+                                      </TableCell>
+                                      <TableCell className="font-medium text-foreground player-name-cell">
+                                        {player.name}
+                                      </TableCell>
+                                      <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
+                                        {player.score || '—'}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                  // ----- Renglón secundario (segundo integrante de la pareja) -----
+                                  if (isPair) {
+                                    rows.push(
+                                      <TableRow key={`${group.id}-${pIdx}-b`} className={`bg-white hover:bg-white ${separatorRow2}`}>
+                                        <TableCell className="p-1 text-center align-middle">
+                                          {player.clubLogo2 ? (
+                                            <img src={player.clubLogo2} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                          ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                         </TableCell>
-                                        <TableCell
-                                          // Tee time emphasized: bold and one size up to match the H01 hole prominence
-                                          className="text-center font-bold text-base text-foreground"
-                                          rowSpan={(group.players ?? []).length}
-                                        >
-                                          {group.time}
+                                        <TableCell className="font-medium text-foreground player-name-cell">
+                                          {player.partner}
                                         </TableCell>
-                                      </>
-                                    ) : null}
-                                    <TableCell className="p-1 text-center align-middle">
-                                      {player.clubLogo ? (
-                                        <img
-                                          src={player.clubLogo}
-                                          alt="Club"
-                                          className="w-auto object-contain rounded inline-block"
-                                          // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
-                                          style={{ height: '2.1375rem' }}
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none';
-                                          }}
-                                        />
-                                      ) : (
-                                        <span className="text-xs text-muted-foreground">—</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="font-medium text-foreground player-name-cell">
-                                      {player.name}
-                                    </TableCell>
-                                    <TableCell className="text-center font-bold text-primary">
-                                      {player.score || '—'}
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                              ))}
+                                      </TableRow>
+                                    );
+                                  }
+                                });
+                                return rows;
+                              })}
                             </TableBody>
                             {/* Footer row repeating category name */}
                             <tfoot>
