@@ -405,11 +405,24 @@ const Resultados = () => {
                         </TableHeader>
                         <TableBody>
                           {players.length > 0 ? (
-                            players.map((player) => (
+                            players.map((player) => {
+                              /* En categorías de PAREJAS: render = 2 renglones (uno por integrante)
+                               * y las columnas compartidas (Pos / Club logo / R1..Rn / Total) se
+                               * centran verticalmente con rowSpan=2 — equivalente a la imagen
+                               * de Jugadores que pidió el usuario. */
+                              const isPair = !!(categoryDetail?.isParejas && player.partner);
+                              const rowSpan = isPair ? 2 : 1;
+                              // Nombre del primer integrante. En parejas usamos `player.name`
+                              // (que ya viene como nombre del jugador 1) ó parsea `pairName` si
+                              // viniera como "Nombre1 / Nombre2".
+                              const name1 = isPair
+                                ? (player.pairName?.split('/')[0]?.trim() || player.name)
+                                : player.name;
+                              return (
                               <Fragment key={player.id}>
                                 <TableRow className="bg-white hover:bg-white">
-                                  {/* Position with dynamic medal */}
-                                  <TableCell className="font-semibold sticky left-0 z-10 bg-white">
+                                  {/* Position con medalla — abarca los 2 renglones en parejas */}
+                                  <TableCell rowSpan={rowSpan} className="font-semibold sticky left-0 z-10 bg-white align-middle">
                                     <div className="flex items-center gap-2">
                                       {getPositionIcon(player.position, medalCount)}
                                       <span className={player.position <= medalCount ? getMedalStyle(player.position) : ''}>
@@ -417,20 +430,13 @@ const Resultados = () => {
                                       </span>
                                     </div>
                                   </TableCell>
-                                  {/* Club Logo */}
+                                  {/* Club Logo del jugador 1 (en parejas también es 1 logo por renglón) */}
                                   <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
-                                    {/* Parejas: si hay 2 logos, los mostramos lado a lado más pequeños. */}
-                                    {categoryDetail?.isParejas && player.clubLogo2 ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <img src={player.clubLogo} alt="Club 1" className="object-contain" style={{ height: '1.7rem' }} />
-                                        <img src={player.clubLogo2} alt="Club 2" className="object-contain" style={{ height: '1.7rem' }} />
-                                      </div>
-                                    ) : player.clubLogo ? (
+                                    {player.clubLogo ? (
                                       <img
                                         src={player.clubLogo}
                                         alt="Club"
                                         className="w-auto object-contain rounded inline-block"
-                                        // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
                                         style={{ height: '2.1375rem' }}
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
@@ -440,8 +446,8 @@ const Resultados = () => {
                                       <span className="text-xs text-muted-foreground">{player.club}</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>{player.name}</TableCell>
-                                  {/* Dynamic round score cells */}
+                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>{name1}</TableCell>
+                                  {/* Round score cells — rowSpan=2 en parejas para centrar el score compartido */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
                                     const score = getRoundScore(player, round);
@@ -450,7 +456,7 @@ const Resultados = () => {
                                     // The signed diff-vs-par ("+N / -N / E") view is used
                                     // only on /live — never here.
                                     return (
-                                      <TableCell key={round} className="text-center p-0">
+                                      <TableCell key={round} rowSpan={rowSpan} className="text-center p-0 align-middle">
                                         {score !== undefined && score !== null ? (
                                           <button
                                             onClick={() => handleRoundClick(player, round)}
@@ -468,11 +474,37 @@ const Resultados = () => {
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="text-center font-bold text-primary text-lg">
+                                  <TableCell rowSpan={rowSpan} className="text-center font-bold text-primary text-lg align-middle">
                                     {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {player.total ?? 0}
                                   </TableCell>
                                 </TableRow>
+
+                                {/* Segundo renglón: integrante 2 de la pareja.
+                                    Sólo contiene logo del club 2 + nombre del compañero;
+                                    las demás columnas las cubre el rowSpan=2 del renglón anterior. */}
+                                {isPair && (
+                                  <TableRow className="bg-white hover:bg-white">
+                                    <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
+                                      {player.clubLogo2 ? (
+                                        <img
+                                          src={player.clubLogo2}
+                                          alt="Club 2"
+                                          className="w-auto object-contain rounded inline-block"
+                                          style={{ height: '2.1375rem' }}
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>
+                                      {player.partner}
+                                    </TableCell>
+                                  </TableRow>
+                                )}
 
                                 {/* Expanded scorecard row */}
                                 {expandedScorecard?.startsWith(`${player.id}-`) && (
@@ -501,7 +533,8 @@ const Resultados = () => {
                                   ) : null
                                 )}
                               </Fragment>
-                            ))
+                              );
+                            })
                           ) : (
                             <TableRow>
                               <TableCell colSpan={totalCols} className="text-center text-muted-foreground py-8">
