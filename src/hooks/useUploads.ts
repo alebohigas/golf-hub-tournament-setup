@@ -68,15 +68,15 @@ export const uploadsQueryKey = (section: UploadSection) => ['uploads', section] 
 
 /**
  * Maximum per-file size enforced on the client BEFORE the upload starts.
- * Kept slightly below the backend cap (15 MB) so we catch problems early
- * with a friendly message instead of relying on PHP's `upload_max_filesize`
- * / `post_max_size`, which on some shared hosts (IONOS default ~2 MB)
- * silently truncates the POST body and produces an opaque 500/HTML error.
+ * Set to 2 MB to match the practical IONOS shared-hosting POST limit —
+ * uploads larger than this fail at the web-server layer (before PHP can
+ * respond) and produce opaque 500 errors. Catching them here gives the
+ * admin a clear, actionable error.
  */
-export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB
 
 /** Human readable cap used in UI strings/toasts. */
-export const MAX_UPLOAD_LABEL = '15 MB';
+export const MAX_UPLOAD_LABEL = '2 MB';
 
 /** Format bytes as MB with one decimal — used in oversized-file messages. */
 const formatMB = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
