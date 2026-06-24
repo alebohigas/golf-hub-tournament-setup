@@ -212,6 +212,23 @@ function validate_image_dimensions($tmpPath, $originalName) {
 }
 
 /**
+ * Convert PHP shorthand size strings (e.g. 8M, 128K, 1G) to bytes.
+ * Used only for clearer upload-limit diagnostics when PHP discards the body.
+ */
+function php_size_to_bytes($value) {
+    $value = trim((string)$value);
+    if ($value === '') return 0;
+    $unit = strtolower(substr($value, -1));
+    $number = (float)$value;
+    switch ($unit) {
+        case 'g': $number *= 1024;
+        case 'm': $number *= 1024;
+        case 'k': $number *= 1024;
+    }
+    return (int)$number;
+}
+
+/**
  * Convert a snake/dash filename stem into a Title Case alt label.
  * Example: "01-clima-aviso" → "01 Clima Aviso"
  */
@@ -311,17 +328,16 @@ if ($action === 'delete') {
 // ----- UPLOAD one or more files -----
 if ($action === 'upload') {
     // Multipart form: password + files[] (or single `file`)
-    require_admin($_POST);
-
     if (empty($_FILES)) {
         // When the request body exceeds post_max_size, PHP discards both
         // $_POST and $_FILES *before* this script runs. CONTENT_LENGTH is
         // still set by the web server, so we can detect the silent drop
-        // and return a useful error instead of a generic "no files" 400.
+        // before auth and return a useful error instead of a misleading 401.
         $postMax = ini_get('post_max_size');
         $uploadMax = ini_get('upload_max_filesize');
         $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
-        if ($contentLength > 0) {
+        $postMaxBytes = php_size_to_bytes($postMax);
+        if ($contentLength > 0 && $postMaxBytes > 0 && $contentLength > $postMaxBytes) {
             json_error(
                 "El archivo excede el límite del servidor PHP (post_max_size=$postMax, upload_max_filesize=$uploadMax). " .
                 "Sube un archivo más pequeño o aumenta los límites en .user.ini.",
@@ -330,6 +346,8 @@ if ($action === 'upload') {
         }
         json_error('No files received. Use multipart/form-data with field "files[]".', 400);
     }
+
+    require_admin($_POST);
 
     // Normalize $_FILES into a uniform list of [name, tmp_name, size, error, type]
     $items = [];
