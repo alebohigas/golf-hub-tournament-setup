@@ -619,7 +619,7 @@ const Live = () => {
                                   mirror the Hoy value here so the leaderboard still reflects current
                                   standings during R1.
                                 */}
-                                <TableCell className="text-center p-0">
+                                <TableCell rowSpan={rs} className="text-center p-0 align-middle">
                                   {(() => {
                                     const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
                                     // Live Total = closed rounds (player.score) + today's in-progress
@@ -664,7 +664,7 @@ const Live = () => {
                                 </TableCell>
 
                                 {/* Holes completed — shows "F" when player has all scorecards closed (statlsc=1) */}
-                                <TableCell className={`text-center text-sm ${isPlayerFinished(player, leaderboard?.currentRoundDate) ? 'font-bold text-green-700' : ''}`}>
+                                <TableCell rowSpan={rs} className={`text-center text-sm align-middle ${isPlayerFinished(player, leaderboard?.currentRoundDate) ? 'font-bold text-green-700' : ''}`}>
                                   {formatThru(player, leaderboard?.currentRoundDate)}
                                 </TableCell>
 
@@ -672,7 +672,7 @@ const Live = () => {
                                   Hoy column — clickable only while latest card statlsc <> 1.
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
-                                <TableCell className="text-center p-0">
+                                <TableCell rowSpan={rs} className="text-center p-0 align-middle">
                                   {canOpenTodayScorecard(player, leaderboard?.currentRoundDate) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
@@ -696,6 +696,26 @@ const Live = () => {
                                   )}
                                 </TableCell>
                               </TableRow>
+
+                              {/* Segundo integrante de la pareja — sólo logo y nombre;
+                                  Pos/Total/Thru/Hoy se cubren con rowSpan=2 del renglón anterior. */}
+                              {isPair && (
+                                <TableRow className="bg-white">
+                                  <TableCell className="w-16 min-w-16 p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '3.125rem' }}>
+                                    {player.clubLogo2 ? (
+                                      <img
+                                        src={player.clubLogo2}
+                                        alt="Club 2"
+                                        className="w-[3.325rem] h-[2.1375rem] object-contain rounded inline-block mx-auto"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                      />
+                                    ) : null}
+                                  </TableCell>
+                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.125rem' }}>
+                                    {player.partner}
+                                  </TableCell>
+                                </TableRow>
+                              )}
 
                               {/*
                                 Expanded scorecards block.
@@ -736,7 +756,8 @@ const Live = () => {
                                 ) : null
                               )}
                             </Fragment>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
