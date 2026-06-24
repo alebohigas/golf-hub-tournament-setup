@@ -420,7 +420,7 @@ const Resultados = () => {
                                 : player.name;
                               return (
                               <Fragment key={player.id}>
-                                <TableRow className="bg-white hover:bg-white">
+                                <TableRow className={`bg-white hover:bg-white ${isPair ? 'border-b-0' : ''}`}>
                                   {/* Position con medalla — abarca los 2 renglones en parejas */}
                                   <TableCell rowSpan={rowSpan} className="font-semibold sticky left-0 z-10 bg-white align-middle">
                                     <div className="flex items-center gap-2">
