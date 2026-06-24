@@ -32,8 +32,12 @@ export const apiFetch = async <T>(url: string): Promise<T> => {
   /** Request API endpoint using GET */
   const response = await fetch(url, {
     method: 'GET',
+    cache: 'no-store',
     headers: {
+      Accept: 'application/json',
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
     },
   });
 

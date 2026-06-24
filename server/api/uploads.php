@@ -32,6 +32,12 @@ require_once 'config.php';
 
 // Allow POST + DELETE for management operations
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+// Upload lists are dynamic admin-managed JSON. Prevent browser/proxy 304
+// responses from leaving the public galleries with an empty/stale file list.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+header('Vary: Host');
 
 // ============= Configuration =============
 
@@ -172,6 +178,57 @@ function public_url($section, $filename) {
 }
 
 /**
+ * Build a cache-busted public URL for a listed file.
+ * The server intentionally overwrites files with the same sanitized name;
+ * adding mtime+size prevents browsers from reusing a stale 304 image after
+ * an admin replaces a problematic upload with a corrected version.
+ */
+function public_versioned_url($section, $filename, $fullPath) {
+    $mtime = @filemtime($fullPath) ?: time();
+    $size = @filesize($fullPath) ?: 0;
+    return public_url($section, $filename) . '?v=' . rawurlencode($mtime . '-' . $size);
+}
+
+/**
+ * Validate browser-compatible image dimensions before accepting an upload.
+ * Very tall/wide images can be under 15 MB but exceed browser decoder limits,
+ * which makes galleries appear blank with no useful console/network error.
+ */
+function validate_image_dimensions($tmpPath, $originalName) {
+    $info = @getimagesize($tmpPath);
+    if ($info === false || empty($info[0]) || empty($info[1])) {
+        return "No se pudo leer como imagen válida";
+    }
+
+    $width = (int)$info[0];
+    $height = (int)$info[1];
+    $maxSide = 32767;
+
+    if ($width > $maxSide || $height > $maxSide) {
+        return "Dimensiones demasiado grandes ({$width}×{$height}px). Máximo recomendado: {$maxSide}px por lado para que el navegador la pueda mostrar.";
+    }
+
+    return null;
+}
+
+/**
+ * Convert PHP shorthand size strings (e.g. 8M, 128K, 1G) to bytes.
+ * Used only for clearer upload-limit diagnostics when PHP discards the body.
+ */
+function php_size_to_bytes($value) {
+    $value = trim((string)$value);
+    if ($value === '') return 0;
+    $unit = strtolower(substr($value, -1));
+    $number = (float)$value;
+    switch ($unit) {
+        case 'g': $number *= 1024;
+        case 'm': $number *= 1024;
+        case 'k': $number *= 1024;
+    }
+    return (int)$number;
+}
+
+/**
  * Convert a snake/dash filename stem into a Title Case alt label.
  * Example: "01-clima-aviso" → "01 Clima Aviso"
  */
@@ -225,7 +282,7 @@ if ($method === 'GET') {
             if (!in_array($ext, $rules['exts'], true)) continue;
             $files[] = [
                 'name'     => $entry,
-                'url'      => public_url($section, $entry),
+                'url'      => public_versioned_url($section, $entry, $full),
                 'alt'      => filename_to_alt($entry),
                 'size'     => filesize($full),
                 'modified' => filemtime($full),
@@ -271,17 +328,16 @@ if ($action === 'delete') {
 // ----- UPLOAD one or more files -----
 if ($action === 'upload') {
     // Multipart form: password + files[] (or single `file`)
-    require_admin($_POST);
-
     if (empty($_FILES)) {
         // When the request body exceeds post_max_size, PHP discards both
         // $_POST and $_FILES *before* this script runs. CONTENT_LENGTH is
         // still set by the web server, so we can detect the silent drop
-        // and return a useful error instead of a generic "no files" 400.
+        // before auth and return a useful error instead of a misleading 401.
         $postMax = ini_get('post_max_size');
         $uploadMax = ini_get('upload_max_filesize');
         $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
-        if ($contentLength > 0) {
+        $postMaxBytes = php_size_to_bytes($postMax);
+        if ($contentLength > 0 && $postMaxBytes > 0 && $contentLength > $postMaxBytes) {
             json_error(
                 "El archivo excede el límite del servidor PHP (post_max_size=$postMax, upload_max_filesize=$uploadMax). " .
                 "Sube un archivo más pequeño o aumenta los límites en .user.ini.",
@@ -290,6 +346,8 @@ if ($action === 'upload') {
         }
         json_error('No files received. Use multipart/form-data with field "files[]".', 400);
     }
+
+    require_admin($_POST);
 
     // Normalize $_FILES into a uniform list of [name, tmp_name, size, error, type]
     $items = [];
@@ -361,6 +419,14 @@ if ($action === 'upload') {
             continue;
         }
 
+        if (strpos($detectedMime, 'image/') === 0) {
+            $dimensionError = validate_image_dimensions($item['tmp_name'], $original);
+            if ($dimensionError !== null) {
+                $errors[] = ['name' => $original, 'error' => $dimensionError];
+                continue;
+            }
+        }
+
         $cleanName = safe_filename($original);
         $target = $dir . '/' . $cleanName;
 
@@ -375,7 +441,7 @@ if ($action === 'upload') {
         $saved[] = [
             'name'     => $cleanName,
             'original' => $original,
-            'url'      => public_url($section, $cleanName),
+            'url'      => public_versioned_url($section, $cleanName, $target),
             'size'     => filesize($target),
         ];
     }
