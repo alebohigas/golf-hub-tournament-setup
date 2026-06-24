@@ -92,7 +92,7 @@ foreach ($groupRows as $group) {
      * sólo mostraba 2 nombres (un capitán por pareja) en lugar de los 4.
      */
     $parejasJoin = $isParejas
-        ? " JOIN v_jugadores_parejas vp ON (v_sal_jug_par.jugadorid = vp.jugadorid)
+        ? " JOIN v_jugadores_parejas vp ON (v.jugadorid = vp.jugadorid)
             JOIN jugadores j  ON (vp.jugadorid  = j.id)
             JOIN jugadores j2 ON (vp.jugadorid2 = j2.id)"
         : "";
