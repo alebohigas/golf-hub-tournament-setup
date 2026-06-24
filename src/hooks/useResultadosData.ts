@@ -135,7 +135,13 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
                 ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
-                name: p.pairName || p.name || '',
+                /* IMPORTANT: keep `name` = jugador 1 (captain) tal cual lo regresa la API.
+                 * Antes hacíamos `p.pairName || p.name`, lo que sobrescribía el nombre real
+                 * con la cadena combinada "Nombre1 / Nombre2". El render de PAREJAS luego
+                 * parseaba pairName y mostraba siempre el primer nombre del string aunque
+                 * `name` (capitán) fuera el segundo integrante → producía nombres duplicados
+                 * (p.ej. "Francisco / Juan" + partner Francisco). */
+                name: p.name || p.pairName || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
                 clubLogo2: p.clubLogo2 || '',
