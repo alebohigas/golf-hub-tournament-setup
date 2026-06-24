@@ -22,6 +22,17 @@ import { ApiError } from '@/lib/apiClient';
 import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
 import salidasHero from '@/assets/salidas-hero.jpg';
 
+// ============= Render helpers =============
+
+/**
+ * Calcula el total de renglones que ocupará un grupo en la tabla.
+ * En PAREJAS cada jugador con `partner` ocupa 2 renglones (uno por integrante);
+ * en INDIVIDUAL cada jugador ocupa 1. Se usa para los `rowSpan` de las columnas
+ * compartidas (Hoyo / Hora) de un mismo grupo de salida.
+ */
+const countGroupRows = (players: SalidasGroup['players']): number =>
+  (players ?? []).reduce((acc, p) => acc + (p.partner ? 2 : 1), 0);
+
 // ============= Search Result Type =============
 
 /** Represents a player search match with full group context */
