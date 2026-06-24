@@ -49,6 +49,11 @@ interface StablefordPlayer {
   name: string;
   clubLogo: string;
   club: string;
+  /** Logo del club del segundo integrante (categorías PAREJAS). */
+  clubLogo2?: string;
+  /** Nombre del compañero (categorías PAREJAS). Cuando viene definido, la
+   *  fila se renderiza como 2 renglones (uno por jugador). */
+  partner?: string;
   /** Total accumulated SA points */
   score: number;
   /** Previous round accumulated SA */
@@ -81,6 +86,10 @@ interface StrokePlayer {
   name: string;
   clubLogo: string;
   club: string;
+  /** Logo del club del segundo integrante (categorías PAREJAS). */
+  clubLogo2?: string;
+  /** Nombre del compañero (categorías PAREJAS). */
+  partner?: string;
   /** Accumulated difference to par */
   score: number;
   /** Current round difference to par */
