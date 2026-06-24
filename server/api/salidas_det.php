@@ -107,47 +107,47 @@ foreach ($groupRows as $group) {
 
     if ($sistema === 'STABLEFORD') {
         if ($gross == 1 || $grossstb == 1) {
-            $sql = "SELECT $logoCols, $nameExpr, acumstbgross as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, {$P}acumstbgross as sa, {$P}sistema, {$P}grupoid
                     FROM $fromExpr$parejasJoin
-                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
-                    ORDER BY salidagrupoid, acumstbgross DESC, orden ASC,
-                             f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
+                    WHERE {$P}salidagrupoid = $salid
+                    ORDER BY {$P}salidagrupoid, {$P}acumstbgross DESC, {$P}orden ASC,
+                             f_score_dia_satblU({$P}jugadorid) DESC, {$P}tarjetaid DESC";
         } else {
-            $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, {$P}acumsa as sa, {$P}sistema, {$P}grupoid
                     FROM $fromExpr$parejasJoin
-                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
-                    ORDER BY salidagrupoid, acumsa DESC, orden ASC,
-                             f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
+                    WHERE {$P}salidagrupoid = $salid
+                    ORDER BY {$P}salidagrupoid, {$P}acumsa DESC, {$P}orden ASC,
+                             f_score_dia_saxU({$P}jugadorid) DESC, {$P}tarjetaid DESC";
         }
         // Legacy override: grossstb=1 swaps to acumso ASC ordering.
         if ($grossstb == 1) {
-            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, {$P}acumso as sa, {$P}sistema, {$P}grupoid
                     FROM $fromExpr$parejasJoin
-                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
-                    ORDER BY salidagrupoid, acumso, orden DESC,
-                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
+                    WHERE {$P}salidagrupoid = $salid
+                    ORDER BY {$P}salidagrupoid, {$P}acumso, {$P}orden DESC,
+                             f_score_dia_soxU({$P}jugadorid), {$P}tarjetaid DESC";
         }
     } else {
         if ($gross == 1 || $grossstb == 1) {
-            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, {$P}acumso as sa, {$P}sistema, {$P}grupoid
                     FROM $fromExpr$parejasJoin
-                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
-                    ORDER BY salidagrupoid, acumso, orden DESC,
-                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
+                    WHERE {$P}salidagrupoid = $salid
+                    ORDER BY {$P}salidagrupoid, {$P}acumso, {$P}orden DESC,
+                             f_score_dia_soxU({$P}jugadorid), {$P}tarjetaid DESC";
         } else {
-            $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, {$P}acumsa as sa, {$P}sistema, {$P}grupoid
                     FROM $fromExpr$parejasJoin
-                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
-                    ORDER BY salidagrupoid, acumsa, orden DESC,
-                             f_score_dia_saxU(jugadorid), tarjetaid DESC";
+                    WHERE {$P}salidagrupoid = $salid
+                    ORDER BY {$P}salidagrupoid, {$P}acumsa, {$P}orden DESC,
+                             f_score_dia_saxU({$P}jugadorid), {$P}tarjetaid DESC";
         }
         // Legacy override: grossstb=1 swaps to acumso ordering.
         if ($grossstb == 1) {
-            $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
+            $sql = "SELECT $logoCols, $nameExpr, {$P}acumso as sa, {$P}sistema, {$P}grupoid
                     FROM $fromExpr$parejasJoin
-                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
-                    ORDER BY salidagrupoid, acumso, orden DESC,
-                             f_score_dia_soxU(jugadorid), tarjetaid DESC";
+                    WHERE {$P}salidagrupoid = $salid
+                    ORDER BY {$P}salidagrupoid, {$P}acumso, {$P}orden DESC,
+                             f_score_dia_soxU({$P}jugadorid), {$P}tarjetaid DESC";
         }
     }
 
