@@ -566,7 +566,7 @@ const Resultados = () => {
                                   : cp.name;
                                 return (
                                 <Fragment key={cp.playerId}>
-                                <TableRow className="bg-muted/20">
+                                <TableRow className={`bg-muted/20 ${isPair ? 'border-b-0' : ''}`}>
                                   {/* Status code instead of position */}
                                   <TableCell rowSpan={rowSpan} className="font-semibold text-center sticky left-0 z-10 bg-muted/20 align-middle" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
