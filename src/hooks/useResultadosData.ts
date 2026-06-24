@@ -153,7 +153,13 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         ...mapCutRoundScores(cp),
         playerId: cp.playerId || '',
         number: cp.number || '',
+        /* En categorías PAREJAS la API regresa además `partner`, `pairName`
+         * y `clubLogo2`. Se preservan tal cual para que el render dibuje la
+         * pareja en 2 renglones igual que la sección de NORMAL players. */
         name: cp.name || '',
+        partner: cp.partner || '',
+        pairName: cp.pairName || '',
+        clubLogo2: cp.clubLogo2 || '',
         club: cp.club || '',
         clubLogo: cp.clubLogo || '',
         statusCode: cp.statusCode || 'D',

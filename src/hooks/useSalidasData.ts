@@ -40,7 +40,13 @@ interface SalidasMasterResponse {
 export interface SalidasPlayer {
   name: string;
   clubLogo: string;
+  /** Logo del club del segundo integrante (sólo en categorías PAREJAS). */
   clubLogo2?: string;
+  /** Nombre completo del segundo integrante (sólo en categorías PAREJAS).
+   *  Cuando viene definido, el render dibuja la pareja como DOS renglones
+   *  (uno por jugador) para mantener consistencia visual con la página
+   *  Jugadores. */
+  partner?: string;
   score: number;
   system: string;
   groupId?: string;

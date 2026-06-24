@@ -74,6 +74,12 @@ export interface CutPlayer {
   name: string;
   club: string;
   clubLogo?: string;
+  /** Segundo logo cuando la pareja fue cortada (categorías PAREJAS). */
+  clubLogo2?: string;
+  /** Nombre del segundo integrante de la pareja (categorías PAREJAS). */
+  partner?: string;
+  /** Nombre combinado de la pareja, p.e. "Juan Pérez / Luis López". */
+  pairName?: string;
   /** Status code: S = No Show, R = Retiro, D = Descalificado, C = Corte */
   statusCode: 'S' | 'R' | 'D' | 'C';
   /** Human-readable status label */

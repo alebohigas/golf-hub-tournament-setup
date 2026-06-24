@@ -8,7 +8,12 @@ require_once 'config.php';
 
 $caljgoid = require_param('caljgoid');
 $formato  = optional_param('formato', 'individual');
-$formato='individual';
+/*
+ * NOTA: previamente esta línea forzaba `$formato='individual';`, lo que
+ * provocaba que las categorías de PAREJAS regresaran sólo 1 jugador por
+ * pareja (el primero) en el grid de Salidas. Se elimina ese hard-code para
+ * que la rama de parejas use `v_sal_jug_par` + nombres de ambos jugadores.
+ */
 
 $cgid = esc($conn, $caljgoid);
 
@@ -75,51 +80,67 @@ foreach ($groupRows as $group) {
     // grossstb=1, switching the score column to `acumso` and the direction
     // to ASC. Replicated below with the same control flow.
     $nameExpr = $isParejas
-        ? "CONCAT(nombre, ' ') as jugador"
+        ? "CONCAT(j.nombre, ' ', j.apellido) as jugador,
+           CONCAT(j2.nombre, ' ', j2.apellido) as jugador2"
         : "CONCAT(nombre, ' ', apellido) as jugador";
-    $logoCols = $isParejas ? "logo, logo2" : "logo";
+    $logoCols = $isParejas ? "v.logo, v.logo2" : "logo";
+
+    /*
+     * En parejas hacemos JOIN extra a v_jugadores_parejas + jugadores para
+     * recuperar nombre/apellido de AMBOS integrantes de la pareja. El view
+     * v_sal_jug_par sólo expone el primer jugador, por eso antes el frontend
+     * sólo mostraba 2 nombres (un capitán por pareja) en lugar de los 4.
+     */
+    $parejasJoin = $isParejas
+        ? " JOIN v_jugadores_parejas vp ON (v_sal_jug_par.jugadorid = vp.jugadorid)
+            JOIN jugadores j  ON (vp.jugadorid  = j.id)
+            JOIN jugadores j2 ON (vp.jugadorid2 = j2.id)"
+        : "";
+    /* En parejas aliasamos la tabla principal como `v` para evitar columnas ambiguas
+     * (logo) cuando hacemos JOIN a jugadores/clubs adicionales. */
+    $fromExpr = $isParejas ? "$viewName v" : $viewName;
 
     if ($sistema === 'STABLEFORD') {
         if ($gross == 1 || $grossstb == 1) {
             $sql = "SELECT $logoCols, $nameExpr, acumstbgross as sa, sistema, grupoid
-                    FROM $viewName
-                    WHERE salidagrupoid = $salid
+                    FROM $fromExpr$parejasJoin
+                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
                     ORDER BY salidagrupoid, acumstbgross DESC, orden ASC,
                              f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
         } else {
             $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
-                    FROM $viewName
-                    WHERE salidagrupoid = $salid
+                    FROM $fromExpr$parejasJoin
+                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
                     ORDER BY salidagrupoid, acumsa DESC, orden ASC,
                              f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
         }
         // Legacy override: grossstb=1 swaps to acumso ASC ordering.
         if ($grossstb == 1) {
             $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
-                    FROM $viewName
-                    WHERE salidagrupoid = $salid
+                    FROM $fromExpr$parejasJoin
+                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
                     ORDER BY salidagrupoid, acumso, orden DESC,
                              f_score_dia_soxU(jugadorid), tarjetaid DESC";
         }
     } else {
         if ($gross == 1 || $grossstb == 1) {
             $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
-                    FROM $viewName
-                    WHERE salidagrupoid = $salid
+                    FROM $fromExpr$parejasJoin
+                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
                     ORDER BY salidagrupoid, acumso, orden DESC,
                              f_score_dia_soxU(jugadorid), tarjetaid DESC";
         } else {
             $sql = "SELECT $logoCols, $nameExpr, acumsa as sa, sistema, grupoid
-                    FROM $viewName
-                    WHERE salidagrupoid = $salid
+                    FROM $fromExpr$parejasJoin
+                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
                     ORDER BY salidagrupoid, acumsa, orden DESC,
                              f_score_dia_saxU(jugadorid), tarjetaid DESC";
         }
         // Legacy override: grossstb=1 swaps to acumso ordering.
         if ($grossstb == 1) {
             $sql = "SELECT $logoCols, $nameExpr, acumso as sa, sistema, grupoid
-                    FROM $viewName
-                    WHERE salidagrupoid = $salid
+                    FROM $fromExpr$parejasJoin
+                    WHERE " . ($isParejas ? "v.salidagrupoid" : "salidagrupoid") . " = $salid
                     ORDER BY salidagrupoid, acumso, orden DESC,
                              f_score_dia_soxU(jugadorid), tarjetaid DESC";
         }
@@ -136,7 +157,13 @@ foreach ($groupRows as $group) {
             'system'   => $pr['sistema'] ?? ''
         ];
         if ($isParejas && isset($pr['logo2'])) {
+            /* Logo del club del segundo integrante de la pareja. */
             $player['clubLogo2'] = $pr['logo2'] ? $LOGOS_BASE_URL . $pr['logo2'] : '';
+        }
+        if ($isParejas && isset($pr['jugador2'])) {
+            /* Nombre completo del segundo integrante de la pareja — usado en el
+             * frontend para renderizar la pareja en dos renglones (uno por jugador). */
+            $player['partner'] = trim($pr['jugador2']);
         }
         if (isset($pr['grupoid'])) {
             $player['groupId'] = $pr['grupoid'];
