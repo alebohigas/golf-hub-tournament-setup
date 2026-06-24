@@ -349,47 +349,69 @@ const Salidas = () => {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {(result.group.players ?? []).map((player, pIdx) => (
-                                    <TableRow
-                                      key={pIdx}
-                                      className={`bg-white hover:bg-white ${
-                                        pIdx === result.matchedPlayerIdx ? 'bg-primary/5 hover:bg-primary/5' : ''
-                                      }`}
-                                    >
-                                      {pIdx === 0 ? (
-                                        <>
-                                          {/* H01 matched in size with the tee time below for visual balance */}
-                                          <TableCell className="text-center font-bold text-base text-foreground" rowSpan={(result.group.players ?? []).length}>
-                                            {result.group.tee}
+                                  {(() => {
+                                    /* En PAREJAS cada jugador se renderiza como 2 renglones (uno por integrante)
+                                     * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
+                                    const players = result.group.players ?? [];
+                                    const totalRows = countGroupRows(players);
+                                    let firstRowEmitted = false;
+                                    const rows: JSX.Element[] = [];
+                                    players.forEach((player, pIdx) => {
+                                      const isPair = !!player.partner;
+                                      const isMatched = pIdx === result.matchedPlayerIdx;
+                                      const renderHoleHora = !firstRowEmitted;
+                                      firstRowEmitted = true;
+                                      // ----- Renglón principal (jugador 1) -----
+                                      rows.push(
+                                        <TableRow
+                                          key={`${pIdx}-a`}
+                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''}`}
+                                        >
+                                          {renderHoleHora ? (
+                                            <>
+                                              <TableCell className="text-center font-bold text-base text-foreground" rowSpan={totalRows}>
+                                                {result.group.tee}
+                                              </TableCell>
+                                              <TableCell className="text-center font-bold text-base text-foreground" rowSpan={totalRows}>
+                                                {result.group.time}
+                                              </TableCell>
+                                            </>
+                                          ) : null}
+                                          <TableCell className="p-1 text-center align-middle">
+                                            {player.clubLogo ? (
+                                              <img src={player.clubLogo} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                            ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                           </TableCell>
-                                          {/* Tee time emphasized: bold and one size up to match the H01 hole prominence */}
-                                          <TableCell className="text-center font-bold text-base text-foreground" rowSpan={(result.group.players ?? []).length}>
-                                            {result.group.time}
+                                          <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                            {player.name}
                                           </TableCell>
-                                        </>
-                                      ) : null}
-                                      <TableCell className="p-1 text-center align-middle">
-                                        {player.clubLogo ? (
-                                          <img
-                                            src={player.clubLogo}
-                                            alt="Club"
-                                            className="w-auto object-contain rounded inline-block"
-                                            // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
-                                            style={{ height: '2.1375rem' }}
-                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                          />
-                                        ) : (
-                                          <span className="text-xs text-muted-foreground">—</span>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className={`font-medium player-name-cell ${pIdx === result.matchedPlayerIdx ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                        {player.name}
-                                      </TableCell>
-                                      <TableCell className="text-center font-bold text-primary">
-                                        {player.score || '—'}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
+                                          {/* Score: en parejas se centra entre los dos renglones (rowSpan=2). */}
+                                          <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
+                                            {player.score || '—'}
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                      // ----- Renglón secundario (jugador 2) si es pareja -----
+                                      if (isPair) {
+                                        rows.push(
+                                          <TableRow
+                                            key={`${pIdx}-b`}
+                                            className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''}`}
+                                          >
+                                            <TableCell className="p-1 text-center align-middle">
+                                              {player.clubLogo2 ? (
+                                                <img src={player.clubLogo2} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                              ) : (<span className="text-xs text-muted-foreground">—</span>)}
+                                            </TableCell>
+                                            <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                              {player.partner}
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      }
+                                    });
+                                    return rows;
+                                  })()}
                                 </TableBody>
                                 {/* Footer with category name */}
                                 <tfoot>
