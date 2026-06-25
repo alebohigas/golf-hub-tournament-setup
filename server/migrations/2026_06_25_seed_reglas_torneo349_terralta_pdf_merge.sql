@@ -46,7 +46,7 @@ SET @locales := '[
   {"titulo":"Fuera de límites","contenido":"Marcado en la parte inferior interna con estacas, líneas blancas, bardas, cercas, postes o mallas. Las líneas tienen prioridad sobre cualquier otra cosa. Cuando la línea está sobre un camino, es la parte externa del camino la que delimita el fuera de límites."},
   {"titulo":"Teléfonos celulares","contenido":"Solo podrán usarse para solicitar reglas o consultar la aplicación oficial del torneo."},
   {"titulo":"Cierre de la competencia","contenido":"La competencia se considera cerrada al inicio de la ceremonia de premiación."},
-  {"titulo":"Otras recomendaciones","contenido":"• Marca tu bola para identificación.\n• No acomodes la bola en ningún momento.\n• No hay dadas — hay que embocar.\n• No puedes cambiar la bola sobre el green ni en ninguna otra parte salvo que una regla lo permita.\n• Máximo 14 bastones.\n• Solo un caddie a la vez.\n• No se puede dar ni recibir consejo."},
+  {"titulo":"Otras recomendaciones","contenido":"• Marca tu bola para identificación.\\n• No acomodes la bola en ningún momento.\\n• No hay dadas — hay que embocar.\\n• No puedes cambiar la bola sobre el green ni en ninguna otra parte salvo que una regla lo permita.\\n• Máximo 14 bastones.\\n• Solo un caddie a la vez.\\n• No se puede dar ni recibir consejo."},
   {"titulo":"Puntuación en Stableford","contenido":"Un golpe sobre par: 1 punto. Par: 2. Birdie: 3. Eagle: 4. Albatros: 5. Cuatro bajo par: 6."},
   {"titulo":"Zonas o círculos de dropeo (MRL E-1)","contenido":"Son una opción adicional de alivio a la regla aplicable para una bola en área de penalidad."},
   {"titulo":"Hoyo 3","contenido":"Zona de dropeo ubicada junto al camino a 60 yardas del green."},
