@@ -26,6 +26,8 @@ import { useBanderas, useSaveBanderas } from '@/hooks/useBanderasData';
 import type { PinSheetHole, PinSide } from '@/data/banderasData';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import GreenCard from '@/components/banderas/GreenCard';
+import { Eye, EyeOff } from 'lucide-react';
 
 /** Fila vacía para un hoyo nuevo. */
 const blankHole = (hole: number): PinSheetHole => ({
@@ -74,6 +76,10 @@ const AdminBanderas = () => {
 
   /** Copia editable local. */
   const [rows, setRows] = useState<PinSheetHole[]>([]);
+
+  /** Controla si se muestra la vista previa visual del pin sheet
+   *  (mismas tarjetas que aparecen en la página pública /banderas). */
+  const [showPreview, setShowPreview] = useState<boolean>(true);
 
   /** Hidrata cada vez que cambia la fecha o llegan datos. Si la fecha aún
    *  no tiene datos, deja la tabla vacía (admin elige seedear). */
@@ -417,6 +423,51 @@ const AdminBanderas = () => {
           <strong> Lateral</strong>: del borde indicado a la bandera ·
           <strong> vs Centro</strong>: posición respecto al centro (positivo = hacia el fondo).
         </p>
+
+        {/* ===== Vista previa visual ===== */}
+        {/*
+         * Renderiza las mismas <GreenCard /> que ve el jugador en /banderas,
+         * usando los valores EN VIVO del editor (sin necesidad de guardar).
+         * Filas con `depth <= 0` se omiten porque GreenCard divide por depth.
+         */}
+        <div className="pt-2 border-t border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Flag className="h-4 w-4 text-primary" />
+                Vista previa — {fmtFecha(fecha)}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Refleja los valores actuales del editor (sin guardar). Hoyos con <code>Depth = 0</code> se omiten.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreview((v) => !v)}
+              className="gap-2"
+            >
+              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPreview ? 'Ocultar' : 'Mostrar'} vista previa
+            </Button>
+          </div>
+          {showPreview && (
+            rows.filter((r) => r.depth > 0 && r.hole > 0).length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                No hay hoyos con datos suficientes para previsualizar (requiere <code>Depth &gt; 0</code>).
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...rows]
+                  .filter((r) => r.depth > 0 && r.hole > 0)
+                  .sort((a, b) => a.hole - b.hole)
+                  .map((r) => (
+                    <GreenCard key={r.hole} data={r} />
+                  ))}
+              </div>
+            )
+          )}
+        </div>
       </CardContent>
     </Card>
   );
