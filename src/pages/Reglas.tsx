@@ -89,6 +89,12 @@ const Reglas = () => {
     ? []
     : pick(codigoRow?.content as AccordionItemData[] | undefined, [] as AccordionItemData[]);
 
+  // Desempates (accordion) — strictly DB-backed. CRITICAL section per club rules.
+  const desempatesRow = bySectionId.get('desempates');
+  const desempates: AccordionItemData[] = desempatesRow?.enabled === false
+    ? []
+    : pick(desempatesRow?.content as AccordionItemData[] | undefined, [] as AccordionItemData[]);
+
   // PDF button label (optional override)
   const pdfLabelRow = bySectionId.get('reglas_pdf_label');
   const pdfLabel = pick(
@@ -184,6 +190,32 @@ const Reglas = () => {
                 <Accordion type="multiple" className="w-full">
                   {reglamentoLocal.map((item, idx) => (
                     <AccordionItem key={idx} value={`reglamento-${idx}`}>
+                      <AccordionTrigger className="hover:no-underline font-medium">
+                        {item.titulo}
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {item.contenido}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Desempates (DB-backed `desempates`) — tie-breaking rules */}
+          {desempates.length > 0 && (
+            <Card className="border-border/50 mb-12">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <Scale className="h-5 w-5 text-primary" />
+                  Desempates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="multiple" className="w-full">
+                  {desempates.map((item, idx) => (
+                    <AccordionItem key={idx} value={`desempate-${idx}`}>
                       <AccordionTrigger className="hover:no-underline font-medium">
                         {item.titulo}
                       </AccordionTrigger>
