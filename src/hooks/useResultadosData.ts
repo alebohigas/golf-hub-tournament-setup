@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, POLL_ACTIVE } from '@/config/api';
+import { getResultadosUrl, getResultadosCategoryUrl, getResultadosTarjetaUrl, getLiveTarjetaUrl, getTarjetaParejasUrl, POLL_ACTIVE } from '@/config/api';
 import type { ResultCategory, RoundScorecard, HoleScore, ScorecardType, CutPlayer } from '@/data/resultadosData';
 
 /**
@@ -78,64 +78,29 @@ export const useAllResults = () => {
         categories = [...sp, ...mp];
       }
 
-      // Step 2: For each category, fetch NETO results; if gross=1, also fetch GROSS
-      const categoriesWithDetails = await Promise.all(
-        categories.map(async (cat) => {
-          try {
-            // Always fetch NETO (gross=0)
-            const netoResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '0'));
-            const netoDaysLen = Array.isArray(netoResp.days) ? netoResp.days.length : undefined;
-            const netoPlayers = (netoResp.players || []).map((p: any, idx: number) => ({
-              ...mapRoundScores(p),
-              id: p.playerId || String(idx),
-              position: p.position ?? idx + 1,
-              name: p.name || '',
-              club: p.club || '',
-              clubLogo: p.clubLogo || '',
-              total: p.total ?? p.totalSA ?? 0,
-              handicapIndex: p.handicapIndex,
-            }));
+      // Step 2: Build navigation metadata only. Do NOT fetch every category's
+      // leaderboard here: legacy loads the category list first, then requests
+      // `/resultados_jug*.php` only after the user opens a category. Prefetching
+      // every detail made `/resultados` look stuck when one heavy query failed.
+      return categories.map((cat) => {
+        const scoringTypes: ResultCategory['scoringTypes'] = [
+          { scoringType: 'NETO', players: [] },
+        ];
 
-            const scoringTypes: Array<{ scoringType: string; players: any[] }> = [
-              { scoringType: 'NETO', players: netoPlayers },
-            ];
+        if (Number(cat.gross) === 1) {
+          scoringTypes.push({ scoringType: 'GROSS', players: [] });
+        }
 
-            // If category has gross enabled, also fetch GROSS results
-            if (cat.gross === 1) {
-              const grosResp = await apiFetch<any>(getResultadosCategoryUrl(cat.categoryId, '1'));
-              const grosDaysLen = Array.isArray(grosResp.days) ? grosResp.days.length : undefined;
-              const grosPlayers = (grosResp.players || []).map((p: any, idx: number) => ({
-                ...mapRoundScores(p),
-                id: p.playerId || String(idx),
-                position: p.position ?? idx + 1,
-                name: p.name || '',
-                club: p.club || '',
-                clubLogo: p.clubLogo || '',
-                total: p.total ?? p.totalSO ?? 0,
-                handicapIndex: p.handicapIndex,
-              }));
-              scoringTypes.push({ scoringType: 'GROSS', players: grosPlayers });
-            }
-
-            return {
-              categoryId: cat.categoryId,
-              categoryName: cat.name || '',
-              shortName: cat.shortName || '',
-              scoringTypes,
-            } as ResultCategory;
-          } catch (err) {
-            console.error(`Failed to fetch details for category ${cat.categoryId}:`, err);
-            return {
-              categoryId: cat.categoryId,
-              categoryName: cat.name || '',
-              shortName: cat.shortName || '',
-              scoringTypes: [],
-            } as ResultCategory;
-          }
-        })
-      );
-
-      return categoriesWithDetails;
+        return {
+          categoryId: cat.categoryId,
+          categoryName: cat.name || '',
+          shortName: cat.shortName || '',
+          system: (cat as any).system || '',
+          isParejas: !!(cat as any).isParejas || (cat as any).format === 'PAREJAS',
+          format: (cat as any).format,
+          scoringTypes,
+        } as ResultCategory;
+      });
     },
     staleTime: POLL_ACTIVE,
     refetchInterval: POLL_ACTIVE,
@@ -170,9 +135,18 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
                 ...mapRoundScores(p),
                 id: p.playerId || String(idx),
                 position: p.position ?? idx + 1,
-                name: p.name || '',
+                /* IMPORTANT: keep `name` = jugador 1 (captain) tal cual lo regresa la API.
+                 * Antes hacíamos `p.pairName || p.name`, lo que sobrescribía el nombre real
+                 * con la cadena combinada "Nombre1 / Nombre2". El render de PAREJAS luego
+                 * parseaba pairName y mostraba siempre el primer nombre del string aunque
+                 * `name` (capitán) fuera el segundo integrante → producía nombres duplicados
+                 * (p.ej. "Francisco / Juan" + partner Francisco). */
+                name: p.name || p.pairName || '',
                 club: p.club || '',
                 clubLogo: p.clubLogo || '',
+                clubLogo2: p.clubLogo2 || '',
+                partner: p.partner || '',
+                pairName: p.pairName || '',
                 total: p.total ?? (raw.gross === 1 ? p.totalSO : p.totalSA) ?? 0,
                 // Number of CLOSED scorecards (statlsc=1) — used to compute Stroke diff total.
                 closedRounds: typeof p.closedRounds === 'number' ? p.closedRounds : 0,
@@ -185,7 +159,13 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         ...mapCutRoundScores(cp),
         playerId: cp.playerId || '',
         number: cp.number || '',
+        /* En categorías PAREJAS la API regresa además `partner`, `pairName`
+         * y `clubLogo2`. Se preservan tal cual para que el render dibuje la
+         * pareja en 2 renglones igual que la sección de NORMAL players. */
         name: cp.name || '',
+        partner: cp.partner || '',
+        pairName: cp.pairName || '',
+        clubLogo2: cp.clubLogo2 || '',
         club: cp.club || '',
         clubLogo: cp.clubLogo || '',
         statusCode: cp.statusCode || 'D',
@@ -200,6 +180,8 @@ export const useCategoryResults = (categoryId: string | null, enabled = true, sc
         categoryName: raw.categoryName || '',
         shortName: raw.shortName || '',
         system: raw.system || '',
+        isParejas: !!raw.isParejas || (raw.format === 'PAREJAS'),
+        format: raw.format,
         days: raw.days || [],
         daysPartial: Array.isArray(raw.daysPartial)
           ? raw.daysPartial.map((v: unknown) => Boolean(v))
@@ -322,6 +304,96 @@ export const fetchPlayerScorecardFromApi = async (
 };
 
 // ============= Live Scorecard =============
+
+// ============= Parejas Scorecard =============
+
+/** Estilos de juego de pareja soportados por la tarjeta detallada. */
+export type EstiloJuegoParejas = 'Go Go' | 'Bola Baja' | 'Suma Scores' | 'Personal';
+
+/** Por-hoyo del componente ScorecardParejas. */
+export interface ParejaHoleScore {
+  hole: number;
+  par: number;
+  ventaja: number;
+  yardaje: number;
+  /** Score original del jugador 1 (gross) */
+  p1SO: number;
+  /** Ventajas (hcp strokes) del jugador 1 en el hoyo */
+  p1Hcp: number;
+  /** Score original del jugador 2 (gross) */
+  p2SO: number;
+  /** Ventajas (hcp strokes) del jugador 2 en el hoyo */
+  p2Hcp: number;
+  /** Neto del equipo (h{n}_a de la tabla tarjetas) */
+  neto: number;
+}
+
+/** Respuesta normalizada de /api/tarjeta_parejas.php para el componente. */
+export interface ParejaScorecard {
+  estilojuego: EstiloJuegoParejas;
+  player1: { id: string; name: string; club: string; logo: string };
+  player2: { id: string; name: string; club: string; logo: string };
+  holes: ParejaHoleScore[];
+  fecha: string;
+  campo: string;
+  totals: {
+    pair: { SO: number; SA: number };
+    player1: { SO: number; SA: number };
+    player2: { SO: number; SA: number };
+  };
+}
+
+/**
+ * Descarga la tarjeta detallada de una pareja para un día específico.
+ * Reemplaza `fetchPlayerScorecardFromApi` cuando la categoría es de parejas.
+ */
+export const fetchParejasScorecardFromApi = async (
+  playerId: string,
+  categoryId: string,
+  fecha: string,
+): Promise<ParejaScorecard> => {
+  const raw = await apiFetch<any>(getTarjetaParejasUrl(playerId, categoryId, fecha));
+  const holes: ParejaHoleScore[] = [];
+  const baseHoles = raw.holes || [];
+  const p1SO = raw.player1?.scoreSO || [];
+  const p1Hcp = raw.player1?.hcpStrokes || [];
+  const p2SO = raw.player2?.scoreSO || [];
+  const p2Hcp = raw.player2?.hcpStrokes || [];
+  const neto = raw.neto || [];
+  for (let i = 0; i < 18; i++) {
+    const meta = baseHoles[i] || { hole: i + 1, par: 0, ventaja: 0, yardaje: 0 };
+    holes.push({
+      hole: meta.hole ?? i + 1,
+      par: meta.par ?? 0,
+      ventaja: meta.ventaja ?? 0,
+      yardaje: meta.yardaje ?? 0,
+      p1SO: Number(p1SO[i] ?? 0),
+      p1Hcp: Number(p1Hcp[i] ?? 0),
+      p2SO: Number(p2SO[i] ?? 0),
+      p2Hcp: Number(p2Hcp[i] ?? 0),
+      neto: Number(neto[i] ?? 0),
+    });
+  }
+  return {
+    estilojuego: (raw.estilojuego || 'Personal') as EstiloJuegoParejas,
+    player1: {
+      id: raw.player1?.id || '',
+      name: raw.player1?.name || '',
+      club: raw.player1?.club || '',
+      logo: raw.player1?.logo || '',
+    },
+    player2: {
+      id: raw.player2?.id || '',
+      name: raw.player2?.name || '',
+      club: raw.player2?.club || '',
+      logo: raw.player2?.logo || '',
+    },
+    holes,
+    fecha: raw.fecha || fecha,
+    campo: raw.campo || '',
+    totals: raw.totals || { pair: { SO: 0, SA: 0 }, player1: { SO: 0, SA: 0 }, player2: { SO: 0, SA: 0 } },
+  };
+};
 
 /**
  * Fetch a player's live (real-time) scorecard from live_tarjeta.php

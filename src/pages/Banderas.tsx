@@ -4,9 +4,15 @@
  * Página pública del pin sheet del torneo activo.
  *
  *  - Los datos vienen 100% de la BD (tabla `banderas`) vía `useBanderas()`.
- *  - Si el torneo no tiene filas cargadas, se muestra un mensaje de
- *    disculpa al jugador (NO valores hardcodeados). El admin puede
- *    además ocultar la página completa desde /admin → Página.
+ *  - El público ve EXACTAMENTE UNA fecha (la que el backend determine):
+ *      • El pin sheet de hoy si está cargado.
+ *      • El pin sheet de mañana — sólo si ya nadie está jugando hoy
+ *        (todas las tarjetas con fecha_juego = hoy cerradas).
+ *      • Mientras haya tarjetas abiertas hoy, el de mañana NO se publica
+ *        (aunque el admin ya lo tenga capturado).
+ *  - NO se muestran fechas pasadas ni listas de "próximas fechas":
+ *    el pin sheet es válido sólo para el día correspondiente.
+ *  - Si no hay nada visible, se muestra un mensaje explicando el motivo.
  *  - Si hay PDF / imágenes subidas en /admin → Archivos → Banderas, se
  *    muestran como "Documentos Oficiales" (descarga + lightbox).
  */
@@ -19,18 +25,38 @@ import { useBanderas } from '@/hooks/useBanderasData';
 import { useUploadsList, type UploadedFile } from '@/hooks/useUploads';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, FileText, Download, Loader2, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, FileText, Download, Loader2, Flag, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import banderasHero from '@/assets/banderas-hero.jpg';
 
 /** ¿Es un PDF? Decide cómo se renderiza el archivo subido. */
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 
+/** Formatea una fecha YYYY-MM-DD a texto legible (timezone-safe). */
+const fmtFecha = (s: string): string => {
+  const [y, m, d] = s.split('-').map((n) => parseInt(n, 10));
+  if (!y || !m || !d) return s;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('es-MX', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+  });
+};
+
 const Banderas = () => {
-  // ----- Datos del pin sheet (BD) ----------------------------------
+  // ----- Datos del pin sheet (BD) -----------------------------------------
+  // El público NO elige fecha: el backend decide qué única fecha mostrar
+  // según las reglas (ver doc-comment del archivo).
   const { data: banderasData, isLoading } = useBanderas();
   const holes = banderasData?.holes ?? [];
   const hasHoles = holes.length > 0;
+  /** Fecha que realmente se está mostrando (decidida por el backend). */
+  const activeDate = banderasData?.activeDate ?? null;
+  const today = banderasData?.today ?? null;
+  /**
+   * Si el backend reporta que hay jugadores aún en el campo, mostramos un
+   * aviso explicando por qué el pinsheet de mañana sigue oculto.
+   */
+  const playersStillPlaying = banderasData?.playersStillPlayingToday === true;
 
   // ----- Archivos subidos (PDF + scans) ----------------------------
   const { data: uploads } = useUploadsList('banderas');
@@ -87,8 +113,9 @@ const Banderas = () => {
               Pin sheet aún no disponible
             </h2>
             <p className="text-muted-foreground">
-              Disculpa las molestias — todavía no hay información de posición de banderas
-              cargada para este torneo. Vuelve a revisar más cerca de la fecha de juego.
+              {playersStillPlaying
+                ? 'El pin sheet del día siguiente se publica una vez que todos los jugadores hayan terminado su ronda. Aún hay tarjetas abiertas en el campo — vuelve a revisar más tarde.'
+                : 'Todavía no hay información de posición de banderas cargada para hoy. Vuelve a revisar más cerca de la fecha de juego.'}
             </p>
           </div>
         </section>
@@ -97,6 +124,29 @@ const Banderas = () => {
       {/* ====== Leyenda + grid de hoyos (sólo si hay datos) ====== */}
       {!isLoading && hasHoles && (
         <>
+          {/* ===== Banner con la fecha activa ===== */}
+          {activeDate && (
+            <section className="bg-primary/5 border-b border-border">
+              <div className="container mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm md:text-base">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span className="text-muted-foreground">Mostrando pin sheet del</span>
+                  <strong className="text-foreground capitalize">{fmtFecha(activeDate)}</strong>
+                  {today && activeDate === today && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-semibold">
+                      Hoy
+                    </span>
+                  )}
+                  {today && activeDate > today && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 text-xs font-semibold">
+                      Próximo día
+                    </span>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* ===== Leyenda ===== */}
           <section className="bg-muted/40 border-b border-border">
             <div className="container mx-auto px-4 py-8">

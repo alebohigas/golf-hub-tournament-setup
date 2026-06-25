@@ -87,6 +87,11 @@ $categories = array_map(function($row) {
         'relatedCat'  => $row['catrel'],
         'gender'      => $row['sexo'],
         'playerCount' => (int)$row['playerCount'],
+        /** True cuando la categoría es de parejas (formato='PAREJAS'). El frontend
+         *  usa esto en /jugadores y /resultados para activar agrupación por grupoid
+         *  y tarjetas de parejas (Go Go, Bola Baja, Suma Scores).
+         */
+        'isParejas'   => (strtoupper($row['formato'] ?? '') === 'PAREJAS'),
         // Number of players actively registered in this category via the
         // Pre-Registro flow (jugadores.tipoinsc=1 AND tipoinsc2=3). Used by
         // the public registration form to display "spots available" next to

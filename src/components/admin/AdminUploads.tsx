@@ -47,6 +47,7 @@ import {
   Info,
   Trophy,
   Flag,
+  Hotel,
 } from 'lucide-react';
 import {
   useUploadsList,
@@ -107,6 +108,15 @@ const SECTIONS: SectionMeta[] = [
     Icon: Trophy,
     description:
       'Imágenes que aparecen en el grid de pósters de la página Premios. Súbelas con prefijos numéricos (01-, 02-...) para controlar el orden.',
+    accept: 'image/webp,image/jpeg,image/png,image/gif',
+    kind: 'image',
+  },
+  {
+    id: 'hoteles',
+    label: 'Hoteles',
+    Icon: Hotel,
+    description:
+      'Imágenes que aparecen en el grid de pósters de la página Hoteles. Súbelas con prefijos numéricos (01-, 02-...) para controlar el orden.',
     accept: 'image/webp,image/jpeg,image/png,image/gif',
     kind: 'image',
   },

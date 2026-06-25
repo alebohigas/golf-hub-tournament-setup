@@ -1,122 +1,63 @@
-
 ## Objetivo
 
-1. Eliminar TODO fallback a mock en `/convocatoria` y `/reglas`. Si no hay datos en BD para el `torneoid` activo, la sección/página simplemente no se renderiza.
-2. En `/admin` mostrar un badge por sección: **"BD"** (verde) si hay fila guardada, **"Vacío"** (gris) si no.
-3. Reemplazar el `Textarea` actual del editor por un **editor estructurado con preview en vivo** que reproduce el aspecto visual de cada sección pública, para que el usuario edite manteniendo la estética.
-4. Lo mismo para `/reglas`.
+Que las páginas **Salidas**, **Resultados** y **Live** muestren las parejas con la misma estructura que ya tiene **Jugadores** (imagen 1): un renglón por jugador dentro del bloque del grupo/pareja, y los datos compartidos (Hoyo/Hora en Salidas, R1/R2/Total en Resultados/Live) centrados verticalmente al medio de los dos renglones usando `rowSpan`.
 
 ---
 
-## Cambios por área
+## Cambios por página
 
-### 1. Eliminar fallbacks (frontend público)
+### 1) Salidas (`src/pages/Salidas.tsx` + `server/api/salidas_det.php`)
 
-**`src/pages/Convocatoria.tsx`**
-- Quitar el helper `pick()` y todas las referencias a `*Data` de `mockData`.
-- Pasar directamente `c?.text`, `c?.items`, etc. (o `[]` / `undefined`).
-- Cada `*Section` ya debe manejar "sin datos" devolviendo `null` o un placeholder neutro. Ajustar las que aún esperan props obligatorios.
-- Quitar el `import` de mocks.
+**Problema:** en categorías de parejas el endpoint devuelve sólo 1 fila por pareja (el primer jugador), por eso "salen 2" cuando realmente son 4.
 
-**`src/pages/Reglas.tsx`** (revisar contenido)
-- Mismo tratamiento: si no hay fila `reglas_content` para el torneo, mostrar estado vacío.
+- En `salidas_det.php`:
+  - Quitar el hard-code `$formato='individual';` (línea 11).
+  - Cuando `formato=parejas`, en lugar de usar `v_sal_jug_par` con un sólo nombre, hacer la misma query que ya hace `resultados_parejas.php` (vía `v_jugadores_parejas` + doble JOIN a `jugadores`/`clubs`) para devolver por pareja: `name`, `partner`, `clubLogo`, `clubLogo2`, `score`, `grupoid`. Mantener orden y filtrado por `salidagrupoid` para no romper el resto.
+  - Mantener el shape actual de `groups[].players`, agregando `partner` y `clubLogo2` cuando aplique (campos opcionales, no rompen individual).
 
-### 2. Badge BD/Vacío en `/admin`
+- En `Salidas.tsx`:
+  - Si `player.partner` existe, renderizar **dos `<TableRow>`** dentro del mismo grupo de salida (uno por jugador), con la columna **Hoyo** y **Hora** usando `rowSpan = 2 × nº de parejas del grupo` (igual que ya se hace pero contando jugadores reales).
+  - Cada jugador con su propio logo (`clubLogo` / `clubLogo2`) y nombre en su renglón.
+  - La columna **Score** se centra verticalmente con `rowSpan={2}` por pareja porque es score compartido.
+  - Aplicar el mismo patrón en el bloque de búsqueda (`searchResults`).
 
-**`src/components/admin/AdminConvocatoria.tsx`**
-- El hook `useConvocatoriaSections` ya carga las secciones. Añadir info por sección: `hasDbContent: boolean` (basado en si `convocatoria_content` tiene fila para `torneoid + section_id` con `content` no vacío).
-- En cada fila del listado, junto a "Oculta" añadir:
-  - `<Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-300">BD</Badge>` si `hasDbContent`.
-  - `<Badge variant="outline" className="text-muted-foreground">Vacío</Badge>` si no.
+### 2) Resultados (`src/pages/Resultados.tsx`)
 
-**Hook `useConvocatoriaSections`** (`src/hooks/`)
-- Extender el GET de `/api/convocatoria_content.php?torneoid=...` para devolver, por cada section_id, si existe fila con contenido.
-- Exponer `hasDbContent(sectionId): boolean`.
+Hoy en parejas se muestra una sola fila con `"Nombre1 / Nombre2"` y un par de logos pequeños lado a lado.
 
-### 3. Editor estructurado con preview en vivo
+- Cuando `categoryDetail?.isParejas`:
+  - Renderizar **dos `<TableRow>`** consecutivas por pareja.
+  - Renglón 1: club logo 1, nombre 1.
+  - Renglón 2: club logo 2, nombre 2 (`player.partner`).
+  - Columnas compartidas (Pos, R1, R2, …, Total) con `rowSpan={2}` y `align-middle` para que queden centradas verticalmente entre los dos renglones (como en la imagen 3 deseada por el usuario).
+  - Mantener el sticky-left para Pos/Club/Jugador con `rowSpan={2}` en la primera fila.
+  - El click para expandir scorecard sigue actuando sobre la pareja (no se duplica).
+- Mismo tratamiento en la tabla de `cutPlayers`.
 
-Reemplazar el `Textarea` actual por un componente nuevo:
+### 3) Live (`src/pages/Live.tsx`)
 
-**`src/components/admin/convocatoria/SectionEditor.tsx`**
-- Router por `section.id` → editor específico de cada sección.
-- Layout: dos columnas (form a la izquierda, preview a la derecha en desktop; apilado en mobile).
-- El preview usa el MISMO componente público (`<DescripcionSection/>`, `<PremiacionSection/>`, etc.) alimentado por el state local del form.
-
-**Editores por tipo de sección:**
-- `descripcion`, `inscripciones`, `contacto`, etc. → textarea grande con preview.
-- `premiacion` → repeater de categorías con lista de premios.
-- `reglas` → repeater de `{titulo, contenido}` + sección `reglamento`.
-- `competenciasEspeciales` → repeater.
-- `servicios` → repeater por día.
-- `patrocinadoresOficiales` → repeater `{premio, patrocinador, descripcion}`.
-- `costos` → grid de `sociosPricing` / `foraneosPricing` con notas y contacto.
-- `desempates` → editor de listas.
-- `categorias` / `calendarioJuego` → tabla editable.
-
-Cada editor:
-- Botón **Guardar** que llama a `setSectionContent(id, structuredJson)` (ya existe; ajustar para aceptar objeto y serializar a JSON al persistir).
-- Botón **Limpiar** que elimina la fila de BD (badge vuelve a "Vacío").
-- Indicador "Cambios sin guardar".
-
-### 4. Persistencia backend
-
-**`server/api/convocatoria_content.php`**
-- Asegurar GET y POST/PUT por `torneoid + section_id` con payload `content` JSON.
-- Endpoint DELETE para "Limpiar" (vuelve la sección a Vacío).
-
-**`server/api/reglas_content.php`** (mismo patrón si no existe).
-
-### 5. Reglas página y admin
-
-Replicar 1–4 para `/reglas`:
-- `src/pages/Reglas.tsx` sin fallback.
-- Nuevo `src/components/admin/AdminReglas.tsx` (o reusar `AdminCategoriasReglas.tsx` existente) con el mismo patrón de editor + preview + badge.
+Aplicar el mismo patrón "dos renglones por pareja + rowSpan en columnas compartidas" que en Resultados, respetando los colores de score diff vs par que ya existen en Live.
 
 ---
 
 ## Detalles técnicos
 
-- **No tocar mockData todavía**: lo dejaremos sin usar en runtime. En una iteración futura se puede borrar.
-- **Tipos compartidos**: mover los tipos `PremioCategoria`, `ReglaItem`, `PatrocinadorOficial`, etc., de `mockData.ts` a `src/types/convocatoria.ts` para que editor y vista pública compartan contrato.
-- **Preview en vivo**: el editor mantiene `draftContent` en `useState`; el preview consume `draftContent` directamente (no espera al guardado). Al guardar, se persiste vía hook.
-- **Validación mínima**: campos requeridos por sección marcados con `*`. Sin validación de schema dura para no bloquear edición.
+- No se toca el modelo de datos del frontend: `Player` ya tiene `partner`, `clubLogo2` y `pairName` (ver `useResultadosData.ts` líneas 138-143).
+- En Salidas hay que extender `SalidasPlayer` para incluir `partner?: string` y `clubLogo2?: string`.
+- `rowSpan` en parejas = 2 (un jugador + su compañero). En grupos multi-pareja en Salidas, las columnas `Hoyo`/`Hora` siguen abarcando todos los renglones del grupo (`2 × nº parejas`), y `Score` abarca 2 (por pareja).
+- No se altera ningún cálculo de scoring, ordenamiento, ni keys dinámicas `r{n}` (respeta la regla de memoria).
+- Cambios localizados; no toca competencias, brackets ni pre-registros.
 
 ---
 
-## Entregables
+## Archivos a modificar
 
 ```text
-Frontend:
-- src/pages/Convocatoria.tsx              (eliminar fallbacks)
-- src/pages/Reglas.tsx                    (eliminar fallbacks)
-- src/types/convocatoria.ts               (NUEVO – tipos compartidos)
-- src/components/admin/AdminConvocatoria.tsx          (badges + abrir SectionEditor)
-- src/components/admin/AdminReglas.tsx                (NUEVO o refactor)
-- src/components/admin/convocatoria/SectionEditor.tsx (NUEVO – router)
-- src/components/admin/convocatoria/editors/
-    DescripcionEditor.tsx
-    PremiacionEditor.tsx
-    ReglasEditor.tsx
-    PatrocinadoresEditor.tsx
-    CompetenciasEditor.tsx
-    ServiciosEditor.tsx
-    CostosEditor.tsx
-    DesempatesEditor.tsx
-    CategoriasEditor.tsx
-    CalendarioEditor.tsx
-- src/hooks/useConvocatoriaSections.ts    (hasDbContent + clearSection)
-
-Backend:
-- server/api/convocatoria_content.php     (asegurar GET/POST/DELETE)
-- server/api/reglas_content.php           (mismo patrón)
+server/api/salidas_det.php          (parejas: doble JOIN y devolver partner+clubLogo2)
+src/hooks/useSalidasData.ts         (tipo SalidasPlayer: +partner, +clubLogo2)
+src/pages/Salidas.tsx               (render dos renglones por pareja + rowSpan)
+src/pages/Resultados.tsx            (parejas: dos renglones + rowSpan centrado)
+src/pages/Live.tsx                  (parejas: dos renglones + rowSpan centrado)
 ```
 
----
-
-## Alcance / fuera de alcance
-
-- IN: comportamiento descrito arriba para Convocatoria y Reglas.
-- OUT: editor para otras secciones del admin (Eventos, Avisos, Premios) – ya tienen sus propios flujos.
-- OUT: borrado físico de `src/data/mockData.ts` (queda como referencia muerta esta iteración).
-
-¿Apruebo y construyo, o ajustas algo?
+¿Procedo así?

@@ -29,12 +29,16 @@ import Avisos from "./pages/Avisos";
 import Premios from "./pages/Premios";
 import Patrocinadores from "./pages/Patrocinadores";
 import Reglas from "./pages/Reglas";
+import Hoteles from "./pages/Hoteles";
 import Admin from "./pages/Admin";
 import Registro from "./pages/Registro";
 import AdminRegistros from "./pages/AdminRegistros";
 import Comprobante from "./pages/Comprobante";
 import AdminBracketsPage from "./pages/AdminBracketsPage";
 import Showcase300 from "./pages/Showcase300";
+import ShowcaseRotator from "./pages/ShowcaseRotator";
+import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
+import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -102,6 +106,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/registros" element={<AdminRegistros />} />
               <Route path="/admin/brackets" element={<AdminBracketsPage />} />
+              <Route path="/admin/showcase-rotacion" element={<AdminShowcaseRotacionPage />} />
               {/* Public: player upload page after admin sends the email link */}
               <Route path="/registro/comprobante" element={<Comprobante />} />
               
@@ -120,12 +125,17 @@ const App = () => (
               <Route path="/premios" element={<ProtectedRoute pageId="premios"><Premios /></ProtectedRoute>} />
               <Route path="/patrocinadores" element={<ProtectedRoute pageId="patrocinadores"><Patrocinadores /></ProtectedRoute>} />
               <Route path="/reglas" element={<ProtectedRoute pageId="reglas"><Reglas /></ProtectedRoute>} />
+              <Route path="/hoteles" element={<ProtectedRoute pageId="hoteles"><Hoteles /></ProtectedRoute>} />
               <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
               <Route path="/banderas" element={<ProtectedRoute pageId="banderas"><Banderas /></ProtectedRoute>} />
 
               {/* Standalone Showcase 300 reports (no Layout, auto-refresh 5min) */}
               <Route path="/showcase/:tipo" element={<Showcase300 />} />
-              
+              {/* Rotador customizable de slides (lee config del #hash). */}
+              <Route path="/showcase/rotacion" element={<ShowcaseRotator />} />
+              {/* Standalone: clasificados Putt Finales por sexo (m|f). */}
+              <Route path="/showcase/calificados/:sexo" element={<PuttCalificados />} />
+
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>

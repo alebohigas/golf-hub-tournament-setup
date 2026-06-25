@@ -12,13 +12,20 @@ $catid = require_param('catid');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
+/**
+ * Detectar si la categoría es de parejas (formato='PAREJAS'). El frontend lo
+ * usa para agrupar jugadores por grupoid (cada grupo = una pareja).
+ */
+$catInfoRow = query_one($conn, "SELECT formato FROM categorias WHERE categoria_id = $cid LIMIT 1");
+$isParejas = $catInfoRow && strtoupper($catInfoRow['formato'] ?? '') === 'PAREJAS';
+
 /** Query: fetch players with club logo and calculated handicaps using DB functions */
 $sql = "SELECT p.id, p.numjugador,
                CONCAT(p.nombre, ' ', p.apellido) as jugador,
                c.logo, p.indexjgo as hi,
                f_hdccampo(p.indexjgo, p.teesalidaid, cat.campoid) as hj,
                f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, cat.porcentaje) as hn,
-               p.club, p.sexo, p.estatus, p.equipo
+               p.club, p.sexo, p.estatus, p.equipo, p.grupoid
         FROM jugadores p
         LEFT JOIN clubs c ON (p.clubid = c.id)
         LEFT JOIN (
@@ -56,7 +63,10 @@ while ($row = $result->fetch_assoc()) {
         'hn'         => $row['hn'] ?? '0',
         'club'       => $row['club'] ?? '',
         'sexo'       => $row['sexo'] ?? '',
-        'estatus'    => $row['estatus'] ?? 'NORMAL'
+        'estatus'    => $row['estatus'] ?? 'NORMAL',
+        /** grupoid: agrupador de parejas (ej. "C24"). El frontend usa este
+         *  campo cuando isParejas=true para mostrar "Grupo C24". */
+        'grupoid'    => $row['grupoid'] ?? ''
     ];
 }
 $result->free();
@@ -79,4 +89,8 @@ if ($catRes) {
     $catRes->free();
 }
 
-json_response(['players' => $players, 'fechaHandicap' => $fechaHandicap]);
+json_response([
+    'players'       => $players,
+    'fechaHandicap' => $fechaHandicap,
+    'isParejas'     => $isParejas,
+]);

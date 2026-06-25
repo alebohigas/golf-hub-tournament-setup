@@ -99,9 +99,9 @@ export const getResultadosCategoryUrl = (categoryId: string, gross: '0' | '1' = 
 /** Tee times summary */
 export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQuery()}`;
 
-/** Tee times by day (legacy-compatible: send only caljgoid, no extra params) */
-export const getSalidasDayUrl = (dayId: string, _formato: string = 'individual'): string =>
-  `${API_BASE_URL}/salidas_det.php?caljgoid=${encodeURIComponent(dayId)}`;
+/** Tee times by day with format, so pair categories can return both partners */
+export const getSalidasDayUrl = (dayId: string, formato: string = 'individual'): string =>
+  `${API_BASE_URL}/salidas_det.php${buildQuery({ caljgoid: dayId, formato })}`;
 
 /** All competitions (competición - trofeos) */
 export const getCompeticionUrl = (): string => `${API_BASE_URL}/competicion.php${buildQuery()}`;
@@ -293,9 +293,51 @@ export const getCategoriasReglasUrl = (): string =>
 
 // ============= Banderas (Pin Sheet) =============
 
-/** Pin sheet por torneo (lectura pública + POST admin). */
-export const getBanderasUrl = (): string =>
-  `${API_BASE_URL}/banderas.php${buildQuery()}`;
+/**
+ * Pin sheet por torneo (lectura pública + POST admin).
+ *
+ * @param opts.fecha  Fecha específica (YYYY-MM-DD). Si se omite, el backend
+ *                    devuelve la fecha activa (más reciente <= hoy con datos).
+ * @param opts.admin  Modo admin: incluye `admin=1&password=...` para que el
+ *                    backend devuelva también fechas futuras (lectura).
+ */
+export const getBanderasUrl = (opts: {
+  fecha?: string;
+  admin?: boolean;
+  password?: string;
+} = {}): string => {
+  const params: Record<string, string> = {};
+  if (opts.fecha) params.fecha = opts.fecha;
+  if (opts.admin) {
+    params.admin = '1';
+    if (opts.password) params.password = opts.password;
+  }
+  return `${API_BASE_URL}/banderas.php${buildQuery(params)}`;
+};
+
+// ============= Parejas (Tarjetas y Estilo de Juego) =============
+
+/**
+ * Devuelve el estilojuego (Personal | Go Go | Bola Baja | Suma Scores) y el
+ * formato (INDIVIDUAL | PAREJAS) para una categoría en una fecha específica.
+ */
+export const getCaljuegoEstiloUrl = (catId: string, fecha: string): string =>
+  `${API_BASE_URL}/caljuego_estilo.php${buildQuery({ catid: catId, fecha })}`;
+
+/**
+ * Tarjeta detallada de una pareja para un día específico.
+ * Reemplaza a `resultados_tarjeta.php` cuando la categoría es de parejas.
+ */
+export const getTarjetaParejasUrl = (
+  jugadorId: string,
+  categoriaId: string,
+  fecha: string,
+): string =>
+  `${API_BASE_URL}/tarjeta_parejas.php${buildQuery({
+    jugadorid: jugadorId,
+    categoriaid: categoriaId,
+    fecha,
+  })}`;
 
 /** Cascading location dropdowns */
 export const getLocationsCountriesUrl = (): string =>

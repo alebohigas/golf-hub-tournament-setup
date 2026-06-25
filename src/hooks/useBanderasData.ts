@@ -14,18 +14,44 @@ import { getBanderasUrl } from '@/config/api';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import type { PinSheetHole } from '@/data/banderasData';
 
-/** Respuesta del GET. */
+/**
+ * Respuesta del GET de banderas.
+ * - `today`           : fecha de hoy según el servidor (YYYY-MM-DD).
+ * - `activeDate`      : fecha cuyos `holes` se están devolviendo (null si no hay).
+ * - `availableDates`  : todas las fechas con datos (sólo <= hoy para público).
+ */
 export interface BanderasResponse {
   holes: PinSheetHole[];
+  today: string;
+  activeDate: string | null;
+  availableDates: string[];
+  /** True si hay tarjetas con fecha_juego = hoy y statlsc != 1 (bloquea
+   *  publicar el pin sheet de mañana). */
+  playersStillPlayingToday?: boolean;
+  error?: string;
 }
 
-/** Lectura pública del pin sheet del torneo activo. */
-export const useBanderas = () => {
+/**
+ * Lectura pública del pin sheet del torneo activo.
+ *
+ * @param opts.fecha  Fecha específica (YYYY-MM-DD). Si se omite, el backend
+ *                    devuelve la fecha más reciente <= hoy con datos.
+ * @param opts.admin  Modo admin (incluye fechas futuras en `availableDates`).
+ */
+export const useBanderas = (opts: {
+  fecha?: string;
+  admin?: boolean;
+} = {}) => {
   const { torneoId } = useTorneoId();
+  const { fecha, admin } = opts;
   return useQuery({
-    queryKey: ['banderas', torneoId],
+    queryKey: ['banderas', torneoId, fecha ?? null, admin ?? false],
     queryFn: async (): Promise<BanderasResponse> => {
-      const res = await fetch(getBanderasUrl());
+      const res = await fetch(getBanderasUrl({
+        fecha,
+        admin,
+        password: admin ? 'admin2025' : undefined,
+      }));
       if (!res.ok) throw new Error('Error al cargar banderas');
       return res.json();
     },
@@ -40,6 +66,7 @@ export const useSaveBanderas = () => {
   return useMutation({
     mutationFn: async (payload: {
       torneoid: number;
+      fecha: string;          // YYYY-MM-DD — la fecha que se está reemplazando
       holes: PinSheetHole[];
       password: string;
     }) => {

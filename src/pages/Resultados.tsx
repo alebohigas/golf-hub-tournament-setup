@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
 import { useState, Fragment } from 'react';
-import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi } from '@/hooks/useResultadosData';
+import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi, fetchParejasScorecardFromApi } from '@/hooks/useResultadosData';
+import type { ParejaScorecard } from '@/hooks/useResultadosData';
 import type { 
   ResultCategory, 
   ScoringType, 
@@ -24,6 +25,7 @@ import type {
   CutPlayer,
 } from '@/data/resultadosData';
 import ScorecardRow from '@/components/resultados/ScorecardRow';
+import ScorecardParejas from '@/components/resultados/ScorecardParejas';
 
 // ============= Helper Functions =============
 
@@ -99,6 +101,8 @@ const Resultados = () => {
   /** Track which scorecard is expanded: "playerId-round" */
   const [expandedScorecard, setExpandedScorecard] = useState<string | null>(null);
   const [scorecardData, setScorecardData] = useState<RoundScorecard | null>(null);
+  /** Datos cuando la categoría es de parejas (Go Go / Bola Baja / Suma Scores). */
+  const [parejaScorecardData, setParejaScorecardData] = useState<ParejaScorecard | null>(null);
   const [scorecardLoading, setScorecardLoading] = useState(false);
 
   // Fetch all categories from API
@@ -161,6 +165,7 @@ const Resultados = () => {
   const handleBack = () => {
     setExpandedScorecard(null);
     setScorecardData(null);
+    setParejaScorecardData(null);
     if (selectedScoringType) {
       const cat = categories.find(c => c.categoryId === selectedCategoryId);
       if (cat && cat.scoringTypes.length <= 1) {
@@ -193,6 +198,7 @@ const Resultados = () => {
     if (expandedScorecard === key) {
       setExpandedScorecard(null);
       setScorecardData(null);
+      setParejaScorecardData(null);
       return;
     }
 
@@ -203,26 +209,41 @@ const Resultados = () => {
       console.warn('No date found for round', round, 'days:', days);
       setExpandedScorecard(key);
       setScorecardData(null);
+      setParejaScorecardData(null);
       return;
     }
 
     setExpandedScorecard(key);
     setScorecardData(null);
+    setParejaScorecardData(null);
     setScorecardLoading(true);
 
     try {
-      const scorecard = await fetchPlayerScorecardFromApi(
-        player.id,
-        categoryDetail.categoryId,
-        fecha,
-        categoryDetail.system || '',
-        selectedScoringType || 'NETO',
-        round
-      );
-      setScorecardData(scorecard);
+      // Cuando la categoría es de parejas, golpeamos el endpoint específico
+      // (`tarjeta_parejas.php`) que detecta el estilojuego del día y devuelve
+      // los datos crudos para que ScorecardParejas elija el layout.
+      if (categoryDetail.isParejas) {
+        const pareja = await fetchParejasScorecardFromApi(
+          player.id,
+          categoryDetail.categoryId,
+          fecha,
+        );
+        setParejaScorecardData(pareja);
+      } else {
+        const scorecard = await fetchPlayerScorecardFromApi(
+          player.id,
+          categoryDetail.categoryId,
+          fecha,
+          categoryDetail.system || '',
+          selectedScoringType || 'NETO',
+          round
+        );
+        setScorecardData(scorecard);
+      }
     } catch (err) {
       console.error('Failed to fetch scorecard:', err);
       setScorecardData(null);
+      setParejaScorecardData(null);
     } finally {
       setScorecardLoading(false);
     }
@@ -384,11 +405,24 @@ const Resultados = () => {
                         </TableHeader>
                         <TableBody>
                           {players.length > 0 ? (
-                            players.map((player) => (
+                            players.map((player) => {
+                              /* En categorías de PAREJAS: render = 2 renglones (uno por integrante)
+                               * y las columnas compartidas (Pos / Club logo / R1..Rn / Total) se
+                               * centran verticalmente con rowSpan=2 — equivalente a la imagen
+                               * de Jugadores que pidió el usuario. */
+                              const isPair = !!(categoryDetail?.isParejas && player.partner);
+                              const rowSpan = isPair ? 2 : 1;
+                              /* `player.name` ya es el nombre del JUGADOR 1 (capitán) tal cual
+                               * lo regresa la API, y `player.partner` es el segundo integrante.
+                               * No parseamos pairName aquí porque el orden de pairName puede
+                               * NO coincidir con el orden (name, partner) de la API (la BD
+                               * legacy concatena los nombres en orden alfabético). */
+                              const name1 = player.name;
+                              return (
                               <Fragment key={player.id}>
-                                <TableRow className="bg-white hover:bg-white">
-                                  {/* Position with dynamic medal */}
-                                  <TableCell className="font-semibold sticky left-0 z-10 bg-white">
+                                <TableRow className={`bg-white hover:bg-white ${isPair ? 'border-b-0' : ''}`}>
+                                  {/* Position con medalla — abarca los 2 renglones en parejas */}
+                                  <TableCell rowSpan={rowSpan} className="font-semibold sticky left-0 z-10 bg-white align-middle">
                                     <div className="flex items-center gap-2">
                                       {getPositionIcon(player.position, medalCount)}
                                       <span className={player.position <= medalCount ? getMedalStyle(player.position) : ''}>
@@ -396,14 +430,13 @@ const Resultados = () => {
                                       </span>
                                     </div>
                                   </TableCell>
-                                  {/* Club Logo */}
+                                  {/* Club Logo del jugador 1 (en parejas también es 1 logo por renglón) */}
                                   <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
                                     {player.clubLogo ? (
                                       <img
                                         src={player.clubLogo}
                                         alt="Club"
                                         className="w-auto object-contain rounded inline-block"
-                                        // Height reduced 5% (2.25rem → 2.1375rem) — consistent across tables
                                         style={{ height: '2.1375rem' }}
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
@@ -413,8 +446,8 @@ const Resultados = () => {
                                       <span className="text-xs text-muted-foreground">{player.club}</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>{player.name}</TableCell>
-                                  {/* Dynamic round score cells */}
+                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>{name1}</TableCell>
+                                  {/* Round score cells — rowSpan=2 en parejas para centrar el score compartido */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
                                     const score = getRoundScore(player, round);
@@ -423,7 +456,7 @@ const Resultados = () => {
                                     // The signed diff-vs-par ("+N / -N / E") view is used
                                     // only on /live — never here.
                                     return (
-                                      <TableCell key={round} className="text-center p-0">
+                                      <TableCell key={round} rowSpan={rowSpan} className="text-center p-0 align-middle">
                                         {score !== undefined && score !== null ? (
                                           <button
                                             onClick={() => handleRoundClick(player, round)}
@@ -441,11 +474,37 @@ const Resultados = () => {
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="text-center font-bold text-primary text-lg">
+                                  <TableCell rowSpan={rowSpan} className="text-center font-bold text-primary text-lg align-middle">
                                     {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {player.total ?? 0}
                                   </TableCell>
                                 </TableRow>
+
+                                {/* Segundo renglón: integrante 2 de la pareja.
+                                    Sólo contiene logo del club 2 + nombre del compañero;
+                                    las demás columnas las cubre el rowSpan=2 del renglón anterior. */}
+                                {isPair && (
+                                  <TableRow className="bg-white hover:bg-white">
+                                    <TableCell className="p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '4rem' }}>
+                                      {player.clubLogo2 ? (
+                                        <img
+                                          src={player.clubLogo2}
+                                          alt="Club 2"
+                                          className="w-auto object-contain rounded inline-block"
+                                          style={{ height: '2.1375rem' }}
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>
+                                      {player.partner}
+                                    </TableCell>
+                                  </TableRow>
+                                )}
 
                                 {/* Expanded scorecard row */}
                                 {expandedScorecard?.startsWith(`${player.id}-`) && (
@@ -455,18 +514,27 @@ const Resultados = () => {
                                         Cargando tarjeta...
                                       </TableCell>
                                     </TableRow>
+                                  ) : parejaScorecardData && categoryDetail?.isParejas ? (
+                                    <ScorecardParejas
+                                      scorecard={parejaScorecardData}
+                                      pairLabel={player.pairName || player.name}
+                                      roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); setParejaScorecardData(null); }}
+                                      colSpan={totalCols}
+                                    />
                                   ) : scorecardData ? (
                                     <ScorecardRow
                                       scorecard={scorecardData}
                                       playerName={player.name}
                                       roundLabel={`Ronda ${expandedScorecard.split('-').pop()}`}
-                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); }}
+                                      onClose={() => { setExpandedScorecard(null); setScorecardData(null); setParejaScorecardData(null); }}
                                       colSpan={totalCols}
                                     />
                                   ) : null
                                 )}
                               </Fragment>
-                            ))
+                              );
+                            })
                           ) : (
                             <TableRow>
                               <TableCell colSpan={totalCols} className="text-center text-muted-foreground py-8">
@@ -488,11 +556,19 @@ const Resultados = () => {
                               </TableRow>
 
                               {/* Non-NORMAL players (S/R/D) */}
-                              {cutPlayers.map((cp) => (
+                              {cutPlayers.map((cp) => {
+                                /* Mismo patrón que la sección NORMAL: parejas se renderizan en 2
+                                 * renglones, columnas compartidas con rowSpan=2. */
+                                const isPair = !!(categoryDetail?.isParejas && cp.partner);
+                                const rowSpan = isPair ? 2 : 1;
+                                const name1 = isPair
+                                  ? (cp.pairName?.split('/')[0]?.trim() || cp.name)
+                                  : cp.name;
+                                return (
                                 <Fragment key={cp.playerId}>
-                                <TableRow className="bg-muted/20">
+                                <TableRow className={`bg-muted/20 ${isPair ? 'border-b-0' : ''}`}>
                                   {/* Status code instead of position */}
-                                  <TableCell className="font-semibold text-center sticky left-0 z-10 bg-muted/20" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
+                                  <TableCell rowSpan={rowSpan} className="font-semibold text-center sticky left-0 z-10 bg-muted/20 align-middle" style={{ backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeClasses(cp.statusCode)}`}>
                                       {cp.statusCode}
                                     </span>
@@ -522,7 +598,7 @@ const Resultados = () => {
                                    * column / scrolls the table horizontally.
                                    */}
                                   <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
-                                    <span className="block leading-tight">{cp.name}</span>
+                                    <span className="block leading-tight">{name1}</span>
                                     <span className="block text-[11px] leading-tight text-muted-foreground/70">
                                       ({cp.statusLabel})
                                     </span>
@@ -540,11 +616,11 @@ const Resultados = () => {
                                     // RESULTADOS: raw round total — never the diff-vs-par.
                                     if (score === undefined || score === null) {
                                       return (
-                                        <TableCell key={round} className="text-center text-muted-foreground">—</TableCell>
+                                        <TableCell key={round} rowSpan={rowSpan} className="text-center text-muted-foreground align-middle">—</TableCell>
                                       );
                                     }
                                     return (
-                                      <TableCell key={round} className="text-center p-0">
+                                      <TableCell key={round} rowSpan={rowSpan} className="text-center p-0 align-middle">
                                         <button
                                           onClick={() => handleRoundClick(
                                             // Reuse PlayerResult-shaped object so handler signature stays the same
@@ -562,11 +638,33 @@ const Resultados = () => {
                                     );
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
-                                  <TableCell className="text-center font-bold text-muted-foreground">
+                                  <TableCell rowSpan={rowSpan} className="text-center font-bold text-muted-foreground align-middle">
                                     {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {cp.total && cp.total > 0 ? cp.total : '—'}
                                   </TableCell>
                                 </TableRow>
+
+                                {/* Segundo integrante (parejas) */}
+                                {isPair && (
+                                  <TableRow className="bg-muted/20">
+                                    <TableCell className="p-1 text-center align-middle sticky z-10" style={{ left: '4rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
+                                      {cp.clubLogo2 ? (
+                                        <img
+                                          src={cp.clubLogo2}
+                                          alt="Club 2"
+                                          className="w-auto object-contain rounded inline-block opacity-60"
+                                          style={{ height: '2.1375rem' }}
+                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
+                                      <span className="block leading-tight">{cp.partner}</span>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
 
                                 {/* Expanded scorecard row for cut players (same UX as NORMAL players) */}
                                 {expandedScorecard?.startsWith(`${cp.playerId}-`) && (
@@ -587,7 +685,8 @@ const Resultados = () => {
                                   ) : null
                                 )}
                                 </Fragment>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
                         </TableBody>

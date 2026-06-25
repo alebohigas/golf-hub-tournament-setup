@@ -49,6 +49,11 @@ interface StablefordPlayer {
   name: string;
   clubLogo: string;
   club: string;
+  /** Logo del club del segundo integrante (categorías PAREJAS). */
+  clubLogo2?: string;
+  /** Nombre del compañero (categorías PAREJAS). Cuando viene definido, la
+   *  fila se renderiza como 2 renglones (uno por jugador). */
+  partner?: string;
   /** Total accumulated SA points */
   score: number;
   /** Previous round accumulated SA */
@@ -81,6 +86,10 @@ interface StrokePlayer {
   name: string;
   clubLogo: string;
   club: string;
+  /** Logo del club del segundo integrante (categorías PAREJAS). */
+  clubLogo2?: string;
+  /** Nombre del compañero (categorías PAREJAS). */
+  partner?: string;
   /** Accumulated difference to par */
   score: number;
   /** Current round difference to par */
@@ -571,11 +580,16 @@ const Live = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {leaderboard.players.map((player) => (
+                          {leaderboard.players.map((player) => {
+                            /* En categorías PAREJAS (cuando el backend manda `partner`) la pareja
+                             * se renderiza como 2 renglones; columnas compartidas con rowSpan=2. */
+                            const isPair = !!(player as { partner?: string }).partner;
+                            const rs = isPair ? 2 : 1;
+                            return (
                             <Fragment key={player.playerId}>
                               <TableRow className="bg-white">
                                 {/* Position */}
-                                <TableCell className="text-center font-bold sticky left-0 z-10 bg-white">
+                                <TableCell rowSpan={rs} className="text-center font-bold sticky left-0 z-10 bg-white align-middle">
                                   {player.position}
                                 </TableCell>
 
@@ -610,7 +624,7 @@ const Live = () => {
                                   mirror the Hoy value here so the leaderboard still reflects current
                                   standings during R1.
                                 */}
-                                <TableCell className="text-center p-0">
+                                <TableCell rowSpan={rs} className="text-center p-0 align-middle">
                                   {(() => {
                                     const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
                                     // Live Total = closed rounds (player.score) + today's in-progress
@@ -655,7 +669,7 @@ const Live = () => {
                                 </TableCell>
 
                                 {/* Holes completed — shows "F" when player has all scorecards closed (statlsc=1) */}
-                                <TableCell className={`text-center text-sm ${isPlayerFinished(player, leaderboard?.currentRoundDate) ? 'font-bold text-green-700' : ''}`}>
+                                <TableCell rowSpan={rs} className={`text-center text-sm align-middle ${isPlayerFinished(player, leaderboard?.currentRoundDate) ? 'font-bold text-green-700' : ''}`}>
                                   {formatThru(player, leaderboard?.currentRoundDate)}
                                 </TableCell>
 
@@ -663,7 +677,7 @@ const Live = () => {
                                   Hoy column — clickable only while latest card statlsc <> 1.
                                   Click expands ONLY the in-progress live scorecard from live_tarjeta.php.
                                 */}
-                                <TableCell className="text-center p-0">
+                                <TableCell rowSpan={rs} className="text-center p-0 align-middle">
                                   {canOpenTodayScorecard(player, leaderboard?.currentRoundDate) ? (
                                     <button
                                       onClick={() => handleTodayClick(player)}
@@ -687,6 +701,26 @@ const Live = () => {
                                   )}
                                 </TableCell>
                               </TableRow>
+
+                              {/* Segundo integrante de la pareja — sólo logo y nombre;
+                                  Pos/Total/Thru/Hoy se cubren con rowSpan=2 del renglón anterior. */}
+                              {isPair && (
+                                <TableRow className="bg-white">
+                                  <TableCell className="w-16 min-w-16 p-1 text-center align-middle sticky z-10 bg-white" style={{ left: '3.125rem' }}>
+                                    {player.clubLogo2 ? (
+                                      <img
+                                        src={player.clubLogo2}
+                                        alt="Club 2"
+                                        className="w-[3.325rem] h-[2.1375rem] object-contain rounded inline-block mx-auto"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                      />
+                                    ) : null}
+                                  </TableCell>
+                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.125rem' }}>
+                                    {player.partner}
+                                  </TableCell>
+                                </TableRow>
+                              )}
 
                               {/*
                                 Expanded scorecards block.
@@ -727,7 +761,8 @@ const Live = () => {
                                 ) : null
                               )}
                             </Fragment>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>

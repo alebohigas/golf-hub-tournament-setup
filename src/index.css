@@ -300,3 +300,41 @@
     padding-right: 0.5rem;
   }
 }
+
+/* ============= Showcase TV Mode =============
+ * Aplicado a la raíz de cualquier vista showcase (/showcase/:tipo,
+ * /showcase/rotacion, /showcase/calificados/:sexo). Diseñado para
+ * pantallas de club/TV vistas desde lejos:
+ *  - tipografía notablemente más grande en tablas, headers y badges
+ *  - intercalado zebra (blanco / gris suave) por fila para
+ *    facilitar el escaneo visual línea por línea
+ */
+.showcase-tv .tournament-table thead th {
+  font-size: 1.25rem;      /* ~20px */
+  line-height: 1.6;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+.showcase-tv .tournament-table tbody td {
+  font-size: 1.4rem;       /* ~22px — números/nombres bien visibles */
+  line-height: 1.5;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+/* Logos de club más grandes dentro del showcase */
+.showcase-tv .tournament-table tbody td img {
+  height: 2.4rem;
+  width: auto;
+}
+/* Zebra striping para las tablas del showcase. El fondo base de las
+ * filas dentro de los showcases siempre es blanco (bg-white en el
+ * contenedor), así que sólo necesitamos teñir las pares. */
+.showcase-tv .tournament-table tbody tr:nth-child(even) > td {
+  background-color: hsl(var(--muted) / 0.55);
+}
+.showcase-tv .tournament-table tbody tr:nth-child(odd) > td {
+  background-color: hsl(0 0% 100%);
+}
+/* Headings / títulos del showcase se ven más grandes */
+.showcase-tv h1 { font-size: clamp(2rem, 3vw, 3rem); }
+.showcase-tv h4 { font-size: clamp(1.25rem, 1.6vw, 1.6rem); }

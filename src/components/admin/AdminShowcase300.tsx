@@ -11,7 +11,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Target, Flag, MousePointerClick, Crosshair, Layers } from 'lucide-react';
+import { ExternalLink, Target, Flag, MousePointerClick, Crosshair, Layers, MonitorPlay, Users } from 'lucide-react';
 
 // ============= Showcase definitions =============
 
@@ -29,7 +29,8 @@ interface ShowcaseEntry {
 
 /** All available showcase reports, in display order */
 const SHOWCASES: ShowcaseEntry[] = [
-  { tipo: 'driver',   label: 'Driver',   description: 'Mayor distancia de driver',         Icon: Target },
+  { tipo: 'driver',   label: 'Driver',         description: 'Mayor distancia de driver',         Icon: Target },
+  { tipo: 'driverp',  label: 'Driver Prec.',   description: 'Driver más cercano a la línea',     Icon: Crosshair },
   { tipo: 'approach', label: 'Approach', description: 'Mejor approach a bandera',         Icon: Crosshair },
   { tipo: 'putt',     label: 'Putt',     description: 'Putt más largo embocado',          Icon: MousePointerClick },
   { tipo: 'oyes',     label: "O'Yes",    description: 'Closest to pin (par 3)',           Icon: Flag },
@@ -48,6 +49,12 @@ const AdminShowcase300 = () => {
   const openShowcase = (tipo: string) => {
     const features = 'noopener,noreferrer,width=1280,height=800';
     window.open(`/showcase/${tipo}`, `showcase_${tipo}`, features);
+  };
+
+  /** Abre la vista de calificados Putt Finales (M/F) en ventana nueva. */
+  const openCalificados = (sexo: 'm' | 'f') => {
+    const features = 'noopener,noreferrer,width=1280,height=800';
+    window.open(`/showcase/calificados/${sexo}`, `calificados_${sexo}`, features);
   };
 
   return (
@@ -79,6 +86,52 @@ const AdminShowcase300 = () => {
               </span>
             </Button>
           ))}
+        </div>
+
+        {/* Botones extra: Calificados Putt Finales por sexo. Comparten el
+            mismo estilo de tarjeta para mantener el grid coherente. */}
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {(
+            [
+              { sx: 'm', label: 'Calificados Caballeros', desc: 'Seeds Putt Finales (M)' },
+              { sx: 'f', label: 'Calificados Damas',      desc: 'Seeds Putt Finales (F)' },
+            ] as const
+          ).map(({ sx, label, desc }) => (
+            <Button
+              key={sx}
+              variant="outline"
+              className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
+              onClick={() => openCalificados(sx)}
+            >
+              <div className="flex items-center gap-2 w-full">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="font-semibold">{label}</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground font-normal whitespace-normal">
+                {desc}
+              </span>
+            </Button>
+          ))}
+        </div>
+
+        {/* Acceso al constructor de vistas rotativas (brackets, multi-300,
+            customizado). Se abre en la misma pestaña porque es un panel
+            de configuración, no una vista de TV. */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <Button
+            variant="default"
+            className="gap-2"
+            onClick={() => window.open('/admin/showcase-rotacion', '_blank')}
+          >
+            <MonitorPlay className="h-4 w-4" />
+            Abrir constructor de rotación
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            Permite rotar varios reportes en la misma pantalla, incluyendo
+            brackets putt (grupos, semis, final) y selecciones customizadas.
+          </p>
         </div>
       </CardContent>
     </Card>

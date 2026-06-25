@@ -139,6 +139,25 @@ export interface PremiosConfig {
 }
 
 /**
+ * Configuration for the Hoteles page poster grid.
+ * Mirrors PremiosConfig/AvisosConfig/EventosConfig so admins can
+ * independently tune the columns + gap per breakpoint for the
+ * Hoteles poster gallery.
+ */
+export interface HotelesConfig {
+  desktopColumns: number;
+  mobileColumns: number;
+  desktopGap: EventosGap;
+  mobileGap: EventosGap;
+  /** Shared custom poster order across breakpoints. */
+  posterOrder?: number[];
+  /** @deprecated Legacy per-breakpoint orders. */
+  desktopOrder?: number[];
+  /** @deprecated See `desktopOrder`. */
+  mobileOrder?: number[];
+}
+
+/**
  * ThemeConfig
  * Active color palette for the tournament's public-facing pages.
  * Each color is stored as an HSL string of the form "H S% L%"
@@ -228,6 +247,7 @@ export interface SiteConfig {
   eventos_config: EventosConfig | null;
   avisos_config: AvisosConfig | null;
   premios_config: PremiosConfig | null;
+  hoteles_config: HotelesConfig | null;
   theme_config: ThemeConfig | null;
   stats_config: StatsConfig | null;
   popup_config: PopupConfig | null;
@@ -246,6 +266,7 @@ export interface SaveConfigPayload {
   eventos_config?: EventosConfig | null;
   avisos_config?: AvisosConfig | null;
   premios_config?: PremiosConfig | null;
+  hoteles_config?: HotelesConfig | null;
   theme_config?: ThemeConfig | null;
   stats_config?: StatsConfig | null;
   popup_config?: PopupConfig | null;
@@ -263,6 +284,7 @@ const SPONSORS_CONFIG_KEY = 'tournament_sponsors_config';
 const EVENTOS_CONFIG_KEY = 'tournament_eventos_config';
 const AVISOS_CONFIG_KEY = 'tournament_avisos_config';
 const PREMIOS_CONFIG_KEY = 'tournament_premios_config';
+const HOTELES_CONFIG_KEY = 'tournament_hoteles_config';
 
 // ============= Fetch Functions =============
 
@@ -352,6 +374,11 @@ export const useSiteConfig = () => {
       // Sync premios config
       if (config.premios_config) {
         localStorage.setItem(PREMIOS_CONFIG_KEY, JSON.stringify(config.premios_config));
+      }
+
+      // Sync hoteles config
+      if (config.hoteles_config) {
+        localStorage.setItem(HOTELES_CONFIG_KEY, JSON.stringify(config.hoteles_config));
       }
 
       return config;

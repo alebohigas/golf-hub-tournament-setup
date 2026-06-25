@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
+import { useAutoScrollLoop } from '@/hooks/useAutoScrollLoop';
 
 // ============= Types =============
 
@@ -70,6 +71,7 @@ interface ShowcaseResponse {
  */
 const SHOWCASE_TITLES: Record<string, string> = {
   driver: 'DRIVES',
+  driverp: 'DRIVER PRECISIÓN',
   approach: 'APPROACH',
   putt: 'PUTT',
   oyes: "O'YES",
@@ -99,6 +101,11 @@ const Showcase300 = () => {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // ----- Autoscroll en loop (igual UX que /showcase/calificados) -----
+  // Si el reporte excede la ventana, hace scroll lento hasta el fondo y
+  // vuelve arriba en bucle. Si cabe, simplemente se queda arriba.
+  useAutoScrollLoop({ speedPxPerSec: 30, holdTopMs: 2500, holdBottomMs: 3000 });
+
   // ----- Fetch the matching prize feed -----
   const { data, isLoading, error } = useQuery<ShowcaseResponse>({
     queryKey: ['showcase300', tipo, torneoid],
@@ -125,7 +132,7 @@ const Showcase300 = () => {
   const tournament = data?.tournament;
 
   return (
-    <div className="min-h-screen bg-background text-foreground py-6 px-4 md:px-8">
+    <div className="showcase-tv min-h-screen bg-background text-foreground py-6 px-4 md:px-8">
       {/* Tournament header — name + club + logo */}
       <header className="max-w-6xl mx-auto mb-6 text-center">
         {tournament?.name && (
@@ -165,17 +172,28 @@ const Showcase300 = () => {
           Error al cargar datos: {(error as Error).message}
         </div>
       )}
-      {data && data.prizes.length === 0 && (
+      {/* Filtra premios sin jugadores: en torneos multi-día el backend
+          devuelve un grupo por día (ej. "Approach día 1/2/3"), pero los
+          días futuros aún no tienen ganadores. Sólo mostramos los grupos
+          con al menos un jugador registrado. */}
+      {(() => null)()}
+      {data && data.prizes.filter((p) => p.players.length > 0).length === 0 && (
         <div className="max-w-6xl mx-auto p-6 rounded bg-card text-muted-foreground text-center">
-          No hay premios registrados para este torneo.
+          Aún no hay resultados registrados para este reporte.
         </div>
       )}
 
       {/* Prize sections */}
       <div className="max-w-6xl mx-auto space-y-6">
-        {data?.prizes.map((prize, idx) => (
-          <PrizeSection key={`${prize.description}-${idx}`} prize={prize} showHole={tipo === 'oyes'} />
-        ))}
+        {data?.prizes
+          .filter((prize) => prize.players.length > 0)
+          .map((prize, idx) => (
+            <PrizeSection
+              key={`${prize.description}-${idx}`}
+              prize={prize}
+              showHole={tipo === 'oyes'}
+            />
+          ))}
       </div>
 
       {/* Footer — refresh hint */}
