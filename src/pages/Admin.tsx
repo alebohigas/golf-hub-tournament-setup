@@ -288,6 +288,7 @@ const AdminDashboard = () => {
 
   const handleLogout = () => {
     logoutAdmin();
+    if (staffSession) { staffLogout(); }
     navigate('/');
   };
 
