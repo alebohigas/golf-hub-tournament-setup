@@ -657,6 +657,14 @@ const AdminDashboard = () => {
         <TabsContent value="stats">
           <AdminStats />
         </TabsContent>
+
+        {/* Usuarios Tab — solo admin completo. CRUD de staff temporal con
+            áreas asignadas por checkbox y rango de fechas. */}
+        {!isStaffOnly && (
+          <TabsContent value="usuarios">
+            <AdminStaffUsers />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Info Note */}
