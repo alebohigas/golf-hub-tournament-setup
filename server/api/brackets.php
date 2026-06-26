@@ -33,6 +33,7 @@
  */
 
 require_once 'config.php';
+require_once '_staff_auth.php';
 
 // ============= CORS — permitimos POST =============
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -59,7 +60,9 @@ function read_json_body() {
 function require_admin($body) {
     global $ADMIN_PASSWORD;
     if (!isset($body['password']) || $body['password'] !== $ADMIN_PASSWORD) {
-        json_error('Unauthorized — admin password required', 401);
+        global $conn;
+        $staff = staff_check_area($conn, $body, 'brackets');
+        if (!$staff) json_error('Unauthorized — admin password required', 401);
     }
 }
 

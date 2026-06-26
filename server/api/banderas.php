@@ -24,6 +24,7 @@
  * Tabla: `banderas` (migración 2026_06_21 + 2026_06_22_banderas_fecha).
  */
 require_once 'config.php';
+require_once '_staff_auth.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
@@ -107,8 +108,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     // --- ¿Admin? Si manda password válido puede ver fechas futuras --------
-    $isAdmin = (isset($_GET['admin']) && $_GET['admin'] === '1')
-               && (($_GET['password'] ?? '') === BANDERAS_ADMIN_PWD);
+    $isAdmin = false;
+    if (isset($_GET['admin']) && $_GET['admin'] === '1') {
+        if (($_GET['password'] ?? '') === BANDERAS_ADMIN_PWD) {
+            $isAdmin = true;
+        } else {
+            $staff = staff_check_area($conn, [], 'banderas');
+            if ($staff) $isAdmin = true;
+        }
+    }
 
     // --- Lista de TODAS las fechas con datos para este torneo -------------
     $sqlAllDates = "SELECT DISTINCT DATE_FORMAT(fecha, '%Y-%m-%d') AS f
@@ -191,7 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$body) json_error('Invalid JSON body', 400);
 
     $password = $body['password'] ?? '';
-    if ($password !== BANDERAS_ADMIN_PWD) json_error('Unauthorized', 401);
+    if ($password !== BANDERAS_ADMIN_PWD) {
+        // Permitir staff con área 'banderas'
+        $staff = staff_check_area($conn, $body, 'banderas');
+        if (!$staff) json_error('Unauthorized', 401);
+    }
 
     $torneoid = isset($body['torneoid']) ? (int)$body['torneoid'] : 0;
     if ($torneoid <= 0) json_error('Missing torneoid', 400);

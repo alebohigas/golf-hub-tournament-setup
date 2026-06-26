@@ -29,6 +29,7 @@
  *             filename sanitized to [a-z0-9._-]+.
  */
 require_once 'config.php';
+require_once '_staff_auth.php';
 
 // Allow POST + DELETE for management operations
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -331,7 +332,12 @@ function filename_to_alt($filename) {
 function require_admin($body) {
     $pw = $body['password'] ?? ($_POST['password'] ?? ($_GET['password'] ?? ''));
     if ($pw !== ADMIN_PASSWORD) {
-        json_error('Unauthorized', 401);
+        global $conn;
+        // Mezcla: para el body buscamos token también en $_POST (multipart)
+        $merged = is_array($body) ? $body : [];
+        if (!empty($_POST['staff_token']))     $merged['staff_token'] = $_POST['staff_token'];
+        $staff = staff_check_area($conn, $merged, 'uploads');
+        if (!$staff) json_error('Unauthorized', 401);
     }
 }
 
