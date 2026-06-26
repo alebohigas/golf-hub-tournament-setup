@@ -688,10 +688,11 @@ const AdminDashboard = () => {
  */
 const Admin = () => {
   const { isAdmin, loginAsAdmin } = usePageVisibility();
+  const { session: staffSession } = useStaffAuth();
 
   return (
     <Layout>
-      {isAdmin ? (
+      {(isAdmin || staffSession) ? (
         <AdminDashboard />
       ) : (
         <AdminLoginForm onLogin={loginAsAdmin} />
