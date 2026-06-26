@@ -194,6 +194,37 @@ const AdminDashboard = () => {
     menuItemOrder,
     setMenuItemOrder,
   } = usePageVisibility();
+  const { session: staffSession, logout: staffLogout } = useStaffAuth();
+  /** Mapa tab → área. Si no está en el mapa, sólo admin completo lo ve. */
+  const TAB_AREA: Record<string, StaffArea | undefined> = {
+    archivos: 'uploads',
+    convocatoria: 'convocatoria',
+    eventos: 'eventos',
+    avisos: 'avisos',
+    premios: 'premios',
+    hoteles: 'hoteles',
+    popup: 'pop',
+    banderas: 'banderas',
+    sponsors: undefined,
+    registro: 'preregistros',
+    registros: 'preregistros',
+    brackets: 'brackets',
+    stats: 'stats',
+    usuarios: undefined,
+    config: undefined,
+    pagina: undefined,
+    live: undefined,
+    reglas: 'reglas',
+  };
+  const isStaffOnly = !!staffSession && !localStorage.getItem('tournament_admin_session_full');
+  /** Filtra tabs según permisos del usuario activo. */
+  const visibleAdminTabs = <T extends { value: string }>(tabs: T[]): T[] => {
+    if (!isStaffOnly) return tabs;
+    return tabs.filter(t => {
+      const area = TAB_AREA[t.value];
+      return !!area && staffSession!.areas.includes(area);
+    });
+  };
   const navigate = useNavigate();
   const { torneoId, setTorneoId } = useTorneoId();
   const { data: siteConfig, isLoading: isLoadingSiteConfig } = useSiteConfig();
