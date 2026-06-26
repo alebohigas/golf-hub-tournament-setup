@@ -81,14 +81,28 @@ interface AdminLoginFormProps {
  * Password input form for admin authentication
  */
 const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { login: staffLogin } = useStaffAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = onLogin(password);
-    if (!success) {
+    setError(false); setErrorMsg(null);
+    // Si no hay usuario → intentar admin legacy. Si sí → login staff.
+    if (!usuario.trim()) {
+      const success = onLogin(password);
+      if (!success) { setError(true); setErrorMsg('Contraseña incorrecta'); setPassword(''); }
+      return;
+    }
+    setBusy(true);
+    const r = await staffLogin(usuario.trim(), password);
+    setBusy(false);
+    if (!r.ok) {
       setError(true);
+      setErrorMsg(r.error || 'Credenciales inválidas');
       setPassword('');
     }
   };
@@ -107,6 +121,20 @@ const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="usuario">Usuario (opcional)</Label>
+              <Input
+                id="usuario"
+                type="text"
+                value={usuario}
+                onChange={(e) => { setUsuario(e.target.value); setError(false); }}
+                placeholder="Dejar vacío para admin principal"
+                autoComplete="username"
+              />
+              <p className="text-xs text-muted-foreground">
+                Si tienes acceso temporal de staff, ingresa tu usuario.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
@@ -129,12 +157,12 @@ const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
               {error && (
                 <p className="text-sm text-destructive flex items-center gap-1">
                   <XCircle className="h-4 w-4" />
-                  Contraseña incorrecta
+                  {errorMsg || 'Contraseña incorrecta'}
                 </p>
               )}
             </div>
-            <Button type="submit" className="w-full">
-              Iniciar Sesión
+            <Button type="submit" className="w-full" disabled={busy}>
+              {busy ? 'Validando...' : 'Iniciar Sesión'}
             </Button>
           </form>
         </CardContent>
