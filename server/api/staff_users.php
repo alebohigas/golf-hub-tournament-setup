@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $torneoid = (int)($_GET['torneoid'] ?? 0);
     $where = "tipo = 99";
     if ($torneoid > 0) $where .= " AND torneoid = $torneoid";
-    $rows = query_all($conn, "SELECT id, usuario, nombre, torneoid, desde, hasta, activo, estatus, fec_creado
+    $rows = query_all($conn, "SELECT id, usuario, nombre, torneoid, desde, hasta, activo, estatus
                                 FROM usuarios WHERE $where ORDER BY id DESC");
     foreach ($rows as &$r) {
         $uid = (int)$r['id'];
