@@ -32,6 +32,8 @@ import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminPopup from '@/components/admin/AdminPopup';
 import AdminBanderas from '@/components/admin/AdminBanderas';
+import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
+import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -61,6 +63,7 @@ import {
   MonitorPlay,
   Flag,
   Hotel,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
