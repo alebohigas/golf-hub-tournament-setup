@@ -389,12 +389,15 @@ const AdminDashboard = () => {
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
+            { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
+          // Filtrar por área para staff temporal. Admin completo ve todo.
+          const allowed = visibleAdminTabs(adminTabs);
           // Split: first row = ceil(n/2) so odd counts give the bigger
           // half to the top row, per the design directive.
-          const firstCount = Math.ceil(adminTabs.length / 2);
-          const row1 = adminTabs.slice(0, firstCount);
-          const row2 = adminTabs.slice(firstCount);
+          const firstCount = Math.ceil(allowed.length / 2);
+          const row1 = allowed.slice(0, firstCount);
+          const row2 = allowed.slice(firstCount);
           const renderRow = (rowTabs: typeof adminTabs) => (
             <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
               {rowTabs.map(({ value, icon: Icon, label }) => (
