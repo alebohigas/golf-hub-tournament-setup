@@ -195,6 +195,7 @@ const AdminDashboard = () => {
     setMenuItemOrder,
   } = usePageVisibility();
   const { session: staffSession, logout: staffLogout } = useStaffAuth();
+  const { isAdmin } = usePageVisibility();
   /** Mapa tab → área. Si no está en el mapa, sólo admin completo lo ve. */
   const TAB_AREA: Record<string, StaffArea | undefined> = {
     archivos: 'uploads',
@@ -216,7 +217,7 @@ const AdminDashboard = () => {
     live: undefined,
     reglas: 'reglas',
   };
-  const isStaffOnly = !!staffSession && !localStorage.getItem('tournament_admin_session_full');
+  const isStaffOnly = !!staffSession && !isAdmin;
   /** Filtra tabs según permisos del usuario activo. */
   const visibleAdminTabs = <T extends { value: string }>(tabs: T[]): T[] => {
     if (!isStaffOnly) return tabs;
