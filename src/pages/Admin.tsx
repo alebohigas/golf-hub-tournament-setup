@@ -384,7 +384,10 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tabs for different admin sections */}
-      <Tabs defaultValue="config" className="space-y-6">
+      <Tabs
+        defaultValue={isStaffOnly && staffSession ? (staffSession.areas[0] === 'preregistros' ? 'registros' : staffSession.areas[0]) || 'config' : 'config'}
+        className="space-y-6"
+      >
         {/*
           Admin tab strip — split across two wrapping rows so 13+ tabs no
           longer cram into a single 12-column grid. `flex flex-wrap` lets
