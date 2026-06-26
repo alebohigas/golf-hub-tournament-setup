@@ -1,0 +1,83 @@
+<?php
+/**
+ * staff_login.php — Login para usuarios staff temporales.
+ *
+ * POST JSON { usuario, password }
+ *   → { token, expira, usuario, nombre, areas, torneoid }
+ *
+ * Valida contra `usuarios.pwd_hash`. Si el row no tiene `pwd_hash`
+ * pero sí `pwd` plano que coincide, lo migra a hash automáticamente.
+ * También respeta rango `desde`/`hasta` y `activo=1`.
+ */
+require_once 'config.php';
+require_once '_staff_auth.php';
+
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_error('Method not allowed', 405);
+}
+
+$raw = file_get_contents('php://input');
+$body = json_decode($raw, true);
+if (!is_array($body)) json_error('Invalid body', 400);
+
+$usuario = trim((string)($body['usuario'] ?? ''));
+$password = (string)($body['password'] ?? '');
+if ($usuario === '' || $password === '') json_error('Missing credentials', 400);
+
+$u = esc($conn, $usuario);
+$row = query_one($conn, "SELECT id, usuario, nombre, torneoid, pwd, pwd_hash, activo, estatus, desde, hasta
+                           FROM usuarios WHERE usuario = '$u' LIMIT 1");
+if (!$row) json_error('Credenciales inválidas', 401);
+
+// Validación de password
+$ok = false;
+if (!empty($row['pwd_hash']) && password_verify($password, $row['pwd_hash'])) {
+    $ok = true;
+} elseif (!empty($row['pwd']) && hash_equals((string)$row['pwd'], $password)) {
+    // Migrar a hash
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $h = esc($conn, $hash);
+    $id = (int)$row['id'];
+    $conn->query("UPDATE usuarios SET pwd_hash='$h' WHERE id=$id");
+    $ok = true;
+}
+if (!$ok) json_error('Credenciales inválidas', 401);
+
+// Verificar estatus + rango fechas
+if ((int)$row['activo'] !== 1) json_error('Usuario inactivo', 403);
+if (strtolower((string)$row['estatus']) === 'inactivo') json_error('Usuario inactivo', 403);
+$today = (new DateTime('today'))->format('Y-m-d');
+if ($row['desde'] && $today < $row['desde']) json_error('Acceso aún no inicia (' . $row['desde'] . ')', 403);
+if ($row['hasta'] && $today > $row['hasta']) json_error('Acceso expirado (' . $row['hasta'] . ')', 403);
+
+// Generar token
+$token = bin2hex(random_bytes(32));
+$uid = (int)$row['id'];
+// La sesión expira con `hasta` (fin de día) o en 12h si no hay hasta
+if ($row['hasta']) {
+    $expira = $row['hasta'] . ' 23:59:59';
+} else {
+    $expira = (new DateTime('+12 hours'))->format('Y-m-d H:i:s');
+}
+$te = esc($conn, $token);
+$ee = esc($conn, $expira);
+$conn->query("INSERT INTO usuario_sesion (usuario_id, token, expira) VALUES ($uid, '$te', '$ee')");
+
+// Housekeeping: borrar sesiones expiradas
+$conn->query("DELETE FROM usuario_sesion WHERE expira < NOW()");
+
+// Áreas
+$areas = [];
+$ra = $conn->query("SELECT area FROM usuario_areas WHERE usuario_id = $uid");
+if ($ra) { while ($a = $ra->fetch_assoc()) $areas[] = $a['area']; $ra->free(); }
+
+json_response([
+    'token'   => $token,
+    'expira'  => $expira,
+    'usuario' => $row['usuario'],
+    'nombre'  => $row['nombre'],
+    'torneoid'=> (int)$row['torneoid'],
+    'areas'   => $areas,
+]);

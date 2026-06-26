@@ -32,6 +32,8 @@ import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminPopup from '@/components/admin/AdminPopup';
 import AdminBanderas from '@/components/admin/AdminBanderas';
+import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
+import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
   Shield, 
@@ -61,6 +63,7 @@ import {
   MonitorPlay,
   Flag,
   Hotel,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -78,14 +81,28 @@ interface AdminLoginFormProps {
  * Password input form for admin authentication
  */
 const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { login: staffLogin } = useStaffAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = onLogin(password);
-    if (!success) {
+    setError(false); setErrorMsg(null);
+    // Si no hay usuario → intentar admin legacy. Si sí → login staff.
+    if (!usuario.trim()) {
+      const success = onLogin(password);
+      if (!success) { setError(true); setErrorMsg('Contraseña incorrecta'); setPassword(''); }
+      return;
+    }
+    setBusy(true);
+    const r = await staffLogin(usuario.trim(), password);
+    setBusy(false);
+    if (!r.ok) {
       setError(true);
+      setErrorMsg(r.error || 'Credenciales inválidas');
       setPassword('');
     }
   };
@@ -104,6 +121,20 @@ const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="usuario">Usuario (opcional)</Label>
+              <Input
+                id="usuario"
+                type="text"
+                value={usuario}
+                onChange={(e) => { setUsuario(e.target.value); setError(false); }}
+                placeholder="Dejar vacío para admin principal"
+                autoComplete="username"
+              />
+              <p className="text-xs text-muted-foreground">
+                Si tienes acceso temporal de staff, ingresa tu usuario.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
@@ -126,12 +157,12 @@ const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
               {error && (
                 <p className="text-sm text-destructive flex items-center gap-1">
                   <XCircle className="h-4 w-4" />
-                  Contraseña incorrecta
+                  {errorMsg || 'Contraseña incorrecta'}
                 </p>
               )}
             </div>
-            <Button type="submit" className="w-full">
-              Iniciar Sesión
+            <Button type="submit" className="w-full" disabled={busy}>
+              {busy ? 'Validando...' : 'Iniciar Sesión'}
             </Button>
           </form>
         </CardContent>
@@ -163,6 +194,56 @@ const AdminDashboard = () => {
     menuItemOrder,
     setMenuItemOrder,
   } = usePageVisibility();
+  const { session: staffSession, logout: staffLogout } = useStaffAuth();
+  const { isAdmin } = usePageVisibility();
+  /** Mapa tab → área. Si no está en el mapa, sólo admin completo lo ve. */
+  const TAB_AREA: Record<string, StaffArea | undefined> = {
+    archivos: 'uploads',
+    convocatoria: 'convocatoria',
+    eventos: 'eventos',
+    avisos: 'avisos',
+    premios: 'premios',
+    hoteles: 'hoteles',
+    popup: 'pop',
+    banderas: 'banderas',
+    sponsors: undefined,
+    registro: 'preregistros',
+    registros: 'preregistros',
+    brackets: 'brackets',
+    stats: 'stats',
+    usuarios: undefined,
+    config: undefined,
+    pagina: undefined,
+    live: undefined,
+    reglas: 'reglas',
+  };
+  const isStaffOnly = !!staffSession && !isAdmin;
+  /** Áreas de staff → tab values del panel principal. */
+  const AREA_TO_TAB: Record<StaffArea, string> = {
+    preregistros: 'registros',
+    brackets: 'brackets',
+    banderas: 'banderas',
+    pop: 'popup',
+    eventos: 'eventos',
+    avisos: 'avisos',
+    premios: 'premios',
+    hoteles: 'hoteles',
+    convocatoria: 'convocatoria',
+    reglas: 'convocatoria',
+    uploads: 'archivos',
+    stats: 'stats',
+  };
+  const staffDefaultTab = isStaffOnly && staffSession && staffSession.areas.length
+    ? (AREA_TO_TAB[staffSession.areas[0]] || 'config')
+    : 'config';
+  /** Filtra tabs según permisos del usuario activo. */
+  const visibleAdminTabs = <T extends { value: string }>(tabs: T[]): T[] => {
+    if (!isStaffOnly) return tabs;
+    return tabs.filter(t => {
+      const area = TAB_AREA[t.value];
+      return !!area && staffSession!.areas.includes(area);
+    });
+  };
   const navigate = useNavigate();
   const { torneoId, setTorneoId } = useTorneoId();
   const { data: siteConfig, isLoading: isLoadingSiteConfig } = useSiteConfig();
@@ -225,6 +306,7 @@ const AdminDashboard = () => {
 
   const handleLogout = () => {
     logoutAdmin();
+    if (staffSession) { staffLogout(); }
     navigate('/');
   };
 
@@ -320,7 +402,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tabs for different admin sections */}
-      <Tabs defaultValue="config" className="space-y-6">
+      <Tabs defaultValue={staffDefaultTab} className="space-y-6">
         {/*
           Admin tab strip — split across two wrapping rows so 13+ tabs no
           longer cram into a single 12-column grid. `flex flex-wrap` lets
@@ -358,12 +440,15 @@ const AdminDashboard = () => {
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
+            { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
+          // Filtrar por área para staff temporal. Admin completo ve todo.
+          const allowed = visibleAdminTabs(adminTabs);
           // Split: first row = ceil(n/2) so odd counts give the bigger
           // half to the top row, per the design directive.
-          const firstCount = Math.ceil(adminTabs.length / 2);
-          const row1 = adminTabs.slice(0, firstCount);
-          const row2 = adminTabs.slice(firstCount);
+          const firstCount = Math.ceil(allowed.length / 2);
+          const row1 = allowed.slice(0, firstCount);
+          const row2 = allowed.slice(firstCount);
           const renderRow = (rowTabs: typeof adminTabs) => (
             <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
               {rowTabs.map(({ value, icon: Icon, label }) => (
@@ -591,6 +676,14 @@ const AdminDashboard = () => {
         <TabsContent value="stats">
           <AdminStats />
         </TabsContent>
+
+        {/* Usuarios Tab — solo admin completo. CRUD de staff temporal con
+            áreas asignadas por checkbox y rango de fechas. */}
+        {!isStaffOnly && (
+          <TabsContent value="usuarios">
+            <AdminStaffUsers />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Info Note */}
@@ -613,10 +706,11 @@ const AdminDashboard = () => {
  */
 const Admin = () => {
   const { isAdmin, loginAsAdmin } = usePageVisibility();
+  const { session: staffSession } = useStaffAuth();
 
   return (
     <Layout>
-      {isAdmin ? (
+      {(isAdmin || staffSession) ? (
         <AdminDashboard />
       ) : (
         <AdminLoginForm onLogin={loginAsAdmin} />
