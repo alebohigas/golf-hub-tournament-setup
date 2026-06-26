@@ -218,6 +218,24 @@ const AdminDashboard = () => {
     reglas: 'reglas',
   };
   const isStaffOnly = !!staffSession && !isAdmin;
+  /** Áreas de staff → tab values del panel principal. */
+  const AREA_TO_TAB: Record<StaffArea, string> = {
+    preregistros: 'registros',
+    brackets: 'brackets',
+    banderas: 'banderas',
+    pop: 'popup',
+    eventos: 'eventos',
+    avisos: 'avisos',
+    premios: 'premios',
+    hoteles: 'hoteles',
+    convocatoria: 'convocatoria',
+    reglas: 'convocatoria',
+    uploads: 'archivos',
+    stats: 'stats',
+  };
+  const staffDefaultTab = isStaffOnly && staffSession && staffSession.areas.length
+    ? (AREA_TO_TAB[staffSession.areas[0]] || 'config')
+    : 'config';
   /** Filtra tabs según permisos del usuario activo. */
   const visibleAdminTabs = <T extends { value: string }>(tabs: T[]): T[] => {
     if (!isStaffOnly) return tabs;
@@ -384,10 +402,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tabs for different admin sections */}
-      <Tabs
-        defaultValue={isStaffOnly && staffSession ? (staffSession.areas[0] === 'preregistros' ? 'registros' : staffSession.areas[0]) || 'config' : 'config'}
-        className="space-y-6"
-      >
+      <Tabs defaultValue={staffDefaultTab} className="space-y-6">
         {/*
           Admin tab strip — split across two wrapping rows so 13+ tabs no
           longer cram into a single 12-column grid. `flex flex-wrap` lets
