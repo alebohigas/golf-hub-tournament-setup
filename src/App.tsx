@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PageVisibilityProvider, usePageVisibility } from "@/contexts/PageVisibilityContext";
+import { StaffAuthProvider } from "@/contexts/StaffAuthContext";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import { useAppIcon } from "@/hooks/useAppIcon";
 import { applyThemeConfig } from "@/lib/theme-palettes";
@@ -96,7 +97,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <PageVisibilityProvider>
-        <SiteConfigSync>
+        <StaffAuthProvider>
+          <SiteConfigSync>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -139,8 +141,9 @@ const App = () => (
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </SiteConfigSync>
+            </BrowserRouter>
+          </SiteConfigSync>
+        </StaffAuthProvider>
       </PageVisibilityProvider>
     </TooltipProvider>
   </QueryClientProvider>
