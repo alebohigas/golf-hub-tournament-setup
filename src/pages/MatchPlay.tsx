@@ -35,6 +35,7 @@ const MatchPlay = () => {
         title="Match Play"
         subtitle="Brackets de eliminación directa por categoría"
         backgroundImage={matchplayHero}
+        backgroundPosition="center 20%"
       />
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
