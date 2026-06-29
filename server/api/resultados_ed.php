@@ -15,8 +15,12 @@ $torneoid = require_param('torneoid');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
+// Detecta `tipoed` (columna opcional en esquemas legacy).
+$tipoedExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'tipoed'");
+$tipoedSel = ($tipoedExists && $tipoedExists->num_rows > 0) ? 'tipoed' : "NULL AS tipoed";
+
 // Category info — incluye formato y sistema para que el front decida layout.
-$sql = "SELECT categoria_id, categoria, abreviatura, sistema, formato, tipoed, sexo
+$sql = "SELECT categoria_id, categoria, abreviatura, sistema, formato, $tipoedSel, sexo
         FROM categorias WHERE categoria_id = $cid";
 $catInfo = query_one($conn, $sql);
 if (!$catInfo) { json_error('Category not found', 404); }
