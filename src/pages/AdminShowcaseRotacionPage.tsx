@@ -16,7 +16,7 @@
  *        todos los slides de un mismo reporte 300.
  *      • Customizado — abre con exactamente la selección actual.
  *
- * Auth: contraseña `admin2025`, persistida en sessionStorage. Mismo
+ * Auth: contraseña de superadmin, persistida en sessionStorage. Mismo
  * patrón que /admin/brackets para acceso rápido sin entrar al panel.
  */
 
@@ -37,20 +37,18 @@ import {
   type ShowcaseConfig,
   type ShowcaseSlideMeta,
 } from '@/lib/showcaseSlides';
+import { validateSuperAdminPassword } from '@/lib/superAdminAuth';
 
 /** Sesión admin de la página. */
 const SESSION_KEY = 'showcase_rotacion_session';
-/** Contraseña local — reutiliza la global del panel. */
-const ADMIN_PASSWORD = 'admin2025';
-
 // ============= Login form =============
 
-const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => boolean }) => {
+const LoginForm = ({ onLogin }: { onLogin: (pwd: string) => Promise<boolean> }) => {
   const [pwd, setPwd] = useState('');
   const [err, setErr] = useState(false);
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!onLogin(pwd)) { setErr(true); setPwd(''); }
+    if (!(await onLogin(pwd))) { setErr(true); setPwd(''); }
   };
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -383,8 +381,8 @@ const AdminShowcaseRotacionPage = () => {
   const [authed, setAuthed] = useState<boolean>(
     () => sessionStorage.getItem(SESSION_KEY) === '1',
   );
-  const onLogin = (pwd: string) => {
-    if (pwd === ADMIN_PASSWORD) {
+  const onLogin = async (pwd: string) => {
+    if (await validateSuperAdminPassword(pwd)) {
       sessionStorage.setItem(SESSION_KEY, '1');
       setAuthed(true);
       return true;

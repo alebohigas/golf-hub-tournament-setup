@@ -330,9 +330,9 @@ function filename_to_alt($filename) {
  * Aborts with 401 on mismatch.
  */
 function require_admin($body) {
+    global $conn;
     $pw = $body['password'] ?? ($_POST['password'] ?? ($_GET['password'] ?? ''));
-    if ($pw !== ADMIN_PASSWORD) {
-        global $conn;
+    if (!is_superadmin_password($conn, $pw)) {
         // Mezcla: para el body buscamos token también en $_POST (multipart)
         $merged = is_array($body) ? $body : [];
         if (!empty($_POST['staff_token']))     $merged['staff_token'] = $_POST['staff_token'];

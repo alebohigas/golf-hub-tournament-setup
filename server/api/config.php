@@ -25,14 +25,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ============= Database Configuration =============
-// Credentials loaded from separate file (not tracked in git)
+// Credentials are loaded from /api/credentials.php (gitignored in production).
+// As a production-safe fallback, the same values can be supplied by environment
+// variables; this avoids ever reading credentials.example.php at runtime.
 $credentialsFile = __DIR__ . '/credentials.php';
-if (!file_exists($credentialsFile)) {
+if (file_exists($credentialsFile)) {
+    require_once $credentialsFile;
+} else {
+    $DB_HOST = getenv('DB_HOST') ?: null;
+    $DB_USER = getenv('DB_USER') ?: null;
+    $DB_PASS = getenv('DB_PASS') ?: null;
+    $DB_NAME = getenv('DB_NAME') ?: null;
+    $DB_PORT = (int)(getenv('DB_PORT') ?: 3306);
+}
+
+if (empty($DB_HOST) || empty($DB_USER) || empty($DB_NAME)) {
     http_response_code(500);
-    echo json_encode(['error' => 'Missing credentials.php - copy credentials.example.php and fill in your values']);
+    echo json_encode(['error' => 'Missing /api/credentials.php on this production domain']);
     exit;
 }
-require_once $credentialsFile;
 
 // ============= Logos Base URL =============
 // Proxied through logo.php to avoid cross-origin/ad-blocker issues
@@ -208,4 +219,68 @@ function query_one($conn, $sql) {
  */
 function esc($conn, $value) {
     return $conn->real_escape_string($value);
+}
+
+// ============= Superadmin Password Helpers =============
+
+/** Legacy fallback password used only until a custom hash is configured. */
+const SUPERADMIN_DEFAULT_PASSWORD = 'admin2025';
+
+/** Check whether the optional admin_settings table exists. */
+function admin_settings_table_exists($conn) {
+    static $exists = null;
+    if ($exists !== null) return $exists;
+    $r = $conn->query("SHOW TABLES LIKE 'admin_settings'");
+    $exists = $r && $r->num_rows > 0;
+    if ($r) $r->free();
+    return $exists;
+}
+
+/** Return the DB-stored superadmin password hash, if configured. */
+function superadmin_password_hash_from_db($conn) {
+    static $hash = false;
+    if ($hash !== false) return $hash;
+    $hash = null;
+    if (!admin_settings_table_exists($conn)) return null;
+    $r = $conn->query("SELECT setting_value FROM admin_settings WHERE setting_key = 'superadmin_password_hash' LIMIT 1");
+    if ($r && $r->num_rows > 0) {
+        $row = $r->fetch_assoc();
+        $hash = $row['setting_value'] ?? null;
+    }
+    if ($r) $r->free();
+    return $hash;
+}
+
+/**
+ * Validate the password for the username-less superadmin.
+ * This is intentionally separate from `usuarios` / staff temporal.
+ */
+function is_superadmin_password($conn, $password) {
+    global $SUPERADMIN_PASSWORD, $SUPERADMIN_PASSWORD_HASH;
+    $password = (string)$password;
+    if ($password === '') return false;
+
+    $dbHash = superadmin_password_hash_from_db($conn);
+    if ($dbHash && password_verify($password, $dbHash)) return true;
+
+    // Recovery/override values can live in gitignored credentials.php.
+    if (!empty($SUPERADMIN_PASSWORD_HASH) && password_verify($password, $SUPERADMIN_PASSWORD_HASH)) return true;
+    if (!empty($SUPERADMIN_PASSWORD) && hash_equals((string)$SUPERADMIN_PASSWORD, $password)) return true;
+
+    // Backwards compatibility: admin2025 remains valid only until a DB hash or
+    // credentials override has been configured.
+    if (!$dbHash && empty($SUPERADMIN_PASSWORD_HASH) && empty($SUPERADMIN_PASSWORD)) {
+        return hash_equals(SUPERADMIN_DEFAULT_PASSWORD, $password);
+    }
+    return false;
+}
+
+/** Create the admin_settings table when the superadmin changes password. */
+function ensure_admin_settings_table($conn) {
+    $sql = "CREATE TABLE IF NOT EXISTS admin_settings (
+              setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
+              setting_value TEXT NOT NULL,
+              updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    if (!$conn->query($sql)) json_error('Failed to initialize admin settings: ' . $conn->error, 500);
 }

@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // --- ¿Admin? Si manda password válido puede ver fechas futuras --------
     $isAdmin = false;
     if (isset($_GET['admin']) && $_GET['admin'] === '1') {
-        if (($_GET['password'] ?? '') === BANDERAS_ADMIN_PWD) {
+        if (is_superadmin_password($conn, $_GET['password'] ?? '')) {
             $isAdmin = true;
         } else {
             $staff = staff_check_area($conn, [], 'banderas');
@@ -199,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$body) json_error('Invalid JSON body', 400);
 
     $password = $body['password'] ?? '';
-    if ($password !== BANDERAS_ADMIN_PWD) {
+    if (!is_superadmin_password($conn, $password)) {
         // Permitir staff con área 'banderas'
         $staff = staff_check_area($conn, $body, 'banderas');
         if (!$staff) json_error('Unauthorized', 401);

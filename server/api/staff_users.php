@@ -21,12 +21,13 @@ header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 const ADMIN_PWD = 'admin2025';
 
 function require_admin_pwd($body) {
+    global $conn;
     $pwd = $body['password'] ?? $_GET['password'] ?? '';
     if (!$pwd) {
         $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
         if (preg_match('/Bearer\s+(.+)/i', $hdr, $m)) $pwd = trim($m[1]);
     }
-    if ($pwd !== ADMIN_PWD) json_error('Unauthorized', 401);
+    if (!is_superadmin_password($conn, $pwd)) json_error('Unauthorized', 401);
 }
 
 /** Áreas válidas (whitelist sincronizada con el frontend). */

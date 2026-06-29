@@ -9,6 +9,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { menuConfig, MenuItem } from '@/data/mockData';
 import { LayoutMode, ColumnCount } from '@/components/admin/AdminLayoutSettings';
 import { MenuGroup } from '@/components/admin/AdminMenuGroups';
+import { clearSuperAdminPassword, validateSuperAdminPassword } from '@/lib/superAdminAuth';
 
 // ============= Types =============
 
@@ -49,7 +50,7 @@ interface PageVisibilityContextType {
   /** Check if user is admin */
   isAdmin: boolean;
   /** Login as admin */
-  loginAsAdmin: (password: string) => boolean;
+  loginAsAdmin: (password: string) => Promise<boolean>;
   /** Logout admin */
   logoutAdmin: () => void;
   /** Get all menu items (for admin view) */
@@ -100,9 +101,6 @@ const LAYOUT_PREFS_STORAGE_KEY = 'tournament_admin_layout_prefs';
 
 /** LocalStorage key for custom menu item order */
 const MENU_ORDER_STORAGE_KEY = 'tournament_menu_item_order';
-
-/** Admin password - in production, this should be more secure */
-const ADMIN_PASSWORD = 'admin2025';
 
 // ============= Context =============
 
@@ -263,8 +261,8 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
   /**
    * Login as admin with password
    */
-  const loginAsAdmin = (password: string): boolean => {
-    if (password === ADMIN_PASSWORD) {
+  const loginAsAdmin = async (password: string): Promise<boolean> => {
+    if (await validateSuperAdminPassword(password)) {
       setIsAdmin(true);
       return true;
     }
@@ -276,6 +274,7 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
    */
   const logoutAdmin = () => {
     setIsAdmin(false);
+    clearSuperAdminPassword();
   };
 
   /**
@@ -381,7 +380,7 @@ const defaultContextValue: PageVisibilityContextType = {
   setPageVisibility: () => {},
   isPageVisible: () => true,
   isAdmin: false,
-  loginAsAdmin: () => false,
+  loginAsAdmin: async () => false,
   logoutAdmin: () => {},
   getAllMenuItems: () => [],
   getVisibleMenuItems: () => [],
