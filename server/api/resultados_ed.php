@@ -2,7 +2,10 @@
 /**
  * Eliminación Directa (Match Play Brackets) Endpoint
  * GET /api/resultados_ed.php?catid=XXX&torneoid=XXX
- * Returns bracket matches for 16-player single elimination
+ *
+ * Devuelve TODOS los matches de la categoría (Winners D1 = matchid 1xx,
+ * Losers/Consolación D2 = matchid 2xx), agrupados. Detecta automáticamente
+ * categorías de parejas y lee de `v_equipo_ed_par` cuando aplica.
  */
 require_once 'config.php';
 
@@ -12,24 +15,30 @@ $torneoid = require_param('torneoid');
 $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
-// Category info
-$sql = "SELECT categoria_id, categoria, abreviatura
+// Category info — incluye formato y sistema para que el front decida layout.
+$sql = "SELECT categoria_id, categoria, abreviatura, sistema, formato, tipoed, sexo
         FROM categorias WHERE categoria_id = $cid";
 $catInfo = query_one($conn, $sql);
 if (!$catInfo) { json_error('Category not found', 404); }
 
-// Bracket matches (IDs 101-115 for 16-player bracket)
-$sql = "SELECT matchid, jugadorid1, jugador1, jugadorid2, jugador2,
-               gano, hoyo, resultado, ronda, posicion,
-               logo1, logo2, club1, club2
-        FROM v_equipo_ed
-        WHERE categoriaid = $cid AND torneoid = $tid
-        ORDER BY matchid ASC";
+$isParejas = (strtoupper((string)($catInfo['formato'] ?? '')) === 'PAREJAS');
 
-$result = $conn->query($sql);
-
-// If v_equipo_ed doesn't exist, try alternative
-if (!$result) {
+/**
+ * Intenta una vista (`v_equipo_ed` o `v_equipo_ed_par`) y si falla cae a
+ * un JOIN manual sobre `eliminacion_directa`. Devuelve siempre el mismo
+ * shape para que el mapeo posterior no se ramifique.
+ */
+function load_bracket_matches($conn, $cid, $tid, $isParejas) {
+    $view = $isParejas ? 'v_equipo_ed_par' : 'v_equipo_ed';
+    $sql = "SELECT matchid, jugadorid1, jugador1, jugadorid2, jugador2,
+                   gano, hoyo, resultado, ronda, posicion,
+                   logo1, logo2, club1, club2
+            FROM $view
+            WHERE categoriaid = $cid AND torneoid = $tid
+            ORDER BY matchid ASC";
+    $r = $conn->query($sql);
+    if ($r) return $r;
+    // Fallback: query directa.
     $sql = "SELECT e.id as matchid,
                    e.jugadorid1, CONCAT(j1.nombre, ' ', j1.apellido) as jugador1,
                    e.jugadorid2, CONCAT(j2.nombre, ' ', j2.apellido) as jugador2,
@@ -43,14 +52,19 @@ if (!$result) {
             LEFT JOIN clubs c2 ON (j2.clubid = c2.id)
             WHERE e.categoriaid = $cid AND e.torneoid = $tid
             ORDER BY e.id ASC";
-    $result = $conn->query($sql);
-    if (!$result) { json_error('Query failed: ' . $conn->error); }
+    return $conn->query($sql);
 }
 
-$matches = [];
+$result = load_bracket_matches($conn, $cid, $tid, $isParejas);
+if (!$result) { json_error('Query failed: ' . $conn->error); }
+
+/** D1 = matchid 1xx (Winners), D2 = matchid 2xx (Consolación/Losers). */
+$d1 = [];
+$d2 = [];
 while ($row = $result->fetch_assoc()) {
-    $matches[] = [
-        'matchId'    => (int)$row['matchid'],
+    $mid = (int)$row['matchid'];
+    $entry = [
+        'matchId'    => $mid,
         'player1'    => [
             'id'       => $row['jugadorid1'],
             'name'     => $row['jugador1'],
@@ -69,6 +83,8 @@ while ($row = $result->fetch_assoc()) {
         'round'      => (int)($row['ronda'] ?? 0),
         'position'   => (int)($row['posicion'] ?? 0)
     ];
+    if ($mid >= 200) $d2[] = $entry;
+    else             $d1[] = $entry;
 }
 $result->free();
 
@@ -76,6 +92,12 @@ json_response([
     'categoryId'   => $catInfo['categoria_id'],
     'categoryName' => $catInfo['categoria'],
     'shortName'    => $catInfo['abreviatura'],
-    'format'       => 16,
-    'matches'      => $matches
+    'system'       => $catInfo['sistema'],
+    'format'       => $catInfo['formato'],
+    'tipoed'       => $catInfo['tipoed'],
+    'isParejas'    => $isParejas,
+    // Back-compat: `matches` mantiene todos (legacy consumers).
+    'matches'      => array_merge($d1, $d2),
+    'd1'           => $d1,
+    'd2'           => $d2,
 ]);
