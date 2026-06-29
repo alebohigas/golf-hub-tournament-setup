@@ -4,7 +4,7 @@
  * Protected by password authentication
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import Layout from '@/components/layout/Layout';
@@ -250,13 +250,6 @@ const AdminDashboard = () => {
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
   const [torneoInput, setTorneoInput] = useState(torneoId);
-
-  /** Keep the editable input aligned with the domain-scoped DB value. */
-  useEffect(() => {
-    if (siteConfig?.torneoid) {
-      setTorneoInput(String(siteConfig.torneoid));
-    }
-  }, [siteConfig?.torneoid]);
   
   const menuItems = getAllMenuItems();
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
@@ -525,36 +518,22 @@ const AdminDashboard = () => {
                     />
                     <Button 
                       onClick={() => {
-                        const parsedTorneoId = Number.parseInt(torneoInput, 10);
-
-                        if (!Number.isFinite(parsedTorneoId) || parsedTorneoId <= 0) {
-                          toast({
-                            title: 'Torneo ID inválido',
-                            description: 'Escribe un número de torneo válido antes de guardar.',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-
-                        // Persist server-side first so the torneoid aplica
-                        // para TODOS los visitantes del dominio. Sólo si el
-                        // servidor confirma el guardado actualizamos la copia
-                        // local — así no quedamos en un estado fantasma donde
-                        // sólo este navegador ve el cambio.
+                        // Save locally
+                        setTorneoId(torneoInput);
+                        // Save to server for all visitors
                         saveSiteConfig.mutate(
-                          { torneoid: parsedTorneoId, password: 'admin2025' },
+                          { torneoid: parseInt(torneoInput), password: 'admin2025' },
                           {
                             onSuccess: () => {
-                              setTorneoId(String(parsedTorneoId));
                               toast({
                                 title: 'Configuración guardada',
-                                description: `Torneo ${parsedTorneoId} configurado para todos los visitantes de este dominio.`,
+                                description: `Torneo ${torneoInput} configurado para todos los visitantes de este dominio.`,
                               });
                             },
                             onError: (err) => {
                               toast({
                                 title: 'Error al guardar en servidor',
-                                description: String(err?.message || 'No se pudo guardar el torneo global.'),
+                                description: err.message + '. Se guardó solo localmente.',
                                 variant: 'destructive',
                               });
                             },
