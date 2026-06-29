@@ -27,6 +27,7 @@ import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
+import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
@@ -64,6 +65,7 @@ import {
   Flag,
   Hotel,
   Users,
+  Swords,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -213,6 +215,7 @@ const AdminDashboard = () => {
     registro: 'preregistros',
     registros: 'preregistros',
     brackets: 'brackets',
+    matchplay: 'brackets',
     stats: 'stats',
     usuarios: undefined,
     config: undefined,
@@ -442,6 +445,7 @@ const AdminDashboard = () => {
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
+            { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
@@ -673,6 +677,13 @@ const AdminDashboard = () => {
             desde /admin. Ayudantes usan /admin/brackets (mode="scores"). */}
         <TabsContent value="brackets">
           <AdminBrackets mode="full" />
+        </TabsContent>
+
+        {/* Match Play Tab — captura ganadores y reseteo de matches en
+            las categorías con sistema='MATCH PLAY'. Reusa el área
+            staff `brackets` para permisos. */}
+        <TabsContent value="matchplay">
+          <AdminMatchPlay />
         </TabsContent>
 
         {/* Estadísticas Tab — override or auto-compute the home stats ribbon
