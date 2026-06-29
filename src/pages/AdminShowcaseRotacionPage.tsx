@@ -381,8 +381,8 @@ const AdminShowcaseRotacionPage = () => {
   const [authed, setAuthed] = useState<boolean>(
     () => sessionStorage.getItem(SESSION_KEY) === '1',
   );
-  const onLogin = (pwd: string) => {
-    if (pwd === ADMIN_PASSWORD) {
+  const onLogin = async (pwd: string) => {
+    if (await validateSuperAdminPassword(pwd)) {
       sessionStorage.setItem(SESSION_KEY, '1');
       setAuthed(true);
       return true;
