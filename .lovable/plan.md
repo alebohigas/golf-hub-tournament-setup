@@ -1,94 +1,67 @@
-## Objetivo
-Crear un sistema de **staff temporal** en `/admin` que permita generar cuentas con usuario+contraseña, vigencia por rango de fechas, alcance al torneo activo, y permisos granulares por área (checkboxes). Estas cuentas reemplazan el password compartido `admin2025` para esas áreas específicas, sin tocar el resto del flujo admin existente.
+# Plan: /matchplay (Brackets Match Play por categoría)
 
-## Base de datos
-
-### Tabla `usuarios` (ya existe — la usamos tal cual)
-| Columna | Uso en esta feature |
-|---|---|
-| `usuario` (varchar 15) | Username de login |
-| `pwd` (varchar 100) | Password hash bcrypt (`password_hash` PHP) |
-| `torneoid` (int) | Torneo activo donde se creó la cuenta |
-| `tipo` (int) | Fijo en un valor reservado (ej. `99`) para identificar "staff temporal" y no chocar con `usutipo` legacy |
-| `desde` / `hasta` (date) | Rango de vigencia — login rechazado fuera de él |
-| `estatus` (varchar 10) | `'activo'` / `'inactivo'` (admin puede revocar) |
-| `activo` (int) | 1/0 espejo de estatus |
-| `nombre`, `correo_electronico` | Metadatos visibles en /admin |
-| `ultent` (datetime) | Última entrada — se actualiza en cada login exitoso |
-
-### Tabla nueva `usuario_areas`
-```sql
-CREATE TABLE usuario_areas (
-  usuario_id INT NOT NULL,
-  area VARCHAR(40) NOT NULL,
-  PRIMARY KEY (usuario_id, area),
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-```
-`area` ∈ catálogo fijo: `preregistros`, `brackets`, `banderas`, `pop`, `eventos`, `avisos`, `premios`, `hoteles`, `uploads`, `showcase_rotacion`.
+## Alcance
+Página pública nueva `/matchplay` + sección en `/admin` para capturar ganadores y resetear matches de las categorías con `sistema = 'MATCH PLAY'`. **No** toca `/resultados` ni `/competicion`.
 
 ## Backend (PHP)
 
-1. **`server/api/staff_users.php`** — CRUD admin (protegido con `admin2025` como hoy):
-   - `GET ?torneoid=` → lista cuentas del torneo con sus áreas.
-   - `POST action=create` → crea usuario (hash bcrypt), inserta áreas, valida `desde<=hasta`, username único.
-   - `POST action=update` → edita nombre/correo/fechas/estatus/áreas/(opcional reset password).
-   - `POST action=delete` → soft delete (`activo=0`, `estatus='inactivo'`).
-2. **`server/api/staff_login.php`** — login del staff:
-   - Recibe `{usuario, pwd, torneoid}`.
-   - Valida hash, `activo=1`, `CURDATE() BETWEEN desde AND hasta`, y `torneoid` coincide.
-   - Devuelve token opaco (random 48 chars guardado en cookie httpOnly + tabla `usuario_sesion(id, usuario_id, token, expira)` con TTL = `hasta 23:59:59`).
-   - Endpoint `GET staff_session.php` valida el token y devuelve `{usuario, nombre, areas[], torneoid, hasta}`.
-3. **Endpoints existentes** (`brackets.php`, `banderas.php`, `uploads.php`, `registro_*`, `site_config.php`, `convocatoria_content.php`): agregar helper `assert_admin_or_area($area)` que acepta **o** `password=admin2025` **o** un cookie/token de staff válido cuyo `usuario_areas` incluya el `area` requerida. Mínimo cambio, máxima retrocompatibilidad.
+### 1. `server/api/matchplay_categories.php` (nuevo, GET)
+Devuelve las categorías del torneo que cumplen:
+- `categorias.sistema = 'MATCH PLAY'` y `estatus = 1`
+- Tienen ≥1 jugador en `jugadores` (no BAJA) **o** ≥1 fila en `eliminacion_directa`
+
+Por categoría: `categoria_id`, `categoria`, `abreviatura`, `tipoed`, `formato` (para detectar parejas), `playerCount`, `matchCount`.
+
+### 2. `server/api/resultados_ed.php` (extender)
+Hoy es read-only y devuelve matches D1 (1xx). Cambios:
+- Detectar parejas (`formato = 'PAREJAS'`) y leer de `v_equipo_ed_par` cuando aplique.
+- Devolver TODOS los matches (D1 = 1xx winners y D2 = 2xx losers/consolación) en una sola respuesta agrupada `{ d1: [...], d2: [...] }`.
+- Incluir `tipoed` y `sistema` en la metadata.
+
+### 3. `server/api/matchplay_admin.php` (nuevo, POST)
+Acciones (auth: superadmin password vía interceptor + `_staff_auth.php` área `brackets`):
+- `set_winner`: body `{ matchid, ganador, hoyo?, resultado? }` → `UPDATE eliminacion_directa SET gano=?, hoyo=?, resultado=? WHERE id=?` filtrado por `torneoid + categoriaid`.
+- `reset_match`: `{ matchid }` → setea `gano=NULL, hoyo=NULL, resultado=NULL`.
+- **Nota**: la propagación a la siguiente ronda y el envío del perdedor a D2 ya la maneja la lógica legacy externa que el usuario mencionó; este endpoint solo escribe `gano` del match. (Si después se necesita propagación interna, se agrega como fase 2.)
 
 ## Frontend
 
-### Nuevo en `/admin`
-- Pestaña **"Usuarios"** (`AdminStaffUsers.tsx`) con:
-  - Tabla de cuentas del torneo activo: usuario, nombre, vigencia, áreas (chips), estatus, última entrada.
-  - Botón **Crear usuario** → dialog con: usuario, contraseña (autogen + copy), nombre, correo, `desde`/`hasta` (DatePicker), checkboxes de áreas.
-  - Acciones por fila: editar, resetear password, activar/desactivar, eliminar.
+### 4. `src/hooks/useMatchPlay.ts` (nuevo)
+- `useMatchPlayCategories()` → GET `matchplay_categories.php`
+- `useMatchPlayBracket(catid)` → GET `resultados_ed.php?catid=...` con polling 30s
+- `useSetMatchWinner()` / `useResetMatch()` → POST `matchplay_admin.php` con superadmin password
 
-### Login staff
-- Página pública `/staff/login` con form (usuario + pwd). Al pasar, guarda token en cookie httpOnly + `localStorage` mínimo (areas/hasta) para gating de UI.
-- Nuevo contexto `StaffAuthContext` con `isStaff`, `staffAreas[]`, `canAccess(area)`.
-- Nuevo wrapper `StaffRoute` que permite paso a una ruta admin **si** `isAdmin` (legacy admin2025) **o** `canAccess(area)`.
+### 5. `src/pages/MatchPlay.tsx` (nuevo, ruta `/matchplay`)
+- `PageHero` con título "Match Play" + subtítulo + imagen hero generada (`src/assets/matchplay-hero.jpg`).
+- Si no hay categorías MATCH PLAY → mensaje "Esta vista no está disponible para este torneo".
+- Vista 1 (sin selección): grid de cards de categorías (mismo estilo que `/resultados`), muestra solo categorías con jugadores.
+- Vista 2 (categoría seleccionada): bracket completo con botón **"Volver a categorías"** estilo `bg-primary/10`.
+  - Layout reutilizable: render simple en columnas por ronda (cuartos / semis / final) basado en `matchid` (1xx).
+  - Si la categoría tiene matches 2xx → tabs **Ganadores (D1) / Consolación (D2)**.
+  - Cards de match: muestran nombre, club logo, seed; resalta ganador (verde) y muestra `hoyo`/`resultado` (ej. "3&2").
 
-### Rutas envueltas con `StaffRoute`
-| Ruta | area |
-|---|---|
-| `/admin/registros` | `preregistros` |
-| `/admin/brackets` | `brackets` |
-| `/admin/showcase-rotacion` | `showcase_rotacion` |
-| `/admin` (vista filtrada — solo verán los tabs cuyas áreas tengan permiso) | varios |
+### 6. `src/components/admin/AdminMatchPlay.tsx` (nuevo)
+- Mismo flujo categoría → bracket que la pública.
+- En cada match con ambos jugadores presentes:
+  - Botones "Ganó J1" / "Ganó J2" (dropdown opcional para `hoyo` y `resultado`).
+  - Botón "Resetear" si ya hay ganador.
+- Confirmación toast por acción; refetch automático.
 
-Dentro de `/admin`, si el usuario es **staff y no admin global**, ocultamos pestañas a las que no tiene acceso y bloqueamos las demás vistas. Si es admin global (`admin2025`), todo sigue funcionando igual.
+### 7. Wiring
+- `src/App.tsx`: agregar ruta `<Route path="/matchplay" element={<ProtectedRoute pageId="matchplay"><MatchPlay /></ProtectedRoute>} />`.
+- `src/pages/Admin.tsx`: nueva tab `matchplay` (icono `Swords`), área staff `brackets` (reusa permiso), render `<AdminMatchPlay />`.
+- Registrar `matchplay` en `PageVisibilityContext` / menú (visible por default si torneo tiene MP).
+- Hero image: generar `src/assets/matchplay-hero.jpg` (golf + bracket / cara a cara).
 
-## Seguridad
-- Password se guarda con `password_hash($pwd, PASSWORD_BCRYPT)`; login valida con `password_verify`.
-- Token de sesión 48 chars aleatorio (`random_bytes(32) → hex`), cookie `HttpOnly; Secure; SameSite=Lax`, expira al final del día `hasta`.
-- Server siempre re-valida vigencia y estatus en cada request — el token caduco se rechaza aunque la cookie siga.
-- `usuario_areas` solo se lee server-side al validar; el cliente no puede falsificar áreas.
+## Tablas / Columnas usadas (sin migrations)
+- `categorias` (`sistema`, `tipoed`, `formato`)
+- `jugadores`
+- `eliminacion_directa` (`id`, `jugadorid1/2`, `gano`, `hoyo`, `resultado`, `categoriaid`, `torneoid`)
+- Vistas `v_equipo_ed` / `v_equipo_ed_par`
 
-## Archivos a crear / tocar
-**Crear**
-- `server/migrations/2026_06_26_staff_users.sql` (tabla `usuario_areas` + `usuario_sesion`).
-- `server/api/staff_users.php`, `server/api/staff_login.php`, `server/api/staff_session.php`.
-- `server/api/_staff_auth.php` (helper `assert_admin_or_area`).
-- `src/components/admin/AdminStaffUsers.tsx`.
-- `src/contexts/StaffAuthContext.tsx`.
-- `src/components/auth/StaffRoute.tsx`.
-- `src/pages/StaffLogin.tsx`.
-- `src/hooks/useStaffUsers.ts`.
+## Out of scope (no se toca)
+- Generación inicial del bracket / siembra (lo hace la herramienta legacy).
+- Propagación automática D1→D2 desde este endpoint.
+- `/resultados`, `/competicion`, brackets de Putt Finales.
 
-**Modificar**
-- `src/pages/Admin.tsx` (nueva tab + gating por área para staff).
-- `src/App.tsx` (provider + ruta `/staff/login` + envolver rutas `/admin/*` con `StaffRoute`).
-- `server/api/brackets.php`, `banderas.php`, `uploads.php` (aceptar token staff).
-
-## Fuera de alcance (no se toca)
-- Tabla `usutipo` legacy — la dejamos en paz; usamos `tipo=99` reservado.
-- Password admin global `admin2025` sigue funcionando para retrocompatibilidad de todo lo demás.
-- Eventos/Avisos/Premios/etc se exponen al staff vía las mismas pestañas de /admin filtradas — no se duplican páginas.
-
-¿Apruebas para implementar?
+¿Confirmas y procedo? Si quieres que también incluya propagación automática (set_winner mueve al ganador a su next match en `elimin_salidas_cat` y al perdedor al D2), lo agrego como fase 2 en este mismo plan.
