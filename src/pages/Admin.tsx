@@ -445,6 +445,7 @@ const AdminDashboard = () => {
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
+            { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
