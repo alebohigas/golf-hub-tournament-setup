@@ -54,7 +54,7 @@ const queryClient = new QueryClient();
  * Must be rendered inside PageVisibilityProvider
  */
 const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
-  const { data, isLoading, isError } = useSiteConfig();
+  const { data, isLoading } = useSiteConfig();
 
   /** Set apple-touch-icon & favicon dynamically from tournament logo */
   useAppIcon();
