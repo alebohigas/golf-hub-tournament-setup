@@ -69,7 +69,7 @@ import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
-import { changeSuperAdminPassword, getSuperAdminPassword } from '@/lib/superAdminAuth';
+import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 
 // ============= Login Form Component =============
 
@@ -253,10 +253,6 @@ const AdminDashboard = () => {
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
   const [torneoInput, setTorneoInput] = useState(torneoId);
-  const [currentAdminPassword, setCurrentAdminPassword] = useState('');
-  const [newAdminPassword, setNewAdminPassword] = useState('');
-  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
-  const [isChangingAdminPassword, setIsChangingAdminPassword] = useState(false);
   
   const menuItems = getAllMenuItems();
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
@@ -315,30 +311,6 @@ const AdminDashboard = () => {
     logoutAdmin();
     if (staffSession) { staffLogout(); }
     navigate('/');
-  };
-
-  /** Change the username-less superadmin password used by production APIs. */
-  const handleChangeAdminPassword = async () => {
-    if (newAdminPassword.length < 8) {
-      toast({ title: 'Contraseña muy corta', description: 'Usa mínimo 8 caracteres.', variant: 'destructive' });
-      return;
-    }
-    if (newAdminPassword !== confirmAdminPassword) {
-      toast({ title: 'No coincide', description: 'Confirma la nueva contraseña correctamente.', variant: 'destructive' });
-      return;
-    }
-    setIsChangingAdminPassword(true);
-    try {
-      await changeSuperAdminPassword(currentAdminPassword || getSuperAdminPassword(), newAdminPassword);
-      setCurrentAdminPassword('');
-      setNewAdminPassword('');
-      setConfirmAdminPassword('');
-      toast({ title: 'Contraseña actualizada', description: 'El superadmin ya usará la nueva contraseña.' });
-    } catch (e: any) {
-      toast({ title: 'Error al cambiar contraseña', description: e.message, variant: 'destructive' });
-    } finally {
-      setIsChangingAdminPassword(false);
-    }
   };
 
   /**
