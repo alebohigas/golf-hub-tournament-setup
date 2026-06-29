@@ -41,6 +41,7 @@ import ShowcaseRotator from "./pages/ShowcaseRotator";
 import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
+import MatchPlay from "./pages/MatchPlay";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -130,6 +131,7 @@ const App = () => (
               <Route path="/hoteles" element={<ProtectedRoute pageId="hoteles"><Hoteles /></ProtectedRoute>} />
               <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
               <Route path="/banderas" element={<ProtectedRoute pageId="banderas"><Banderas /></ProtectedRoute>} />
+              <Route path="/matchplay" element={<ProtectedRoute pageId="matchplay"><MatchPlay /></ProtectedRoute>} />
 
               {/* Standalone Showcase 300 reports (no Layout, auto-refresh 5min) */}
               <Route path="/showcase/:tipo" element={<Showcase300 />} />

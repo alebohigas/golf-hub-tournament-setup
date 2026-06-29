@@ -27,6 +27,7 @@ import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
+import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
@@ -64,6 +65,7 @@ import {
   Flag,
   Hotel,
   Users,
+  Swords,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -213,6 +215,7 @@ const AdminDashboard = () => {
     registro: 'preregistros',
     registros: 'preregistros',
     brackets: 'brackets',
+    matchplay: 'brackets',
     stats: 'stats',
     usuarios: undefined,
     config: undefined,
