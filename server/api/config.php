@@ -222,39 +222,30 @@ function esc($conn, $value) {
 }
 
 // ============= Superadmin Password Helpers =============
+// Reutilizamos la tabla `usuarios` existente (columnas pwd_hash + tipo añadidas
+// por la migración de staff). El superadmin se guarda como un row reservado
+// con usuario='__superadmin__' y tipo=100. NO se crea ninguna tabla nueva.
 
-/** Legacy fallback password used only until a custom hash is configured. */
 const SUPERADMIN_DEFAULT_PASSWORD = 'admin2025';
+const SUPERADMIN_USER_KEY = '__superadmin__';
+const SUPERADMIN_TIPO = 100;
 
-/** Check whether the optional admin_settings table exists. */
-function admin_settings_table_exists($conn) {
-    static $exists = null;
-    if ($exists !== null) return $exists;
-    $r = $conn->query("SHOW TABLES LIKE 'admin_settings'");
-    $exists = $r && $r->num_rows > 0;
-    if ($r) $r->free();
-    return $exists;
-}
-
-/** Return the DB-stored superadmin password hash, if configured. */
+/** Lee el hash del superadmin desde `usuarios`, o null si no existe. */
 function superadmin_password_hash_from_db($conn) {
     static $hash = false;
     if ($hash !== false) return $hash;
     $hash = null;
-    if (!admin_settings_table_exists($conn)) return null;
-    $r = $conn->query("SELECT setting_value FROM admin_settings WHERE setting_key = 'superadmin_password_hash' LIMIT 1");
+    $key = SUPERADMIN_USER_KEY;
+    $r = @$conn->query("SELECT pwd_hash FROM usuarios WHERE usuario='$key' LIMIT 1");
     if ($r && $r->num_rows > 0) {
         $row = $r->fetch_assoc();
-        $hash = $row['setting_value'] ?? null;
+        $hash = !empty($row['pwd_hash']) ? $row['pwd_hash'] : null;
     }
     if ($r) $r->free();
     return $hash;
 }
 
-/**
- * Validate the password for the username-less superadmin.
- * This is intentionally separate from `usuarios` / staff temporal.
- */
+/** Valida la contraseña del superadmin (sin usuario). */
 function is_superadmin_password($conn, $password) {
     global $SUPERADMIN_PASSWORD, $SUPERADMIN_PASSWORD_HASH;
     $password = (string)$password;
@@ -263,24 +254,23 @@ function is_superadmin_password($conn, $password) {
     $dbHash = superadmin_password_hash_from_db($conn);
     if ($dbHash && password_verify($password, $dbHash)) return true;
 
-    // Recovery/override values can live in gitignored credentials.php.
     if (!empty($SUPERADMIN_PASSWORD_HASH) && password_verify($password, $SUPERADMIN_PASSWORD_HASH)) return true;
     if (!empty($SUPERADMIN_PASSWORD) && hash_equals((string)$SUPERADMIN_PASSWORD, $password)) return true;
 
-    // Backwards compatibility: admin2025 remains valid only until a DB hash or
-    // credentials override has been configured.
+    // Fallback histórico mientras no exista un hash configurado.
     if (!$dbHash && empty($SUPERADMIN_PASSWORD_HASH) && empty($SUPERADMIN_PASSWORD)) {
         return hash_equals(SUPERADMIN_DEFAULT_PASSWORD, $password);
     }
     return false;
 }
 
-/** Create the admin_settings table when the superadmin changes password. */
-function ensure_admin_settings_table($conn) {
-    $sql = "CREATE TABLE IF NOT EXISTS admin_settings (
-              setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
-              setting_value TEXT NOT NULL,
-              updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-    if (!$conn->query($sql)) json_error('Failed to initialize admin settings: ' . $conn->error, 500);
+/** Persiste un nuevo hash del superadmin en `usuarios` (upsert). */
+function set_superadmin_password_hash($conn, $hash) {
+    $key = SUPERADMIN_USER_KEY;
+    $tipo = SUPERADMIN_TIPO;
+    $h = esc($conn, $hash);
+    $sql = "INSERT INTO usuarios (usuario, pwd_hash, tipo, activo)
+              VALUES ('$key', '$h', $tipo, 1)
+              ON DUPLICATE KEY UPDATE pwd_hash=VALUES(pwd_hash), tipo=VALUES(tipo), activo=1";
+    if (!$conn->query($sql)) json_error('No se pudo guardar la contraseña: ' . $conn->error, 500);
 }
