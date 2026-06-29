@@ -90,7 +90,7 @@ if ($action === 'create') {
     $he = esc($conn, $hash);
     $de = esc($conn, $desde);
     $ha = esc($conn, $hasta);
-    $sql = "INSERT INTO usuarios (usuario, nombre, pwd_hash, torneoid, desde, hasta, activo, estatus, tipo)
+    $sql = "INSERT INTO usuarios (usuario, nombre, pwd, torneoid, desde, hasta, activo, estatus, tipo)
             VALUES ('$ue','$ne','$he',$torneoid,'$de','$ha',1,'activo',99)";
     if (!$conn->query($sql)) json_error('Insert failed: ' . $conn->error, 500);
     $uid = $conn->insert_id;
@@ -109,7 +109,7 @@ if ($action === 'update') {
     if (isset($body['torneoid'])) $sets[] = "torneoid = " . (int)$body['torneoid'];
     if (!empty($body['password_user'])) {
         $h = password_hash((string)$body['password_user'], PASSWORD_DEFAULT);
-        $sets[] = "pwd_hash = '" . esc($conn, $h) . "'";
+        $sets[] = "pwd = '" . esc($conn, $h) . "'";
     }
     if ($sets) {
         $sql = "UPDATE usuarios SET " . implode(', ', $sets) . " WHERE id = $id AND tipo = 99";
