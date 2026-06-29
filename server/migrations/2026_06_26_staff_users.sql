@@ -5,14 +5,8 @@
 -- tablas auxiliares para áreas permitidas y sesiones activas.
 -- =============================================================
 
--- Aseguramos columna de hash seguro para password (no toca pwd legacy).
-SET @sql := IF(
-  (SELECT COUNT(*) FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios'
-      AND COLUMN_NAME = 'pwd_hash') = 0,
-  'ALTER TABLE usuarios ADD COLUMN pwd_hash VARCHAR(255) NULL',
-  'SELECT 1');
-PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+-- (La columna pwd_hash fue eliminada; ahora usamos `pwd` directamente.
+--  Ver 2026_06_29_drop_pwd_hash.sql)
 
 -- Marcador para distinguir staff temporal del resto (tipo=99).
 SET @sql := IF(
