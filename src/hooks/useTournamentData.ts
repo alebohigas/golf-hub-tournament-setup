@@ -7,6 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useTorneoId } from '@/hooks/useTorneoId';
 import {
   getMenuUrl,
   getSponsorsUrl,
@@ -46,9 +47,11 @@ export const useSponsors = () => {
 // ============= Tournament Info =============
 
 /** Fetch tournament general info */
-export const useTournamentInfo = () => {
+export const useTournamentInfo = (enabled = true) => {
+  const { torneoId } = useTorneoId();
+
   return useQuery<TournamentInfo>({
-    queryKey: ['tournament'],
+    queryKey: ['tournament', torneoId],
     queryFn: async () => {
       const data = await apiFetch<any>(getTournamentUrl());
       return {
@@ -62,6 +65,7 @@ export const useTournamentInfo = () => {
         state: data.state || '',
       };
     },
+    enabled: enabled && !!torneoId,
     staleTime: 5 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
   });
@@ -78,10 +82,11 @@ export const useTournamentInfo = () => {
 export const useTournamentStats = () => {
   /** Site config provides optional admin overrides (set in /admin → Stats tab) */
   const { data: siteConfig } = useSiteConfig();
+  const { torneoId } = useTorneoId();
   const overrides = siteConfig?.stats_config ?? null;
 
   return useQuery<TournamentStats>({
-    queryKey: ['tournament-stats', overrides],
+    queryKey: ['tournament-stats', torneoId, overrides],
     queryFn: async () => {
       const data = await apiFetch<any>(getTournamentStatsUrl());
 
@@ -111,6 +116,7 @@ export const useTournamentStats = () => {
         maxCategories: maxCat,
       };
     },
+    enabled: !!torneoId,
     staleTime: 2 * 60 * 1000,
     refetchInterval: POLL_STATIC || false,
   });
