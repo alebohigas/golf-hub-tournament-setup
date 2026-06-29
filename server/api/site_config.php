@@ -261,9 +261,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         json_error('Invalid JSON body', 400);
     }
     
-    // Simple admin password check
+    // Superadmin password check (separate from staff `usuarios`).
     $password = $body['password'] ?? '';
-    if ($password !== 'admin2025') {
+    if (!is_superadmin_password($conn, $password)) {
         json_error('Unauthorized', 401);
     }
     

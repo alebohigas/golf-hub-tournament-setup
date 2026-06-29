@@ -380,7 +380,7 @@ const defaultContextValue: PageVisibilityContextType = {
   setPageVisibility: () => {},
   isPageVisible: () => true,
   isAdmin: false,
-  loginAsAdmin: () => false,
+  loginAsAdmin: async () => false,
   logoutAdmin: () => {},
   getAllMenuItems: () => [],
   getVisibleMenuItems: () => [],

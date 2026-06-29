@@ -77,7 +77,7 @@ function staff_validate_token($conn, $token) {
  * Si falla, responde 401 y termina.
  */
 function assert_admin_or_area($conn, $body, $area, $adminPwd = 'admin2025') {
-    if (isset($body['password']) && $body['password'] === $adminPwd) return null;
+    if (isset($body['password']) && is_superadmin_password($conn, $body['password'])) return null;
     $token = staff_extract_token($body);
     $info = staff_validate_token($conn, $token);
     if ($info && in_array($area, $info['areas'], true)) {
