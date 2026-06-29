@@ -15,6 +15,7 @@ import { useSiteConfig } from "@/hooks/useSiteConfig";
 import { useAppIcon } from "@/hooks/useAppIcon";
 import { applyThemeConfig } from "@/lib/theme-palettes";
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import Convocatoria from "./pages/Convocatoria";
 import Eventos from "./pages/Eventos";
@@ -53,7 +54,7 @@ const queryClient = new QueryClient();
  * Must be rendered inside PageVisibilityProvider
  */
 const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
-  const { data } = useSiteConfig();
+  const { data, isLoading } = useSiteConfig();
 
   /** Set apple-touch-icon & favicon dynamically from tournament logo */
   useAppIcon();
@@ -89,6 +90,19 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
     applyThemeConfig(data.theme_config ?? null);
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Wait for the real domain config before child pages build torneoid API URLs */
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          Cargando configuración del torneo...
+        </div>
+      </div>
+    );
+  }
+
+  /** Keep admin reachable even if production config has a server error */
   return <>{children}</>;
 };
 

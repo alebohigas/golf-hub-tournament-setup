@@ -4,7 +4,7 @@
  * Protected by password authentication
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import Layout from '@/components/layout/Layout';
@@ -250,6 +250,13 @@ const AdminDashboard = () => {
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
   const [torneoInput, setTorneoInput] = useState(torneoId);
+
+  /** Keep the editable input aligned with the domain-scoped DB value. */
+  useEffect(() => {
+    if (siteConfig?.torneoid) {
+      setTorneoInput(String(siteConfig.torneoid));
+    }
+  }, [siteConfig?.torneoid]);
   
   const menuItems = getAllMenuItems();
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
@@ -518,31 +525,36 @@ const AdminDashboard = () => {
                     />
                     <Button 
                       onClick={() => {
+                        const parsedTorneoId = Number.parseInt(torneoInput, 10);
+
+                        if (!Number.isFinite(parsedTorneoId) || parsedTorneoId <= 0) {
+                          toast({
+                            title: 'Torneo ID inválido',
+                            description: 'Escribe un número de torneo válido antes de guardar.',
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+
                         // Persist server-side first so the torneoid aplica
                         // para TODOS los visitantes del dominio. Sólo si el
                         // servidor confirma el guardado actualizamos la copia
                         // local — así no quedamos en un estado fantasma donde
                         // sólo este navegador ve el cambio.
                         saveSiteConfig.mutate(
-                          { torneoid: parseInt(torneoInput), password: 'admin2025' },
+                          { torneoid: parsedTorneoId, password: 'admin2025' },
                           {
                             onSuccess: () => {
-                              setTorneoId(torneoInput);
+                              setTorneoId(String(parsedTorneoId));
                               toast({
                                 title: 'Configuración guardada',
-                                description: `Torneo ${torneoInput} configurado para todos los visitantes de este dominio.`,
+                                description: `Torneo ${parsedTorneoId} configurado para todos los visitantes de este dominio.`,
                               });
                             },
                             onError: (err) => {
-                              const msg = String(err?.message || '');
-                              const noBackend =
-                                /credentials\.php/i.test(msg) ||
-                                /Unexpected token|<!DOCTYPE|Failed to fetch|NetworkError|404/i.test(msg);
                               toast({
                                 title: 'Error al guardar en servidor',
-                                description: noBackend
-                                  ? 'El backend PHP (/api/site_config.php) no respondió. Este entorno no tiene servidor — abre /admin en el dominio real para que el cambio aplique a todos los visitantes.'
-                                  : msg,
+                                description: String(err?.message || 'No se pudo guardar el torneo global.'),
                                 variant: 'destructive',
                               });
                             },
