@@ -409,10 +409,9 @@ export const useSaveSiteConfig = () => {
   return useMutation({
     mutationFn: (payload: SaveConfigPayload) => saveSiteConfigApi(payload),
     onSuccess: () => {
-      // Invalidate to re-fetch fresh config
-      queryClient.invalidateQueries({ queryKey: ['site-config'] });
-      queryClient.invalidateQueries({ queryKey: ['tournament'] });
-      queryClient.invalidateQueries({ queryKey: ['tournament-stats'] });
+      // Invalidate every cached API result because most endpoints are scoped
+      // by the active domain torneoid even when their queryKey is generic.
+      queryClient.invalidateQueries();
     },
   });
 };
