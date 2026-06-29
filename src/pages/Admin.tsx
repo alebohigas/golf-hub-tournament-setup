@@ -560,42 +560,6 @@ const AdminDashboard = () => {
                   )}
                 </div>
 
-                {!isStaffOnly && (
-                  <div className="space-y-3 border-t border-border pt-4">
-                    <div>
-                      <Label>Cambiar contraseña del superadmin</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Aplica al acceso sin usuario del admin principal y no usa la tabla usuarios.
-                      </p>
-                    </div>
-                    <Input
-                      type="password"
-                      value={currentAdminPassword}
-                      onChange={(e) => setCurrentAdminPassword(e.target.value)}
-                      placeholder="Contraseña actual"
-                    />
-                    <Input
-                      type="password"
-                      value={newAdminPassword}
-                      onChange={(e) => setNewAdminPassword(e.target.value)}
-                      placeholder="Nueva contraseña"
-                    />
-                    <Input
-                      type="password"
-                      value={confirmAdminPassword}
-                      onChange={(e) => setConfirmAdminPassword(e.target.value)}
-                      placeholder="Confirmar nueva contraseña"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleChangeAdminPassword}
-                      disabled={isChangingAdminPassword || !newAdminPassword || !confirmAdminPassword}
-                    >
-                      {isChangingAdminPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar contraseña'}
-                    </Button>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
