@@ -69,11 +69,12 @@ import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
+import { changeSuperAdminPassword, getSuperAdminPassword } from '@/lib/superAdminAuth';
 
 // ============= Login Form Component =============
 
 interface AdminLoginFormProps {
-  onLogin: (password: string) => boolean;
+  onLogin: (password: string) => Promise<boolean>;
 }
 
 /**
@@ -93,7 +94,9 @@ const AdminLoginForm = ({ onLogin }: AdminLoginFormProps) => {
     setError(false); setErrorMsg(null);
     // Si no hay usuario → intentar admin legacy. Si sí → login staff.
     if (!usuario.trim()) {
-      const success = onLogin(password);
+      setBusy(true);
+      const success = await onLogin(password);
+      setBusy(false);
       if (!success) { setError(true); setErrorMsg('Contraseña incorrecta'); setPassword(''); }
       return;
     }
@@ -250,6 +253,10 @@ const AdminDashboard = () => {
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
   const [torneoInput, setTorneoInput] = useState(torneoId);
+  const [currentAdminPassword, setCurrentAdminPassword] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [isChangingAdminPassword, setIsChangingAdminPassword] = useState(false);
   
   const menuItems = getAllMenuItems();
   const visibleCount = Object.values(visibilitySettings).filter(Boolean).length;
@@ -260,7 +267,7 @@ const AdminDashboard = () => {
    */
   const syncToServer = (fields: Record<string, any>) => {
     saveSiteConfig.mutate(
-      { password: 'admin2025', ...fields },
+      { password: getSuperAdminPassword(), ...fields },
       {
         onError: (err) => {
           toast({
@@ -308,6 +315,30 @@ const AdminDashboard = () => {
     logoutAdmin();
     if (staffSession) { staffLogout(); }
     navigate('/');
+  };
+
+  /** Change the username-less superadmin password used by production APIs. */
+  const handleChangeAdminPassword = async () => {
+    if (newAdminPassword.length < 8) {
+      toast({ title: 'Contraseña muy corta', description: 'Usa mínimo 8 caracteres.', variant: 'destructive' });
+      return;
+    }
+    if (newAdminPassword !== confirmAdminPassword) {
+      toast({ title: 'No coincide', description: 'Confirma la nueva contraseña correctamente.', variant: 'destructive' });
+      return;
+    }
+    setIsChangingAdminPassword(true);
+    try {
+      await changeSuperAdminPassword(currentAdminPassword || getSuperAdminPassword(), newAdminPassword);
+      setCurrentAdminPassword('');
+      setNewAdminPassword('');
+      setConfirmAdminPassword('');
+      toast({ title: 'Contraseña actualizada', description: 'El superadmin ya usará la nueva contraseña.' });
+    } catch (e: any) {
+      toast({ title: 'Error al cambiar contraseña', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsChangingAdminPassword(false);
+    }
   };
 
   /**
@@ -522,7 +553,7 @@ const AdminDashboard = () => {
                         setTorneoId(torneoInput);
                         // Save to server for all visitors
                         saveSiteConfig.mutate(
-                          { torneoid: parseInt(torneoInput), password: 'admin2025' },
+                          { torneoid: parseInt(torneoInput), password: getSuperAdminPassword() },
                           {
                             onSuccess: () => {
                               toast({
@@ -556,6 +587,43 @@ const AdminDashboard = () => {
                     </p>
                   )}
                 </div>
+
+                {!isStaffOnly && (
+                  <div className="space-y-3 border-t border-border pt-4">
+                    <div>
+                      <Label>Cambiar contraseña del superadmin</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Aplica al acceso sin usuario del admin principal y no usa la tabla usuarios.
+                      </p>
+                    </div>
+                    <Input
+                      type="password"
+                      value={currentAdminPassword}
+                      onChange={(e) => setCurrentAdminPassword(e.target.value)}
+                      placeholder="Contraseña actual"
+                    />
+                    <Input
+                      type="password"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      placeholder="Nueva contraseña"
+                    />
+                    <Input
+                      type="password"
+                      value={confirmAdminPassword}
+                      onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                      placeholder="Confirmar nueva contraseña"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleChangeAdminPassword}
+                      disabled={isChangingAdminPassword || !newAdminPassword || !confirmAdminPassword}
+                    >
+                      {isChangingAdminPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar contraseña'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
