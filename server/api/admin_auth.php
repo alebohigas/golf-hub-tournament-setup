@@ -33,13 +33,7 @@ if ($action === 'change_password') {
     if (strlen($new) < 8) json_error('La nueva contraseña debe tener mínimo 8 caracteres', 400);
     if (hash_equals($current, $new)) json_error('La nueva contraseña debe ser distinta', 400);
 
-    ensure_admin_settings_table($conn);
-    $hash = esc($conn, password_hash($new, PASSWORD_DEFAULT));
-    $sql = "INSERT INTO admin_settings (setting_key, setting_value)
-            VALUES ('superadmin_password_hash', '$hash')
-            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
-    if (!$conn->query($sql)) json_error('No se pudo guardar la contraseña: ' . $conn->error, 500);
-
+    set_superadmin_password_hash($conn, password_hash($new, PASSWORD_DEFAULT));
     json_response(['ok' => true, 'changed' => true]);
 }
 
