@@ -531,11 +531,26 @@ const AdminDashboard = () => {
                               });
                             },
                             onError: (err) => {
-                              toast({
-                                title: 'Error al guardar en servidor',
-                                description: err.message + '. Se guardó solo localmente.',
-                                variant: 'destructive',
-                              });
+                              // Detect "no backend available" scenarios (Lovable
+                              // preview without PHP, missing credentials.php on a
+                              // fresh deploy, etc.) and degrade gracefully to a
+                              // neutral toast — the local save already succeeded.
+                              const msg = String(err?.message || '');
+                              const noBackend =
+                                /credentials\.php/i.test(msg) ||
+                                /Unexpected token|<!DOCTYPE|Failed to fetch|NetworkError|404/i.test(msg);
+                              if (noBackend) {
+                                toast({
+                                  title: 'Guardado localmente',
+                                  description: `Torneo ${torneoInput} aplicado en este navegador. El backend no está disponible en este entorno.`,
+                                });
+                              } else {
+                                toast({
+                                  title: 'Error al guardar en servidor',
+                                  description: msg + '. Se guardó solo localmente.',
+                                  variant: 'destructive',
+                                });
+                              }
                             },
                           }
                         );
