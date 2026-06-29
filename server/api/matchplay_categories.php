@@ -13,11 +13,18 @@ $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
 /**
+ * Detecta si la columna `tipoed` existe en `categorias` (algunos esquemas
+ * legacy no la tienen). Evita el error 500 por columna desconocida.
+ */
+$tipoedExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'tipoed'");
+$tipoedSel = ($tipoedExists && $tipoedExists->num_rows > 0) ? 'c.tipoed' : "NULL AS tipoed";
+
+/**
  * Conteo de jugadores activos (no BAJA) y de filas de bracket por categoría.
  * Filtramos por sistema MATCH PLAY (case-insensitive) y estatus=1.
  */
 $sql = "SELECT c.categoria_id, c.categoria, c.abreviatura, c.sistema,
-               c.formato, c.tipoed, c.sexo,
+               c.formato, $tipoedSel, c.sexo,
                (SELECT COUNT(*) FROM jugadores j
                   WHERE j.torneoid    = c.torneo_id
                     AND j.categoriaid = c.categoria_id
