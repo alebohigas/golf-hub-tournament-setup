@@ -1,0 +1,209 @@
+/**
+ * useMatchPlay
+ * ---------------------------------------------------------------------------
+ * Hooks para la página /matchplay y su panel admin.
+ *
+ *   useMatchPlayCategories()  → categorías MATCH PLAY con jugadores
+ *   useMatchPlayBracket(id)   → matches D1/D2 de una categoría
+ *   useSetMatchWinner()       → POST set_winner
+ *   useResetMatch()           → POST reset_match
+ *
+ * Toda la auth admin se manda con `password: 'admin2025'` y el interceptor
+ * de `superAdminAuth.ts` lo reemplaza por la contraseña real en runtime.
+ */
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
+import { getTorneoId } from '@/hooks/useTorneoId';
+import { DEFAULT_SUPERADMIN_PASSWORD } from '@/lib/superAdminAuth';
+import { useStaffAuth } from '@/contexts/StaffAuthContext';
+
+// ============= Types =============
+
+/** Una categoría MATCH PLAY listada en la vista principal. */
+export interface MatchPlayCategory {
+  categoryId: string;
+  categoryName: string;
+  shortName: string;
+  system: string;
+  format: string;
+  tipoed: string | number | null;
+  gender: string | null;
+  playerCount: number;
+  matchCount: number;
+  isParejas: boolean;
+}
+
+/** Un competidor dentro de un match (jugador o pareja). */
+export interface BracketPlayer {
+  id: string | number | null;
+  name: string | null;
+  clubLogo: string;
+  club: string;
+}
+
+/** Un match de eliminación directa. */
+export interface BracketMatch {
+  matchId: number;
+  player1: BracketPlayer;
+  player2: BracketPlayer;
+  winner: string | number | null;
+  hole: string | number | null;
+  result: string | null;
+  round: number;
+  position: number;
+}
+
+/** Respuesta completa del bracket de una categoría. */
+export interface BracketResponse {
+  categoryId: string;
+  categoryName: string;
+  shortName: string;
+  system: string;
+  format: string;
+  tipoed: string | null;
+  isParejas: boolean;
+  matches: BracketMatch[];
+  d1: BracketMatch[];
+  d2: BracketMatch[];
+}
+
+// ============= Queries =============
+
+/** Lista categorías MATCH PLAY del torneo activo. */
+export const useMatchPlayCategories = () => {
+  const torneoId = getTorneoId();
+  return useQuery<MatchPlayCategory[]>({
+    queryKey: ['matchplay-categories', torneoId],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/matchplay_categories.php?torneoid=${torneoId}`);
+      if (!res.ok) throw new Error('Failed to load match play categories');
+      return res.json();
+    },
+    enabled: !!torneoId,
+    staleTime: 30_000,
+  });
+};
+
+/** Devuelve el bracket completo (D1 + D2) de una categoría. */
+export const useMatchPlayBracket = (catid: string | null) => {
+  const torneoId = getTorneoId();
+  return useQuery<BracketResponse>({
+    queryKey: ['matchplay-bracket', torneoId, catid],
+    queryFn: async () => {
+      const res = await fetch(
+        `${API_BASE_URL}/resultados_ed.php?catid=${catid}&torneoid=${torneoId}`
+      );
+      if (!res.ok) throw new Error('Failed to load bracket');
+      return res.json();
+    },
+    enabled: !!torneoId && !!catid,
+    refetchInterval: POLL_ACTIVE,
+  });
+};
+
+// ============= Mutations (admin) =============
+
+/** Body común para acciones admin — incluye torneoid + auth. */
+const buildAdminBody = (
+  staffSession: ReturnType<typeof useStaffAuth>['session'],
+  extra: Record<string, unknown>
+): Record<string, unknown> => {
+  const base: Record<string, unknown> = {
+    torneoid: getTorneoId(),
+    password: DEFAULT_SUPERADMIN_PASSWORD,
+    ...extra,
+  };
+  if (staffSession?.token) base.staff_token = staffSession.token;
+  return base;
+};
+
+/** Marca el ganador de un match (set_winner). */
+export const useSetMatchWinner = () => {
+  const qc = useQueryClient();
+  const { session } = useStaffAuth();
+  return useMutation({
+    mutationFn: async (vars: {
+      matchid: number;
+      ganador: number;
+      hoyo?: number | null;
+      resultado?: string;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/matchplay_admin.php?action=set_winner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAdminBody(session, vars)),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo marcar al ganador');
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+  });
+};
+
+/** Resetea un match (quita ganador/hoyo/resultado). */
+export const useResetMatch = () => {
+  const qc = useQueryClient();
+  const { session } = useStaffAuth();
+  return useMutation({
+    mutationFn: async (vars: { matchid: number }) => {
+      const res = await fetch(`${API_BASE_URL}/matchplay_admin.php?action=reset_match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAdminBody(session, vars)),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo resetear el match');
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+  });
+};
+
+// ============= Helpers =============
+
+/**
+ * Agrupa matches en rondas a partir del offset del matchid (1..15 para 16,
+ * 1..7 para 8, etc.). Detecta el tamaño del bracket automáticamente.
+ *
+ * Para un bracket de tamaño N (N=2^k):
+ *   Ronda 1 → N/2 matches (offsets 1..N/2)
+ *   Ronda 2 → N/4 matches
+ *   ...
+ *   Final  → 1 match
+ */
+export const groupMatchesByRound = (matches: BracketMatch[]): BracketMatch[][] => {
+  if (!matches || !matches.length) return [];
+  // Normalizamos offset (quitamos el centenar 1xx o 2xx).
+  const offsets = matches.map(m => m.matchId % 100);
+  const maxOffset = Math.max(...offsets);
+  // Tamaño del bracket = siguiente potencia de 2 de (maxOffset+1).
+  let size = 2;
+  while (size - 1 < maxOffset) size *= 2;
+  const rounds: BracketMatch[][] = [];
+  let start = 1;
+  let perRound = size / 2;
+  while (perRound >= 1) {
+    const end = start + perRound - 1;
+    const slice = matches
+      .filter(m => {
+        const off = m.matchId % 100;
+        return off >= start && off <= end;
+      })
+      .sort((a, b) => a.matchId - b.matchId);
+    if (slice.length) rounds.push(slice);
+    start = end + 1;
+    perRound = Math.floor(perRound / 2);
+  }
+  return rounds;
+};
+
+/** Nombre legible para cada ronda según total de rondas. */
+export const roundLabel = (roundIndex: number, totalRounds: number): string => {
+  const fromEnd = totalRounds - roundIndex; // 1 = final, 2 = semi, etc.
+  if (fromEnd === 1) return 'Final';
+  if (fromEnd === 2) return 'Semifinales';
+  if (fromEnd === 3) return 'Cuartos';
+  if (fromEnd === 4) return 'Octavos';
+  return `Ronda ${roundIndex + 1}`;
+};
