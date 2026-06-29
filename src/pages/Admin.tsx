@@ -518,39 +518,33 @@ const AdminDashboard = () => {
                     />
                     <Button 
                       onClick={() => {
-                        // Save locally
-                        setTorneoId(torneoInput);
-                        // Save to server for all visitors
+                        // Persist server-side first so the torneoid aplica
+                        // para TODOS los visitantes del dominio. Sólo si el
+                        // servidor confirma el guardado actualizamos la copia
+                        // local — así no quedamos en un estado fantasma donde
+                        // sólo este navegador ve el cambio.
                         saveSiteConfig.mutate(
                           { torneoid: parseInt(torneoInput), password: 'admin2025' },
                           {
                             onSuccess: () => {
+                              setTorneoId(torneoInput);
                               toast({
                                 title: 'Configuración guardada',
                                 description: `Torneo ${torneoInput} configurado para todos los visitantes de este dominio.`,
                               });
                             },
                             onError: (err) => {
-                              // Detect "no backend available" scenarios (Lovable
-                              // preview without PHP, missing credentials.php on a
-                              // fresh deploy, etc.) and degrade gracefully to a
-                              // neutral toast — the local save already succeeded.
                               const msg = String(err?.message || '');
                               const noBackend =
                                 /credentials\.php/i.test(msg) ||
                                 /Unexpected token|<!DOCTYPE|Failed to fetch|NetworkError|404/i.test(msg);
-                              if (noBackend) {
-                                toast({
-                                  title: 'Guardado localmente',
-                                  description: `Torneo ${torneoInput} aplicado en este navegador. El backend no está disponible en este entorno.`,
-                                });
-                              } else {
-                                toast({
-                                  title: 'Error al guardar en servidor',
-                                  description: msg + '. Se guardó solo localmente.',
-                                  variant: 'destructive',
-                                });
-                              }
+                              toast({
+                                title: 'Error al guardar en servidor',
+                                description: noBackend
+                                  ? 'El backend PHP (/api/site_config.php) no respondió. Este entorno no tiene servidor — abre /admin en el dominio real para que el cambio aplique a todos los visitantes.'
+                                  : msg,
+                                variant: 'destructive',
+                              });
                             },
                           }
                         );
