@@ -5,9 +5,9 @@
  * POST JSON { usuario, password }
  *   → { token, expira, usuario, nombre, areas, torneoid }
  *
- * Valida contra `usuarios.pwd_hash`. Si el row no tiene `pwd_hash`
- * pero sí `pwd` plano que coincide, lo migra a hash automáticamente.
- * También respeta rango `desde`/`hasta` y `activo=1`.
+ * Valida contra `usuarios.pwd`. Soporta tanto hashes bcrypt como
+ * valores planos legacy; si encuentra un valor plano correcto lo
+ * migra a hash automáticamente. Respeta `desde`/`hasta` y `activo=1`.
  */
 require_once 'config.php';
 require_once '_staff_auth.php';
@@ -27,20 +27,22 @@ $password = (string)($body['password'] ?? '');
 if ($usuario === '' || $password === '') json_error('Missing credentials', 400);
 
 $u = esc($conn, $usuario);
-$row = query_one($conn, "SELECT id, usuario, nombre, torneoid, pwd, pwd_hash, activo, estatus, desde, hasta
+$row = query_one($conn, "SELECT id, usuario, nombre, torneoid, pwd, activo, estatus, desde, hasta
                            FROM usuarios WHERE usuario = '$u' LIMIT 1");
 if (!$row) json_error('Credenciales inválidas', 401);
 
 // Validación de password
 $ok = false;
-if (!empty($row['pwd_hash']) && password_verify($password, $row['pwd_hash'])) {
+$pwd = (string)($row['pwd'] ?? '');
+$looksHashed = $pwd !== '' && preg_match('/^\$2[aby]\$/', $pwd);
+if ($looksHashed && password_verify($password, $pwd)) {
     $ok = true;
-} elseif (!empty($row['pwd']) && hash_equals((string)$row['pwd'], $password)) {
-    // Migrar a hash
+} elseif (!$looksHashed && $pwd !== '' && hash_equals($pwd, $password)) {
+    // Migrar plano → hash en la misma columna pwd
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $h = esc($conn, $hash);
     $id = (int)$row['id'];
-    $conn->query("UPDATE usuarios SET pwd_hash='$h' WHERE id=$id");
+    $conn->query("UPDATE usuarios SET pwd='$h' WHERE id=$id");
     $ok = true;
 }
 if (!$ok) json_error('Credenciales inválidas', 401);
