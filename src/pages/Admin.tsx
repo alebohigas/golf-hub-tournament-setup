@@ -679,6 +679,13 @@ const AdminDashboard = () => {
           <AdminBrackets mode="full" />
         </TabsContent>
 
+        {/* Match Play Tab — captura ganadores y reseteo de matches en
+            las categorías con sistema='MATCH PLAY'. Reusa el área
+            staff `brackets` para permisos. */}
+        <TabsContent value="matchplay">
+          <AdminMatchPlay />
+        </TabsContent>
+
         {/* Estadísticas Tab — override or auto-compute the home stats ribbon
             numbers per tournament (domain). See AdminStats.tsx. */}
         <TabsContent value="stats">
