@@ -6,6 +6,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api';
+import { persistTorneoId } from '@/hooks/useTorneoId';
 
 // ============= Types =============
 
@@ -286,6 +287,24 @@ const AVISOS_CONFIG_KEY = 'tournament_avisos_config';
 const PREMIOS_CONFIG_KEY = 'tournament_premios_config';
 const HOTELES_CONFIG_KEY = 'tournament_hoteles_config';
 
+/** Read a JSON response and fail loudly when production returns HTML/text */
+const readJsonResponse = async <T,>(res: Response, fallbackMessage: string): Promise<T> => {
+  const text = await res.text();
+  let data: any = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(`${fallbackMessage}: respuesta no es JSON válido`);
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || fallbackMessage);
+  }
+
+  return data as T;
+};
+
 // ============= Fetch Functions =============
 
 /**
@@ -293,8 +312,7 @@ const HOTELES_CONFIG_KEY = 'tournament_hoteles_config';
  */
 const fetchSiteConfig = async (): Promise<SiteConfig> => {
   const res = await fetch(`${API_BASE_URL}/site_config.php`);
-  if (!res.ok) throw new Error('Failed to fetch site config');
-  return res.json();
+  return readJsonResponse<SiteConfig>(res, 'No se pudo cargar site_config.php');
 };
 
 /**
@@ -306,11 +324,7 @@ const saveSiteConfigApi = async (payload: SaveConfigPayload): Promise<{ domain: 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(err.error || 'Failed to save config');
-  }
-  return res.json();
+  return readJsonResponse<{ domain: string; saved: boolean }>(res, 'No se pudo guardar site_config.php');
 };
 
 // ============= Hooks =============
@@ -326,10 +340,8 @@ export const useSiteConfig = () => {
     queryFn: async () => {
       const config = await fetchSiteConfig();
 
-      // Sync torneoid
-      if (config.torneoid) {
-        localStorage.setItem(TORNEO_ID_KEY, String(config.torneoid));
-      }
+      // Sync torneoid from production DB and clear stale local values if missing
+      persistTorneoId(config.torneoid);
 
       // Sync menu order
       if (config.menu_order) {
