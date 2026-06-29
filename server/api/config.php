@@ -222,9 +222,9 @@ function esc($conn, $value) {
 }
 
 // ============= Superadmin Password Helpers =============
-// Reutilizamos la tabla `usuarios` existente (columnas pwd_hash + tipo añadidas
-// por la migración de staff). El superadmin se guarda como un row reservado
-// con usuario='__superadmin__' y tipo=100. NO se crea ninguna tabla nueva.
+// Reutilizamos la tabla `usuarios` existente. El superadmin se guarda como un
+// row reservado con usuario='__superadmin__' y tipo=100 usando la columna
+// `pwd` (la misma que el resto). NO se crea ninguna tabla nueva.
 
 const SUPERADMIN_DEFAULT_PASSWORD = 'admin2025';
 const SUPERADMIN_USER_KEY = '__superadmin__';
@@ -236,10 +236,10 @@ function superadmin_password_hash_from_db($conn) {
     if ($hash !== false) return $hash;
     $hash = null;
     $key = SUPERADMIN_USER_KEY;
-    $r = @$conn->query("SELECT pwd_hash FROM usuarios WHERE usuario='$key' LIMIT 1");
+    $r = @$conn->query("SELECT pwd FROM usuarios WHERE usuario='$key' LIMIT 1");
     if ($r && $r->num_rows > 0) {
         $row = $r->fetch_assoc();
-        $hash = !empty($row['pwd_hash']) ? $row['pwd_hash'] : null;
+        $hash = !empty($row['pwd']) ? $row['pwd'] : null;
     }
     if ($r) $r->free();
     return $hash;
@@ -269,8 +269,8 @@ function set_superadmin_password_hash($conn, $hash) {
     $key = SUPERADMIN_USER_KEY;
     $tipo = SUPERADMIN_TIPO;
     $h = esc($conn, $hash);
-    $sql = "INSERT INTO usuarios (usuario, pwd_hash, tipo, activo)
+    $sql = "INSERT INTO usuarios (usuario, pwd, tipo, activo)
               VALUES ('$key', '$h', $tipo, 1)
-              ON DUPLICATE KEY UPDATE pwd_hash=VALUES(pwd_hash), tipo=VALUES(tipo), activo=1";
+              ON DUPLICATE KEY UPDATE pwd=VALUES(pwd), tipo=VALUES(tipo), activo=1";
     if (!$conn->query($sql)) json_error('No se pudo guardar la contraseña: ' . $conn->error, 500);
 }
