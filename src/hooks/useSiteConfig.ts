@@ -275,7 +275,6 @@ export interface SaveConfigPayload {
 
 // ============= Constants =============
 
-const TORNEO_ID_KEY = 'golf-app-torneo-id';
 const MENU_ORDER_KEY = 'tournament_menu_item_order';
 const VISIBILITY_KEY = 'tournament_page_visibility';
 const GROUPS_KEY = 'tournament_menu_groups';
