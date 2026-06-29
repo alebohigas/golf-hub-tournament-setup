@@ -59,8 +59,8 @@ function read_json_body() {
 /** Verifica password admin en body; falla con 401. */
 function require_admin($body) {
     global $ADMIN_PASSWORD;
-    if (!isset($body['password']) || $body['password'] !== $ADMIN_PASSWORD) {
-        global $conn;
+    global $conn;
+    if (!isset($body['password']) || !is_superadmin_password($conn, $body['password'])) {
         $staff = staff_check_area($conn, $body, 'brackets');
         if (!$staff) json_error('Unauthorized — admin password required', 401);
     }

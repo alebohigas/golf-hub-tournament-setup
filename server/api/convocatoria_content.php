@@ -68,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $body = json_decode(file_get_contents('php://input'), true);
     if (!$body) json_error('Invalid JSON body', 400);
 
-    // Admin auth (same simple pattern as site_config.php)
-    if (($body['password'] ?? '') !== 'admin2025') {
+    // Superadmin auth (same username-less admin as /admin).
+    if (!is_superadmin_password($conn, $body['password'] ?? '')) {
         json_error('Unauthorized', 401);
     }
 
@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $body = json_decode(file_get_contents('php://input'), true);
     if (!$body) json_error('Invalid JSON body', 400);
 
-    if (($body['password'] ?? '') !== 'admin2025') {
+    if (!is_superadmin_password($conn, $body['password'] ?? '')) {
         json_error('Unauthorized', 401);
     }
 

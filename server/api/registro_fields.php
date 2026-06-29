@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$body) json_error('Invalid JSON body', 400);
 
     $password = $body['password'] ?? '';
-    if ($password !== 'admin2025') json_error('Unauthorized', 401);
+    if (!is_superadmin_password($conn, $password)) json_error('Unauthorized', 401);
 
     $torneoid = isset($body['torneoid']) ? (int)$body['torneoid'] : 0;
     if ($torneoid <= 0) json_error('Missing torneoid', 400);
