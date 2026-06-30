@@ -46,7 +46,11 @@ const AdminMatchPlay = () => {
     }
     setBusyMatch(match.matchId);
     try {
-      await setWinner.mutateAsync({ matchid: match.matchId, ganador: Number(winnerId) });
+      await setWinner.mutateAsync({
+        catid: selectedCatId!,
+        matchx: match.matchId,
+        side,
+      });
       toast({ title: 'Ganador registrado', description: `Match ${match.matchId}` });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message || 'Falló set_winner', variant: 'destructive' });
@@ -59,7 +63,7 @@ const AdminMatchPlay = () => {
   const handleReset = async (match: BracketMatch) => {
     setBusyMatch(match.matchId);
     try {
-      await resetMatch.mutateAsync({ matchid: match.matchId });
+      await resetMatch.mutateAsync({ catid: selectedCatId!, matchx: match.matchId });
       toast({ title: 'Match reseteado', description: `Match ${match.matchId}` });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message || 'Falló reset', variant: 'destructive' });
