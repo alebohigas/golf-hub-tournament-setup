@@ -336,8 +336,15 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
           flex-1, así al hacer zoom-out el bracket cabe en pantalla sin
           scrollbar horizontal. */}
       {groupRounds.length > 0 && (
-        <div className="pb-4">
-          <div className="flex gap-3 md:gap-4 px-2 items-stretch w-full">
+        // Wrapper con scroll horizontal: en móvil se respeta un min-width
+        // por columna (≈180px) para que cada match card sea legible y el
+        // usuario hace scroll lateral. En md+ se desactiva el min-width y
+        // las columnas vuelven a repartirse con flex-1.
+        <div className="pb-4 overflow-x-auto -mx-2 md:mx-0">
+          <div
+            className="flex gap-3 md:gap-4 px-2 items-stretch w-full md:min-w-0"
+            style={{ minWidth: `${groupRounds.length * 180}px` }}
+          >
             {groupRounds.map((roundMatches, rIdx) => {
               const fromEnd = totalRounds - rIdx;
               return (
@@ -391,8 +398,11 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
             )}
           </div>
 
-          <div className="pb-4">
-            <div className="flex items-stretch justify-center gap-3 md:gap-4 px-2 w-full">
+          <div className="pb-4 overflow-x-auto -mx-2 md:mx-0">
+            <div
+              className="flex items-stretch justify-center gap-3 md:gap-4 px-2 w-full md:min-w-0"
+              style={{ minWidth: `${(bilateralExtraRounds.length * 2 + 3) * 180}px` }}
+            >
               {/* Columnas extra izquierda (cuartos, etc.) — primera mitad */}
               {bilateralExtraRounds.map((rndMatches, idx) => {
                 const fromEnd = totalRounds - idx; // 3 → Cuartos, etc.
