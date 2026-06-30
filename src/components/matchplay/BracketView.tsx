@@ -389,7 +389,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 const half = Math.ceil(rndMatches.length / 2);
                 const leftHalf = rndMatches.slice(0, half);
                 return (
-                  <div key={`bl-${idx}`} className="flex flex-col gap-3 min-w-[220px]">
+                  <div key={`bl-${idx}`} className="flex flex-col gap-3 flex-1 min-w-0">
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
@@ -410,7 +410,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
               })}
 
               {/* Semifinal izquierda */}
-              <div className="flex flex-col gap-3 min-w-[220px]">
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   Semifinal 1
                 </h4>
@@ -426,7 +426,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
               </div>
 
               {/* Final central */}
-              <div className="flex flex-col gap-3 min-w-[240px]">
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <h4 className="text-xs font-bold uppercase text-center text-accent tracking-wide">
                   Final
                 </h4>
@@ -442,7 +442,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
               </div>
 
               {/* Semifinal derecha */}
-              <div className="flex flex-col gap-3 min-w-[220px]">
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   Semifinal 2
                 </h4>
@@ -465,7 +465,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 // Para que cuartos quede "afuera" de semis, invertimos el
                 // orden visual: la ronda más temprana queda más a la derecha.
                 return (
-                  <div key={`br-${idx}`} className="flex flex-col gap-3 min-w-[220px]">
+                  <div key={`br-${idx}`} className="flex flex-col gap-3 flex-1 min-w-0">
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
