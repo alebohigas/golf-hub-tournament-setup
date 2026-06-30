@@ -300,10 +300,16 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const bilateralExtraRounds: (BracketMatch | null)[][] = [];
   const semisRound = hasGrandFinal ? rounds[totalRounds - 2] : null;
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
-  const finalMatch = finalRound?.[0] ?? null;
+  // El match final SIEMPRE es el último de la última ronda (también en
+  // brackets cortos sin Gran Final, ej. -B/-C). Así el banner de campeón
+  // y el podio aparecen sin importar el tamaño del bracket.
+  const finalMatch = (finalRound?.[0] ?? rounds[totalRounds - 1]?.[0]) ?? null;
   const championName = championOfMatch(finalMatch ?? null);
   const runnerUpName = loserOfMatch(finalMatch ?? null);
   const thirdPlaceName = championOfMatch(thirdPlace);
+  // Para brackets cortos (sin Gran Final) mostramos un banner de campeón
+  // arriba del podio para que se resalte igual que en la sección de Gran Final.
+  const showShortChampionBanner = !hasGrandFinal && !!championName;
 
   // Podio: sólo se muestra si hay al menos un ganador definido.
   const podium: { place: 1 | 2 | 3; name: string | null; label: string; color: string; Icon: typeof Trophy }[] = [
