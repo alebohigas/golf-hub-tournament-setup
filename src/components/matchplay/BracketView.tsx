@@ -300,10 +300,16 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const bilateralExtraRounds: (BracketMatch | null)[][] = [];
   const semisRound = hasGrandFinal ? rounds[totalRounds - 2] : null;
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
-  const finalMatch = finalRound?.[0] ?? null;
+  // El match final SIEMPRE es el último de la última ronda (también en
+  // brackets cortos sin Gran Final, ej. -B/-C). Así el banner de campeón
+  // y el podio aparecen sin importar el tamaño del bracket.
+  const finalMatch = (finalRound?.[0] ?? rounds[totalRounds - 1]?.[0]) ?? null;
   const championName = championOfMatch(finalMatch ?? null);
   const runnerUpName = loserOfMatch(finalMatch ?? null);
   const thirdPlaceName = championOfMatch(thirdPlace);
+  // Para brackets cortos (sin Gran Final) mostramos un banner de campeón
+  // arriba del podio para que se resalte igual que en la sección de Gran Final.
+  const showShortChampionBanner = !hasGrandFinal && !!championName;
 
   // Podio: sólo se muestra si hay al menos un ganador definido.
   const podium: { place: 1 | 2 | 3; name: string | null; label: string; color: string; Icon: typeof Trophy }[] = [
@@ -315,14 +321,17 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
 
   return (
     <div className="space-y-8">
-      {/* ============ Rondas previas (columnas) ============ */}
+      {/* ============ Rondas previas (columnas) ============
+          Sin overflow-x ni min-w-max: las columnas se reparten ancho con
+          flex-1, así al hacer zoom-out el bracket cabe en pantalla sin
+          scrollbar horizontal. */}
       {groupRounds.length > 0 && (
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-6 min-w-max px-2">
+        <div className="pb-4">
+          <div className="flex gap-3 md:gap-4 px-2 items-stretch w-full">
             {groupRounds.map((roundMatches, rIdx) => {
               const fromEnd = totalRounds - rIdx;
               return (
-                <div key={rIdx} className="flex flex-col gap-3 min-w-[240px]">
+                <div key={rIdx} className="flex-1 min-w-0 flex flex-col gap-3">
                   <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                     {roundLabel(fromEnd)}
                   </h4>
@@ -345,6 +354,16 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
         </div>
       )}
 
+      {/* ============ Banner de campeón para brackets cortos (sin Gran Final) ============ */}
+      {showShortChampionBanner && (
+        <div className="flex justify-center pt-2">
+          <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+            <Trophy className="h-5 w-5" />
+            <span className="min-w-0 truncate">Campeón: {championName}</span>
+          </div>
+        </div>
+      )}
+
       {/* ============ Gran Final (semifinales + final bilateral) ============ */}
       {hasGrandFinal && semisRound && finalRound && (
         <section className="space-y-4 border-t-2 border-accent/50 pt-6">
@@ -362,15 +381,15 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
             )}
           </div>
 
-          <div className="overflow-x-auto pb-4">
-            <div className="flex items-stretch justify-center gap-4 min-w-max px-2">
+          <div className="pb-4">
+            <div className="flex items-stretch justify-center gap-3 md:gap-4 px-2 w-full">
               {/* Columnas extra izquierda (cuartos, etc.) — primera mitad */}
               {bilateralExtraRounds.map((rndMatches, idx) => {
                 const fromEnd = totalRounds - idx; // 3 → Cuartos, etc.
                 const half = Math.ceil(rndMatches.length / 2);
                 const leftHalf = rndMatches.slice(0, half);
                 return (
-                  <div key={`bl-${idx}`} className="flex flex-col gap-3 min-w-[220px]">
+                  <div key={`bl-${idx}`} className="flex flex-col gap-3 flex-1 min-w-0">
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
@@ -391,7 +410,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
               })}
 
               {/* Semifinal izquierda */}
-              <div className="flex flex-col gap-3 min-w-[220px]">
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   Semifinal 1
                 </h4>
@@ -407,7 +426,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
               </div>
 
               {/* Final central */}
-              <div className="flex flex-col gap-3 min-w-[240px]">
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <h4 className="text-xs font-bold uppercase text-center text-accent tracking-wide">
                   Final
                 </h4>
@@ -423,7 +442,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
               </div>
 
               {/* Semifinal derecha */}
-              <div className="flex flex-col gap-3 min-w-[220px]">
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   Semifinal 2
                 </h4>
@@ -446,7 +465,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 // Para que cuartos quede "afuera" de semis, invertimos el
                 // orden visual: la ronda más temprana queda más a la derecha.
                 return (
-                  <div key={`br-${idx}`} className="flex flex-col gap-3 min-w-[220px]">
+                  <div key={`br-${idx}`} className="flex flex-col gap-3 flex-1 min-w-0">
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
