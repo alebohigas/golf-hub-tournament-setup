@@ -54,21 +54,31 @@ const splitThirdPlace = (
   if (!matches.length) return { bracket: matches, thirdPlace: null };
   const sortedOffs = [...new Set(matches.map(m => offset(m.matchId)))].sort((a, b) => a - b);
   const minOff = sortedOffs[0];
-  // Corrida contigua desde minOff.
-  let runLen = 0;
-  for (let i = 0; i < sortedOffs.length; i++) {
-    if (sortedOffs[i] === minOff + i) runLen++;
-    else break;
+  // El 3er lugar se asigna manualmente con un matchx NO consecutivo
+  // (ej. 199, 150, 195). Por lo tanto: detectamos el primer "hueco" en
+  // la secuencia de offsets — todo lo anterior al hueco es bracket
+  // regular, y el primer match posterior al hueco es el 3er lugar.
+  //
+  // BUG previo: usaba la "mayor N ≤ runLen tal que (N+1) es potencia
+  // de 2", lo cual con 8 matches contiguos (primera ronda completa
+  // de un bracket de 16, sin rondas posteriores aún generadas) sacaba
+  // al match 108 como 3er lugar y empujaba 105-107 a las columnas
+  // equivocadas (semis/final).
+  let gapAt = -1;
+  for (let i = 1; i < sortedOffs.length; i++) {
+    if (sortedOffs[i] !== sortedOffs[i - 1] + 1) {
+      gapAt = sortedOffs[i];
+      break;
+    }
   }
-  // Mayor N ≤ runLen tal que (N+1) es potencia de 2.
-  let N = 1;
-  while (N * 2 + 1 <= runLen) N = N * 2 + 1;
-  const inBracket = new Set<number>();
-  for (let i = 0; i < N; i++) inBracket.add(minOff + i);
+  if (gapAt < 0) {
+    // Sin huecos → todos son bracket regular, no hay 3er lugar.
+    return { bracket: matches, thirdPlace: null };
+  }
   const bracket: BracketMatch[] = [];
   const extras: BracketMatch[] = [];
   for (const m of matches) {
-    (inBracket.has(offset(m.matchId)) ? bracket : extras).push(m);
+    (offset(m.matchId) < gapAt ? bracket : extras).push(m);
   }
   // El primer extra es el match por 3er lugar (en la práctica sólo hay uno).
   return { bracket, thirdPlace: extras[0] ?? null };
