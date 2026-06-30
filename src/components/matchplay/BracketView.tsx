@@ -321,14 +321,17 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
 
   return (
     <div className="space-y-8">
-      {/* ============ Rondas previas (columnas) ============ */}
+      {/* ============ Rondas previas (columnas) ============
+          Sin overflow-x ni min-w-max: las columnas se reparten ancho con
+          flex-1, así al hacer zoom-out el bracket cabe en pantalla sin
+          scrollbar horizontal. */}
       {groupRounds.length > 0 && (
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-6 min-w-max px-2">
+        <div className="pb-4">
+          <div className="flex gap-3 md:gap-4 px-2 items-stretch w-full">
             {groupRounds.map((roundMatches, rIdx) => {
               const fromEnd = totalRounds - rIdx;
               return (
-                <div key={rIdx} className="flex flex-col gap-3 min-w-[240px]">
+                <div key={rIdx} className="flex-1 min-w-0 flex flex-col gap-3">
                   <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                     {roundLabel(fromEnd)}
                   </h4>
@@ -347,6 +350,16 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ============ Banner de campeón para brackets cortos (sin Gran Final) ============ */}
+      {showShortChampionBanner && (
+        <div className="flex justify-center pt-2">
+          <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+            <Trophy className="h-5 w-5" />
+            <span className="min-w-0 truncate">Campeón: {championName}</span>
           </div>
         </div>
       )}
