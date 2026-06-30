@@ -49,6 +49,8 @@ export interface BracketMatch {
   winner: string | number | null;
   hole: string | number | null;
   result: string | null;
+  /** Fecha + hora del match (formato 'YYYY-MM-DD HH:mm'), si está capturada. */
+  fecha: string | null;
   round: number;
   position: number;
 }
