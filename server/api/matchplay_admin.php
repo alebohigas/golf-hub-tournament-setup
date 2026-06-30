@@ -41,7 +41,9 @@ function require_brackets_auth($conn, $body) {
 
     if ($hasPassword && is_superadmin_password($conn, $body['password'])) return ['auth' => 'superadmin'];
 
-    $staff = staff_check_area($conn, $body, 'brackets');
+    // Acepta staff con área `matchplay` (preferente) o `brackets` (legacy).
+    $staff = staff_check_area($conn, $body, 'matchplay');
+    if (!$staff) $staff = staff_check_area($conn, $body, 'brackets');
     if ($staff) return ['auth' => 'staff', 'usuario' => $staff['usuario'] ?? ''];
 
     error_log('[matchplay_admin] Unauthorized brackets write. has_password=' . ($hasPassword ? '1' : '0') . ' has_staff_token=' . ($hasStaffToken ? '1' : '0'));

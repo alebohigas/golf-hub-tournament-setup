@@ -215,7 +215,7 @@ const AdminDashboard = () => {
     registro: 'preregistros',
     registros: 'preregistros',
     brackets: 'brackets',
-    matchplay: 'brackets',
+    matchplay: 'matchplay',
     stats: 'stats',
     usuarios: undefined,
     config: undefined,
@@ -228,6 +228,7 @@ const AdminDashboard = () => {
   const AREA_TO_TAB: Record<StaffArea, string> = {
     preregistros: 'registros',
     brackets: 'brackets',
+    matchplay: 'matchplay',
     banderas: 'banderas',
     pop: 'popup',
     eventos: 'eventos',

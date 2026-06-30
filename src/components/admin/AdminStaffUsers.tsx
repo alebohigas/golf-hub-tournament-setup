@@ -28,6 +28,7 @@ const ADMIN_PWD = 'admin2025';
 export const STAFF_AREAS: { id: StaffArea; label: string }[] = [
   { id: 'preregistros', label: 'Pre-Registros' },
   { id: 'brackets',     label: 'Brackets Putt' },
+  { id: 'matchplay',    label: 'Match Play' },
   { id: 'banderas',     label: 'Banderas' },
   { id: 'pop',          label: 'POP-UP' },
   { id: 'eventos',      label: 'Eventos' },
