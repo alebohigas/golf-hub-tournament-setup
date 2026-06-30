@@ -37,11 +37,16 @@ const AdminMatchPlay = () => {
   const selectedCat = categories.find(c => c.categoryId === selectedCatId) || null;
   const hasD2 = !!bracket?.d2?.length;
 
-  /** Aplica set_winner y notifica vía toast. */
-  const handleSetWinner = async (match: BracketMatch, winnerId: number) => {
+  /** Aplica set_winner y notifica vía toast. `side` = 1 ó 2 (player1/player2). */
+  const handleSetWinner = async (match: BracketMatch, side: 1 | 2) => {
+    const winnerId = side === 1 ? match.player1.id : match.player2.id;
+    if (winnerId == null) {
+      toast({ title: 'Sin jugador', description: 'Ese lado aún no tiene jugador asignado.', variant: 'destructive' });
+      return;
+    }
     setBusyMatch(match.matchId);
     try {
-      await setWinner.mutateAsync({ matchid: match.matchId, ganador: winnerId });
+      await setWinner.mutateAsync({ matchid: match.matchId, ganador: Number(winnerId) });
       toast({ title: 'Ganador registrado', description: `Match ${match.matchId}` });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message || 'Falló set_winner', variant: 'destructive' });
