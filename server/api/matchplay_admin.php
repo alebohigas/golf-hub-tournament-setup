@@ -257,14 +257,44 @@ if ($action === 'reset_match') {
     $catid  = (int)($body['catid']  ?? 0);
     $matchx = (int)($body['matchx'] ?? 0);
     if ($catid <= 0 || $matchx <= 0) json_error('catid y matchx requeridos', 400);
+    // 1) Lee el estado actual para saber a quién hay que "des-avanzar".
+    $cur = query_one(
+        $conn,
+        "SELECT jugida, jugidb, gano FROM elimin_salidas_cat
+          WHERE catid = $catid AND matchx = $matchx LIMIT 1"
+    );
+    if (!$cur) json_error('Match no encontrado', 404);
+    $g = (int)$cur['gano'];
+    $winnerId = $g === 1 ? (int)$cur['jugida'] : ($g === 2 ? (int)$cur['jugidb'] : 0);
+
+    // 2) Si había ganador propagado, lo quitamos del slot del siguiente match.
+    if ($winnerId > 0) {
+        $next = query_all(
+            $conn,
+            "SELECT matchx, jugida, jugidb, pl_grupo, sl_grupo
+               FROM elimin_salidas_cat
+              WHERE catid = $catid AND (pl_grupo = $matchx OR sl_grupo = $matchx)"
+        );
+        foreach ($next as $n) {
+            $nmx = (int)$n['matchx'];
+            if ((int)$n['pl_grupo'] === $matchx && (int)$n['jugida'] === $winnerId) {
+                $conn->query("UPDATE elimin_salidas_cat SET jugida = 0
+                               WHERE catid = $catid AND matchx = $nmx");
+            }
+            if ((int)$n['sl_grupo'] === $matchx && (int)$n['jugidb'] === $winnerId) {
+                $conn->query("UPDATE elimin_salidas_cat SET jugidb = 0
+                               WHERE catid = $catid AND matchx = $nmx");
+            }
+        }
+    }
+
+    // 3) Limpia el match actual.
     $sql = "UPDATE elimin_salidas_cat
                SET gano = 0, hoyo = NULL, fecha = NULL
              WHERE catid = $catid AND matchx = $matchx";
     if (!$conn->query($sql)) json_error('Reset failed: ' . $conn->error, 500);
-    // Nota: la propagación NO se revierte automáticamente — los slots de la
-    // ronda siguiente quedan con el jugador que ya se había avanzado. Si se
-    // requiere revertir totalmente, se debe resetear también el match siguiente.
-    json_response(['ok' => true, 'matchx' => $matchx]);
+
+    json_response(['ok' => true, 'matchx' => $matchx, 'cleared_next_for' => $winnerId]);
 }
 
 json_error('Unknown action', 400);
