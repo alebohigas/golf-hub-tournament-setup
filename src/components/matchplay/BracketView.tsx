@@ -67,11 +67,19 @@ const roundLabel = (fromEnd: number) => {
  */
 const buildFullRounds = (matches: BracketMatch[]): (BracketMatch | null)[][] => {
   if (!matches.length) return [];
-  const maxOff = Math.max(...matches.map(m => offset(m.matchId)));
-  const size = nextPow2(maxOff + 1); // 8/16/32/...
+  // Normalizamos por el offset mínimo: las categorías de repechaje (-B/-C)
+  // arrancan típicamente en match 109 (sin octavos), por lo que con el
+  // offset crudo aparecerían rondas vacías al inicio ("Octavos por definir").
+  // Al restar (minOff - 1) hacemos que el primer match real caiga en el
+  // slot 1, y el tamaño del bracket se calcula sobre los matches existentes.
+  const offs = matches.map(m => offset(m.matchId));
+  const minOff = Math.min(...offs);
+  const norm = (o: number) => o - minOff + 1;
+  const maxN = Math.max(...offs.map(norm));
+  const size = nextPow2(maxN + 1); // 8/16/32/...
   const totalRounds = Math.log2(size);
   const base = matches[0].matchId >= 200 ? 200 : 100; // D1=100, D2=200
-  const byOff = new Map(matches.map(m => [offset(m.matchId), m]));
+  const byOff = new Map(matches.map(m => [norm(offset(m.matchId)), m]));
   const rounds: (BracketMatch | null)[][] = [];
   let start = 1;
   let perRound = size / 2;
