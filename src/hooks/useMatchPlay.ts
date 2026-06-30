@@ -14,7 +14,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
-import { DEFAULT_SUPERADMIN_PASSWORD } from '@/lib/superAdminAuth';
+import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
 
 // ============= Types =============
@@ -110,7 +110,9 @@ const buildAdminBody = (
 ): Record<string, unknown> => {
   const base: Record<string, unknown> = {
     torneoid: getTorneoId(),
-    password: DEFAULT_SUPERADMIN_PASSWORD,
+    // Lee la contraseña activa del superadmin (sessionStorage o default).
+    // Así no dependemos del fetch-interceptor para reemplazar 'admin2025'.
+    password: getSuperAdminPassword(),
     ...extra,
   };
   if (staffSession?.token) base.staff_token = staffSession.token;
