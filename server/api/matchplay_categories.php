@@ -20,6 +20,18 @@ $tipoedExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'tipoed'");
 $tipoedSel = ($tipoedExists && $tipoedExists->num_rows > 0) ? 'c.tipoed' : "NULL AS tipoed";
 
 /**
+ * Detecta si la tabla `eliminacion_directa` existe. En esquemas legacy sin
+ * match play esta tabla puede no existir y rompería el subquery.
+ */
+$edExists = $conn->query("SHOW TABLES LIKE 'eliminacion_directa'");
+$hasED = ($edExists && $edExists->num_rows > 0);
+$matchCountSel = $hasED
+    ? "(SELECT COUNT(*) FROM eliminacion_directa e
+          WHERE e.torneoid    = c.torneo_id
+            AND e.categoriaid = c.categoria_id) AS matchCount"
+    : "0 AS matchCount";
+
+/**
  * Conteo de jugadores activos (no BAJA) y de filas de bracket por categoría.
  * Filtramos por sistema MATCH PLAY (case-insensitive) y estatus=1.
  */
@@ -29,9 +41,7 @@ $sql = "SELECT c.categoria_id, c.categoria, c.abreviatura, c.sistema,
                   WHERE j.torneoid    = c.torneo_id
                     AND j.categoriaid = c.categoria_id
                     AND (j.estatus IS NULL OR j.estatus <> 'BAJA')) AS playerCount,
-               (SELECT COUNT(*) FROM eliminacion_directa e
-                  WHERE e.torneoid    = c.torneo_id
-                    AND e.categoriaid = c.categoria_id) AS matchCount
+               $matchCountSel
         FROM categorias c
         WHERE c.estatus = 1
           AND c.torneo_id = $tid
