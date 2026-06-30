@@ -8,8 +8,8 @@
  *   useSetMatchWinner()       → POST set_winner
  *   useResetMatch()           → POST reset_match
  *
- * Toda la auth admin se manda con `password: 'admin2025'` y el interceptor
- * de `superAdminAuth.ts` lo reemplaza por la contraseña real en runtime.
+ * Toda la auth admin se manda con la contraseña real guardada en la sesión
+ * actual del superadmin, o con `staff_token` si es usuario temporal.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
@@ -121,6 +121,15 @@ const buildAdminBody = (
   return base;
 };
 
+/** Construye URL admin y conserva ?debug=1 para diagnosticar errores del API. */
+const buildMatchPlayAdminUrl = (action: 'set_winner' | 'reset_match'): string => {
+  const params = new URLSearchParams({ action });
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1') {
+    params.set('debug', '1');
+  }
+  return `${API_BASE_URL}/matchplay_admin.php?${params.toString()}`;
+};
+
 /** Marca el ganador de un match (set_winner). */
 export const useSetMatchWinner = () => {
   const qc = useQueryClient();
@@ -133,7 +142,7 @@ export const useSetMatchWinner = () => {
       hoyo?: number | null;
       fecha?: string | null;
     }) => {
-      const res = await fetch(`${API_BASE_URL}/matchplay_admin.php?action=set_winner`, {
+      const res = await fetch(buildMatchPlayAdminUrl('set_winner'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildAdminBody(session, vars)),
@@ -152,7 +161,7 @@ export const useResetMatch = () => {
   const { session } = useStaffAuth();
   return useMutation({
     mutationFn: async (vars: { catid: string | number; matchx: number }) => {
-      const res = await fetch(`${API_BASE_URL}/matchplay_admin.php?action=reset_match`, {
+      const res = await fetch(buildMatchPlayAdminUrl('reset_match'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildAdminBody(session, vars)),
