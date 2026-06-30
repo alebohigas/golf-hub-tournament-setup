@@ -180,13 +180,16 @@ const MatchCard = ({
   }
   return (
     <Card className="overflow-hidden divide-y divide-border">
-      <div className="px-2 py-1 text-[10px] text-muted-foreground bg-muted/40 flex justify-between">
-        <span>Match {match.matchId}</span>
-        {match.result && (
-          <span className="font-medium">
-            {match.result}
-            {match.hole ? ` (h${match.hole})` : ''}
+      <div className="px-2 py-1 text-[10px] text-muted-foreground bg-muted/40 flex flex-col gap-0.5">
+        <div className="flex justify-between items-center gap-2">
+          <span className="font-semibold">
+            Match {match.matchId}
+            {match.hole ? ` · Hoyo ${match.hole}` : ''}
           </span>
+          {match.result && <span className="font-medium">{match.result}</span>}
+        </div>
+        {match.fecha && (
+          <div className="text-[10px] text-muted-foreground/80">{match.fecha}</div>
         )}
       </div>
       <Row match={match} side={1} admin={admin} busy={busy}
