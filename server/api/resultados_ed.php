@@ -67,6 +67,55 @@ function load_sides($conn, $cid, $tid, $isParejas) {
 
 $sides = load_sides($conn, $cid, $tid, $isParejas);
 
+/**
+ * Para cada matchx cargamos la fila CANÓNICA desde elimin_salidas_cat con
+ * jugida/jugidb/gano. Luego mapeamos cada lado del view a su `lado` real
+ * (1 = jugida, 2 = jugidb) usando la `posicion` del jugador.
+ *
+ * Esto es CRÍTICO porque el view ordena por `posicion ASC` y no por lado,
+ * así que el orden de las filas no garantiza que pair[0]==jugida. Si el
+ * front asume que sí, mandaba `side` invertido al API y se marcaba al
+ * ganador equivocado.
+ */
+$mxSet = [];
+foreach ($sides as $r) { $mxSet[(int)$r['matchx']] = true; }
+$mxList = array_keys($mxSet);
+$sideMap = []; // matchx => [posJugida, posJugidb]
+$ganoMap = []; // matchx => gano (1|2|0)
+$hoyoMap = []; // matchx => hoyo
+$fechaMap = []; // matchx => fecha
+if ($mxList) {
+    $mxIn = implode(',', array_map('intval', $mxList));
+    $canon = query_all(
+        $conn,
+        "SELECT matchx, jugida, jugidb, gano, hoyo,
+                DATE_FORMAT(fecha, '%Y-%m-%d %H:%i') AS fecha
+           FROM elimin_salidas_cat
+          WHERE catid = $cid AND matchx IN ($mxIn)"
+    );
+    $ids = [];
+    foreach ($canon as $c) {
+        if ((int)$c['jugida'] > 0) $ids[(int)$c['jugida']] = true;
+        if ((int)$c['jugidb'] > 0) $ids[(int)$c['jugidb']] = true;
+    }
+    $posOf = [];
+    if ($ids) {
+        $idIn = implode(',', array_keys($ids));
+        $jugs = query_all($conn, "SELECT id, posicion FROM jugadores WHERE id IN ($idIn)");
+        foreach ($jugs as $j) { $posOf[(int)$j['id']] = (int)$j['posicion']; }
+    }
+    foreach ($canon as $c) {
+        $mx = (int)$c['matchx'];
+        $sideMap[$mx] = [
+            $posOf[(int)$c['jugida']] ?? null,
+            $posOf[(int)$c['jugidb']] ?? null,
+        ];
+        $ganoMap[$mx]  = (int)$c['gano'];
+        $hoyoMap[$mx]  = $c['hoyo'];
+        $fechaMap[$mx] = $c['fecha'];
+    }
+}
+
 // ----- Agrupa las filas por matchx → estructura player1/player2 -------------
 /**
  * Convierte una fila de la vista en el objeto BracketPlayer que espera el front.
@@ -100,26 +149,32 @@ foreach ($sides as $row) {
 $d1 = [];
 $d2 = [];
 foreach ($grouped as $mx => $pair) {
-    $r1 = $pair[0] ?? null;
-    $r2 = $pair[1] ?? null;
     $mid = (int)$mx;
-
-    // Winner: comparar gano vs postabla en cada lado.
-    $winner = null;
-    if ($r1 && $r1['gano'] !== null && (string)$r1['gano'] === (string)$r1['postabla']) {
-        $winner = 1;
-    } elseif ($r2 && $r2['gano'] !== null && (string)$r2['gano'] === (string)$r2['postabla']) {
-        $winner = 2;
+    // Asigna lado real usando la posición del jugador en elimin_salidas_cat.
+    $map = $sideMap[$mid] ?? [null, null];
+    $r1 = null; $r2 = null;
+    foreach ($pair as $row) {
+        $pos = (int)($row['posicion'] ?? 0);
+        if ($map[0] !== null && $pos === $map[0] && $r1 === null) { $r1 = $row; continue; }
+        if ($map[1] !== null && $pos === $map[1] && $r2 === null) { $r2 = $row; continue; }
     }
+    // Fallback si no se pudo mapear: usa orden del view.
+    if (!$r1 && !$r2) { $r1 = $pair[0] ?? null; $r2 = $pair[1] ?? null; }
+    elseif (!$r1) { $r1 = ($pair[0] === $r2) ? ($pair[1] ?? null) : ($pair[0] ?? null); }
+    elseif (!$r2) { $r2 = ($pair[0] === $r1) ? ($pair[1] ?? null) : ($pair[0] ?? null); }
+
+    // Winner = gano (1|2) directo de elimin_salidas_cat.
+    $g = $ganoMap[$mid] ?? 0;
+    $winner = ($g === 1 || $g === 2) ? $g : null;
 
     $entry = [
         'matchId'  => $mid,
         'player1'  => side_to_player($r1, $LOGOS_BASE_URL),
         'player2'  => side_to_player($r2, $LOGOS_BASE_URL),
         'winner'   => $winner,
-        'hole'     => $r1['hoyo'] ?? null,
+        'hole'     => $hoyoMap[$mid] ?? ($r1['hoyo'] ?? null),
         'result'   => $r1['resultado'] ?? null,
-        'fecha'    => $r1['fecha'] ?? null,
+        'fecha'    => $fechaMap[$mid] ?? ($r1['fecha'] ?? null),
         'round'    => 0,
         'position' => 0,
     ];
