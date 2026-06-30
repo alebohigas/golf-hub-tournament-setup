@@ -21,7 +21,8 @@ export type ShowcaseSlideKind =
   | 's300'      // Reporte 300 (driver/approach/putt/oyes/oyesx), un premio.
   | 'mejor'     // Mejor Score Diario, un día.
   | 'bracket'   // Bracket putt (M/F), full / group / semis / final.
-  | 'qual';     // Clasificados Putt Finales por sexo (M/F).
+  | 'qual'      // Clasificados Putt Finales por sexo (M/F).
+  | 'matchplay';// Bracket Match Play por categoría (D1 + D2 internos).
 
 /** Descriptor de un slide rotable, tal como vive en la config persistida. */
 export interface ShowcaseSlide {
@@ -71,6 +72,14 @@ export const buildBracketSlideId = (sexo: 'M' | 'F', kind: string): string =>
  * que ya entraron al ranking acumulado). `sexo` = 'M' o 'F'.
  */
 export const buildQualSlideId = (sexo: 'M' | 'F'): string => `qual:${sexo}`;
+
+/**
+ * Build slide id para brackets Match Play de /matchplay.
+ * Un slide por categoría — internamente renderiza Cuadro Principal (D1) y
+ * la Consolación (D2) si existe.
+ */
+export const buildMatchPlaySlideId = (catid: string | number): string =>
+  `matchplay:${catid}`;
 
 /** Decompone un slide id en su tupla (kind + partes). */
 export const parseSlideId = (id: string): { kind: ShowcaseSlideKind; parts: string[] } => {

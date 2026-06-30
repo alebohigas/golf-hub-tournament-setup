@@ -159,6 +159,7 @@ const Dashboard = () => {
   const groupOrder = [
     'Driver', 'Approach', 'Putt', "O'Yes", 'Oyes-X',
     'Mejor Score Diario', 'Brackets Caballeros', 'Brackets Damas',
+    'Match Play',
   ].filter((g) => groups[g]?.length);
 
   return (

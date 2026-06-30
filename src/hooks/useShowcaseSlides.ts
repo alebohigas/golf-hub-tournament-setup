@@ -18,11 +18,13 @@ import { apiFetch } from '@/lib/apiClient';
 import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
 import { usePuttFinales } from '@/hooks/useBrackets';
+import { useMatchPlayCategories } from '@/hooks/useMatchPlay';
 import {
   buildBracketSlideId,
   buildMejorSlideId,
   buildS300SlideId,
   buildQualSlideId,
+  buildMatchPlaySlideId,
   type ShowcaseSlideMeta,
 } from '@/lib/showcaseSlides';
 
@@ -103,8 +105,14 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
   // ----- Brackets putt -----
   const brackets = usePuttFinales();
 
+  // ----- Match Play categorías (un slide por categoría con matches) -----
+  const matchplay = useMatchPlayCategories();
+
   const isLoading =
-    s300Queries.some((q) => q.isLoading) || mejor.isLoading || brackets.isLoading;
+    s300Queries.some((q) => q.isLoading) ||
+    mejor.isLoading ||
+    brackets.isLoading ||
+    matchplay.isLoading;
 
   // ----- Aplanar -----
   const all: ShowcaseSlideMeta[] = [];
@@ -213,6 +221,16 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
         group: groupLabel,
       });
     }
+  });
+
+  // ----- Match Play: un slide por categoría con al menos 1 match -----
+  (matchplay.data ?? []).forEach((cat) => {
+    if (!cat.matchCount) return;
+    push({
+      id: buildMatchPlaySlideId(cat.categoryId),
+      label: `Match Play — ${cat.shortName || cat.categoryName}`,
+      group: 'Match Play',
+    });
   });
 
   return { isLoading, all, groups };

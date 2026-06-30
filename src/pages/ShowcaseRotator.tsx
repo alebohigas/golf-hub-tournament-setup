@@ -26,6 +26,7 @@ import Showcase300Slide from '@/components/showcase/slides/Showcase300Slide';
 import MejorScoreSlide from '@/components/showcase/slides/MejorScoreSlide';
 import BracketSlide from '@/components/showcase/slides/BracketSlide';
 import PuttCalificadosSlide from '@/components/showcase/slides/PuttCalificadosSlide';
+import MatchPlaySlide from '@/components/showcase/slides/MatchPlaySlide';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getTournamentUrl, POLL_SLOW } from '@/config/api';
@@ -56,6 +57,10 @@ const renderSlide = (id: string) => {
   }
   if (kind === 'qual') {
     return <PuttCalificadosSlide sexo={parts[0] as 'M' | 'F'} />;
+  }
+  if (kind === 'matchplay') {
+    // El catid puede contener ':' internos — recomponemos juntando las partes.
+    return <MatchPlaySlide catid={parts.join(':')} />;
   }
   return (
     <div className="max-w-4xl mx-auto p-6 rounded bg-card text-muted-foreground text-center">
