@@ -67,11 +67,19 @@ const roundLabel = (fromEnd: number) => {
  */
 const buildFullRounds = (matches: BracketMatch[]): (BracketMatch | null)[][] => {
   if (!matches.length) return [];
-  const maxOff = Math.max(...matches.map(m => offset(m.matchId)));
-  const size = nextPow2(maxOff + 1); // 8/16/32/...
+  // Normalizamos por el offset mínimo: las categorías de repechaje (-B/-C)
+  // arrancan típicamente en match 109 (sin octavos), por lo que con el
+  // offset crudo aparecerían rondas vacías al inicio ("Octavos por definir").
+  // Al restar (minOff - 1) hacemos que el primer match real caiga en el
+  // slot 1, y el tamaño del bracket se calcula sobre los matches existentes.
+  const offs = matches.map(m => offset(m.matchId));
+  const minOff = Math.min(...offs);
+  const norm = (o: number) => o - minOff + 1;
+  const maxN = Math.max(...offs.map(norm));
+  const size = nextPow2(maxN + 1); // 8/16/32/...
   const totalRounds = Math.log2(size);
   const base = matches[0].matchId >= 200 ? 200 : 100; // D1=100, D2=200
-  const byOff = new Map(matches.map(m => [offset(m.matchId), m]));
+  const byOff = new Map(matches.map(m => [norm(offset(m.matchId)), m]));
   const rounds: (BracketMatch | null)[][] = [];
   let start = 1;
   let perRound = size / 2;
@@ -229,9 +237,19 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const rounds = buildFullRounds(matches);
   const totalRounds = rounds.length;
   // Si ≥3 rondas, las últimas 2 (semis + final) van a Gran Final bilateral.
+  // Brackets cortos (≤3 rondas, típicos de categorías -B / -C / Scramble que
+  // no tienen octavos) se renderizan COMPLETAMENTE bilaterales: las rondas
+  // previas se reparten mitad/mitad en columnas a izquierda y derecha que
+  // convergen hacia el centro (Final). Brackets largos mantienen el layout
+  // tradicional de columnas + Gran Final.
   const hasGrandFinal = totalRounds >= 3;
+  const fullyBilateral = hasGrandFinal && totalRounds <= 3;
   const groupRoundsCount = hasGrandFinal ? totalRounds - 2 : totalRounds;
-  const groupRounds = rounds.slice(0, groupRoundsCount);
+  const groupRounds = fullyBilateral ? [] : rounds.slice(0, groupRoundsCount);
+  // Rondas previas (cuartos, octavos…) que irán dentro del layout bilateral.
+  const bilateralExtraRounds = fullyBilateral
+    ? rounds.slice(0, totalRounds - 2)
+    : [];
   const semisRound = hasGrandFinal ? rounds[totalRounds - 2] : null;
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
   const finalMatch = finalRound?.[0] ?? null;
@@ -288,6 +306,32 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
 
           <div className="overflow-x-auto pb-4">
             <div className="flex items-stretch justify-center gap-4 min-w-max px-2">
+              {/* Columnas extra izquierda (cuartos, etc.) — primera mitad */}
+              {bilateralExtraRounds.map((rndMatches, idx) => {
+                const fromEnd = totalRounds - idx; // 3 → Cuartos, etc.
+                const half = Math.ceil(rndMatches.length / 2);
+                const leftHalf = rndMatches.slice(0, half);
+                return (
+                  <div key={`bl-${idx}`} className="flex flex-col gap-3 min-w-[220px]">
+                    <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
+                      {roundLabel(fromEnd)}
+                    </h4>
+                    <div className="flex flex-col gap-3 justify-around flex-1">
+                      {leftHalf.map((m, i) => (
+                        <MatchCard
+                          key={m?.matchId ?? `blh-${idx}-${i}`}
+                          match={m}
+                          admin={admin}
+                          onSetWinner={onSetWinner}
+                          onReset={onReset}
+                          busy={!!m && busyMatchId === m.matchId}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
               {/* Semifinal izquierda */}
               <div className="flex flex-col gap-3 min-w-[220px]">
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
@@ -335,6 +379,34 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                   />
                 </div>
               </div>
+
+              {/* Columnas extra derecha (cuartos, etc.) — segunda mitad */}
+              {bilateralExtraRounds.map((rndMatches, idx) => {
+                const fromEnd = totalRounds - idx;
+                const half = Math.ceil(rndMatches.length / 2);
+                const rightHalf = rndMatches.slice(half);
+                // Para que cuartos quede "afuera" de semis, invertimos el
+                // orden visual: la ronda más temprana queda más a la derecha.
+                return (
+                  <div key={`br-${idx}`} className="flex flex-col gap-3 min-w-[220px]">
+                    <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
+                      {roundLabel(fromEnd)}
+                    </h4>
+                    <div className="flex flex-col gap-3 justify-around flex-1">
+                      {rightHalf.map((m, i) => (
+                        <MatchCard
+                          key={m?.matchId ?? `brh-${idx}-${i}`}
+                          match={m}
+                          admin={admin}
+                          onSetWinner={onSetWinner}
+                          onReset={onReset}
+                          busy={!!m && busyMatchId === m.matchId}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
