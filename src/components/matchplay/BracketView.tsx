@@ -18,7 +18,7 @@
  */
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crown, RotateCcw, Trophy, User2 } from 'lucide-react';
+import { Crown, RotateCcw, Trophy, User2, Medal, Award } from 'lucide-react';
 import { type BracketMatch } from '@/hooks/useMatchPlay';
 
 interface BracketViewProps {
@@ -34,6 +34,51 @@ interface BracketViewProps {
 
 /** Devuelve el offset interno del match (1..N-1) sin el centenar D1/D2. */
 const offset = (mid: number) => mid % 100;
+
+/**
+ * Separa el "match por tercer lugar" del bracket principal.
+ *
+ * Los matches regulares de un bracket de tamaño N (potencia de 2) ocupan
+ * exactamente N-1 offsets CONTIGUOS empezando en el menor offset (1 para
+ * cuadros principales, o el offset inicial para repechajes -B / -C).
+ *
+ * El "3er lugar" se asigna manualmente con un matchx NO consecutivo (por
+ * ejemplo 199, 150, 195, etc.), así que cualquier match cuyo offset caiga
+ * fuera de la corrida contigua de tamaño 2^k - 1 se trata como 3er lugar.
+ *
+ * Devuelve `{ bracket, thirdPlace }`. Si no hay extras, `thirdPlace` es null.
+ */
+const splitThirdPlace = (
+  matches: BracketMatch[]
+): { bracket: BracketMatch[]; thirdPlace: BracketMatch | null } => {
+  if (!matches.length) return { bracket: matches, thirdPlace: null };
+  const sortedOffs = [...new Set(matches.map(m => offset(m.matchId)))].sort((a, b) => a - b);
+  const minOff = sortedOffs[0];
+  // Corrida contigua desde minOff.
+  let runLen = 0;
+  for (let i = 0; i < sortedOffs.length; i++) {
+    if (sortedOffs[i] === minOff + i) runLen++;
+    else break;
+  }
+  // Mayor N ≤ runLen tal que (N+1) es potencia de 2.
+  let N = 1;
+  while (N * 2 + 1 <= runLen) N = N * 2 + 1;
+  const inBracket = new Set<number>();
+  for (let i = 0; i < N; i++) inBracket.add(minOff + i);
+  const bracket: BracketMatch[] = [];
+  const extras: BracketMatch[] = [];
+  for (const m of matches) {
+    (inBracket.has(offset(m.matchId)) ? bracket : extras).push(m);
+  }
+  // El primer extra es el match por 3er lugar (en la práctica sólo hay uno).
+  return { bracket, thirdPlace: extras[0] ?? null };
+};
+
+/** Devuelve el nombre del lado perdedor (o null si no hay ganador). */
+const loserOfMatch = (m: BracketMatch | null): string | null => {
+  if (!m || m.winner == null) return null;
+  return String(m.winner) === '1' ? m.player2.name : m.player1.name;
+};
 
 /**
  * Siguiente potencia de 2 ≥ n.
@@ -234,7 +279,9 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
     );
   }
 
-  const rounds = buildFullRounds(matches);
+  // Aparta el match por 3er lugar (matchx no contiguo) antes de calcular rondas.
+  const { bracket: bracketMatches, thirdPlace } = splitThirdPlace(matches);
+  const rounds = buildFullRounds(bracketMatches);
   const totalRounds = rounds.length;
   // Si ≥3 rondas, las últimas 2 (semis + final) van a Gran Final bilateral.
   // Brackets cortos (≤3 rondas, típicos de categorías -B / -C / Scramble que
@@ -254,6 +301,16 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
   const finalMatch = finalRound?.[0] ?? null;
   const championName = championOfMatch(finalMatch ?? null);
+  const runnerUpName = loserOfMatch(finalMatch ?? null);
+  const thirdPlaceName = championOfMatch(thirdPlace);
+
+  // Podio: sólo se muestra si hay al menos un ganador definido.
+  const podium: { place: 1 | 2 | 3; name: string | null; label: string; color: string; Icon: typeof Trophy }[] = [
+    { place: 1, name: championName,   label: '1er Lugar',  color: 'bg-yellow-400 text-yellow-950 ring-yellow-500',  Icon: Trophy },
+    { place: 2, name: runnerUpName,   label: '2do Lugar',  color: 'bg-slate-300 text-slate-900 ring-slate-400',     Icon: Medal },
+    { place: 3, name: thirdPlaceName, label: '3er Lugar',  color: 'bg-amber-600 text-amber-50 ring-amber-700',      Icon: Award },
+  ];
+  const showPodium = podium.some(p => p.name);
 
   return (
     <div className="space-y-8">
@@ -408,6 +465,50 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 );
               })}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ Match por 3er Lugar (matchx no consecutivo) ============ */}
+      {thirdPlace && (
+        <section className="space-y-3 border-t border-border/60 pt-6">
+          <h3 className="text-center text-lg font-bold uppercase tracking-wide text-amber-700 flex items-center justify-center gap-2">
+            <Award className="h-5 w-5" /> Match por 3er Lugar
+          </h3>
+          <div className="flex justify-center">
+            <div className="min-w-[280px] max-w-sm w-full">
+              <MatchCard
+                match={thirdPlace}
+                admin={admin}
+                onSetWinner={onSetWinner}
+                onReset={onReset}
+                busy={busyMatchId === thirdPlace.matchId}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ Podio horizontal (oro/plata/bronce) ============ */}
+      {showPodium && (
+        <section className="pt-4">
+          <div className="flex flex-wrap justify-center items-stretch gap-3">
+            {podium.map(({ place, name, label, color, Icon }) => (
+              <div
+                key={place}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg ring-2 shadow-sm min-w-[200px] ${color} ${
+                  name ? '' : 'opacity-40'
+                }`}
+              >
+                <Icon className="h-6 w-6 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wide opacity-80">{label}</div>
+                  <div className="font-bold truncate">
+                    {name || <span className="italic font-normal">por definir</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
