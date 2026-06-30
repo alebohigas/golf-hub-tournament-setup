@@ -67,7 +67,9 @@ const MatchPlay = () => {
                   Selecciona una categoría para ver su bracket.
                 </p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
+              {/* Grid de categorías: en móvil 2 columnas con gap reducido y padding lateral
+                  para evitar que la segunda columna quede cortada por el contenedor. */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 px-2 sm:px-0 max-w-5xl mx-auto">
                 {categories.map(cat => (
                   <Card
                     key={cat.categoryId}
