@@ -125,10 +125,11 @@ export const useSetMatchWinner = () => {
   const { session } = useStaffAuth();
   return useMutation({
     mutationFn: async (vars: {
-      matchid: number;
-      ganador: number;
+      catid: string | number;
+      matchx: number;
+      side: 1 | 2;
       hoyo?: number | null;
-      resultado?: string;
+      fecha?: string | null;
     }) => {
       const res = await fetch(`${API_BASE_URL}/matchplay_admin.php?action=set_winner`, {
         method: 'POST',
@@ -148,7 +149,7 @@ export const useResetMatch = () => {
   const qc = useQueryClient();
   const { session } = useStaffAuth();
   return useMutation({
-    mutationFn: async (vars: { matchid: number }) => {
+    mutationFn: async (vars: { catid: string | number; matchx: number }) => {
       const res = await fetch(`${API_BASE_URL}/matchplay_admin.php?action=reset_match`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
