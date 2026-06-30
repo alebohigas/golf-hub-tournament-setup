@@ -20,15 +20,20 @@ $tipoedExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'tipoed'");
 $tipoedSel = ($tipoedExists && $tipoedExists->num_rows > 0) ? 'c.tipoed' : "NULL AS tipoed";
 
 /**
- * Detecta si la tabla `eliminacion_directa` existe. En esquemas legacy sin
- * match play esta tabla puede no existir y rompería el subquery.
+ * Conteo de matches. En el esquema legacy de Speitour los matches viven en
+ * las vistas `v_equipo_ed_par` (parejas) y `v_equipo_ed` (individual), con
+ * 2 filas por match agrupadas por `matchx`. Usamos la primera que exista.
+ * Si ninguna existe devolvemos 0 sin romper la query principal.
  */
-$edExists = $conn->query("SHOW TABLES LIKE 'eliminacion_directa'");
-$hasED = ($edExists && $edExists->num_rows > 0);
-$matchCountSel = $hasED
-    ? "(SELECT COUNT(*) FROM eliminacion_directa e
-          WHERE e.torneoid    = c.torneo_id
-            AND e.categoriaid = c.categoria_id) AS matchCount"
+$viewName = null;
+foreach (['v_equipo_ed_par', 'v_equipo_ed'] as $vw) {
+    $chk = $conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($vw) . "'");
+    if ($chk && $chk->num_rows > 0) { $viewName = $vw; break; }
+}
+$matchCountSel = $viewName
+    ? "(SELECT COUNT(DISTINCT v.matchx) FROM $viewName v
+          WHERE v.torneoid    = c.torneo_id
+            AND v.categoriaid = c.categoria_id) AS matchCount"
     : "0 AS matchCount";
 
 /**
