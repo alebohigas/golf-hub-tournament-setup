@@ -9,7 +9,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { menuConfig, MenuItem } from '@/data/mockData';
 import { LayoutMode, ColumnCount } from '@/components/admin/AdminLayoutSettings';
 import { MenuGroup } from '@/components/admin/AdminMenuGroups';
-import { clearSuperAdminPassword, validateSuperAdminPassword } from '@/lib/superAdminAuth';
+import { clearSuperAdminPassword, hasRememberedSuperAdminPassword, validateSuperAdminPassword } from '@/lib/superAdminAuth';
 
 // ============= Types =============
 
@@ -137,7 +137,10 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
 
   // Admin session state
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+    // Superadmin writes require the real password in this tab's sessionStorage.
+    // Old localStorage-only sessions are intentionally ignored to avoid 401s.
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true' && hasRememberedSuperAdminPassword();
   });
 
   // Page notes state
@@ -210,9 +213,15 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     localStorage.setItem(STORAGE_KEY, JSON.stringify(visibilitySettings));
   }, [visibilitySettings]);
 
-  // Persist admin session to localStorage
+  // Persist admin session only for this browser tab; password lives in sessionStorage too.
   useEffect(() => {
-    localStorage.setItem(ADMIN_SESSION_KEY, isAdmin ? 'true' : 'false');
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    if (isAdmin && !hasRememberedSuperAdminPassword()) {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      setIsAdmin(false);
+      return;
+    }
+    sessionStorage.setItem(ADMIN_SESSION_KEY, isAdmin ? 'true' : 'false');
   }, [isAdmin]);
 
   // Persist page notes to localStorage
@@ -274,6 +283,7 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
    */
   const logoutAdmin = () => {
     setIsAdmin(false);
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
     clearSuperAdminPassword();
   };
 

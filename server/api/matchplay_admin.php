@@ -36,15 +36,26 @@ function read_body_json() {
 
 /** Auth: superadmin password ó staff área brackets. Aborta con 401 si falla. */
 function require_brackets_auth($conn, $body) {
-    if (isset($body['password']) && is_superadmin_password($conn, $body['password'])) return;
-    if (staff_check_area($conn, $body, 'brackets')) return;
-    json_error('Unauthorized — admin password required', 401);
+    $hasPassword = isset($body['password']) && (string)$body['password'] !== '';
+    $hasStaffToken = !empty($body['staff_token']) || !empty($_GET['staff_token']) || !empty($_SERVER['HTTP_AUTHORIZATION']);
+
+    if ($hasPassword && is_superadmin_password($conn, $body['password'])) return ['auth' => 'superadmin'];
+
+    $staff = staff_check_area($conn, $body, 'brackets');
+    if ($staff) return ['auth' => 'staff', 'usuario' => $staff['usuario'] ?? ''];
+
+    error_log('[matchplay_admin] Unauthorized brackets write. has_password=' . ($hasPassword ? '1' : '0') . ' has_staff_token=' . ($hasStaffToken ? '1' : '0'));
+    json_error('Unauthorized — vuelve a iniciar sesión como superadmin', 401, [
+        'has_password' => $hasPassword,
+        'has_staff_token' => $hasStaffToken,
+        'hint' => 'Si /admin seguía abierto por localStorage, cierra sesión y entra otra vez para capturar la contraseña real.',
+    ]);
 }
 
 $action = $_GET['action'] ?? '';
 $body   = read_body_json();
 
-require_brackets_auth($conn, $body);
+$authInfo = require_brackets_auth($conn, $body);
 
 $torneoid = (int)($body['torneoid'] ?? 0);
 if ($torneoid <= 0) json_error('torneoid required', 400);

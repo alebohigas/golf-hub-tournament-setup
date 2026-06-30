@@ -22,6 +22,12 @@ export const getSuperAdminPassword = (): string => {
   return sessionStorage.getItem(SUPERADMIN_PASSWORD_SESSION_KEY) || DEFAULT_SUPERADMIN_PASSWORD;
 };
 
+/** True only when the current tab really has the superadmin password captured. */
+export const hasRememberedSuperAdminPassword = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return !!sessionStorage.getItem(SUPERADMIN_PASSWORD_SESSION_KEY);
+};
+
 /** Remember the password only for the current browser session. */
 export const rememberSuperAdminPassword = (password: string): void => {
   if (typeof window === 'undefined') return;
