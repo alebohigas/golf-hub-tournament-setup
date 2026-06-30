@@ -381,8 +381,8 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
             )}
           </div>
 
-          <div className="overflow-x-auto pb-4">
-            <div className="flex items-stretch justify-center gap-4 min-w-max px-2">
+          <div className="pb-4">
+            <div className="flex items-stretch justify-center gap-3 md:gap-4 px-2 w-full">
               {/* Columnas extra izquierda (cuartos, etc.) — primera mitad */}
               {bilateralExtraRounds.map((rndMatches, idx) => {
                 const fromEnd = totalRounds - idx; // 3 → Cuartos, etc.
