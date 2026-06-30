@@ -30,6 +30,11 @@ interface BracketViewProps {
   busyMatchId?: number | null;
 }
 
+// Ancho mínimo de cada columna del bracket en pantallas chicas.
+// La vista móvil debe comportarse como escritorio con scroll horizontal,
+// no comprimir tarjetas ni cortar nombres de jugadores/equipos.
+const BRACKET_COLUMN_MIN_WIDTH = 320;
+
 // ============= helpers de tamaño / rondas =================================
 
 /** Devuelve el offset interno del match (1..N-1) sin el centenar D1/D2. */
@@ -190,14 +195,14 @@ const Row = ({
         winner ? 'bg-primary/10' : ''
       }`}
     >
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-start gap-2 min-w-0 flex-1">
         {player.clubLogo ? (
-          <img src={player.clubLogo} alt={player.club || ''} className="h-5 w-5 object-contain shrink-0" loading="lazy" />
+          <img src={player.clubLogo} alt={player.club || ''} className="h-5 w-5 object-contain shrink-0 mt-0.5" loading="lazy" />
         ) : (
-          <User2 className="h-4 w-4 text-muted-foreground shrink-0" />
+          <User2 className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
         )}
         <span
-          className={`truncate text-sm ${
+          className={`text-sm leading-snug whitespace-normal break-words ${
             winner ? 'font-bold text-primary' : ''
           }`}
         >
@@ -206,7 +211,7 @@ const Row = ({
       </div>
       {/* Badge G/- a la derecha (como /competicion). */}
       <span
-        className={`text-sm font-bold tabular-nums w-6 text-center ${
+        className={`text-sm font-bold tabular-nums w-6 text-center shrink-0 ${
           winner ? 'text-primary' : 'text-muted-foreground'
         }`}
       >
@@ -251,15 +256,15 @@ const MatchCard = ({
   return (
     <Card className="overflow-hidden divide-y divide-border">
       <div className="px-2 py-1 text-[10px] text-muted-foreground bg-muted/40 flex flex-col gap-0.5">
-        <div className="flex justify-between items-center gap-2">
-          <span className="font-semibold">
+        <div className="flex flex-wrap justify-between items-center gap-x-2 gap-y-0.5">
+          <span className="font-semibold leading-snug whitespace-normal break-words">
             Match {match.matchId}
             {match.hole ? ` · Hoyo ${match.hole}` : ''}
           </span>
-          {match.result && <span className="font-medium">{match.result}</span>}
+          {match.result && <span className="font-medium shrink-0">{match.result}</span>}
         </div>
         {match.fecha && (
-          <div className="text-[10px] text-muted-foreground/80">{match.fecha}</div>
+          <div className="text-[10px] text-muted-foreground/80 leading-snug whitespace-normal break-words">{match.fecha}</div>
         )}
       </div>
       <Row match={match} side={1} admin={admin} busy={busy}
@@ -343,7 +348,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
         <div className="pb-4 overflow-x-auto -mx-2 md:mx-0">
           <div
             className="flex gap-3 md:gap-4 px-2 items-stretch w-full md:min-w-0"
-            style={{ minWidth: `${groupRounds.length * 180}px` }}
+            style={{ minWidth: `${groupRounds.length * BRACKET_COLUMN_MIN_WIDTH}px` }}
           >
             {groupRounds.map((roundMatches, rIdx) => {
               const fromEnd = totalRounds - rIdx;
@@ -401,7 +406,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
           <div className="pb-4 overflow-x-auto -mx-2 md:mx-0">
             <div
               className="flex items-stretch justify-center gap-3 md:gap-4 px-2 w-full md:min-w-0"
-              style={{ minWidth: `${(bilateralExtraRounds.length * 2 + 3) * 180}px` }}
+              style={{ minWidth: `${(bilateralExtraRounds.length * 2 + 3) * BRACKET_COLUMN_MIN_WIDTH}px` }}
             >
               {/* Columnas extra izquierda (cuartos, etc.) — primera mitad */}
               {bilateralExtraRounds.map((rndMatches, idx) => {
