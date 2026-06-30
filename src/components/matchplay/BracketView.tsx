@@ -289,14 +289,15 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   // previas se reparten mitad/mitad en columnas a izquierda y derecha que
   // convergen hacia el centro (Final). Brackets largos mantienen el layout
   // tradicional de columnas + Gran Final.
-  const hasGrandFinal = totalRounds >= 3;
-  const fullyBilateral = hasGrandFinal && totalRounds <= 3;
+  // Sólo brackets LARGOS (≥4 rondas, ej. 16+ jug) usan la Gran Final
+  // bilateral. Brackets cortos (cuartos→semis→final, típicos de -B/-C/Scramble)
+  // se renderizan en columnas izquierda→derecha como cualquier ronda regular
+  // porque el layout convergente se ve muy apretado en pantallas chicas.
+  const hasGrandFinal = totalRounds >= 4;
+  const fullyBilateral = false;
   const groupRoundsCount = hasGrandFinal ? totalRounds - 2 : totalRounds;
-  const groupRounds = fullyBilateral ? [] : rounds.slice(0, groupRoundsCount);
-  // Rondas previas (cuartos, octavos…) que irán dentro del layout bilateral.
-  const bilateralExtraRounds = fullyBilateral
-    ? rounds.slice(0, totalRounds - 2)
-    : [];
+  const groupRounds = rounds.slice(0, groupRoundsCount);
+  const bilateralExtraRounds: (BracketMatch | null)[][] = [];
   const semisRound = hasGrandFinal ? rounds[totalRounds - 2] : null;
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
   const finalMatch = finalRound?.[0] ?? null;
