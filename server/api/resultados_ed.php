@@ -60,7 +60,20 @@ function load_bracket_matches($conn, $cid, $tid, $isParejas) {
 }
 
 $result = load_bracket_matches($conn, $cid, $tid, $isParejas);
-if (!$result) { json_error('Query failed: ' . $conn->error); }
+if (!$result) {
+    // Si ni la vista ni la tabla existen, devolvemos bracket vacío en vez de 500.
+    json_response([
+        'categoryId'   => $catInfo['categoria_id'],
+        'categoryName' => $catInfo['categoria'],
+        'shortName'    => $catInfo['abreviatura'],
+        'system'       => $catInfo['sistema'],
+        'format'       => $catInfo['formato'],
+        'tipoed'       => $catInfo['tipoed'],
+        'isParejas'    => $isParejas,
+        'matches'      => [], 'd1' => [], 'd2' => [],
+        '_note'        => 'eliminacion_directa table/view not available'
+    ]);
+}
 
 /** D1 = matchid 1xx (Winners), D2 = matchid 2xx (Consolación/Losers). */
 $d1 = [];
