@@ -35,10 +35,17 @@ interface BracketViewProps {
 /** Devuelve el offset interno del match (1..N-1) sin el centenar D1/D2. */
 const offset = (mid: number) => mid % 100;
 
-/** Siguiente potencia de 2 ≥ n. */
+/**
+ * Siguiente potencia de 2 ≥ n.
+ * BUG previo: usaba `s - 1 < n`, lo que para n ya potencia de 2 (ej. 16)
+ * devolvía el doble (32). Eso hacía que con un bracket completo de 16 jug
+ * (matchx 101..115 → maxOff=15, n=16) el tamaño se detectara como 32 y
+ * todos los matches cayeran en la primera columna, dejando octavos/cuartos
+ * vacíos. La forma correcta es `s < n`.
+ */
 const nextPow2 = (n: number) => {
-  let s = 2;
-  while (s - 1 < n) s *= 2;
+  let s = 1;
+  while (s < n) s *= 2;
   return s;
 };
 
