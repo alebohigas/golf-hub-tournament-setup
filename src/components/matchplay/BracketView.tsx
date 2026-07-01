@@ -432,49 +432,6 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
         </section>
       )}
 
-      {/* ============ Match por 3er Lugar (matchx no consecutivo) ============ */}
-      {thirdPlace && (
-        <section className="space-y-3 border-t border-border/60 pt-6">
-          <h3 className="text-center text-lg font-bold uppercase tracking-wide text-amber-700 flex items-center justify-center gap-2">
-            <Award className="h-5 w-5" /> Match por 3er Lugar
-          </h3>
-          <div className="flex justify-center">
-            <div className="min-w-[280px] max-w-sm w-full">
-              <MatchCard
-                match={thirdPlace}
-                admin={admin}
-                onSetWinner={onSetWinner}
-                onReset={onReset}
-                busy={busyMatchId === thirdPlace.matchId}
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ============ Podio horizontal (oro/plata/bronce) ============ */}
-      {showPodium && (
-        <section className="pt-4">
-          <div className="flex flex-wrap justify-center items-stretch gap-3">
-            {podium.map(({ place, name, label, color, Icon }) => (
-              <div
-                key={place}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg ring-2 shadow-sm min-w-[200px] ${color} ${
-                  name ? '' : 'opacity-40'
-                }`}
-              >
-                <Icon className="h-6 w-6 shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wide opacity-80">{label}</div>
-                  <div className="font-bold whitespace-normal break-words">
-                    {name || <span className="italic font-normal">por definir</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 };
