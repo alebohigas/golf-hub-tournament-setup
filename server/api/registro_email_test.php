@@ -130,8 +130,10 @@ if (!empty($SMTP_HOST)) {
 $report['smtp_connect'] = $connTest;
 
 // -------- 5) Envío real (sólo POST con "to") --------
-if ($isPost) {
-    $to = trim((string)($body['to'] ?? ''));
+// Ahora también soporta GET: ?password=...&to=tucorreo@gmail.com
+$toParam = trim((string)($body['to'] ?? $_GET['to'] ?? ''));
+if ($toParam !== '') {
+    $to = $toParam;
     if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
         $report['send_test'] = ['ok' => false, 'error' => 'Falta "to" (correo destino válido) en el body JSON'];
     } else {
