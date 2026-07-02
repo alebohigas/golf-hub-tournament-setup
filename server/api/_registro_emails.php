@@ -120,7 +120,9 @@ function send_registration_ack_email($conn, $registroId) {
         . ($catName ? "Categoría: $catName\n" : '')
         . ($torneoName ? "Torneo: $torneoName\n" : '');
 
-    $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt);
+    // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
+    $ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+    $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
     if (!$res['ok']) {
         error_log('[registro_ack_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
     }
@@ -189,7 +191,9 @@ function send_comprobante_received_email($conn, $registroId) {
         . "El comité validará tu pago y te confirmaremos tu registro en breve.\n"
         . ($torneoName ? "Torneo: $torneoName\n" : '');
 
-    $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt);
+    // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
+    $ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+    $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
     if (!$res['ok']) {
         error_log('[registro_comprobante_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
     }
