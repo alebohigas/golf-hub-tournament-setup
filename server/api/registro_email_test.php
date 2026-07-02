@@ -24,6 +24,7 @@
  */
 require_once 'config.php';
 require_once '_smtp.php';
+require_once '_registro_emails.php';
 
 const REGISTROS_PASSWORD = 'registros2025';
 
@@ -128,6 +129,56 @@ if (!empty($SMTP_HOST)) {
     }
 }
 $report['smtp_connect'] = $connTest;
+
+// -------- 4.5) Diagnóstico del flujo de pre-registro real --------
+// Comprueba metadata de `registro` (columnas) y, si pasas ?regid=NN,
+// invoca send_registration_ack_email() con captura de error_log para
+// ver EXACTAMENTE por qué el correo no se manda desde el formulario.
+$regDiag = ['registro_table' => null];
+if ($conn) {
+    $cr = @$conn->query("SHOW COLUMNS FROM registro");
+    if ($cr) {
+        $cols = [];
+        while ($rr = $cr->fetch_assoc()) $cols[] = $rr['Field'];
+        $cr->free();
+        $regDiag['registro_table'] = [
+            'has_id'         => in_array('id', $cols, true),
+            'has_reg_id'     => in_array('reg_id', $cols, true),
+            'has_reg_correo' => in_array('reg_correo', $cols, true),
+            'torneo_col'     => (function($cols) {
+                foreach (['reg_id_torneo','torneo_id','id_torneo','idtorneo','torneoid'] as $c) {
+                    if (in_array($c, $cols, true)) return $c;
+                }
+                return null;
+            })($cols),
+        ];
+    } else {
+        $regDiag['registro_table_error'] = $conn->error;
+    }
+}
+$regId = (int)($_GET['regid'] ?? ($body['regid'] ?? 0));
+if ($regId > 0) {
+    // Capturar error_log en memoria durante la llamada.
+    $tmp = tempnam(sys_get_temp_dir(), 'ack');
+    $prevErr = ini_set('error_log', $tmp);
+    $prevDisp = ini_set('display_errors', '0');
+    // Verificar el row antes de llamar
+    $pkCol = $regDiag['registro_table']['has_id'] ? 'id' : 'reg_id';
+    $rr = @$conn->query("SELECT $pkCol AS id, reg_correo, reg_nombre, reg_apellido FROM registro WHERE $pkCol = $regId LIMIT 1");
+    $rowInfo = $rr ? $rr->fetch_assoc() : null;
+    if ($rr) $rr->free();
+    $regDiag['row_lookup'] = $rowInfo ?: '(row not found)';
+    // Contar cuentas antes/después para confirmar que sí intentó enviar
+    $before = (int)($conn->query("SELECT SUM(numcorreos) s FROM cuentas_correo")->fetch_assoc()['s'] ?? 0);
+    send_registration_ack_email($conn, $regId);
+    $after = (int)($conn->query("SELECT SUM(numcorreos) s FROM cuentas_correo")->fetch_assoc()['s'] ?? 0);
+    $regDiag['numcorreos_delta'] = $after - $before;
+    ini_set('error_log', $prevErr);
+    ini_set('display_errors', $prevDisp);
+    $regDiag['error_log_captured'] = @file_get_contents($tmp) ?: '(sin errores)';
+    @unlink($tmp);
+}
+$report['registro_flow'] = $regDiag;
 
 // -------- 5) Envío real (sólo POST con "to") --------
 // Ahora también soporta GET: ?password=...&to=tucorreo@gmail.com
