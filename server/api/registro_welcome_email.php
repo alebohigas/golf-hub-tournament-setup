@@ -143,7 +143,9 @@ $textAlt = "Hola $nombre,\n\n"
     . "Folio: #$folio\n\n"
     . "Le esperamos en el campo. ¡Mucho éxito!\n";
 
-$res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt);
+// CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
+$ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+$res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
 if (!$res['ok']) {
     json_error('No se pudo enviar el correo: ' . ($res['error'] ?? 'desconocido'), 500);
 }
