@@ -101,6 +101,44 @@ $arso2   = csv_to_int_array($tarjRow['arsopar'] ?? '');
 $arsa2   = csv_to_int_array($tarjRow['arsapar'] ?? '');
 $arvtj2  = csv_to_int_array($tarjRow['arvtjpar'] ?? '');
 
+/**
+ * ============= Override HCP strokes usando jugadores ORIGINALES =============
+ * En torneos Match Play/Scramble, los jugadores en `v_jugadores_parejas` son
+ * CLONES (numjugador termina en "-C"). Sus columnas `ventajasjug` / `arvtjpar`
+ * en la tarjeta quedan con la ventaja del clon (index bajo), no la real del
+ * jugador original. Para la fila HCP de la tarjeta necesitamos la ventaja
+ * REAL, así que la calculamos in-vivo con las funciones de la BD
+ * (`f_hdccamponeto` + `f_getventajajug`) usando el `indexjgo` y `teesalidaid`
+ * del jugador ORIGINAL (mismo `numjugador` sin el sufijo "-C" y mismo torneo).
+ */
+$campoid_row = (int)($salRow['campoid'] ?? 0);
+$pct         = (float)($catInfo['porcentaje'] ?? 100);
+
+function fetch_original_ventajas($conn, $clonId, $torneoid, $campoid, $pct) {
+    $cid_esc = esc($conn, $clonId);
+    $tid_esc = esc($conn, $torneoid);
+    $cmp_esc = esc($conn, $campoid);
+    $pct_esc = esc($conn, $pct);
+    $row = query_one($conn,
+        "SELECT f_getventajajug(
+                    f_hdccamponeto(orig.indexjgo, orig.teesalidaid, $cmp_esc, $pct_esc),
+                    $cmp_esc, orig.teesalidaid) AS csv
+         FROM jugadores clon
+         JOIN jugadores orig
+           ON orig.numjugador = TRIM(TRAILING '-C' FROM clon.numjugador)
+          AND orig.torneoid   = clon.torneoid
+         WHERE clon.id = $cid_esc AND clon.torneoid = $tid_esc
+         LIMIT 1");
+    return $row['csv'] ?? '';
+}
+
+if ($campoid_row > 0) {
+    $csv1 = fetch_original_ventajas($conn, $jugRow['jid1'], $torneoid, $campoid_row, $pct);
+    $csv2 = fetch_original_ventajas($conn, $jugRow['jid2'], $torneoid, $campoid_row, $pct);
+    if ($csv1) $arvtj1 = csv_to_int_array($csv1);
+    if ($csv2) $arvtj2 = csv_to_int_array($csv2);
+}
+
 /** Neto por hoyo (h1_a..h18_a) — score del equipo ya ajustado */
 $neto = [];
 for ($h = 1; $h <= 18; $h++) {
