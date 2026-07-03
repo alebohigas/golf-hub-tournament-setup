@@ -506,9 +506,10 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
       )}
 
       {/* ============ Podio (Campeón / Subcampeón / 3er lugar) ============
-          Se muestra sólo cuando hay campeón definido (final jugada). Si aún
-          no hay 3er lugar decidido, ese slot queda "— por definir —". */}
-      {championName && (
+          Sólo se muestra cuando está habilitado el match por 3er lugar y ya
+          hay campeón definido (final jugada). Si el 3er lugar aún no se ha
+          decidido, ese slot queda "— por definir —". */}
+      {championName && thirdPlaceMatch && (
         <section className="border-t-2 border-accent/50 pt-6">
           <h3 className="text-center text-lg font-bold text-accent flex items-center justify-center gap-2 mb-4">
             <Trophy className="h-5 w-5" /> Podio
