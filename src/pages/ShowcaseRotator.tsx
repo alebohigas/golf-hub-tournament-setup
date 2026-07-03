@@ -27,6 +27,7 @@ import MejorScoreSlide from '@/components/showcase/slides/MejorScoreSlide';
 import BracketSlide from '@/components/showcase/slides/BracketSlide';
 import PuttCalificadosSlide from '@/components/showcase/slides/PuttCalificadosSlide';
 import MatchPlaySlide from '@/components/showcase/slides/MatchPlaySlide';
+import ResultadosSlide from '@/components/showcase/slides/ResultadosSlide';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getTournamentUrl, POLL_SLOW } from '@/config/api';
@@ -61,6 +62,13 @@ const renderSlide = (id: string) => {
   if (kind === 'matchplay') {
     // El catid puede contener ':' internos — recomponemos juntando las partes.
     return <MatchPlaySlide catid={parts.join(':')} />;
+  }
+  if (kind === 'resultados') {
+    // Formato: resultados:<NETO|GROSS>:<catid con posibles ':'> — el scoringType
+    // va primero para poder recomponer el catid con parts.slice(1).join(':').
+    const scoring = (parts[0] === 'GROSS' ? 'GROSS' : 'NETO') as 'NETO' | 'GROSS';
+    const catid = parts.slice(1).join(':');
+    return <ResultadosSlide catid={catid} scoringType={scoring} />;
   }
   return (
     <div className="max-w-4xl mx-auto p-6 rounded bg-card text-muted-foreground text-center">
