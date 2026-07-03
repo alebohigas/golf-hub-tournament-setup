@@ -156,9 +156,9 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
 
           {/*
            * Fila hcp — golpes de ventaja por hoyo.
-           * - Go Go: se muestra la SUMA de p1Hcp + p2Hcp por hoyo (una sola
-           *   línea "hcp" del equipo) porque en Go Go / scrambles ambos
-           *   jugadores aportan handicap combinado por hoyo.
+           * - Go Go: se muestra `hcpTeam` (campo `tarjetas.ventajas`), que
+           *   es exactamente la fila hcp del legacy `tarjeta_gogo_handicap.php`
+           *   — la BD ya combinó las ventajas del equipo según el estilo.
            * - Bola Baja / Suma Scores: sólo p1 aquí; p2 tiene su propia fila
            *   hcp más abajo junto a su gross.
            */}
@@ -166,11 +166,11 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
             {chunk.map((h) => (
               <td key={h.hole} className="px-2 py-1 text-center text-muted-foreground">
-                {isGoGo ? (h.p1Hcp || 0) + (h.p2Hcp || 0) : h.p1Hcp}
+                {isGoGo ? h.hcpTeam : h.p1Hcp}
               </td>
             ))}
             <td className="px-2 py-1 text-center text-muted-foreground">
-              {isGoGo ? sum(chunk, 'p1Hcp') + sum(chunk, 'p2Hcp') : sum(chunk, 'p1Hcp')}
+              {isGoGo ? sum(chunk, 'hcpTeam') : sum(chunk, 'p1Hcp')}
             </td>
           </tr>
 
