@@ -18,7 +18,7 @@
  */
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crown, RotateCcw, Trophy, User2 } from 'lucide-react';
+import { Crown, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
 import { type BracketMatch } from '@/hooks/useMatchPlay';
 
 interface BracketViewProps {
@@ -34,6 +34,14 @@ interface BracketViewProps {
 // La vista móvil debe comportarse como escritorio con scroll horizontal,
 // no comprimir tarjetas ni cortar nombres de jugadores/equipos.
 const BRACKET_COLUMN_MIN_WIDTH = 320;
+
+/**
+ * Un match cuyo `matchId % 100 === 99` es un match POR 3ER LUGAR
+ * (matchx=199 en D1, matchx=299 en D2 si se llegara a usar). Se aparta
+ * ANTES de construir las rondas porque rompería la detección del tamaño
+ * del bracket (que espera offsets contiguos 1..N-1).
+ */
+const isThirdPlaceMatch = (m: BracketMatch): boolean => (m.matchId % 100) === 99;
 
 // ============= helpers de tamaño / rondas =================================
 
@@ -239,8 +247,12 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
     );
   }
 
-  // Aparta el match por 3er lugar (matchx no contiguo) antes de calcular rondas.
-  const rounds = buildFullRounds(matches);
+  // Aparta el match por 3er lugar (matchx=199) antes de calcular rondas.
+  // Si no se filtrara, su offset (99) haría que `nextPow2(maxOff+1)`
+  // sobredimensione el bracket y todas las columnas queden vacías.
+  const thirdPlaceMatch = matches.find(isThirdPlaceMatch) ?? null;
+  const mainMatches = matches.filter((m) => !isThirdPlaceMatch(m));
+  const rounds = buildFullRounds(mainMatches);
   const totalRounds = rounds.length;
   // Si ≥3 rondas, las últimas 2 (semis + final) van a Gran Final bilateral.
   // Brackets cortos (≤3 rondas, típicos de categorías -B / -C / Scramble que
@@ -261,6 +273,21 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
   const finalMatch = finalRound?.[0] ?? null;
   const championName = championOfMatch(finalMatch ?? null);
+
+  /**
+   * Nombre del subcampeón: el lado del match final que NO ganó. Sólo se
+   * calcula cuando ya hay campeón (el otro lado tenía necesariamente
+   * jugador asignado para que el match se hubiese jugado).
+   */
+  const runnerUpName: string | null = (() => {
+    if (!finalMatch || finalMatch.winner == null) return null;
+    return String(finalMatch.winner) === '1'
+      ? finalMatch.player2.name
+      : finalMatch.player1.name;
+  })();
+
+  /** Nombre del 3er lugar: ganador del match por 3er lugar. */
+  const thirdPlaceName = championOfMatch(thirdPlaceMatch);
 
   return (
     <div className="space-y-8">
@@ -432,6 +459,98 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
         </section>
       )}
 
+      {/* ============ Match por 3er lugar (sólo si existe la fila 199/299) ============ */}
+      {thirdPlaceMatch && (
+        <section className="space-y-3 border-t-2 border-amber-500/40 pt-6">
+          <div className="text-center">
+            <h3 className="text-lg font-bold text-amber-600 dark:text-amber-500 flex items-center justify-center gap-2">
+              <Medal className="h-5 w-5" /> Match por 3er lugar
+            </h3>
+          </div>
+          <div className="max-w-md mx-auto">
+            <MatchCard
+              match={thirdPlaceMatch}
+              admin={admin}
+              onSetWinner={onSetWinner}
+              onReset={onReset}
+              busy={busyMatchId === thirdPlaceMatch.matchId}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* ============ Podio (Campeón / Subcampeón / 3er lugar) ============
+          Se muestra sólo cuando hay campeón definido (final jugada). Si aún
+          no hay 3er lugar decidido, ese slot queda "— por definir —". */}
+      {championName && (
+        <section className="border-t-2 border-accent/50 pt-6">
+          <h3 className="text-center text-lg font-bold text-accent flex items-center justify-center gap-2 mb-4">
+            <Trophy className="h-5 w-5" /> Podio
+          </h3>
+          <div className="flex items-end justify-center gap-3 max-w-2xl mx-auto">
+            {/* 2do lugar (izquierda, block más bajo) */}
+            <PodiumSlot
+              place={2}
+              icon="silver"
+              name={runnerUpName}
+              heightClass="h-20"
+            />
+            {/* 1er lugar (centro, más alto) */}
+            <PodiumSlot
+              place={1}
+              icon="gold"
+              name={championName}
+              heightClass="h-28"
+            />
+            {/* 3er lugar (derecha, block más bajo aún) */}
+            <PodiumSlot
+              place={3}
+              icon="bronze"
+              name={thirdPlaceName}
+              heightClass="h-16"
+            />
+          </div>
+        </section>
+      )}
+
+    </div>
+  );
+};
+
+// ============= Podio ======================================================
+
+/**
+ * Slot individual del podio. `place` sólo define el label; el diseño (color,
+ * altura, icono) se pasa explícito para poder ordenar visualmente 2-1-3.
+ */
+const PodiumSlot = ({
+  place,
+  icon,
+  name,
+  heightClass,
+}: {
+  place: 1 | 2 | 3;
+  icon: 'gold' | 'silver' | 'bronze';
+  name: string | null;
+  heightClass: string;
+}) => {
+  const colorMap = {
+    gold:   { badge: 'bg-yellow-500 text-white', block: 'bg-yellow-500/20 border-yellow-500' },
+    silver: { badge: 'bg-slate-400 text-white',  block: 'bg-slate-400/20 border-slate-400' },
+    bronze: { badge: 'bg-amber-700 text-white',  block: 'bg-amber-700/20 border-amber-700' },
+  }[icon];
+  return (
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-2 max-w-[180px]">
+      <div className="text-center min-h-[3rem] flex items-center justify-center px-1">
+        <span className="text-sm font-semibold whitespace-normal break-words leading-tight">
+          {name || <span className="italic text-muted-foreground">— por definir —</span>}
+        </span>
+      </div>
+      <div className={`w-full ${heightClass} ${colorMap.block} border-2 rounded-t-md flex items-start justify-center pt-2`}>
+        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${colorMap.badge} font-bold text-lg shadow`}>
+          {place}
+        </span>
+      </div>
     </div>
   );
 };
