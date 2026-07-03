@@ -154,31 +154,21 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             <td className="px-2 py-1 text-center font-bold">{sum(chunk, 'p1SO')}</td>
           </tr>
 
-          {/*
-           * Fila hcp del jugador 1.
-           * En Go Go la tarjeta legacy muestra la SUMA de ventajas de ambos
-           * jugadores por hoyo (el estilo "A Go Go" reparte los strokes del
-           * equipo). En Bola Baja / Suma Scores mantenemos hcp individual
-           * por jugador (esta fila solo del J1; la del J2 va abajo).
-           */}
+          {/* Hcp jugador 1 */}
           <tr className="bg-muted/10">
             <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
             {chunk.map((h) => {
-              const val = isGoGo ? (h.p1Hcp || 0) + (h.p2Hcp || 0) : h.p1Hcp;
+              const used = getUsedFor(h).p1;
               return (
                 <td
                   key={h.hole}
                   className="px-2 py-1 text-center text-muted-foreground"
                 >
-                  {val}
+                  {h.p1Hcp}
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center text-muted-foreground">
-              {isGoGo
-                ? sum(chunk, 'p1Hcp') + sum(chunk, 'p2Hcp')
-                : sum(chunk, 'p1Hcp')}
-            </td>
+            <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p1Hcp')}</td>
           </tr>
 
           {/* Jugador 2 — sólo Bola Baja / Suma Scores (Go Go omite por replicar legacy). */}
@@ -258,26 +248,17 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             </button>
           </div>
 
-          {/*
-           * Bloque de nombres/logos de jugadores.
-           * En Go Go la tarjeta es una sola (equipo juega como una persona)
-           * por lo que solo mostramos J1 sin el "/" ni el segundo jugador —
-           * replicando el legacy. En Bola Baja / Suma Scores mostramos ambos.
-           */}
+          {/* Jugadores — nombres con logos */}
           <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               {player1.logo && <img src={player1.logo} alt={player1.club} className="h-6 w-auto" />}
               <span className="font-medium">{player1.name}</span>
             </div>
-            {showPartner && (
-              <>
-                <span className="text-muted-foreground">/</span>
-                <div className="flex items-center gap-2">
-                  {player2.logo && <img src={player2.logo} alt={player2.club} className="h-6 w-auto" />}
-                  <span className="font-medium">{player2.name}</span>
-                </div>
-              </>
-            )}
+            <span className="text-muted-foreground">/</span>
+            <div className="flex items-center gap-2">
+              {player2.logo && <img src={player2.logo} alt={player2.club} className="h-6 w-auto" />}
+              <span className="font-medium">{player2.name}</span>
+            </div>
           </div>
 
           {/* Secciones OUT / IN */}
@@ -286,25 +267,14 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             {renderSection(back9, 'IN')}
           </div>
 
-          {/*
-           * Totales al pie. Go Go: solo Gross del equipo (único registro) y
-           * Neto. Bola Baja / Suma Scores: J1, J2 y Neto agregado.
-           */}
+          {/* Totales */}
           <div className="flex justify-end items-baseline gap-6 mt-3 text-sm flex-wrap">
-            {isGoGo ? (
-              <span className="text-muted-foreground">
-                Gross: <strong className="text-foreground">{totals.player1.SO}</strong>
-              </span>
-            ) : (
-              <>
-                <span className="text-muted-foreground">
-                  J1: <strong className="text-foreground">{totals.player1.SO}</strong>
-                </span>
-                <span className="text-muted-foreground">
-                  J2: <strong className="text-foreground">{totals.player2.SO}</strong>
-                </span>
-              </>
-            )}
+            <span className="text-muted-foreground">
+              J1: <strong className="text-foreground">{totals.player1.SO}</strong>
+            </span>
+            <span className="text-muted-foreground">
+              J2: <strong className="text-foreground">{totals.player2.SO}</strong>
+            </span>
             <span className="text-muted-foreground">
               Pareja Neto: <strong className="text-primary font-bold">{totals.pair.SA}</strong>
             </span>
