@@ -465,6 +465,27 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
       )}
 
       {/* ============ Match por 3er lugar (sólo si existe la fila 199/299) ============ */}
+      {/* ============ Campeón (brackets cortos sin Gran Final) ============
+          En brackets de ≤3 rondas no se renderiza la sección Gran Final,
+          así que aquí replicamos el badge "Campeón: <Nombre>" en grande y
+          centrado — mismo estilo que en Gran Final — para que el ganador
+          quede destacado igual que en brackets grandes. */}
+      {!hasGrandFinal && championName && (
+        <section className="space-y-3 border-t-2 border-accent/50 pt-6">
+          <div className="text-center grid grid-cols-1 justify-items-center gap-4">
+            <h3 className="w-full text-2xl font-bold text-accent flex items-center justify-center gap-2 leading-none">
+              <Crown className="h-6 w-6" /> Campeón
+            </h3>
+            <div className="w-full flex justify-center">
+              <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+                <Trophy className="h-5 w-5" />
+                <span className="min-w-0 whitespace-normal break-words">Campeón: {championName}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {thirdPlaceMatch && (
         <section className="space-y-3 border-t-2 border-amber-500/40 pt-6">
           <div className="text-center">
