@@ -154,44 +154,25 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             <td className="px-2 py-1 text-center font-bold">{sum(chunk, 'p1SO')}</td>
           </tr>
 
-          {/* Hcp jugador 1 */}
-          <tr className="bg-muted/10">
-            <td className="px-2 py-1 text-center text-muted-foreground">
-              {isGoGo ? `hcp ${getInitials(player1.name)}` : 'hcp'}
-            </td>
-            {chunk.map((h) => {
-              const used = getUsedFor(h).p1;
-              return (
-                <td
-                  key={h.hole}
-                  className="px-2 py-1 text-center text-muted-foreground"
-                >
-                  {h.p1Hcp}
-                </td>
-              );
-            })}
-            <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p1Hcp')}</td>
-          </tr>
-
           {/*
-           * DEBUG (Go Go): fila extra con el hcp del jugador 2 para verificar
-           * que la API está trayendo `arvtjpar` correctamente. Una vez
-           * validado se colapsará con la fila anterior en una sola "hcp"
-           * que sume ambos jugadores por hoyo.
+           * Fila hcp — golpes de ventaja por hoyo.
+           * - Go Go: se muestra la SUMA de p1Hcp + p2Hcp por hoyo (una sola
+           *   línea "hcp" del equipo) porque en Go Go / scrambles ambos
+           *   jugadores aportan handicap combinado por hoyo.
+           * - Bola Baja / Suma Scores: sólo p1 aquí; p2 tiene su propia fila
+           *   hcp más abajo junto a su gross.
            */}
-          {isGoGo && (
-            <tr className="bg-yellow-500/10">
-              <td className="px-2 py-1 text-center text-muted-foreground">
-                hcp {getInitials(player2.name)}
+          <tr className="bg-muted/10">
+            <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
+            {chunk.map((h) => (
+              <td key={h.hole} className="px-2 py-1 text-center text-muted-foreground">
+                {isGoGo ? (h.p1Hcp || 0) + (h.p2Hcp || 0) : h.p1Hcp}
               </td>
-              {chunk.map((h) => (
-                <td key={h.hole} className="px-2 py-1 text-center text-muted-foreground">
-                  {h.p2Hcp}
-                </td>
-              ))}
-              <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p2Hcp')}</td>
-            </tr>
-          )}
+            ))}
+            <td className="px-2 py-1 text-center text-muted-foreground">
+              {isGoGo ? sum(chunk, 'p1Hcp') + sum(chunk, 'p2Hcp') : sum(chunk, 'p1Hcp')}
+            </td>
+          </tr>
 
           {/* Jugador 2 — sólo Bola Baja / Suma Scores (Go Go omite por replicar legacy). */}
           {showPartner && (
