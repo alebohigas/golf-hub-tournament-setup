@@ -327,6 +327,12 @@ export interface ParejaHoleScore {
   p2SO: number;
   /** Ventajas (hcp strokes) del jugador 2 en el hoyo */
   p2Hcp: number;
+  /**
+   * HCP combinado del equipo por hoyo — proviene de `tarjetas.ventajas`
+   * (una sola fila "hcp" del legacy `tarjeta_gogo_handicap.php`). Es lo
+   * que la BD ya calculó según el estilojuego del día.
+   */
+  hcpTeam: number;
   /** Neto del equipo (h{n}_a de la tabla tarjetas) */
   neto: number;
 }
@@ -363,6 +369,7 @@ export const fetchParejasScorecardFromApi = async (
   const p2SO = raw.player2?.scoreSO || [];
   const p2Hcp = raw.player2?.hcpStrokes || [];
   const neto = raw.neto || [];
+  const hcpTeam = raw.hcpTeam || [];
   for (let i = 0; i < 18; i++) {
     const meta = baseHoles[i] || { hole: i + 1, par: 0, ventaja: 0, yardaje: 0 };
     holes.push({
@@ -374,6 +381,7 @@ export const fetchParejasScorecardFromApi = async (
       p1Hcp: Number(p1Hcp[i] ?? 0),
       p2SO: Number(p2SO[i] ?? 0),
       p2Hcp: Number(p2Hcp[i] ?? 0),
+      hcpTeam: Number(hcpTeam[i] ?? 0),
       neto: Number(neto[i] ?? 0),
     });
   }
