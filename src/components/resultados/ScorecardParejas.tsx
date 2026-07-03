@@ -156,7 +156,9 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
 
           {/* Hcp jugador 1 */}
           <tr className="bg-muted/10">
-            <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
+            <td className="px-2 py-1 text-center text-muted-foreground">
+              {isGoGo ? `hcp ${getInitials(player1.name)}` : 'hcp'}
+            </td>
             {chunk.map((h) => {
               const used = getUsedFor(h).p1;
               return (
@@ -170,6 +172,26 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             })}
             <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p1Hcp')}</td>
           </tr>
+
+          {/*
+           * DEBUG (Go Go): fila extra con el hcp del jugador 2 para verificar
+           * que la API está trayendo `arvtjpar` correctamente. Una vez
+           * validado se colapsará con la fila anterior en una sola "hcp"
+           * que sume ambos jugadores por hoyo.
+           */}
+          {isGoGo && (
+            <tr className="bg-yellow-500/10">
+              <td className="px-2 py-1 text-center text-muted-foreground">
+                hcp {getInitials(player2.name)}
+              </td>
+              {chunk.map((h) => (
+                <td key={h.hole} className="px-2 py-1 text-center text-muted-foreground">
+                  {h.p2Hcp}
+                </td>
+              ))}
+              <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p2Hcp')}</td>
+            </tr>
+          )}
 
           {/* Jugador 2 — sólo Bola Baja / Suma Scores (Go Go omite por replicar legacy). */}
           {showPartner && (
