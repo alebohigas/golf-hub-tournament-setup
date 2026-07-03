@@ -154,21 +154,31 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             <td className="px-2 py-1 text-center font-bold">{sum(chunk, 'p1SO')}</td>
           </tr>
 
-          {/* Hcp jugador 1 */}
+          {/*
+           * Fila hcp del jugador 1.
+           * En Go Go la tarjeta legacy muestra la SUMA de ventajas de ambos
+           * jugadores por hoyo (el estilo "A Go Go" reparte los strokes del
+           * equipo). En Bola Baja / Suma Scores mantenemos hcp individual
+           * por jugador (esta fila solo del J1; la del J2 va abajo).
+           */}
           <tr className="bg-muted/10">
             <td className="px-2 py-1 text-center text-muted-foreground">hcp</td>
             {chunk.map((h) => {
-              const used = getUsedFor(h).p1;
+              const val = isGoGo ? (h.p1Hcp || 0) + (h.p2Hcp || 0) : h.p1Hcp;
               return (
                 <td
                   key={h.hole}
                   className="px-2 py-1 text-center text-muted-foreground"
                 >
-                  {h.p1Hcp}
+                  {val}
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center text-muted-foreground">{sum(chunk, 'p1Hcp')}</td>
+            <td className="px-2 py-1 text-center text-muted-foreground">
+              {isGoGo
+                ? sum(chunk, 'p1Hcp') + sum(chunk, 'p2Hcp')
+                : sum(chunk, 'p1Hcp')}
+            </td>
           </tr>
 
           {/* Jugador 2 — sólo Bola Baja / Suma Scores (Go Go omite por replicar legacy). */}
