@@ -258,17 +258,26 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             </button>
           </div>
 
-          {/* Jugadores — nombres con logos */}
+          {/*
+           * Bloque de nombres/logos de jugadores.
+           * En Go Go la tarjeta es una sola (equipo juega como una persona)
+           * por lo que solo mostramos J1 sin el "/" ni el segundo jugador —
+           * replicando el legacy. En Bola Baja / Suma Scores mostramos ambos.
+           */}
           <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               {player1.logo && <img src={player1.logo} alt={player1.club} className="h-6 w-auto" />}
               <span className="font-medium">{player1.name}</span>
             </div>
-            <span className="text-muted-foreground">/</span>
-            <div className="flex items-center gap-2">
-              {player2.logo && <img src={player2.logo} alt={player2.club} className="h-6 w-auto" />}
-              <span className="font-medium">{player2.name}</span>
-            </div>
+            {showPartner && (
+              <>
+                <span className="text-muted-foreground">/</span>
+                <div className="flex items-center gap-2">
+                  {player2.logo && <img src={player2.logo} alt={player2.club} className="h-6 w-auto" />}
+                  <span className="font-medium">{player2.name}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Secciones OUT / IN */}
@@ -277,14 +286,25 @@ const ScorecardParejas = ({ scorecard, pairLabel, roundLabel, onClose, colSpan }
             {renderSection(back9, 'IN')}
           </div>
 
-          {/* Totales */}
+          {/*
+           * Totales al pie. Go Go: solo Gross del equipo (único registro) y
+           * Neto. Bola Baja / Suma Scores: J1, J2 y Neto agregado.
+           */}
           <div className="flex justify-end items-baseline gap-6 mt-3 text-sm flex-wrap">
-            <span className="text-muted-foreground">
-              J1: <strong className="text-foreground">{totals.player1.SO}</strong>
-            </span>
-            <span className="text-muted-foreground">
-              J2: <strong className="text-foreground">{totals.player2.SO}</strong>
-            </span>
+            {isGoGo ? (
+              <span className="text-muted-foreground">
+                Gross: <strong className="text-foreground">{totals.player1.SO}</strong>
+              </span>
+            ) : (
+              <>
+                <span className="text-muted-foreground">
+                  J1: <strong className="text-foreground">{totals.player1.SO}</strong>
+                </span>
+                <span className="text-muted-foreground">
+                  J2: <strong className="text-foreground">{totals.player2.SO}</strong>
+                </span>
+              </>
+            )}
             <span className="text-muted-foreground">
               Pareja Neto: <strong className="text-primary font-bold">{totals.pair.SA}</strong>
             </span>
