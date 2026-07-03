@@ -145,7 +145,9 @@ const Row = ({
   return (
     <div
       className={`flex items-center justify-between px-3 py-2 gap-2 ${
-        winner ? 'bg-primary/10' : ''
+        winner
+          ? 'bg-yellow-500/15 border-l-4 border-yellow-500 dark:border-yellow-400'
+          : ''
       }`}
     >
       <div className="flex items-start gap-2 min-w-0 flex-1">
@@ -156,7 +158,7 @@ const Row = ({
         )}
         <span
           className={`min-w-0 flex-1 text-sm leading-snug whitespace-normal break-words ${
-            winner ? 'font-bold text-primary' : ''
+            winner ? 'font-bold text-yellow-700 dark:text-yellow-400' : ''
           }`}
         >
           {player.name || <span className="italic text-muted-foreground">— por definir —</span>}
@@ -165,7 +167,7 @@ const Row = ({
       {/* Badge G/- a la derecha (como /competicion). */}
       <span
         className={`text-sm font-bold tabular-nums w-6 text-center shrink-0 ${
-          winner ? 'text-primary' : 'text-muted-foreground'
+          winner ? 'text-yellow-700 dark:text-yellow-400' : 'text-muted-foreground'
         }`}
       >
         {decided ? (winner ? 'G' : '-') : '–'}
