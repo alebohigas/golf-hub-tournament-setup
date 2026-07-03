@@ -13,12 +13,13 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Loader2, Swords, Trophy } from 'lucide-react';
+import { ArrowLeft, Loader2, Medal, Swords, Trophy } from 'lucide-react';
 import {
   useMatchPlayCategories,
   useMatchPlayBracket,
   useSetMatchWinner,
   useResetMatch,
+  useEnableThirdPlace,
   type BracketMatch,
 } from '@/hooks/useMatchPlay';
 import BracketView from '@/components/matchplay/BracketView';
@@ -33,9 +34,18 @@ const AdminMatchPlay = () => {
   const { data: bracket, isLoading: loadingBracket } = useMatchPlayBracket(selectedCatId);
   const setWinner = useSetMatchWinner();
   const resetMatch = useResetMatch();
+  const enableThirdPlace = useEnableThirdPlace();
 
   const selectedCat = categories.find(c => c.categoryId === selectedCatId) || null;
   const hasD2 = !!bracket?.d2?.length;
+  /**
+   * ¿El bracket ya tiene match por 3er lugar habilitado? Se detecta por la
+   * presencia de una fila con `matchId % 100 === 99` en d1. Si existe,
+   * ocultamos el botón para no ofrecer una acción que ya no aplica.
+   */
+  const hasThirdPlaceD1 = !!bracket?.d1?.some(m => (m.matchId % 100) === 99);
+  /** Sólo tiene sentido para brackets con ≥3 matches D1 (≥2 semis + 1 final). */
+  const canEnableThirdPlaceD1 = !hasThirdPlaceD1 && (bracket?.d1?.length ?? 0) >= 3;
 
   /** Aplica set_winner y notifica vía toast. `side` = 1 ó 2 (player1/player2). */
   const handleSetWinner = async (match: BracketMatch, side: 1 | 2) => {
@@ -69,6 +79,17 @@ const AdminMatchPlay = () => {
       toast({ title: 'Error', description: e?.message || 'Falló reset', variant: 'destructive' });
     } finally {
       setBusyMatch(null);
+    }
+  };
+
+  /** Habilita el match por 3er lugar en la categoría D1 seleccionada. */
+  const handleEnableThirdPlace = async () => {
+    if (!selectedCatId) return;
+    try {
+      await enableThirdPlace.mutateAsync({ catid: selectedCatId });
+      toast({ title: 'Match por 3er lugar habilitado', description: 'Ya se puede capturar el resultado.' });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Falló habilitación', variant: 'destructive' });
     }
   };
 
@@ -130,7 +151,22 @@ const AdminMatchPlay = () => {
           Volver
         </Button>
         <h3 className="text-lg font-semibold">{selectedCat?.categoryName}</h3>
-        <div className="w-20" />
+        {/* Botón para crear la fila matchx=199 + linkear semis. Sólo se ve
+            cuando el bracket tiene tamaño suficiente y aún no está habilitado. */}
+        {canEnableThirdPlaceD1 ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={enableThirdPlace.isPending}
+            onClick={handleEnableThirdPlace}
+          >
+            <Medal className="h-4 w-4" />
+            {enableThirdPlace.isPending ? 'Habilitando…' : 'Habilitar 3er lugar'}
+          </Button>
+        ) : (
+          <div className="w-20" />
+        )}
       </div>
       {loadingBracket || !bracket ? (
         <div className="flex justify-center py-12">

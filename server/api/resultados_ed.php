@@ -68,6 +68,79 @@ function load_sides($conn, $cid, $tid, $isParejas) {
 $sides = load_sides($conn, $cid, $tid, $isParejas);
 
 /**
+ * Fallback para el match por 3er lugar (matchx = 199 / 299): las vistas
+ * legacy `v_equipo_ed(_par)` pueden no proyectar filas fuera del rango
+ * contiguo 1..N-1 del bracket. Aquí levantamos MANUALMENTE los "sides"
+ * de esas filas directo de `elimin_salidas_cat` + `jugadores` para que
+ * lleguen al frontend como cualquier otro match.
+ */
+function inject_third_place_sides($conn, $tid, $cid, $existingSides, $LOGOS_BASE_URL) {
+    $tid = (int)$tid;
+    $cid = (int)$cid;
+
+    // Matchx ya presentes en la vista (no duplicar).
+    $already = [];
+    foreach ($existingSides as $r) $already[(int)$r['matchx']] = true;
+
+    // Toma filas de 3er lugar (offset 99): 199 (D1), 299 (D2).
+    $rows = query_all($conn,
+        "SELECT idelimin_salidas, catid, matchx, jugida, jugidb, gano, hoyo,
+                DATE_FORMAT(fecha, '%Y-%m-%d %H:%i') AS fecha
+           FROM elimin_salidas_cat
+          WHERE catid = $cid AND (matchx = 199 OR matchx = 299)");
+    if (empty($rows)) return $existingSides;
+
+    // Recolecta jugadores para armar nombre + club.
+    $ids = [];
+    foreach ($rows as $r) {
+        if ((int)$r['jugida'] > 0) $ids[(int)$r['jugida']] = true;
+        if ((int)$r['jugidb'] > 0) $ids[(int)$r['jugidb']] = true;
+    }
+    $jugById = [];
+    if ($ids) {
+        $idIn = implode(',', array_keys($ids));
+        $jugs = query_all($conn,
+            "SELECT j.id, j.posicion,
+                    CONCAT(j.nombre,' ',j.apellido) AS jugador,
+                    j.clubid, c.abr AS club, c.logo AS logojug
+               FROM jugadores j
+               LEFT JOIN clubs c ON c.id = j.clubid
+              WHERE j.id IN ($idIn)");
+        foreach ($jugs as $j) $jugById[(int)$j['id']] = $j;
+    }
+
+    $out = $existingSides;
+    foreach ($rows as $r) {
+        $mx = (int)$r['matchx'];
+        if (!empty($already[$mx])) continue;
+        // Emite 1 fila por lado, replicando el shape del view.
+        foreach (['jugida' => 1, 'jugidb' => 2] as $col => $postabla) {
+            $jid = (int)$r[$col];
+            $j = $jid > 0 ? ($jugById[$jid] ?? null) : null;
+            $out[] = [
+                'idelimin_salidas' => $r['idelimin_salidas'],
+                'categoriaid'      => $cid,
+                'torneoid'         => $tid,
+                'matchx'           => (string)$mx,
+                'posicion'         => $j ? (int)$j['posicion'] : 0,
+                'postabla'         => $postabla,
+                'gano'             => $r['gano'],
+                'hoyo'             => $r['hoyo'],
+                'resultado'        => null,
+                'jugador'          => $j ? $j['jugador'] : '',
+                'logojug'          => $j ? ($j['logojug'] ?? '') : '',
+                'fecha'            => $r['fecha'],
+                'club'             => $j ? ($j['club'] ?? '') : '',
+                'clubid'           => $j ? $j['clubid'] : null,
+            ];
+        }
+    }
+    return $out;
+}
+
+$sides = inject_third_place_sides($conn, $tid, $cid, $sides, $LOGOS_BASE_URL);
+
+/**
  * Para cada matchx cargamos la fila CANÓNICA desde elimin_salidas_cat con
  * jugida/jugidb/gano. Luego mapeamos cada lado del view a su `lado` real
  * (1 = jugida, 2 = jugidb) usando la `posicion` del jugador.

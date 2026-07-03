@@ -122,7 +122,9 @@ const buildAdminBody = (
 };
 
 /** Construye URL admin y conserva ?debug=1 para diagnosticar errores del API. */
-const buildMatchPlayAdminUrl = (action: 'set_winner' | 'reset_match'): string => {
+const buildMatchPlayAdminUrl = (
+  action: 'set_winner' | 'reset_match' | 'enable_third_place'
+): string => {
   const params = new URLSearchParams({ action });
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1') {
     params.set('debug', '1');
@@ -168,6 +170,29 @@ export const useResetMatch = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo resetear el match');
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+  });
+};
+
+/**
+ * Habilita el match por 3er lugar en la categoría D1: crea la fila
+ * `matchx=199` y linkea las dos semifinales con `tl_grupo=199`. Idempotente:
+ * si ya existe, no rompe nada; simplemente re-propaga.
+ */
+export const useEnableThirdPlace = () => {
+  const qc = useQueryClient();
+  const { session } = useStaffAuth();
+  return useMutation({
+    mutationFn: async (vars: { catid: string | number }) => {
+      const res = await fetch(buildMatchPlayAdminUrl('enable_third_place'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAdminBody(session, vars)),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo habilitar el match por 3er lugar');
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),

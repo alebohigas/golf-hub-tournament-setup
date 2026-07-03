@@ -1,67 +1,123 @@
-# Plan: /matchplay (Brackets Match Play por categoría)
+# Match por 3er lugar — Análisis y plan
 
-## Alcance
-Página pública nueva `/matchplay` + sección en `/admin` para capturar ganadores y resetear matches de las categorías con `sistema = 'MATCH PLAY'`. **No** toca `/resultados` ni `/competicion`.
+## 1. Cómo se numeran los matches hoy (tabla `elimin_salidas_cat`)
 
-## Backend (PHP)
+Es la ÚNICA tabla que rige los brackets de /matchplay (no se usa `bracket_matches` — esa es sólo para Putt Finales).
 
-### 1. `server/api/matchplay_categories.php` (nuevo, GET)
-Devuelve las categorías del torneo que cumplen:
-- `categorias.sistema = 'MATCH PLAY'` y `estatus = 1`
-- Tienen ≥1 jugador en `jugadores` (no BAJA) **o** ≥1 fila en `eliminacion_directa`
+Columnas relevantes:
 
-Por categoría: `categoria_id`, `categoria`, `abreviatura`, `tipoed`, `formato` (para detectar parejas), `playerCount`, `matchCount`.
+| columna | uso |
+|---|---|
+| `catid` | id de la categoría (D1 o D2 — cada cuadro es su propia categoría) |
+| `matchx` | número del match dentro del cuadro. Convención: **1xx** = D1, **2xx** = D2 |
+| `jugida`, `jugidb` | los dos jugadores del match (slot "a" / "b") |
+| `gano` | 1 = ganó jugida, 2 = ganó jugidb, 0/NULL = sin jugar |
+| `hoyo`, `fecha` | resultado (ej. "3&2") + fecha |
+| `pl_grupo` | matchx destino del **ganador** → entra al slot `jugida` de ese match |
+| `sl_grupo` | matchx destino del **ganador** → entra al slot `jugidb` de ese match |
 
-### 2. `server/api/resultados_ed.php` (extender)
-Hoy es read-only y devuelve matches D1 (1xx). Cambios:
-- Detectar parejas (`formato = 'PAREJAS'`) y leer de `v_equipo_ed_par` cuando aplique.
-- Devolver TODOS los matches (D1 = 1xx winners y D2 = 2xx losers/consolación) en una sola respuesta agrupada `{ d1: [...], d2: [...] }`.
-- Incluir `tipoed` y `sistema` en la metadata.
+El offset (`matchx % 100`) va contiguo 1..N-1 para un bracket de N jugadores:
 
-### 3. `server/api/matchplay_admin.php` (nuevo, POST)
-Acciones (auth: superadmin password vía interceptor + `_staff_auth.php` área `brackets`):
-- `set_winner`: body `{ matchid, ganador, hoyo?, resultado? }` → `UPDATE eliminacion_directa SET gano=?, hoyo=?, resultado=? WHERE id=?` filtrado por `torneoid + categoriaid`.
-- `reset_match`: `{ matchid }` → setea `gano=NULL, hoyo=NULL, resultado=NULL`.
-- **Nota**: la propagación a la siguiente ronda y el envío del perdedor a D2 ya la maneja la lógica legacy externa que el usuario mencionó; este endpoint solo escribe `gano` del match. (Si después se necesita propagación interna, se agrega como fase 2.)
+```text
+Bracket 16 (D1: matchx 101..115)
+  R1 (Octavos)   101..108   (8 matches)
+  R2 (Cuartos)   109..112   (4)
+  R3 (Semis)     113..114   (2)
+  R4 (Final)     115        (1)
+```
 
-## Frontend
+El frontend detecta el tamaño con `size = next_pow2(maxOffset + 1)`. **Cualquier matchx fuera del rango contiguo rompe la detección** — por eso el 3er lugar tiene que ir en un offset "apartado".
 
-### 4. `src/hooks/useMatchPlay.ts` (nuevo)
-- `useMatchPlayCategories()` → GET `matchplay_categories.php`
-- `useMatchPlayBracket(catid)` → GET `resultados_ed.php?catid=...` con polling 30s
-- `useSetMatchWinner()` / `useResetMatch()` → POST `matchplay_admin.php` con superadmin password
+Los matches se **crean una sola vez** al armar el bracket (no por usuario). Actualmente en Speitour eso lo hace un script legacy que llena `elimin_salidas_cat` desde el seeding. Nuestra app sólo captura resultados y propaga con `set_winner` — nunca crea filas nuevas.
 
-### 5. `src/pages/MatchPlay.tsx` (nuevo, ruta `/matchplay`)
-- `PageHero` con título "Match Play" + subtítulo + imagen hero generada (`src/assets/matchplay-hero.jpg`).
-- Si no hay categorías MATCH PLAY → mensaje "Esta vista no está disponible para este torneo".
-- Vista 1 (sin selección): grid de cards de categorías (mismo estilo que `/resultados`), muestra solo categorías con jugadores.
-- Vista 2 (categoría seleccionada): bracket completo con botón **"Volver a categorías"** estilo `bg-primary/10`.
-  - Layout reutilizable: render simple en columnas por ronda (cuartos / semis / final) basado en `matchid` (1xx).
-  - Si la categoría tiene matches 2xx → tabs **Ganadores (D1) / Consolación (D2)**.
-  - Cards de match: muestran nombre, club logo, seed; resalta ganador (verde) y muestra `hoyo`/`resultado` (ej. "3&2").
+## 2. Qué falta para el 3er lugar
 
-### 6. `src/components/admin/AdminMatchPlay.tsx` (nuevo)
-- Mismo flujo categoría → bracket que la pública.
-- En cada match con ambos jugadores presentes:
-  - Botones "Ganó J1" / "Ganó J2" (dropdown opcional para `hoyo` y `resultado`).
-  - Botón "Resetear" si ya hay ganador.
-- Confirmación toast por acción; refetch automático.
+No existe hoy. Se necesita:
 
-### 7. Wiring
-- `src/App.tsx`: agregar ruta `<Route path="/matchplay" element={<ProtectedRoute pageId="matchplay"><MatchPlay /></ProtectedRoute>} />`.
-- `src/pages/Admin.tsx`: nueva tab `matchplay` (icono `Swords`), área staff `brackets` (reusa permiso), render `<AdminMatchPlay />`.
-- Registrar `matchplay` en `PageVisibilityContext` / menú (visible por default si torneo tiene MP).
-- Hero image: generar `src/assets/matchplay-hero.jpg` (golf + bracket / cara a cara).
+1. **Una fila más en `elimin_salidas_cat`** por bracket (D1 y opcionalmente D2), con `matchx` fuera del rango contiguo, ambos slots vacíos hasta que caigan los perdedores de semis.
+2. **Propagación del PERDEDOR** de las dos semifinales hacia esa fila. Hoy sólo propagamos ganador (`pl_grupo`/`sl_grupo` + `IF(gano=1, jugida, jugidb)`), no perdedor.
 
-## Tablas / Columnas usadas (sin migrations)
-- `categorias` (`sistema`, `tipoed`, `formato`)
-- `jugadores`
-- `eliminacion_directa` (`id`, `jugadorid1/2`, `gano`, `hoyo`, `resultado`, `categoriaid`, `torneoid`)
-- Vistas `v_equipo_ed` / `v_equipo_ed_par`
+## 3. Convención de `matchx` propuesta (sin romper detección)
 
-## Out of scope (no se toca)
-- Generación inicial del bracket / siembra (lo hace la herramienta legacy).
-- Propagación automática D1→D2 desde este endpoint.
-- `/resultados`, `/competicion`, brackets de Putt Finales.
+Usar offset **`99`**: `matchx = 199` para D1 3er lugar, `matchx = 299` para D2 3er lugar.
 
-¿Confirmas y procedo? Si quieres que también incluya propagación automática (set_winner mueve al ganador a su next match en `elimin_salidas_cat` y al perdedor al D2), lo agrego como fase 2 en este mismo plan.
+- Fuera del rango contiguo 1..N-1, no altera `size = next_pow2(maxOffset+1)` porque lo filtramos antes.
+- Fácil de reconocer con `matchx % 100 === 99`.
+- El frontend ya tiene el hook para apartarlo (comentario en `BracketView.tsx:242`).
+
+## 4. Cambio mínimo en la BD
+
+Una sola columna nueva en `elimin_salidas_cat` (nullable, no rompe nada existente):
+
+```sql
+ALTER TABLE elimin_salidas_cat
+  ADD COLUMN tl_grupo INT NULL COMMENT '3er lugar: matchx destino del PERDEDOR de este match';
+```
+
+Sólo las dos filas de semifinal (`113` y `114` en bracket 16) llevan `tl_grupo = 199`. Todas las demás filas la dejan NULL.
+
+**Convención de slot en el match de 3er lugar:** la semi con `matchx` menor deposita a su perdedor en `jugida`; la semi con `matchx` mayor lo deposita en `jugidb`. Así no hace falta otra columna tipo `tl_slot`.
+
+Alternativa considerada y descartada: añadir `pl_lose`/`sl_lose` (duplicar todo el par). Se descarta porque el orden del slot es determinista por `matchx`, con una sola columna basta.
+
+## 5. Cambios en el backend (`server/api/matchplay_admin.php`)
+
+Agregar una función `propagate_loser_third_place($conn, $catid)` que corra junto con `propagate_winner_d1` cada vez que se marca `gano` en un match. En una sola query:
+
+```sql
+UPDATE elimin_salidas_cat AS a
+  JOIN elimin_salidas_cat AS b
+    ON (b.matchx  = a.tl_grupo
+        AND b.catid = a.catid
+        AND a.tl_grupo IS NOT NULL
+        AND a.gano > 0)
+   SET
+     b.jugida = CASE WHEN a.matchx < (a.tl_grupo - 1)
+                     THEN IF(a.gano = 1, a.jugidb, a.jugida)  -- perdedor
+                     ELSE b.jugida END,
+     b.jugidb = CASE WHEN a.matchx > (a.tl_grupo - 1)
+                     THEN IF(a.gano = 1, a.jugidb, a.jugida)
+                     ELSE b.jugidb END
+ WHERE a.catid = $cid;
+```
+
+`reset_match` en la semifinal también limpia el slot correspondiente del 199/299 si aún tiene al perdedor (mismo patrón que ya se hace con el ganador).
+
+## 6. Cómo se crea la fila 199/299 al momento
+
+Dos opciones (elige tú):
+
+- **A)** Botón en admin "Habilitar 3er lugar" que hace un `INSERT` de la fila (matchx=199, jugida/jugidb NULL, tl_grupo NULL) + `UPDATE` de las dos semis fijando `tl_grupo = 199`. Sin re-generar bracket.
+- **B)** Auto-crear las filas 199/299 y setear `tl_grupo` en semis apenas se abra la categoría en el panel de /matchplay admin (idempotente: `INSERT IGNORE` + `UPDATE ... WHERE tl_grupo IS NULL`).
+
+Recomiendo **B** por default y **A** como override si alguna categoría no lo quiere.
+
+## 7. Frontend (`BracketView.tsx` + `useMatchPlay.ts`)
+
+- Filtrar `matches.filter(m => m.matchId % 100 !== 99)` antes de `buildFullRounds`.
+- Extraer `thirdPlaceMatch = matches.find(m => m.matchId % 100 === 99)`.
+- Renderizar el **podio** debajo (o al lado) de la Gran Final con 3 slots:
+  - 🥇 Campeón: ganador del match final (ya lo calculamos como `championName`).
+  - 🥈 Subcampeón: perdedor del match final.
+  - 🥉 3er lugar: ganador del match `199`.
+- El match 3er lugar se muestra como una `MatchCard` normal (misma UI de captura) dentro de una sección "Match por 3er lugar", separada de la Gran Final.
+
+## 8. Resumen de deltas
+
+**BD (una migración):**
+- `ALTER TABLE elimin_salidas_cat ADD COLUMN tl_grupo INT NULL`
+
+**Backend (`matchplay_admin.php`):**
+- Nueva función `propagate_loser_third_place($conn, $catid)`, llamada al final de `set_winner`.
+- `reset_match`: limpiar slot en `matchx=199/299` si contiene al perdedor recién reseteado.
+- Nueva action `enable_third_place` (o auto-init) que inserta la fila y setea `tl_grupo` en semis.
+
+**Frontend:**
+- Filtrar matches `%100===99` en el grouper.
+- Componente `<PodiumSection>` con 1º/2º/3º + `<MatchCard>` para capturar el 3er lugar.
+
+## 9. Confirmación antes de codear
+
+1. ¿Vamos con **offset 99** (matchx 199/299) o prefieres otra convención?
+2. ¿Auto-init de la fila del 3er lugar (opción B) o botón manual (opción A)?
+3. ¿El 3er lugar aplica **sólo a D1** o también a D2 (consolación)?
