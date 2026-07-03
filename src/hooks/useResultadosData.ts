@@ -68,14 +68,17 @@ export const useAllResults = () => {
         matchPlay?: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }>;
       } | Array<{ categoryId: string; name: string; gross?: number; [key: string]: any }>>(getResultadosUrl());
 
-      // Flatten the category list
+      // /resultados only surfaces Stroke Play categories. Match Play lives en
+      // /matchplay (bracket view) — mezclarlas confundía al usuario porque una
+      // MATCH PLAY no tiene leaderboard tradicional. Si el endpoint devuelve
+      // un array plano (schema legacy), filtramos por system aquí.
       let categories: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }> = [];
       if (Array.isArray(catListResp)) {
-        categories = catListResp;
+        categories = catListResp.filter(
+          (c) => String((c as any).system || '').toUpperCase().trim() !== 'MATCH PLAY'
+        );
       } else {
-        const sp = catListResp.strokePlay ?? [];
-        const mp = catListResp.matchPlay ?? [];
-        categories = [...sp, ...mp];
+        categories = catListResp.strokePlay ?? [];
       }
 
       // Step 2: Build navigation metadata only. Do NOT fetch every category's
