@@ -18,7 +18,7 @@
  */
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crown, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
+import { Award, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
 import { type BracketMatch } from '@/hooks/useMatchPlay';
 
 interface BracketViewProps {
