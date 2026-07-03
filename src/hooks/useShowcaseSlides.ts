@@ -19,12 +19,14 @@ import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
 import { usePuttFinales } from '@/hooks/useBrackets';
 import { useMatchPlayCategories } from '@/hooks/useMatchPlay';
+import { useAllResults } from '@/hooks/useResultadosData';
 import {
   buildBracketSlideId,
   buildMejorSlideId,
   buildS300SlideId,
   buildQualSlideId,
   buildMatchPlaySlideId,
+  buildResultadosSlideId,
   type ShowcaseSlideMeta,
 } from '@/lib/showcaseSlides';
 
@@ -108,11 +110,17 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
   // ----- Match Play categorías (un slide por categoría con matches) -----
   const matchplay = useMatchPlayCategories();
 
+  // ----- Resultados (leaderboard clásico Stroke Play / Stableford) -----
+  // useAllResults ya excluye categorías MATCH PLAY, así que aquí solo
+  // aparecen las que hoy se ven en /resultados.
+  const resultados = useAllResults();
+
   const isLoading =
     s300Queries.some((q) => q.isLoading) ||
     mejor.isLoading ||
     brackets.isLoading ||
-    matchplay.isLoading;
+    matchplay.isLoading ||
+    resultados.isLoading;
 
   // ----- Aplanar -----
   const all: ShowcaseSlideMeta[] = [];
@@ -230,6 +238,21 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
       id: buildMatchPlaySlideId(cat.categoryId),
       label: `Match Play — ${cat.shortName || cat.categoryName}`,
       group: 'Match Play',
+    });
+  });
+
+  // ----- Resultados: un slide por categoría × scoringType (NETO / GROSS) -----
+  // La lista de categorías ya viene filtrada (sin MATCH PLAY). Se emite un
+  // slide por cada scoringType que el endpoint declaró disponible para la
+  // categoría (siempre NETO, y GROSS si `gross=1`).
+  (resultados.data ?? []).forEach((cat) => {
+    (cat.scoringTypes ?? []).forEach((st) => {
+      const scoring = (st.scoringType as 'NETO' | 'GROSS');
+      push({
+        id: buildResultadosSlideId(cat.categoryId, scoring),
+        label: `Resultados — ${cat.shortName || cat.categoryName} · ${scoring}`,
+        group: 'Resultados',
+      });
     });
   });
 
