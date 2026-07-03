@@ -200,6 +200,142 @@ function propagate_loser_scramble($conn, $catid, $jugperdio_id) {
     clone_loser_into_category($conn, $jugperdio_id, $catid, $catperd, '-C', 'C', 'C');
 }
 
+/**
+ * Propaga al PERDEDOR de una semifinal hacia el match por 3er lugar.
+ *
+ * La semifinal debe tener `elimin_salidas_cat.tl_grupo` != NULL apuntando
+ * al `matchx` del 3er lugar (convención: 199 para D1). El slot destino
+ * (`jugida`/`jugidb`) se resuelve por ORDEN de matchx entre las dos semis:
+ *   - la semi con matchx MENOR deposita al perdedor en `jugida`
+ *   - la semi con matchx MAYOR deposita al perdedor en `jugidb`
+ *
+ * Esto evita añadir otra columna (`tl_slot`) porque el orden es determinista.
+ *
+ * Se llama después de cada `set_winner` — no hace nada si `tl_grupo` es NULL.
+ */
+function propagate_loser_third_place($conn, $catid, $matchx, $jugperdio_id) {
+    $cid = (int)$catid;
+    $mx  = (int)$matchx;
+    $lid = (int)$jugperdio_id;
+    if ($lid <= 0) return;
+
+    // 1) ¿Esta fila tiene tl_grupo? Si no, no aplica.
+    $src = query_one($conn, "SELECT tl_grupo FROM elimin_salidas_cat
+                              WHERE catid = $cid AND matchx = $mx LIMIT 1");
+    if (!$src || $src['tl_grupo'] === null) return;
+    $tl = (int)$src['tl_grupo'];
+    if ($tl <= 0) return;
+
+    // 2) ¿Cuál es el OTRO semi que también apunta al mismo 3er lugar?
+    //    Slot: la de matchx MENOR va a jugida; la MAYOR a jugidb.
+    $siblings = query_all($conn, "SELECT matchx FROM elimin_salidas_cat
+                                   WHERE catid = $cid AND tl_grupo = $tl
+                                   ORDER BY matchx ASC");
+    if (empty($siblings)) return;
+    $firstMx = (int)$siblings[0]['matchx'];
+    $slotCol = ($mx === $firstMx) ? 'jugida' : 'jugidb';
+
+    // 3) Escribe al perdedor en el slot correspondiente del match 3er lugar.
+    $conn->query("UPDATE elimin_salidas_cat
+                     SET $slotCol = $lid
+                   WHERE catid = $cid AND matchx = $tl");
+}
+
+/**
+ * Limpia el slot del match 3er lugar cuando se resetea una semifinal cuya
+ * `tl_grupo` apuntaba a ese 3er lugar. Sólo borra si el slot todavía
+ * contiene al perdedor que la semi había propagado, para no pisar edits
+ * manuales del admin.
+ */
+function clear_third_place_slot_on_reset($conn, $catid, $matchx, $loserId) {
+    $cid = (int)$catid;
+    $mx  = (int)$matchx;
+    $lid = (int)$loserId;
+    if ($lid <= 0) return;
+
+    $src = query_one($conn, "SELECT tl_grupo FROM elimin_salidas_cat
+                              WHERE catid = $cid AND matchx = $mx LIMIT 1");
+    if (!$src || $src['tl_grupo'] === null) return;
+    $tl = (int)$src['tl_grupo'];
+    if ($tl <= 0) return;
+
+    $siblings = query_all($conn, "SELECT matchx FROM elimin_salidas_cat
+                                   WHERE catid = $cid AND tl_grupo = $tl
+                                   ORDER BY matchx ASC");
+    if (empty($siblings)) return;
+    $firstMx = (int)$siblings[0]['matchx'];
+    $slotCol = ($mx === $firstMx) ? 'jugida' : 'jugidb';
+
+    $conn->query("UPDATE elimin_salidas_cat
+                     SET $slotCol = 0
+                   WHERE catid = $cid AND matchx = $tl AND $slotCol = $lid");
+}
+
+/**
+ * Habilita el match por 3er lugar en la categoría D1 indicada.
+ *
+ * Crea (idempotente) la fila `matchx = 199` en `elimin_salidas_cat` con
+ * ambos slots vacíos, y setea `tl_grupo = 199` en las dos filas de
+ * semifinal (las dos filas con `matchx` más alto justo antes de la final).
+ *
+ * Detección de semifinales: se toman todos los matchx del cuadro D1
+ * (rango 100..199 exclusive) y las dos últimas anteriores al final son las
+ * semis. El final = max(matchx) del rango D1 contiguo.
+ */
+function enable_third_place($conn, $catid) {
+    $cid = (int)$catid;
+    if ($cid <= 0) return ['ok' => false, 'error' => 'catid inválido'];
+
+    // 1) Lista de matchx D1 contiguos (100..198). El 199 es el 3er lugar
+    //    mismo — se excluye para no confundirlo con el final.
+    $rows = query_all($conn, "SELECT matchx FROM elimin_salidas_cat
+                               WHERE catid = $cid
+                                 AND matchx BETWEEN 101 AND 198
+                               ORDER BY matchx ASC");
+    if (count($rows) < 3) {
+        return ['ok' => false, 'error' => 'Bracket sin suficientes matches D1 (mínimo 3: 2 semis + 1 final)'];
+    }
+    $mxs = array_map(fn($r) => (int)$r['matchx'], $rows);
+    $finalMx = end($mxs);
+    // Las 2 anteriores a la final son las semis.
+    $semi2 = prev($mxs); // segunda semi (matchx mayor de las semis)
+    $semi1 = prev($mxs); // primera semi (matchx menor)
+    if (!$semi1 || !$semi2) {
+        return ['ok' => false, 'error' => 'No se pudieron identificar las semifinales'];
+    }
+
+    // 2) Inserta (si no existe) la fila del 3er lugar con matchx=199.
+    //    Copia torneoid de cualquier fila existente del catid para respetar FK.
+    $anyRow = query_one($conn, "SELECT torneoid FROM elimin_salidas_cat
+                                 WHERE catid = $cid LIMIT 1");
+    if (!$anyRow) return ['ok' => false, 'error' => 'No hay filas base en la categoría'];
+    $tid = (int)$anyRow['torneoid'];
+
+    $exists = query_one($conn, "SELECT idelimin_salidas FROM elimin_salidas_cat
+                                 WHERE catid = $cid AND matchx = 199 LIMIT 1");
+    if (!$exists) {
+        $conn->query("INSERT INTO elimin_salidas_cat
+                        (torneoid, catid, matchx, jugida, jugidb, gano, pl_grupo, sl_grupo, tl_grupo)
+                      VALUES ($tid, $cid, 199, 0, 0, 0, NULL, NULL, NULL)");
+    }
+
+    // 3) Setea tl_grupo=199 en las dos filas de semifinal.
+    $conn->query("UPDATE elimin_salidas_cat SET tl_grupo = 199
+                   WHERE catid = $cid AND matchx IN ($semi1, $semi2)");
+
+    // 4) Si las semis YA tienen ganador, propaga los perdedores ahora mismo.
+    foreach ([$semi1, $semi2] as $sMx) {
+        $s = query_one($conn, "SELECT gano, jugida, jugidb FROM elimin_salidas_cat
+                                WHERE catid = $cid AND matchx = $sMx LIMIT 1");
+        if (!$s) continue;
+        $g = (int)$s['gano'];
+        if ($g === 1) propagate_loser_third_place($conn, $cid, $sMx, (int)$s['jugidb']);
+        elseif ($g === 2) propagate_loser_third_place($conn, $cid, $sMx, (int)$s['jugida']);
+    }
+
+    return ['ok' => true, 'catid' => $cid, 'semi1' => $semi1, 'semi2' => $semi2, 'third_place_matchx' => 199];
+}
+
 // =====================================================================
 // Acciones
 // =====================================================================
@@ -247,6 +383,11 @@ if ($action === 'set_winner') {
         propagate_loser_scramble($conn, $catid, $jugperdio);
     }
 
+    // ----- 4) Propaga perdedor a match por 3er lugar (si tl_grupo != NULL) -----
+    // Esto aplica típicamente a las semifinales (matchx = penúltimas del D1).
+    // Es idempotente: sin tl_grupo, no hace nada.
+    propagate_loser_third_place($conn, $catid, $matchx, $jugperdio);
+
     json_response([
         'ok' => true,
         'matchx' => $matchx,
@@ -268,6 +409,7 @@ if ($action === 'reset_match') {
     if (!$cur) json_error('Match no encontrado', 404);
     $g = (int)$cur['gano'];
     $winnerId = $g === 1 ? (int)$cur['jugida'] : ($g === 2 ? (int)$cur['jugidb'] : 0);
+    $loserId  = $g === 1 ? (int)$cur['jugidb'] : ($g === 2 ? (int)$cur['jugida']  : 0);
 
     // 2) Si había ganador propagado, lo quitamos del slot del siguiente match.
     if ($winnerId > 0) {
@@ -290,6 +432,11 @@ if ($action === 'reset_match') {
         }
     }
 
+    // 2b) Si el perdedor había sido propagado al match por 3er lugar, quítalo.
+    if ($loserId > 0) {
+        clear_third_place_slot_on_reset($conn, $catid, $matchx, $loserId);
+    }
+
     // 3) Limpia el match actual.
     $sql = "UPDATE elimin_salidas_cat
                SET gano = 0, hoyo = NULL, fecha = NULL
@@ -297,6 +444,19 @@ if ($action === 'reset_match') {
     if (!$conn->query($sql)) json_error('Reset failed: ' . $conn->error, 500);
 
     json_response(['ok' => true, 'matchx' => $matchx, 'cleared_next_for' => $winnerId]);
+}
+
+// =====================================================================
+// Acción: enable_third_place — crea la fila matchx=199 y linkea semis
+// =====================================================================
+if ($action === 'enable_third_place') {
+    $catid = (int)($body['catid'] ?? 0);
+    if ($catid <= 0) json_error('catid requerido', 400);
+    $result = enable_third_place($conn, $catid);
+    if (empty($result['ok'])) {
+        json_error($result['error'] ?? 'No se pudo habilitar', 400);
+    }
+    json_response($result);
 }
 
 json_error('Unknown action', 400);
