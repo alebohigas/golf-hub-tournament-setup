@@ -18,7 +18,7 @@
  */
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Crown, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
+import { Award, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
 import { type BracketMatch } from '@/hooks/useMatchPlay';
 
 interface BracketViewProps {
@@ -338,14 +338,14 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
 
       {/* ============ Gran Final (semifinales + final bilateral) ============ */}
       {hasGrandFinal && semisRound && finalRound && (
-        <section className="space-y-4 border-t-2 border-accent/50 pt-6">
+        <section className="space-y-4 border-t-2 border-amber-500/40 pt-6">
           <div className="text-center grid grid-cols-1 justify-items-center gap-4">
-            <h3 className="w-full text-2xl font-bold text-accent flex items-center justify-center gap-2 leading-none">
-              <Crown className="h-6 w-6" /> Gran Final
+            <h3 className="w-full text-2xl font-bold text-amber-600 dark:text-amber-500 flex items-center justify-center gap-2 leading-none">
+              <Award className="h-6 w-6" /> Gran Final
             </h3>
             {championName && (
               <div className="w-full flex justify-center">
-                <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+                <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white font-bold text-lg shadow-md ring-2 ring-amber-500">
                   <Trophy className="h-5 w-5" />
                   <span className="min-w-0 whitespace-normal break-words">Campeón: {championName}</span>
                 </div>
@@ -402,7 +402,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
 
               {/* Final central */}
               <div className="flex flex-col gap-3 flex-1 min-w-0">
-                <h4 className="text-xs font-bold uppercase text-center text-accent tracking-wide">
+                <h4 className="text-xs font-bold uppercase text-center text-amber-600 dark:text-amber-500 tracking-wide">
                   Final
                 </h4>
                 <div className="flex flex-col gap-3 justify-center flex-1">
@@ -471,13 +471,13 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
           centrado — mismo estilo que en Gran Final — para que el ganador
           quede destacado igual que en brackets grandes. */}
       {!hasGrandFinal && championName && (
-        <section className="space-y-3 border-t-2 border-accent/50 pt-6">
+        <section className="space-y-3 border-t-2 border-amber-500/40 pt-6">
           <div className="text-center grid grid-cols-1 justify-items-center gap-4">
-            <h3 className="w-full text-2xl font-bold text-accent flex items-center justify-center gap-2 leading-none">
-              <Crown className="h-6 w-6" /> Campeón
+            <h3 className="w-full text-2xl font-bold text-amber-600 dark:text-amber-500 flex items-center justify-center gap-2 leading-none">
+              <Award className="h-6 w-6" /> Campeón
             </h3>
             <div className="w-full flex justify-center">
-              <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+              <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white font-bold text-lg shadow-md ring-2 ring-amber-500">
                 <Trophy className="h-5 w-5" />
                 <span className="min-w-0 whitespace-normal break-words">Campeón: {championName}</span>
               </div>
