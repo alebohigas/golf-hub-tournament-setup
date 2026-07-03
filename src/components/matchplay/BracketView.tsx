@@ -272,7 +272,13 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const semisRound = hasGrandFinal ? rounds[totalRounds - 2] : null;
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
   const finalMatch = finalRound?.[0] ?? null;
-  const championName = championOfMatch(finalMatch ?? null);
+  // Match final del bracket (incluso brackets cortos que no dibujan la
+  // sección "Gran Final"): siempre es el último match de la última ronda.
+  // Se usa para calcular el campeón/subcampeón y mostrar el badge de
+  // "Campeón" en brackets chicos (cuartos→semis→final).
+  const overallFinalMatch =
+    finalMatch ?? (rounds.length > 0 ? rounds[rounds.length - 1]?.[0] ?? null : null);
+  const championName = championOfMatch(overallFinalMatch ?? null);
 
   /**
    * Nombre del subcampeón: el lado del match final que NO ganó. Sólo se
@@ -280,10 +286,9 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
    * jugador asignado para que el match se hubiese jugado).
    */
   const runnerUpName: string | null = (() => {
-    if (!finalMatch || finalMatch.winner == null) return null;
-    return String(finalMatch.winner) === '1'
-      ? finalMatch.player2.name
-      : finalMatch.player1.name;
+    const fm = overallFinalMatch;
+    if (!fm || fm.winner == null) return null;
+    return String(fm.winner) === '1' ? fm.player2.name : fm.player1.name;
   })();
 
   /** Nombre del 3er lugar: ganador del match por 3er lugar. */
