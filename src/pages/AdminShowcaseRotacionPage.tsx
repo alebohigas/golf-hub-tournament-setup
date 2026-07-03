@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Lock, Shield, MonitorPlay, Trophy, Target, Crosshair, MousePointerClick, Flag, Layers, ListChecks, ExternalLink, Loader2 } from 'lucide-react';
+import { Lock, Shield, MonitorPlay, Trophy, Target, Crosshair, MousePointerClick, Flag, Layers, ListChecks, ExternalLink, Loader2, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShowcaseSlides } from '@/hooks/useShowcaseSlides';
 import {
@@ -99,6 +99,8 @@ const groupIcon = (group: string) => {
   if (group === "O'Yes") return Flag;
   if (group === 'Oyes-X') return Layers;
   if (group === 'Mejor Score Diario') return ListChecks;
+  if (group === 'Match Play') return Trophy;
+  if (group === 'Resultados') return ClipboardList;
   return MonitorPlay;
 };
 
@@ -159,7 +161,7 @@ const Dashboard = () => {
   const groupOrder = [
     'Driver', 'Approach', 'Putt', "O'Yes", 'Oyes-X',
     'Mejor Score Diario', 'Brackets Caballeros', 'Brackets Damas',
-    'Match Play',
+    'Match Play', 'Resultados',
   ].filter((g) => groups[g]?.length);
 
   return (
@@ -253,6 +255,44 @@ const Dashboard = () => {
               </div>
               <span className="text-xs text-muted-foreground whitespace-normal">
                 Rota todas las fechas con datos
+              </span>
+            </Button>
+
+            {/* Match Play (todos los brackets de categorías MATCH PLAY) */}
+            <Button
+              variant="outline"
+              disabled={!groups['Match Play']?.length}
+              className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
+              onClick={() => openRotator(buildConfig((m) => m.group === 'Match Play'))}
+            >
+              <div className="flex items-center gap-2 w-full">
+                <Trophy className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Match Play</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-normal">
+                {groups['Match Play']?.length
+                  ? `${groups['Match Play'].length} categorías`
+                  : 'Sin datos'}
+              </span>
+            </Button>
+
+            {/* Resultados clásicos (Stroke Play / Stableford) */}
+            <Button
+              variant="outline"
+              disabled={!groups['Resultados']?.length}
+              className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
+              onClick={() => openRotator(buildConfig((m) => m.group === 'Resultados'))}
+            >
+              <div className="flex items-center gap-2 w-full">
+                <ClipboardList className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Resultados</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-normal">
+                {groups['Resultados']?.length
+                  ? `${groups['Resultados'].length} leaderboards`
+                  : 'Sin datos'}
               </span>
             </Button>
           </div>
