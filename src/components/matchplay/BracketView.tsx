@@ -145,9 +145,7 @@ const Row = ({
   return (
     <div
       className={`flex items-center justify-between px-3 py-2 gap-2 ${
-        winner
-          ? 'bg-yellow-500/15 border-l-4 border-yellow-500 dark:border-yellow-400'
-          : ''
+        winner ? 'bg-primary/10' : ''
       }`}
     >
       <div className="flex items-start gap-2 min-w-0 flex-1">
@@ -158,7 +156,7 @@ const Row = ({
         )}
         <span
           className={`min-w-0 flex-1 text-sm leading-snug whitespace-normal break-words ${
-            winner ? 'font-bold text-yellow-700 dark:text-yellow-400' : ''
+            winner ? 'font-bold text-primary' : ''
           }`}
         >
           {player.name || <span className="italic text-muted-foreground">— por definir —</span>}
@@ -167,7 +165,7 @@ const Row = ({
       {/* Badge G/- a la derecha (como /competicion). */}
       <span
         className={`text-sm font-bold tabular-nums w-6 text-center shrink-0 ${
-          winner ? 'text-yellow-700 dark:text-yellow-400' : 'text-muted-foreground'
+          winner ? 'text-primary' : 'text-muted-foreground'
         }`}
       >
         {decided ? (winner ? 'G' : '-') : '–'}
@@ -274,7 +272,13 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
   const semisRound = hasGrandFinal ? rounds[totalRounds - 2] : null;
   const finalRound = hasGrandFinal ? rounds[totalRounds - 1] : null;
   const finalMatch = finalRound?.[0] ?? null;
-  const championName = championOfMatch(finalMatch ?? null);
+  // Match final del bracket (incluso brackets cortos que no dibujan la
+  // sección "Gran Final"): siempre es el último match de la última ronda.
+  // Se usa para calcular el campeón/subcampeón y mostrar el badge de
+  // "Campeón" en brackets chicos (cuartos→semis→final).
+  const overallFinalMatch =
+    finalMatch ?? (rounds.length > 0 ? rounds[rounds.length - 1]?.[0] ?? null : null);
+  const championName = championOfMatch(overallFinalMatch ?? null);
 
   /**
    * Nombre del subcampeón: el lado del match final que NO ganó. Sólo se
@@ -282,10 +286,9 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
    * jugador asignado para que el match se hubiese jugado).
    */
   const runnerUpName: string | null = (() => {
-    if (!finalMatch || finalMatch.winner == null) return null;
-    return String(finalMatch.winner) === '1'
-      ? finalMatch.player2.name
-      : finalMatch.player1.name;
+    const fm = overallFinalMatch;
+    if (!fm || fm.winner == null) return null;
+    return String(fm.winner) === '1' ? fm.player2.name : fm.player1.name;
   })();
 
   /** Nombre del 3er lugar: ganador del match por 3er lugar. */
@@ -462,6 +465,27 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
       )}
 
       {/* ============ Match por 3er lugar (sólo si existe la fila 199/299) ============ */}
+      {/* ============ Campeón (brackets cortos sin Gran Final) ============
+          En brackets de ≤3 rondas no se renderiza la sección Gran Final,
+          así que aquí replicamos el badge "Campeón: <Nombre>" en grande y
+          centrado — mismo estilo que en Gran Final — para que el ganador
+          quede destacado igual que en brackets grandes. */}
+      {!hasGrandFinal && championName && (
+        <section className="space-y-3 border-t-2 border-accent/50 pt-6">
+          <div className="text-center grid grid-cols-1 justify-items-center gap-4">
+            <h3 className="w-full text-2xl font-bold text-accent flex items-center justify-center gap-2 leading-none">
+              <Crown className="h-6 w-6" /> Campeón
+            </h3>
+            <div className="w-full flex justify-center">
+              <div className="inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-md ring-2 ring-accent">
+                <Trophy className="h-5 w-5" />
+                <span className="min-w-0 whitespace-normal break-words">Campeón: {championName}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {thirdPlaceMatch && (
         <section className="space-y-3 border-t-2 border-amber-500/40 pt-6">
           <div className="text-center">
