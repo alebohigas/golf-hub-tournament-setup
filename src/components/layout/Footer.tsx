@@ -31,9 +31,9 @@ const Footer = () => {
           <div>
             <div className="flex items-center gap-3 mb-4">
               {/* Tournament logo or fallback */}
-              {tournamentInfo?.logoUrl ? (
+              {(tournamentInfo?.logoUrl || tournamentInfo?.logoHeaderUrl) ? (
                 <img
-                  src={tournamentInfo.logoUrl}
+                  src={tournamentInfo.logoUrl || tournamentInfo.logoHeaderUrl}
                   alt="Logo del torneo"
                   className="w-12 h-12 rounded-lg object-contain bg-primary-foreground/10"
                 />
