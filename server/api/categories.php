@@ -42,7 +42,8 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                a.gross, a.catrel, a.sexo, a.corte,
-               a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
+               a.maxjugadores, a.hoyosxronda,
+               a.Skin_grupo_id, a.Skeenporcent$ageMinSel$ageMaxSel,
                COUNT(b.id) as playerCount,
                /**
                 * Conteo de jugadores pre-registrados para esta categoría.
@@ -74,7 +75,8 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                  a.gross, a.catrel, a.sexo, a.corte,
-                 a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
+                 a.maxjugadores, a.hoyosxronda,
+                 a.Skin_grupo_id, a.Skeenporcent$ageMinSel$ageMaxSel,
                  s.tee, s.color, ct.rating, ct.slope, ct.parcampo
         " . ($skinOnly ? " HAVING playerCount > 0 " : "") . "
         ORDER BY a.categoria_id ASC";
@@ -123,6 +125,12 @@ $categories = array_map(function($row) {
         // the column is absent or the value is not configured.
         'ageMin'      => isset($row['age_range_min']) && $row['age_range_min'] !== null ? (int)$row['age_range_min'] : null,
         'ageMax'      => isset($row['age_range_max']) && $row['age_range_max'] !== null ? (int)$row['age_range_max'] : null,
+        /** Skin game grouping identifier (categorias.Skin_grupo_id).
+         *  Categorías con el mismo Skin_grupo_id comparten bolsa de skins. */
+        'skinGroupId' => isset($row['Skin_grupo_id']) ? (string)$row['Skin_grupo_id'] : '',
+        /** Porcentaje de handicap aplicado específicamente para el Skin Game
+         *  (categorias.Skeenporcent). Distinto de `percentage` regular. */
+        'skinPercent' => isset($row['Skeenporcent']) ? (float)$row['Skeenporcent'] : 0,
     ];
 }, $rows);
 

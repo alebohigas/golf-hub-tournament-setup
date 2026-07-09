@@ -18,6 +18,11 @@ $tid = esc($conn, $torneoid);
  */
 $skinOnly = isset($_GET['skin']) && $_GET['skin'] === '1';
 $skinPlayerFilter = $skinOnly ? " AND p.Skeenjuga = 1 " : '';
+/**
+ * Para /skinplayers el HN se calcula con `categorias.Skeenporcent` (porcentaje
+ * específico del Skin Game) en lugar del porcentaje regular de la categoría.
+ */
+$pctColumn = $skinOnly ? 'cat.skeenporcent' : 'cat.porcentaje';
 
 /**
  * Detectar si la categoría es de parejas (formato='PAREJAS'). El frontend lo
@@ -31,12 +36,12 @@ $sql = "SELECT p.id, p.numjugador,
                CONCAT(p.nombre, ' ', p.apellido) as jugador,
                c.logo, p.indexjgo as hi,
                f_hdccampo(p.indexjgo, p.teesalidaid, cat.campoid) as hj,
-               f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, cat.porcentaje) as hn,
+               f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, $pctColumn) as hn,
                p.club, p.sexo, p.estatus, p.equipo, p.grupoid
         FROM jugadores p
         LEFT JOIN clubs c ON (p.clubid = c.id)
         LEFT JOIN (
-            SELECT cat.categoria_id, cj.campo as campoid, cat.porcentaje
+            SELECT cat.categoria_id, cj.campo as campoid, cat.porcentaje, cat.Skeenporcent as skeenporcent
             FROM categorias cat
             JOIN caljuego cj ON (cat.categoria_id = cj.categoriaid)
             WHERE cat.categoria_id = '$cid' and campo>0
