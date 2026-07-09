@@ -175,6 +175,30 @@ export const getSkinScorecardDetailUrl = (
     tipo,
   })}`;
 
+// ============= Skin Game winners (/skingame) =============
+
+/**
+ * Skin Game MASTER — dates + groups with hasGross/hasNeto flags.
+ * Returns { days: [{ date, dateFormatted, groups: [{groupId,hasGross,hasNeto}] }] }
+ */
+export const getSkinGameMasterUrl = (): string =>
+  `${API_BASE_URL}/skin_game.php${buildQuery()}`;
+
+/**
+ * Skin Game DETAIL — one winner row per hole (or null when no unique
+ * minimum), for a given group / date / tipo (`gross` | `neto`).
+ */
+export const getSkinGameDetailUrl = (
+  gpoid: number | string,
+  fecha: string,
+  tipo: 'gross' | 'neto',
+): string =>
+  `${API_BASE_URL}/skin_game.php${buildQuery({
+    gpoid: String(gpoid),
+    fecha,
+    tipo,
+  })}`;
+
 /**
  * Live Scoring leaderboard for a specific category
  * @param catId - Category ID

@@ -45,25 +45,34 @@ if (!$gpoid || !$fecha || !$campoid) {
 
         // Groups whose ALL categories have `cierre=1` for this date
         // (faltan=0 in the legacy query) → scorecard is publishable.
+        // hasGross/hasNeto flag whether any category in the group has
+        // non-empty resultmingross / resultminneto CSVs.
         $sql = "SELECT b.Skin_grupo_id AS gpoid,
                        id_campo AS campoid,
-                       SUM(IF(c.cierre=0,1,0)) AS faltan
+                       SUM(IF(c.cierre=0,1,0)) AS faltan,
+                       MAX(CASE WHEN c.resultmingross IS NOT NULL AND c.resultmingross <> '' THEN 1 ELSE 0 END) AS has_gross,
+                       MAX(CASE WHEN c.resultminneto  IS NOT NULL AND c.resultminneto  <> '' THEN 1 ELSE 0 END) AS has_neto
                 FROM Skeen_tarjetas a
                 JOIN categorias b ON (b.categoria_id = a.categoriaid)
                 JOIN caljuego c ON (a.fecha_juego = c.fecha
                                      AND a.categoriaid = c.categoriaid
                                      AND c.skin = 1)
                 WHERE a.fecha_juego = '$fec' AND a.torneoid = $tid
-                GROUP BY b.Skin_grupo_id, id_campo, c.cierre
+                GROUP BY b.Skin_grupo_id, id_campo
                 HAVING faltan = 0
                 ORDER BY b.Skin_grupo_id";
         $groupRows = query_all($conn, $sql);
 
         $groups = [];
         foreach ($groupRows as $gr) {
+            $hg = (int)$gr['has_gross'] === 1;
+            $hn = (int)$gr['has_neto']  === 1;
+            if (!$hg && !$hn) continue;
             $groups[] = [
-                'groupId' => (int)$gr['gpoid'],
-                'campoId' => (int)$gr['campoid'],
+                'groupId'  => (int)$gr['gpoid'],
+                'campoId'  => (int)$gr['campoid'],
+                'hasGross' => $hg,
+                'hasNeto'  => $hn,
             ];
         }
 

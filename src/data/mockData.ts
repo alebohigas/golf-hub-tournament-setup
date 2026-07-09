@@ -80,6 +80,7 @@ export const menuConfig: MenuItem[] = [
   { id: 'skinrules', label: 'SKIN RULES', path: '/skinrules', enabled: false, order: 14 },
   { id: 'skinplayers', label: 'SKIN PLAYERS', path: '/skinplayers', enabled: false, order: 14 },
   { id: 'skinscorecards', label: 'SKIN SCORECARDS', path: '/skinscorecards', enabled: false, order: 14 },
+  { id: 'skingame', label: 'SKIN GAME', path: '/skingame', enabled: false, order: 14 },
   { id: 'banderas', label: 'BANDERAS', path: '/banderas', enabled: true, order: 17 },
   { id: 'matchplay', label: 'MATCH PLAY', path: '/matchplay', enabled: true, order: 19 },
   { id: 'registro', label: 'PRE-REGISTRO', path: '/registro', enabled: true, order: 16 },

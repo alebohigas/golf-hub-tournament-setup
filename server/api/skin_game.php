@@ -32,18 +32,33 @@ if (!$gpoid || !$fecha) {
     foreach ($dateRows as $dr) {
         $fec = esc($conn, $dr['fecha']);
 
-        // Get groups for this date
-        $sql = "SELECT DISTINCT Skin_grupo_id
+        // Get groups for this date + availability of gross/neto skins.
+        // hasGross/hasNeto = 1 when any category in the group has a
+        // non-empty resultmingross / resultminneto CSV (i.e. skin
+        // winners were computed for that variant).
+        $sql = "SELECT a.Skin_grupo_id AS gpoid,
+                       MAX(CASE WHEN c.resultmingross IS NOT NULL AND c.resultmingross <> '' THEN 1 ELSE 0 END) AS has_gross,
+                       MAX(CASE WHEN c.resultminneto  IS NOT NULL AND c.resultminneto  <> '' THEN 1 ELSE 0 END) AS has_neto
                 FROM categorias a
                 JOIN caljuego c ON (a.categoria_id = c.categoriaid AND c.campo > 0 AND c.cierre = 1 AND c.skin = 1)
                 WHERE a.torneo_id = $tid AND a.estatus = 1 AND a.Skin_grupo_id > 0 AND c.fecha = '$fec'
-                ORDER BY Skin_grupo_id";
+                GROUP BY a.Skin_grupo_id
+                ORDER BY a.Skin_grupo_id";
         $groupRows = query_all($conn, $sql);
 
         $groups = [];
         foreach ($groupRows as $gr) {
-            $groups[] = (int)$gr['Skin_grupo_id'];
+            $hg = (int)$gr['has_gross'] === 1;
+            $hn = (int)$gr['has_neto']  === 1;
+            // Skip groups with neither variant available
+            if (!$hg && !$hn) continue;
+            $groups[] = [
+                'groupId'  => (int)$gr['gpoid'],
+                'hasGross' => $hg,
+                'hasNeto'  => $hn,
+            ];
         }
+        if (count($groups) === 0) continue;
 
         $days[] = [
             'date'          => $dr['fecha'],
