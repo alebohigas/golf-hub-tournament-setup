@@ -149,6 +149,32 @@ export const getBracketsActionUrl = (action: string): string =>
 /** Events */
 export const getEventosUrl = (): string => `${API_BASE_URL}/eventos.php${buildQuery()}`;
 
+// ============= Skin Scorecards (/skinscorecards) =============
+
+/**
+ * Skin scorecards MASTER — list of dates with their skin groups.
+ * Returns { days: [{ date, dateFormatted, groups: [{groupId,campoId}] }] }
+ */
+export const getSkinScorecardMasterUrl = (): string =>
+  `${API_BASE_URL}/skin_scorecard.php${buildQuery()}`;
+
+/**
+ * Skin scorecard DETAIL — par per hole + player rows for one
+ * (group, date, campo, tipo). `tipo` is 'gross' or 'neto'.
+ */
+export const getSkinScorecardDetailUrl = (
+  gpoid: number | string,
+  fecha: string,
+  campoid: number | string,
+  tipo: 'gross' | 'neto',
+): string =>
+  `${API_BASE_URL}/skin_scorecard.php${buildQuery({
+    gpoid: String(gpoid),
+    fecha,
+    campoid: String(campoid),
+    tipo,
+  })}`;
+
 /**
  * Live Scoring leaderboard for a specific category
  * @param catId - Category ID
