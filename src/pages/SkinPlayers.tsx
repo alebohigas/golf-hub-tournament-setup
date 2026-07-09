@@ -108,7 +108,34 @@ const SkinPlayers = () => {
               <div className="mb-8 text-left md:text-center">
                 <h2 className="text-2xl font-light text-foreground mb-2">
                   Categoría: <span className="font-bold">{selectedCategory.name}</span>
+                  {selectedCategory.skinGroupId ? (
+                    <> / <span className="font-bold">GRUPO {selectedCategory.skinGroupId}</span></>
+                  ) : null}
                 </h2>
+                {/* Tee / Rating / Slope / Par — mirrors legacy jugadores_skin header */}
+                {(selectedCategory.teeName || selectedCategory.rating || selectedCategory.par) && (
+                  <p className="text-sm text-muted-foreground">
+                    Tee Salida <span className="font-semibold text-foreground">{selectedCategory.teeName}</span>
+                    {selectedCategory.rating != null && <> · Rating <span className="font-semibold text-foreground">{selectedCategory.rating}</span></>}
+                    {selectedCategory.slope != null && <> · Slope <span className="font-semibold text-foreground">{selectedCategory.slope}</span></>}
+                    {selectedCategory.par != null && <> · Par <span className="font-semibold text-foreground">{selectedCategory.par}</span></>}
+                  </p>
+                )}
+                {/* Sistema + rango de handicaps */}
+                <p className="text-sm text-muted-foreground">
+                  Sistema <span className="font-semibold text-foreground">{selectedCategory.system}</span>
+                  {' · '}Rango Handicaps{' '}
+                  <span className="font-semibold text-foreground">
+                    {selectedCategory.hcpMin} – {selectedCategory.hcpMax}
+                  </span>
+                </p>
+                {/* Porcentaje HCP Skin + total jugadores */}
+                <p className="text-sm text-muted-foreground">
+                  Porcentaje Handicap Skin{' '}
+                  <span className="font-semibold text-foreground">
+                    {selectedCategory.skinPercent ?? 0}%
+                  </span>
+                </p>
                 <p className="text-muted-foreground">
                   <span className="font-bold text-foreground">Jugadores en Skin Game:</span>{' '}
                   <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
@@ -127,6 +154,9 @@ const SkinPlayers = () => {
                         <TableRow className="bg-primary hover:bg-primary">
                           <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
                           <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-center">HI</TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-center">HJ</TableHead>
+                          <TableHead className="text-primary-foreground font-bold text-center">HN</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -145,11 +175,17 @@ const SkinPlayers = () => {
                                 />
                               </TableCell>
                               <TableCell className="player-name-cell">{player.name}</TableCell>
+                              {/* HI = Handicap Index (indexjgo) */}
+                              <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
+                              {/* HJ = Handicap de Juego (f_hdccampo) */}
+                              <TableCell className="text-center">{player.handicapJuego}</TableCell>
+                              {/* HN = Handicap Neto con Skeenporcent (f_hdccamponeto) */}
+                              <TableCell className="text-center font-bold">{player.handicapNeto}</TableCell>
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                               <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                               No hay jugadores inscritos al Skin Game en esta categoría
                             </TableCell>
@@ -160,6 +196,10 @@ const SkinPlayers = () => {
                   )}
                 </div>
               </Card>
+              {/* Leyenda de handicaps — mirrors legacy footer */}
+              <p className="text-xs text-muted-foreground text-center mt-3 max-w-3xl mx-auto">
+                H.I = Handicap Índice · H.J = Handicap de Juego · H.N = Handicap Neto
+              </p>
             </>
           )}
         </div>
