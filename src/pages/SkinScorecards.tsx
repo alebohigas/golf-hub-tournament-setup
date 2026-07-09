@@ -279,7 +279,7 @@ const SkinScorecards = () => {
                           </tr>
                         ) : (
                           scorecard.players.map((pl) => (
-                            <tr key={pl.id} className="bg-white border-b">
+                            <tr key={pl.id} className="bg-white even:bg-muted/30 border-b">
                               <td className="px-2 py-1 text-center">
                                 {pl.clubLogo && (
                                   <img
