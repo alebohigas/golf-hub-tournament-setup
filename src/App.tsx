@@ -30,6 +30,7 @@ import Avisos from "./pages/Avisos";
 import Premios from "./pages/Premios";
 import Patrocinadores from "./pages/Patrocinadores";
 import Reglas from "./pages/Reglas";
+import SkinRules from "./pages/SkinRules";
 import Hoteles from "./pages/Hoteles";
 import Admin from "./pages/Admin";
 import Registro from "./pages/Registro";
@@ -128,6 +129,7 @@ const App = () => (
               <Route path="/premios" element={<ProtectedRoute pageId="premios"><Premios /></ProtectedRoute>} />
               <Route path="/patrocinadores" element={<ProtectedRoute pageId="patrocinadores"><Patrocinadores /></ProtectedRoute>} />
               <Route path="/reglas" element={<ProtectedRoute pageId="reglas"><Reglas /></ProtectedRoute>} />
+              <Route path="/skinrules" element={<ProtectedRoute pageId="skinrules"><SkinRules /></ProtectedRoute>} />
               <Route path="/hoteles" element={<ProtectedRoute pageId="hoteles"><Hoteles /></ProtectedRoute>} />
               <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
               <Route path="/banderas" element={<ProtectedRoute pageId="banderas"><Banderas /></ProtectedRoute>} />
