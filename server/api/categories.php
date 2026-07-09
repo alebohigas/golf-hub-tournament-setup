@@ -14,6 +14,20 @@ error_reporting(E_ALL);
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
+/**
+ * Optional `?skin=1` flag.
+ * When set, the endpoint returns only categories that have at least one
+ * player enrolled in the SKIN GAME (jugadores.Skeenjuga = 1), and the
+ * `playerCount` reflects only those skin-enrolled players. Also filters
+ * out related sub-categories (categorias.catrel <> 0) so the /skinplayers
+ * grid mirrors the legacy `jugadores_skin.php` view.
+ */
+$skinOnly = isset($_GET['skin']) && $_GET['skin'] === '1';
+$playerJoinCond = $skinOnly
+    ? "(a.categoria_id = b.categoriaid AND b.Skeenjuga = 1)"
+    : "(a.categoria_id = b.categoriaid)";
+$skinCatFilter = $skinOnly ? " AND a.catrel = 0 " : '';
+
 /** Detect new optional age-range columns added for the Pre-Registro feature. */
 $ageMinExists = $conn->query("SHOW COLUMNS FROM categorias LIKE 'age_range_min'");
 $ageMinExists = $ageMinExists && $ageMinExists->num_rows > 0;
@@ -50,18 +64,19 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
         FROM categorias a
-        LEFT JOIN jugadores b ON (a.categoria_id = b.categoriaid)
+        LEFT JOIN jugadores b ON $playerJoinCond
         LEFT JOIN salidas s ON (a.salida = s.id)
         LEFT JOIN campo_tee ct ON (ct.salidaid = a.salida AND ct.campoid = (
             SELECT campo FROM caljuego WHERE categoriaid = a.categoria_id LIMIT 1
         ))
-        WHERE a.estatus = 1 AND a.torneo_id = $tid
+        WHERE a.estatus = 1 AND a.torneo_id = $tid $skinCatFilter
         GROUP BY a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                  a.sistema, a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
                  a.porcentaje, a.hoyosajugar, a.hoyosacorte, a.salida,
                  a.gross, a.catrel, a.sexo, a.corte,
                  a.maxjugadores, a.hoyosxronda$ageMinSel$ageMaxSel,
                  s.tee, s.color, ct.rating, ct.slope, ct.parcampo
+        " . ($skinOnly ? " HAVING playerCount > 0 " : "") . "
         ORDER BY a.categoria_id ASC";
 
 $rows = query_all($conn, $sql);
