@@ -139,6 +139,15 @@ const SECTIONS: SectionMeta[] = [
     kind: 'pdf',
   },
   {
+    id: 'skinrules',
+    label: 'Skin Rules',
+    Icon: BookOpen,
+    description:
+      'PDF de Reglas del Skin Game. El primer PDF que subas se usará como "Ver Reglas del Skin Game" en la página pública /skinrules (no importa el nombre del archivo).',
+    accept: 'application/pdf',
+    kind: 'pdf',
+  },
+  {
     id: 'banderas',
     label: 'Banderas',
     Icon: Flag,
