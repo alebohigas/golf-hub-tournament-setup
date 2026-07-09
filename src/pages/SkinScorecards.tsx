@@ -34,6 +34,10 @@ import { POLL_ACTIVE } from '@/config/api';
 interface SkinGroup {
   groupId: number;
   campoId: number;
+  /** True when a gross scorecard is available for the group */
+  hasGross?: boolean;
+  /** True when a neto scorecard is available for the group */
+  hasNeto?: boolean;
 }
 
 /** One skin-game date with its publishable groups */
@@ -163,6 +167,7 @@ const SkinScorecards = () => {
                                   Gpo {g.groupId}
                                 </div>
                                 <div className="flex flex-col gap-2">
+                                  {g.hasGross !== false && (
                                   <Button
                                     size="sm"
                                     className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
@@ -178,6 +183,8 @@ const SkinScorecards = () => {
                                   >
                                     Gross
                                   </Button>
+                                  )}
+                                  {g.hasNeto !== false && (
                                   <Button
                                     size="sm"
                                     className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -193,6 +200,7 @@ const SkinScorecards = () => {
                                   >
                                     Neto
                                   </Button>
+                                  )}
                                 </div>
                               </div>
                             ))}
