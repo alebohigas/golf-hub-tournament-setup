@@ -238,86 +238,84 @@ const SkinScorecards = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <Card className="border-border/50 bg-white">
-                  <div className="overflow-x-auto bg-white">
-                    <table className="w-max mx-auto text-sm border-collapse tournament-table table-auto">
-                      <thead>
-                        {/* Par row */}
-                        <tr className="bg-primary text-primary-foreground">
-                          <th className="p-2 text-left w-12"></th>
-                          <th className="px-2 py-2 text-left whitespace-nowrap w-[1%]">Par Campo</th>
-                          {scorecard.pars.map((p, i) => (
-                            <th key={`par-${i}`} className="px-1 py-2 text-center w-10">
-                              {p}
-                            </th>
-                          ))}
-                          <th className="px-2 py-2 text-center w-12">{scorecard.parTotal}</th>
-                          <th className="p-2"></th>
+                <div className="overflow-x-auto bg-white">
+                  <table className="w-max mx-auto text-sm border-collapse tournament-table table-auto">
+                    <thead>
+                      {/* Par row */}
+                      <tr className="bg-primary text-primary-foreground">
+                        <th className="p-2 text-left w-12"></th>
+                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%]">Par Campo</th>
+                        {scorecard.pars.map((p, i) => (
+                          <th key={`par-${i}`} className="px-1 py-2 text-center w-10">
+                            {p}
+                          </th>
+                        ))}
+                        <th className="px-2 py-2 text-center w-12">{scorecard.parTotal}</th>
+                        <th className="p-2"></th>
+                      </tr>
+                      {/* Column headers */}
+                      <tr className="bg-primary text-primary-foreground">
+                        <th className="px-2 py-2 w-12">Club</th>
+                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%]">Nombre</th>
+                        {Array.from({ length: 18 }).map((_, i) => (
+                          <th key={`h-${i}`} className="px-1 py-2 text-center">
+                            {i + 1}
+                          </th>
+                        ))}
+                        <th className="px-2 py-2 text-center">Tot.</th>
+                        <th className="px-2 py-2 text-center">Cat.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scorecard.players.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={22}
+                            className="text-center text-muted-foreground py-8"
+                          >
+                            No hay jugadores en este grupo.
+                          </td>
                         </tr>
-                        {/* Column headers */}
-                        <tr className="bg-primary text-primary-foreground">
-                          <th className="px-2 py-2 w-12">Club</th>
-                          <th className="px-2 py-2 text-left whitespace-nowrap w-[1%]">Nombre</th>
-                          {Array.from({ length: 18 }).map((_, i) => (
-                            <th key={`h-${i}`} className="px-1 py-2 text-center">
-                              {i + 1}
-                            </th>
-                          ))}
-                          <th className="px-2 py-2 text-center">Tot.</th>
-                          <th className="px-2 py-2 text-center">Cat.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {scorecard.players.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={22}
-                              className="text-center text-muted-foreground py-8"
-                            >
-                              No hay jugadores en este grupo.
+                      ) : (
+                        scorecard.players.map((pl) => (
+                          <tr key={pl.id} className="bg-white even:bg-muted/30 border-b">
+                            <td className="px-2 py-1 text-center">
+                              {pl.clubLogo && (
+                                <img
+                                  src={pl.clubLogo}
+                                  alt={pl.club}
+                                  className="inline-block object-contain"
+                                  style={{ width: 38, height: 22 }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              )}
                             </td>
+                            <td className="px-2 py-2 whitespace-nowrap">{pl.name}</td>
+                            {pl.scores.map((s, i) => (
+                              <td
+                                key={`s-${pl.id}-${i}`}
+                                className={
+                                  'px-1 py-1 text-center ' +
+                                  (pl.highlight[i]
+                                    ? 'bg-yellow-300 font-bold text-black'
+                                    : '')
+                                }
+                              >
+                                {s ?? ''}
+                              </td>
+                            ))}
+                            <td className="px-2 py-2 text-center font-bold">
+                              {pl.total ?? ''}
+                            </td>
+                            <td className="px-2 py-2 text-center">{pl.category}</td>
                           </tr>
-                        ) : (
-                          scorecard.players.map((pl) => (
-                            <tr key={pl.id} className="bg-white even:bg-muted/30 border-b">
-                              <td className="px-2 py-1 text-center">
-                                {pl.clubLogo && (
-                                  <img
-                                    src={pl.clubLogo}
-                                    alt={pl.club}
-                                    className="inline-block object-contain"
-                                    style={{ width: 38, height: 22 }}
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                              </td>
-                              <td className="px-2 py-2 whitespace-nowrap">{pl.name}</td>
-                              {pl.scores.map((s, i) => (
-                                <td
-                                  key={`s-${pl.id}-${i}`}
-                                  className={
-                                    'px-1 py-1 text-center ' +
-                                    (pl.highlight[i]
-                                      ? 'bg-yellow-300 font-bold text-black'
-                                      : '')
-                                  }
-                                >
-                                  {s ?? ''}
-                                </td>
-                              ))}
-                              <td className="px-2 py-2 text-center font-bold">
-                                {pl.total ?? ''}
-                              </td>
-                              <td className="px-2 py-2 text-center">{pl.category}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
 
               <p className="text-xs text-muted-foreground text-center mt-3">
