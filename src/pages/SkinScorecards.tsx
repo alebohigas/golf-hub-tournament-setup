@@ -165,8 +165,7 @@ const SkinScorecards = () => {
                                 <div className="flex flex-col gap-2">
                                   <Button
                                     size="sm"
-                                    variant="outline"
-                                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                                    className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
                                     onClick={() =>
                                       setDetail({
                                         groupId: g.groupId,
@@ -227,7 +226,7 @@ const SkinScorecards = () => {
                 <p
                   className={
                     'text-lg font-bold mt-1 ' +
-                    (detail.tipo === 'gross' ? 'text-foreground' : 'text-primary')
+                    (detail.tipo === 'gross' ? 'text-secondary' : 'text-primary')
                   }
                 >
                   – {detail.tipo === 'gross' ? 'GROSS' : 'NETO'}
@@ -244,7 +243,7 @@ const SkinScorecards = () => {
                     <table className="w-full text-sm border-collapse tournament-table">
                       <thead>
                         {/* Par row */}
-                        <tr className="bg-slate-700 text-white">
+                        <tr className="bg-primary text-primary-foreground">
                           <th className="p-2 text-left w-12"></th>
                           <th className="p-2 text-right">Par Campo</th>
                           {scorecard.pars.map((p, i) => (
@@ -256,7 +255,7 @@ const SkinScorecards = () => {
                           <th className="p-2"></th>
                         </tr>
                         {/* Column headers */}
-                        <tr className="bg-slate-700 text-white">
+                        <tr className="bg-primary text-primary-foreground">
                           <th className="p-2">Club</th>
                           <th className="p-2 text-left">Nombre</th>
                           {Array.from({ length: 18 }).map((_, i) => (
