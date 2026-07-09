@@ -91,6 +91,12 @@ $SECTION_RULES = [
         'mimes' => ['application/pdf'],
         'kind'  => 'PDF',
     ],
+    'skinrules' => [
+        // Skin Rules only carries the downloadable skin game rulebook PDF.
+        'exts'  => ['pdf'],
+        'mimes' => ['application/pdf'],
+        'kind'  => 'PDF',
+    ],
     'banderas' => [
         // Banderas (pin sheet) — fallback / scanned copy of the official
         // pin sheet PDF or image. The page renders a custom visualization
