@@ -44,6 +44,12 @@ export interface CategoryDetail {
   ageMin?: number | null;
   /** Optional age-range maximum. */
   ageMax?: number | null;
+  /** Skin game grouping identifier (categorias.Skin_grupo_id). Categorías
+   *  que comparten Skin_grupo_id juegan la misma bolsa de skins. */
+  skinGroupId?: string;
+  /** Porcentaje de handicap aplicado exclusivamente al Skin Game
+   *  (categorias.Skeenporcent). Puede diferir de `percentage`. */
+  skinPercent?: number;
 }
 
 // ============= Player Interface =============
