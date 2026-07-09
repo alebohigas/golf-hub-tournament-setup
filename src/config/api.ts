@@ -71,15 +71,26 @@ export const getTournamentUrl = (): string => `${API_BASE_URL}/tournament.php${b
 /** Tournament statistics (included in tournament endpoint) */
 export const getTournamentStatsUrl = (): string => `${API_BASE_URL}/tournament.php${buildQuery()}`;
 
-/** Categories list */
-export const getCategoriesUrl = (): string => `${API_BASE_URL}/categories.php${buildQuery()}`;
+/**
+ * Categories list.
+ * @param opts.skin  When true, appends `?skin=1` so the endpoint returns
+ *                   only categories with SKIN GAME players (Skeenjuga=1)
+ *                   and counts only those players. Used by /skinplayers.
+ */
+export const getCategoriesUrl = (opts: { skin?: boolean } = {}): string =>
+  `${API_BASE_URL}/categories.php${buildQuery(opts.skin ? { skin: '1' } : {})}`;
 
 /**
- * Players by category ID
- * @param catId - Category ID from the database
+ * Players by category ID.
+ * @param catId  Category ID from the database
+ * @param opts.skin  When true, appends `?skin=1` so the endpoint returns
+ *                   only players enrolled in the SKIN GAME (Skeenjuga=1).
  */
-export const getPlayersApiUrl = (catId: string): string =>
-  `${API_BASE_URL}/players.php${buildQuery({ catid: catId })}`;
+export const getPlayersApiUrl = (catId: string, opts: { skin?: boolean } = {}): string =>
+  `${API_BASE_URL}/players.php${buildQuery({
+    catid: catId,
+    ...(opts.skin ? { skin: '1' } : {}),
+  })}`;
 
 /** Calendario - tournament calendar from caljuego table */
 export const getCalendarioUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery()}`;

@@ -13,6 +13,13 @@ $cid = esc($conn, $catid);
 $tid = esc($conn, $torneoid);
 
 /**
+ * Optional `?skin=1` flag — restrict results to players enrolled in the
+ * SKIN GAME (jugadores.Skeenjuga = 1). Used by the /skinplayers page.
+ */
+$skinOnly = isset($_GET['skin']) && $_GET['skin'] === '1';
+$skinPlayerFilter = $skinOnly ? " AND p.Skeenjuga = 1 " : '';
+
+/**
  * Detectar si la categoría es de parejas (formato='PAREJAS'). El frontend lo
  * usa para agrupar jugadores por grupoid (cada grupo = una pareja).
  */
@@ -35,7 +42,7 @@ $sql = "SELECT p.id, p.numjugador,
             WHERE cat.categoria_id = '$cid' and campo>0
             LIMIT 1
         ) cat ON (p.categoriaid = cat.categoria_id)
-        WHERE p.categoriaid = '$cid' AND p.torneoid = $tid
+        WHERE p.categoriaid = '$cid' AND p.torneoid = $tid $skinPlayerFilter
         ORDER BY p.apellido, p.nombre ASC";
 
 $result = $conn->query($sql);

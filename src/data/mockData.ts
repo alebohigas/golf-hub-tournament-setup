@@ -78,6 +78,7 @@ export const menuConfig: MenuItem[] = [
   { id: 'patrocinadores', label: 'PATROCINADORES', path: '/patrocinadores', enabled: true, order: 13 },
   { id: 'reglas', label: 'REGLAS Y CC', path: '/reglas', enabled: true, order: 14 },
   { id: 'skinrules', label: 'SKIN RULES', path: '/skinrules', enabled: false, order: 14 },
+  { id: 'skinplayers', label: 'SKIN PLAYERS', path: '/skinplayers', enabled: false, order: 14 },
   { id: 'banderas', label: 'BANDERAS', path: '/banderas', enabled: true, order: 17 },
   { id: 'matchplay', label: 'MATCH PLAY', path: '/matchplay', enabled: true, order: 19 },
   { id: 'registro', label: 'PRE-REGISTRO', path: '/registro', enabled: true, order: 16 },
