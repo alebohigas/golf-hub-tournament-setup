@@ -316,7 +316,7 @@ const SkinScorecards = () => {
                       </tbody>
                     </table>
                   </div>
-                </Card>
+                </div>
               )}
 
               <p className="text-xs text-muted-foreground text-center mt-3">
