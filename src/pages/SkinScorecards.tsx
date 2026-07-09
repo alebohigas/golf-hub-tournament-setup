@@ -227,7 +227,7 @@ const SkinScorecards = () => {
                 <p
                   className={
                     'text-lg font-bold mt-1 ' +
-                    (detail.tipo === 'gross' ? 'text-primary' : 'text-accent-foreground')
+                    (detail.tipo === 'gross' ? 'text-foreground' : 'text-primary')
                   }
                 >
                   – {detail.tipo === 'gross' ? 'GROSS' : 'NETO'}
