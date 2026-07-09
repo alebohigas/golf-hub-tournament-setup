@@ -245,7 +245,7 @@ const SkinScorecards = () => {
                         {/* Par row */}
                         <tr className="bg-primary text-primary-foreground">
                           <th className="p-2 text-left w-12"></th>
-                          <th className="px-2 py-2 text-right whitespace-nowrap w-[1%]">Par Campo</th>
+                          <th className="px-2 py-2 text-left whitespace-nowrap w-[1%]">Par Campo</th>
                           {scorecard.pars.map((p, i) => (
                             <th key={`par-${i}`} className="px-1 py-2 text-center w-10">
                               {p}
