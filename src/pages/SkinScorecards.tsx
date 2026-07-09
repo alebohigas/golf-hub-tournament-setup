@@ -240,31 +240,31 @@ const SkinScorecards = () => {
               ) : (
                 <Card className="border-border/50 bg-white">
                   <div className="overflow-x-auto bg-white">
-                    <table className="w-full text-sm border-collapse tournament-table">
+                    <table className="w-full text-sm border-collapse tournament-table table-auto">
                       <thead>
                         {/* Par row */}
                         <tr className="bg-primary text-primary-foreground">
                           <th className="p-2 text-left w-12"></th>
-                          <th className="p-2 text-right">Par Campo</th>
+                          <th className="px-2 py-2 text-right whitespace-nowrap w-[1%]">Par Campo</th>
                           {scorecard.pars.map((p, i) => (
-                            <th key={`par-${i}`} className="p-2 text-center w-10">
+                            <th key={`par-${i}`} className="px-1 py-2 text-center w-10">
                               {p}
                             </th>
                           ))}
-                          <th className="p-2 text-center w-12">{scorecard.parTotal}</th>
+                          <th className="px-2 py-2 text-center w-12">{scorecard.parTotal}</th>
                           <th className="p-2"></th>
                         </tr>
                         {/* Column headers */}
                         <tr className="bg-primary text-primary-foreground">
-                          <th className="p-2">Club</th>
-                          <th className="p-2 text-left">Nombre</th>
+                          <th className="px-2 py-2 w-12">Club</th>
+                          <th className="px-2 py-2 text-left whitespace-nowrap w-[1%]">Nombre</th>
                           {Array.from({ length: 18 }).map((_, i) => (
-                            <th key={`h-${i}`} className="p-2 text-center">
+                            <th key={`h-${i}`} className="px-1 py-2 text-center">
                               {i + 1}
                             </th>
                           ))}
-                          <th className="p-2 text-center">Tot.</th>
-                          <th className="p-2 text-center">Cat.</th>
+                          <th className="px-2 py-2 text-center">Tot.</th>
+                          <th className="px-2 py-2 text-center">Cat.</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -280,7 +280,7 @@ const SkinScorecards = () => {
                         ) : (
                           scorecard.players.map((pl) => (
                             <tr key={pl.id} className="bg-white border-b">
-                              <td className="p-1 text-center">
+                              <td className="px-2 py-1 text-center">
                                 {pl.clubLogo && (
                                   <img
                                     src={pl.clubLogo}
@@ -293,12 +293,12 @@ const SkinScorecards = () => {
                                   />
                                 )}
                               </td>
-                              <td className="p-2 whitespace-nowrap">{pl.name}</td>
+                              <td className="px-2 py-2 whitespace-nowrap">{pl.name}</td>
                               {pl.scores.map((s, i) => (
                                 <td
                                   key={`s-${pl.id}-${i}`}
                                   className={
-                                    'p-1 text-center ' +
+                                    'px-1 py-1 text-center ' +
                                     (pl.highlight[i]
                                       ? 'bg-yellow-300 font-bold text-black'
                                       : '')
@@ -307,10 +307,10 @@ const SkinScorecards = () => {
                                   {s ?? ''}
                                 </td>
                               ))}
-                              <td className="p-2 text-center font-bold">
+                              <td className="px-2 py-2 text-center font-bold">
                                 {pl.total ?? ''}
                               </td>
-                              <td className="p-2 text-center">{pl.category}</td>
+                              <td className="px-2 py-2 text-center">{pl.category}</td>
                             </tr>
                           ))
                         )}
