@@ -292,8 +292,8 @@ const SkinScorecards = () => {
                         </tr>
                       ) : (
                         scorecard.players.map((pl) => (
-                          <tr key={pl.id} className="bg-white even:bg-muted/30 border-b">
-                            <td className="px-2 py-1 text-center">
+                          <tr key={pl.id} className="bg-white even:bg-muted/30 border-b group">
+                            <td className="px-0 py-1 text-center sticky left-0 z-10 bg-white group-even:bg-muted/30">
                               {pl.clubLogo && (
                                 <img
                                   src={pl.clubLogo}
@@ -306,7 +306,9 @@ const SkinScorecards = () => {
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-2 whitespace-nowrap">{pl.name}</td>
+                            <td className="px-2 py-2 whitespace-nowrap sticky left-12 z-10 bg-white group-even:bg-muted/30">
+                              {pl.name}
+                            </td>
                             {pl.scores.map((s, i) => (
                               <td
                                 key={`s-${pl.id}-${i}`}
