@@ -240,7 +240,7 @@ const SkinScorecards = () => {
               ) : (
                 <Card className="border-border/50 bg-white">
                   <div className="overflow-x-auto bg-white">
-                    <table className="w-full text-sm border-collapse tournament-table table-auto">
+                    <table className="w-max text-sm border-collapse tournament-table table-auto">
                       <thead>
                         {/* Par row */}
                         <tr className="bg-primary text-primary-foreground">
