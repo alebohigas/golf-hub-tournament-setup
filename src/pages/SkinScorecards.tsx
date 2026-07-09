@@ -165,8 +165,8 @@ const SkinScorecards = () => {
                                 <div className="flex flex-col gap-2">
                                   <Button
                                     size="sm"
-                                    variant="secondary"
-                                    className="bg-yellow-400 hover:bg-yellow-500 text-black"
+                                    variant="outline"
+                                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                     onClick={() =>
                                       setDetail({
                                         groupId: g.groupId,
@@ -181,6 +181,7 @@ const SkinScorecards = () => {
                                   </Button>
                                   <Button
                                     size="sm"
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                                     onClick={() =>
                                       setDetail({
                                         groupId: g.groupId,
@@ -226,7 +227,7 @@ const SkinScorecards = () => {
                 <p
                   className={
                     'text-lg font-bold mt-1 ' +
-                    (detail.tipo === 'gross' ? 'text-red-700' : 'text-blue-700')
+                    (detail.tipo === 'gross' ? 'text-foreground' : 'text-primary')
                   }
                 >
                   – {detail.tipo === 'gross' ? 'GROSS' : 'NETO'}
