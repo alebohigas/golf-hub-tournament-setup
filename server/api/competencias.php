@@ -1252,9 +1252,13 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     $limit = max(1, (int)$limit);
     $descripcionEsc = esc($conn, $descripcion);
 
+    // De-dup por jugadorid: un jugador puede tener varias filas en puttjug
+    // dentro del mismo premio (p.ej. una fila por categoría o STK vs regular).
+    // Nos quedamos con la mejor (MIN distancia) por jugador para evitar
+    // nombres repetidos en la tabla.
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   a.distancia,
+                   MIN(a.distancia) as distancia,
                    COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.logo, c.nombre as club
             FROM puttjug a
@@ -1262,7 +1266,8 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
             JOIN clubs c ON (j.clubid = c.id)
             LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.premiosjugcol = '$descripcionEsc' AND a.orden = 1
-            ORDER BY a.distancia ASC
+            GROUP BY a.jugadorid, jugador, categoria, c.logo, club
+            ORDER BY distancia ASC
             LIMIT $limit";
 
 
