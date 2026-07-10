@@ -251,8 +251,8 @@ const SkinScorecards = () => {
                     <thead className="sticky top-0 z-20">
                       {/* Par row */}
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="p-0 text-left w-12 sticky left-0 z-30 bg-primary"></th>
-                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] sticky left-12 z-30 bg-primary">
+                        <th className="p-0 text-left w-12 bg-primary"></th>
+                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] bg-primary">
                           Par Campo
                         </th>
                         {scorecard.pars.map((p, i) => (
@@ -265,10 +265,10 @@ const SkinScorecards = () => {
                       </tr>
                       {/* Column headers */}
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="p-0 py-2 w-12 sticky left-0 z-30 bg-primary text-center">
+                        <th className="p-0 py-2 w-12 bg-primary text-center">
                           Club
                         </th>
-                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] sticky left-12 z-30 bg-primary">
+                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] bg-primary">
                           Nombre
                         </th>
                         {Array.from({ length: 18 }).map((_, i) => (
@@ -293,7 +293,7 @@ const SkinScorecards = () => {
                       ) : (
                         scorecard.players.map((pl) => (
                           <tr key={pl.id} className="bg-white even:bg-muted/30 border-b group">
-                            <td className="px-0 py-1 text-center sticky left-0 z-10 bg-white group-even:bg-muted/30">
+                            <td className="px-0 py-1 text-center bg-white group-even:bg-muted/30">
                               {pl.clubLogo && (
                                 <img
                                   src={pl.clubLogo}
@@ -306,7 +306,7 @@ const SkinScorecards = () => {
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-2 whitespace-nowrap sticky left-12 z-10 bg-white group-even:bg-muted/30">
+                            <td className="px-2 py-2 whitespace-nowrap bg-white group-even:bg-muted/30">
                               {pl.name}
                             </td>
                             {pl.scores.map((s, i) => (
