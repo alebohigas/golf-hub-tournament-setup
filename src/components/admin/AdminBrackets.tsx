@@ -34,8 +34,14 @@ import { useTorneoId } from '@/hooks/useTorneoId';
 
 /** Tamaños permitidos — alineados con el PHP. */
 const BRACKET_SIZES = [8, 16, 32, 64, 128] as const;
-/** Password admin (igual que resto del panel). */
-const ADMIN_PW = 'admin2025';
+/**
+ * Password admin activa (igual que resto del panel).
+ * Usamos `getSuperAdminPassword()` en lugar de la literal 'admin2025' para
+ * respetar la contraseña del superadmin cambiada desde /admin y evitar
+ * 401 "Unauthorized" al generar/guardar brackets.
+ */
+import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+const ADMIN_PW = () => getSuperAdminPassword();
 
 /**
  * AdminBrackets
