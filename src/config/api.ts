@@ -27,6 +27,13 @@ export const POLL_ACTIVE = 30_000;     // 30 seconds
 export const POLL_SLOW = 120_000;      // 2 minutes
 /** No polling - static data (menu, tournament info) */
 export const POLL_STATIC = 0;
+/**
+ * Polling interval used by ALL showcase pages/slides (Showcase 300,
+ * ShowcaseRotator, LiveSlide, MejorScoreSlide, etc). Se llama "Showcase 300"
+ * precisamente por este refresh de 300 segundos — pensado para pantallas del
+ * club donde no hace falta refrescar más seguido.
+ */
+export const POLL_SHOWCASE = 300_000;  // 300 seconds (5 min)
 
 // ============= Helper: Append torneoid =============
 
