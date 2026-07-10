@@ -134,7 +134,7 @@ const App = () => (
               <Route path="/reglas" element={<ProtectedRoute pageId="reglas"><Reglas /></ProtectedRoute>} />
               <Route path="/skinrules" element={<ProtectedRoute pageId="skinrules"><SkinRules /></ProtectedRoute>} />
               <Route path="/skinplayers" element={<ProtectedRoute pageId="skinplayers"><SkinPlayers /></ProtectedRoute>} />
-              <Route path="/skinscorecards" element={<SkinScorecards />} />
+              <Route path="/skinscorecards" element={<ProtectedRoute pageId="skinscorecards"><SkinScorecards /></ProtectedRoute>} />
               <Route path="/skingame" element={<ProtectedRoute pageId="skingame"><SkinGame /></ProtectedRoute>} />
               <Route path="/hoteles" element={<ProtectedRoute pageId="hoteles"><Hoteles /></ProtectedRoute>} />
               <Route path="/registro" element={<ProtectedRoute pageId="registro"><Registro /></ProtectedRoute>} />
