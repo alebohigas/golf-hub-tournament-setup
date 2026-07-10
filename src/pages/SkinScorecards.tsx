@@ -246,7 +246,7 @@ const SkinScorecards = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="overflow-x-auto bg-white">
+                <div className="bg-white">
                   <table className="w-max mx-auto text-sm border-collapse tournament-table table-auto">
                     <thead>
                       {/* Par row */}
