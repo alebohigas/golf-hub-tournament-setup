@@ -23,7 +23,8 @@ export type ShowcaseSlideKind =
   | 'bracket'   // Bracket putt (M/F), full / group / semis / final.
   | 'qual'      // Clasificados Putt Finales por sexo (M/F).
   | 'matchplay' // Bracket Match Play por categoría (D1 + D2 internos).
-  | 'resultados';// Leaderboard de /resultados por categoría + NETO/GROSS.
+  | 'resultados' // Leaderboard de /resultados por categoría + NETO/GROSS.
+  | 'live';      // Leaderboard en vivo de una categoría configurada en /admin (Live).
 
 /** Descriptor de un slide rotable, tal como vive en la config persistida. */
 export interface ShowcaseSlide {
@@ -92,6 +93,18 @@ export const buildResultadosSlideId = (
   catid: string | number,
   scoringType: 'NETO' | 'GROSS',
 ): string => `resultados:${scoringType}:${catid}`;
+
+/**
+ * Build slide id para leaderboard LIVE.
+ * Formato: `live:<tipo>:<gross>:<catid>` — tipo y gross van primero (tamaño
+ * fijo) para poder recomponer el catid con parts.slice(2).join(':') aún si
+ * el catid contiene ':' internos.
+ */
+export const buildLiveSlideId = (
+  catid: string | number,
+  tipo: 'stroke' | 'stableford',
+  gross: 0 | 1,
+): string => `live:${tipo}:${gross}:${catid}`;
 
 /** Decompone un slide id en su tupla (kind + partes). */
 export const parseSlideId = (id: string): { kind: ShowcaseSlideKind; parts: string[] } => {
