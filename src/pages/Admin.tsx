@@ -221,7 +221,6 @@ const AdminDashboard = () => {
     usuarios: undefined,
     config: undefined,
     pagina: undefined,
-    live: undefined,
     reglas: 'reglas',
   };
   const isStaffOnly = !!staffSession && !isAdmin;
