@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Lock, Shield, MonitorPlay, Trophy, Target, Crosshair, MousePointerClick, Flag, Layers, ListChecks, ExternalLink, Loader2, ClipboardList } from 'lucide-react';
+import { Lock, Shield, MonitorPlay, Trophy, Target, Crosshair, MousePointerClick, Flag, Layers, ListChecks, ExternalLink, Loader2, ClipboardList, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShowcaseSlides } from '@/hooks/useShowcaseSlides';
 import {
@@ -101,6 +101,7 @@ const groupIcon = (group: string) => {
   if (group === 'Mejor Score Diario') return ListChecks;
   if (group === 'Match Play') return Trophy;
   if (group === 'Resultados') return ClipboardList;
+  if (group === 'LIVE') return Radio;
   return MonitorPlay;
 };
 
@@ -161,7 +162,7 @@ const Dashboard = () => {
   const groupOrder = [
     'Driver', 'Approach', 'Putt', "O'Yes", 'Oyes-X',
     'Mejor Score Diario', 'Brackets Caballeros', 'Brackets Damas',
-    'Match Play', 'Resultados',
+    'Match Play', 'Resultados', 'LIVE',
   ].filter((g) => groups[g]?.length);
 
   return (
@@ -293,6 +294,25 @@ const Dashboard = () => {
                 {groups['Resultados']?.length
                   ? `${groups['Resultados'].length} leaderboards`
                   : 'Sin datos'}
+              </span>
+            </Button>
+
+            {/* LIVE — leaderboards en vivo de categorías visibles en /admin */}
+            <Button
+              variant="outline"
+              disabled={!groups['LIVE']?.length}
+              className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
+              onClick={() => openRotator(buildConfig((m) => m.group === 'LIVE'))}
+            >
+              <div className="flex items-center gap-2 w-full">
+                <Radio className="h-4 w-4 text-primary" />
+                <span className="font-semibold">LIVE</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-normal">
+                {groups['LIVE']?.length
+                  ? `${groups['LIVE'].length} categorías en vivo`
+                  : 'Sin categorías activas'}
               </span>
             </Button>
           </div>
