@@ -139,7 +139,7 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
   const handleSave = () => {
     if (!torneoId) return;
     saveConfig.mutate(
-      { torneoid: Number(torneoId), sexo, size, visible, password: ADMIN_PW },
+      { torneoid: Number(torneoId), sexo, size, visible, password: ADMIN_PW() },
       {
         onSuccess: () => toast({ title: 'Configuración guardada' }),
         onError:   (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -151,7 +151,7 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
     if (!torneoId) return;
     if (!confirm(`Esto eliminará el bracket actual de ${label} y lo regenerará desde el ranking acumulado. ¿Continuar?`)) return;
     generate.mutate(
-      { torneoid: Number(torneoId), sexo, password: ADMIN_PW },
+      { torneoid: Number(torneoId), sexo, password: ADMIN_PW() },
       {
         onSuccess: (r: any) => toast({
           title: 'Bracket generado',
@@ -277,7 +277,7 @@ const MatchRow = ({ match }: { match: BracketMatch }) => {
         match_id: match.id,
         player1_score: s1 === '' ? null : Number(s1),
         player2_score: s2 === '' ? null : Number(s2),
-        password: ADMIN_PW,
+        password: ADMIN_PW(),
       },
       {
         onSuccess: () => toast({ title: 'Score capturado' }),
@@ -289,7 +289,7 @@ const MatchRow = ({ match }: { match: BracketMatch }) => {
   const handleForceWinner = (winnerId: number | null) => {
     if (!winnerId) return;
     setWinner.mutate(
-      { match_id: match.id, winner_id: winnerId, password: ADMIN_PW },
+      { match_id: match.id, winner_id: winnerId, password: ADMIN_PW() },
       {
         onSuccess: () => toast({ title: 'Ganador asignado manualmente' }),
         onError:   (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -301,7 +301,7 @@ const MatchRow = ({ match }: { match: BracketMatch }) => {
   const handleReset = () => {
     if (!confirm('¿Resetear este match? Se borrarán scores y ganador, y se removerá el avance al siguiente bracket.')) return;
     reset.mutate(
-      { match_id: match.id, password: ADMIN_PW },
+      { match_id: match.id, password: ADMIN_PW() },
       {
         onSuccess: () => { setS1(''); setS2(''); toast({ title: 'Match reseteado' }); },
         onError:   (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
