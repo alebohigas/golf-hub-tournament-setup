@@ -81,19 +81,40 @@ export const changeSuperAdminPassword = async (
 const isSameOriginApiRequest = (url: URL): boolean =>
   typeof window !== 'undefined' && url.origin === window.location.origin && url.pathname.startsWith('/api/');
 
+/** Resolve fetch input into a URL without reading or cloning request bodies. */
+const getFetchUrl = (input: RequestInfo | URL): URL | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const href = input instanceof Request ? input.url : input.toString();
+    return new URL(href, window.location.origin);
+  } catch {
+    return null;
+  }
+};
+
 /** Replace legacy password values inside JSON, FormData, URLSearchParams, or query strings. */
 const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [RequestInfo | URL, RequestInit | undefined] => {
   if (typeof window === 'undefined') return [input, init];
   const activePassword = getSuperAdminPassword();
   if (activePassword === DEFAULT_SUPERADMIN_PASSWORD) return [input, init];
 
-  const nextInit: RequestInit | undefined = init ? { ...init } : init;
+  const requestUrl = getFetchUrl(input);
+  if (!requestUrl || !isSameOriginApiRequest(requestUrl)) return [input, init];
+
+  const nextInit: RequestInit = init ? { ...init } : {};
+
+  // Send the current password as a rescue channel for legacy admin calls whose
+  // body/query still contains admin2025. Backend endpoints validate this header
+  // only on same-origin /api requests, never on public frontend routes.
+  const headers = new Headers(nextInit.headers ?? (input instanceof Request ? input.headers : undefined));
+  headers.set('X-Superadmin-Password', activePassword);
+  nextInit.headers = headers;
 
   // Patch querystring password=admin2025 for admin GET endpoints.
   if (typeof input === 'string' || input instanceof URL) {
     const original = input.toString();
     const url = new URL(original, window.location.origin);
-    if (isSameOriginApiRequest(url) && url.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
+    if (url.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
       url.searchParams.set('password', activePassword);
       input = original.startsWith('http') ? url.toString() : `${url.pathname}${url.search}`;
     }

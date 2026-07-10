@@ -245,8 +245,39 @@ function superadmin_password_hash_from_db($conn) {
     return $hash;
 }
 
-/** Valida la contraseña del superadmin (sin usuario). */
-function is_superadmin_password($conn, $password) {
+/**
+ * superadmin_password_candidates
+ * ------------------------------------------------------------------
+ * Builds the ordered list of possible superadmin password values for the
+ * current request. This lets legacy admin screens that still send the old
+ * `admin2025` body value be rescued by the current password sent in the
+ * `X-Superadmin-Password` header by the frontend compatibility layer.
+ */
+function superadmin_password_candidates($password) {
+    $candidates = [];
+    $add = function ($value) use (&$candidates) {
+        $value = (string)$value;
+        if ($value !== '' && !in_array($value, $candidates, true)) {
+            $candidates[] = $value;
+        }
+    };
+
+    $add($password);
+    if (!empty($_SERVER['HTTP_X_SUPERADMIN_PASSWORD'])) {
+        $add($_SERVER['HTTP_X_SUPERADMIN_PASSWORD']);
+    }
+    if (!empty($_POST['password'])) {
+        $add($_POST['password']);
+    }
+    if (!empty($_GET['password'])) {
+        $add($_GET['password']);
+    }
+
+    return $candidates;
+}
+
+/** Valida una contraseña candidata del superadmin contra DB/env/fallback. */
+function superadmin_password_matches($conn, $password) {
     global $SUPERADMIN_PASSWORD, $SUPERADMIN_PASSWORD_HASH;
     $password = (string)$password;
     if ($password === '') return false;
@@ -260,6 +291,14 @@ function is_superadmin_password($conn, $password) {
     // Fallback histórico mientras no exista un hash configurado.
     if (!$dbHash && empty($SUPERADMIN_PASSWORD_HASH) && empty($SUPERADMIN_PASSWORD)) {
         return hash_equals(SUPERADMIN_DEFAULT_PASSWORD, $password);
+    }
+    return false;
+}
+
+/** Valida la contraseña del superadmin (sin usuario). */
+function is_superadmin_password($conn, $password) {
+    foreach (superadmin_password_candidates($password) as $candidate) {
+        if (superadmin_password_matches($conn, $candidate)) return true;
     }
     return false;
 }
