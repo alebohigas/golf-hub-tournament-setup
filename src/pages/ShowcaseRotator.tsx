@@ -11,7 +11,7 @@
  *    disponibles con segundos por defecto (30s).
  *  - Muestra una barra de progreso superior + contador "i/N" + título.
  *  - El componente del slide actual hace su propio fetch en intervalos
- *    POLL_ACTIVE, por lo que los datos se mantienen frescos sin recargar
+ *    POLL_SHOWCASE (300 s), por lo que los datos se mantienen frescos sin recargar
  *    la página.
  */
 

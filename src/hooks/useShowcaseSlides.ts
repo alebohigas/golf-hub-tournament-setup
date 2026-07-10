@@ -15,7 +15,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
+import { API_BASE_URL, POLL_SHOWCASE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
 import { usePuttFinales } from '@/hooks/useBrackets';
 import { useMatchPlayCategories } from '@/hooks/useMatchPlay';
@@ -85,7 +85,7 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
           `${API_BASE_URL}/showcase300.php?torneoid=${torneoid}&tipo=${tipo}`,
         ),
       enabled: !!torneoid,
-      staleTime: POLL_ACTIVE,
+      staleTime: POLL_SHOWCASE,
     });
   const qDriver   = make300Query('driver');
   const qDriverP  = make300Query('driverp');
@@ -103,7 +103,7 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
         `${API_BASE_URL}/mejor_score_diario.php?torneoid=${torneoid}`,
       ),
     enabled: !!torneoid,
-    staleTime: POLL_ACTIVE,
+    staleTime: POLL_SHOWCASE,
   });
 
   // ----- Brackets putt -----

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
-import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
+import { API_BASE_URL, POLL_SHOWCASE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
 
 /** Jugador dentro de un premio 300. */
@@ -65,7 +65,7 @@ interface Props {
 /**
  * Showcase300Slide
  * Hace su propio fetch del endpoint para mantenerse desacoplado del
- * rotador (cada slide refresca su data en intervalos POLL_ACTIVE).
+ * rotador (cada slide refresca su data en intervalos POLL_SHOWCASE).
  */
 const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
   const torneoid = getTorneoId() || '';
@@ -76,8 +76,8 @@ const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
         `${API_BASE_URL}/showcase300.php?torneoid=${torneoid}&tipo=${tipo}`,
       ),
     enabled: !!torneoid,
-    refetchInterval: POLL_ACTIVE,
-    staleTime: POLL_ACTIVE,
+    refetchInterval: POLL_SHOWCASE,
+    staleTime: POLL_SHOWCASE,
   });
 
   const title = TITLES[tipo] ?? tipo.toUpperCase();

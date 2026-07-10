@@ -19,7 +19,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
+import { API_BASE_URL, POLL_SHOWCASE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
 import { Card } from '@/components/ui/card';
 import {
@@ -114,8 +114,8 @@ const Showcase300 = () => {
         `${API_BASE_URL}/showcase300.php?torneoid=${torneoid}&tipo=${tipo}`,
       ),
     enabled: !!title && !!torneoid,
-    refetchInterval: POLL_ACTIVE,
-    staleTime: POLL_ACTIVE,
+    refetchInterval: POLL_SHOWCASE,
+    staleTime: POLL_SHOWCASE,
   });
 
   // ----- Invalid tipo guard -----
