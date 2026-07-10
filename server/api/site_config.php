@@ -22,6 +22,7 @@
  * );
  */
 require_once 'config.php';
+require_once '_staff_auth.php';
 
 // Allow POST for saving config
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -261,10 +262,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         json_error('Invalid JSON body', 400);
     }
     
-    // Superadmin password check (separate from staff `usuarios`).
+    // Auth: superadmin password or a normal staff user with permission for the edited area.
     $password = $body['password'] ?? '';
     if (!is_superadmin_password($conn, $password)) {
-        json_error('Unauthorized', 401);
+        $fieldAreas = [
+            'live_scoring_config'    => 'matchplay',
+            'sponsors_config'        => 'uploads',
+            'eventos_config'         => 'eventos',
+            'avisos_config'          => 'avisos',
+            'premios_config'         => 'premios',
+            'hoteles_config'         => 'hoteles',
+            'stats_config'           => 'stats',
+            'popup_config'           => 'pop',
+        ];
+        $staffAllowed = false;
+        foreach ($fieldAreas as $field => $area) {
+            if (array_key_exists($field, $body) && staff_check_area($conn, $body, $area)) {
+                $staffAllowed = true;
+            }
+        }
+        if (!$staffAllowed) json_error('Unauthorized', 401);
     }
     
     // Build dynamic UPDATE fields from provided data

@@ -14,6 +14,7 @@
  */
 
 require_once 'config.php';
+require_once '_staff_auth.php';
 header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
 
 /**
@@ -68,9 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $body = json_decode(file_get_contents('php://input'), true);
     if (!$body) json_error('Invalid JSON body', 400);
 
-    // Superadmin auth (same username-less admin as /admin).
+    // Auth: superadmin or normal staff user with Convocatoria/Reglas area.
     if (!is_superadmin_password($conn, $body['password'] ?? '')) {
-        json_error('Unauthorized', 401);
+        $staff = staff_check_area($conn, $body, 'convocatoria');
+        if (!$staff) $staff = staff_check_area($conn, $body, 'reglas');
+        if (!$staff) json_error('Unauthorized', 401);
     }
 
     if (!convocatoria_content_table_exists($conn)) {
@@ -122,7 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!$body) json_error('Invalid JSON body', 400);
 
     if (!is_superadmin_password($conn, $body['password'] ?? '')) {
-        json_error('Unauthorized', 401);
+        $staff = staff_check_area($conn, $body, 'convocatoria');
+        if (!$staff) $staff = staff_check_area($conn, $body, 'reglas');
+        if (!$staff) json_error('Unauthorized', 401);
     }
 
     if (!convocatoria_content_table_exists($conn)) {
