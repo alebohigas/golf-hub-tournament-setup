@@ -246,38 +246,38 @@ const SkinScorecards = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="overflow-x-auto bg-white">
+                <div className="overflow-x-auto md:overflow-x-visible bg-white">
                   <table className="w-max mx-auto text-sm border-collapse tournament-table table-auto">
-                    <thead className="sticky top-0 z-20">
+                    <thead>
                       {/* Par row */}
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="p-0 text-left w-12 bg-primary"></th>
-                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] bg-primary">
+                        <th className="p-0 text-left w-12 md:sticky md:top-[var(--header-height)] md:z-20 bg-primary"></th>
+                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] md:sticky md:top-[var(--header-height)] md:z-20 bg-primary">
                           Par Campo
                         </th>
                         {scorecard.pars.map((p, i) => (
-                          <th key={`par-${i}`} className="px-1 py-2 text-center w-10">
+                          <th key={`par-${i}`} className="px-1 py-2 text-center w-10 md:sticky md:top-[var(--header-height)] md:z-20 bg-primary">
                             {p}
                           </th>
                         ))}
-                        <th className="px-2 py-2 text-center w-12">{scorecard.parTotal}</th>
-                        <th className="p-2"></th>
+                        <th className="px-2 py-2 text-center w-12 md:sticky md:top-[var(--header-height)] md:z-20 bg-primary">{scorecard.parTotal}</th>
+                        <th className="p-2 md:sticky md:top-[var(--header-height)] md:z-20 bg-primary"></th>
                       </tr>
                       {/* Column headers */}
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="p-0 py-2 w-12 bg-primary text-center">
+                        <th className="p-0 py-2 w-12 md:sticky md:top-[calc(var(--header-height)+2.25rem)] md:z-20 bg-primary text-center">
                           Club
                         </th>
-                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] bg-primary">
+                        <th className="px-2 py-2 text-left whitespace-nowrap w-[1%] md:sticky md:top-[calc(var(--header-height)+2.25rem)] md:z-20 bg-primary">
                           Nombre
                         </th>
                         {Array.from({ length: 18 }).map((_, i) => (
-                          <th key={`h-${i}`} className="px-1 py-2 text-center">
+                          <th key={`h-${i}`} className="px-1 py-2 text-center md:sticky md:top-[calc(var(--header-height)+2.25rem)] md:z-20 bg-primary">
                             {i + 1}
                           </th>
                         ))}
-                        <th className="px-2 py-2 text-center">Tot.</th>
-                        <th className="px-2 py-2 text-center">Cat.</th>
+                        <th className="px-2 py-2 text-center md:sticky md:top-[calc(var(--header-height)+2.25rem)] md:z-20 bg-primary">Tot.</th>
+                        <th className="px-2 py-2 text-center md:sticky md:top-[calc(var(--header-height)+2.25rem)] md:z-20 bg-primary">Cat.</th>
                       </tr>
                     </thead>
                     <tbody>
