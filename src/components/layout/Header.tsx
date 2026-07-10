@@ -170,10 +170,31 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openMobileGroup, setOpenMobileGroup] = useState<string | null>(null);
   const location = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   /** Tracks the right-side reserved slot (Admin link/badge), if any */
   const rightSlotRef = useRef<HTMLDivElement>(null);
+
+  /** Expose the sticky header height so downstream sticky elements can offset by it. */
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const update = () => {
+      document.documentElement.style.setProperty(
+        '--header-height',
+        `${header.getBoundingClientRect().height}px`,
+      );
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(header);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
   
   // Get visible menu items and groups from context
   const { 
