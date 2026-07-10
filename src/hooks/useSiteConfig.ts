@@ -6,6 +6,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api';
+import { DEFAULT_SUPERADMIN_PASSWORD, getSuperAdminPassword } from '@/lib/superAdminAuth';
 
 // ============= Types =============
 
@@ -301,10 +302,16 @@ const fetchSiteConfig = async (): Promise<SiteConfig> => {
  * Save config fields to server
  */
 const saveSiteConfigApi = async (payload: SaveConfigPayload): Promise<{ domain: string; saved: boolean }> => {
+  /** Always submit the active session password, even from legacy admin forms. */
+  const effectivePayload = {
+    ...payload,
+    password: payload.password === DEFAULT_SUPERADMIN_PASSWORD ? getSuperAdminPassword() : payload.password,
+  };
+
   const res = await fetch(`${API_BASE_URL}/site_config.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(effectivePayload),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
