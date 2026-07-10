@@ -5,7 +5,7 @@
  * de una categoría configurada desde /admin (site_config → live_scoring_config).
  *
  * - Fetch: /api/live_scoring.php?catid=&tipo=&gross= — mismo endpoint que /live.
- * - Poll: POLL_SHOWCASE (100 s) para mantener datos frescos en la pantalla del club.
+ * - Poll: POLL_SHOWCASE (300 s) para mantener datos frescos en la pantalla del club.
  * - Render: tabla simplificada (Pos · Club · Jugador · Total · Thru · Hoy) sin
  *   scorecards expandibles ni interacción — pensado para TV/rotación.
  * - Soporta categorías PAREJAS mostrando ambos integrantes apilados.
