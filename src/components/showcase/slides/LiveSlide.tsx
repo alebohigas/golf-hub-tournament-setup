@@ -5,7 +5,7 @@
  * de una categoría configurada desde /admin (site_config → live_scoring_config).
  *
  * - Fetch: /api/live_scoring.php?catid=&tipo=&gross= — mismo endpoint que /live.
- * - Poll: POLL_LIVE (100 s) para mantener datos frescos en la pantalla del club.
+ * - Poll: POLL_SHOWCASE (100 s) para mantener datos frescos en la pantalla del club.
  * - Render: tabla simplificada (Pos · Club · Jugador · Total · Thru · Hoy) sin
  *   scorecards expandibles ni interacción — pensado para TV/rotación.
  * - Soporta categorías PAREJAS mostrando ambos integrantes apilados.
@@ -14,7 +14,7 @@ import { Loader2, Radio } from 'lucide-react';
 import { Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getLiveScoringUrl, POLL_LIVE } from '@/config/api';
+import { getLiveScoringUrl, POLL_SHOWCASE } from '@/config/api';
 
 // ============= Tipos (subset de /api/live_scoring.php) =============
 
@@ -88,8 +88,8 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
     queryFn: () => apiFetch<LiveScoringResponse>(
       getLiveScoringUrl(catid, tipo, String(gross)),
     ),
-    refetchInterval: POLL_LIVE,
-    staleTime: POLL_LIVE,
+    refetchInterval: POLL_SHOWCASE,
+    staleTime: POLL_SHOWCASE,
   });
 
   if (isLoading || !data) {

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
-import { API_BASE_URL, LOGOS_BASE_URL, POLL_ACTIVE } from '@/config/api';
+import { API_BASE_URL, LOGOS_BASE_URL, POLL_SHOWCASE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
 
 interface MejorScorePlayer {
@@ -88,8 +88,8 @@ const MejorScoreSlide = ({ fecha }: Props) => {
         `${API_BASE_URL}/mejor_score_diario.php?torneoid=${torneoid}`,
       ),
     enabled: !!torneoid,
-    refetchInterval: POLL_ACTIVE,
-    staleTime: POLL_ACTIVE,
+    refetchInterval: POLL_SHOWCASE,
+    staleTime: POLL_SHOWCASE,
   });
 
   if (isLoading) {
