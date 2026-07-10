@@ -92,15 +92,38 @@ const getFetchUrl = (input: RequestInfo | URL): URL | null => {
   }
 };
 
-/** Replace legacy password values inside JSON, FormData, URLSearchParams, or query strings. */
+/**
+ * URLs whose `password` field must NOT be overwritten. These endpoints receive
+ * a candidate password the user is trying to authenticate with (or a password
+ * bound to a different account like staff login), so injecting the active
+ * superadmin password would break them.
+ */
+const AUTH_PATHS_TO_SKIP = ['/api/admin_auth.php', '/api/staff_auth.php', '/api/staff_users.php'];
+
+/** True if the request targets an auth endpoint whose `password` field is untouchable. */
+const isAuthEndpoint = (url: URL): boolean =>
+  AUTH_PATHS_TO_SKIP.some(p => url.pathname === p || url.pathname.endsWith(p));
+
+/**
+ * Replace `password` values inside JSON / FormData / URLSearchParams / query strings.
+ *
+ * Two-tier logic so any admin action works with the current superadmin password
+ * without every component having to import `getSuperAdminPassword()`:
+ *   1) Always upgrade `password === DEFAULT_SUPERADMIN_PASSWORD` to the active
+ *      password (legacy hard-coded 'admin2025' rescue).
+ *   2) If the body has NO `usuario` field and the endpoint is not in
+ *      AUTH_PATHS_TO_SKIP, overwrite ANY `password` value with the active
+ *      superadmin password. This catches stale hardcoded values other than
+ *      'admin2025' too, so /admin edits keep saving after the password changes.
+ */
 const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [RequestInfo | URL, RequestInit | undefined] => {
   if (typeof window === 'undefined') return [input, init];
   const activePassword = getSuperAdminPassword();
-  if (activePassword === DEFAULT_SUPERADMIN_PASSWORD) return [input, init];
 
   const requestUrl = getFetchUrl(input);
   if (!requestUrl || !isSameOriginApiRequest(requestUrl)) return [input, init];
 
+  const skipOverwrite = isAuthEndpoint(requestUrl);
   const nextInit: RequestInit = init ? { ...init } : {};
   let needsRescueHeader = requestUrl.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD;
 
@@ -117,7 +140,8 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (typeof input === 'string' || input instanceof URL) {
     const original = input.toString();
     const url = new URL(original, window.location.origin);
-    if (url.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
+    const qsPwd = url.searchParams.get('password');
+    if (qsPwd && (qsPwd === DEFAULT_SUPERADMIN_PASSWORD || !skipOverwrite)) {
       url.searchParams.set('password', activePassword);
       input = original.startsWith('http') ? url.toString() : `${url.pathname}${url.search}`;
     }
@@ -129,9 +153,14 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (typeof nextInit.body === 'string') {
     try {
       const parsed = JSON.parse(nextInit.body);
-      if (parsed?.password === DEFAULT_SUPERADMIN_PASSWORD) {
-        needsRescueHeader = true;
-        nextInit.body = JSON.stringify({ ...parsed, password: activePassword });
+      if (parsed && typeof parsed === 'object' && 'password' in parsed) {
+        const isLegacy = parsed.password === DEFAULT_SUPERADMIN_PASSWORD;
+        const hasUsuario = 'usuario' in parsed && !!parsed.usuario;
+        // Overwrite when: legacy default OR admin-only payload (no usuario, not auth endpoint).
+        if (isLegacy || (!skipOverwrite && !hasUsuario)) {
+          needsRescueHeader = true;
+          nextInit.body = JSON.stringify({ ...parsed, password: activePassword });
+        }
       }
     } catch {
       // Non-JSON string bodies are left untouched.
@@ -139,15 +168,23 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   }
 
   // Patch multipart uploads: FormData password field.
-  if (nextInit.body instanceof FormData && nextInit.body.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
-    needsRescueHeader = true;
-    nextInit.body.set('password', activePassword);
+  if (nextInit.body instanceof FormData) {
+    const fdPwd = nextInit.body.get('password');
+    const fdUsuario = nextInit.body.get('usuario');
+    if (fdPwd && (fdPwd === DEFAULT_SUPERADMIN_PASSWORD || (!skipOverwrite && !fdUsuario))) {
+      needsRescueHeader = true;
+      nextInit.body.set('password', activePassword);
+    }
   }
 
   // Patch URLSearchParams bodies if ever used by an admin endpoint.
-  if (nextInit.body instanceof URLSearchParams && nextInit.body.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
-    needsRescueHeader = true;
-    nextInit.body.set('password', activePassword);
+  if (nextInit.body instanceof URLSearchParams) {
+    const upPwd = nextInit.body.get('password');
+    const upUsuario = nextInit.body.get('usuario');
+    if (upPwd && (upPwd === DEFAULT_SUPERADMIN_PASSWORD || (!skipOverwrite && !upUsuario))) {
+      needsRescueHeader = true;
+      nextInit.body.set('password', activePassword);
+    }
   }
 
   return [input, withRescueHeader()];
