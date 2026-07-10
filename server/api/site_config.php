@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $password = $body['password'] ?? '';
     if (!is_superadmin_password($conn, $password)) {
         $fieldAreas = [
-            'live_scoring_config'    => 'matchplay',
+            'live_scoring_config'    => 'live',
             'sponsors_config'        => 'uploads',
             'eventos_config'         => 'eventos',
             'avisos_config'          => 'avisos',
