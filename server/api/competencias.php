@@ -473,7 +473,17 @@ if ($tipo === '' || $tipo === 'putt') {
             $lugares = (int)($p['lugares'] ?? 0);
             if ($lugares <= 0) { $lugares = $numPrem; }
 
-            $sql = "SELECT COUNT(*) as cnt FROM puttjug WHERE torneoid = $tid AND premio = $premioId AND premiosjugcol = '$descripcionEsc' AND orden = 1";
+            // Count unique non-STK player ids for this Putt prize. Counting rows
+            // from puttjug can overstate the cut when the same jugadorid has
+            // multiple category rows or a duplicated STK entry.
+            $sql = "SELECT COUNT(DISTINCT pj.jugadorid) as cnt
+                    FROM puttjug pj
+                    JOIN jugadores j ON (pj.jugadorid = j.id)
+                    LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
+                    WHERE pj.torneoid = $tid
+                      AND pj.premio = $premioId
+                      AND pj.premiosjugcol = '$descripcionEsc'
+                      AND UPPER(TRIM(COALESCE(cat.abreviatura, cat.categoria, ''))) NOT LIKE '%STK'";
             $countRow = safe_query_one($conn, $sql);
             $playerCount = min((int)($countRow['cnt'] ?? 0), $lugares);
 
@@ -1252,27 +1262,31 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     $limit = max(1, (int)$limit);
     $descripcionEsc = esc($conn, $descripcion);
 
-    // De-dup por jugadorid: un jugador puede tener varias filas en puttjug
-    // dentro del mismo premio (p.ej. una fila por categoría o STK vs regular).
-    // Nos quedamos con la mejor (MIN distancia) por jugador para evitar
-    // nombres repetidos en la tabla.
-    // De-dup por jugadorid: un jugador puede tener varias filas en puttjug
-    // dentro del mismo premio (p.ej. B vs B STK, o categorías distintas).
-    // Agrupamos SOLO por jugadorid y tomamos MIN(distancia); los demás
-    // campos se colapsan con MIN() para satisfacer ONLY_FULL_GROUP_BY.
-    $sql = "SELECT a.jugadorid,
-                   MIN(CONCAT(j.nombre, ' ', j.apellido)) as jugador,
-                   MIN(a.distancia) as distancia,
-                   MIN(COALESCE(cat.abreviatura, cat.categoria, '')) as categoria,
-                   MIN(c.logo) as logo,
-                   MIN(c.nombre) as club
-            FROM puttjug a
-            JOIN jugadores j ON (a.jugadorid = j.id)
+    // De-dup estrictamente por jugadorid: la subconsulta devuelve una sola
+    // fila por jugador con su mejor distancia. Además se excluyen categorías
+    // que terminan en STK para evitar duplicados visibles B / B STK cuando el
+    // origen trae registros paralelos para el mismo competidor.
+    $sql = "SELECT best.jugadorid,
+                   CONCAT(j.nombre, ' ', j.apellido) as jugador,
+                   best.distancia,
+                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
+                   c.logo as logo,
+                   c.nombre as club
+            FROM (
+                SELECT pj.jugadorid, MIN(pj.distancia) as distancia
+                FROM puttjug pj
+                JOIN jugadores j2 ON (pj.jugadorid = j2.id)
+                LEFT JOIN categorias cat2 ON (j2.categoriaid = cat2.categoria_id)
+                WHERE pj.torneoid = $tid
+                  AND pj.premio = $premioId
+                  AND pj.premiosjugcol = '$descripcionEsc'
+                  AND UPPER(TRIM(COALESCE(cat2.abreviatura, cat2.categoria, ''))) NOT LIKE '%STK'
+                GROUP BY pj.jugadorid
+            ) best
+            JOIN jugadores j ON (best.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
-            WHERE a.torneoid = $tid AND a.premio = $premioId AND a.premiosjugcol = '$descripcionEsc' AND a.orden = 1
-            GROUP BY a.jugadorid
-            ORDER BY distancia ASC
+            ORDER BY best.distancia ASC, jugador ASC
             LIMIT $limit";
 
 
