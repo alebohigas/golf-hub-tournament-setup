@@ -20,6 +20,7 @@ import { getTorneoId } from '@/hooks/useTorneoId';
 import { usePuttFinales } from '@/hooks/useBrackets';
 import { useMatchPlayCategories } from '@/hooks/useMatchPlay';
 import { useAllResults } from '@/hooks/useResultadosData';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import {
   buildBracketSlideId,
   buildMejorSlideId,
@@ -27,6 +28,7 @@ import {
   buildQualSlideId,
   buildMatchPlaySlideId,
   buildResultadosSlideId,
+  buildLiveSlideId,
   type ShowcaseSlideMeta,
 } from '@/lib/showcaseSlides';
 
@@ -115,12 +117,19 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
   // aparecen las que hoy se ven en /resultados.
   const resultados = useAllResults();
 
+  // ----- LIVE (categorías configuradas en /admin como visibles) -----
+  // Se toma la misma fuente de verdad que la página /live: las entradas
+  // marcadas `enabled: true` en site_config.live_scoring_config. Categorías
+  // ocultas desde /admin quedan automáticamente fuera del rotador.
+  const siteCfg = useSiteConfig();
+
   const isLoading =
     s300Queries.some((q) => q.isLoading) ||
     mejor.isLoading ||
     brackets.isLoading ||
     matchplay.isLoading ||
-    resultados.isLoading;
+    resultados.isLoading ||
+    siteCfg.isLoading;
 
   // ----- Aplanar -----
   const all: ShowcaseSlideMeta[] = [];
@@ -253,6 +262,23 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
         label: `Resultados — ${cat.shortName || cat.categoryName} · ${scoring}`,
         group: 'Resultados',
       });
+    });
+  });
+
+  // ----- LIVE: un slide por categoría habilitada en /admin -----
+  // Se respeta el mismo orden que usa la página /live (order asc, luego
+  // categoryId asc como desempate).
+  const liveEntries = (siteCfg.data?.live_scoring_config ?? [])
+    .filter((e) => e.enabled)
+    .sort((a, b) => (a.order ?? Number(a.categoryId)) - (b.order ?? Number(b.categoryId)));
+  liveEntries.forEach((entry) => {
+    const grossFlag = (entry.gross === 1 ? 1 : 0) as 0 | 1;
+    const label = `LIVE — ${entry.categoryName}`
+      + (grossFlag === 1 ? ' · GROSS' : '');
+    push({
+      id: buildLiveSlideId(entry.categoryId, entry.tipo, grossFlag),
+      label,
+      group: 'LIVE',
     });
   });
 

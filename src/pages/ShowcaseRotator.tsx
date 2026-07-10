@@ -28,6 +28,7 @@ import BracketSlide from '@/components/showcase/slides/BracketSlide';
 import PuttCalificadosSlide from '@/components/showcase/slides/PuttCalificadosSlide';
 import MatchPlaySlide from '@/components/showcase/slides/MatchPlaySlide';
 import ResultadosSlide from '@/components/showcase/slides/ResultadosSlide';
+import LiveSlide from '@/components/showcase/slides/LiveSlide';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getTournamentUrl, POLL_SLOW } from '@/config/api';
@@ -69,6 +70,14 @@ const renderSlide = (id: string) => {
     const scoring = (parts[0] === 'GROSS' ? 'GROSS' : 'NETO') as 'NETO' | 'GROSS';
     const catid = parts.slice(1).join(':');
     return <ResultadosSlide catid={catid} scoringType={scoring} />;
+  }
+  if (kind === 'live') {
+    // Formato: live:<tipo>:<gross>:<catid con posibles ':'> — tipo y gross
+    // van primero (tamaño fijo) para reconstruir el catid con slice(2).
+    const tipo = (parts[0] === 'stableford' ? 'stableford' : 'stroke') as 'stroke' | 'stableford';
+    const gross = (parts[1] === '1' ? 1 : 0) as 0 | 1;
+    const catid = parts.slice(2).join(':');
+    return <LiveSlide catid={catid} tipo={tipo} gross={gross} />;
   }
   return (
     <div className="max-w-4xl mx-auto p-6 rounded bg-card text-muted-foreground text-center">
