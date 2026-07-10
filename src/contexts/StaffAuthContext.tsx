@@ -8,7 +8,7 @@
  * al hacer llamadas admin desde el frontend.
  *
  * Áreas reconocidas (whitelist server + UI):
- *   preregistros, brackets, banderas, pop, eventos, avisos,
+ *   preregistros, brackets, matchplay, live, banderas, pop, eventos, avisos,
  *   premios, convocatoria, reglas, uploads, stats, hoteles
  */
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
@@ -17,7 +17,7 @@ import { API_BASE_URL } from '@/config/api';
 export type StaffArea =
   | 'preregistros' | 'brackets' | 'banderas' | 'pop'
   | 'eventos' | 'avisos' | 'premios' | 'convocatoria'
-  | 'reglas' | 'uploads' | 'stats' | 'hoteles' | 'matchplay';
+  | 'reglas' | 'uploads' | 'stats' | 'hoteles' | 'matchplay' | 'live';
 
 export interface StaffSession {
   token: string;

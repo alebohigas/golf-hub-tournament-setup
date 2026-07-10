@@ -216,11 +216,11 @@ const AdminDashboard = () => {
     registros: 'preregistros',
     brackets: 'brackets',
     matchplay: 'matchplay',
+    live: 'live',
     stats: 'stats',
     usuarios: undefined,
     config: undefined,
     pagina: undefined,
-    live: undefined,
     reglas: 'reglas',
   };
   const isStaffOnly = !!staffSession && !isAdmin;
@@ -229,6 +229,7 @@ const AdminDashboard = () => {
     preregistros: 'registros',
     brackets: 'brackets',
     matchplay: 'matchplay',
+    live: 'live',
     banderas: 'banderas',
     pop: 'popup',
     eventos: 'eventos',
