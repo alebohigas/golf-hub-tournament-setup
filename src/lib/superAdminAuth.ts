@@ -102,13 +102,16 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (!requestUrl || !isSameOriginApiRequest(requestUrl)) return [input, init];
 
   const nextInit: RequestInit = init ? { ...init } : {};
+  let needsRescueHeader = requestUrl.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD;
 
-  // Send the current password as a rescue channel for legacy admin calls whose
-  // body/query still contains admin2025. Backend endpoints validate this header
-  // only on same-origin /api requests, never on public frontend routes.
-  const headers = new Headers(nextInit.headers ?? (input instanceof Request ? input.headers : undefined));
-  headers.set('X-Superadmin-Password', activePassword);
-  nextInit.headers = headers;
+  /** Attach the current password only for legacy admin calls that need rescue. */
+  const withRescueHeader = (): RequestInit | undefined => {
+    if (!needsRescueHeader) return init ? nextInit : undefined;
+    const headers = new Headers(nextInit.headers ?? (input instanceof Request ? input.headers : undefined));
+    headers.set('X-Superadmin-Password', activePassword);
+    nextInit.headers = headers;
+    return nextInit;
+  };
 
   // Patch querystring password=admin2025 for admin GET endpoints.
   if (typeof input === 'string' || input instanceof URL) {
@@ -120,13 +123,14 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
     }
   }
 
-  if (!nextInit?.body) return [input, nextInit];
+  if (!nextInit?.body) return [input, withRescueHeader()];
 
   // Patch JSON bodies: { password: 'admin2025', ... }.
   if (typeof nextInit.body === 'string') {
     try {
       const parsed = JSON.parse(nextInit.body);
       if (parsed?.password === DEFAULT_SUPERADMIN_PASSWORD) {
+        needsRescueHeader = true;
         nextInit.body = JSON.stringify({ ...parsed, password: activePassword });
       }
     } catch {
@@ -136,15 +140,17 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
 
   // Patch multipart uploads: FormData password field.
   if (nextInit.body instanceof FormData && nextInit.body.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
+    needsRescueHeader = true;
     nextInit.body.set('password', activePassword);
   }
 
   // Patch URLSearchParams bodies if ever used by an admin endpoint.
   if (nextInit.body instanceof URLSearchParams && nextInit.body.get('password') === DEFAULT_SUPERADMIN_PASSWORD) {
+    needsRescueHeader = true;
     nextInit.body.set('password', activePassword);
   }
 
-  return [input, nextInit];
+  return [input, withRescueHeader()];
 };
 
 /**
