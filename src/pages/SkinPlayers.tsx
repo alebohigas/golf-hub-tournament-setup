@@ -21,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Users, Loader2 } from 'lucide-react';
-import jugadoresHero from '@/assets/jugadores-hero.jpg';
+import skinHero from '@/assets/skin-hero.jpg';
 import { useState } from 'react';
 import { useCategories, usePlayers } from '@/hooks/usePlayersData';
 import type { CategoryDetail } from '@/data/playersData';
@@ -50,7 +50,7 @@ const SkinPlayers = () => {
       <PageHero
         title="Skin Players"
         subtitle="Jugadores inscritos al Skin Game"
-        backgroundImage={jugadoresHero}
+        backgroundImage={skinHero}
       />
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">

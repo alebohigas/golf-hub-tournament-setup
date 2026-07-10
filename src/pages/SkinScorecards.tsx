@@ -21,7 +21,7 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Trophy } from 'lucide-react';
-import jugadoresHero from '@/assets/jugadores-hero.jpg';
+import skinHero from '@/assets/skin-hero.jpg';
 import {
   getSkinScorecardMasterUrl,
   getSkinScorecardDetailUrl,
@@ -131,7 +131,7 @@ const SkinScorecards = () => {
       <PageHero
         title="Skin Scorecards"
         subtitle="Tarjetas de Skin Game por grupo y fecha"
-        backgroundImage={jugadoresHero}
+        backgroundImage={skinHero}
       />
 
       <section className="py-16 bg-white">

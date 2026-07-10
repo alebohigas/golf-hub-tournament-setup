@@ -72,7 +72,7 @@ const SkinRules = () => {
       <PageHero
         title="Skin Rules"
         subtitle="Reglas oficiales del juego de Skins"
-        backgroundImage={reglasHero}
+        backgroundImage={skinHero}
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
