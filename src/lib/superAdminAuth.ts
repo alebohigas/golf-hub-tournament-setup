@@ -16,6 +16,9 @@ const SUPERADMIN_PASSWORD_SESSION_KEY = 'speitour_superadmin_password_v1';
 /** Fetch patch singleton flag to avoid double-wrapping fetch in dev/HMR. */
 let fetchPatchInstalled = false;
 
+/** LocalStorage key used by StaffAuthContext for normal/staff admin users. */
+const STAFF_SESSION_STORAGE_KEY = 'staff_session_v1';
+
 /** Read the active superadmin password for admin API payloads. */
 export const getSuperAdminPassword = (): string => {
   if (typeof window === 'undefined') return DEFAULT_SUPERADMIN_PASSWORD;
@@ -92,17 +95,70 @@ const getFetchUrl = (input: RequestInfo | URL): URL | null => {
   }
 };
 
+/** Read a valid staff token without importing React context into the fetch patch. */
+const getRememberedStaffToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STAFF_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as { token?: string; expira?: string };
+    if (!session?.token) return null;
+    if (session.expira && new Date(session.expira) <= new Date()) return null;
+    return session.token;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * URLs whose `password` field must NOT be overwritten. These endpoints receive
  * a candidate password the user is trying to authenticate with (or a password
  * bound to a different account like staff login), so injecting the active
  * superadmin password would break them.
  */
-const AUTH_PATHS_TO_SKIP = ['/api/admin_auth.php', '/api/staff_auth.php', '/api/staff_users.php'];
+const AUTH_PATHS_TO_SKIP = ['/api/admin_auth.php', '/api/staff_login.php', '/api/staff_session.php'];
 
 /** True if the request targets an auth endpoint whose `password` field is untouchable. */
 const isAuthEndpoint = (url: URL): boolean =>
   AUTH_PATHS_TO_SKIP.some(p => url.pathname === p || url.pathname.endsWith(p));
+
+/** Attach staff_token to non-login admin requests so normal users can save. */
+const attachStaffToken = (input: RequestInfo | URL, init: RequestInit, url: URL): [RequestInfo | URL, RequestInit] => {
+  const staffToken = getRememberedStaffToken();
+  if (!staffToken || isAuthEndpoint(url)) return [input, init];
+
+  if (typeof input === 'string' || input instanceof URL) {
+    const original = input.toString();
+    const patchedUrl = new URL(original, window.location.origin);
+    if (!patchedUrl.searchParams.has('staff_token')) {
+      patchedUrl.searchParams.set('staff_token', staffToken);
+      input = original.startsWith('http') ? patchedUrl.toString() : `${patchedUrl.pathname}${patchedUrl.search}`;
+    }
+  }
+
+  if (!init.body) return [input, init];
+
+  if (typeof init.body === 'string') {
+    try {
+      const parsed = JSON.parse(init.body);
+      if (parsed && typeof parsed === 'object' && !('staff_token' in parsed)) {
+        init.body = JSON.stringify({ ...parsed, staff_token: staffToken });
+      }
+    } catch {
+      // Non-JSON string bodies are left untouched.
+    }
+  }
+
+  if (init.body instanceof FormData && !init.body.has('staff_token')) {
+    init.body.set('staff_token', staffToken);
+  }
+
+  if (init.body instanceof URLSearchParams && !init.body.has('staff_token')) {
+    init.body.set('staff_token', staffToken);
+  }
+
+  return [input, init];
+};
 
 /**
  * Replace `password` values inside JSON / FormData / URLSearchParams / query strings.
@@ -141,13 +197,17 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
     const original = input.toString();
     const url = new URL(original, window.location.origin);
     const qsPwd = url.searchParams.get('password');
-    if (qsPwd && (qsPwd === DEFAULT_SUPERADMIN_PASSWORD || !skipOverwrite)) {
+    if (!skipOverwrite && qsPwd) {
       url.searchParams.set('password', activePassword);
       input = original.startsWith('http') ? url.toString() : `${url.pathname}${url.search}`;
     }
   }
 
-  if (!nextInit?.body) return [input, withRescueHeader()];
+  if (!nextInit?.body) {
+    const rescuedInit = withRescueHeader() ?? nextInit;
+    const [tokenInput, tokenInit] = attachStaffToken(input, rescuedInit, requestUrl);
+    return [tokenInput, tokenInit];
+  }
 
   // Patch JSON bodies: { password: 'admin2025', ... }.
   if (typeof nextInit.body === 'string') {
@@ -157,7 +217,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
         const isLegacy = parsed.password === DEFAULT_SUPERADMIN_PASSWORD;
         const hasUsuario = 'usuario' in parsed && !!parsed.usuario;
         // Overwrite when: legacy default OR admin-only payload (no usuario, not auth endpoint).
-        if (isLegacy || (!skipOverwrite && !hasUsuario)) {
+        if (!skipOverwrite && (isLegacy || !hasUsuario)) {
           needsRescueHeader = true;
           nextInit.body = JSON.stringify({ ...parsed, password: activePassword });
         }
@@ -171,7 +231,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (nextInit.body instanceof FormData) {
     const fdPwd = nextInit.body.get('password');
     const fdUsuario = nextInit.body.get('usuario');
-    if (fdPwd && (fdPwd === DEFAULT_SUPERADMIN_PASSWORD || (!skipOverwrite && !fdUsuario))) {
+    if (!skipOverwrite && fdPwd && (fdPwd === DEFAULT_SUPERADMIN_PASSWORD || !fdUsuario)) {
       needsRescueHeader = true;
       nextInit.body.set('password', activePassword);
     }
@@ -181,13 +241,15 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (nextInit.body instanceof URLSearchParams) {
     const upPwd = nextInit.body.get('password');
     const upUsuario = nextInit.body.get('usuario');
-    if (upPwd && (upPwd === DEFAULT_SUPERADMIN_PASSWORD || (!skipOverwrite && !upUsuario))) {
+    if (!skipOverwrite && upPwd && (upPwd === DEFAULT_SUPERADMIN_PASSWORD || !upUsuario)) {
       needsRescueHeader = true;
       nextInit.body.set('password', activePassword);
     }
   }
 
-  return [input, withRescueHeader()];
+  const rescuedInit = withRescueHeader() ?? nextInit;
+  const [tokenInput, tokenInit] = attachStaffToken(input, rescuedInit, requestUrl);
+  return [tokenInput, tokenInit];
 };
 
 /**
