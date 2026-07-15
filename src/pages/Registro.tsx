@@ -45,6 +45,7 @@ import {
   getLocationsStatesUrl,
   getLocationsCitiesUrl,
   getClubsUrl,
+  getClubsByTorneoUrl,
   getClubLookupUrl,
   getEmailValidateUrl,
   getRegistroEmailCheckUrl,
