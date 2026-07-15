@@ -1486,7 +1486,12 @@ const Registro = () => {
       // Editable text input + native <datalist> autocomplete reduces options
       // as the user types. Auto-filled from existing jugadores match when
       // available; user can overwrite freely (e.g. they changed clubs).
+      // When reg_es_socio = SI, the datalist is restricted to the clubs
+      // registered for the current tournament (from `clubs_registro`), so
+      // socios can only select among clubs actually enrolled in the event.
       const listId = `${id}-clubs`;
+      const isSocio = values.reg_es_socio === 'SI';
+      const listOptions = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
@@ -1501,7 +1506,7 @@ const Registro = () => {
             autoComplete="off"
           />
           <datalist id={listId}>
-            {clubs.map(c => (
+            {listOptions.map(c => (
               <option key={c.id} value={c.nombre} />
             ))}
           </datalist>
