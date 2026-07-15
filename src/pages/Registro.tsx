@@ -45,6 +45,7 @@ import {
   getLocationsStatesUrl,
   getLocationsCitiesUrl,
   getClubsUrl,
+  getClubsByTorneoUrl,
   getClubLookupUrl,
   getEmailValidateUrl,
   getRegistroEmailCheckUrl,
@@ -354,6 +355,14 @@ const Registro = () => {
   const [clubs, setClubs] = useState<ClubRow[]>([]);
 
   /**
+   * Clubs registered for THIS tournament (from `clubs_registro`).
+   * Used to restrict the reg_club autocomplete when the applicant
+   * marks reg_es_socio = SI: a socio can only belong to a club
+   * registered for the current torneoid.
+   */
+  const [socioClubs, setSocioClubs] = useState<ClubRow[]>([]);
+
+  /**
    * Tracks the last "nombre|apellido|fechanac" key for which we performed
    * an existing-player lookup, so we don't re-fire on every keystroke or
    * overwrite an edited club value.
@@ -617,6 +626,20 @@ const Registro = () => {
   }, [visibleFields.length]);
 
   /**
+   * Load the tournament-specific clubs list (from `clubs_registro`) once
+   * per active torneoid. This drives the restricted datalist that the
+   * reg_club input uses when reg_es_socio = SI.
+   */
+  useEffect(() => {
+    if (!isFieldEnabled('reg_club')) return;
+    fetch(getClubsByTorneoUrl())
+      .then(r => r.json())
+      .then(j => setSocioClubs(Array.isArray(j?.clubs) ? j.clubs : []))
+      .catch(() => setSocioClubs([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleFields.length]);
+
+  /**
    * When the user has filled nombre + apellido (and optionally fechanac),
    * look up an existing `jugadores` row and pre-fill the club. Field stays
    * fully editable in case the player has switched clubs since.
@@ -658,9 +681,27 @@ const Registro = () => {
    */
   useEffect(() => {
     const ans = values.reg_es_socio;
-    if (ans === 'SI' && tournamentInfo?.club) {
-      setSocioClubAutofilled(true);
-      setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
+    if (ans === 'SI') {
+      // Prefer the registered-club list for this tournament: if there's
+      // exactly one, auto-fill it; otherwise leave the field empty so the
+      // user picks from the restricted datalist. Fall back to
+      // tournamentInfo.club when clubs_registro has no rows.
+      if (socioClubs.length === 1) {
+        setSocioClubAutofilled(true);
+        setValues(v => ({ ...v, reg_club: socioClubs[0].nombre }));
+      } else if (socioClubs.length === 0 && tournamentInfo?.club) {
+        setSocioClubAutofilled(true);
+        setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
+      } else {
+        // Multiple registered clubs → clear any prior autofill so the
+        // user must actively select one from the restricted datalist.
+        setSocioClubAutofilled(true);
+        setValues(v => {
+          const current = (v.reg_club || '').trim().toLowerCase();
+          const stillValid = socioClubs.some(c => c.nombre.trim().toLowerCase() === current);
+          return stillValid ? v : { ...v, reg_club: '' };
+        });
+      }
     } else if (ans === 'NO' && socioClubAutofilled) {
       setSocioClubAutofilled(false);
       // Clear the SI-injected value so the player-lookup effect (or the
@@ -669,7 +710,7 @@ const Registro = () => {
       setValues(v => ({ ...v, reg_club: '' }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_es_socio, tournamentInfo?.club]);
+  }, [values.reg_es_socio, tournamentInfo?.club, socioClubs]);
 
   /**
    * When the typed club name matches a known club row, auto-fill país /
@@ -1445,7 +1486,12 @@ const Registro = () => {
       // Editable text input + native <datalist> autocomplete reduces options
       // as the user types. Auto-filled from existing jugadores match when
       // available; user can overwrite freely (e.g. they changed clubs).
+      // When reg_es_socio = SI, the datalist is restricted to the clubs
+      // registered for the current tournament (from `clubs_registro`), so
+      // socios can only select among clubs actually enrolled in the event.
       const listId = `${id}-clubs`;
+      const isSocio = values.reg_es_socio === 'SI';
+      const listOptions = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
@@ -1460,7 +1506,7 @@ const Registro = () => {
             autoComplete="off"
           />
           <datalist id={listId}>
-            {clubs.map(c => (
+            {listOptions.map(c => (
               <option key={c.id} value={c.nombre} />
             ))}
           </datalist>
