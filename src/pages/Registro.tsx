@@ -355,6 +355,14 @@ const Registro = () => {
   const [clubs, setClubs] = useState<ClubRow[]>([]);
 
   /**
+   * Clubs registered for THIS tournament (from `clubs_registro`).
+   * Used to restrict the reg_club autocomplete when the applicant
+   * marks reg_es_socio = SI: a socio can only belong to a club
+   * registered for the current torneoid.
+   */
+  const [socioClubs, setSocioClubs] = useState<ClubRow[]>([]);
+
+  /**
    * Tracks the last "nombre|apellido|fechanac" key for which we performed
    * an existing-player lookup, so we don't re-fire on every keystroke or
    * overwrite an edited club value.
