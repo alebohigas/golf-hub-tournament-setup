@@ -20,8 +20,27 @@
 require_once 'config.php';
 require_once '_smtp.php';
 require_once '_registro_emails.php';
+require_once '_staff_auth.php';
 
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+
+/**
+ * Autorización unificada para las rutas admin de este endpoint.
+ * Acepta cualquiera de:
+ *   1. Password legacy REGISTROS_PASSWORD ('registros2025') — retro-compat.
+ *   2. Password de superadmin (via is_superadmin_password, admite el default
+ *      admin2025 y también el hash guardado en BD si el superadmin lo cambió).
+ *   3. Token de staff con área 'registros' en Authorization: Bearer / staff_token.
+ * Devuelve true si autoriza, false en caso contrario. NO emite json_error;
+ * el caller decide qué hacer.
+ */
+function registro_admin_authorized($conn, $body) {
+    $pwd = (string)($body['password'] ?? optional_param('password', ''));
+    if ($pwd !== '' && $pwd === REGISTROS_PASSWORD) return true;
+    if ($pwd !== '' && is_superadmin_password($conn, $pwd)) return true;
+    if (staff_check_area($conn, $body, 'registros')) return true;
+    return false;
+}
 
 /**
  * Resolve the email column on the `registro` table. Different deployments
