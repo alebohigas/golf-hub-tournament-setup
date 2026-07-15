@@ -22,6 +22,7 @@
  */
 require_once 'config.php';
 require_once '_smtp.php';
+require_once '_staff_auth.php';
 
 const REGISTROS_PASSWORD = 'registros2025';
 
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $body = json_decode(file_get_contents('php://input'), true) ?: [];
-if (($body['password'] ?? '') !== REGISTROS_PASSWORD) {
+if (($body['password'] ?? '') !== REGISTROS_PASSWORD && !is_superadmin_password($conn, (string)($body['password'] ?? '')) && !staff_check_area($conn, $body, 'registros')) {
     json_error('Unauthorized', 401);
 }
 $id = (int)($body['id'] ?? 0);
