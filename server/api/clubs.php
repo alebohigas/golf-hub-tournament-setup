@@ -35,6 +35,33 @@ function jug_has($conn, $col) {
 
 $action = optional_param('action');
 
+// ============= Action: clubs registered for a tournament =============
+// GET /api/clubs.php?action=torneo&torneoid=NNN
+// Returns ONLY the clubs listed in `clubs_registro` for the given
+// tournament (joined with `clubs`). Used by Pre-Registro to restrict
+// the "Club" autocomplete when the applicant marks reg_es_socio=SI:
+// a socio can only belong to a club that the tournament has registered.
+if ($action === 'torneo') {
+    $torneoid = (int) optional_param('torneoid', 0);
+    if ($torneoid <= 0) json_response(['clubs' => []]);
+    $rows = [];
+    $sql = "SELECT DISTINCT c.id, c.nombre
+            FROM clubs_registro cr
+            INNER JOIN clubs c ON c.id = cr.clubid
+            WHERE cr.torneoid = " . $torneoid . "
+            ORDER BY c.nombre ASC";
+    $res = $conn->query($sql);
+    if ($res) {
+        while ($r = $res->fetch_assoc()) {
+            $name = trim((string)($r['nombre'] ?? ''));
+            if ($name === '') continue;
+            $rows[] = ['id' => (int)$r['id'], 'nombre' => $name];
+        }
+        $res->free();
+    }
+    json_response(['clubs' => $rows]);
+}
+
 // ============= Action: lookup an existing player's club =============
 if ($action === 'lookup') {
     $nombre   = trim((string) optional_param('nombre',   ''));
