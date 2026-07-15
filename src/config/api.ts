@@ -419,6 +419,15 @@ export const getLocationsCitiesUrl = (stateId: number | string): string =>
 export const getClubsUrl = (): string =>
   `${API_BASE_URL}/clubs.php`;
 
+/**
+ * Clubs registered for the active tournament (from `clubs_registro`).
+ * Pre-Registro uses this to restrict the "Club" datalist when the
+ * applicant marks reg_es_socio = SI — a socio may only belong to a
+ * club that is registered for the current tournament.
+ */
+export const getClubsByTorneoUrl = (): string =>
+  `${API_BASE_URL}/clubs.php${buildQuery({ action: 'torneo' })}`;
+
 /** Server-side email validation (syntax + MX + typo suggestions). */
 export const getEmailValidateUrl = (email: string): string =>
   `${API_BASE_URL}/email_validate.php?email=${encodeURIComponent(email)}`;
