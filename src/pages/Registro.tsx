@@ -681,9 +681,27 @@ const Registro = () => {
    */
   useEffect(() => {
     const ans = values.reg_es_socio;
-    if (ans === 'SI' && tournamentInfo?.club) {
-      setSocioClubAutofilled(true);
-      setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
+    if (ans === 'SI') {
+      // Prefer the registered-club list for this tournament: if there's
+      // exactly one, auto-fill it; otherwise leave the field empty so the
+      // user picks from the restricted datalist. Fall back to
+      // tournamentInfo.club when clubs_registro has no rows.
+      if (socioClubs.length === 1) {
+        setSocioClubAutofilled(true);
+        setValues(v => ({ ...v, reg_club: socioClubs[0].nombre }));
+      } else if (socioClubs.length === 0 && tournamentInfo?.club) {
+        setSocioClubAutofilled(true);
+        setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
+      } else {
+        // Multiple registered clubs → clear any prior autofill so the
+        // user must actively select one from the restricted datalist.
+        setSocioClubAutofilled(true);
+        setValues(v => {
+          const current = (v.reg_club || '').trim().toLowerCase();
+          const stillValid = socioClubs.some(c => c.nombre.trim().toLowerCase() === current);
+          return stillValid ? v : { ...v, reg_club: '' };
+        });
+      }
     } else if (ans === 'NO' && socioClubAutofilled) {
       setSocioClubAutofilled(false);
       // Clear the SI-injected value so the player-lookup effect (or the
@@ -692,7 +710,7 @@ const Registro = () => {
       setValues(v => ({ ...v, reg_club: '' }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_es_socio, tournamentInfo?.club]);
+  }, [values.reg_es_socio, tournamentInfo?.club, socioClubs]);
 
   /**
    * When the typed club name matches a known club row, auto-fill país /
