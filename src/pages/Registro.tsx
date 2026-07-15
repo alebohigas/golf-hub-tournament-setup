@@ -626,6 +626,20 @@ const Registro = () => {
   }, [visibleFields.length]);
 
   /**
+   * Load the tournament-specific clubs list (from `clubs_registro`) once
+   * per active torneoid. This drives the restricted datalist that the
+   * reg_club input uses when reg_es_socio = SI.
+   */
+  useEffect(() => {
+    if (!isFieldEnabled('reg_club')) return;
+    fetch(getClubsByTorneoUrl())
+      .then(r => r.json())
+      .then(j => setSocioClubs(Array.isArray(j?.clubs) ? j.clubs : []))
+      .catch(() => setSocioClubs([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleFields.length]);
+
+  /**
    * When the user has filled nombre + apellido (and optionally fechanac),
    * look up an existing `jugadores` row and pre-fill the club. Field stays
    * fully editable in case the player has switched clubs since.
