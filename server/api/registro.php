@@ -714,7 +714,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verify') {
     $body = json_decode(file_get_contents('php://input'), true);
     if (!$body) json_error('Invalid JSON', 400);
-    if (($body['password'] ?? '') !== REGISTROS_PASSWORD) json_error('Unauthorized', 401);
+    if (!registro_admin_authorized($conn, $body)) json_error('Unauthorized', 401);
 
     $pkCol = registro_pk_col($conn);
     if (!$pkCol) json_error('registro PK not found', 500);
@@ -799,7 +799,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && in_array(optional_param('action'), ['unregister', 'baja'], true)) {
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
-    if (($body['password'] ?? '') !== REGISTROS_PASSWORD) json_error('Unauthorized', 401);
+    if (!registro_admin_authorized($conn, $body)) json_error('Unauthorized', 401);
 
     $pkCol = registro_pk_col($conn);
     if (!$pkCol) json_error('registro PK not found', 500);
@@ -931,7 +931,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     // Auth check first — admin password gates everything.
-    if (optional_param('password') !== REGISTROS_PASSWORD) {
+    if (!registro_admin_authorized($conn, [])) {
         json_error('Unauthorized', 401);
     }
 
