@@ -686,6 +686,39 @@ const Registro = () => {
           // es_socio NO branch to decide between "leave blank" vs autofill.
           setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
           if (!j?.found || !j?.club) return;
+          /**
+           * Verificación cruzada: si el jugador declaró (o va a declarar)
+           * SÍ soy socio, comprobamos que su club en la BD coincida con
+           * alguno de los clubes autorizados del torneo (`socioClubs`).
+           * Si NO coincide, forzamos reg_es_socio = 'NO', autollenamos su
+           * club real y mostramos el mensaje en rojo especificado por el
+           * cliente. Esto se ejecuta también cuando reg_es_socio aún está
+           * vacío, para prevenir que el jugador marque SI incorrectamente.
+           */
+          const realClub = String(j.club).trim();
+          const realClubLc = realClub.toLowerCase();
+          const isAuthorized = socioClubs.some(
+            c => c.nombre.trim().toLowerCase() === realClubLc
+          );
+          setValues(v => {
+            const next = { ...v };
+            // Autofill club real siempre (fuente de verdad).
+            next.reg_club = realClub;
+            if (!isAuthorized && socioClubs.length > 0) {
+              // Forzar NO socio y almacenar el club real detectado.
+              next.reg_es_socio = 'NO';
+            }
+            return next;
+          });
+          if (!isAuthorized && socioClubs.length > 0) {
+            setSocioMismatch(
+              `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. ` +
+              `Si requiere actualizar su información favor de enviar correo a info@speitour.mx`
+            );
+          } else {
+            setSocioMismatch('');
+          }
+          return;
           // Only auto-fill club when the user hasn't typed one yet.
           setValues(v => v.reg_club ? v : { ...v, reg_club: String(j.club) });
         })
@@ -693,7 +726,7 @@ const Registro = () => {
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length]);
+  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length, socioClubs]);
 
   /**
    * Es-socio autofill rules:
