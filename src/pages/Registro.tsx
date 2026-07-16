@@ -1264,13 +1264,21 @@ const Registro = () => {
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
-          <Select value={values[name] || ''} onValueChange={v => setValue(name, v)}>
+          <Select
+            value={values[name] || ''}
+            onValueChange={v => { setValue(name, v); setSocioMismatch(''); }}
+          >
             <SelectTrigger id={id}><SelectValue placeholder="Selecciona una opción" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="SI">Sí, soy socio</SelectItem>
               <SelectItem value="NO">No</SelectItem>
             </SelectContent>
           </Select>
+          {/* Mensaje en rojo: el sistema detectó que el jugador está
+              registrado en otro club (ver effect de lookup). */}
+          {socioMismatch && (
+            <p className="text-sm text-destructive font-medium">{socioMismatch}</p>
+          )}
         </div>
       );
     }
