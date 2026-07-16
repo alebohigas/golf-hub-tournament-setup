@@ -466,6 +466,111 @@ const Registro = () => {
   const isFieldRequired = (name: string) =>
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
+  /** Generic value setter used by all form controls and validation effects. */
+  const setValue = useCallback((name: string, v: string) =>
+    setValues(prev => ({ ...prev, [name]: v })), []);
+
+  /** Normalize club names for strict, accent-insensitive membership checks. */
+  const clubKey = useCallback((clubName: string) => norm(clubName).replace(/\s+/g, ' '), []);
+
+  /** True when a player's stored club matches the tournament's authorized socio club list. */
+  const isAuthorizedSocioClub = useCallback((clubName: string): boolean => {
+    const key = clubKey(clubName);
+    if (!key) return false;
+    if (socioClubs.length > 0) {
+      return socioClubs.some(c => clubKey(c.nombre) === key);
+    }
+    return !!tournamentInfo?.club && clubKey(tournamentInfo.club) === key;
+  }, [clubKey, socioClubs, tournamentInfo?.club]);
+
+  /** Red message shown when the player is not allowed to claim host-club membership. */
+  const getSocioBlockedMessage = useCallback((reason: 'missing' | 'not_found' | 'wrong_club' | 'no_club' | 'error', realClub = ''): string => {
+    if (reason === 'missing') {
+      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre, apellido y fecha de nacimiento, o SPEI/GHIN, y vuelve a intentarlo.';
+    }
+    if (reason === 'not_found') {
+      return 'No encontramos a este jugador en la base de datos de jugadores, por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
+    }
+    if (reason === 'wrong_club') {
+      return `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. Si requiere actualizar su información favor de enviar correo a info@speitour.mx`;
+    }
+    if (reason === 'no_club') {
+      return 'Encontramos al jugador en la base de datos, pero no tiene club registrado para validar membresía. Por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
+    }
+    return 'No pudimos validar la membresía del jugador en este momento, por eso se marcó automáticamente como “No”. Intenta de nuevo o escribe a info@speitour.mx';
+  }, []);
+
+  /** Force the socio dropdown back to NO and clear all dependent socio-only values. */
+  const forceNoSocio = useCallback((message: string, realClub = '') => {
+    setSocioMismatch(message);
+    setSocioClubAutofilled(false);
+    setValues(v => ({
+      ...v,
+      reg_es_socio: 'NO',
+      reg_tipo_socio: '',
+      reg_cargo_socio: '',
+      reg_numsocio: '',
+      ...(realClub ? { reg_club: realClub } : {}),
+    }));
+  }, []);
+
+  /**
+   * Validate the "Sí, soy socio" answer against `jugadores` every time the
+   * dropdown changes. If the player does not exist, has no club, or belongs
+   * to a non-authorized club, the selection is immediately reverted to NO.
+   */
+  const handleSocioAnswerChange = useCallback(async (answer: string) => {
+    if (answer !== 'SI') {
+      setSocioMismatch('');
+      setValue('reg_es_socio', answer);
+      return;
+    }
+
+    const nombre = (values.reg_nombre || '').trim();
+    const apellido = (values.reg_apellido || '').trim();
+    const fechanac = (values.reg_fechanac || '').trim();
+    const spei = (values.reg_spei || '').trim();
+    const ghin = (values.numghinspei || values.reg_ghin || '').trim();
+    const hasId = spei.length >= 3 || ghin.length >= 3;
+    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2 && !!fechanac;
+
+    if (!hasId && !hasNameLookup) {
+      forceNoSocio(getSocioBlockedMessage('missing'));
+      return;
+    }
+
+    try {
+      const lookupUrl = hasId
+        ? getPlayerLookupByIdUrl(spei, ghin)
+        : getClubLookupUrl(nombre, apellido, fechanac);
+      const res = await fetch(lookupUrl);
+      const j = await res.json().catch(() => ({}));
+      setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
+
+      if (!j?.found) {
+        forceNoSocio(getSocioBlockedMessage('not_found'));
+        return;
+      }
+
+      const realClub = String(j.club || '').trim();
+      if (!realClub) {
+        forceNoSocio(getSocioBlockedMessage('no_club'));
+        return;
+      }
+
+      if (!isAuthorizedSocioClub(realClub)) {
+        forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
+        return;
+      }
+
+      setSocioMismatch('');
+      setSocioClubAutofilled(false);
+      setValues(v => ({ ...v, reg_es_socio: 'SI', reg_club: realClub }));
+    } catch {
+      forceNoSocio(getSocioBlockedMessage('error'));
+    }
+  }, [forceNoSocio, getSocioBlockedMessage, isAuthorizedSocioClub, setValue, values]);
+
   /**
    * Strict numeric handicap regex: optional minus sign, digits, optional single decimal digit.
    * Accepts integers or numbers with exactly one decimal place (e.g. -5, -4.9, 14.2, 54.0).
@@ -662,16 +767,16 @@ const Registro = () => {
   }, [visibleFields.length]);
 
   /**
-   * When the user has filled nombre + apellido (and optionally fechanac),
-   * look up an existing `jugadores` row and pre-fill the club. Field stays
-   * fully editable in case the player has switched clubs since.
+   * When the user has filled nombre + apellido + fechanac, look up an
+   * existing `jugadores` row and pre-fill the club. Birthdate is required
+   * here to avoid false positives from homonyms or partial name matches.
    */
   useEffect(() => {
     if (!isFieldEnabled('reg_club')) return;
     const nombre   = (values.reg_nombre   || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
-    if (nombre.length < 2 || apellido.length < 2) return;
+    if (nombre.length < 2 || apellido.length < 2 || !fechanac) return;
     const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${fechanac}`;
     if (key === lastLookupKey) return;
 
@@ -682,10 +787,21 @@ const Registro = () => {
         .then(r => r.json())
         .then(j => {
           if (cancelled) return;
-          // Tag whether we found this player at all — used by the
-          // es_socio NO branch to decide between "leave blank" vs autofill.
+          // Tag whether we found this player at all — the socio dropdown
+          // uses this same server truth every time the player tries "SI".
           setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
-          if (!j?.found || !j?.club) return;
+          if (!j?.found) {
+            if (values.reg_es_socio === 'SI') {
+              forceNoSocio(getSocioBlockedMessage('not_found'));
+            }
+            return;
+          }
+          if (!j?.club) {
+            if (values.reg_es_socio === 'SI') {
+              forceNoSocio(getSocioBlockedMessage('no_club'));
+            }
+            return;
+          }
           /**
            * Verificación cruzada: si el jugador declaró (o va a declarar)
            * SÍ soy socio, comprobamos que su club en la BD coincida con
@@ -696,25 +812,19 @@ const Registro = () => {
            * vacío, para prevenir que el jugador marque SI incorrectamente.
            */
           const realClub = String(j.club).trim();
-          const realClubLc = realClub.toLowerCase();
-          const isAuthorized = socioClubs.some(
-            c => c.nombre.trim().toLowerCase() === realClubLc
-          );
+          const isAuthorized = isAuthorizedSocioClub(realClub);
           setValues(v => {
             const next = { ...v };
             // Autofill club real siempre (fuente de verdad).
             next.reg_club = realClub;
-            if (!isAuthorized && socioClubs.length > 0) {
+            if (!isAuthorized) {
               // Forzar NO socio y almacenar el club real detectado.
               next.reg_es_socio = 'NO';
             }
             return next;
           });
-          if (!isAuthorized && socioClubs.length > 0) {
-            setSocioMismatch(
-              `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. ` +
-              `Si requiere actualizar su información favor de enviar correo a info@speitour.mx`
-            );
+          if (!isAuthorized) {
+            forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
           } else {
             setSocioMismatch('');
           }
@@ -750,8 +860,8 @@ const Registro = () => {
         // user must actively select one from the restricted datalist.
         setSocioClubAutofilled(true);
         setValues(v => {
-          const current = (v.reg_club || '').trim().toLowerCase();
-          const stillValid = socioClubs.some(c => c.nombre.trim().toLowerCase() === current);
+          const current = clubKey(v.reg_club || '');
+          const stillValid = socioClubs.some(c => clubKey(c.nombre) === current);
           return stillValid ? v : { ...v, reg_club: '' };
         });
       }
@@ -763,7 +873,7 @@ const Registro = () => {
       setValues(v => ({ ...v, reg_club: '' }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_es_socio, tournamentInfo?.club, socioClubs]);
+  }, [values.reg_es_socio, tournamentInfo?.club, socioClubs, clubKey]);
 
   /**
    * When the typed club name matches a known club row, auto-fill país /
@@ -1072,10 +1182,6 @@ const Registro = () => {
     }
   };
 
-  /** Generic value setter. */
-  const setValue = (name: string, v: string) =>
-    setValues(prev => ({ ...prev, [name]: v }));
-
   /**
    * SPEI / GHIN lookup: when either reg_spei or numghinspei has a long
    * enough value, query /api/clubs.php?action=lookup&spei=…&ghin=… and
@@ -1320,7 +1426,7 @@ const Registro = () => {
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
           <Select
             value={values[name] || ''}
-            onValueChange={v => { setValue(name, v); setSocioMismatch(''); }}
+            onValueChange={handleSocioAnswerChange}
           >
             <SelectTrigger id={id}><SelectValue placeholder="Selecciona una opción" /></SelectTrigger>
             <SelectContent>
