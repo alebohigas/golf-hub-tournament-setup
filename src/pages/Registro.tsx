@@ -860,8 +860,8 @@ const Registro = () => {
         // user must actively select one from the restricted datalist.
         setSocioClubAutofilled(true);
         setValues(v => {
-          const current = (v.reg_club || '').trim().toLowerCase();
-          const stillValid = socioClubs.some(c => c.nombre.trim().toLowerCase() === current);
+          const current = clubKey(v.reg_club || '');
+          const stillValid = socioClubs.some(c => clubKey(c.nombre) === current);
           return stillValid ? v : { ...v, reg_club: '' };
         });
       }
@@ -873,7 +873,7 @@ const Registro = () => {
       setValues(v => ({ ...v, reg_club: '' }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_es_socio, tournamentInfo?.club, socioClubs]);
+  }, [values.reg_es_socio, tournamentInfo?.club, socioClubs, clubKey]);
 
   /**
    * When the typed club name matches a known club row, auto-fill país /
