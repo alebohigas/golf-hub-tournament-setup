@@ -719,8 +719,6 @@ const Registro = () => {
             setSocioMismatch('');
           }
           return;
-          // Only auto-fill club when the user hasn't typed one yet.
-          setValues(v => v.reg_club ? v : { ...v, reg_club: String(j.club) });
         })
         .catch(() => { /* silent — autofill is best-effort */ });
     }, 400);
