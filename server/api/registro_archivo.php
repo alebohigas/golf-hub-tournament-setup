@@ -20,9 +20,30 @@ if (!file_exists($credentialsFile)) {
 }
 require_once $credentialsFile;
 
-/** Auth */
+/**
+ * Auth — se acepta cualquiera de:
+ *   • password === 'registros2025'  (contraseña histórica del dashboard)
+ *   • password del superadmin       (via is_superadmin_password)
+ *   • staff_token con área 'registros'
+ * Así los usuarios staff temporales con acceso a "registros" pueden
+ * descargar el comprobante sin recibir 401.
+ */
 $password = $_GET['password'] ?? '';
-if ($password !== 'registros2025') {
+$authorized = ($password === 'registros2025');
+if (!$authorized) {
+    // Cargamos config.php sólo cuando hace falta validar staff/superadmin,
+    // para no romper el header binario del stream si la auth simple pasó.
+    require_once __DIR__ . '/config.php';
+    require_once __DIR__ . '/_staff_auth.php';
+    // Nota: config.php ya abrió $conn; lo reutilizamos.
+    if (is_superadmin_password($conn, $password)) {
+        $authorized = true;
+    } else {
+        $staff = staff_check_area($conn, [], 'registros');
+        if ($staff) $authorized = true;
+    }
+}
+if (!$authorized) {
     http_response_code(401);
     echo 'Unauthorized';
     exit;
@@ -35,13 +56,17 @@ if ($id <= 0) {
     exit;
 }
 
-$conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, $DB_PORT);
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo 'DB connection failed';
-    exit;
+// $conn puede haber sido creado por config.php (rama staff/superadmin).
+// Si no existe, abrimos aquí para el camino simple `registros2025`.
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    $conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, $DB_PORT);
+    if ($conn->connect_error) {
+        http_response_code(500);
+        echo 'DB connection failed';
+        exit;
+    }
+    $conn->set_charset('utf8');
 }
-$conn->set_charset('utf8');
 
 /** Detect optional metadata columns */
 $hasMime   = $conn->query("SHOW COLUMNS FROM registro LIKE 'reg_archivo_mime'");
