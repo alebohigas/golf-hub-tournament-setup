@@ -25,6 +25,7 @@ import AdminHoteles from '@/components/admin/AdminHoteles';
 import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
+import AdminRegistroPreferente from '@/components/admin/AdminRegistroPreferente';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
@@ -655,6 +656,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="campos">Campos del formulario</TabsTrigger>
               <TabsTrigger value="categorias">Categorías elegibles</TabsTrigger>
               <TabsTrigger value="precios">Precios de inscripción</TabsTrigger>
+              <TabsTrigger value="preferente">Registro preferente</TabsTrigger>
             </TabsList>
             <TabsContent value="campos">
               <AdminRegistro />
@@ -664,6 +666,12 @@ const AdminDashboard = () => {
             </TabsContent>
             <TabsContent value="precios">
               <AdminRegistroPrecios />
+            </TabsContent>
+            {/* Registro preferente — ventana previa donde solo socios de
+                clubes autorizados (tabla `clubs_registro`) pueden
+                pre-registrarse. Fuera del rango se abre a todos los clubes. */}
+            <TabsContent value="preferente">
+              <AdminRegistroPreferente />
             </TabsContent>
           </Tabs>
         </TabsContent>
