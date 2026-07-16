@@ -1562,15 +1562,23 @@ const Registro = () => {
             required={required}
             placeholder={PLACEHOLDERS[name] ?? 'Ej: Club de Golf…'}
             value={values[name] || ''}
-            onChange={e => setValue(name, e.target.value)}
+            onChange={e => { setValue(name, e.target.value); if (clubError) setClubError(''); }}
             list={listId}
             autoComplete="off"
+            aria-invalid={!!clubError}
+            className={clubError ? 'border-destructive focus-visible:ring-destructive' : ''}
           />
           <datalist id={listId}>
             {listOptions.map(c => (
               <option key={c.id} value={c.nombre} />
             ))}
           </datalist>
+          {/* Mensaje de error cuando el jugador escribió un club que no
+              coincide con ninguna opción del catálogo. Ver validación en
+              onSubmit(). */}
+          {clubError && (
+            <p className="text-sm text-destructive">{clubError}</p>
+          )}
         </div>
       );
     }
