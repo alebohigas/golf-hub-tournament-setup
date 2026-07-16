@@ -38,6 +38,7 @@ import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
 import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
 import { useCategoriasReglas, type CategoriaRegla } from '@/hooks/useCategoriasReglas';
+import { useRegistroPreferente } from '@/hooks/useRegistroPreferente';
 import type { CategoryDetail } from '@/data/playersData';
 import {
   getRegistroSubmitUrl,
@@ -328,6 +329,12 @@ const Registro = () => {
    */
   const { data: reglasData } = useCategoriasReglas();
   const reglas = useMemo(() => reglasData?.rules || [], [reglasData?.rules]);
+  /**
+   * Configuración de "Registro preferente": ventana previa donde SOLO
+   * socios de clubes autorizados pueden pre-registrarse. Cuando
+   * `active_now = true` el formulario impone restricciones adicionales.
+   */
+  const { data: preferenteCfg } = useRegistroPreferente();
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
@@ -372,6 +379,21 @@ const Registro = () => {
   /** Tracks whether we already auto-filled the club from "soy socio = SI"
    *  so toggling NO doesn't keep clobbering manual edits. */
   const [socioClubAutofilled, setSocioClubAutofilled] = useState(false);
+
+  /**
+   * Mensaje en rojo bajo el selector "¿Eres socio?" cuando el sistema
+   * detecta que el jugador ya está registrado en un club distinto al
+   * club sede / clubes autorizados del torneo. Además se fuerza NO.
+   */
+  const [socioMismatch, setSocioMismatch] = useState<string>('');
+
+  /**
+   * Error inline bajo el input de club: se dispara cuando el jugador
+   * escribió texto libre que no coincide con ninguna opción del catálogo
+   * (dropdown). Bloquea el submit hasta que elija uno de la lista o
+   * seleccione "Sin club".
+   */
+  const [clubError, setClubError] = useState<string>('');
 
   /** Inline error message for the handicap field (shown on blur). */
   const [handicapError, setHandicapError] = useState<string>('');
@@ -664,14 +686,45 @@ const Registro = () => {
           // es_socio NO branch to decide between "leave blank" vs autofill.
           setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
           if (!j?.found || !j?.club) return;
-          // Only auto-fill club when the user hasn't typed one yet.
-          setValues(v => v.reg_club ? v : { ...v, reg_club: String(j.club) });
+          /**
+           * Verificación cruzada: si el jugador declaró (o va a declarar)
+           * SÍ soy socio, comprobamos que su club en la BD coincida con
+           * alguno de los clubes autorizados del torneo (`socioClubs`).
+           * Si NO coincide, forzamos reg_es_socio = 'NO', autollenamos su
+           * club real y mostramos el mensaje en rojo especificado por el
+           * cliente. Esto se ejecuta también cuando reg_es_socio aún está
+           * vacío, para prevenir que el jugador marque SI incorrectamente.
+           */
+          const realClub = String(j.club).trim();
+          const realClubLc = realClub.toLowerCase();
+          const isAuthorized = socioClubs.some(
+            c => c.nombre.trim().toLowerCase() === realClubLc
+          );
+          setValues(v => {
+            const next = { ...v };
+            // Autofill club real siempre (fuente de verdad).
+            next.reg_club = realClub;
+            if (!isAuthorized && socioClubs.length > 0) {
+              // Forzar NO socio y almacenar el club real detectado.
+              next.reg_es_socio = 'NO';
+            }
+            return next;
+          });
+          if (!isAuthorized && socioClubs.length > 0) {
+            setSocioMismatch(
+              `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. ` +
+              `Si requiere actualizar su información favor de enviar correo a info@speitour.mx`
+            );
+          } else {
+            setSocioMismatch('');
+          }
+          return;
         })
         .catch(() => { /* silent — autofill is best-effort */ });
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length]);
+  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length, socioClubs]);
 
   /**
    * Es-socio autofill rules:
@@ -1118,6 +1171,60 @@ const Registro = () => {
         return;
       }
     }
+
+    /**
+     * VALIDACIÓN ESTRICTA DE CLUB
+     * ---------------------------------------------------------------
+     * El campo `reg_club` es un input tipo autocomplete (datalist) que
+     * permite escribir texto libre. Debemos prohibir guardar un valor
+     * que NO exista en el catálogo mostrado. Si el jugador no encuentra
+     * su club, debe seleccionar "Sin club" y avisar a info@speitour.mx.
+     */
+    if (isFieldEnabled('reg_club')) {
+      const typed = (values.reg_club || '').trim();
+      if (typed) {
+        const isSocio = values.reg_es_socio === 'SI';
+        const universe = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
+        const match = universe.some(
+          c => c.nombre.trim().toLowerCase() === typed.toLowerCase()
+        );
+        if (!match) {
+          const msg = '¿No encuentras tu club? Manda mensaje a info@speitour.mx ' +
+                      'para agregarlo a la lista de clubes registrados. Para terminar tu ' +
+                      'registro puedes continuar poniendo tu club como "Sin club" de la selección mostrada.';
+          setClubError(msg);
+          toast({ title: 'Club no válido', description: msg, variant: 'destructive' });
+          return;
+        }
+      }
+    }
+
+    /**
+     * VENTANA DE REGISTRO PREFERENTE
+     * ---------------------------------------------------------------
+     * Si el servidor reporta `active_now = true`, sólo permitimos el
+     * envío si el jugador declaró ser socio (`reg_es_socio = SI`) Y el
+     * club seleccionado está en la lista `allowed_club_ids` con ventana
+     * vigente hoy. En caso contrario, bloqueamos con un toast.
+     */
+    if (preferenteCfg?.active_now) {
+      const isSocio = values.reg_es_socio === 'SI';
+      const typedClub = (values.reg_club || '').trim().toLowerCase();
+      const chosen = socioClubs.find(c => c.nombre.trim().toLowerCase() === typedClub);
+      const allowedIds = preferenteCfg.allowed_club_ids || [];
+      const clubAllowed = !!chosen && allowedIds.includes(chosen.id);
+      if (!isSocio || !clubAllowed) {
+        toast({
+          title: 'Registro preferente activo',
+          description:
+            'En este momento sólo pueden pre-registrarse socios de los clubes autorizados. ' +
+            'Si consideras que esto es un error, escribe a info@speitour.mx.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -1211,13 +1318,21 @@ const Registro = () => {
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
-          <Select value={values[name] || ''} onValueChange={v => setValue(name, v)}>
+          <Select
+            value={values[name] || ''}
+            onValueChange={v => { setValue(name, v); setSocioMismatch(''); }}
+          >
             <SelectTrigger id={id}><SelectValue placeholder="Selecciona una opción" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="SI">Sí, soy socio</SelectItem>
               <SelectItem value="NO">No</SelectItem>
             </SelectContent>
           </Select>
+          {/* Mensaje en rojo: el sistema detectó que el jugador está
+              registrado en otro club (ver effect de lookup). */}
+          {socioMismatch && (
+            <p className="text-sm text-destructive font-medium">{socioMismatch}</p>
+          )}
         </div>
       );
     }
@@ -1501,15 +1616,23 @@ const Registro = () => {
             required={required}
             placeholder={PLACEHOLDERS[name] ?? 'Ej: Club de Golf…'}
             value={values[name] || ''}
-            onChange={e => setValue(name, e.target.value)}
+            onChange={e => { setValue(name, e.target.value); if (clubError) setClubError(''); }}
             list={listId}
             autoComplete="off"
+            aria-invalid={!!clubError}
+            className={clubError ? 'border-destructive focus-visible:ring-destructive' : ''}
           />
           <datalist id={listId}>
             {listOptions.map(c => (
               <option key={c.id} value={c.nombre} />
             ))}
           </datalist>
+          {/* Mensaje de error cuando el jugador escribió un club que no
+              coincide con ninguna opción del catálogo. Ver validación en
+              onSubmit(). */}
+          {clubError && (
+            <p className="text-sm text-destructive">{clubError}</p>
+          )}
         </div>
       );
     }
@@ -1810,6 +1933,18 @@ const Registro = () => {
                   </div>
                 ) : (
                   <form key={formInstanceKey} onSubmit={onSubmit} className="space-y-8">
+                    {/* Banner: ventana de registro preferente activa.
+                        Informa al jugador antes de que llene el formulario
+                        que sólo socios de clubes autorizados pueden
+                        pre-registrarse ahora. */}
+                    {preferenteCfg?.active_now && (
+                      <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
+                        <strong>Registro preferente activo.</strong> En este periodo únicamente
+                        pueden pre-registrarse los socios de los clubes autorizados por el
+                        comité. Al terminar el rango preferente, el registro se abrirá al
+                        público general.
+                      </div>
+                    )}
                     {(() => {
                       // Group enabled fields by section while preserving order.
                       const order: Array<{ key: string; title: string }> = [
