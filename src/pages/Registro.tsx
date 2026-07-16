@@ -515,6 +515,63 @@ const Registro = () => {
   }, []);
 
   /**
+   * Validate the "Sí, soy socio" answer against `jugadores` every time the
+   * dropdown changes. If the player does not exist, has no club, or belongs
+   * to a non-authorized club, the selection is immediately reverted to NO.
+   */
+  const handleSocioAnswerChange = useCallback(async (answer: string) => {
+    if (answer !== 'SI') {
+      setSocioMismatch('');
+      setValue('reg_es_socio', answer);
+      return;
+    }
+
+    const nombre = (values.reg_nombre || '').trim();
+    const apellido = (values.reg_apellido || '').trim();
+    const fechanac = (values.reg_fechanac || '').trim();
+    const spei = (values.reg_spei || '').trim();
+    const ghin = (values.numghinspei || values.reg_ghin || '').trim();
+    const hasId = spei.length >= 3 || ghin.length >= 3;
+    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2;
+
+    if (!hasId && !hasNameLookup) {
+      forceNoSocio(getSocioBlockedMessage('missing'));
+      return;
+    }
+
+    try {
+      const lookupUrl = hasId
+        ? getPlayerLookupByIdUrl(spei, ghin)
+        : getClubLookupUrl(nombre, apellido, fechanac);
+      const res = await fetch(lookupUrl);
+      const j = await res.json().catch(() => ({}));
+      setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
+
+      if (!j?.found) {
+        forceNoSocio(getSocioBlockedMessage('not_found'));
+        return;
+      }
+
+      const realClub = String(j.club || '').trim();
+      if (!realClub) {
+        forceNoSocio(getSocioBlockedMessage('no_club'));
+        return;
+      }
+
+      if (!isAuthorizedSocioClub(realClub)) {
+        forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
+        return;
+      }
+
+      setSocioMismatch('');
+      setSocioClubAutofilled(false);
+      setValues(v => ({ ...v, reg_es_socio: 'SI', reg_club: realClub }));
+    } catch {
+      forceNoSocio(getSocioBlockedMessage('error'));
+    }
+  }, [forceNoSocio, getSocioBlockedMessage, isAuthorizedSocioClub, setValue, values]);
+
+  /**
    * Strict numeric handicap regex: optional minus sign, digits, optional single decimal digit.
    * Accepts integers or numbers with exactly one decimal place (e.g. -5, -4.9, 14.2, 54.0).
    * Empty string is treated as "not yet entered" (no error).
