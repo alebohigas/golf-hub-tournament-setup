@@ -466,6 +466,54 @@ const Registro = () => {
   const isFieldRequired = (name: string) =>
     !!visibleFields.find(f => f.field_name === name && f.is_required);
 
+  /** Generic value setter used by all form controls and validation effects. */
+  const setValue = useCallback((name: string, v: string) =>
+    setValues(prev => ({ ...prev, [name]: v })), []);
+
+  /** Normalize club names for strict, accent-insensitive membership checks. */
+  const clubKey = useCallback((clubName: string) => norm(clubName).replace(/\s+/g, ' '), []);
+
+  /** True when a player's stored club matches the tournament's authorized socio club list. */
+  const isAuthorizedSocioClub = useCallback((clubName: string): boolean => {
+    const key = clubKey(clubName);
+    if (!key) return false;
+    if (socioClubs.length > 0) {
+      return socioClubs.some(c => clubKey(c.nombre) === key);
+    }
+    return !!tournamentInfo?.club && clubKey(tournamentInfo.club) === key;
+  }, [clubKey, socioClubs, tournamentInfo?.club]);
+
+  /** Red message shown when the player is not allowed to claim host-club membership. */
+  const getSocioBlockedMessage = useCallback((reason: 'missing' | 'not_found' | 'wrong_club' | 'no_club' | 'error', realClub = ''): string => {
+    if (reason === 'missing') {
+      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre, apellido y fecha de nacimiento, o SPEI/GHIN, y vuelve a intentarlo.';
+    }
+    if (reason === 'not_found') {
+      return 'No encontramos a este jugador en la base de datos de jugadores, por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
+    }
+    if (reason === 'wrong_club') {
+      return `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. Si requiere actualizar su información favor de enviar correo a info@speitour.mx`;
+    }
+    if (reason === 'no_club') {
+      return 'Encontramos al jugador en la base de datos, pero no tiene club registrado para validar membresía. Por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
+    }
+    return 'No pudimos validar la membresía del jugador en este momento, por eso se marcó automáticamente como “No”. Intenta de nuevo o escribe a info@speitour.mx';
+  }, []);
+
+  /** Force the socio dropdown back to NO and clear all dependent socio-only values. */
+  const forceNoSocio = useCallback((message: string, realClub = '') => {
+    setSocioMismatch(message);
+    setSocioClubAutofilled(false);
+    setValues(v => ({
+      ...v,
+      reg_es_socio: 'NO',
+      reg_tipo_socio: '',
+      reg_cargo_socio: '',
+      reg_numsocio: '',
+      ...(realClub ? { reg_club: realClub } : {}),
+    }));
+  }, []);
+
   /**
    * Strict numeric handicap regex: optional minus sign, digits, optional single decimal digit.
    * Accepts integers or numbers with exactly one decimal place (e.g. -5, -4.9, 14.2, 54.0).
@@ -682,10 +730,21 @@ const Registro = () => {
         .then(r => r.json())
         .then(j => {
           if (cancelled) return;
-          // Tag whether we found this player at all — used by the
-          // es_socio NO branch to decide between "leave blank" vs autofill.
+          // Tag whether we found this player at all — the socio dropdown
+          // uses this same server truth every time the player tries "SI".
           setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
-          if (!j?.found || !j?.club) return;
+          if (!j?.found) {
+            if (values.reg_es_socio === 'SI') {
+              forceNoSocio(getSocioBlockedMessage('not_found'));
+            }
+            return;
+          }
+          if (!j?.club) {
+            if (values.reg_es_socio === 'SI') {
+              forceNoSocio(getSocioBlockedMessage('no_club'));
+            }
+            return;
+          }
           /**
            * Verificación cruzada: si el jugador declaró (o va a declarar)
            * SÍ soy socio, comprobamos que su club en la BD coincida con
@@ -696,25 +755,19 @@ const Registro = () => {
            * vacío, para prevenir que el jugador marque SI incorrectamente.
            */
           const realClub = String(j.club).trim();
-          const realClubLc = realClub.toLowerCase();
-          const isAuthorized = socioClubs.some(
-            c => c.nombre.trim().toLowerCase() === realClubLc
-          );
+          const isAuthorized = isAuthorizedSocioClub(realClub);
           setValues(v => {
             const next = { ...v };
             // Autofill club real siempre (fuente de verdad).
             next.reg_club = realClub;
-            if (!isAuthorized && socioClubs.length > 0) {
+            if (!isAuthorized) {
               // Forzar NO socio y almacenar el club real detectado.
               next.reg_es_socio = 'NO';
             }
             return next;
           });
-          if (!isAuthorized && socioClubs.length > 0) {
-            setSocioMismatch(
-              `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. ` +
-              `Si requiere actualizar su información favor de enviar correo a info@speitour.mx`
-            );
+          if (!isAuthorized) {
+            forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
           } else {
             setSocioMismatch('');
           }
