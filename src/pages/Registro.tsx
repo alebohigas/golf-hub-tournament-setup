@@ -1171,6 +1171,60 @@ const Registro = () => {
         return;
       }
     }
+
+    /**
+     * VALIDACIÓN ESTRICTA DE CLUB
+     * ---------------------------------------------------------------
+     * El campo `reg_club` es un input tipo autocomplete (datalist) que
+     * permite escribir texto libre. Debemos prohibir guardar un valor
+     * que NO exista en el catálogo mostrado. Si el jugador no encuentra
+     * su club, debe seleccionar "Sin club" y avisar a info@speitour.mx.
+     */
+    if (isFieldEnabled('reg_club')) {
+      const typed = (values.reg_club || '').trim();
+      if (typed) {
+        const isSocio = values.reg_es_socio === 'SI';
+        const universe = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
+        const match = universe.some(
+          c => c.nombre.trim().toLowerCase() === typed.toLowerCase()
+        );
+        if (!match) {
+          const msg = '¿No encuentras tu club? Manda mensaje a info@speitour.mx ' +
+                      'para agregarlo a la lista de clubes registrados. Para terminar tu ' +
+                      'registro puedes continuar poniendo tu club como "Sin club" de la selección mostrada.';
+          setClubError(msg);
+          toast({ title: 'Club no válido', description: msg, variant: 'destructive' });
+          return;
+        }
+      }
+    }
+
+    /**
+     * VENTANA DE REGISTRO PREFERENTE
+     * ---------------------------------------------------------------
+     * Si el servidor reporta `active_now = true`, sólo permitimos el
+     * envío si el jugador declaró ser socio (`reg_es_socio = SI`) Y el
+     * club seleccionado está en la lista `allowed_club_ids` con ventana
+     * vigente hoy. En caso contrario, bloqueamos con un toast.
+     */
+    if (preferenteCfg?.active_now) {
+      const isSocio = values.reg_es_socio === 'SI';
+      const typedClub = (values.reg_club || '').trim().toLowerCase();
+      const chosen = socioClubs.find(c => c.nombre.trim().toLowerCase() === typedClub);
+      const allowedIds = preferenteCfg.allowed_club_ids || [];
+      const clubAllowed = !!chosen && allowedIds.includes(chosen.id);
+      if (!isSocio || !clubAllowed) {
+        toast({
+          title: 'Registro preferente activo',
+          description:
+            'En este momento sólo pueden pre-registrarse socios de los clubes autorizados. ' +
+            'Si consideras que esto es un error, escribe a info@speitour.mx.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
