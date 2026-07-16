@@ -45,7 +45,16 @@ if ($action === 'torneo') {
     $torneoid = (int) optional_param('torneoid', 0);
     if ($torneoid <= 0) json_response(['clubs' => []]);
     $rows = [];
-    $sql = "SELECT DISTINCT c.id, c.nombre
+    // Include per-club preferente window dates (may be NULL if not set).
+    // The columns fecha_inicio / fecha_fin were added by the
+    // 2026_07_16_registro_preferente migration; select them defensively
+    // so this endpoint still works if the columns don't exist yet.
+    $hasDates = false;
+    $chk = @$conn->query("SHOW COLUMNS FROM clubs_registro LIKE 'fecha_inicio'");
+    if ($chk && $chk->num_rows > 0) $hasDates = true;
+    if ($chk) $chk->free();
+    $dateCols = $hasDates ? ", cr.fecha_inicio, cr.fecha_fin" : "";
+    $sql = "SELECT DISTINCT c.id, c.nombre$dateCols
             FROM clubs_registro cr
             INNER JOIN clubs c ON c.id = cr.clubid
             WHERE cr.torneoid = " . $torneoid . "
@@ -55,7 +64,12 @@ if ($action === 'torneo') {
         while ($r = $res->fetch_assoc()) {
             $name = trim((string)($r['nombre'] ?? ''));
             if ($name === '') continue;
-            $rows[] = ['id' => (int)$r['id'], 'nombre' => $name];
+            $rows[] = [
+                'id'           => (int)$r['id'],
+                'nombre'       => $name,
+                'fecha_inicio' => $r['fecha_inicio'] ?? null,
+                'fecha_fin'    => $r['fecha_fin']    ?? null,
+            ];
         }
         $res->free();
     }
