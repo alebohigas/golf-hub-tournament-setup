@@ -428,6 +428,15 @@ export const getClubsUrl = (): string =>
 export const getClubsByTorneoUrl = (): string =>
   `${API_BASE_URL}/clubs.php${buildQuery({ action: 'torneo' })}`;
 
+/**
+ * Registro Preferente config for the active tournament.
+ * Devuelve la ventana global (fecha_inicio/fecha_fin), el flag
+ * same_range, la lista de clubes autorizados y — precomputado por el
+ * servidor — active_now + allowed_club_ids para el "hoy" del servidor.
+ */
+export const getRegistroPreferenteUrl = (): string =>
+  `${API_BASE_URL}/registro_preferente.php${buildQuery()}`;
+
 /** Server-side email validation (syntax + MX + typo suggestions). */
 export const getEmailValidateUrl = (email: string): string =>
   `${API_BASE_URL}/email_validate.php?email=${encodeURIComponent(email)}`;
