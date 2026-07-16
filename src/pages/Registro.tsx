@@ -1933,6 +1933,18 @@ const Registro = () => {
                   </div>
                 ) : (
                   <form key={formInstanceKey} onSubmit={onSubmit} className="space-y-8">
+                    {/* Banner: ventana de registro preferente activa.
+                        Informa al jugador antes de que llene el formulario
+                        que sólo socios de clubes autorizados pueden
+                        pre-registrarse ahora. */}
+                    {preferenteCfg?.active_now && (
+                      <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
+                        <strong>Registro preferente activo.</strong> En este periodo únicamente
+                        pueden pre-registrarse los socios de los clubes autorizados por el
+                        comité. Al terminar el rango preferente, el registro se abrirá al
+                        público general.
+                      </div>
+                    )}
                     {(() => {
                       // Group enabled fields by section while preserving order.
                       const order: Array<{ key: string; title: string }> = [
