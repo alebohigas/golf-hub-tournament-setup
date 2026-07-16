@@ -380,6 +380,21 @@ const Registro = () => {
    *  so toggling NO doesn't keep clobbering manual edits. */
   const [socioClubAutofilled, setSocioClubAutofilled] = useState(false);
 
+  /**
+   * Mensaje en rojo bajo el selector "¿Eres socio?" cuando el sistema
+   * detecta que el jugador ya está registrado en un club distinto al
+   * club sede / clubes autorizados del torneo. Además se fuerza NO.
+   */
+  const [socioMismatch, setSocioMismatch] = useState<string>('');
+
+  /**
+   * Error inline bajo el input de club: se dispara cuando el jugador
+   * escribió texto libre que no coincide con ninguna opción del catálogo
+   * (dropdown). Bloquea el submit hasta que elija uno de la lista o
+   * seleccione "Sin club".
+   */
+  const [clubError, setClubError] = useState<string>('');
+
   /** Inline error message for the handicap field (shown on blur). */
   const [handicapError, setHandicapError] = useState<string>('');
 
