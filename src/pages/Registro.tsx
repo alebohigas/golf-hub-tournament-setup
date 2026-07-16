@@ -1125,10 +1125,6 @@ const Registro = () => {
     }
   };
 
-  /** Generic value setter. */
-  const setValue = (name: string, v: string) =>
-    setValues(prev => ({ ...prev, [name]: v }));
-
   /**
    * SPEI / GHIN lookup: when either reg_spei or numghinspei has a long
    * enough value, query /api/clubs.php?action=lookup&spei=…&ghin=… and
