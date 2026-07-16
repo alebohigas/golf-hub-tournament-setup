@@ -532,7 +532,7 @@ const Registro = () => {
     const spei = (values.reg_spei || '').trim();
     const ghin = (values.numghinspei || values.reg_ghin || '').trim();
     const hasId = spei.length >= 3 || ghin.length >= 3;
-    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2;
+    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2 && !!fechanac;
 
     if (!hasId && !hasNameLookup) {
       forceNoSocio(getSocioBlockedMessage('missing'));
@@ -767,16 +767,16 @@ const Registro = () => {
   }, [visibleFields.length]);
 
   /**
-   * When the user has filled nombre + apellido (and optionally fechanac),
-   * look up an existing `jugadores` row and pre-fill the club. Field stays
-   * fully editable in case the player has switched clubs since.
+   * When the user has filled nombre + apellido + fechanac, look up an
+   * existing `jugadores` row and pre-fill the club. Birthdate is required
+   * here to avoid false positives from homonyms or partial name matches.
    */
   useEffect(() => {
     if (!isFieldEnabled('reg_club')) return;
     const nombre   = (values.reg_nombre   || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
-    if (nombre.length < 2 || apellido.length < 2) return;
+    if (nombre.length < 2 || apellido.length < 2 || !fechanac) return;
     const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${fechanac}`;
     if (key === lastLookupKey) return;
 
