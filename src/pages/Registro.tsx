@@ -329,6 +329,12 @@ const Registro = () => {
    */
   const { data: reglasData } = useCategoriasReglas();
   const reglas = useMemo(() => reglasData?.rules || [], [reglasData?.rules]);
+  /**
+   * Configuración de "Registro preferente": ventana previa donde SOLO
+   * socios de clubes autorizados pueden pre-registrarse. Cuando
+   * `active_now = true` el formulario impone restricciones adicionales.
+   */
+  const { data: preferenteCfg } = useRegistroPreferente();
   const { toast } = useToast();
 
   /** Values for every form field, keyed by field_name. */
