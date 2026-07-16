@@ -1426,7 +1426,7 @@ const Registro = () => {
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
           <Select
             value={values[name] || ''}
-            onValueChange={v => { setValue(name, v); setSocioMismatch(''); }}
+            onValueChange={handleSocioAnswerChange}
           >
             <SelectTrigger id={id}><SelectValue placeholder="Selecciona una opción" /></SelectTrigger>
             <SelectContent>
