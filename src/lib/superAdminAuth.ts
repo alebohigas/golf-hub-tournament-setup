@@ -180,6 +180,14 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (!requestUrl || !isSameOriginApiRequest(requestUrl)) return [input, init];
 
   const skipOverwrite = isAuthEndpoint(requestUrl);
+  // When a staff user is logged in we must NOT overwrite the `password` field:
+  // staff sessions don't have the superadmin password and endpoints like
+  // registro*.php or *_archivo.php accept role-specific literals
+  // (`registros2025`, etc.) or a `staff_token`. Overwriting the password to
+  // `admin2025` (the default fallback when sessionStorage is empty) broke
+  // those calls with 401. We still attach `staff_token` further down.
+  const staffTokenPresent = !!getRememberedStaffToken();
+  const suppressPasswordRewrite = skipOverwrite || staffTokenPresent;
   const nextInit: RequestInit = init ? { ...init } : {};
   let needsRescueHeader = requestUrl.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD;
 
@@ -197,7 +205,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
     const original = input.toString();
     const url = new URL(original, window.location.origin);
     const qsPwd = url.searchParams.get('password');
-    if (!skipOverwrite && qsPwd) {
+    if (!suppressPasswordRewrite && qsPwd) {
       url.searchParams.set('password', activePassword);
       input = original.startsWith('http') ? url.toString() : `${url.pathname}${url.search}`;
     }
@@ -217,7 +225,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
         const isLegacy = parsed.password === DEFAULT_SUPERADMIN_PASSWORD;
         const hasUsuario = 'usuario' in parsed && !!parsed.usuario;
         // Overwrite when: legacy default OR admin-only payload (no usuario, not auth endpoint).
-        if (!skipOverwrite && (isLegacy || !hasUsuario)) {
+        if (!suppressPasswordRewrite && (isLegacy || !hasUsuario)) {
           needsRescueHeader = true;
           nextInit.body = JSON.stringify({ ...parsed, password: activePassword });
         }
@@ -231,7 +239,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (nextInit.body instanceof FormData) {
     const fdPwd = nextInit.body.get('password');
     const fdUsuario = nextInit.body.get('usuario');
-    if (!skipOverwrite && fdPwd && (fdPwd === DEFAULT_SUPERADMIN_PASSWORD || !fdUsuario)) {
+    if (!suppressPasswordRewrite && fdPwd && (fdPwd === DEFAULT_SUPERADMIN_PASSWORD || !fdUsuario)) {
       needsRescueHeader = true;
       nextInit.body.set('password', activePassword);
     }
@@ -241,7 +249,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   if (nextInit.body instanceof URLSearchParams) {
     const upPwd = nextInit.body.get('password');
     const upUsuario = nextInit.body.get('usuario');
-    if (!skipOverwrite && upPwd && (upPwd === DEFAULT_SUPERADMIN_PASSWORD || !upUsuario)) {
+    if (!suppressPasswordRewrite && upPwd && (upPwd === DEFAULT_SUPERADMIN_PASSWORD || !upUsuario)) {
       needsRescueHeader = true;
       nextInit.body.set('password', activePassword);
     }
