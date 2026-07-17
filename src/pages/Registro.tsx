@@ -477,10 +477,29 @@ const Registro = () => {
   const isAuthorizedSocioClub = useCallback((clubName: string): boolean => {
     const key = clubKey(clubName);
     if (!key) return false;
+    const socioKeys = socioClubs.map(c => clubKey(c.nombre));
+    const hostKey = tournamentInfo?.club ? clubKey(tournamentInfo.club) : '';
+    let result: boolean;
     if (socioClubs.length > 0) {
-      return socioClubs.some(c => clubKey(c.nombre) === key);
+      result = socioKeys.includes(key);
+    } else {
+      result = !!hostKey && hostKey === key;
     }
-    return !!tournamentInfo?.club && clubKey(tournamentInfo.club) === key;
+    // TEMP DEBUG: muestra por qué se acepta/rechaza el club del jugador.
+    // Quitar cuando se confirme el origen de la falla en producción.
+    // eslint-disable-next-line no-console
+    console.log('[socio-check]', {
+      inputClub: clubName,
+      inputKey: key,
+      socioClubs: socioClubs.map(c => c.nombre),
+      socioKeys,
+      tournamentClub: tournamentInfo?.club || null,
+      hostKey,
+      matchedInSocioClubs: socioKeys.includes(key),
+      matchedHost: !!hostKey && hostKey === key,
+      result,
+    });
+    return result;
   }, [clubKey, socioClubs, tournamentInfo?.club]);
 
   /** Red message shown when the player is not allowed to claim host-club membership. */
