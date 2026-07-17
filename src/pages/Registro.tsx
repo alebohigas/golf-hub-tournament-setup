@@ -777,23 +777,27 @@ const Registro = () => {
   }, [visibleFields.length]);
 
   /**
-   * When the user has filled nombre + apellido + fechanac, look up an
-   * existing `jugadores` row and pre-fill the club. Birthdate is required
-   * here to avoid false positives from homonyms or partial name matches.
+   * When the user has filled nombre + apellido + correo, look up an
+   * existing `jugadores` row and pre-fill the club. Los tres campos son
+   * OBLIGATORIOS: sin correo hay riesgo alto de falsos positivos por
+   * homónimos ("Juan Pérez"), así que el server hace un AND estricto.
    */
   useEffect(() => {
     if (!isFieldEnabled('reg_club')) return;
     const nombre   = (values.reg_nombre   || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
-    if (nombre.length < 2 || apellido.length < 2 || !fechanac) return;
-    const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${fechanac}`;
+    const correo   = (values.reg_correo   || '').trim();
+    const spei     = (values.reg_spei     || '').trim();
+    const ghin     = (values.numghinspei  || values.reg_ghin || '').trim();
+    if (nombre.length < 2 || apellido.length < 2 || correo.length < 5) return;
+    const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${correo.toLowerCase()}|${fechanac}|${spei}|${ghin}`;
     if (key === lastLookupKey) return;
 
     let cancelled = false;
     const t = setTimeout(() => {
       setLastLookupKey(key);
-      fetch(getClubLookupUrl(nombre, apellido, fechanac))
+      fetch(getClubLookupUrl(nombre, apellido, fechanac, correo, spei, ghin))
         .then(r => r.json())
         .then(j => {
           if (cancelled) return;
@@ -844,7 +848,7 @@ const Registro = () => {
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length, socioClubs]);
+  }, [values.reg_nombre, values.reg_apellido, values.reg_correo, values.reg_fechanac, values.reg_spei, values.numghinspei, values.reg_ghin, visibleFields.length, socioClubs]);
 
   /**
    * Es-socio autofill rules:
