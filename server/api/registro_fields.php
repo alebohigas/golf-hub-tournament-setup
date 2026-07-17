@@ -101,6 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $hasSection = ensure_section_column($conn);
+    /**
+     * Migración silenciosa: filas legadas con field_name = 'reg_edad'
+     * se renombran a 'akron_edad' (columna real en la tabla `registro`).
+     * IGNORE evita conflicto si ya existe la fila con el nuevo nombre.
+     */
+    @$conn->query("UPDATE IGNORE registro_form_fields SET field_name = 'akron_edad' WHERE field_name = 'reg_edad'");
+    @$conn->query("DELETE FROM registro_form_fields WHERE field_name = 'reg_edad'");
     $sectionSql = $hasSection ? ", section" : "";
     $sql = "SELECT field_name, field_label, is_enabled, is_required, display_order $sectionSql
             FROM registro_form_fields
