@@ -486,7 +486,7 @@ const Registro = () => {
   /** Red message shown when the player is not allowed to claim host-club membership. */
   const getSocioBlockedMessage = useCallback((reason: 'missing' | 'not_found' | 'wrong_club' | 'no_club' | 'error', realClub = ''): string => {
     if (reason === 'missing') {
-      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre, apellido y fecha de nacimiento, o SPEI/GHIN, y vuelve a intentarlo.';
+      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre y apellido, o SPEI/GHIN, y vuelve a intentarlo.';
     }
     if (reason === 'not_found') {
       return 'No encontramos a este jugador en la base de datos de jugadores, por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
