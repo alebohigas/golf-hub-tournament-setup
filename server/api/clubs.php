@@ -33,6 +33,55 @@ function jug_has($conn, $col) {
     return isset($cols[$col]);
 }
 
+/**
+ * Normalize a SQL text expression for player-name comparisons.
+ * Purpose: make the lookup tolerant to case, accents, NBSP, and repeated spaces
+ * without changing the stored `jugadores` data.
+ */
+function lookup_norm_expr($expr) {
+    $x = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($expr, CHAR(160), ' '), CHAR(9), ' '), '-', ' '), '+', ' '), '.', ' '), ',', ' '), '/', ' ')";
+    $x = "UPPER(TRIM($x))";
+    foreach ([
+        'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ä' => 'A', 'Ã' => 'A',
+        'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+        'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+        'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Ö' => 'O', 'Õ' => 'O',
+        'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
+        'Ñ' => 'N',
+    ] as $from => $to) {
+        $x = "REPLACE($x, '$from', '$to')";
+    }
+    // Collapse the most common double-space cases caused by copied names.
+    $x = "REPLACE(REPLACE(REPLACE($x, '  ', ' '), '  ', ' '), '  ', ' ')";
+    return $x;
+}
+
+/** Build a normalized SQL literal from user input for safe LIKE comparisons. */
+function lookup_norm_literal($conn, $value) {
+    return lookup_norm_expr("'" . esc($conn, $value) . "'");
+}
+
+/**
+ * Split a name/apellido string into searchable tokens.
+ * Purpose: allow `JESUS OBESO GARCIA` to match rows where only the paternal
+ * apellido is reliable, while still using the maternal apellido as ranking.
+ */
+function lookup_tokens($value) {
+    $clean = str_replace(['-', '+', '.', ',', ';', ':', '/', '\\'], ' ', (string)$value);
+    $parts = preg_split('/\s+/', trim($clean));
+    $tokens = [];
+    foreach ($parts as $p) {
+        $p = trim($p);
+        if ($p !== '') $tokens[] = $p;
+    }
+    return $tokens;
+}
+
+/** Build a normalized SQL LIKE condition for one token inside one expression. */
+function lookup_contains_token($conn, $haystackExpr, $token) {
+    return $haystackExpr . " LIKE CONCAT('%', " . lookup_norm_literal($conn, $token) . ", '%')";
+}
+
 $action = optional_param('action');
 
 // ============= Action: clubs registered for a tournament =============
@@ -129,25 +178,31 @@ if ($action === 'lookup') {
      * HEX() y LENGTH() para detectar caracteres invisibles.
      */
     if ((int) optional_param('debug', 0) === 1) {
-        $nLike = '%' . esc($conn, $nombre)   . '%';
-        $aLike = '%' . esc($conn, $apellido) . '%';
-        // También partir el apellido en tokens (paterno/materno)
-        $tokens = preg_split('/\s+/', trim($apellido));
-        $tokLike = [];
-        foreach ($tokens as $t) if ($t !== '') $tokLike[] = "LOWER(apellido) LIKE LOWER('%" . esc($conn, $t) . "%')";
-        $tokSql = $tokLike ? '(' . implode(' OR ', $tokLike) . ')' : "0=1";
+        $nombreNormExpr = lookup_norm_expr('j.nombre');
+        $apellidoNormExpr = lookup_norm_expr('j.apellido');
+        $nombreInputExpr = lookup_norm_literal($conn, $nombre);
+        $apellidoInputExpr = lookup_norm_literal($conn, $apellido);
+        $apellidoTokens = lookup_tokens($apellido);
+        $requiredApellido = $apellidoTokens[0] ?? $apellido;
+        $apellidoTokenSql = [];
+        foreach ($apellidoTokens as $t) {
+            $apellidoTokenSql[] = lookup_contains_token($conn, $apellidoNormExpr, $t);
+        }
+        $apellidoTokenOrder = $apellidoTokenSql ? '(' . implode(' + ', $apellidoTokenSql) . ')' : '0';
+        $candidateWhere = "(($nombreNormExpr LIKE CONCAT('%', $nombreInputExpr, '%') OR $nombreInputExpr LIKE CONCAT('%', $nombreNormExpr, '%')) "
+                        . "AND " . lookup_contains_token($conn, $apellidoNormExpr, $requiredApellido) . ")";
         $sql = "SELECT j.id, "
              . (jug_has($conn,'torneoid') ? "j.torneoid, " : "")
              . "j.nombre, j.apellido, j.club, "
              . "HEX(j.nombre) AS nombre_hex, HEX(j.apellido) AS apellido_hex, "
              . "CHAR_LENGTH(j.nombre) AS nombre_len, CHAR_LENGTH(j.apellido) AS apellido_len, "
-             . "LOWER(j.nombre) = LOWER('" . esc($conn,$nombre) . "') AS match_nombre_exact, "
-             . "LOWER(j.apellido) = LOWER('" . esc($conn,$apellido) . "') AS match_apellido_exact "
+             . "$nombreNormExpr = $nombreInputExpr AS match_nombre_exact, "
+             . "$apellidoNormExpr = $apellidoInputExpr AS match_apellido_exact, "
+             . "$apellidoTokenOrder AS apellido_token_score "
              . "FROM jugadores j "
-             . "WHERE (LOWER(j.nombre) LIKE LOWER('" . $nLike . "') "
-             . "   OR  LOWER(j.apellido) LIKE LOWER('" . $aLike . "') "
-             . "   OR  " . $tokSql . ") "
-             . (jug_has($conn,'torneoid') ? "ORDER BY j.torneoid DESC, j.id DESC " : "ORDER BY j.id DESC ")
+             . "WHERE " . $candidateWhere . " "
+             . "ORDER BY match_nombre_exact DESC, match_apellido_exact DESC, apellido_token_score DESC, "
+             . (jug_has($conn,'torneoid') ? "j.torneoid DESC, j.id DESC " : "j.id DESC ")
              . "LIMIT 50";
         $rows = [];
         $res = $conn->query($sql);
@@ -166,9 +221,20 @@ if ($action === 'lookup') {
         ]);
     }
 
+    $nombreNormExpr = lookup_norm_expr('j.nombre');
+    $apellidoNormExpr = lookup_norm_expr('j.apellido');
+    $nombreInputExpr = lookup_norm_literal($conn, $nombre);
+    $apellidoInputExpr = lookup_norm_literal($conn, $apellido);
+    $apellidoTokens = lookup_tokens($apellido);
+    $requiredApellido = $apellidoTokens[0] ?? $apellido;
+    $apellidoTokenSql = [];
+    foreach ($apellidoTokens as $t) {
+        $apellidoTokenSql[] = lookup_contains_token($conn, $apellidoNormExpr, $t);
+    }
+    $apellidoTokenScore = $apellidoTokenSql ? '(' . implode(' + ', $apellidoTokenSql) . ')' : '0';
     $where = [
-        "LOWER(nombre)   = LOWER('"   . esc($conn, $nombre)   . "')",
-        "LOWER(apellido) = LOWER('" . esc($conn, $apellido) . "')",
+        "($nombreNormExpr = $nombreInputExpr OR $nombreNormExpr LIKE CONCAT($nombreInputExpr, '%') OR $nombreInputExpr LIKE CONCAT($nombreNormExpr, '%'))",
+        lookup_contains_token($conn, $apellidoNormExpr, $requiredApellido),
     ];
     /**
      * IMPORTANTE: NO filtramos por `fechanac` aunque el formulario la
@@ -196,10 +262,13 @@ if ($action === 'lookup') {
     }
     if (jug_has($conn, 'torneoid')) $orderParts[] = 'j.torneoid DESC';
     $orderParts[] = 'j.id DESC';
-    $sql = "SELECT j.club, j.sexo, j.fechanac
+    $sql = "SELECT j.club, j.sexo, j.fechanac,
+                   ($nombreNormExpr = $nombreInputExpr) AS match_nombre_exact,
+                   ($apellidoNormExpr = $apellidoInputExpr) AS match_apellido_exact,
+                   $apellidoTokenScore AS apellido_token_score
             FROM jugadores j
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY " . implode(', ', $orderParts) . "
+            ORDER BY match_nombre_exact DESC, match_apellido_exact DESC, apellido_token_score DESC, " . implode(', ', $orderParts) . "
             LIMIT 1";
     $res = $conn->query($sql);
     if (!$res) json_response(['found' => false]);
