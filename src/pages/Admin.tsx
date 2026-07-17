@@ -33,6 +33,7 @@ import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminPopup from '@/components/admin/AdminPopup';
+import AdminAnuncio from '@/components/admin/AdminAnuncio';
 import AdminBanderas from '@/components/admin/AdminBanderas';
 import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
@@ -67,6 +68,7 @@ import {
   Hotel,
   Users,
   Swords,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -212,6 +214,7 @@ const AdminDashboard = () => {
     hoteles: 'hoteles',
     popup: 'pop',
     banderas: 'banderas',
+    anuncio: undefined,
     sponsors: undefined,
     registro: 'preregistros',
     registros: 'preregistros',
@@ -442,6 +445,7 @@ const AdminDashboard = () => {
             { value: 'premios',      icon: Trophy,          label: 'Premios' },
             { value: 'hoteles',      icon: Hotel,           label: 'Hoteles' },
             { value: 'popup',        icon: MonitorPlay,     label: 'POP' },
+            { value: 'anuncio',      icon: Megaphone,       label: 'Anuncio' },
             { value: 'banderas',     icon: Flag,            label: 'Banderas' },
             { value: 'live',         icon: Radio,           label: 'Live' },
             { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
@@ -632,6 +636,12 @@ const AdminDashboard = () => {
         {/* POP UP Tab — site-wide popup overlay (image + target pages + duration). */}
         <TabsContent value="popup">
           <AdminPopup />
+        </TabsContent>
+
+        {/* Anuncio Tab — scrolling text ribbon rendered between the header
+            and the sponsor ribbon on every page of the site. */}
+        <TabsContent value="anuncio">
+          <AdminAnuncio />
         </TabsContent>
 
         {/* Banderas Tab — pin sheet por hoyo (tabla `banderas`). */}

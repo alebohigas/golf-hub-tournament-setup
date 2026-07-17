@@ -183,6 +183,21 @@ function site_config_has_popup_config($conn) {
 
 $hasPopupConfig = site_config_has_popup_config($conn);
 
+/**
+ * Detect whether the anuncio_config column exists.
+ * Stores the scrolling announcement ribbon settings that render between
+ * the top header and the sponsor ribbon.
+ */
+function site_config_has_anuncio_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'anuncio_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasAnuncioConfig = site_config_has_anuncio_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -213,6 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasPopupConfig) {
         $selectFields .= ', popup_config';
     }
+    if ($hasAnuncioConfig) {
+        $selectFields .= ', anuncio_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -234,6 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'theme_config'          => $hasThemeConfig && !empty($row['theme_config']) ? json_decode($row['theme_config'], true) : null,
             'stats_config'          => $hasStatsConfig && !empty($row['stats_config']) ? json_decode($row['stats_config'], true) : null,
             'popup_config'          => $hasPopupConfig && !empty($row['popup_config']) ? json_decode($row['popup_config'], true) : null,
+            'anuncio_config'        => $hasAnuncioConfig && !empty($row['anuncio_config']) ? json_decode($row['anuncio_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -252,6 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'theme_config'          => null,
             'stats_config'          => null,
             'popup_config'          => null,
+            'anuncio_config'        => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -417,6 +437,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['popup_config'] !== null ? "'" . esc($conn, json_encode($body['popup_config'])) . "'" : 'NULL';
         $fields[] = "popup_config = $val";
         $insertFields[] = 'popup_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('anuncio_config', $body)) {
+        if (!$hasAnuncioConfig) {
+            json_error("Missing DB column anuncio_config in site_config. Run: ALTER TABLE site_config ADD COLUMN anuncio_config TEXT DEFAULT NULL COMMENT 'JSON object with scrolling announcement ribbon settings';", 500);
+        }
+        $val = $body['anuncio_config'] !== null ? "'" . esc($conn, json_encode($body['anuncio_config'])) . "'" : 'NULL';
+        $fields[] = "anuncio_config = $val";
+        $insertFields[] = 'anuncio_config';
         $insertValues[] = $val;
     }
     
