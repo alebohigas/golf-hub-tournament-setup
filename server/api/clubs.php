@@ -62,24 +62,14 @@ function lookup_norm_literal($conn, $value) {
 }
 
 /**
- * Split a name/apellido string into searchable tokens.
- * Purpose: allow `JESUS OBESO GARCIA` to match rows where only the paternal
- * apellido is reliable, while still using the maternal apellido as ranking.
+ * Normalize an email for strict comparison: lowercase + trim only.
+ * (Emails are ASCII and case-insensitive on the local + domain in practice.)
  */
-function lookup_tokens($value) {
-    $clean = str_replace(['-', '+', '.', ',', ';', ':', '/', '\\'], ' ', (string)$value);
-    $parts = preg_split('/\s+/', trim($clean));
-    $tokens = [];
-    foreach ($parts as $p) {
-        $p = trim($p);
-        if ($p !== '') $tokens[] = $p;
-    }
-    return $tokens;
+function lookup_norm_email_expr($expr) {
+    return "LOWER(TRIM($expr))";
 }
-
-/** Build a normalized SQL LIKE condition for one token inside one expression. */
-function lookup_contains_token($conn, $haystackExpr, $token) {
-    return $haystackExpr . " LIKE CONCAT('%', " . lookup_norm_literal($conn, $token) . ", '%')";
+function lookup_norm_email_literal($conn, $value) {
+    return lookup_norm_email_expr("'" . esc($conn, $value) . "'");
 }
 
 $action = optional_param('action');
