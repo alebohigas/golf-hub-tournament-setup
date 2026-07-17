@@ -741,7 +741,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       : '—';
                     return (
                     <Fragment key={r.id}>
-                    <tr className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(r.id)}>
+                    <tr
+                      className={cn(
+                        'border-t hover:bg-muted/30 cursor-pointer',
+                        isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500'
+                      )}
+                      onClick={() => toggleExpand(r.id)}
+                      title={isPreferenteMismatch(r) ? 'Registro capturado durante la ventana preferente con un club no autorizado — revisar membresía.' : undefined}
+                    >
                         <td className="p-3 text-center">
                           <button
                             type="button"
