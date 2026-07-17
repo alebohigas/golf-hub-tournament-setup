@@ -34,7 +34,7 @@ $DEFAULT_FIELDS = [
     ['field_name' => 'reg_fechanac',   'field_label' => 'Fecha de nacimiento',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 70,  'section' => 'basica'],
     // Edad — alternativa o complemento de fechanac. Si fechanac está activa
     // se auto-calcula y queda en gris; si no, el jugador la captura.
-    ['field_name' => 'reg_edad',       'field_label' => 'Edad',                                         'is_enabled' => 0, 'is_required' => 0, 'display_order' => 75,  'section' => 'basica'],
+    ['field_name' => 'akron_edad',     'field_label' => 'Edad',                                         'is_enabled' => 0, 'is_required' => 0, 'display_order' => 75,  'section' => 'basica'],
     ['field_name' => 'reg_categoria',  'field_label' => 'Categoría',                                    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 80,  'section' => 'basica'],
     ['field_name' => 'reg_es_socio',   'field_label' => '¿Es socio del club que realiza el torneo?',    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 90,  'section' => 'socios'],
     ['field_name' => 'reg_tipo_socio', 'field_label' => 'Tipo de socio',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 100, 'section' => 'socios'],
@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
      * Backfill: garantizar que TODOS los campos definidos en $DEFAULT_FIELDS
      * aparezcan en la respuesta aunque la fila en BD no exista todavía. Esto
      * permite que campos agregados después de la primera configuración
-     * (ej. `reg_edad`) sean visibles en el panel admin sin requerir una
+     * (ej. `akron_edad`) sean visibles en el panel admin sin requerir una
      * migración manual por torneo. Los campos nuevos se insertan como
      * deshabilitados para no alterar formularios ya publicados.
      */
