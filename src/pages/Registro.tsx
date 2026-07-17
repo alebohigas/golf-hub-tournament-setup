@@ -1168,7 +1168,7 @@ const Registro = () => {
     tipo_socio: tipoSocioForPricing,
     genero: (values.reg_sexo || '').toUpperCase() || undefined,
     edad: ageForPricing ?? undefined,
-    enabled: !!tipoSocioForPricing,
+    enabled: !!(selectedCategoryName && tipoSocioForPricing),
   });
   const precioMatch = precioMatchData?.match || null;
 
