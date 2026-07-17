@@ -117,6 +117,8 @@ interface RegistroRow {
   akron_codigo?: string | null;
   /** Monto pagado (campo akron, revisión admin). */
   akron_monto_pago?: string | number | null;
+  /** Edad al momento del registro (columna real `akron_edad`). */
+  akron_edad?: string | number | null;
 }
 
 // ============= Login form =============
