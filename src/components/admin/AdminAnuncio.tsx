@@ -7,7 +7,7 @@
  * Persists to `site_config.anuncio_config`. Read globally by
  * <AnnouncementRibbon /> mounted inside <Layout />.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -44,6 +45,7 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+import { menuConfig } from '@/data/mockData';
 
 /** Sensible defaults when no config has been saved yet. */
 const DEFAULT_ANUNCIO: AnuncioConfig = {
@@ -56,6 +58,7 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   bold: true,
   italic: false,
   speedSeconds: 30,
+  paths: ['*'],
 };
 
 /**
@@ -85,12 +88,44 @@ const AdminAnuncio = () => {
     }
   }, [siteConfig?.anuncio_config]);
 
+  /** Routes the admin can pick from (mirrors public menu). */
+  const routeOptions = useMemo(
+    () => menuConfig.map((m) => ({ id: m.id, label: m.label, path: m.path })),
+    []
+  );
+
+  const selectedPaths = config.paths ?? ['*'];
+  const showOnAll = selectedPaths.includes('*');
+
+  /** Toggle a single route in the config.paths array. */
+  const togglePath = (path: string) => {
+    setConfig((c) => {
+      const current = (c.paths ?? ['*']).filter((p) => p !== '*');
+      const has = current.includes(path);
+      const next = has ? current.filter((p) => p !== path) : [...current, path];
+      return { ...c, paths: next.length === 0 ? [] : next };
+    });
+  };
+
+  /** Toggle "show on every page" master. */
+  const toggleShowAll = (checked: boolean) => {
+    setConfig((c) => ({ ...c, paths: checked ? ['*'] : [] }));
+  };
+
   /** Persist the current config to the server. */
   const handleSave = () => {
     if (config.enabled && !config.text.trim()) {
       toast({
         title: 'Falta texto',
         description: 'Escribe el mensaje del anuncio antes de activarlo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (config.enabled && !showOnAll && (config.paths ?? []).length === 0) {
+      toast({
+        title: 'Falta seleccionar páginas',
+        description: 'Elige al menos una página o activa "Mostrar en todas".',
         variant: 'destructive',
       });
       return;
