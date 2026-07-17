@@ -62,24 +62,14 @@ function lookup_norm_literal($conn, $value) {
 }
 
 /**
- * Split a name/apellido string into searchable tokens.
- * Purpose: allow `JESUS OBESO GARCIA` to match rows where only the paternal
- * apellido is reliable, while still using the maternal apellido as ranking.
+ * Normalize an email for strict comparison: lowercase + trim only.
+ * (Emails are ASCII and case-insensitive on the local + domain in practice.)
  */
-function lookup_tokens($value) {
-    $clean = str_replace(['-', '+', '.', ',', ';', ':', '/', '\\'], ' ', (string)$value);
-    $parts = preg_split('/\s+/', trim($clean));
-    $tokens = [];
-    foreach ($parts as $p) {
-        $p = trim($p);
-        if ($p !== '') $tokens[] = $p;
-    }
-    return $tokens;
+function lookup_norm_email_expr($expr) {
+    return "LOWER(TRIM($expr))";
 }
-
-/** Build a normalized SQL LIKE condition for one token inside one expression. */
-function lookup_contains_token($conn, $haystackExpr, $token) {
-    return $haystackExpr . " LIKE CONCAT('%', " . lookup_norm_literal($conn, $token) . ", '%')";
+function lookup_norm_email_literal($conn, $value) {
+    return lookup_norm_email_expr("'" . esc($conn, $value) . "'");
 }
 
 $action = optional_param('action');
@@ -130,20 +120,22 @@ if ($action === 'lookup') {
     $nombre   = trim((string) optional_param('nombre',   ''));
     $apellido = trim((string) optional_param('apellido', ''));
     $fechanac = trim((string) optional_param('fechanac', ''));
+    $correo   = trim((string) optional_param('correo',   ''));
     $spei     = trim((string) optional_param('spei',     ''));
     $ghin     = trim((string) optional_param('ghin',     ''));
 
     /**
-     * If a SPEI or GHIN is provided, prefer that exact match — it's more
-     * authoritative than name+birthdate. Returns extended fields so the
-     * Pre-Registro form can prefill nombre, apellido, correo, etc.
+     * SPEI / GHIN direct lookup (used por el formulario cuando el usuario
+     * captura uno de esos identificadores). Devuelve la fila más reciente
+     * con match EXACTO en `reg_spei` o `numghinspei` para prellenar todos
+     * los campos. No aplica la validación estricta por correo porque el
+     * SPEI/GHIN ya es un identificador único del jugador.
      */
     if ($spei !== '' || $ghin !== '') {
         $w = [];
         if ($spei !== '' && jug_has($conn, 'reg_spei'))    $w[] = "reg_spei = '"    . esc($conn, $spei) . "'";
         if ($ghin !== '' && jug_has($conn, 'numghinspei')) $w[] = "numghinspei = '" . esc($conn, $ghin) . "'";
         if ($w) {
-            // Build a column list of only the ones present on this DB.
             $want = ['nombre','apellido','correo','telefono','celular','sexo','genero',
                      'club','fechanac','reg_spei','numghinspei','handicap'];
             $sel  = [];
@@ -164,111 +156,104 @@ if ($action === 'lookup') {
         }
     }
 
-    if ($nombre === '' || $apellido === '') {
+    /**
+     * Validación por nombre + apellido + correo (estricta).
+     * REQUERIMOS los tres campos y hacemos un AND normalizado
+     * (case/acentos/espacios múltiples se ignoran, pero los tres deben
+     * coincidir). El correo es lo que evita que homónimos ("Juan Perez")
+     * se validen entre sí — sin correo no hay match.
+     */
+    if ($nombre === '' || $apellido === '' || $correo === '') {
         json_response(['found' => false]);
+    }
+
+    $nombreNormExpr    = lookup_norm_expr('j.nombre');
+    $apellidoNormExpr  = lookup_norm_expr('j.apellido');
+    $nombreInputExpr   = lookup_norm_literal($conn, $nombre);
+    $apellidoInputExpr = lookup_norm_literal($conn, $apellido);
+    $hasCorreoCol      = jug_has($conn, 'correo');
+    $correoNormExpr    = $hasCorreoCol ? lookup_norm_email_expr('j.correo') : "''";
+    $correoInputExpr   = lookup_norm_email_literal($conn, $correo);
+
+    /** Condiciones AND estrictas para el WHERE. */
+    $whereAnd = [
+        "$nombreNormExpr   = $nombreInputExpr",
+        "$apellidoNormExpr = $apellidoInputExpr",
+    ];
+    if ($hasCorreoCol) {
+        $whereAnd[] = "$correoNormExpr = $correoInputExpr";
     }
 
     /**
      * Modo diagnóstico:
-     * GET /api/clubs.php?action=lookup&debug=1&nombre=X&apellido=Y
-     * Devuelve TODOS los candidatos que hagan match parcial por
-     * nombre O apellido (usando LIKE con comodines) para poder ver
-     * las diferencias reales de acentos, espacios extra, apellidos
-     * compuestos vs sólo paterno, casing, etc. También devuelve
-     * HEX() y LENGTH() para detectar caracteres invisibles.
+     * GET /api/clubs.php?action=lookup&debug=1&nombre=X&apellido=Y&correo=Z
+     * Devuelve dos sets: `candidates_strict` (match nombre+apellido+correo)
+     * y `candidates_name_only` (sólo nombre+apellido) para poder ver si el
+     * correo era lo que estaba impidiendo el match.
      */
     if ((int) optional_param('debug', 0) === 1) {
-        $nombreNormExpr = lookup_norm_expr('j.nombre');
-        $apellidoNormExpr = lookup_norm_expr('j.apellido');
-        $nombreInputExpr = lookup_norm_literal($conn, $nombre);
-        $apellidoInputExpr = lookup_norm_literal($conn, $apellido);
-        $apellidoTokens = lookup_tokens($apellido);
-        $requiredApellido = $apellidoTokens[0] ?? $apellido;
-        $apellidoTokenSql = [];
-        foreach ($apellidoTokens as $t) {
-            $apellidoTokenSql[] = lookup_contains_token($conn, $apellidoNormExpr, $t);
-        }
-        $apellidoTokenOrder = $apellidoTokenSql ? '(' . implode(' + ', $apellidoTokenSql) . ')' : '0';
-        $candidateWhere = "(($nombreNormExpr LIKE CONCAT('%', $nombreInputExpr, '%') OR $nombreInputExpr LIKE CONCAT('%', $nombreNormExpr, '%')) "
-                        . "AND " . lookup_contains_token($conn, $apellidoNormExpr, $requiredApellido) . ")";
-        $sql = "SELECT j.id, "
+        $extra = $hasCorreoCol ? ", j.correo, HEX(j.correo) AS correo_hex" : "";
+        $sqlStrict = "SELECT j.id, "
              . (jug_has($conn,'torneoid') ? "j.torneoid, " : "")
-             . "j.nombre, j.apellido, j.club, "
-             . "HEX(j.nombre) AS nombre_hex, HEX(j.apellido) AS apellido_hex, "
-             . "CHAR_LENGTH(j.nombre) AS nombre_len, CHAR_LENGTH(j.apellido) AS apellido_len, "
-             . "$nombreNormExpr = $nombreInputExpr AS match_nombre_exact, "
-             . "$apellidoNormExpr = $apellidoInputExpr AS match_apellido_exact, "
-             . "$apellidoTokenOrder AS apellido_token_score "
+             . "j.nombre, j.apellido, j.club$extra, "
+             . "HEX(j.nombre) AS nombre_hex, HEX(j.apellido) AS apellido_hex "
              . "FROM jugadores j "
-             . "WHERE " . $candidateWhere . " "
-             . "ORDER BY match_nombre_exact DESC, match_apellido_exact DESC, apellido_token_score DESC, "
+             . "WHERE " . implode(' AND ', $whereAnd) . " "
+             . "ORDER BY "
              . (jug_has($conn,'torneoid') ? "j.torneoid DESC, j.id DESC " : "j.id DESC ")
              . "LIMIT 50";
-        $rows = [];
-        $res = $conn->query($sql);
-        if ($res) { while ($r = $res->fetch_assoc()) $rows[] = $r; $res->free(); }
-        // Info de la conexión y de las columnas relevantes
+        $sqlNameOnly = "SELECT j.id, "
+             . (jug_has($conn,'torneoid') ? "j.torneoid, " : "")
+             . "j.nombre, j.apellido, j.club$extra "
+             . "FROM jugadores j "
+             . "WHERE $nombreNormExpr = $nombreInputExpr AND $apellidoNormExpr = $apellidoInputExpr "
+             . "ORDER BY "
+             . (jug_has($conn,'torneoid') ? "j.torneoid DESC, j.id DESC " : "j.id DESC ")
+             . "LIMIT 50";
+        $rowsStrict = [];
+        if ($r = $conn->query($sqlStrict)) { while ($x = $r->fetch_assoc()) $rowsStrict[] = $x; $r->free(); }
+        $rowsNameOnly = [];
+        if ($r = $conn->query($sqlNameOnly)) { while ($x = $r->fetch_assoc()) $rowsNameOnly[] = $x; $r->free(); }
         $collationInfo = [];
-        $c = $conn->query("SHOW FULL COLUMNS FROM jugadores WHERE Field IN ('nombre','apellido','club')");
-        if ($c) { while ($r = $c->fetch_assoc()) $collationInfo[] = $r; $c->free(); }
+        if ($c = $conn->query("SHOW FULL COLUMNS FROM jugadores WHERE Field IN ('nombre','apellido','club','correo')")) {
+            while ($x = $c->fetch_assoc()) $collationInfo[] = $x; $c->free();
+        }
         json_response([
-            'debug'       => true,
-            'input'       => ['nombre' => $nombre, 'apellido' => $apellido, 'fechanac' => $fechanac],
-            'sql'         => $sql,
-            'candidates'  => $rows,
-            'columns'     => $collationInfo,
-            'connection_collation' => $conn->character_set_name(),
+            'debug'                 => true,
+            'input'                 => ['nombre' => $nombre, 'apellido' => $apellido, 'correo' => $correo, 'fechanac' => $fechanac, 'spei' => $spei, 'ghin' => $ghin],
+            'sql_strict'            => $sqlStrict,
+            'sql_name_only'         => $sqlNameOnly,
+            'candidates_strict'     => $rowsStrict,
+            'candidates_name_only'  => $rowsNameOnly,
+            'columns'               => $collationInfo,
+            'connection_collation'  => $conn->character_set_name(),
         ]);
     }
 
-    $nombreNormExpr = lookup_norm_expr('j.nombre');
-    $apellidoNormExpr = lookup_norm_expr('j.apellido');
-    $nombreInputExpr = lookup_norm_literal($conn, $nombre);
-    $apellidoInputExpr = lookup_norm_literal($conn, $apellido);
-    $apellidoTokens = lookup_tokens($apellido);
-    $requiredApellido = $apellidoTokens[0] ?? $apellido;
-    $apellidoTokenSql = [];
-    foreach ($apellidoTokens as $t) {
-        $apellidoTokenSql[] = lookup_contains_token($conn, $apellidoNormExpr, $t);
-    }
-    $apellidoTokenScore = $apellidoTokenSql ? '(' . implode(' + ', $apellidoTokenSql) . ')' : '0';
-    $where = [
-        "($nombreNormExpr = $nombreInputExpr OR $nombreNormExpr LIKE CONCAT($nombreInputExpr, '%') OR $nombreInputExpr LIKE CONCAT($nombreNormExpr, '%'))",
-        lookup_contains_token($conn, $apellidoNormExpr, $requiredApellido),
-    ];
     /**
-     * IMPORTANTE: NO filtramos por `fechanac` aunque el formulario la
-     * mande. Muchos registros históricos en `jugadores` tienen
-     * `fechanac` vacía / NULL / '0000-00-00', y un filtro estricto
-     * hacía que el lookup devolviera "no encontrado" y el flujo de
-     * pre-registro forzara reg_es_socio = "NO" incorrectamente. En su
-     * lugar, usamos `fechanac` sólo como PREFERENCIA de orden: si hay
-     * un registro cuyo `fechanac` coincide, ese gana; si no, cae al
-     * más reciente por torneo/id.
-     */
-
-    /**
-     * Un mismo jugador puede tener varios registros en `jugadores`
-     * (uno por torneo en el que ha participado). Queremos el más
-     * reciente para reflejar su club actual, así que ordenamos primero
-     * por `torneoid` descendente (torneo más nuevo) y después por `id`
-     * descendente (última inserción dentro de ese torneo). Ambas
-     * columnas se agregan sólo si existen en el esquema.
+     * Preferencias de orden (no filtros): si el formulario mandó SPEI,
+     * GHIN o fechanac, subimos al top las filas que coincidan para
+     * romper empates entre jugadores homónimos que compartan correo
+     * (caso raro, típicamente cuentas familiares). Después, el registro
+     * más reciente (torneoid, id desc) gana.
      */
     $orderParts = [];
+    if ($spei !== '' && jug_has($conn, 'reg_spei')) {
+        $orderParts[] = "(j.reg_spei = '" . esc($conn, $spei) . "') DESC";
+    }
+    if ($ghin !== '' && jug_has($conn, 'numghinspei')) {
+        $orderParts[] = "(j.numghinspei = '" . esc($conn, $ghin) . "') DESC";
+    }
     if ($fechanac !== '' && jug_has($conn, 'fechanac')) {
-        // Los que coinciden por fecha primero (1), los demás después (0)
         $orderParts[] = "(DATE(fechanac) = '" . esc($conn, $fechanac) . "') DESC";
     }
     if (jug_has($conn, 'torneoid')) $orderParts[] = 'j.torneoid DESC';
     $orderParts[] = 'j.id DESC';
-    $sql = "SELECT j.club, j.sexo, j.fechanac,
-                   ($nombreNormExpr = $nombreInputExpr) AS match_nombre_exact,
-                   ($apellidoNormExpr = $apellidoInputExpr) AS match_apellido_exact,
-                   $apellidoTokenScore AS apellido_token_score
+
+    $sql = "SELECT j.club, j.sexo, j.fechanac
             FROM jugadores j
-            WHERE " . implode(' AND ', $where) . "
-            ORDER BY match_nombre_exact DESC, match_apellido_exact DESC, apellido_token_score DESC, " . implode(', ', $orderParts) . "
+            WHERE " . implode(' AND ', $whereAnd) . "
+            ORDER BY " . implode(', ', $orderParts) . "
             LIMIT 1";
     $res = $conn->query($sql);
     if (!$res) json_response(['found' => false]);

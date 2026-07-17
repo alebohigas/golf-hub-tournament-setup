@@ -485,27 +485,13 @@ const Registro = () => {
     } else {
       result = !!hostKey && hostKey === key;
     }
-    // TEMP DEBUG: muestra por qué se acepta/rechaza el club del jugador.
-    // Quitar cuando se confirme el origen de la falla en producción.
-    // eslint-disable-next-line no-console
-    console.log('[socio-check]', {
-      inputClub: clubName,
-      inputKey: key,
-      socioClubs: socioClubs.map(c => c.nombre),
-      socioKeys,
-      tournamentClub: tournamentInfo?.club || null,
-      hostKey,
-      matchedInSocioClubs: socioKeys.includes(key),
-      matchedHost: !!hostKey && hostKey === key,
-      result,
-    });
     return result;
   }, [clubKey, socioClubs, tournamentInfo?.club]);
 
   /** Red message shown when the player is not allowed to claim host-club membership. */
   const getSocioBlockedMessage = useCallback((reason: 'missing' | 'not_found' | 'wrong_club' | 'no_club' | 'error', realClub = ''): string => {
     if (reason === 'missing') {
-      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre y apellido, o SPEI/GHIN, y vuelve a intentarlo.';
+      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre, apellido y correo (o SPEI/GHIN) y vuelve a intentarlo.';
     }
     if (reason === 'not_found') {
       return 'No encontramos a este jugador en la base de datos de jugadores, por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
@@ -548,10 +534,15 @@ const Registro = () => {
     const nombre = (values.reg_nombre || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
+    const correo   = (values.reg_correo   || '').trim();
     const spei = (values.reg_spei || '').trim();
     const ghin = (values.numghinspei || values.reg_ghin || '').trim();
     const hasId = spei.length >= 3 || ghin.length >= 3;
-    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2;
+    /**
+     * El lookup por nombre requiere nombre + apellido + correo. El correo
+     * es lo que distingue homónimos, sin él NO validamos socio.
+     */
+    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2 && correo.length >= 5;
 
     if (!hasId && !hasNameLookup) {
       forceNoSocio(getSocioBlockedMessage('missing'));
@@ -561,7 +552,7 @@ const Registro = () => {
     try {
       const lookupUrl = hasId
         ? getPlayerLookupByIdUrl(spei, ghin)
-        : getClubLookupUrl(nombre, apellido, fechanac);
+        : getClubLookupUrl(nombre, apellido, fechanac, correo, spei, ghin);
       const res = await fetch(lookupUrl);
       const j = await res.json().catch(() => ({}));
       setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
@@ -786,23 +777,27 @@ const Registro = () => {
   }, [visibleFields.length]);
 
   /**
-   * When the user has filled nombre + apellido + fechanac, look up an
-   * existing `jugadores` row and pre-fill the club. Birthdate is required
-   * here to avoid false positives from homonyms or partial name matches.
+   * When the user has filled nombre + apellido + correo, look up an
+   * existing `jugadores` row and pre-fill the club. Los tres campos son
+   * OBLIGATORIOS: sin correo hay riesgo alto de falsos positivos por
+   * homónimos ("Juan Pérez"), así que el server hace un AND estricto.
    */
   useEffect(() => {
     if (!isFieldEnabled('reg_club')) return;
     const nombre   = (values.reg_nombre   || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
-    if (nombre.length < 2 || apellido.length < 2 || !fechanac) return;
-    const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${fechanac}`;
+    const correo   = (values.reg_correo   || '').trim();
+    const spei     = (values.reg_spei     || '').trim();
+    const ghin     = (values.numghinspei  || values.reg_ghin || '').trim();
+    if (nombre.length < 2 || apellido.length < 2 || correo.length < 5) return;
+    const key = `${nombre.toLowerCase()}|${apellido.toLowerCase()}|${correo.toLowerCase()}|${fechanac}|${spei}|${ghin}`;
     if (key === lastLookupKey) return;
 
     let cancelled = false;
     const t = setTimeout(() => {
       setLastLookupKey(key);
-      fetch(getClubLookupUrl(nombre, apellido, fechanac))
+      fetch(getClubLookupUrl(nombre, apellido, fechanac, correo, spei, ghin))
         .then(r => r.json())
         .then(j => {
           if (cancelled) return;
@@ -853,7 +848,7 @@ const Registro = () => {
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.reg_nombre, values.reg_apellido, values.reg_fechanac, visibleFields.length, socioClubs]);
+  }, [values.reg_nombre, values.reg_apellido, values.reg_correo, values.reg_fechanac, values.reg_spei, values.numghinspei, values.reg_ghin, visibleFields.length, socioClubs]);
 
   /**
    * Es-socio autofill rules:
