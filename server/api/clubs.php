@@ -101,7 +101,11 @@ if ($action === 'lookup') {
             foreach ($want as $c) if (jug_has($conn, $c)) $sel[] = "j.$c";
             if (!$sel) json_response(['found' => false]);
             $sql = "SELECT " . implode(',', $sel) . " FROM jugadores j WHERE " .
-                   implode(' OR ', $w) . " ORDER BY j.id DESC LIMIT 1";
+                   implode(' OR ', $w) .
+                   (jug_has($conn, 'torneoid')
+                       ? " ORDER BY j.torneoid DESC, j.id DESC"
+                       : " ORDER BY j.id DESC") .
+                   " LIMIT 1";
             $res = $conn->query($sql);
             if ($res && $row = $res->fetch_assoc()) {
                 $row['found'] = true;
@@ -123,10 +127,21 @@ if ($action === 'lookup') {
         $where[] = "DATE(fechanac) = '" . esc($conn, $fechanac) . "'";
     }
 
+    /**
+     * Un mismo jugador puede tener varios registros en `jugadores`
+     * (uno por torneo en el que ha participado). Queremos el más
+     * reciente para reflejar su club actual, así que ordenamos primero
+     * por `torneoid` descendente (torneo más nuevo) y después por `id`
+     * descendente (última inserción dentro de ese torneo). Ambas
+     * columnas se agregan sólo si existen en el esquema.
+     */
+    $orderParts = [];
+    if (jug_has($conn, 'torneoid')) $orderParts[] = 'j.torneoid DESC';
+    $orderParts[] = 'j.id DESC';
     $sql = "SELECT j.club, j.sexo, j.fechanac
             FROM jugadores j
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY j.id DESC
+            ORDER BY " . implode(', ', $orderParts) . "
             LIMIT 1";
     $res = $conn->query($sql);
     if (!$res) json_response(['found' => false]);
