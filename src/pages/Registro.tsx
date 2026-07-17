@@ -419,7 +419,7 @@ const Registro = () => {
   const [lastIdLookup, setLastIdLookup] = useState<string>('');
 
   /**
-   * Indica que el valor actual de `reg_edad` fue auto-calculado a partir de
+   * Indica que el valor actual de `akron_edad` fue auto-calculado a partir de
    * `reg_fechanac` (no escrito por el usuario). Cuando es true se renderiza
    * el input en gris y disabled. Se limpia si el usuario borra la fecha o
    * decide editar manualmente.
@@ -440,14 +440,14 @@ const Registro = () => {
 
     const sexo = enabled.find(f => f.field_name === 'reg_sexo');
     const fnac = enabled.find(f => f.field_name === 'reg_fechanac');
-    const edad = enabled.find(f => f.field_name === 'reg_edad');
+    const edad = enabled.find(f => f.field_name === 'akron_edad');
     const cat  = enabled.find(f => f.field_name === 'reg_categoria');
     if (!cat || (!sexo && !fnac && !edad)) return enabled;
 
     const without = enabled.filter(
       f => f.field_name !== 'reg_sexo'
         && f.field_name !== 'reg_fechanac'
-        && f.field_name !== 'reg_edad'
+        && f.field_name !== 'akron_edad'
     );
     const catIdx = without.findIndex(f => f.field_name === 'reg_categoria');
     const head = without.slice(0, catIdx);
@@ -1052,14 +1052,14 @@ const Registro = () => {
     const hcpRaw = parseFloat(values.reg_handicap);
     const sex  = (values.reg_sexo || '').toUpperCase();
     // Edad: prioriza la calculada desde fechanac; si no, usa la capturada
-    // manualmente en reg_edad (cuando el admin desactivó fechanac).
+    // manualmente en akron_edad (cuando el admin desactivó fechanac).
     const ageFromBirth = calcAge(values.reg_fechanac || '');
-    const ageManual    = parseInt(values.reg_edad || '', 10);
+    const ageManual    = parseInt(values.akron_edad || '', 10);
     const age = ageFromBirth !== null
       ? ageFromBirth
       : (!isNaN(ageManual) ? ageManual : null);
     return evaluateEligibility(hcpRaw, sex, age);
-  }, [evaluateEligibility, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.reg_edad]);
+  }, [evaluateEligibility, values.reg_handicap, values.reg_sexo, values.reg_fechanac, values.akron_edad]);
 
   /**
    * Auditoría de cobertura de hándicap: barre HCP de -5.0 a 40.6 en pasos
@@ -1071,7 +1071,7 @@ const Registro = () => {
     if (typeof window === 'undefined' || !window.location.search.includes('debug=1')) return null;
     if (!categories.length) return null;
     const ageFromBirth = calcAge(values.reg_fechanac || '');
-    const ageManual    = parseInt(values.reg_edad || '', 10);
+    const ageManual    = parseInt(values.akron_edad || '', 10);
     const age = ageFromBirth !== null ? ageFromBirth : (!isNaN(ageManual) ? ageManual : null);
     /** Para un sexo dado, devuelve la lista de intervalos [from..to] de HCP sin categoría. */
     const auditSex = (sex: 'M' | 'F') => {
@@ -1092,7 +1092,7 @@ const Registro = () => {
       return gaps;
     };
     return { M: auditSex('M'), F: auditSex('F'), age };
-  }, [categories, reglas, evaluateEligibility, values.reg_fechanac, values.reg_edad]);
+  }, [categories, reglas, evaluateEligibility, values.reg_fechanac, values.akron_edad]);
 
   const eligibleCategories = categoryFilterResult.eligible;
 
@@ -1120,32 +1120,32 @@ const Registro = () => {
     () => {
       const fromBirth = calcAge(values.reg_fechanac || '');
       if (fromBirth !== null) return fromBirth;
-      const manual = parseInt(values.reg_edad || '', 10);
+      const manual = parseInt(values.akron_edad || '', 10);
       return !isNaN(manual) ? manual : null;
     },
-    [values.reg_fechanac, values.reg_edad]
+    [values.reg_fechanac, values.akron_edad]
   );
 
   /**
-   * Auto-completar `reg_edad` a partir de `reg_fechanac` cuando ambos campos
+   * Auto-completar `akron_edad` a partir de `reg_fechanac` cuando ambos campos
    * están activos. Sincroniza el flag `edadAuto` para que el input se
    * renderice en gris/disabled. Si la fecha se borra o invalida, libera el
    * campo para captura manual.
    */
   useEffect(() => {
-    if (!isFieldEnabled('reg_edad')) return;
+    if (!isFieldEnabled('akron_edad')) return;
     const age = calcAge(values.reg_fechanac || '');
     if (age !== null) {
       // Auto-rellenar (sólo si cambia, para no entrar en loop infinito).
-      if (values.reg_edad !== String(age)) {
-        setValues(v => ({ ...v, reg_edad: String(age) }));
+      if (values.akron_edad !== String(age)) {
+        setValues(v => ({ ...v, akron_edad: String(age) }));
       }
       if (!edadAuto) setEdadAuto(true);
     } else {
       // Fecha vacía/inválida — si el valor previo era auto, limpiarlo.
       if (edadAuto) {
         setEdadAuto(false);
-        setValues(v => ({ ...v, reg_edad: '' }));
+        setValues(v => ({ ...v, akron_edad: '' }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1919,7 +1919,7 @@ const Registro = () => {
      *  - Si `reg_fechanac` está activo y tiene valor válido → auto y disabled.
      *  - Si NO hay fecha o es inválida → editable; el usuario captura su edad.
      */
-    if (name === 'reg_edad') {
+    if (name === 'akron_edad') {
       const fechanacEnabled = isFieldEnabled('reg_fechanac');
       return (
         <div className="space-y-2" key={name}>

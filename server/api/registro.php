@@ -278,6 +278,9 @@ const REGISTRO_COLUMN_ALIASES = [
     'reg_telefono' => 'reg_celular',
     'reg_notas'    => 'reg_mensaje',
     'reg_ghin'     => 'numghinspei',
+    // La columna real para la edad al momento del registro vive en
+    // `akron_edad`. Aceptamos ambos nombres en el POST por compat.
+    'reg_edad'     => 'akron_edad',
 ];
 
 /** Resolve a posted field_name to the column we'll write to (canonical first). */
@@ -476,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
         'reg_nombre', 'reg_apellido', 'reg_correo', 'reg_telefono',
-        'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac', 'reg_edad',
+        'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac', 'reg_edad', 'akron_edad',
         'reg_es_socio', 'reg_tipo_socio', 'reg_club', 'reg_ghin',
         'reg_pais', 'reg_estado', 'reg_ciudad', 'reg_notas',
         // Canonical names from registro_campos

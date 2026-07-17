@@ -117,6 +117,8 @@ interface RegistroRow {
   akron_codigo?: string | null;
   /** Monto pagado (campo akron, revisión admin). */
   akron_monto_pago?: string | number | null;
+  /** Edad al momento del registro (columna real `akron_edad`). */
+  akron_edad?: string | number | null;
 }
 
 // ============= Login form =============
@@ -952,7 +954,8 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['¿Es socio?', r.reg_es_socio],
                                 ['Tipo de socio', r.reg_tipo_socio],
                                 ['Cargo a cuenta', String(r.reg_cargo_socio ?? '') === '1' ? 'Sí' : 'No'],
-                                ['Clave de socio', r.reg_numsocio],
+                                ['Número de socio', r.reg_numsocio],
+                                ['Edad', r.akron_edad],
                                 ['Fecha registro', r.reg_fecha || r.created_at || (r as any).fecha_alta],
                                 ['Fecha y hora de registro',
                                   r.fecharegistro

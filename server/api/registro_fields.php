@@ -34,7 +34,7 @@ $DEFAULT_FIELDS = [
     ['field_name' => 'reg_fechanac',   'field_label' => 'Fecha de nacimiento',                          'is_enabled' => 1, 'is_required' => 0, 'display_order' => 70,  'section' => 'basica'],
     // Edad — alternativa o complemento de fechanac. Si fechanac está activa
     // se auto-calcula y queda en gris; si no, el jugador la captura.
-    ['field_name' => 'reg_edad',       'field_label' => 'Edad',                                         'is_enabled' => 0, 'is_required' => 0, 'display_order' => 75,  'section' => 'basica'],
+    ['field_name' => 'akron_edad',     'field_label' => 'Edad',                                         'is_enabled' => 0, 'is_required' => 0, 'display_order' => 75,  'section' => 'basica'],
     ['field_name' => 'reg_categoria',  'field_label' => 'Categoría',                                    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 80,  'section' => 'basica'],
     ['field_name' => 'reg_es_socio',   'field_label' => '¿Es socio del club que realiza el torneo?',    'is_enabled' => 1, 'is_required' => 1, 'display_order' => 90,  'section' => 'socios'],
     ['field_name' => 'reg_tipo_socio', 'field_label' => 'Tipo de socio',                                'is_enabled' => 1, 'is_required' => 0, 'display_order' => 100, 'section' => 'socios'],
@@ -101,6 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $hasSection = ensure_section_column($conn);
+    /**
+     * Migración silenciosa: filas legadas con field_name = 'reg_edad'
+     * se renombran a 'akron_edad' (columna real en la tabla `registro`).
+     * IGNORE evita conflicto si ya existe la fila con el nuevo nombre.
+     */
+    @$conn->query("UPDATE IGNORE registro_form_fields SET field_name = 'akron_edad' WHERE field_name = 'reg_edad'");
+    @$conn->query("DELETE FROM registro_form_fields WHERE field_name = 'reg_edad'");
     $sectionSql = $hasSection ? ", section" : "";
     $sql = "SELECT field_name, field_label, is_enabled, is_required, display_order $sectionSql
             FROM registro_form_fields
@@ -136,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
      * Backfill: garantizar que TODOS los campos definidos en $DEFAULT_FIELDS
      * aparezcan en la respuesta aunque la fila en BD no exista todavía. Esto
      * permite que campos agregados después de la primera configuración
-     * (ej. `reg_edad`) sean visibles en el panel admin sin requerir una
+     * (ej. `akron_edad`) sean visibles en el panel admin sin requerir una
      * migración manual por torneo. Los campos nuevos se insertan como
      * deshabilitados para no alterar formularios ya publicados.
      */
@@ -185,7 +192,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $insertCount = 0;
     foreach ($fields as $f) {
-        $name  = esc($conn, (string)($f['field_name']  ?? ''));
+        $rawName = (string)($f['field_name']  ?? '');
+        // Compat: cualquier envío con 'reg_edad' se persiste como 'akron_edad'
+        // (columna real en la tabla `registro`).
+        if ($rawName === 'reg_edad') $rawName = 'akron_edad';
+        $name  = esc($conn, $rawName);
         $label = esc($conn, (string)($f['field_label'] ?? ''));
         $en    = !empty($f['is_enabled'])  ? 1 : 0;
         $req   = !empty($f['is_required']) ? 1 : 0;
