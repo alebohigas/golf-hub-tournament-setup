@@ -170,9 +170,16 @@ if ($action === 'lookup') {
         "LOWER(nombre)   = LOWER('"   . esc($conn, $nombre)   . "')",
         "LOWER(apellido) = LOWER('" . esc($conn, $apellido) . "')",
     ];
-    if ($fechanac !== '' && jug_has($conn, 'fechanac')) {
-        $where[] = "DATE(fechanac) = '" . esc($conn, $fechanac) . "'";
-    }
+    /**
+     * IMPORTANTE: NO filtramos por `fechanac` aunque el formulario la
+     * mande. Muchos registros históricos en `jugadores` tienen
+     * `fechanac` vacía / NULL / '0000-00-00', y un filtro estricto
+     * hacía que el lookup devolviera "no encontrado" y el flujo de
+     * pre-registro forzara reg_es_socio = "NO" incorrectamente. En su
+     * lugar, usamos `fechanac` sólo como PREFERENCIA de orden: si hay
+     * un registro cuyo `fechanac` coincide, ese gana; si no, cae al
+     * más reciente por torneo/id.
+     */
 
     /**
      * Un mismo jugador puede tener varios registros en `jugadores`
@@ -183,6 +190,10 @@ if ($action === 'lookup') {
      * columnas se agregan sólo si existen en el esquema.
      */
     $orderParts = [];
+    if ($fechanac !== '' && jug_has($conn, 'fechanac')) {
+        // Los que coinciden por fecha primero (1), los demás después (0)
+        $orderParts[] = "(DATE(fechanac) = '" . esc($conn, $fechanac) . "') DESC";
+    }
     if (jug_has($conn, 'torneoid')) $orderParts[] = 'j.torneoid DESC';
     $orderParts[] = 'j.id DESC';
     $sql = "SELECT j.club, j.sexo, j.fechanac
