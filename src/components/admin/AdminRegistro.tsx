@@ -79,7 +79,7 @@ const AdminRegistro = () => {
    */
   const ageFieldsMissing = useMemo(() => {
     const fechanac = rows.find(r => r.field_name === 'reg_fechanac');
-    const edad     = rows.find(r => r.field_name === 'reg_edad');
+    const edad     = rows.find(r => r.field_name === 'akron_edad');
     const fechanacEnabled = !!(fechanac && fechanac.is_enabled);
     const edadEnabled     = !!(edad && edad.is_enabled);
     return !fechanacEnabled && !edadEnabled;
@@ -105,7 +105,7 @@ const AdminRegistro = () => {
             </div>
           ) : (
             <>
-              {/* Alerta crítica: al menos uno entre reg_fechanac y reg_edad
+              {/* Alerta crítica: al menos uno entre reg_fechanac y akron_edad
                   debe estar activo para poder filtrar categorías y precios. */}
               {ageFieldsMissing && (
                 <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
