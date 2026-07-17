@@ -385,7 +385,7 @@ const Registro = () => {
    * detecta que el jugador ya está registrado en un club distinto al
    * club sede / clubes autorizados del torneo. Además se fuerza NO.
    */
-  const [socioMismatch, setSocioMismatch] = useState<string>('');
+  const [, setSocioMismatch] = useState<string>('');
 
   /**
    * Error inline bajo el input de club: se dispara cuando el jugador
