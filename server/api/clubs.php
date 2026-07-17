@@ -33,6 +33,54 @@ function jug_has($conn, $col) {
     return isset($cols[$col]);
 }
 
+/**
+ * Normalize a SQL text expression for player-name comparisons.
+ * Purpose: make the lookup tolerant to case, accents, NBSP, and repeated spaces
+ * without changing the stored `jugadores` data.
+ */
+function lookup_norm_expr($expr) {
+    $x = "UPPER(TRIM(REPLACE(REPLACE($expr, CHAR(160), ' '), CHAR(9), ' ')))";
+    foreach ([
+        'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ä' => 'A', 'Ã' => 'A',
+        'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+        'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+        'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Ö' => 'O', 'Õ' => 'O',
+        'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
+        'Ñ' => 'N',
+    ] as $from => $to) {
+        $x = "REPLACE($x, '$from', '$to')";
+    }
+    // Collapse the most common double-space cases caused by copied names.
+    $x = "REPLACE(REPLACE(REPLACE($x, '  ', ' '), '  ', ' '), '  ', ' ')";
+    return $x;
+}
+
+/** Build a normalized SQL literal from user input for safe LIKE comparisons. */
+function lookup_norm_literal($conn, $value) {
+    return lookup_norm_expr("'" . esc($conn, $value) . "'");
+}
+
+/**
+ * Split a name/apellido string into searchable tokens.
+ * Purpose: allow `JESUS OBESO GARCIA` to match rows where only the paternal
+ * apellido is reliable, while still using the maternal apellido as ranking.
+ */
+function lookup_tokens($value) {
+    $clean = str_replace(['-', '+', '.', ',', ';', ':', '/', '\\'], ' ', (string)$value);
+    $parts = preg_split('/\s+/', trim($clean));
+    $tokens = [];
+    foreach ($parts as $p) {
+        $p = trim($p);
+        if ($p !== '') $tokens[] = $p;
+    }
+    return $tokens;
+}
+
+/** Build a normalized SQL LIKE condition for one token inside one expression. */
+function lookup_contains_token($conn, $haystackExpr, $token) {
+    return $haystackExpr . " LIKE CONCAT('%', " . lookup_norm_literal($conn, $token) . ", '%')";
+}
+
 $action = optional_param('action');
 
 // ============= Action: clubs registered for a tournament =============
