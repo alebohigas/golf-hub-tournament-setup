@@ -527,6 +527,11 @@ const Registro = () => {
       return;
     }
 
+    // El usuario eligió SI: aceptamos la selección de inmediato. La
+    // validación contra la base solo controla el mensaje de advertencia,
+    // nunca revierte el valor (política vigente).
+    setValue('reg_es_socio', 'SI');
+
     const nombre = (values.reg_nombre || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
@@ -541,7 +546,7 @@ const Registro = () => {
     const hasNameLookup = nombre.length >= 2 && apellido.length >= 2 && correo.length >= 5;
 
     if (!hasId && !hasNameLookup) {
-      forceNoSocio(getSocioBlockedMessage('missing'));
+      setSocioMismatch(getSocioBlockedMessage('missing'));
       return;
     }
 
@@ -554,26 +559,26 @@ const Registro = () => {
       setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
 
       if (!j?.found) {
-        forceNoSocio(getSocioBlockedMessage('not_found'));
+        setSocioMismatch(getSocioBlockedMessage('not_found'));
         return;
       }
 
       const realClub = String(j.club || '').trim();
       if (!realClub) {
-        forceNoSocio(getSocioBlockedMessage('no_club'));
+        setSocioMismatch(getSocioBlockedMessage('no_club'));
         return;
       }
 
       if (!isAuthorizedSocioClub(realClub)) {
-        forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
+        setSocioMismatch(getSocioBlockedMessage('wrong_club', realClub));
         return;
       }
 
       setSocioMismatch('');
       setSocioClubAutofilled(false);
-      setValues(v => ({ ...v, reg_es_socio: 'SI', reg_club: realClub }));
+      setValues(v => ({ ...v, reg_club: realClub }));
     } catch {
-      forceNoSocio(getSocioBlockedMessage('error'));
+      setSocioMismatch(getSocioBlockedMessage('error'));
     }
   }, [forceNoSocio, getSocioBlockedMessage, isAuthorizedSocioClub, setValue, values]);
 
