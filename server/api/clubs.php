@@ -39,7 +39,8 @@ function jug_has($conn, $col) {
  * without changing the stored `jugadores` data.
  */
 function lookup_norm_expr($expr) {
-    $x = "UPPER(TRIM(REPLACE(REPLACE($expr, CHAR(160), ' '), CHAR(9), ' ')))";
+    $x = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($expr, CHAR(160), ' '), CHAR(9), ' '), '-', ' '), '+', ' '), '.', ' '), ',', ' '), '/', ' ')";
+    $x = "UPPER(TRIM($x))";
     foreach ([
         'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ä' => 'A', 'Ã' => 'A',
         'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
