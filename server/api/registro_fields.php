@@ -192,7 +192,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $insertCount = 0;
     foreach ($fields as $f) {
-        $name  = esc($conn, (string)($f['field_name']  ?? ''));
+        $rawName = (string)($f['field_name']  ?? '');
+        // Compat: cualquier envío con 'reg_edad' se persiste como 'akron_edad'
+        // (columna real en la tabla `registro`).
+        if ($rawName === 'reg_edad') $rawName = 'akron_edad';
+        $name  = esc($conn, $rawName);
         $label = esc($conn, (string)($f['field_label'] ?? ''));
         $en    = !empty($f['is_enabled'])  ? 1 : 0;
         $req   = !empty($f['is_required']) ? 1 : 0;
