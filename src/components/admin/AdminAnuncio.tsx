@@ -7,7 +7,7 @@
  * Persists to `site_config.anuncio_config`. Read globally by
  * <AnnouncementRibbon /> mounted inside <Layout />.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -44,6 +45,7 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+import { menuConfig } from '@/data/mockData';
 
 /** Sensible defaults when no config has been saved yet. */
 const DEFAULT_ANUNCIO: AnuncioConfig = {
@@ -56,6 +58,7 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   bold: true,
   italic: false,
   speedSeconds: 30,
+  paths: ['*'],
 };
 
 /**
@@ -85,12 +88,44 @@ const AdminAnuncio = () => {
     }
   }, [siteConfig?.anuncio_config]);
 
+  /** Routes the admin can pick from (mirrors public menu). */
+  const routeOptions = useMemo(
+    () => menuConfig.map((m) => ({ id: m.id, label: m.label, path: m.path })),
+    []
+  );
+
+  const selectedPaths = config.paths ?? ['*'];
+  const showOnAll = selectedPaths.includes('*');
+
+  /** Toggle a single route in the config.paths array. */
+  const togglePath = (path: string) => {
+    setConfig((c) => {
+      const current = (c.paths ?? ['*']).filter((p) => p !== '*');
+      const has = current.includes(path);
+      const next = has ? current.filter((p) => p !== path) : [...current, path];
+      return { ...c, paths: next.length === 0 ? [] : next };
+    });
+  };
+
+  /** Toggle "show on every page" master. */
+  const toggleShowAll = (checked: boolean) => {
+    setConfig((c) => ({ ...c, paths: checked ? ['*'] : [] }));
+  };
+
   /** Persist the current config to the server. */
   const handleSave = () => {
     if (config.enabled && !config.text.trim()) {
       toast({
         title: 'Falta texto',
         description: 'Escribe el mensaje del anuncio antes de activarlo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (config.enabled && !showOnAll && (config.paths ?? []).length === 0) {
+      toast({
+        title: 'Falta seleccionar páginas',
+        description: 'Elige al menos una página o activa "Mostrar en todas".',
         variant: 'destructive',
       });
       return;
@@ -314,6 +349,42 @@ const AdminAnuncio = () => {
               value={[config.speedSeconds]}
               onValueChange={([v]) => setConfig((c) => ({ ...c, speedSeconds: v }))}
             />
+          </div>
+
+          {/* Pages selector */}
+          <div className="space-y-2">
+            <Label>Páginas donde se mostrará</Label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer rounded border border-border px-3 py-2">
+              <Checkbox
+                checked={showOnAll}
+                onCheckedChange={(v) => toggleShowAll(Boolean(v))}
+              />
+              <span className="font-medium">Mostrar en todas las páginas</span>
+            </label>
+            <div
+              className={`grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg border border-border p-3 max-h-64 overflow-auto ${
+                showOnAll ? 'opacity-50 pointer-events-none' : ''
+              }`}
+            >
+              {routeOptions.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 px-2 py-1 rounded"
+                >
+                  <Checkbox
+                    checked={showOnAll || selectedPaths.includes(opt.path)}
+                    onCheckedChange={() => togglePath(opt.path)}
+                  />
+                  <span className="font-medium">{opt.label}</span>
+                  <span className="text-xs text-muted-foreground font-mono ml-auto">
+                    {opt.path}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Desactiva "Mostrar en todas" para elegir páginas específicas.
+            </p>
           </div>
 
           <Button

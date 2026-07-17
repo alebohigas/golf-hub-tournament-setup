@@ -9,6 +9,7 @@
  * with a duplicated content string, so the loop is seamless.
  */
 import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 /**
@@ -29,6 +30,7 @@ const FONT_FAMILY_MAP: Record<string, string> = {
  */
 const AnnouncementRibbon = () => {
   const { data: siteConfig } = useSiteConfig();
+  const location = useLocation();
   const cfg = siteConfig?.anuncio_config;
 
   /** Repeat the text enough times to guarantee a full viewport width even for short messages. */
@@ -41,6 +43,13 @@ const AnnouncementRibbon = () => {
   }, [cfg?.text]);
 
   if (!cfg?.enabled || !repeatedText) return null;
+
+  // Route filtering: when `paths` is missing/empty or contains '*', show on
+  // every page (legacy behavior). Otherwise only show on the listed paths.
+  const paths = cfg.paths;
+  const routeAllowed =
+    !paths || paths.length === 0 || paths.includes('*') || paths.includes(location.pathname);
+  if (!routeAllowed) return null;
 
   const speed = Math.max(5, Number(cfg.speedSeconds) || 30);
 
