@@ -806,6 +806,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                           ) : (
                             <Badge variant="secondary">No socio</Badge>
                           )}
+                          {isPreferenteMismatch(r) && (
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-amber-700 border-amber-400 bg-amber-50 text-xs">
+                                ⚠ Club no autorizado en ventana preferente
+                              </Badge>
+                            </div>
+                          )}
                           {cargoCuenta && (
                             <div className="mt-1 text-xs text-muted-foreground">
                               Clave: <span className="font-mono">{r.reg_numsocio || '—'}</span>
