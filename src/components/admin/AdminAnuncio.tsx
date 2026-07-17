@@ -351,6 +351,42 @@ const AdminAnuncio = () => {
             />
           </div>
 
+          {/* Pages selector */}
+          <div className="space-y-2">
+            <Label>Páginas donde se mostrará</Label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer rounded border border-border px-3 py-2">
+              <Checkbox
+                checked={showOnAll}
+                onCheckedChange={(v) => toggleShowAll(Boolean(v))}
+              />
+              <span className="font-medium">Mostrar en todas las páginas</span>
+            </label>
+            <div
+              className={`grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg border border-border p-3 max-h-64 overflow-auto ${
+                showOnAll ? 'opacity-50 pointer-events-none' : ''
+              }`}
+            >
+              {routeOptions.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 px-2 py-1 rounded"
+                >
+                  <Checkbox
+                    checked={showOnAll || selectedPaths.includes(opt.path)}
+                    onCheckedChange={() => togglePath(opt.path)}
+                  />
+                  <span className="font-medium">{opt.label}</span>
+                  <span className="text-xs text-muted-foreground font-mono ml-auto">
+                    {opt.path}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Desactiva "Mostrar en todas" para elegir páginas específicas.
+            </p>
+          </div>
+
           <Button
             type="button"
             onClick={handleSave}
