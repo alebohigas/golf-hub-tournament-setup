@@ -216,6 +216,42 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [previewRow, setPreviewRow] = useState<RegistroRow | null>(null);
   const { toast } = useToast();
 
+  /**
+   * Config de "Registro Preferente" del torneo. Se usa para resaltar en
+   * la tabla los registros capturados durante la ventana preferente
+   * cuyo club NO está autorizado (posibles socios inválidos que el
+   * comité debe revisar). Solo compara por nombre de club normalizado.
+   */
+  const { data: preferenteCfg } = useRegistroPreferente();
+
+  /**
+   * True cuando el registro `r` fue capturado dentro de la ventana
+   * preferente global (o de un club específico) pero su `reg_club` NO
+   * está entre los clubes autorizados de esa ventana. Se muestra con un
+   * borde ámbar en la fila para facilitar la revisión administrativa.
+   */
+  const isPreferenteMismatch = (r: RegistroRow): boolean => {
+    if (!preferenteCfg) return false;
+    const rowDate = (r.reg_fecha || r.created_at || (r as any).fecha_alta || r.fecharegistro || '').toString().slice(0, 10);
+    if (!rowDate) return false;
+    const globalStart = preferenteCfg.fecha_inicio || '';
+    const globalEnd   = preferenteCfg.fecha_fin    || '';
+    const withinGlobal = !!globalStart && !!globalEnd && rowDate >= globalStart && rowDate <= globalEnd;
+    // Cualquier ventana por-club también cuenta como período preferente.
+    const withinAnyClub = (preferenteCfg.clubs || []).some(c =>
+      c.fecha_inicio && c.fecha_fin && rowDate >= c.fecha_inicio && rowDate <= c.fecha_fin
+    );
+    if (!withinGlobal && !withinAnyClub) return false;
+    // Dentro de ventana preferente: validar club autorizado.
+    const key = (s: string) => (s || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+    const clubKey = key(r.reg_club || '');
+    if (!clubKey) return true; // sin club → mismatch
+    const authorized = (preferenteCfg.clubs || []).some(c => key(c.nombre) === clubKey);
+    return !authorized;
+  };
+
   /** Tracks which rows have an in-flight action button (per id+kind). */
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const markBusy = (key: string, v: boolean) =>
