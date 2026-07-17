@@ -1440,11 +1440,6 @@ const Registro = () => {
               <SelectItem value="NO">No</SelectItem>
             </SelectContent>
           </Select>
-          {/* Mensaje en rojo: el sistema detectó que el jugador está
-              registrado en otro club (ver effect de lookup). */}
-          {socioMismatch && (
-            <p className="text-sm text-destructive font-medium">{socioMismatch}</p>
-          )}
         </div>
       );
     }
