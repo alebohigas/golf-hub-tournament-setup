@@ -22,6 +22,7 @@ import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCirc
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useRegistroPreferente } from '@/hooks/useRegistroPreferente';
 import {
   getRegistroListUrl,
   getRegistroVerifyUrl,
