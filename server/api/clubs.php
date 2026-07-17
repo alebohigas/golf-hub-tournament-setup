@@ -221,9 +221,20 @@ if ($action === 'lookup') {
         ]);
     }
 
+    $nombreNormExpr = lookup_norm_expr('j.nombre');
+    $apellidoNormExpr = lookup_norm_expr('j.apellido');
+    $nombreInputExpr = lookup_norm_literal($conn, $nombre);
+    $apellidoInputExpr = lookup_norm_literal($conn, $apellido);
+    $apellidoTokens = lookup_tokens($apellido);
+    $requiredApellido = $apellidoTokens[0] ?? $apellido;
+    $apellidoTokenSql = [];
+    foreach ($apellidoTokens as $t) {
+        $apellidoTokenSql[] = lookup_contains_token($conn, $apellidoNormExpr, $t);
+    }
+    $apellidoTokenScore = $apellidoTokenSql ? '(' . implode(' + ', $apellidoTokenSql) . ')' : '0';
     $where = [
-        "LOWER(nombre)   = LOWER('"   . esc($conn, $nombre)   . "')",
-        "LOWER(apellido) = LOWER('" . esc($conn, $apellido) . "')",
+        "($nombreNormExpr = $nombreInputExpr OR $nombreNormExpr LIKE CONCAT($nombreInputExpr, '%') OR $nombreInputExpr LIKE CONCAT($nombreNormExpr, '%'))",
+        lookup_contains_token($conn, $apellidoNormExpr, $requiredApellido),
     ];
     /**
      * IMPORTANTE: NO filtramos por `fechanac` aunque el formulario la
@@ -251,10 +262,13 @@ if ($action === 'lookup') {
     }
     if (jug_has($conn, 'torneoid')) $orderParts[] = 'j.torneoid DESC';
     $orderParts[] = 'j.id DESC';
-    $sql = "SELECT j.club, j.sexo, j.fechanac
+    $sql = "SELECT j.club, j.sexo, j.fechanac,
+                   ($nombreNormExpr = $nombreInputExpr) AS match_nombre_exact,
+                   ($apellidoNormExpr = $apellidoInputExpr) AS match_apellido_exact,
+                   $apellidoTokenScore AS apellido_token_score
             FROM jugadores j
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY " . implode(', ', $orderParts) . "
+            ORDER BY match_nombre_exact DESC, match_apellido_exact DESC, apellido_token_score DESC, " . implode(', ', $orderParts) . "
             LIMIT 1";
     $res = $conn->query($sql);
     if (!$res) json_response(['found' => false]);
