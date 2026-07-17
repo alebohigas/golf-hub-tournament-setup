@@ -485,20 +485,6 @@ const Registro = () => {
     } else {
       result = !!hostKey && hostKey === key;
     }
-    // TEMP DEBUG: muestra por qué se acepta/rechaza el club del jugador.
-    // Quitar cuando se confirme el origen de la falla en producción.
-    // eslint-disable-next-line no-console
-    console.log('[socio-check]', {
-      inputClub: clubName,
-      inputKey: key,
-      socioClubs: socioClubs.map(c => c.nombre),
-      socioKeys,
-      tournamentClub: tournamentInfo?.club || null,
-      hostKey,
-      matchedInSocioClubs: socioKeys.includes(key),
-      matchedHost: !!hostKey && hostKey === key,
-      result,
-    });
     return result;
   }, [clubKey, socioClubs, tournamentInfo?.club]);
 
