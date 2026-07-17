@@ -823,17 +823,8 @@ const Registro = () => {
            */
           const realClub = String(j.club).trim();
           const isAuthorized = isAuthorizedSocioClub(realClub);
-          setValues(v => {
-            const next = { ...v };
-            // Autofill club real siempre (fuente de verdad).
-            next.reg_club = realClub;
-            if (!isAuthorized) {
-              // Forzar NO socio y almacenar el club real detectado.
-              next.reg_es_socio = 'NO';
-            }
-            return next;
-          });
           if (!isAuthorized) {
+            // Mostrar advertencia sin forzar el valor; el comité valida.
             forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
           } else {
             setSocioMismatch('');
