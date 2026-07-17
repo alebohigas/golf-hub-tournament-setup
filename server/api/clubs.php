@@ -101,7 +101,11 @@ if ($action === 'lookup') {
             foreach ($want as $c) if (jug_has($conn, $c)) $sel[] = "j.$c";
             if (!$sel) json_response(['found' => false]);
             $sql = "SELECT " . implode(',', $sel) . " FROM jugadores j WHERE " .
-                   implode(' OR ', $w) . " ORDER BY j.id DESC LIMIT 1";
+                   implode(' OR ', $w) .
+                   (jug_has($conn, 'torneoid')
+                       ? " ORDER BY j.torneoid DESC, j.id DESC"
+                       : " ORDER BY j.id DESC") .
+                   " LIMIT 1";
             $res = $conn->query($sql);
             if ($res && $row = $res->fetch_assoc()) {
                 $row['found'] = true;
