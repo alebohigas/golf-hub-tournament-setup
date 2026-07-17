@@ -1296,9 +1296,9 @@ const Registro = () => {
           c => c.nombre.trim().toLowerCase() === typed.toLowerCase()
         );
         if (!match) {
-          const msg = '¿No encuentras tu club? Manda mensaje a info@speitour.mx ' +
-                      'para agregarlo a la lista de clubes registrados. Para terminar tu ' +
-                      'registro puedes continuar poniendo tu club como "Sin club" de la selección mostrada.';
+          const msg = '¿No encuentras tu club? Selecciona "Sin club" de la lista ' +
+                      'y añade el nombre real de tu club en el campo "Notas adicionales" ' +
+                      'para que el comité pueda agregarlo.';
           setClubError(msg);
           toast({ title: 'Club no válido', description: msg, variant: 'destructive' });
           return;
@@ -1325,7 +1325,7 @@ const Registro = () => {
           title: 'Registro preferente activo',
           description:
             'En este momento sólo pueden pre-registrarse socios de los clubes autorizados. ' +
-            'Si consideras que esto es un error, escribe a info@speitour.mx.',
+            'Si consideras que esto es un error, indícalo en el campo "Notas adicionales".',
           variant: 'destructive',
         });
         return;
