@@ -250,6 +250,9 @@ export interface PopupConfig {
  *   - italic:       italic toggle.
  *   - speedSeconds: seconds for the text to travel one full viewport
  *                   width (higher = slower).
+ *   - paths:        list of route pathnames where the ribbon should
+ *                   appear. Use ['*'] (or empty/undefined for legacy
+ *                   configs) to show on every page.
  */
 export interface AnuncioConfig {
   enabled: boolean;
@@ -261,6 +264,8 @@ export interface AnuncioConfig {
   bold: boolean;
   italic: boolean;
   speedSeconds: number;
+  /** Routes where the ribbon should be shown. Missing = every page (legacy). */
+  paths?: string[];
 }
 
 /** Full server response for site config */
