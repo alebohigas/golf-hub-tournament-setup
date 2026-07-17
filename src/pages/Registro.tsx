@@ -534,10 +534,15 @@ const Registro = () => {
     const nombre = (values.reg_nombre || '').trim();
     const apellido = (values.reg_apellido || '').trim();
     const fechanac = (values.reg_fechanac || '').trim();
+    const correo   = (values.reg_correo   || '').trim();
     const spei = (values.reg_spei || '').trim();
     const ghin = (values.numghinspei || values.reg_ghin || '').trim();
     const hasId = spei.length >= 3 || ghin.length >= 3;
-    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2;
+    /**
+     * El lookup por nombre requiere nombre + apellido + correo. El correo
+     * es lo que distingue homónimos, sin él NO validamos socio.
+     */
+    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2 && correo.length >= 5;
 
     if (!hasId && !hasNameLookup) {
       forceNoSocio(getSocioBlockedMessage('missing'));
@@ -547,7 +552,7 @@ const Registro = () => {
     try {
       const lookupUrl = hasId
         ? getPlayerLookupByIdUrl(spei, ghin)
-        : getClubLookupUrl(nombre, apellido, fechanac);
+        : getClubLookupUrl(nombre, apellido, fechanac, correo, spei, ghin);
       const res = await fetch(lookupUrl);
       const j = await res.json().catch(() => ({}));
       setValues(v => ({ ...v, __player_found: j?.found ? '1' : '0' }));
