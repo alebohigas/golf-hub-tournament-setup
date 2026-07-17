@@ -491,32 +491,28 @@ const Registro = () => {
   /** Red message shown when the player is not allowed to claim host-club membership. */
   const getSocioBlockedMessage = useCallback((reason: 'missing' | 'not_found' | 'wrong_club' | 'no_club' | 'error', realClub = ''): string => {
     if (reason === 'missing') {
-      return 'Para marcar “Sí, soy socio” necesitamos validar al jugador en la base de datos. Captura nombre, apellido y correo (o SPEI/GHIN) y vuelve a intentarlo.';
+      return 'Para validar “Sí, soy socio” necesitamos nombre, apellido y correo (o SPEI/GHIN). Puedes continuar tu registro, el comité revisará la membresía.';
     }
     if (reason === 'not_found') {
-      return 'No encontramos a este jugador en la base de datos de jugadores, por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
+      return 'No encontramos a este jugador en nuestra base de datos de socios. Puedes continuar tu registro; el comité revisará tu información.';
     }
     if (reason === 'wrong_club') {
-      return `Lo sentimos, pero nuestro sistema tiene a este jugador registrado en el club ${realClub}. Si requiere actualizar su información favor de enviar correo a info@speitour.mx`;
+      return `Nuestro sistema tiene a este jugador registrado en el club ${realClub}. Puedes continuar tu registro; el comité revisará la membresía.`;
     }
     if (reason === 'no_club') {
-      return 'Encontramos al jugador en la base de datos, pero no tiene club registrado para validar membresía. Por eso se marcó automáticamente como “No”. Si requiere actualizar su información favor de enviar correo a info@speitour.mx';
+      return 'Encontramos al jugador en la base de datos, pero no tiene club registrado para validar su membresía. Puedes continuar tu registro; el comité revisará la información.';
     }
-    return 'No pudimos validar la membresía del jugador en este momento, por eso se marcó automáticamente como “No”. Intenta de nuevo o escribe a info@speitour.mx';
+    return 'No pudimos validar la membresía del jugador en este momento. Puedes continuar; el comité revisará la información.';
   }, []);
 
-  /** Force the socio dropdown back to NO and clear all dependent socio-only values. */
-  const forceNoSocio = useCallback((message: string, realClub = '') => {
+  /**
+   * Muestra el mensaje de advertencia de socio sin forzar el valor de
+   * `reg_es_socio` a "NO". El jugador puede continuar el proceso con
+   * su selección; el comité administrativo decidirá al revisar el
+   * pre-registro (los casos se resaltan en /admin/registros).
+   */
+  const forceNoSocio = useCallback((message: string, _realClub = '') => {
     setSocioMismatch(message);
-    setSocioClubAutofilled(false);
-    setValues(v => ({
-      ...v,
-      reg_es_socio: 'NO',
-      reg_tipo_socio: '',
-      reg_cargo_socio: '',
-      reg_numsocio: '',
-      ...(realClub ? { reg_club: realClub } : {}),
-    }));
   }, []);
 
   /**
@@ -827,17 +823,8 @@ const Registro = () => {
            */
           const realClub = String(j.club).trim();
           const isAuthorized = isAuthorizedSocioClub(realClub);
-          setValues(v => {
-            const next = { ...v };
-            // Autofill club real siempre (fuente de verdad).
-            next.reg_club = realClub;
-            if (!isAuthorized) {
-              // Forzar NO socio y almacenar el club real detectado.
-              next.reg_es_socio = 'NO';
-            }
-            return next;
-          });
           if (!isAuthorized) {
+            // Mostrar advertencia sin forzar el valor; el comité valida.
             forceNoSocio(getSocioBlockedMessage('wrong_club', realClub), realClub);
           } else {
             setSocioMismatch('');
@@ -1309,9 +1296,9 @@ const Registro = () => {
           c => c.nombre.trim().toLowerCase() === typed.toLowerCase()
         );
         if (!match) {
-          const msg = '¿No encuentras tu club? Manda mensaje a info@speitour.mx ' +
-                      'para agregarlo a la lista de clubes registrados. Para terminar tu ' +
-                      'registro puedes continuar poniendo tu club como "Sin club" de la selección mostrada.';
+          const msg = '¿No encuentras tu club? Selecciona "Sin club" de la lista ' +
+                      'y añade el nombre real de tu club en el campo "Notas adicionales" ' +
+                      'para que el comité pueda agregarlo.';
           setClubError(msg);
           toast({ title: 'Club no válido', description: msg, variant: 'destructive' });
           return;
@@ -1338,7 +1325,7 @@ const Registro = () => {
           title: 'Registro preferente activo',
           description:
             'En este momento sólo pueden pre-registrarse socios de los clubes autorizados. ' +
-            'Si consideras que esto es un error, escribe a info@speitour.mx.',
+            'Si consideras que esto es un error, indícalo en el campo "Notas adicionales".',
           variant: 'destructive',
         });
         return;

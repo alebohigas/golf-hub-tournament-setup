@@ -105,6 +105,21 @@ const AdminRegistro = () => {
             </div>
           ) : (
             <>
+              {/*
+                Leyenda: explica el significado de cada sección para que
+                el admin sepa dónde aparecerá cada campo en el formulario
+                público. Las secciones se revelan progresivamente en el
+                orden mostrado.
+              */}
+              <div className="mb-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+                <strong className="text-foreground">Guía de secciones:</strong>
+                <ul className="mt-1 space-y-0.5">
+                  <li><span className="font-mono text-foreground">basica</span> — Información básica (nombre, correo, teléfono, fecha nac., etc.)</li>
+                  <li><span className="font-mono text-foreground">socios</span> — Preguntas de socio, tipo de socio, club y cargo a cuenta.</li>
+                  <li><span className="font-mono text-foreground">adicionales</span> — Handicap, hospedaje, notas y comprobante.</li>
+                  <li><span className="font-mono text-foreground">revision</span> — Solo visible en /admin/registros (no aparece en el formulario público).</li>
+                </ul>
+              </div>
               {/* Alerta crítica: al menos uno entre reg_fechanac y akron_edad
                   debe estar activo para poder filtrar categorías y precios. */}
               {ageFieldsMissing && (
