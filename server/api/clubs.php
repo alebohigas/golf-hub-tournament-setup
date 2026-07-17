@@ -267,7 +267,6 @@ if ($action === 'lookup') {
     }
     json_response(['found' => false]);
 }
-}
 
 // ============= Default: list of clubs =============
 /**
