@@ -119,6 +119,53 @@ if ($action === 'lookup') {
         json_response(['found' => false]);
     }
 
+    /**
+     * Modo diagnóstico:
+     * GET /api/clubs.php?action=lookup&debug=1&nombre=X&apellido=Y
+     * Devuelve TODOS los candidatos que hagan match parcial por
+     * nombre O apellido (usando LIKE con comodines) para poder ver
+     * las diferencias reales de acentos, espacios extra, apellidos
+     * compuestos vs sólo paterno, casing, etc. También devuelve
+     * HEX() y LENGTH() para detectar caracteres invisibles.
+     */
+    if ((int) optional_param('debug', 0) === 1) {
+        $nLike = '%' . esc($conn, $nombre)   . '%';
+        $aLike = '%' . esc($conn, $apellido) . '%';
+        // También partir el apellido en tokens (paterno/materno)
+        $tokens = preg_split('/\s+/', trim($apellido));
+        $tokLike = [];
+        foreach ($tokens as $t) if ($t !== '') $tokLike[] = "LOWER(apellido) LIKE LOWER('%" . esc($conn, $t) . "%')";
+        $tokSql = $tokLike ? '(' . implode(' OR ', $tokLike) . ')' : "0=1";
+        $sql = "SELECT j.id, "
+             . (jug_has($conn,'torneoid') ? "j.torneoid, " : "")
+             . "j.nombre, j.apellido, j.club, "
+             . "HEX(j.nombre) AS nombre_hex, HEX(j.apellido) AS apellido_hex, "
+             . "CHAR_LENGTH(j.nombre) AS nombre_len, CHAR_LENGTH(j.apellido) AS apellido_len, "
+             . "LOWER(j.nombre) = LOWER('" . esc($conn,$nombre) . "') AS match_nombre_exact, "
+             . "LOWER(j.apellido) = LOWER('" . esc($conn,$apellido) . "') AS match_apellido_exact "
+             . "FROM jugadores j "
+             . "WHERE (LOWER(j.nombre) LIKE LOWER('" . $nLike . "') "
+             . "   OR  LOWER(j.apellido) LIKE LOWER('" . $aLike . "') "
+             . "   OR  " . $tokSql . ") "
+             . (jug_has($conn,'torneoid') ? "ORDER BY j.torneoid DESC, j.id DESC " : "ORDER BY j.id DESC ")
+             . "LIMIT 50";
+        $rows = [];
+        $res = $conn->query($sql);
+        if ($res) { while ($r = $res->fetch_assoc()) $rows[] = $r; $res->free(); }
+        // Info de la conexión y de las columnas relevantes
+        $collationInfo = [];
+        $c = $conn->query("SHOW FULL COLUMNS FROM jugadores WHERE Field IN ('nombre','apellido','club')");
+        if ($c) { while ($r = $c->fetch_assoc()) $collationInfo[] = $r; $c->free(); }
+        json_response([
+            'debug'       => true,
+            'input'       => ['nombre' => $nombre, 'apellido' => $apellido, 'fechanac' => $fechanac],
+            'sql'         => $sql,
+            'candidates'  => $rows,
+            'columns'     => $collationInfo,
+            'connection_collation' => $conn->character_set_name(),
+        ]);
+    }
+
     $where = [
         "LOWER(nombre)   = LOWER('"   . esc($conn, $nombre)   . "')",
         "LOWER(apellido) = LOWER('" . esc($conn, $apellido) . "')",
