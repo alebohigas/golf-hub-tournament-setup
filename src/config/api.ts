@@ -468,12 +468,18 @@ export const getClubLookupUrl = (
   nombre: string,
   apellido: string,
   fechanac: string,
+  correo: string = '',
+  spei: string = '',
+  ghin: string = '',
 ): string => {
   const qs = new URLSearchParams({
     action: 'lookup',
     nombre,
     apellido,
     fechanac,
+    correo,
+    spei,
+    ghin,
   }).toString();
   return `${API_BASE_URL}/clubs.php?${qs}`;
 };
