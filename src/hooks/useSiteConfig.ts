@@ -235,6 +235,34 @@ export interface PopupConfig {
   textPosition?: 'above' | 'below';
 }
 
+/**
+ * AnuncioConfig
+ * -----------------------------------------------------------------------
+ * Scrolling announcement ribbon rendered between the site header and the
+ * sponsor ribbon, on every page. Configured from Admin > Anuncio.
+ *   - enabled:      master on/off switch.
+ *   - text:         the message that scrolls across the ribbon.
+ *   - bgColor:      hex background color of the ribbon.
+ *   - textColor:    hex color of the text.
+ *   - fontFamily:   preset font family for the text.
+ *   - fontSize:     text size in pixels (10–48).
+ *   - bold:         bold weight toggle.
+ *   - italic:       italic toggle.
+ *   - speedSeconds: seconds for the text to travel one full viewport
+ *                   width (higher = slower).
+ */
+export interface AnuncioConfig {
+  enabled: boolean;
+  text: string;
+  bgColor: string;
+  textColor: string;
+  fontFamily: 'sans' | 'serif' | 'mono' | 'display';
+  fontSize: number;
+  bold: boolean;
+  italic: boolean;
+  speedSeconds: number;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -252,6 +280,7 @@ export interface SiteConfig {
   theme_config: ThemeConfig | null;
   stats_config: StatsConfig | null;
   popup_config: PopupConfig | null;
+  anuncio_config: AnuncioConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -271,6 +300,7 @@ export interface SaveConfigPayload {
   theme_config?: ThemeConfig | null;
   stats_config?: StatsConfig | null;
   popup_config?: PopupConfig | null;
+  anuncio_config?: AnuncioConfig | null;
 }
 
 // ============= Constants =============
