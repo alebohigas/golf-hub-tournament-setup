@@ -532,7 +532,7 @@ const Registro = () => {
     const spei = (values.reg_spei || '').trim();
     const ghin = (values.numghinspei || values.reg_ghin || '').trim();
     const hasId = spei.length >= 3 || ghin.length >= 3;
-    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2 && !!fechanac;
+    const hasNameLookup = nombre.length >= 2 && apellido.length >= 2;
 
     if (!hasId && !hasNameLookup) {
       forceNoSocio(getSocioBlockedMessage('missing'));
