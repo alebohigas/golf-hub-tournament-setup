@@ -25,7 +25,7 @@ $HOST_OVERRIDES = [
         'description' => 'El torneo de golf amateur más importante de México. Inscríbete y compite.',
         // Imagen dedicada 1200x630 para preview de WhatsApp/Facebook/Twitter.
         // Servida estáticamente desde /og-atlas354.jpg (public/og-atlas354.jpg).
-        'image'       => 'https://atlascc.speitour.mx/og-atlas354.jpg?v=2',
+        'image'       => 'https://atlascc.speitour.mx/og-atlas354.jpg?v=3',
     ],
 ];
 
