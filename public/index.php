@@ -23,7 +23,9 @@ $HOST_OVERRIDES = [
     'atlascc.speitour.mx' => [
         'title'       => 'Torneo Anual de Golf',
         'description' => 'El torneo de golf amateur más importante de México. Inscríbete y compite.',
-        'image'       => 'https://atlascc.speitour.mx/api/logo.php?file=atlas2026-b.png',
+        // Imagen dedicada 1200x630 para preview de WhatsApp/Facebook/Twitter.
+        // Servida estáticamente desde /og-atlas354.jpg (public/og-atlas354.jpg).
+        'image'       => 'https://atlascc.speitour.mx/og-atlas354.jpg',
     ],
 ];
 
