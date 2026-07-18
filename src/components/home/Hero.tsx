@@ -34,6 +34,15 @@ const parseTournamentName = (name: string) => {
 const Hero = () => {
   const { data: tournamentInfo } = useTournamentInfo();
 
+  /**
+   * Overrides por torneo específico.
+   * Atlas CC (torneoid=354) pidió cambiar el CTA del hero a "Ver Salidas"
+   * apuntando a /salidas en vez de la convocatoria por defecto.
+   */
+  const isAtlas354 = String(tournamentInfo?.id ?? '') === '354';
+  const ctaLabel = isAtlas354 ? 'Ver Salidas' : 'Ver Convocatoria';
+  const ctaHref  = isAtlas354 ? '/salidas'    : '/convocatoria';
+
   /** Parse tournament name into roman numeral and rest */
   const parsed = tournamentInfo?.name
     ? parseTournamentName(tournamentInfo.name)
@@ -116,7 +125,7 @@ const Hero = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-400">
             <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-gold font-semibold px-8">
-              <Link to="/convocatoria">Ver Convocatoria</Link>
+              <Link to={ctaHref}>{ctaLabel}</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-primary-foreground/30 text-foreground bg-background/90 hover:bg-background">
               <Link to="/jugadores">Ver Jugadores</Link>
