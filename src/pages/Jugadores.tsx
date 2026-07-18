@@ -14,6 +14,7 @@ import { ArrowLeft, Users, Loader2, HelpCircle } from 'lucide-react';
 import jugadoresHero from '@/assets/jugadores-hero.jpg';
 import { useState } from 'react';
 import { useCategories, usePlayers } from '@/hooks/usePlayersData';
+import { useTournamentInfo } from '@/hooks/useTournamentData';
 import type { CategoryDetail } from '@/data/playersData';
 
 const Jugadores = () => {
@@ -22,6 +23,10 @@ const Jugadores = () => {
 
   // Fetch categories from API
   const { data: categories = [], isLoading: loadingCats } = useCategories();
+  const { data: tournamentInfo } = useTournamentInfo();
+  /** Atlas CC (torneoid=354) pidió sustituir el contador de jugadores
+   *  por la palabra "CATEGORÍAS" en el header de esta página. */
+  const isAtlas354 = String(tournamentInfo?.id ?? '') === '354';
 
   // Fetch players only when a category is selected
   const { data: playersData, isLoading: loadingPlayers } = usePlayers(
@@ -55,7 +60,11 @@ const Jugadores = () => {
               {/* Total Players Header */}
               <div className="text-center mb-10">
                 <h2 className="text-3xl font-bold text-foreground">
-                  JUGADORES: <span className="text-primary">{loadingCats ? '…' : totalPlayers}</span>
+                  {isAtlas354 ? (
+                    'CATEGORÍAS'
+                  ) : (
+                    <>JUGADORES: <span className="text-primary">{loadingCats ? '…' : totalPlayers}</span></>
+                  )}
                 </h2>
               </div>
 
