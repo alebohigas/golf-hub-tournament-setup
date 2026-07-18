@@ -13,7 +13,11 @@
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_URI} !^/api/
-  RewriteRule ^ index.html [QSA,L]
+  # Se rutea a index.php (shim que sustituye meta tags por host para
+  # que el preview de WhatsApp/Facebook/Twitter/LinkedIn muestre la
+  # imagen y descripción correcta del torneo). El shim sirve el mismo
+  # index.html de la SPA cuando no hay override registrado.
+  RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
 # ============= Transport Security =============

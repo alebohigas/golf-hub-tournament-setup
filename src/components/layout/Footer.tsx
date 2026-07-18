@@ -20,6 +20,15 @@ const Footer = () => {
 
   const { numeral, rest } = parseTournamentName(tournamentInfo?.name || '');
 
+  /**
+   * Override de tagline por torneo. Atlas CC (torneoid=354) pidió una
+   * variante ligeramente distinta ("...más importante de México").
+   */
+  const isAtlas354 = String(tournamentInfo?.id ?? '') === '354';
+  const tagline = isAtlas354
+    ? 'El torneo de golf amateur más importante de México.'
+    : 'El torneo de golf amateur más importante del país.';
+
   /** Build location string from city and state */
   const location = [tournamentInfo?.city, tournamentInfo?.state].filter(Boolean).join(', ');
 
@@ -51,7 +60,7 @@ const Footer = () => {
               </div>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
-              El torneo de golf amateur más importante del país.
+              {tagline}
             </p>
           </div>
 
