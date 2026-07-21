@@ -179,7 +179,7 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                   >
                     <span
                       className="inline-block h-3 w-3 rounded-full"
-                      style={{ background: fill, border: `2px solid ${border}` }}
+                      style={{ background: fill }}
                     />
                     {t.tee || t.color || `Tee ${t.id}`}
                   </button>
