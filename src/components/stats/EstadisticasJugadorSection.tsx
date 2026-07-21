@@ -135,7 +135,7 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
         <table className="w-full min-w-[820px] text-sm border border-border rounded overflow-hidden">
           <thead>
             <tr className="bg-primary text-primary-foreground">
-              <th className="px-2 py-2 text-left font-semibold w-20">Hoyo</th>
+              <th className="px-2 py-2 text-left font-semibold w-20 sticky left-0 bg-primary z-20">Hoyo</th>
               {holes.slice(0, 9).map((h) => (
                 <th key={h.hole} className="px-2 py-2 text-center font-semibold">
                   H{String(h.hole).padStart(2, '0')}
@@ -156,7 +156,7 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
           <tbody>
             {/* Par row */}
             <tr className="bg-muted/60 font-semibold">
-              <td className="px-2 py-1.5 uppercase text-xs">Par</td>
+              <td className="px-2 py-1.5 uppercase text-xs sticky left-0 bg-muted z-10">Par</td>
               {holes.slice(0, 9).map((h) => renderCell(h.par))}
               <td className="px-2 py-1.5 text-center tabular-nums font-bold">{parOut}</td>
               {holes.slice(9).map((h) => renderCell(h.par))}
@@ -168,8 +168,8 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
 
             {/* One row per round */}
             {rounds.map((r) => (
-              <tr key={r.label} className="border-t border-border/60 hover:bg-muted/30">
-                <td className="px-2 py-1.5 font-semibold uppercase text-xs">{r.label}</td>
+              <tr key={r.label} className="border-t border-border/60 bg-white hover:bg-muted/30">
+                <td className="px-2 py-1.5 font-semibold uppercase text-xs sticky left-0 bg-white z-10">{r.label}</td>
                 {r.scores.slice(0, 9).map((s, i) => renderCell(s, scoreClass(s, holes[i]?.par)))}
                 <td className="px-2 py-1.5 text-center tabular-nums font-bold text-primary">
                   {r.out || '—'}
@@ -188,7 +188,7 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
 
             {/* Promedio row */}
             <tr className="bg-primary/10 font-semibold border-t-2 border-primary/40">
-              <td className="px-2 py-1.5 uppercase text-xs">Prom.</td>
+              <td className="px-2 py-1.5 uppercase text-xs sticky left-0 bg-[hsl(var(--primary))/10%] z-10" style={{ background: 'hsl(var(--primary) / 0.1)' }}>Prom.</td>
               {averages.slice(0, 9).map((v, i) => renderCell(v))}
               <td className="px-2 py-1.5" />
               {averages.slice(9).map((v, i) => renderCell(v))}
@@ -198,7 +198,7 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
 
             {/* Rango row */}
             <tr className="bg-muted/40 text-xs italic">
-              <td className="px-2 py-1.5 uppercase">Rango</td>
+              <td className="px-2 py-1.5 uppercase sticky left-0 bg-muted z-10">Rango</td>
               {holes.slice(0, 9).map((h) => renderCell(h.rango))}
               <td className="px-2 py-1.5" />
               {holes.slice(9).map((h) => renderCell(h.rango))}
