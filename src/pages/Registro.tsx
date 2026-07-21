@@ -33,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
+import { useRegistroSocioTipos } from '@/hooks/useRegistroSocioTipos';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
