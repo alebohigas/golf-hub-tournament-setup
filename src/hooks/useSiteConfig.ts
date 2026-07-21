@@ -222,6 +222,12 @@ export interface StatsPageOverrides {
   categoriaRounds?: number | null;
   /** Free-form note shown at the top of the Jugador section. */
   jugadorNote?: string | null;
+  /**
+   * Which club identifier to display in the Clubes Asistentes table.
+   *  - 'name' → full club name (default)
+   *  - 'abr'  → abbreviation from clubs.abr (falls back to name if empty)
+   */
+  clubNameField?: 'name' | 'abr' | null;
 }
 
 export interface StatsPageConfig {

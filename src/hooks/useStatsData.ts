@@ -23,15 +23,37 @@ import { getTorneoId } from '@/hooks/useTorneoId';
 export interface StatsClub {
   id: number | null;
   name: string;
+  abr: string;
   logo: string | null;
-  caballeros: number;
-  seniors: number;
-  damas: number;
+  /** Per-tee breakdown: salidaId → branch counts. */
+  byTee: Record<string, {
+    caballeros: number;
+    seniors: number;
+    supersenior: number;
+    damas: number;
+    total: number;
+  }>;
   total: number;
 }
+
+export interface StatsTee {
+  id: number;
+  tee: string;
+  color: string;
+}
+
+export interface StatsNoShow {
+  retiro: number;
+  noShow: number;
+  descalificado: number;
+  total: number;
+}
+
 export interface StatsClubesResponse {
   total: number;
   clubs: StatsClub[];
+  tees: StatsTee[];
+  noShow: StatsNoShow;
 }
 
 export interface StatsCategoriaHole {

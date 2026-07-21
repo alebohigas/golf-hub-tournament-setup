@@ -51,6 +51,7 @@ if ($jugadorid === null) {
                             LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
                            WHERE j.torneoid = $tid
                              AND (j.estatus IS NULL OR j.estatus <> 'BAJA')
+                             AND (j.numjugador IS NULL OR j.numjugador NOT LIKE '%-1')
                            ORDER BY j.apellido, j.nombre ASC");
     $players = array_map(function ($r) {
         return [

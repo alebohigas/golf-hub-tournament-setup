@@ -78,6 +78,11 @@ const EstadisticasCategoriaSection = ({
         ) : (
           // ============= Selected category detail =============
           <div className="p-4 md:p-6 space-y-4">
+            {/* Big repeat of the currently-selected category name so it stays
+                visible while the user scrolls the wide holes matrix. */}
+            <h3 className="text-xl md:text-2xl font-display font-black uppercase tracking-wide text-primary">
+              Categoría: {data?.categoryName || '—'}
+            </h3>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <Button
                 variant="ghost"
@@ -147,11 +152,33 @@ const EstadisticasCategoriaSection = ({
 const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useStatsCategoria>['data']> }) => {
   const { holes, subtotals } = data;
 
-  const renderHoleRow = (h: typeof holes[number]) => (
-    <tr key={`h-${h.hole}`} className="border-b border-border/60 hover:bg-muted/30">
-      <td className="px-3 py-2 font-mono font-bold">H{String(h.hole).padStart(2, '0')}</td>
-      <td className="px-3 py-2 text-center tabular-nums">{h.par ?? '—'}</td>
-      <td className="px-3 py-2 text-center tabular-nums font-semibold">
+  /**
+   * Left offset (px) accumulator for the three sticky columns: Hoyo, Par, Prom.
+   * Kept in one place so both header and body cells reference the same layout.
+   */
+  const STICKY = {
+    hoyo: { left: 0,   width: 64 },
+    par:  { left: 64,  width: 56 },
+    prom: { left: 120, width: 72 },
+  } as const;
+
+  /**
+   * Row background alternator — white / cream stripes for readability.
+   * Sticky columns inherit the same class so their bg matches the row.
+   */
+  const rowBg = (i: number) => (i % 2 === 0 ? 'bg-white' : 'bg-[hsl(var(--muted))/50%] bg-muted/40');
+
+  const renderHoleRow = (h: typeof holes[number], i: number) => {
+    const bg = i % 2 === 0 ? 'bg-white' : 'bg-muted/40';
+    return (
+    <tr key={`h-${h.hole}`} className={`border-b border-border/60 ${bg} hover:bg-primary/5`}>
+      <td className={`px-3 py-2 font-mono font-bold sticky ${bg}`} style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>
+        H{String(h.hole).padStart(2, '0')}
+      </td>
+      <td className={`px-3 py-2 text-center tabular-nums sticky ${bg}`} style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>
+        {h.par ?? '—'}
+      </td>
+      <td className={`px-3 py-2 text-center tabular-nums font-semibold sticky ${bg} shadow-[2px_0_0_0_hsl(var(--border))]`} style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>
         {h.promedio ?? '—'}
       </td>
       <td className="px-3 py-2 text-center tabular-nums text-primary font-bold">
@@ -174,13 +201,13 @@ const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useS
         {h.triples || '—'}
       </td>
     </tr>
-  );
+  );};
 
   const renderSubtotal = (label: string, s: NonNullable<typeof subtotals.out>) => (
     <tr className="bg-primary/10 font-bold">
-      <td className="px-3 py-2 uppercase tracking-wide">{label}</td>
-      <td className="px-3 py-2 text-center tabular-nums">{s.par}</td>
-      <td className="px-3 py-2 text-center tabular-nums">{s.promedio ?? '—'}</td>
+      <td className="px-3 py-2 uppercase tracking-wide sticky bg-primary/10" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>{label}</td>
+      <td className="px-3 py-2 text-center tabular-nums sticky bg-primary/10" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>{s.par}</td>
+      <td className="px-3 py-2 text-center tabular-nums sticky bg-primary/10 shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>{s.promedio ?? '—'}</td>
       <td className="px-3 py-2" />
       <td className="px-3 py-2 text-center tabular-nums">{s.aguilas}</td>
       <td className="px-3 py-2 text-center tabular-nums">{s.birdies}</td>
@@ -195,13 +222,13 @@ const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useS
   const back = holes.filter((h) => h.hole > 9);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm min-w-[720px]">
-        <thead>
-          <tr className="bg-muted/60 border-b border-border">
-            <th className="text-left px-3 py-3 font-semibold w-16">Hoyo</th>
-            <th className="text-center px-3 py-3 font-semibold">Par</th>
-            <th className="text-center px-3 py-3 font-semibold">Prom.</th>
+    <div className="overflow-auto max-h-[70vh] bg-white border border-border rounded">
+      <table className="w-full text-sm min-w-[720px] bg-white">
+        <thead className="sticky top-0 z-30">
+          <tr className="bg-white border-b border-border">
+            <th className="text-left px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
+            <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
+            <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40 shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
             <th className="text-center px-3 py-3 font-semibold">Rank</th>
             <th className="text-center px-3 py-3 font-semibold">Águilas</th>
             <th className="text-center px-3 py-3 font-semibold">Birdies</th>
@@ -212,9 +239,9 @@ const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useS
           </tr>
         </thead>
         <tbody>
-          {first.map(renderHoleRow)}
+          {first.map((h, i) => renderHoleRow(h, i))}
           {subtotals.out && renderSubtotal('V1', subtotals.out)}
-          {back.map(renderHoleRow)}
+          {back.map((h, i) => renderHoleRow(h, i + first.length + 1))}
           {subtotals.in && renderSubtotal('V2', subtotals.in)}
           {subtotals.total && (
             <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
