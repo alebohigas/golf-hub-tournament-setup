@@ -164,7 +164,6 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                 // `salidas.bgcolor` is the fill (chip background), `salidas.color`
                 // is the border/text color. Fall back gracefully if either missing.
                 const fill = normalizeHex(t.bgcolor, normalizeHex(t.color, '#999'));
-                const border = normalizeHex(t.color, '#00000033');
                 return (
                   <button
                     key={t.id}
@@ -179,7 +178,7 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                   >
                     <span
                       className="inline-block h-3 w-3 rounded-full"
-                      style={{ background: fill, border: `2px solid ${border}` }}
+                      style={{ background: fill }}
                     />
                     {t.tee || t.color || `Tee ${t.id}`}
                   </button>
