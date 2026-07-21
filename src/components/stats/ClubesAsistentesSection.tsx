@@ -176,6 +176,7 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
               </span>
               {tees.map((t) => {
                 const on = selectedTees.has(t.id);
+                const swatch = resolveTeeColor(t.color);
                 return (
                   <button
                     key={t.id}
@@ -190,7 +191,7 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                   >
                     <span
                       className="inline-block h-3 w-3 rounded-full border border-black/20"
-                      style={{ background: t.color || '#999' }}
+                      style={{ background: swatch }}
                     />
                     {t.tee || t.color || `Tee ${t.id}`}
                   </button>
