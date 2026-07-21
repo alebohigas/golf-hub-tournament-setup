@@ -264,6 +264,14 @@ export const getLogoUrl = (logoFilename: string): string =>
 export const getRegistroFieldsUrl = (): string =>
   `${API_BASE_URL}/registro_fields.php${buildQuery()}`;
 
+/**
+ * Socio-type mapping (admin + public).
+ * Maps club-specific labels shown to end users to system types
+ * (TITULAR/EMERITO/DEPENDIENTE) used by the pricing engine.
+ */
+export const getRegistroSocioTiposUrl = (): string =>
+  `${API_BASE_URL}/registro_socio_tipos.php${buildQuery()}`;
+
 /** Public submission endpoint (POST multipart) */
 export const getRegistroSubmitUrl = (): string =>
   `${API_BASE_URL}/registro.php${buildQuery()}`;
