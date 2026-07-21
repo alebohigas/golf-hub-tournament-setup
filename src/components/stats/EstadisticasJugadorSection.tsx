@@ -45,17 +45,17 @@ const EstadisticasJugadorSection = ({ note }: Props) => {
   const { data: playerStats, isLoading } = useStatsJugador(selectedId);
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20">
+    <Card className="border-2 border-primary/20">
       <CardContent className="p-0">
-        {/* Section header */}
-        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3">
+        {/* Section header — rounded top corners since Card no longer clips */}
+        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3 rounded-t-lg">
           <User className="h-6 w-6" />
           <h2 className="text-xl md:text-2xl font-display font-bold uppercase tracking-wide">
             Estadísticas por Jugador
           </h2>
         </div>
 
-        <div className="p-4 md:p-6 space-y-4">
+        <div className="p-4 md:p-6 space-y-4 overflow-visible">
           {note && (
             <div className="text-sm bg-accent/10 border border-accent/30 rounded-md px-4 py-2 text-foreground">
               {note}
