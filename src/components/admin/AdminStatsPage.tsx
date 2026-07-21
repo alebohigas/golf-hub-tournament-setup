@@ -58,6 +58,8 @@ const AdminStatsPage = () => {
   const [categoriaUpdatedAt, setCategoriaUpdatedAt] = useState<string>('');
   const [categoriaRounds, setCategoriaRounds] = useState<string>('');
   const [jugadorNote, setJugadorNote] = useState<string>('');
+  /** Which club identifier to show in the Clubes table ('name' or 'abr'). */
+  const [clubNameField, setClubNameField] = useState<'name' | 'abr'>('name');
 
   /** Hydrate editor state whenever the server config changes. */
   useEffect(() => {
@@ -77,6 +79,7 @@ const AdminStatsPage = () => {
     setCategoriaUpdatedAt(o.categoriaUpdatedAt ?? '');
     setCategoriaRounds(o.categoriaRounds != null ? String(o.categoriaRounds) : '');
     setJugadorNote(o.jugadorNote ?? '');
+    setClubNameField((o.clubNameField ?? 'name') === 'abr' ? 'abr' : 'name');
   }, [siteConfig?.stats_page_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============= Section reordering =============
@@ -111,6 +114,7 @@ const AdminStatsPage = () => {
         categoriaUpdatedAt: categoriaUpdatedAt.trim() || null,
         categoriaRounds:    parseNum(categoriaRounds),
         jugadorNote:        jugadorNote.trim() || null,
+        clubNameField,
       },
     };
 
@@ -213,6 +217,20 @@ const AdminStatsPage = () => {
                 Deja vacío cualquier campo para usar el valor calculado
                 automáticamente desde los datos del torneo.
               </p>
+
+              {/* Club name vs abbreviation toggle (Clubes table) */}
+              <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 items-center">
+                <Label htmlFor="club-name-field">Nombre de club (Clubes)</Label>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm ${clubNameField === 'name' ? 'font-semibold' : 'text-muted-foreground'}`}>Nombre completo</span>
+                  <Switch
+                    id="club-name-field"
+                    checked={clubNameField === 'abr'}
+                    onCheckedChange={(v) => setClubNameField(v ? 'abr' : 'name')}
+                  />
+                  <span className={`text-sm ${clubNameField === 'abr' ? 'font-semibold' : 'text-muted-foreground'}`}>Abreviatura</span>
+                </div>
+              </div>
 
               {/* Clubes total */}
               <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 items-center">
