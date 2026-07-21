@@ -24,10 +24,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { BarChart3, Loader2, RotateCcw, Save } from 'lucide-react';
-import { useSiteConfig, useSaveSiteConfig, type StatsConfig } from '@/hooks/useSiteConfig';
+import { useSiteConfig, useSaveSiteConfig, type StatsConfig, type StatsPageConfig } from '@/hooks/useSiteConfig';
 import { useTournamentStats } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
+import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 
 /**
  * Local editor state — each stat has a boolean `manual` flag and a string
@@ -51,6 +53,13 @@ const AdminStats = () => {
   const [players, setPlayers] = useState<StatRow>(emptyRow());
   const [years, setYears] = useState<StatRow>(emptyRow());
   const [maxCat, setMaxCat] = useState<StatRow>(emptyRow());
+  /**
+   * Slogan del footer. Se persiste dentro de
+   * `stats_page_config.overrides.footerTagline` (misma llave usada por
+   * Footer.tsx) pero se edita desde este tab de Estadísticas por
+   * decisión de producto.
+   */
+  const [footerTagline, setFooterTagline] = useState<string>('');
 
   /**
    * Hydrate editor from server config whenever it loads/changes.
@@ -66,6 +75,11 @@ const AdminStats = () => {
     setYears(toRow(cfg?.yearsHistory));
     setMaxCat(toRow(cfg?.maxCategories));
   }, [siteConfig?.stats_config]);
+
+  /** Hydrate the footer tagline whenever the stats_page_config changes. */
+  useEffect(() => {
+    setFooterTagline(siteConfig?.stats_page_config?.overrides?.footerTagline ?? '');
+  }, [siteConfig?.stats_page_config]);
 
   /**
    * Build the payload sent to the server. A row in "manual" mode with a
@@ -88,8 +102,31 @@ const AdminStats = () => {
   /** Persist overrides — null fields mean auto. */
   const handleSave = () => {
     const payload = buildPayload();
+    // Merge tagline into the existing stats_page_config so we don't lose
+    // section order or the other overrides managed from Admin > Página /stats.
+    const existingPage = siteConfig?.stats_page_config;
+    const mergedPage: StatsPageConfig | undefined = existingPage
+      ? {
+          ...existingPage,
+          overrides: {
+            ...(existingPage.overrides ?? {}),
+            footerTagline: footerTagline.trim() || null,
+          },
+        }
+      : {
+          sections: [
+            { id: 'clubes', enabled: true },
+            { id: 'categoria', enabled: true },
+            { id: 'jugador', enabled: true },
+          ],
+          overrides: { footerTagline: footerTagline.trim() || null },
+        };
     saveSiteConfig.mutate(
-      { password: 'admin2025', stats_config: payload },
+      {
+        password: getSuperAdminPassword(),
+        stats_config: payload,
+        stats_page_config: mergedPage,
+      },
       {
         onSuccess: () =>
           toast({
@@ -109,7 +146,7 @@ const AdminStats = () => {
   /** Clear ALL overrides at once → all stats return to auto. */
   const handleResetAll = () => {
     saveSiteConfig.mutate(
-      { password: 'admin2025', stats_config: null },
+      { password: getSuperAdminPassword(), stats_config: null },
       {
         onSuccess: () => {
           setPlayers(emptyRow());
@@ -217,6 +254,23 @@ const AdminStats = () => {
               setMaxCat,
               'stat-cats'
             )}
+
+            {/* Slogan del footer — override del texto que aparece en el pie
+                bajo el nombre del torneo. Dejar vacío para el default.
+                Se guarda junto al resto de estadísticas al presionar
+                "Guardar cambios". */}
+            <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 pt-2 border-t border-border">
+              <Label htmlFor="footer-tagline" className="mt-2 font-medium">
+                Slogan del footer
+              </Label>
+              <Textarea
+                id="footer-tagline"
+                value={footerTagline}
+                onChange={(e) => setFooterTagline(e.target.value)}
+                placeholder='Ej. "El torneo de golf amateur más importante de la región."'
+                rows={2}
+              />
+            </div>
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button onClick={handleSave} disabled={saveSiteConfig.isPending} className="gap-2">

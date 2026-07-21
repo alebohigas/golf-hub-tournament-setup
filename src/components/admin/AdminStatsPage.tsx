@@ -60,8 +60,6 @@ const AdminStatsPage = () => {
   const [jugadorNote, setJugadorNote] = useState<string>('');
   /** Which club identifier to show in the Clubes table ('name' or 'abr'). */
   const [clubNameField, setClubNameField] = useState<'name' | 'abr'>('name');
-  /** Custom tagline shown in the footer (empty = default). */
-  const [footerTagline, setFooterTagline] = useState<string>('');
 
   /** Hydrate editor state whenever the server config changes. */
   useEffect(() => {
@@ -82,7 +80,6 @@ const AdminStatsPage = () => {
     setCategoriaRounds(o.categoriaRounds != null ? String(o.categoriaRounds) : '');
     setJugadorNote(o.jugadorNote ?? '');
     setClubNameField((o.clubNameField ?? 'name') === 'abr' ? 'abr' : 'name');
-    setFooterTagline(o.footerTagline ?? '');
   }, [siteConfig?.stats_page_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============= Section reordering =============
@@ -110,6 +107,10 @@ const AdminStatsPage = () => {
       const n = Number(s);
       return Number.isFinite(n) && n >= 0 && s !== '' ? Math.floor(n) : null;
     };
+    // Preserve footerTagline (managed from Admin > Estadísticas) so we
+    // don't clobber it when saving from this tab.
+    const existingTagline =
+      siteConfig?.stats_page_config?.overrides?.footerTagline ?? null;
     const payload: StatsPageConfig = {
       sections,
       overrides: {
@@ -118,7 +119,7 @@ const AdminStatsPage = () => {
         categoriaRounds:    parseNum(categoriaRounds),
         jugadorNote:        jugadorNote.trim() || null,
         clubNameField,
-        footerTagline:      footerTagline.trim() || null,
+        footerTagline:      existingTagline,
       },
     };
 
@@ -291,20 +292,8 @@ const AdminStatsPage = () => {
                 />
               </div>
 
-              {/* Footer tagline — override del texto que aparece en el pie
-                  bajo el nombre del torneo. Dejar vacío para el default. */}
-              <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
-                <Label htmlFor="footer-tagline" className="mt-2">
-                  Slogan del footer
-                </Label>
-                <Textarea
-                  id="footer-tagline"
-                  value={footerTagline}
-                  onChange={(e) => setFooterTagline(e.target.value)}
-                  placeholder='Ej. "El torneo de golf amateur más importante de la región."'
-                  rows={2}
-                />
-              </div>
+              {/* NOTA: el "Slogan del footer" se administra desde
+                  Admin &gt; Estadísticas (AdminStats), no aquí. */}
             </div>
 
             <div className="pt-2">
