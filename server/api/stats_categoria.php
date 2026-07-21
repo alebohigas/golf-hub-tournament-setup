@@ -94,9 +94,7 @@ for ($h = 1; $h <= 18; $h++) { $scoresByHole[$h] = []; }
 $sql = "SELECT $scoreColsSql, t.fecha_cap
           FROM v_sal_jug v
           JOIN tarjetas t ON (v.tarjetaid = t.id)
-         LEFT JOIN jugadores j ON (v.jugadorid = j.id)
-         WHERE v.categoriaid = $cid
-           AND (j.numjugador IS NULL OR j.numjugador NOT LIKE '%-1')";
+         WHERE v.categoriaid = $cid";
 $rows = safe_all($conn, $sql);
 foreach ($rows as $row) {
     $rounds++;
