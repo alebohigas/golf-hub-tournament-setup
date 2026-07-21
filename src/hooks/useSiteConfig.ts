@@ -201,10 +201,12 @@ export interface StatsConfig {
  * Admin > Estadísticas Página. Controls section order, per-section
  * visibility, and manual overrides that beat the API-computed values.
  *
- *  - enabled:  master on/off (also mirrored into visibility['stats']).
  *  - sections: ordered list of section ids with individual enabled flag.
  *  - overrides: manual value pins per section. Any null field means
  *               "use the auto value from the corresponding API".
+ *
+ * Note: the master on/off for /stats is handled by the general page
+ * visibility settings (Admin > Páginas), not here.
  */
 export interface StatsPageSection {
   id: 'clubes' | 'categoria' | 'jugador';
@@ -223,7 +225,8 @@ export interface StatsPageOverrides {
 }
 
 export interface StatsPageConfig {
-  enabled: boolean;
+  /** @deprecated Master visibility is controlled from Admin > Páginas. */
+  enabled?: boolean;
   sections: StatsPageSection[];
   overrides?: StatsPageOverrides;
 }

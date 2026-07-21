@@ -4,7 +4,6 @@
  * Admin panel that controls the public /stats page.
  *
  * Features:
- *  - Master toggle to show/hide the /stats link in the site menu.
  *  - Reorder the three sections (Clubes, Categoría, Jugador) using
  *    up/down arrows.
  *  - Per-section visibility toggle.
@@ -13,6 +12,8 @@
  *
  * Persistence: everything is saved into `site_config.stats_page_config`
  * via the shared useSaveSiteConfig hook.
+ *
+ * Note: the master on/off for /stats is handled from Admin > Páginas.
  * ---------------------------------------------------------------
  */
 
@@ -25,7 +26,6 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowDown, ArrowUp, BarChart3, Eye, Loader2, Save } from 'lucide-react';
 import { useSiteConfig, useSaveSiteConfig, type StatsPageConfig, type StatsPageSection } from '@/hooks/useSiteConfig';
-import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 
@@ -50,11 +50,9 @@ const SECTION_LABELS: Record<StatsPageSection['id'], string> = {
 const AdminStatsPage = () => {
   const { data: siteConfig, isLoading } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
-  const { setPageVisibility, visibilitySettings } = usePageVisibility();
   const { toast } = useToast();
 
   /** Local editor state — synced from server config on load. */
-  const [enabled, setEnabled] = useState<boolean>(false);
   const [sections, setSections] = useState<StatsPageSection[]>(DEFAULT_SECTIONS);
   const [clubesTotal, setClubesTotal] = useState<string>('');
   const [categoriaUpdatedAt, setCategoriaUpdatedAt] = useState<string>('');
@@ -64,25 +62,21 @@ const AdminStatsPage = () => {
   /** Hydrate editor state whenever the server config changes. */
   useEffect(() => {
     const cfg = siteConfig?.stats_page_config;
-    if (cfg) {
-      setEnabled(!!cfg.enabled);
-      if (cfg.sections?.length) {
-        // Merge with defaults so every id is present exactly once.
-        const known = new Set(cfg.sections.map((s) => s.id));
-        setSections([
-          ...cfg.sections,
-          ...DEFAULT_SECTIONS.filter((s) => !known.has(s.id)),
-        ]);
-      }
-      const o = cfg.overrides ?? {};
-      setClubesTotal(o.clubesTotal != null ? String(o.clubesTotal) : '');
-      setCategoriaUpdatedAt(o.categoriaUpdatedAt ?? '');
-      setCategoriaRounds(o.categoriaRounds != null ? String(o.categoriaRounds) : '');
-      setJugadorNote(o.jugadorNote ?? '');
+    if (cfg?.sections?.length) {
+      // Merge with defaults so every id is present exactly once.
+      const known = new Set(cfg.sections.map((s) => s.id));
+      setSections([
+        ...cfg.sections,
+        ...DEFAULT_SECTIONS.filter((s) => !known.has(s.id)),
+      ]);
     } else {
-      // No config yet — reflect current menu visibility for the master toggle.
-      setEnabled(!!visibilitySettings['stats']);
+      setSections(DEFAULT_SECTIONS);
     }
+    const o = cfg?.overrides ?? {};
+    setClubesTotal(o.clubesTotal != null ? String(o.clubesTotal) : '');
+    setCategoriaUpdatedAt(o.categoriaUpdatedAt ?? '');
+    setCategoriaRounds(o.categoriaRounds != null ? String(o.categoriaRounds) : '');
+    setJugadorNote(o.jugadorNote ?? '');
   }, [siteConfig?.stats_page_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============= Section reordering =============
@@ -111,7 +105,6 @@ const AdminStatsPage = () => {
       return Number.isFinite(n) && n >= 0 && s !== '' ? Math.floor(n) : null;
     };
     const payload: StatsPageConfig = {
-      enabled,
       sections,
       overrides: {
         clubesTotal:        parseNum(clubesTotal),
@@ -121,15 +114,10 @@ const AdminStatsPage = () => {
       },
     };
 
-    // Mirror the master toggle into the shared page-visibility so the
-    // menu link + protected route react immediately.
-    setPageVisibility('stats', enabled);
-
     saveSiteConfig.mutate(
       {
         password: getSuperAdminPassword(),
         stats_page_config: payload,
-        visibility: { ...visibilitySettings, stats: enabled },
       },
       {
         onSuccess: () =>
@@ -157,9 +145,10 @@ const AdminStatsPage = () => {
           Página de Estadísticas (/stats)
         </CardTitle>
         <CardDescription>
-          Controla la visibilidad, el orden de las secciones y los valores
-          manuales que se muestran en la página pública <strong>/stats</strong>.
-          La configuración se guarda por dominio.
+          Controla el orden de las secciones y los valores manuales que se
+          muestran en la página pública <strong>/stats</strong>. La
+          configuración se guarda por dominio. La visibilidad general de
+          /stats se maneja desde Admin &gt; Páginas.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -170,23 +159,6 @@ const AdminStatsPage = () => {
           </div>
         ) : (
           <>
-            {/* Master toggle */}
-            <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
-              <div>
-                <Label htmlFor="stats-enabled" className="text-base font-semibold">
-                  Mostrar /stats en el sitio
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sincroniza con la visibilidad general del menú.
-                </p>
-              </div>
-              <Switch
-                id="stats-enabled"
-                checked={enabled}
-                onCheckedChange={setEnabled}
-              />
-            </div>
-
             {/* Section order + visibility */}
             <div className="space-y-2">
               <Label className="text-base font-semibold flex items-center gap-2">
