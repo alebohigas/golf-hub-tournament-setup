@@ -195,6 +195,40 @@ export interface StatsConfig {
 }
 
 /**
+ * StatsPageConfig
+ * -----------------------------------------------------------------------
+ * Per-domain configuration for the public /stats page rendered from
+ * Admin > Estadísticas Página. Controls section order, per-section
+ * visibility, and manual overrides that beat the API-computed values.
+ *
+ *  - enabled:  master on/off (also mirrored into visibility['stats']).
+ *  - sections: ordered list of section ids with individual enabled flag.
+ *  - overrides: manual value pins per section. Any null field means
+ *               "use the auto value from the corresponding API".
+ */
+export interface StatsPageSection {
+  id: 'clubes' | 'categoria' | 'jugador';
+  enabled: boolean;
+}
+
+export interface StatsPageOverrides {
+  /** Manual total players number for the Clubes Asistentes header. */
+  clubesTotal?: number | null;
+  /** Manual "última actualización" timestamp for the Categoría section. */
+  categoriaUpdatedAt?: string | null;
+  /** Manual rounds count for the Categoría section header. */
+  categoriaRounds?: number | null;
+  /** Free-form note shown at the top of the Jugador section. */
+  jugadorNote?: string | null;
+}
+
+export interface StatsPageConfig {
+  enabled: boolean;
+  sections: StatsPageSection[];
+  overrides?: StatsPageOverrides;
+}
+
+/**
  * PopupConfig
  * -----------------------------------------------------------------------
  * Site-wide POP UP overlay configuration set from Admin > POP tab.
@@ -286,6 +320,7 @@ export interface SiteConfig {
   stats_config: StatsConfig | null;
   popup_config: PopupConfig | null;
   anuncio_config: AnuncioConfig | null;
+  stats_page_config: StatsPageConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -306,6 +341,7 @@ export interface SaveConfigPayload {
   stats_config?: StatsConfig | null;
   popup_config?: PopupConfig | null;
   anuncio_config?: AnuncioConfig | null;
+  stats_page_config?: StatsPageConfig | null;
 }
 
 // ============= Constants =============

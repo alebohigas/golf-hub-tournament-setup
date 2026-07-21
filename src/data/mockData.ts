@@ -84,6 +84,7 @@ export const menuConfig: MenuItem[] = [
   { id: 'banderas', label: 'BANDERAS', path: '/banderas', enabled: true, order: 17 },
   { id: 'matchplay', label: 'MATCH PLAY', path: '/matchplay', enabled: true, order: 19 },
   { id: 'registro', label: 'PRE-REGISTRO', path: '/registro', enabled: true, order: 16 },
+  { id: 'stats', label: 'ESTADÍSTICAS', path: '/stats', enabled: false, order: 20 },
 ];
 
 /** Sponsors fallback - actual data comes from API via useSponsors hook */
