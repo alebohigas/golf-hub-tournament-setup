@@ -154,9 +154,9 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
             </tr>
           </thead>
           <tbody>
-            {/* Par row */}
-            <tr className="bg-muted/60 font-semibold">
-              <td className="px-2 py-1.5 uppercase text-xs sticky left-0 bg-muted z-10">Par</td>
+            {/* Par row — solid bg so sticky first column hides scrolled content */}
+            <tr className="font-semibold" style={{ background: '#eeeae0' }}>
+              <td className="px-2 py-1.5 uppercase text-xs sticky left-0 z-10" style={{ background: '#eeeae0' }}>Par</td>
               {holes.slice(0, 9).map((h) => renderCell(h.par))}
               <td className="px-2 py-1.5 text-center tabular-nums font-bold">{parOut}</td>
               {holes.slice(9).map((h) => renderCell(h.par))}
@@ -168,8 +168,8 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
 
             {/* One row per round */}
             {rounds.map((r) => (
-              <tr key={r.label} className="border-t border-border/60 bg-white hover:bg-muted/30">
-                <td className="px-2 py-1.5 font-semibold uppercase text-xs sticky left-0 bg-white z-10">{r.label}</td>
+              <tr key={r.label} className="border-t border-border/60 hover:bg-muted/30" style={{ background: '#ffffff' }}>
+                <td className="px-2 py-1.5 font-semibold uppercase text-xs sticky left-0 z-10" style={{ background: '#ffffff' }}>{r.label}</td>
                 {r.scores.slice(0, 9).map((s, i) => renderCell(s, scoreClass(s, holes[i]?.par)))}
                 <td className="px-2 py-1.5 text-center tabular-nums font-bold text-primary">
                   {r.out || '—'}
@@ -186,9 +186,9 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
               </tr>
             ))}
 
-            {/* Promedio row */}
-            <tr className="bg-primary/10 font-semibold border-t-2 border-primary/40">
-              <td className="px-2 py-1.5 uppercase text-xs sticky left-0 bg-[hsl(var(--primary))/10%] z-10" style={{ background: 'hsl(var(--primary) / 0.1)' }}>Prom.</td>
+            {/* Promedio row — solid green tint (no alpha) so sticky cell is opaque */}
+            <tr className="font-semibold border-t-2 border-primary/40" style={{ background: '#e6efe6' }}>
+              <td className="px-2 py-1.5 uppercase text-xs sticky left-0 z-10" style={{ background: '#e6efe6' }}>Prom.</td>
               {averages.slice(0, 9).map((v, i) => renderCell(v))}
               <td className="px-2 py-1.5" />
               {averages.slice(9).map((v, i) => renderCell(v))}
@@ -196,9 +196,9 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
               <td className="px-2 py-1.5" />
             </tr>
 
-            {/* Rango row */}
-            <tr className="bg-muted/40 text-xs italic">
-              <td className="px-2 py-1.5 uppercase sticky left-0 bg-muted z-10">Rango</td>
+            {/* Rango row — solid cream for sticky cell opacity */}
+            <tr className="text-xs italic" style={{ background: '#f2eee4' }}>
+              <td className="px-2 py-1.5 uppercase sticky left-0 z-10" style={{ background: '#f2eee4' }}>Rango</td>
               {holes.slice(0, 9).map((h) => renderCell(h.rango))}
               <td className="px-2 py-1.5" />
               {holes.slice(9).map((h) => renderCell(h.rango))}
