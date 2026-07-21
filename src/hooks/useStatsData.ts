@@ -40,6 +40,7 @@ export interface StatsTee {
   id: number;
   tee: string;
   color: string;
+  bgcolor?: string;
 }
 
 export interface StatsNoShow {
