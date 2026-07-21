@@ -13,12 +13,13 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, GripVertical, FolderTree } from 'lucide-react';
+import { Eye, GripVertical, FolderTree, MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AdminLayoutSettings from './AdminLayoutSettings';
 import AdminPageCard from './AdminPageCard';
 import AdminMenuOrder from './AdminMenuOrder';
 import AdminMenuGroups, { type MenuGroup } from './AdminMenuGroups';
+import AdminHomeButtons from './AdminHomeButtons';
 import type { MenuItem } from '@/data/mockData';
 import type {
   PageVisibilitySettings,
@@ -84,7 +85,7 @@ const AdminPagina = ({
 }: AdminPaginaProps) => {
   return (
     <Tabs defaultValue="visibility" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="visibility" className="gap-2">
           <Eye className="h-4 w-4" />
           <span className="hidden sm:inline">Visibilidad</span>
@@ -96,6 +97,10 @@ const AdminPagina = ({
         <TabsTrigger value="groups" className="gap-2">
           <FolderTree className="h-4 w-4" />
           <span className="hidden sm:inline">Grupos</span>
+        </TabsTrigger>
+        <TabsTrigger value="home" className="gap-2">
+          <MousePointerClick className="h-4 w-4" />
+          <span className="hidden sm:inline">Botones Home</span>
         </TabsTrigger>
       </TabsList>
 
@@ -171,6 +176,11 @@ const AdminPagina = ({
           onPageGroupChange={onSetPageGroupAssignment}
           pageVisibility={visibilitySettings}
         />
+      </TabsContent>
+
+      {/* ---------------- Botones Home ---------------- */}
+      <TabsContent value="home">
+        <AdminHomeButtons />
       </TabsContent>
     </Tabs>
   );
