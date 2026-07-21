@@ -4,13 +4,23 @@
  * GET /api/stats_clubes.php?torneoid=XXX
  *
  * Returns aggregated player counts per club for the tournament, split
- * into three branches: Caballeros (male, non-senior), Seniors (any
- * category whose name contains SENIOR), and Damas (female).
+ * into four dynamic branches (Caballeros, Seniors, Super Senior, Damas)
+ * AND broken down per tee (salida). The frontend can filter by tee id
+ * to show/hide subsets on the fly.
+ *
+ * Excludes duplicate player rows whose `numjugador` ends with `-1`
+ * (stale copies left when a player switches format within a tournament).
  *
  * Response shape:
  *   {
  *     total:  int,
- *     clubs:  [{ id, name, logo, caballeros, seniors, damas, total }, ...]
+ *     clubs:  [{
+ *        id, name, abr, logo,
+ *        byTee: { <salidaId>: { caballeros, seniors, supersenior, damas, total } },
+ *        total
+ *     }, ...],
+ *     tees:   [{ id, color, tee }, ...],
+ *     noShow: { retiro, noShow, descalificado, total }
  *   }
  *
  * Resilient: on missing tables/columns returns { total:0, clubs:[] }.
@@ -30,41 +40,116 @@ function safe_rows($conn, $sql) {
     return $rows;
 }
 
-// Aggregate: one row per club with three counts (Caballeros/Seniors/Damas).
-// A player is "Senior" when their category name contains SENIOR (case-insensitive).
-// Otherwise Caballeros if sexo='M' and Damas if sexo='F'.
-$sql = "SELECT c.id AS club_id, c.nombre AS club_name, c.logo AS club_logo,
-               SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SENIOR%' THEN 1 ELSE 0 END) AS seniors,
-               SUM(CASE WHEN UPPER(cat.categoria) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='M' THEN 1 ELSE 0 END) AS caballeros,
-               SUM(CASE WHEN UPPER(cat.categoria) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='F' THEN 1 ELSE 0 END) AS damas,
+/** Schema check — does clubs.abr exist? (abbreviation column) */
+function clubs_has_abr($conn) {
+    static $has = null;
+    if ($has !== null) return $has;
+    $r = @$conn->query("SHOW COLUMNS FROM clubs LIKE 'abr'");
+    $has = $r && $r->num_rows > 0;
+    if ($r) $r->free();
+    return $has;
+}
+$abrSelect = clubs_has_abr($conn) ? 'c.abr AS club_abr,' : "'' AS club_abr,";
+
+// Base filter: exclude BAJA and duplicate -1 rows (stale format-switch copies).
+$baseWhere = "j.torneoid = $tid
+              AND (j.estatus IS NULL OR j.estatus <> 'BAJA')
+              AND (j.numjugador IS NULL OR j.numjugador NOT LIKE '%-1')";
+
+// Aggregate per (club, salida). Each row carries branch counts + tee metadata
+// so the frontend can filter dynamically by tee color/salida id.
+$sql = "SELECT c.id AS club_id, c.nombre AS club_name, $abrSelect c.logo AS club_logo,
+               COALESCE(cat.salida, 0) AS salida_id,
+               s.tee   AS tee_name,
+               s.color AS tee_color,
+               SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SUPER SENIOR%' THEN 1 ELSE 0 END) AS supersenior,
+               SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SENIOR%' AND UPPER(cat.categoria) NOT LIKE '%SUPER SENIOR%' THEN 1 ELSE 0 END) AS seniors,
+               SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='M' THEN 1 ELSE 0 END) AS caballeros,
+               SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='F' THEN 1 ELSE 0 END) AS damas,
                COUNT(*) AS total
           FROM jugadores j
           LEFT JOIN clubs c ON (j.clubid = c.id)
           LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
-         WHERE j.torneoid = $tid
-           AND (j.estatus IS NULL OR j.estatus <> 'BAJA')
-         GROUP BY c.id, c.nombre, c.logo
-         ORDER BY total DESC, club_name ASC";
+          LEFT JOIN salidas s ON (cat.salida = s.id)
+         WHERE $baseWhere
+         GROUP BY c.id, c.nombre, c.logo, cat.salida, s.tee, s.color
+         ORDER BY club_name ASC";
 
 $rows = safe_rows($conn, $sql);
 
-$clubs = [];
+/** @var array<string,array> $clubMap  key = club_id (or 'null') → club aggregate */
+$clubMap = [];
+/** @var array<int,array> $teeMap  key = salida_id → { id, tee, color } */
+$teeMap = [];
 $grandTotal = 0;
+
 foreach ($rows as $r) {
     $t = (int)$r['total'];
     $grandTotal += $t;
-    $clubs[] = [
-        'id'         => $r['club_id'] !== null ? (int)$r['club_id'] : null,
-        'name'       => $r['club_name'] ?? '— Sin club —',
-        'logo'       => !empty($r['club_logo']) ? $LOGOS_BASE_URL . $r['club_logo'] : null,
-        'caballeros' => (int)$r['caballeros'],
-        'seniors'    => (int)$r['seniors'],
-        'damas'      => (int)$r['damas'],
-        'total'      => $t,
+    $sid = (int)$r['salida_id'];
+    if ($sid > 0 && !isset($teeMap[$sid])) {
+        $teeMap[$sid] = [
+            'id'    => $sid,
+            'tee'   => $r['tee_name']  ?? '',
+            'color' => $r['tee_color'] ?? '',
+        ];
+    }
+    $ckey = $r['club_id'] !== null ? (string)$r['club_id'] : 'null';
+    if (!isset($clubMap[$ckey])) {
+        $clubMap[$ckey] = [
+            'id'    => $r['club_id'] !== null ? (int)$r['club_id'] : null,
+            'name'  => $r['club_name'] ?? '— Sin club —',
+            'abr'   => trim((string)($r['club_abr'] ?? '')),
+            'logo'  => !empty($r['club_logo']) ? $LOGOS_BASE_URL . $r['club_logo'] : null,
+            'byTee' => [],
+            'total' => 0,
+        ];
+    }
+    $clubMap[$ckey]['byTee'][(string)$sid] = [
+        'caballeros'  => (int)$r['caballeros'],
+        'seniors'     => (int)$r['seniors'],
+        'supersenior' => (int)$r['supersenior'],
+        'damas'       => (int)$r['damas'],
+        'total'       => $t,
     ];
+    $clubMap[$ckey]['total'] += $t;
+}
+
+// Sort clubs by total desc, then name asc.
+$clubs = array_values($clubMap);
+usort($clubs, function ($a, $b) {
+    if ($b['total'] !== $a['total']) return $b['total'] - $a['total'];
+    return strcmp($a['name'], $b['name']);
+});
+
+// Sort tees by id ascending for stable display.
+$tees = array_values($teeMap);
+usort($tees, fn($a, $b) => $a['id'] - $b['id']);
+
+// ============= NO SHOW summary =============
+$nsRows = safe_rows($conn, "SELECT UPPER(TRIM(j.estatus)) AS est, COUNT(*) AS n
+                              FROM jugadores j
+                             WHERE j.torneoid = $tid
+                               AND (j.numjugador IS NULL OR j.numjugador NOT LIKE '%-1')
+                               AND j.estatus IS NOT NULL AND j.estatus <> ''
+                               AND UPPER(TRIM(j.estatus)) NOT IN ('NORMAL','BAJA')
+                             GROUP BY UPPER(TRIM(j.estatus))");
+$retiro = 0; $noshow = 0; $desc = 0;
+foreach ($nsRows as $r) {
+    $e = $r['est']; $n = (int)$r['n'];
+    if ($e === 'RETIRO' || $e === 'ABANDONO') $retiro += $n;
+    else if ($e === 'NO SHOW' || $e === 'NO-SHOW' || $e === 'SHOW-NO') $noshow += $n;
+    else if ($e === 'DESCALIFICADO' || $e === 'DQ') $desc += $n;
 }
 
 json_response([
-    'total' => $grandTotal,
-    'clubs' => $clubs,
+    'total'  => $grandTotal,
+    'clubs'  => $clubs,
+    'tees'   => $tees,
+    'noShow' => [
+        'retiro'        => $retiro,
+        'noShow'        => $noshow,
+        'descalificado' => $desc,
+        'total'         => $retiro + $noshow + $desc,
+    ],
 ]);
