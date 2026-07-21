@@ -60,8 +60,9 @@ $baseWhere = "j.torneoid = $tid
 // so the frontend can filter dynamically by tee color/salida id.
 $sql = "SELECT c.id AS club_id, c.nombre AS club_name, $abrSelect c.logo AS club_logo,
                COALESCE(cat.salida, 0) AS salida_id,
-               s.tee   AS tee_name,
-               s.color AS tee_color,
+               s.tee     AS tee_name,
+               s.color   AS tee_color,
+               s.bgcolor AS tee_bgcolor,
                SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SUPER SENIOR%' THEN 1 ELSE 0 END) AS supersenior,
                SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SENIOR%' AND UPPER(cat.categoria) NOT LIKE '%SUPER SENIOR%' THEN 1 ELSE 0 END) AS seniors,
                SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='M' THEN 1 ELSE 0 END) AS caballeros,
@@ -72,7 +73,7 @@ $sql = "SELECT c.id AS club_id, c.nombre AS club_name, $abrSelect c.logo AS club
           LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
           LEFT JOIN salidas s ON (cat.salida = s.id)
          WHERE $baseWhere
-         GROUP BY c.id, c.nombre, c.logo, cat.salida, s.tee, s.color
+         GROUP BY c.id, c.nombre, c.logo, cat.salida, s.tee, s.color, s.bgcolor
          ORDER BY club_name ASC";
 
 $rows = safe_rows($conn, $sql);
@@ -92,6 +93,7 @@ foreach ($rows as $r) {
             'id'    => $sid,
             'tee'   => $r['tee_name']  ?? '',
             'color' => $r['tee_color'] ?? '',
+            'bgcolor' => $r['tee_bgcolor'] ?? '',
         ];
     }
     $ckey = $r['club_id'] !== null ? (string)$r['club_id'] : 'null';

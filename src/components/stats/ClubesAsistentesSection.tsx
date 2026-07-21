@@ -38,32 +38,17 @@ interface Props {
 const EMPTY_BRANCH = { caballeros: 0, seniors: 0, supersenior: 0, damas: 0, total: 0 };
 
 /**
- * Map DB tee color names (Spanish, plural/singular, upper/lower) to a real
- * CSS color for the filter chip swatch. The `salidas.color` column stores
- * human names like "AZULES" / "DORADA" / "PLATEADAS" — not hex codes — so
- * we translate them here. Unknown values fall back to a neutral grey.
+ * Normalize a raw color from the `salidas` table into a valid CSS color.
+ * DB stores real hex values (e.g. "FFD600" or "#FFD600"). We only add the
+ * leading `#` if missing. Unknown/empty values fall back to neutral grey.
  */
-const TEE_COLOR_MAP: Record<string, string> = {
-  BLANCA: '#ffffff', BLANCAS: '#ffffff', BLANCO: '#ffffff', BLANCOS: '#ffffff',
-  AZUL: '#1e63d8', AZULES: '#1e63d8',
-  ROJA: '#d81e1e', ROJAS: '#d81e1e', ROJO: '#d81e1e', ROJOS: '#d81e1e',
-  NEGRA: '#111111', NEGRAS: '#111111', NEGRO: '#111111', NEGROS: '#111111',
-  DORADA: '#d4a017', DORADAS: '#d4a017', DORADO: '#d4a017', DORADOS: '#d4a017', ORO: '#d4a017',
-  PLATA: '#b8b8b8', PLATEADA: '#b8b8b8', PLATEADAS: '#b8b8b8', PLATEADO: '#b8b8b8', PLATEADOS: '#b8b8b8',
-  AMARILLA: '#f2c400', AMARILLAS: '#f2c400', AMARILLO: '#f2c400', AMARILLOS: '#f2c400',
-  VERDE: '#1e8f3e', VERDES: '#1e8f3e',
-  NARANJA: '#ff8000', NARANJAS: '#ff8000',
-  MORADA: '#7a2fbf', MORADAS: '#7a2fbf', MORADO: '#7a2fbf', MORADOS: '#7a2fbf',
-  ROSA: '#ff6fa8', ROSAS: '#ff6fa8',
-  CAFE: '#7a4a1e', CAFES: '#7a4a1e', 'CAFÉ': '#7a4a1e', 'CAFÉS': '#7a4a1e',
-};
-const resolveTeeColor = (raw?: string | null): string => {
-  if (!raw) return '#999';
-  const key = raw.trim().toUpperCase();
-  if (TEE_COLOR_MAP[key]) return TEE_COLOR_MAP[key];
-  // If it already looks like a hex/rgb/CSS color, pass it through.
-  if (/^#|^rgb|^hsl/i.test(raw.trim())) return raw.trim();
-  return '#999';
+const normalizeHex = (raw?: string | null, fallback = '#999'): string => {
+  if (!raw) return fallback;
+  const v = raw.trim();
+  if (!v) return fallback;
+  if (/^#|^rgb|^hsl/i.test(v)) return v;
+  if (/^[0-9a-fA-F]{3,8}$/.test(v)) return `#${v}`;
+  return fallback;
 };
 
 const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
@@ -176,7 +161,10 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
               </span>
               {tees.map((t) => {
                 const on = selectedTees.has(t.id);
-                const swatch = resolveTeeColor(t.color);
+                // `salidas.bgcolor` is the fill (chip background), `salidas.color`
+                // is the border/text color. Fall back gracefully if either missing.
+                const fill = normalizeHex(t.bgcolor, normalizeHex(t.color, '#999'));
+                const border = normalizeHex(t.color, '#00000033');
                 return (
                   <button
                     key={t.id}
@@ -190,8 +178,8 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                     title={t.tee || t.color}
                   >
                     <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/20"
-                      style={{ background: swatch }}
+                      className="inline-block h-3 w-3 rounded-full"
+                      style={{ background: fill, border: `2px solid ${border}` }}
                     />
                     {t.tee || t.color || `Tee ${t.id}`}
                   </button>
