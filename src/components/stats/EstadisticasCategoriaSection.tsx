@@ -164,21 +164,23 @@ const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useS
 
   /**
    * Row background alternator — white / cream stripes for readability.
-   * Sticky columns inherit the same class so their bg matches the row.
+   * Sticky columns MUST use a fully-opaque background so the content
+   * that scrolls underneath does not bleed through. We keep alternating
+   * stripes visually (white vs. very-light-cream) using solid hex.
    */
-  const rowBg = (i: number) => (i % 2 === 0 ? 'bg-white' : 'bg-[hsl(var(--muted))/50%] bg-muted/40');
+  const STRIPE = '#f7f4ec'; // solid cream — mirrors muted without alpha
 
   const renderHoleRow = (h: typeof holes[number], i: number) => {
-    const bg = i % 2 === 0 ? 'bg-white' : 'bg-muted/40';
+    const solidBg = i % 2 === 0 ? '#ffffff' : STRIPE;
     return (
-    <tr key={`h-${h.hole}`} className={`border-b border-border/60 ${bg} hover:bg-primary/5`}>
-      <td className={`px-3 py-2 font-mono font-bold sticky ${bg}`} style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>
+    <tr key={`h-${h.hole}`} className="border-b border-border/60 hover:bg-primary/5" style={{ background: solidBg }}>
+      <td className="px-3 py-2 font-mono font-bold sticky" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: solidBg }}>
         H{String(h.hole).padStart(2, '0')}
       </td>
-      <td className={`px-3 py-2 text-center tabular-nums sticky ${bg}`} style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>
+      <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: solidBg }}>
         {h.par ?? '—'}
       </td>
-      <td className={`px-3 py-2 text-center tabular-nums font-semibold sticky ${bg} shadow-[2px_0_0_0_hsl(var(--border))]`} style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>
+      <td className="px-3 py-2 text-center tabular-nums font-semibold sticky shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: solidBg }}>
         {h.promedio ?? '—'}
       </td>
       <td className="px-3 py-2 text-center tabular-nums text-primary font-bold">
@@ -204,10 +206,12 @@ const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useS
   );};
 
   const renderSubtotal = (label: string, s: NonNullable<typeof subtotals.out>) => (
-    <tr className="bg-primary/10 font-bold">
-      <td className="px-3 py-2 uppercase tracking-wide sticky bg-primary/10" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>{label}</td>
-      <td className="px-3 py-2 text-center tabular-nums sticky bg-primary/10" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>{s.par}</td>
-      <td className="px-3 py-2 text-center tabular-nums sticky bg-primary/10 shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>{s.promedio ?? '—'}</td>
+    // Solid subtotal band — sticky cells reuse the same solid color so
+    // scrolled content underneath stays hidden.
+    <tr className="font-bold" style={{ background: '#e6efe6' }}>
+      <td className="px-3 py-2 uppercase tracking-wide sticky" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: '#e6efe6' }}>{label}</td>
+      <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: '#e6efe6' }}>{s.par}</td>
+      <td className="px-3 py-2 text-center tabular-nums sticky shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: '#e6efe6' }}>{s.promedio ?? '—'}</td>
       <td className="px-3 py-2" />
       <td className="px-3 py-2 text-center tabular-nums">{s.aguilas}</td>
       <td className="px-3 py-2 text-center tabular-nums">{s.birdies}</td>
