@@ -32,6 +32,7 @@ import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
+import AdminStatsPage from '@/components/admin/AdminStatsPage';
 import AdminPopup from '@/components/admin/AdminPopup';
 import AdminAnuncio from '@/components/admin/AdminAnuncio';
 import AdminBanderas from '@/components/admin/AdminBanderas';
@@ -222,6 +223,7 @@ const AdminDashboard = () => {
     matchplay: 'matchplay',
     live: 'live',
     stats: 'stats',
+    'stats-page': 'stats',
     usuarios: undefined,
     config: undefined,
     pagina: undefined,
@@ -454,6 +456,7 @@ const AdminDashboard = () => {
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
+            { value: 'stats-page',   icon: BarChart3,       label: 'Página /stats' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
           // Filtrar por área para staff temporal. Admin completo ve todo.
@@ -710,6 +713,12 @@ const AdminDashboard = () => {
             numbers per tournament (domain). See AdminStats.tsx. */}
         <TabsContent value="stats">
           <AdminStats />
+        </TabsContent>
+
+        {/* Página /stats — controla visibilidad, orden y overrides
+            manuales de las 3 secciones (Clubes, Categoría, Jugador). */}
+        <TabsContent value="stats-page">
+          <AdminStatsPage />
         </TabsContent>
 
         {/* Usuarios Tab — solo admin completo. CRUD de staff temporal con

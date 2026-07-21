@@ -1,0 +1,255 @@
+/**
+ * EstadisticasCategoriaSection
+ * ---------------------------------------------------------------
+ * Second section of /stats. Category selector (cards, matching the
+ * pattern used elsewhere) + hole-by-hole aggregate table for the
+ * selected category. Displays counts of Águilas / Birdies / Pares /
+ * Bogeys / Dobles / Triples+ per hole with per-nine and total
+ * subtotals. Uses semantic color classes (primary/accent + destructive
+ * for hard holes) so the theme palette applies automatically.
+ * ---------------------------------------------------------------
+ */
+
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, BarChart3, Loader2, Trophy } from 'lucide-react';
+import { useCategories } from '@/hooks/usePlayersData';
+import { useStatsCategoria } from '@/hooks/useStatsData';
+
+interface Props {
+  /** Manual overrides applied to the section header (null = auto). */
+  overrideUpdatedAt?: string | null;
+  overrideRounds?: number | null;
+}
+
+const EstadisticasCategoriaSection = ({
+  overrideUpdatedAt,
+  overrideRounds,
+}: Props) => {
+  const { data: categories = [], isLoading: catsLoading } = useCategories();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { data, isLoading } = useStatsCategoria(selectedId);
+
+  const displayedRounds =
+    overrideRounds && overrideRounds > 0 ? overrideRounds : data?.rounds ?? 0;
+  const displayedUpdatedAt = overrideUpdatedAt || data?.updatedAt || null;
+
+  return (
+    <Card className="overflow-hidden border-2 border-primary/20">
+      <CardContent className="p-0">
+        {/* Section header */}
+        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3">
+          <BarChart3 className="h-6 w-6" />
+          <h2 className="text-xl md:text-2xl font-display font-bold uppercase tracking-wide">
+            Estadísticas por Categoría
+          </h2>
+        </div>
+
+        {!selectedId ? (
+          // ============= Category picker =============
+          <div className="p-6">
+            {catsLoading ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Cargando categorías...
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedId(cat.id)}
+                    className="group text-left p-4 rounded-lg border border-border bg-card hover:bg-primary/10 hover:border-primary transition-all"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Trophy className="h-4 w-4 text-primary" />
+                      <span className="font-semibold">{cat.shortName || cat.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground line-clamp-2">
+                      {cat.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          // ============= Selected category detail =============
+          <div className="p-4 md:p-6 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedId(null)}
+                className="gap-1 self-start bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Cambiar categoría
+              </Button>
+              {data && (
+                <div className="text-xs md:text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                  {data.tee && (
+                    <span>
+                      Tee:{' '}
+                      <span className="font-semibold text-foreground">{data.tee}</span>
+                    </span>
+                  )}
+                  {data.course && (
+                    <span>
+                      Campo:{' '}
+                      <span className="font-semibold text-foreground">
+                        {data.course}
+                      </span>
+                    </span>
+                  )}
+                  <span>
+                    Rondas:{' '}
+                    <span className="font-semibold text-foreground">
+                      {displayedRounds}
+                    </span>
+                  </span>
+                  {displayedUpdatedAt && (
+                    <span>
+                      Actualizado:{' '}
+                      <span className="font-mono text-foreground">
+                        {displayedUpdatedAt}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {isLoading || !data ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Cargando estadísticas...
+              </div>
+            ) : (
+              <CategoryStatsTable data={data} />
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============= Inner Table =============
+
+/**
+ * Renders the aggregated hole-by-hole matrix for a category, including
+ * OUT / IN / TOTAL subtotal rows. Kept internal to this file since it
+ * is only used here.
+ */
+const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useStatsCategoria>['data']> }) => {
+  const { holes, subtotals } = data;
+
+  const renderHoleRow = (h: typeof holes[number]) => (
+    <tr key={`h-${h.hole}`} className="border-b border-border/60 hover:bg-muted/30">
+      <td className="px-3 py-2 font-mono font-bold">H{String(h.hole).padStart(2, '0')}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{h.par ?? '—'}</td>
+      <td className="px-3 py-2 text-center tabular-nums font-semibold">
+        {h.promedio ?? '—'}
+      </td>
+      <td className="px-3 py-2 text-center tabular-nums text-primary font-bold">
+        {h.rank ?? '—'}
+      </td>
+      <td className="px-3 py-2 text-center tabular-nums text-amber-600 dark:text-amber-400 font-semibold">
+        {h.aguilas || '—'}
+      </td>
+      <td className="px-3 py-2 text-center tabular-nums text-green-600 dark:text-green-400 font-semibold">
+        {h.birdies || '—'}
+      </td>
+      <td className="px-3 py-2 text-center tabular-nums">{h.pares || '—'}</td>
+      <td className="px-3 py-2 text-center tabular-nums text-orange-600 dark:text-orange-400">
+        {h.bogeys || '—'}
+      </td>
+      <td className="px-3 py-2 text-center tabular-nums text-red-600 dark:text-red-400">
+        {h.dobles || '—'}
+      </td>
+      <td className="px-3 py-2 text-center tabular-nums text-destructive font-semibold">
+        {h.triples || '—'}
+      </td>
+    </tr>
+  );
+
+  const renderSubtotal = (label: string, s: NonNullable<typeof subtotals.out>) => (
+    <tr className="bg-primary/10 font-bold">
+      <td className="px-3 py-2 uppercase tracking-wide">{label}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.par}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.promedio ?? '—'}</td>
+      <td className="px-3 py-2" />
+      <td className="px-3 py-2 text-center tabular-nums">{s.aguilas}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.birdies}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.pares}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.bogeys}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.dobles}</td>
+      <td className="px-3 py-2 text-center tabular-nums">{s.triples}</td>
+    </tr>
+  );
+
+  const first = holes.filter((h) => h.hole <= 9);
+  const back = holes.filter((h) => h.hole > 9);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[720px]">
+        <thead>
+          <tr className="bg-muted/60 border-b border-border">
+            <th className="text-left px-3 py-3 font-semibold w-16">Hoyo</th>
+            <th className="text-center px-3 py-3 font-semibold">Par</th>
+            <th className="text-center px-3 py-3 font-semibold">Prom.</th>
+            <th className="text-center px-3 py-3 font-semibold">Rank</th>
+            <th className="text-center px-3 py-3 font-semibold">Águilas</th>
+            <th className="text-center px-3 py-3 font-semibold">Birdies</th>
+            <th className="text-center px-3 py-3 font-semibold">Pares</th>
+            <th className="text-center px-3 py-3 font-semibold">Bogeys</th>
+            <th className="text-center px-3 py-3 font-semibold">Dobles</th>
+            <th className="text-center px-3 py-3 font-semibold">Triples+</th>
+          </tr>
+        </thead>
+        <tbody>
+          {first.map(renderHoleRow)}
+          {subtotals.out && renderSubtotal('V1', subtotals.out)}
+          {back.map(renderHoleRow)}
+          {subtotals.in && renderSubtotal('V2', subtotals.in)}
+          {subtotals.total && (
+            <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
+              <td className="px-3 py-3 uppercase tracking-wide">Total</td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.par}
+              </td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.promedio ?? '—'}
+              </td>
+              <td className="px-3 py-3" />
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.aguilas}
+              </td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.birdies}
+              </td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.pares}
+              </td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.bogeys}
+              </td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.dobles}
+              </td>
+              <td className="px-3 py-3 text-center tabular-nums">
+                {subtotals.total.triples}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default EstadisticasCategoriaSection;

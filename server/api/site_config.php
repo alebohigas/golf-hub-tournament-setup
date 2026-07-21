@@ -198,6 +198,21 @@ function site_config_has_anuncio_config($conn) {
 
 $hasAnuncioConfig = site_config_has_anuncio_config($conn);
 
+/**
+ * Detect whether the stats_page_config column exists.
+ * Stores per-domain config for the public /stats page: section order,
+ * per-section visibility, and manual overrides (clubes/categoria/jugador).
+ */
+function site_config_has_stats_page_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'stats_page_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasStatsPageConfig = site_config_has_stats_page_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -231,6 +246,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasAnuncioConfig) {
         $selectFields .= ', anuncio_config';
     }
+    if ($hasStatsPageConfig) {
+        $selectFields .= ', stats_page_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -253,6 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_config'          => $hasStatsConfig && !empty($row['stats_config']) ? json_decode($row['stats_config'], true) : null,
             'popup_config'          => $hasPopupConfig && !empty($row['popup_config']) ? json_decode($row['popup_config'], true) : null,
             'anuncio_config'        => $hasAnuncioConfig && !empty($row['anuncio_config']) ? json_decode($row['anuncio_config'], true) : null,
+            'stats_page_config'     => $hasStatsPageConfig && !empty($row['stats_page_config']) ? json_decode($row['stats_page_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -272,6 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_config'          => null,
             'popup_config'          => null,
             'anuncio_config'        => null,
+            'stats_page_config'     => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -294,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'hoteles_config'         => 'hoteles',
             'stats_config'           => 'stats',
             'popup_config'           => 'pop',
+            'stats_page_config'      => 'stats',
         ];
         $staffAllowed = false;
         foreach ($fieldAreas as $field => $area) {
@@ -447,6 +468,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['anuncio_config'] !== null ? "'" . esc($conn, json_encode($body['anuncio_config'])) . "'" : 'NULL';
         $fields[] = "anuncio_config = $val";
         $insertFields[] = 'anuncio_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('stats_page_config', $body)) {
+        if (!$hasStatsPageConfig) {
+            json_error("Missing DB column stats_page_config in site_config. Run: ALTER TABLE site_config ADD COLUMN stats_page_config TEXT DEFAULT NULL COMMENT 'JSON object with /stats page config';", 500);
+        }
+        $val = $body['stats_page_config'] !== null ? "'" . esc($conn, json_encode($body['stats_page_config'])) . "'" : 'NULL';
+        $fields[] = "stats_page_config = $val";
+        $insertFields[] = 'stats_page_config';
         $insertValues[] = $val;
     }
     
