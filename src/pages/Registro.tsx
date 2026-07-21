@@ -33,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRegistroFields } from '@/hooks/useRegistroFields';
+import { useRegistroSocioTipos } from '@/hooks/useRegistroSocioTipos';
 import { useCategories } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useToast } from '@/hooks/use-toast';
@@ -318,6 +319,13 @@ const PHONE_CODES: { code: string; flag: string; label: string; len: number }[] 
 
 const Registro = () => {
   const { data: fieldsData, isLoading: loadingFields } = useRegistroFields();
+  /**
+   * Mapa de tipos de socio configurados por el admin
+   * (nombre-visible → tipo del sistema). Cuando no hay filas en BD el
+   * hook devuelve un default de 3 elementos (Titular / Emérito /
+   * Dependiente) para preservar el comportamiento histórico.
+   */
+  const { data: socioTiposData } = useRegistroSocioTipos();
   const { data: categories = [] } = useCategories();
   const { data: tournamentInfo } = useTournamentInfo();
   /**
@@ -1446,6 +1454,22 @@ const Registro = () => {
 
     if (name === 'reg_tipo_socio') {
       const enabled = values.reg_es_socio === 'SI';
+      /**
+       * Opciones del dropdown: usa la relación configurada por el admin
+       * (etiqueta del club → tipo del sistema). Se conservan solo los
+       * activos. El value del <SelectItem> es el system_type real, para
+       * que el motor de precios siga resolviendo por TITULAR / EMERITO /
+       * DEPENDIENTE aunque el label sea "Honorario", "Esposa", etc.
+       */
+      const socioItems = (socioTiposData?.items ?? [])
+        .filter((it) => it.is_enabled)
+        .sort((a, b) => a.display_order - b.display_order);
+      const fallback: { club_label: string; system_type: string }[] = [
+        { club_label: 'Titular',     system_type: 'TITULAR' },
+        { club_label: 'Emérito',     system_type: 'EMERITO' },
+        { club_label: 'Dependiente', system_type: 'DEPENDIENTE' },
+      ];
+      const options = socioItems.length > 0 ? socioItems : fallback;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && enabled && <span className="text-destructive"> *</span>}</Label>
@@ -1454,9 +1478,11 @@ const Registro = () => {
               <SelectValue placeholder={enabled ? 'Selecciona el tipo' : 'Solo para socios'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="TITULAR">Titular</SelectItem>
-              <SelectItem value="EMERITO">Emérito</SelectItem>
-              <SelectItem value="DEPENDIENTE">Dependiente</SelectItem>
+              {options.map((opt, i) => (
+                <SelectItem key={`${opt.system_type}-${i}`} value={opt.system_type}>
+                  {opt.club_label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

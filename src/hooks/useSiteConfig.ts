@@ -228,6 +228,12 @@ export interface StatsPageOverrides {
    *  - 'abr'  → abbreviation from clubs.abr (falls back to name if empty)
    */
   clubNameField?: 'name' | 'abr' | null;
+  /**
+   * Slogan del footer (tagline debajo del nombre del torneo).
+   * Cuando null/vacío se usa el default histórico
+   * "El torneo de golf amateur más importante del país/de México".
+   */
+  footerTagline?: string | null;
 }
 
 export interface StatsPageConfig {
@@ -235,6 +241,20 @@ export interface StatsPageConfig {
   enabled?: boolean;
   sections: StatsPageSection[];
   overrides?: StatsPageOverrides;
+}
+
+/**
+ * HomeConfig
+ * -----------------------------------------------------------------------
+ * Home page ("/") configurable pieces. Currently only the two hero CTA
+ * buttons. The admin picks up to 2 page ids from the menu; if a selected
+ * page is hidden or missing the Hero falls back per slot to the legacy
+ * routes ("/convocatoria" for slot 1 and "/jugadores" for slot 2).
+ *
+ *  - buttons: [pageId | null, pageId | null]
+ */
+export interface HomeConfig {
+  buttons: [string | null, string | null];
 }
 
 /**
@@ -330,6 +350,7 @@ export interface SiteConfig {
   popup_config: PopupConfig | null;
   anuncio_config: AnuncioConfig | null;
   stats_page_config: StatsPageConfig | null;
+  home_config: HomeConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -351,6 +372,7 @@ export interface SaveConfigPayload {
   popup_config?: PopupConfig | null;
   anuncio_config?: AnuncioConfig | null;
   stats_page_config?: StatsPageConfig | null;
+  home_config?: HomeConfig | null;
 }
 
 // ============= Constants =============

@@ -341,15 +341,15 @@ const NoShowCard = ({
 }: {
   noShow: NonNullable<ReturnType<typeof useStatsClubes>['data']>['noShow'];
 }) => (
-  <Card className="overflow-hidden border-2 border-destructive/30 bg-white">
+  <Card className="overflow-hidden border-2 border-muted-foreground/25 bg-white">
     <CardContent className="p-0">
-      <div className="bg-destructive/10 border-b border-destructive/30 px-6 py-4 flex items-center gap-3">
-        <UserX className="h-6 w-6 text-destructive" />
+      <div className="bg-muted border-b border-muted-foreground/25 px-6 py-4 flex items-center gap-3">
+        <UserX className="h-6 w-6 text-muted-foreground" />
         <div className="flex items-baseline gap-3 flex-wrap">
-          <h3 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide text-destructive">
+          <h3 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide text-muted-foreground">
             NO SHOW
           </h3>
-          <span className="text-4xl md:text-5xl font-mono font-black text-destructive leading-none">
+          <span className="text-4xl md:text-5xl font-mono font-black text-muted-foreground leading-none">
             {noShow.total}
           </span>
           <span className="text-sm text-muted-foreground">

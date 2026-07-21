@@ -1,61 +1,59 @@
-# Página /stats — Estadísticas del Torneo
+# Plan de cambios
 
-Nueva página pública con 3 secciones de estadísticas, todas administrables desde `/admin` (nuevo subtab **Estadísticas**), incluyendo orden y overrides manuales.
+## 1. Slogan editable desde /admin → Estadísticas
+Actualmente el tagline del footer está hardcoded en `Footer.tsx` (con un override para torneo 354). Mover a configuración por torneo.
 
-## Secciones (en orden)
+- **`site_config`**: reusar el JSON ya existente (`stats_page_config` o crear campo simple `footer_tagline`). Voy a añadirlo dentro de `stats_page_config` como `footerTagline` para no crear otra columna.
+- **`AdminStatsPage.tsx`**: nuevo `<Textarea>` "Slogan del footer" con guardado.
+- **`Footer.tsx`**: leer `stats_page_config.footerTagline` vía `useSiteConfig`; si vacío, usar el default actual (con el fallback 354).
 
-1. **Clubes Asistentes** — total de jugadores + tabla por club (logo, Caballeros / Seniors / Damas / Total) con fila TOTALES.
-2. **Estadísticas por Categoría** — selector de categoría; tabla hoyo-por-hoyo con Par, Promedio, Rank de dificultad, conteos Águilas / Birdies / Pares / Bogeys / Doble / Triple+, con subtotales V1, V2 y TOTAL. Header: tee, campo, número de rondas, última actualización.
-3. **Estadísticas por Jugador** — usa el mismo `PlayerSearchInput` de `/competicion`; muestra tarjeta hoyo-por-hoyo con Par, R1/R2/R3 (dinámico según rondas), Promedio por hoyo y Rango de dificultad.
+## 2. Botones del Hero configurables en /admin → Páginas
+Actualmente el Hero muestra dos botones fijos con fallback a `/jugadores` y `/convocatoria`.
 
-## Backend (PHP)
+- Añadir en `PageVisibilityContext` (persistido en `site_config`) un nuevo objeto:
+  ```
+  homeButtons: { button1: pageId, button2: pageId }
+  ```
+- **`AdminPagina.tsx` (subtab visibilidad o nuevo subtab pequeño "Botones Home")**: dos selects mostrando todas las páginas; validar máximo 2 seleccionadas.
+- **`Hero.tsx`**: leer `homeButtons`; si la página seleccionada está oculta o no existe, caer al fallback (`/jugadores` para botón 1, `/convocatoria` para botón 2).
 
-Nuevos endpoints en `server/api/` que consultan las tablas legacy existentes (mismas que ya alimentan resultados/competencias):
+## 3. Estandarizar "Cat" y "Dist" en /competicion
+Buscar en `src/components/competencias/CompetenciasTable.tsx` y `src/data/competencias/columns.ts` los headers de columna:
+- Reemplazar `"Categoría"` / `"Categoria"` → `"Cat"`
+- Reemplazar `"Distancia"` → `"Dist"`
 
-- `stats_clubes.php?torneoid=` — agrega jugadores por club y por rama (Caballeros/Seniors/Damas basado en `sexo`/categoría). Devuelve `{ total, clubs: [{ logo, name, caballeros, seniors, damas, total }] }`.
-- `stats_categoria.php?torneoid=&categoriaId=` — por hoyo cuenta scores vs par desde `resultados`/`tarjetas`. Devuelve `{ categoryName, tee, course, rounds, updatedAt, holes:[{ hole, par, promedio, rank, aguilas, birdies, pares, bogeys, dobles, triples }] }` con subtotales.
-- `stats_jugador.php?torneoid=&jugadorId=` — devuelve pares oficiales, scores R1..Rn, promedios y rango por hoyo.
+Cambio puramente de labels (frontend), sin tocar keys ni backend.
 
-Los tres endpoints siguen el patrón `config.php` + `safe_exec` + `staff_token`/superadmin auth, y devuelven JSON vacío si faltan tablas (patrón de resiliencia existente).
+## 4. Colores grises para no-show/DQ en /stats
+En `ClubesAsistentesSection.tsx` (NoShowCard) reemplazar clases de rojo/destructive por grises neutros (`text-muted-foreground`, `bg-muted`, `border-border`).
 
-## Admin (nuevo subtab Estadísticas)
+## 5. Relación de tipos de socio (nuevo subtab en /admin/pre-registro)
 
-Nuevo componente `src/components/admin/AdminStatsPage.tsx` con:
+### Backend
+- **Migración** `2026_07_21_socio_tipos.sql`:
+  ```sql
+  CREATE TABLE public.socio_tipos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    torneoid INT NOT NULL,
+    nombre_club VARCHAR(120) NOT NULL,    -- lo que ve el usuario
+    tipo_sistema ENUM('titular','emerito','dependiente') NOT NULL,
+    orden INT DEFAULT 0,
+    activo TINYINT(1) DEFAULT 1
+  );
+  ```
+- **Nuevo endpoint** `server/api/socio_tipos.php`: GET público (para el formulario), POST autenticado (superadmin/staff).
 
-- **Toggle general** para mostrar/ocultar `/stats` en el menú (sincroniza con visibilidad + menú).
-- **Reordenamiento** drag-and-drop de las 3 secciones (usa `@hello-pangea/dnd` que ya está instalado).
-- **Toggle por sección** (visible/oculta).
-- **Overrides manuales por sección** almacenados en `site_config.stats_page_config` (nuevo campo JSON):
-  - Clubes: override de total de jugadores + posibilidad de editar/agregar filas de club manualmente.
-  - Por categoría: override de "última actualización", "rondas", o de cualquier celda de la matriz.
-  - Por jugador: nota/leyenda manual opcional.
-- Migración: `server/migrations/2026_07_21_add_stats_page_config_to_site_config.sql` agregando columna TEXT `stats_page_config`.
-- Endpoint `site_config.php` ya soporta pasar campos JSON adicionales; se extiende para persistir el nuevo campo.
+### Frontend
+- **`AdminSocioTipos.tsx`**: tabla editable (nombre club + dropdown tipo sistema), agregar/eliminar filas, guardar. Se monta como nuevo subtab dentro de `AdminRegistro` (o al nivel del contenedor Pre-Registro).
+- **`Registro.tsx`**: el dropdown de "Tipo de socio" ahora consume `/api/socio_tipos.php?torneoid=X`. Guarda `nombre_club` para display y **el valor que se envía al proceso existente sigue siendo `tipo_sistema`** (titular/emerito/dependiente) para no romper precios ni categorías.
+- Si no hay filas configuradas para el torneo → fallback al comportamiento actual (opciones hardcoded).
 
-## Frontend público
+## Notas técnicas
+- Todos los cambios de backend pasan por los endpoints con auth dual superadmin/staff que ya arreglamos.
+- Nada rompe la funcionalidad de precios ni validación de socio existente (la clave sigue siendo `titular|emerito|dependiente`).
+- Los cambios son independientes; se pueden desplegar en cualquier orden.
 
-- `src/pages/Stats.tsx` — página con `PageHero` ("ESTADÍSTICAS"), renderiza las 3 secciones en el orden configurado.
-- `src/components/stats/ClubesAsistentesSection.tsx` — tabla con logos vía `/api/logo.php` (patrón existente).
-- `src/components/stats/EstadisticasCategoriaSection.tsx` — selector de categoría (cards, patrón existente) + tabla estilizada con colores condicionales (águilas rojo, birdies verde, bogeys naranja) usando tokens semánticos del tema activo.
-- `src/components/stats/EstadisticasJugadorSection.tsx` — reutiliza `PlayerSearchInput` y renderiza tarjeta al seleccionar.
-- Hook `src/hooks/useStatsData.ts` con `useStatsClubes`, `useStatsCategoria`, `useStatsJugador` (React Query, respeta `torneoid`).
+## Orden de implementación sugerido
+1, 3, 4 (cambios pequeños/frontend) → 2 (context + hero) → 5 (migración + endpoint + UI + integración en Registro).
 
-## Ruteo y navegación
-
-- Nueva ruta `/stats` en `src/App.tsx`.
-- Registrar página en `PageVisibilityContext` + `menu.php` seed para que aparezca en el menú (respetando visibilidad admin).
-- Agregar tarjeta opcional en `NavigationCards` respetando patrón existente.
-
-## Estilo
-
-- Fondo `bg-card`, headers de tabla con `bg-primary text-primary-foreground`, filas alternas `bg-muted/30`.
-- Códigos de color por tipo de score usando tokens semánticos ya definidos (verdes/rojos/ámbar del tema).
-- Números tabulares (`tabular-nums`) y logos según [Table club logo styling](mem://ui-patterns/table-club-logo-styling).
-- Mismo patrón de tarjetas de selección de categoría que ya usa Resultados/Competencias.
-
-## Detalles técnicos
-
-- Reordenamiento persistido como `sections: ["clubes","categoria","jugador"]` dentro de `stats_page_config`.
-- Overrides manuales: cuando hay valor no-null, se usa; si es null → cálculo automático del endpoint.
-- Cache-invalidation en admin tras guardar (patrón `useSaveSiteConfig` existente).
-- Sin cambios a lógica de negocio existente; solo lectura de tablas legacy.
+¿Procedo con los 5 en una sola tanda, o prefieres que los divida en dos entregas (1-4 primero, luego 5)?

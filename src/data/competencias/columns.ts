@@ -22,7 +22,7 @@ export const distanceColumns: ColumnConfig[] = [
   { key: 'position', label: 'Pos', align: 'center', width: '60px', format: 'medal' },
   { key: 'clubLogo', label: 'Club', align: 'center', width: '60px' },
   { key: 'name', label: 'Jugador', align: 'left' },
-  { key: 'distance', label: 'Distancia', align: 'center', width: '100px', format: 'yards' },
+  { key: 'distance', label: 'Dist', align: 'center', width: '100px', format: 'yards' },
 ];
 
 /** Columns for precision competitions (e.g., Drive Recto) */
@@ -91,7 +91,7 @@ export const oyesColumns: ColumnConfig[] = [
   { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
   { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
   { key: 'name', label: 'Jugador', align: 'left' },
-  { key: 'distance', label: 'Distancia', align: 'center', width: '80px', format: 'distance' },
+  { key: 'distance', label: 'Dist', align: 'center', width: '80px', format: 'distance' },
 ];
 
 /** Columns for Putt competitions */
@@ -99,7 +99,7 @@ export const puttColumns: ColumnConfig[] = [
   { key: 'position', label: 'Pos', align: 'center', width: '50px', format: 'medal' },
   { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
   { key: 'name', label: 'Jugador', align: 'left' },
-  { key: 'distance', label: 'Distancia', align: 'center', width: '80px', format: 'distance' },
+  { key: 'distance', label: 'Dist', align: 'center', width: '80px', format: 'distance' },
 ];
 
 // ============= Results Columns =============
@@ -192,7 +192,7 @@ export const skinGameColumns: ColumnConfig[] = [
   { key: 'hoyo', label: 'Hoyo', align: 'center', width: '50px' },
   { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
   { key: 'name', label: 'Jugador', align: 'left' },
-  { key: 'categoria', label: 'Cat.', align: 'center', width: '60px' },
+  { key: 'categoria', label: 'Cat', align: 'center', width: '60px' },
   { key: 'score', label: 'Score', align: 'center', width: '60px', format: 'number' },
 ];
 
@@ -201,6 +201,6 @@ export const skinGameNetoColumns: ColumnConfig[] = [
   { key: 'hoyo', label: 'Hoyo', align: 'center', width: '50px' },
   { key: 'clubLogo', label: 'Club', align: 'center', width: '50px' },
   { key: 'name', label: 'Jugador', align: 'left' },
-  { key: 'categoria', label: 'Cat.', align: 'center', width: '60px' },
+  { key: 'categoria', label: 'Cat', align: 'center', width: '60px' },
   { key: 'neto', label: 'Neto', align: 'center', width: '60px', format: 'number' },
 ];

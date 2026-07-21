@@ -26,6 +26,7 @@ import AdminUploads from '@/components/admin/AdminUploads';
 import AdminRegistro from '@/components/admin/AdminRegistro';
 import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminRegistroPreferente from '@/components/admin/AdminRegistroPreferente';
+import AdminSocioTipos from '@/components/admin/AdminSocioTipos';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
@@ -670,6 +671,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="categorias">Categorías elegibles</TabsTrigger>
               <TabsTrigger value="precios">Precios de inscripción</TabsTrigger>
               <TabsTrigger value="preferente">Registro preferente</TabsTrigger>
+              <TabsTrigger value="socios">Relación de Socios</TabsTrigger>
             </TabsList>
             <TabsContent value="campos">
               <AdminRegistro />
@@ -685,6 +687,12 @@ const AdminDashboard = () => {
                 pre-registrarse. Fuera del rango se abre a todos los clubes. */}
             <TabsContent value="preferente">
               <AdminRegistroPreferente />
+            </TabsContent>
+            {/* Relación de Socios — mapea etiquetas específicas del club
+                (Honorario, Jubilado, Esposa, ...) al tipo del sistema
+                (TITULAR/EMERITO/DEPENDIENTE) usado por el motor de precios. */}
+            <TabsContent value="socios">
+              <AdminSocioTipos />
             </TabsContent>
           </Tabs>
         </TabsContent>
