@@ -60,6 +60,8 @@ const AdminStatsPage = () => {
   const [jugadorNote, setJugadorNote] = useState<string>('');
   /** Which club identifier to show in the Clubes table ('name' or 'abr'). */
   const [clubNameField, setClubNameField] = useState<'name' | 'abr'>('name');
+  /** Custom tagline shown in the footer (empty = default). */
+  const [footerTagline, setFooterTagline] = useState<string>('');
 
   /** Hydrate editor state whenever the server config changes. */
   useEffect(() => {
@@ -80,6 +82,7 @@ const AdminStatsPage = () => {
     setCategoriaRounds(o.categoriaRounds != null ? String(o.categoriaRounds) : '');
     setJugadorNote(o.jugadorNote ?? '');
     setClubNameField((o.clubNameField ?? 'name') === 'abr' ? 'abr' : 'name');
+    setFooterTagline(o.footerTagline ?? '');
   }, [siteConfig?.stats_page_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============= Section reordering =============
@@ -115,6 +118,7 @@ const AdminStatsPage = () => {
         categoriaRounds:    parseNum(categoriaRounds),
         jugadorNote:        jugadorNote.trim() || null,
         clubNameField,
+        footerTagline:      footerTagline.trim() || null,
       },
     };
 
@@ -283,6 +287,21 @@ const AdminStatsPage = () => {
                   value={jugadorNote}
                   onChange={(e) => setJugadorNote(e.target.value)}
                   placeholder="Opcional — se muestra arriba del buscador"
+                  rows={2}
+                />
+              </div>
+
+              {/* Footer tagline — override del texto que aparece en el pie
+                  bajo el nombre del torneo. Dejar vacío para el default. */}
+              <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
+                <Label htmlFor="footer-tagline" className="mt-2">
+                  Slogan del footer
+                </Label>
+                <Textarea
+                  id="footer-tagline"
+                  value={footerTagline}
+                  onChange={(e) => setFooterTagline(e.target.value)}
+                  placeholder='Ej. "El torneo de golf amateur más importante de la región."'
                   rows={2}
                 />
               </div>

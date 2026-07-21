@@ -6,6 +6,7 @@
  */
 
 import { useTournamentInfo, useTournamentStats } from '@/hooks/useTournamentData';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { MapPin, Phone, Mail } from 'lucide-react';
 
 /** Parse Roman numeral prefix from tournament name */
@@ -17,6 +18,7 @@ const parseTournamentName = (name: string) => {
 const Footer = () => {
   const { data: tournamentInfo } = useTournamentInfo();
   const { data: tournamentStats } = useTournamentStats();
+  const { data: siteConfig } = useSiteConfig();
 
   const { numeral, rest } = parseTournamentName(tournamentInfo?.name || '');
 
@@ -24,10 +26,19 @@ const Footer = () => {
    * Override de tagline por torneo. Atlas CC (torneoid=354) pidió una
    * variante ligeramente distinta ("...más importante de México").
    */
+  /**
+   * Prioridad del tagline:
+   *   1. Override manual desde /admin → Estadísticas Página → Slogan del footer.
+   *   2. Override histórico por torneo (Atlas CC 354).
+   *   3. Default global.
+   */
+  const adminTagline = siteConfig?.stats_page_config?.overrides?.footerTagline?.trim();
   const isAtlas354 = String(tournamentInfo?.id ?? '') === '354';
-  const tagline = isAtlas354
-    ? 'El torneo de golf amateur más importante de México.'
-    : 'El torneo de golf amateur más importante del país.';
+  const tagline =
+    adminTagline ||
+    (isAtlas354
+      ? 'El torneo de golf amateur más importante de México.'
+      : 'El torneo de golf amateur más importante del país.');
 
   /** Build location string from city and state */
   const location = [tournamentInfo?.city, tournamentInfo?.state].filter(Boolean).join(', ');
