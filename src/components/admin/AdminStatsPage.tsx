@@ -292,20 +292,8 @@ const AdminStatsPage = () => {
                 />
               </div>
 
-              {/* Footer tagline — override del texto que aparece en el pie
-                  bajo el nombre del torneo. Dejar vacío para el default. */}
-              <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
-                <Label htmlFor="footer-tagline" className="mt-2">
-                  Slogan del footer
-                </Label>
-                <Textarea
-                  id="footer-tagline"
-                  value={footerTagline}
-                  onChange={(e) => setFooterTagline(e.target.value)}
-                  placeholder='Ej. "El torneo de golf amateur más importante de la región."'
-                  rows={2}
-                />
-              </div>
+              {/* NOTA: el "Slogan del footer" se administra desde
+                  Admin &gt; Estadísticas (AdminStats), no aquí. */}
             </div>
 
             <div className="pt-2">
