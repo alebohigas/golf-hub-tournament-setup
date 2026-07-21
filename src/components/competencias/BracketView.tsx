@@ -579,8 +579,8 @@ const QualifiersTable = ({
             <tr className="bg-primary text-primary-foreground">
               <th className="px-3 py-2 text-center font-bold w-12">#</th>
               <th className="px-3 py-2 text-left font-bold">Jugador</th>
-              <th className="px-3 py-2 text-left font-bold">Categoría</th>
-              <th className="px-3 py-2 text-right font-bold w-32">Distancia</th>
+              <th className="px-3 py-2 text-left font-bold">Cat</th>
+              <th className="px-3 py-2 text-right font-bold w-32">Dist</th>
               <th className="px-3 py-2 text-center font-bold w-44">Fecha</th>
             </tr>
           </thead>
