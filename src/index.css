@@ -327,6 +327,28 @@
   z-index: 10;
   background-color: hsl(var(--primary));
 }
+/**
+ * CRÍTICO: Tailwind preflight aplica `border-collapse: collapse` a TODAS
+ * las tablas, y con collapse el navegador ignora `position: sticky` sobre
+ * <th>/<thead> (los bordes compartidos no permiten a la celda tener su
+ * propio flujo de posicionamiento). Forzamos `separate` sólo en las
+ * tablas del showcase para que el <thead> sticky funcione. Compensamos
+ * el look "sin gaps" con border-spacing: 0.
+ */
+.showcase-tv .tournament-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+/* También aplicamos sticky a <thead> y a la <tr> de cabecera como
+ * belt-and-suspenders: algunos motores (Safari) sólo respetan sticky
+ * cuando está en el elemento fila/sección, no en la celda. */
+.showcase-tv .tournament-table thead,
+.showcase-tv .tournament-table thead tr {
+  position: sticky;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px));
+  z-index: 10;
+  background-color: hsl(var(--primary));
+}
 .showcase-tv .tournament-table tbody td {
   font-size: 1.4rem;       /* ~22px — números/nombres bien visibles */
   line-height: 1.5;
