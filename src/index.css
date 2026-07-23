@@ -314,6 +314,13 @@
   line-height: 1.6;
   padding-top: 0.85rem;
   padding-bottom: 0.85rem;
+  /* Sticky header row: se mantiene visible durante el autoscroll del
+   * showcase. `top` deja espacio para la barra de progreso (h-1) del
+   * rotador y para el bloque "GRUPO: ..." sticky que va justo arriba. */
+  position: sticky;
+  top: 60px;
+  z-index: 10;
+  background-color: hsl(var(--primary));
 }
 .showcase-tv .tournament-table tbody td {
   font-size: 1.4rem;       /* ~22px — números/nombres bien visibles */
@@ -338,3 +345,13 @@
 /* Headings / títulos del showcase se ven más grandes */
 .showcase-tv h1 { font-size: clamp(2rem, 3vw, 3rem); }
 .showcase-tv h4 { font-size: clamp(1.25rem, 1.6vw, 1.6rem); }
+
+/* Sticky wrapper para el encabezado "GRUPO: ..." de cada premio en
+ * showcase300 / rotator. Se aplica a un div opaco que envuelve la caja
+ * bg-primary/10 para evitar que el contenido debajo se transparente. */
+.showcase-prize-sticky {
+  position: sticky;
+  top: 4px;                     /* debajo de la barra de progreso h-1 */
+  z-index: 20;
+  background-color: hsl(var(--background));
+}
