@@ -46,6 +46,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { menuConfig } from '@/data/mockData';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Sensible defaults when no config has been saved yet. */
 const DEFAULT_ANUNCIO: AnuncioConfig = {
@@ -79,13 +80,34 @@ const AdminAnuncio = () => {
   const { toast } = useToast();
   const { data: siteConfig, isLoading } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
-  const [config, setConfig] = useState<AnuncioConfig>(DEFAULT_ANUNCIO);
+  // ---- Multi-slot state ---------------------------------------------------
+  // Up to 3 independent announcement ribbons stacked one on top of the other.
+  const [configs, setConfigs] = useState<AnuncioConfig[]>([
+    { ...DEFAULT_ANUNCIO },
+    { ...DEFAULT_ANUNCIO },
+    { ...DEFAULT_ANUNCIO },
+  ]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const config = configs[activeIdx];
+  /** setState wrapper scoped to the active slot. */
+  const setConfig: React.Dispatch<React.SetStateAction<AnuncioConfig>> = (updater) => {
+    setConfigs((cs) =>
+      cs.map((c, i) => {
+        if (i !== activeIdx) return c;
+        return typeof updater === 'function'
+          ? (updater as (p: AnuncioConfig) => AnuncioConfig)(c)
+          : updater;
+      }),
+    );
+  };
 
-  // Hydrate from server whenever the fetched config changes.
+  // Hydrate from server whenever the fetched config changes. Accepts both
+  // legacy single-object payloads and the new array shape.
   useEffect(() => {
-    if (siteConfig?.anuncio_config) {
-      setConfig({ ...DEFAULT_ANUNCIO, ...siteConfig.anuncio_config });
-    }
+    const raw = siteConfig?.anuncio_config;
+    if (!raw) return;
+    const arr: AnuncioConfig[] = Array.isArray(raw) ? raw : [raw as AnuncioConfig];
+    setConfigs([0, 1, 2].map((i) => ({ ...DEFAULT_ANUNCIO, ...(arr[i] || {}) })));
   }, [siteConfig?.anuncio_config]);
 
   /** Routes the admin can pick from (mirrors public menu). */
@@ -114,24 +136,25 @@ const AdminAnuncio = () => {
 
   /** Persist the current config to the server. */
   const handleSave = () => {
-    if (config.enabled && !config.text.trim()) {
-      toast({
-        title: 'Falta texto',
-        description: 'Escribe el mensaje del anuncio antes de activarlo.',
-        variant: 'destructive',
-      });
+    const missingText = configs.find((c) => c.enabled && !c.text.trim());
+    if (missingText) {
+      toast({ title: 'Falta texto',
+        description: 'Cada anuncio activo debe tener un mensaje. Revisa las pestañas.',
+        variant: 'destructive' });
       return;
     }
-    if (config.enabled && !showOnAll && (config.paths ?? []).length === 0) {
-      toast({
-        title: 'Falta seleccionar páginas',
-        description: 'Elige al menos una página o activa "Mostrar en todas".',
-        variant: 'destructive',
-      });
+    const missingPaths = configs.find(
+      (c) => c.enabled && !(c.paths ?? []).includes('*') && (c.paths ?? []).length === 0,
+    );
+    if (missingPaths) {
+      toast({ title: 'Falta seleccionar páginas',
+        description: 'Cada anuncio activo debe tener al menos una página o "Mostrar en todas".',
+        variant: 'destructive' });
       return;
     }
     saveSiteConfig.mutate(
-      { password: getSuperAdminPassword(), anuncio_config: config },
+      // Send the full array so all 3 slots persist in one request.
+      { password: getSuperAdminPassword(), anuncio_config: configs as unknown as AnuncioConfig },
       {
         onSuccess: () =>
           toast({
@@ -150,6 +173,24 @@ const AdminAnuncio = () => {
 
   return (
     <div className="space-y-6">
+      {/* Slot selector — one tab per anuncio ribbon. Green dot = enabled. */}
+      <Tabs value={String(activeIdx)} onValueChange={(v) => setActiveIdx(Number(v))}>
+        <TabsList className="grid grid-cols-3 w-full max-w-md">
+          {configs.map((c, i) => (
+            <TabsTrigger key={i} value={String(i)} className="gap-2">
+              Anuncio {i + 1}
+              {c.enabled && (
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-label="Activo" />
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      <p className="text-xs text-muted-foreground">
+        Puedes activar hasta 3 anuncios. Si dos o más coinciden en la misma
+        página se apilan verticalmente y empujan el contenido hacia abajo.
+      </p>
+
       {/* ===== Live preview ===== */}
       <Card>
         <CardHeader>
