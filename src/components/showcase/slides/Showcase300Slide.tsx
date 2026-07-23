@@ -19,7 +19,7 @@ import { Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
 import { API_BASE_URL, POLL_SHOWCASE } from '@/config/api';
 import { getTorneoId } from '@/hooks/useTorneoId';
-import { useShowcaseCategoryStickyHeight } from '@/hooks/useShowcaseCategoryStickyHeight';
+import ShowcaseStickyTitle from '@/components/showcase/ShowcaseStickyTitle';
 
 /** Jugador dentro de un premio 300. */
 interface ShowcasePlayer {
@@ -69,8 +69,6 @@ interface Props {
  * rotador (cada slide refresca su data en intervalos POLL_SHOWCASE).
  */
 const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
-  // Alto del bloque "GRUPO: ..." → CSS var para posicionar el thead sticky.
-  const catStickyRef = useShowcaseCategoryStickyHeight<HTMLDivElement>();
   const torneoid = getTorneoId() || '';
   const { data, isLoading } = useQuery<ShowcaseResponse>({
     queryKey: ['showcase300', tipo, torneoid, 'slide'],
@@ -111,9 +109,11 @@ const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
       {/* `overflow-visible` es crítico para que `position: sticky` de los hijos
           (título de grupo y <thead>) se ancle al viewport y no al Card. */}
       <Card className="overflow-visible">
-        {/* Wrapper sticky opaco: mantiene visible "GRUPO: ..." durante el
-            autoscroll del rotador. Ver .showcase-prize-sticky en index.css. */}
-        <div ref={catStickyRef} className="showcase-prize-sticky bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
+        {/* Título de grupo registrado en el stack sticky superior del rotador. */}
+        <ShowcaseStickyTitle
+          contentKey={`s300:${tipo}:${prizeIdx}:${prize.description}:${prize.lugares}:${prize.lastUpdated ?? ''}`}
+          className="bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20"
+        >
           <div>
             <h4 className="text-lg font-bold text-foreground">GRUPO: {prize.description}</h4>
             <p className="text-sm">
@@ -126,7 +126,7 @@ const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
               Última actualización: {prize.lastUpdated}
             </span>
           )}
-        </div>
+        </ShowcaseStickyTitle>
 
         {/* Sin overflow-x-auto — rompe sticky del thead contra el viewport. */}
         <div className="bg-white">

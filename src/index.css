@@ -323,7 +323,7 @@
    * `--showcase-sticky-top`) más la altura real del título de categoría
    * sticky justo arriba (`--showcase-cat-height`, publicada por
    * useShowcaseCategoryStickyHeight en cada slide). */
-  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px)) !important;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 0px)) !important;
   /* Header de tabla por encima de filas durante autoscroll; el usuario pidió
    * explícitamente z-index 25 para que no quede enterrado debajo del body. */
   z-index: 25 !important;
@@ -349,14 +349,23 @@
 .showcase-tv .tournament-table thead,
 .showcase-tv .tournament-table thead tr {
   position: sticky !important;
-  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px)) !important;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 0px)) !important;
   z-index: 25 !important;
   background-color: hsl(var(--primary));
 }
 .showcase-tv .tournament-table thead tr > th {
   position: sticky !important;
-  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px)) !important;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 0px)) !important;
   z-index: 25 !important;
+}
+/* En `/showcase/rotacion` el título de categoría ya vive dentro del mismo
+ * StickyTop que el ribbon; por eso el header de tabla se pega justo debajo
+ * del stack completo y NO vuelve a sumar `--showcase-cat-height`. */
+.showcase-tv.showcase-rotator .tournament-table thead,
+.showcase-tv.showcase-rotator .tournament-table thead tr,
+.showcase-tv.showcase-rotator .tournament-table thead th,
+.showcase-tv.showcase-rotator .tournament-table thead tr > th {
+  top: var(--showcase-sticky-top, 4px) !important;
 }
 .showcase-tv .tournament-table tbody,
 .showcase-tv .tournament-table tbody tr,
@@ -396,5 +405,11 @@
   /* Se pega justo debajo del bloque superior sticky (progress + sponsor). */
   top: var(--showcase-sticky-top, 4px);
   z-index: 30;
+  background-color: hsl(var(--background));
+}
+
+/* Slot del título contextual dentro del stack sticky superior del rotador. */
+.showcase-sticky-title-slot,
+.showcase-sticky-title {
   background-color: hsl(var(--background));
 }

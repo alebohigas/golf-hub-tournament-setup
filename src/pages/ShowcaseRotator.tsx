@@ -34,6 +34,10 @@ import { apiFetch } from '@/lib/apiClient';
 import { getTournamentUrl, POLL_SLOW } from '@/config/api';
 import { Loader2 } from 'lucide-react';
 import SponsorRibbon from '@/components/layout/SponsorRibbon';
+import {
+  ShowcaseStickyProvider,
+  useShowcaseStickyContext,
+} from '@/components/showcase/ShowcaseStickyContext';
 
 /** Info mínima del torneo para mostrar el header arriba. */
 interface TournamentInfo {
@@ -242,12 +246,11 @@ const ShowcaseRotator = () => {
   const tournament = tInfo?.tournament;
 
   return (
-    <div className="showcase-tv min-h-screen bg-background text-foreground">
+    <ShowcaseStickyProvider>
+      <div className="showcase-tv showcase-rotator min-h-screen bg-background text-foreground">
       {/* Bloque sticky superior: barra de progreso + sponsor ribbon opcional.
-          Se mantiene visible durante el autoscroll de cada slide. Un
-          ResizeObserver mide su alto y lo expone como `--showcase-sticky-top`
-          para que los headers "GRUPO: ..." y los <thead> de las tablas
-          se peguen justo debajo sin quedar tapados. */}
+          Ahora también contiene el título contextual del slide activo para
+          que ribbon + categoría + header de tabla funcionen como un stack. */}
       <StickyTop
         progress={progress}
         showSponsors={!!effective.sponsorRibbon}
@@ -284,7 +287,8 @@ const ShowcaseRotator = () => {
       <main className="py-6 px-4 md:px-8 animate-fade-in" key={`${idx}-${slide.id}`}>
         {renderSlide(slide.id)}
       </main>
-    </div>
+      </div>
+    </ShowcaseStickyProvider>
   );
 };
 
@@ -307,6 +311,7 @@ const StickyTop = ({
   showSponsors: boolean;
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
+  const { stickyContent } = useShowcaseStickyContext();
 
   useEffect(() => {
     const el = ref.current;
@@ -341,6 +346,11 @@ const StickyTop = ({
         />
       </div>
       {showSponsors && <SponsorRibbon />}
+      {stickyContent && (
+        <div className="showcase-sticky-title-slot">
+          {stickyContent}
+        </div>
+      )}
     </div>
   );
 };
