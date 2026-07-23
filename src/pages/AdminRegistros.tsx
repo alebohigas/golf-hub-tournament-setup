@@ -204,6 +204,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [dateMode, setDateMode] = useState<'on' | 'after' | 'before'>('on');
   /** Fecha (YYYY-MM-DD) usada con `dateMode` para filtrar `reg_fecha`. */
   const [dateValue, setDateValue] = useState('');
+  /**
+   * Orden de la lista por fecha/hora de registro. 'newest' = más nuevos
+   * arriba (default), 'oldest' = más viejos arriba para atender primero
+   * los que llevan más tiempo esperando.
+   */
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   /** Set de IDs cuyos detalles están expandidos en la tabla. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) =>
@@ -251,6 +257,40 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     const authorized = (preferenteCfg.clubs || []).some(c => key(c.nombre) === clubKey);
     return !authorized;
   };
+
+  /**
+   * Timestamp comparable (string) del alta del registro. Se usa tanto para
+   * ordenar como para detectar los que excedieron el cupo. Prefiere
+   * `fecharegistro` (DATETIME preciso) y cae a otros campos si no existe.
+   */
+  const getRowTs = (r: RegistroRow): string =>
+    String(r.fecharegistro || r.reg_fecha || r.created_at || (r as any).fecha_alta || '');
+
+  /**
+   * IDs de pre-registros que exceden el cupo máximo de su categoría.
+   * Regla: dentro de cada categoría, se ordenan los registros por
+   * `fecharegistro` ascendente y se marcan como excedentes los que caen
+   * en posición > `cat_max`. Los cancelados (status_pago=6) se excluyen
+   * del conteo. Categorías sin `cat_max` o con 99 se consideran ilimitadas.
+   */
+  const overflowIds = useMemo(() => {
+    const groups = new Map<string, RegistroRow[]>();
+    for (const r of rows) {
+      if (Number(r.reg_pago_verificado) === 6) continue;
+      const key = String(r.reg_categoria || r.categoria_name || '').trim();
+      if (!key) continue;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    const overflow = new Set<number>();
+    for (const arr of groups.values()) {
+      arr.sort((a, b) => getRowTs(a).localeCompare(getRowTs(b)));
+      const maxC = Number(arr[0]?.cat_max) || 0;
+      if (!maxC || maxC === 99) continue;
+      for (let i = maxC; i < arr.length; i++) overflow.add(arr[i].id);
+    }
+    return overflow;
+  }, [rows]);
 
   /** Tracks which rows have an in-flight action button (per id+kind). */
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -572,6 +612,19 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       return true;
     });
   }, [rows, section, search, folioFilter, categoriaFilter, dateMode, dateValue]);
+
+  /**
+   * Aplica el orden por fecha/hora de registro elegido por el admin.
+   * Se hace después de filtrar para no mover elementos ocultos.
+   */
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const ta = getRowTs(a), tb = getRowTs(b);
+      return sortOrder === 'newest' ? tb.localeCompare(ta) : ta.localeCompare(tb);
+    });
+    return arr;
+  }, [filtered, sortOrder]);
 
   /** Limpia todos los filtros (excepto la sección activa). */
   const clearFilters = () => {
