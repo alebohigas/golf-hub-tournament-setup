@@ -106,7 +106,9 @@ const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
         {title}
       </h1>
       <Card className="overflow-hidden">
-        <div className="bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
+        {/* Wrapper sticky opaco: mantiene visible "GRUPO: ..." durante el
+            autoscroll del rotador. Ver .showcase-prize-sticky en index.css. */}
+        <div className="showcase-prize-sticky bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
           <div>
             <h4 className="text-lg font-bold text-foreground">GRUPO: {prize.description}</h4>
             <p className="text-sm">
@@ -121,7 +123,8 @@ const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
           )}
         </div>
 
-        <div className="overflow-x-auto bg-white">
+        {/* Sin overflow-x-auto — rompe sticky del thead contra el viewport. */}
+        <div className="bg-white">
           <Table className="tournament-table">
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
