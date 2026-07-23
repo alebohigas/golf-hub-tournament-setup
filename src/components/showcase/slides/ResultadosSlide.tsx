@@ -14,7 +14,7 @@
 import { Loader2, Medal } from 'lucide-react';
 import { useCategoryResults } from '@/hooks/useResultadosData';
 import { Fragment } from 'react';
-import { useShowcaseCategoryStickyHeight } from '@/hooks/useShowcaseCategoryStickyHeight';
+import ShowcaseStickyTitle from '@/components/showcase/ShowcaseStickyTitle';
 
 interface Props {
   /** Category id (puede contener ':' internos). */
@@ -30,9 +30,6 @@ const medalColor = (pos: number) =>
   : 'text-amber-600';
 
 const ResultadosSlide = ({ catid, scoringType }: Props) => {
-  // Publica la altura del bloque sticky "categoría" en `--showcase-cat-height`
-  // para que el <thead> sticky se apile debajo sin taparse.
-  const catStickyRef = useShowcaseCategoryStickyHeight<HTMLDivElement>();
   const { data: cat, isLoading } = useCategoryResults(catid, true, scoringType);
 
   if (isLoading || !cat) {
@@ -56,8 +53,11 @@ const ResultadosSlide = ({ catid, scoringType }: Props) => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
-      {/* Título de categoría sticky durante el autoscroll del rotador. */}
-      <div ref={catStickyRef} className="showcase-prize-sticky text-center py-3">
+      {/* Título de categoría registrado en el stack sticky superior del rotador. */}
+      <ShowcaseStickyTitle
+        contentKey={`resultados:${catid}:${scoringType}:${cat.categoryName}`}
+        className="text-center py-3"
+      >
         <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2">
           {cat.categoryName}
         </h1>
@@ -68,7 +68,7 @@ const ResultadosSlide = ({ catid, scoringType }: Props) => {
         >
           {scoringType}
         </span>
-      </div>
+      </ShowcaseStickyTitle>
 
       {/* Sin overflow-x-auto — rompe el sticky del <thead> contra el viewport. */}
       <div className="bg-white rounded-md border border-border">

@@ -15,7 +15,7 @@ import { Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getLiveScoringUrl, POLL_SHOWCASE } from '@/config/api';
-import { useShowcaseCategoryStickyHeight } from '@/hooks/useShowcaseCategoryStickyHeight';
+import ShowcaseStickyTitle from '@/components/showcase/ShowcaseStickyTitle';
 
 // ============= Tipos (subset de /api/live_scoring.php) =============
 
@@ -84,9 +84,6 @@ const isFinished = (p: LivePlayer, currentRoundDate?: string | null): boolean =>
 // ============= Component =============
 
 const LiveSlide = ({ catid, tipo, gross }: Props) => {
-  // Publica el alto real del bloque sticky "categoría" en
-  // `--showcase-cat-height` para que el <thead> se apile bajo él.
-  const catStickyRef = useShowcaseCategoryStickyHeight<HTMLDivElement>();
   const { data, isLoading } = useQuery<LiveScoringResponse>({
     queryKey: ['live-slide', catid, tipo, gross],
     queryFn: () => apiFetch<LiveScoringResponse>(
@@ -109,10 +106,11 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
-      {/* Título de categoría sticky — se mantiene visible durante el
-          autoscroll del rotador, alineado con el bloque "GRUPO: ..." de
-          showcase300 vía la clase .showcase-prize-sticky (index.css). */}
-      <div ref={catStickyRef} className="showcase-prize-sticky text-center py-3">
+      {/* Título de categoría registrado en el stack sticky superior del rotador. */}
+      <ShowcaseStickyTitle
+        contentKey={`live:${catid}:${tipo}:${gross}:${data.categoryName}:${data.par}`}
+        className="text-center py-3"
+      >
         <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 flex items-center justify-center gap-2">
           <Radio className="h-6 w-6 text-primary animate-pulse" />
           {data.categoryName}
@@ -134,7 +132,7 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
             </span>
           )}
         </div>
-      </div>
+      </ShowcaseStickyTitle>
 
       {/* Sin overflow-x-auto — rompe el sticky del <thead> contra el viewport. */}
       <div className="bg-white rounded-md border border-border">
