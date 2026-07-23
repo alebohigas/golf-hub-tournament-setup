@@ -318,14 +318,18 @@
    * showcase. `top` se apila debajo de la zona superior sticky (barra de
    * progreso + sponsor ribbon, publicada como `--showcase-sticky-top`)
    * más el alto aproximado del bloque "GRUPO: ..." sticky justo arriba. */
-  position: sticky;
+  position: sticky !important;
   /* Se apila debajo de la zona superior sticky (progress + sponsor,
    * `--showcase-sticky-top`) más la altura real del título de categoría
    * sticky justo arriba (`--showcase-cat-height`, publicada por
    * useShowcaseCategoryStickyHeight en cada slide). */
-  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px));
-  z-index: 10;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px)) !important;
+  /* Header de tabla por encima de filas durante autoscroll; el usuario pidió
+   * explícitamente z-index 25 para que no quede enterrado debajo del body. */
+  z-index: 25 !important;
   background-color: hsl(var(--primary));
+  background-clip: padding-box;
+  box-shadow: 0 2px 0 hsl(var(--border));
 }
 /**
  * CRÍTICO: Tailwind preflight aplica `border-collapse: collapse` a TODAS
@@ -344,10 +348,21 @@
  * cuando está en el elemento fila/sección, no en la celda. */
 .showcase-tv .tournament-table thead,
 .showcase-tv .tournament-table thead tr {
-  position: sticky;
-  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px));
-  z-index: 10;
+  position: sticky !important;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px)) !important;
+  z-index: 25 !important;
   background-color: hsl(var(--primary));
+}
+.showcase-tv .tournament-table thead tr > th {
+  position: sticky !important;
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px)) !important;
+  z-index: 25 !important;
+}
+.showcase-tv .tournament-table tbody,
+.showcase-tv .tournament-table tbody tr,
+.showcase-tv .tournament-table tbody td {
+  position: relative;
+  z-index: 0;
 }
 .showcase-tv .tournament-table tbody td {
   font-size: 1.4rem;       /* ~22px — números/nombres bien visibles */
@@ -380,6 +395,6 @@
   position: sticky;
   /* Se pega justo debajo del bloque superior sticky (progress + sponsor). */
   top: var(--showcase-sticky-top, 4px);
-  z-index: 20;
+  z-index: 30;
   background-color: hsl(var(--background));
 }
