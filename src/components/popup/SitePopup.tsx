@@ -17,60 +17,15 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import type { PopupConfig } from '@/hooks/useSiteConfig';
 import { cn } from '@/lib/utils';
 
-const SitePopup = () => {
-  const { data: siteConfig } = useSiteConfig();
-  const location = useLocation();
-  const [open, setOpen] = useState(false);
-
-  const popup = siteConfig?.popup_config;
-
-  // Decide whether this route should display the popup.
-  const matchesRoute = (() => {
-    if (!popup) return false;
-    if (!popup.paths || popup.paths.length === 0) return false;
-    if (popup.paths.includes('*')) return true;
-    return popup.paths.includes(location.pathname);
-  })();
-
-  // Active if there's an image OR caption text — either alone is enough
-  // for a meaningful pop-up.
-  const hasContent = Boolean(
-    popup && (popup.imageUrl || (popup.text && popup.text.trim().length > 0))
-  );
-  const isActive = Boolean(popup && popup.enabled && hasContent && matchesRoute);
-
-  // Re-open on route change so visitors see it at the start of every
-  // matching page. Reset open state whenever the active route changes.
-  useEffect(() => {
-    setOpen(isActive);
-  }, [isActive, location.pathname]);
-
-  // Auto-dismiss timer (skip when duration is 0 → manual close only).
-  useEffect(() => {
-    if (!open || !popup) return;
-    if (!popup.durationSeconds || popup.durationSeconds <= 0) return;
-    const t = window.setTimeout(() => setOpen(false), popup.durationSeconds * 1000);
-    return () => window.clearTimeout(t);
-  }, [open, popup?.durationSeconds, popup]);
-
-  // Lock page scroll while the popup is open.
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  if (!open || !popup) return null;
-
+/**
+ * Render a single popup card. Extracted so we can lay out multiple slots
+ * side-by-side within a shared modal backdrop.
+ */
+const PopupCard = ({ popup }: { popup: PopupConfig }) => {
   const widthPx = Math.max(200, popup.widthPx || 480);
-
-  // ---- Caption styling (kept inline so all popup styles travel with the
-  // server-stored PopupConfig and there are no globals to keep in sync). ----
   const fontFamilyMap: Record<string, string> = {
     sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
     serif: 'ui-serif, Georgia, "Times New Roman", serif',
@@ -90,66 +45,109 @@ const SitePopup = () => {
   };
   const textPosition = popup.textPosition || 'below';
   const hasImage = Boolean(popup.imageUrl);
+  return (
+    <div
+      className={cn(
+        'relative rounded-2xl bg-white shadow-2xl ring-1 ring-black/10',
+        'animate-in zoom-in-95 duration-200'
+      )}
+      style={{ width: '100%', maxWidth: `${widthPx}px` }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="rounded-2xl overflow-hidden">
+        {hasText && textPosition === 'above' && (
+          <div className="px-5 pt-5 pb-3" style={textStyle}>{popup.text}</div>
+        )}
+        {hasImage && (
+          <img
+            src={popup.imageUrl}
+            alt={popup.altText || 'Anuncio'}
+            className="block w-full h-auto max-h-[70vh] object-contain bg-white"
+          />
+        )}
+        {hasText && textPosition === 'below' && (
+          <div className="px-5 pt-3 pb-5" style={textStyle}>{popup.text}</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * SitePopup
+ * Renders up to 3 popup cards over a shared backdrop. Cards lay out
+ * side-by-side on desktop (flex-row) and stacked on mobile (flex-col).
+ */
+const SitePopup = () => {
+  const { data: siteConfig } = useSiteConfig();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+
+  const raw = siteConfig?.popup_config;
+  const slotsAll: PopupConfig[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+
+  // Only slots that are enabled, have content, and match this route.
+  const slots = slotsAll.filter((p) => {
+    if (!p?.enabled) return false;
+    const hasContent = Boolean(p.imageUrl || (p.text && p.text.trim().length > 0));
+    if (!hasContent) return false;
+    const paths = p.paths;
+    if (!paths || paths.length === 0) return false;
+    return paths.includes('*') || paths.includes(location.pathname);
+  });
+  const isActive = slots.length > 0;
+
+  useEffect(() => {
+    setOpen(isActive);
+  }, [isActive, location.pathname]);
+
+  // Auto-dismiss: use the LONGEST duration across active slots (0 = manual only for that slot).
+  const maxDuration = slots.reduce((max, p) => Math.max(max, p.durationSeconds || 0), 0);
+  useEffect(() => {
+    if (!open || maxDuration <= 0) return;
+    const t = window.setTimeout(() => setOpen(false), maxDuration * 1000);
+    return () => window.clearTimeout(t);
+  }, [open, maxDuration]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
+  if (!open || slots.length === 0) return null;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={popup.altText || 'Anuncio'}
+      aria-label="Anuncio"
       className={cn(
         'fixed inset-0 z-[100] flex items-center justify-center p-4',
-        'bg-black/70 backdrop-blur-sm',
+        'bg-black/70 backdrop-blur-sm overflow-auto',
         'animate-in fade-in duration-200'
       )}
       onClick={() => setOpen(false)}
     >
-      <div
+      {/* Close-all button lives at the corner of the row so a single X
+          dismisses the whole overlay, regardless of how many slots show. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={() => setOpen(false)}
         className={cn(
-          'relative rounded-2xl bg-white shadow-2xl ring-1 ring-black/10',
-          'animate-in zoom-in-95 duration-200'
+          'absolute top-4 right-4 z-20 inline-flex h-10 w-10 items-center justify-center',
+          'rounded-full bg-white text-foreground shadow-lg ring-1 ring-black/10',
+          'hover:bg-muted transition-colors'
         )}
-        style={{ width: '100%', maxWidth: `${widthPx}px` }}
-        onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
-        <button
-          type="button"
-          aria-label="Cerrar"
-          onClick={() => setOpen(false)}
-          className={cn(
-            'absolute -top-3 -right-3 z-20 inline-flex h-9 w-9 items-center justify-center',
-            'rounded-full bg-white text-foreground shadow-lg ring-1 ring-black/10',
-            'hover:bg-muted transition-colors'
-          )}
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        {/*
-          Inner wrapper carries `overflow-hidden` so the rounded image
-          corners are clipped, while the outer card stays unclipped so
-          the close button (positioned at -top-3 / -right-3) renders
-          completely outside the card edges.
-        */}
-        <div className="rounded-2xl overflow-hidden">
-          {hasText && textPosition === 'above' && (
-            <div className="px-5 pt-5 pb-3" style={textStyle}>
-              {popup.text}
-            </div>
-          )}
-          {hasImage && (
-            <img
-              src={popup.imageUrl}
-              alt={popup.altText || 'Anuncio'}
-              className="block w-full h-auto max-h-[70vh] object-contain bg-white"
-            />
-          )}
-          {hasText && textPosition === 'below' && (
-            <div className="px-5 pt-3 pb-5" style={textStyle}>
-              {popup.text}
-            </div>
-          )}
-        </div>
+        <X className="h-5 w-5" />
+      </button>
+      <div className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-full">
+        {slots.map((p, i) => (
+          <PopupCard key={i} popup={p} />
+        ))}
       </div>
     </div>
   );
