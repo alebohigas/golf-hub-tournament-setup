@@ -319,7 +319,11 @@
    * progreso + sponsor ribbon, publicada como `--showcase-sticky-top`)
    * más el alto aproximado del bloque "GRUPO: ..." sticky justo arriba. */
   position: sticky;
-  top: calc(var(--showcase-sticky-top, 4px) + 56px);
+  /* Se apila debajo de la zona superior sticky (progress + sponsor,
+   * `--showcase-sticky-top`) más la altura real del título de categoría
+   * sticky justo arriba (`--showcase-cat-height`, publicada por
+   * useShowcaseCategoryStickyHeight en cada slide). */
+  top: calc(var(--showcase-sticky-top, 4px) + var(--showcase-cat-height, 56px));
   z-index: 10;
   background-color: hsl(var(--primary));
 }
