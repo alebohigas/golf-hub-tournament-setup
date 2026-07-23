@@ -36,8 +36,8 @@ const PlayersTable = ({ title, players }: { title: string; players: MejorScorePl
   return (
     <div className="mb-4">
       <div className="text-sm font-semibold text-foreground mb-2 uppercase tracking-wide">{title}</div>
-      <div className="overflow-x-auto bg-white rounded-lg">
-        <Table className="tournament-table">
+      <div className="bg-white rounded-lg">
+        <Table viewportSticky className="tournament-table">
           <TableHeader>
             <TableRow className="bg-primary hover:bg-primary">
               <TableHead className="text-primary-foreground font-bold text-center" style={{ width: '80px' }}>Club</TableHead>

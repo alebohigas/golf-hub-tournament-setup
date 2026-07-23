@@ -2,9 +2,20 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+/** Props extendidas para la tabla base del design system. */
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  /**
+   * Permite que headers internos con `position: sticky` se peguen al viewport.
+   * El wrapper normal usa `overflow-auto` para tablas anchas; en showcase eso
+   * crea un scroll-container y rompe el sticky vertical del <thead>.
+   */
+  viewportSticky?: boolean;
+}
+
+/** Tabla base con wrapper responsive; `viewportSticky` evita romper stickies TV. */
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, viewportSticky = false, ...props }, ref) => (
+    <div className={cn("relative w-full", viewportSticky ? "overflow-visible" : "overflow-auto")}>
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
