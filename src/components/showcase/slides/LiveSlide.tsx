@@ -158,16 +158,15 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
               const isPair = !!p.partner;
               const rs = isPair ? 2 : 1;
               const finished = isFinished(p, currentRoundDate);
-              // Total mostrado replica la lógica de /live: si hay rondas
-              // previas cerradas, suma la ronda en curso solo mientras la
-              // fecha de la ronda actual NO esté en prevRoundDates (para no
-              // duplicar cuando la tarjeta del día ya se cerró).
-              const hasPrev = (p.prevRoundDates?.length ?? 0) > 0;
-              const todayClosed = !!(currentRoundDate && p.prevRoundDates?.includes(currentRoundDate));
+              // Alineado con /live: el backend (live_scoring.php) ya
+              // incorpora la ronda en curso dentro de `player.score`
+              // mientras la tarjeta del día está abierta, y una vez que
+              // se cierra la fecha del día también queda dentro de
+              // `player.score`. Por eso NO sumamos `todayScore` otra vez
+              // aquí — hacerlo duplicaba el valor del día en "Total" /
+              // "Dif Par".
               const todayVal = Number.isFinite(p.todayScore) ? p.todayScore : 0;
-              const displayTotal = hasPrev
-                ? ((p.score ?? 0) + (todayClosed ? 0 : todayVal))
-                : todayVal;
+              const displayTotal = p.score ?? 0;
               const thruText = finished ? 'F' : (p.thru === 0 ? '-' : String(p.thru));
               return (
                 <Fragment key={p.playerId}>
