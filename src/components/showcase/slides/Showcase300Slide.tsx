@@ -130,7 +130,7 @@ const Showcase300Slide = ({ tipo, prizeIdx }: Props) => {
 
         {/* Sin overflow-x-auto — rompe sticky del thead contra el viewport. */}
         <div className="bg-white">
-          <Table className="tournament-table">
+          <Table viewportSticky className="tournament-table">
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
                 <TableHead className="text-primary-foreground font-bold w-16 text-center">Po</TableHead>

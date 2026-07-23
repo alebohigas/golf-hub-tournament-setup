@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
 import { usePuttFinales } from '@/hooks/useBrackets';
+import { useShowcaseCategoryStickyHeight } from '@/hooks/useShowcaseCategoryStickyHeight';
 
 /** Props del slide. */
 interface Props {
@@ -28,6 +29,8 @@ interface Props {
  * bracket Putt-Finales del sexo indicado, en orden de seed (1..N).
  */
 const PuttCalificadosSlide = ({ sexo }: Props) => {
+  // Mide el bloque de cupos para apilar el <thead> sticky debajo de él.
+  const catStickyRef = useShowcaseCategoryStickyHeight<HTMLDivElement>();
   const { data, isLoading } = usePuttFinales();
   const side = data?.[sexo];
   const qualifiers = side?.qualifiers ?? [];
@@ -54,8 +57,8 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
       <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
         CALIFICADOS · PUTT FINALES — {titulo}
       </h1>
-      <Card className="overflow-hidden">
-        <div className="bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
+      <Card className="overflow-visible">
+        <div ref={catStickyRef} className="showcase-prize-sticky bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
           <div>
             <h4 className="text-lg font-bold text-foreground">
               {qualifiers.length} de {side.bracket_size ?? '—'} cupos
@@ -66,8 +69,8 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
           </div>
         </div>
 
-        <div className="overflow-x-auto bg-white">
-          <Table className="tournament-table">
+        <div className="bg-white">
+          <Table viewportSticky className="tournament-table">
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
                 <TableHead className="text-primary-foreground font-bold w-16 text-center">#</TableHead>
