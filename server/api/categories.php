@@ -46,22 +46,20 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.Skin_grupo_id, a.Skeenporcent$ageMinSel$ageMaxSel,
                COUNT(b.id) as playerCount,
                /**
-                * Conteo de jugadores pre-registrados para esta categoría.
-                * Fuente: tabla `registro` (Pre-Registro). Se cuentan sólo
-                * los que ya están verificados Y con pago confirmado por
-                * tesorería (verificado = 1 AND status_pago = 1). Se filtra
-                * por reg_id_torneo + reg_categoria.
+                * Conteo de PRE-REGISTROS realizados para esta categoría en
+                * el torneo activo. Fuente: tabla `registro` (formulario
+                * público de Pre-Registro). Se cuentan TODAS las filas de la
+                * categoría/torneo salvo las des-registradas (status_pago=99)
+                * — así, cuando el jugador ve "2/70 espacios disponibles",
+                * el "2" refleja cuánta gente ya se anotó en pre-registro
+                * (incluida lista de espera), no cuántos jugadores activos
+                * hay en la tabla `jugadores`. Esto le permite ver cuántos
+                * están adelante de él en la fila.
                 */
-               /**
-                * Conteo de jugadores activos REALES en la tabla `jugadores`
-                * para esta categoría + torneo. Sirve como contador de cupos
-                * ocupados en el form público de Pre-Registro. Excluye filas
-                * con estatus='BAJA' para que dar de baja libere el lugar.
-                */
-               (SELECT COUNT(*) FROM jugadores j
-                  WHERE j.torneoid    = a.torneo_id
-                    AND j.categoriaid = a.categoria_id
-                    AND (j.estatus IS NULL OR j.estatus <> 'BAJA')) AS registeredCount,
+               (SELECT COUNT(*) FROM registro r
+                  WHERE r.reg_id_torneo = a.torneo_id
+                    AND r.reg_categoria = a.categoria_id
+                    AND (r.status_pago IS NULL OR r.status_pago <> 99)) AS registeredCount,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
         FROM categorias a
