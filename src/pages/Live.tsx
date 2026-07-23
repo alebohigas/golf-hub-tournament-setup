@@ -627,23 +627,13 @@ const Live = () => {
                                 <TableCell rowSpan={rs} className="text-center p-0 align-middle">
                                   {(() => {
                                     const hasPrevClosed = !!(player.prevRoundDates && player.prevRoundDates.length > 0);
-                                    // Live Total = closed rounds (player.score) + today's in-progress
-                                    // round (player.todayScore) ONLY while today's card is still open.
-                                    // Once today's card is closed (statlsc=1 → "F" in Thru, and the
-                                    // currentRoundDate appears inside player.prevRoundDates from the
-                                    // backend), its value is already baked into player.score, so we
-                                    // must NOT add todayScore again — otherwise it would be counted twice.
-                                    const todayDate = leaderboard?.currentRoundDate ?? null;
-                                    const todayClosed = !!(todayDate && player.prevRoundDates?.includes(todayDate));
-                                    const todayVal = (typeof player.todayScore === 'number' && Number.isFinite(player.todayScore))
-                                      ? player.todayScore
-                                      : 0;
-                                    // If today is closed, player.score already contains today's value.
-                                    // If today is still open, add the in-progress todayScore on top of
-                                    // the previously-closed total (player.score).
-                                    const displayValue = hasPrevClosed
-                                      ? ((player.score ?? 0) + (todayClosed ? 0 : todayVal))
-                                      : todayVal;
+                                    // Live Total: the backend (live_scoring.php) already returns
+                                    // `player.score` = closed rounds + in-progress round while the
+                                    // current card is still open (statlsc≠1). Once today's card is
+                                    // closed, today's value is baked into `player.score` too.
+                                    // Therefore we must NOT re-add `todayScore` on the frontend —
+                                    // doing so double-counts the in-progress round.
+                                    const displayValue = player.score ?? 0;
                                     if (hasPrevClosed) {
                                       return (
                                     <button
