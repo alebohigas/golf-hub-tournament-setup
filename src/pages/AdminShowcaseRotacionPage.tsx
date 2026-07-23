@@ -114,6 +114,12 @@ const Dashboard = () => {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [seconds, setSeconds] = useState<Record<string, number>>({});
   const [defaultSeconds, setDefaultSeconds] = useState(30);
+  /**
+   * Toggle global: mostrar la tira de patrocinadores dentro del showcase.
+   * Se codifica dentro del hash de la URL (`sponsorRibbon` en el JSON) y
+   * aplica a TODOS los slides de la rotación (no configurable por slide).
+   */
+  const [sponsorRibbon, setSponsorRibbon] = useState(false);
 
   /** Toggle de un slide individual. */
   const toggle = (id: string, v: boolean) => setSelected((s) => ({ ...s, [id]: v }));
@@ -133,7 +139,7 @@ const Dashboard = () => {
       if (seconds[m.id]) s.seconds = seconds[m.id];
       return s;
     });
-    return { defaultSeconds, slides };
+    return { defaultSeconds, slides, sponsorRibbon };
   };
 
   const customSelectedCount = useMemo(
@@ -199,6 +205,14 @@ const Dashboard = () => {
                 className="w-32"
               />
             </div>
+            {/* Toggle de tira de patrocinadores dentro del showcase. */}
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none pb-1">
+              <Checkbox
+                checked={sponsorRibbon}
+                onCheckedChange={(v) => setSponsorRibbon(Boolean(v))}
+              />
+              <span className="font-medium">Mostrar carrusel de patrocinadores</span>
+            </label>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
