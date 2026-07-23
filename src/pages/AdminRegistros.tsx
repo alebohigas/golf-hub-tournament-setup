@@ -740,7 +740,20 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
           {/* Resumen + botón limpiar */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{filtered.length} resultado(s)</span>
+            <div className="flex items-center gap-3">
+              <span>{filtered.length} resultado(s)</span>
+              {/* Selector de orden por fecha/hora de registro. */}
+              <div className="flex items-center gap-1">
+                <span>Ordenar:</span>
+                <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'newest' | 'oldest')}>
+                  <SelectTrigger className="h-7 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Más nuevos primero</SelectItem>
+                    <SelectItem value="oldest">Más viejos primero</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" className="gap-1 h-7" onClick={clearFilters}>
                 <X className="h-3 w-3" /> Limpiar filtros
