@@ -15,7 +15,7 @@
  *    la página.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   decodeShowcaseConfig,
   parseSlideId,
@@ -243,16 +243,15 @@ const ShowcaseRotator = () => {
 
   return (
     <div className="showcase-tv min-h-screen bg-background text-foreground">
-      {/* Sponsor ribbon opcional — se controla desde el constructor de rotaciones. */}
-      {effective.sponsorRibbon && <SponsorRibbon />}
-
-      {/* Barra de progreso superior */}
-      <div className="sticky top-0 z-30 h-1 bg-muted/50">
-        <div
-          className="h-full bg-primary transition-[width] duration-200 ease-linear"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
+      {/* Bloque sticky superior: barra de progreso + sponsor ribbon opcional.
+          Se mantiene visible durante el autoscroll de cada slide. Un
+          ResizeObserver mide su alto y lo expone como `--showcase-sticky-top`
+          para que los headers "GRUPO: ..." y los <thead> de las tablas
+          se peguen justo debajo sin quedar tapados. */}
+      <StickyTop
+        progress={progress}
+        showSponsors={!!effective.sponsorRibbon}
+      />
 
       {/* Header */}
       <header className="max-w-6xl mx-auto px-4 pt-4 text-center">
@@ -290,3 +289,58 @@ const ShowcaseRotator = () => {
 };
 
 export default ShowcaseRotator;
+
+// ============= StickyTop =============
+
+/**
+ * StickyTop
+ * Wrapper `position: sticky` que agrupa la barra de progreso y (opcional)
+ * el `SponsorRibbon`. Publica su altura real en la CSS var
+ * `--showcase-sticky-top` del <html>, para que las cabeceras stickies de
+ * las tablas (thead) y de cada premio se ubiquen debajo dinámicamente.
+ */
+const StickyTop = ({
+  progress,
+  showSponsors,
+}: {
+  progress: number;
+  showSponsors: boolean;
+}) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const applyHeight = () => {
+      const h = el.offsetHeight || 0;
+      document.documentElement.style.setProperty(
+        '--showcase-sticky-top',
+        `${h}px`,
+      );
+    };
+    applyHeight();
+    const ro = new ResizeObserver(applyHeight);
+    ro.observe(el);
+    window.addEventListener('resize', applyHeight);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', applyHeight);
+      document.documentElement.style.removeProperty('--showcase-sticky-top');
+    };
+  }, [showSponsors]);
+
+  return (
+    <div
+      ref={ref}
+      className="sticky top-0 z-40 bg-background"
+    >
+      <div className="h-1 bg-muted/50">
+        <div
+          className="h-full bg-primary transition-[width] duration-200 ease-linear"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+      {showSponsors && <SponsorRibbon />}
+    </div>
+  );
+};
