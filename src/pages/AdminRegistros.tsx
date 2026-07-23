@@ -846,6 +846,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
                           <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
+                          {isOverflow && (
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-rose-700 border-rose-400 bg-rose-50 text-xs">
+                                ⚠ Excede cupo{r.cat_max ? ` (max ${r.cat_max})` : ''}
+                              </Badge>
+                            </div>
+                          )}
                           {section === 'sec5' && (() => {
                             /*
                              * En lista de espera, mostrar conteo de ocupación
