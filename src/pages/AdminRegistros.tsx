@@ -204,6 +204,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [dateMode, setDateMode] = useState<'on' | 'after' | 'before'>('on');
   /** Fecha (YYYY-MM-DD) usada con `dateMode` para filtrar `reg_fecha`. */
   const [dateValue, setDateValue] = useState('');
+  /**
+   * Orden de la lista por fecha/hora de registro. 'newest' = más nuevos
+   * arriba (default), 'oldest' = más viejos arriba para atender primero
+   * los que llevan más tiempo esperando.
+   */
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   /** Set de IDs cuyos detalles están expandidos en la tabla. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) =>
@@ -251,6 +257,40 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     const authorized = (preferenteCfg.clubs || []).some(c => key(c.nombre) === clubKey);
     return !authorized;
   };
+
+  /**
+   * Timestamp comparable (string) del alta del registro. Se usa tanto para
+   * ordenar como para detectar los que excedieron el cupo. Prefiere
+   * `fecharegistro` (DATETIME preciso) y cae a otros campos si no existe.
+   */
+  const getRowTs = (r: RegistroRow): string =>
+    String(r.fecharegistro || r.reg_fecha || r.created_at || (r as any).fecha_alta || '');
+
+  /**
+   * IDs de pre-registros que exceden el cupo máximo de su categoría.
+   * Regla: dentro de cada categoría, se ordenan los registros por
+   * `fecharegistro` ascendente y se marcan como excedentes los que caen
+   * en posición > `cat_max`. Los cancelados (status_pago=6) se excluyen
+   * del conteo. Categorías sin `cat_max` o con 99 se consideran ilimitadas.
+   */
+  const overflowIds = useMemo(() => {
+    const groups = new Map<string, RegistroRow[]>();
+    for (const r of rows) {
+      if (Number(r.reg_pago_verificado) === 6) continue;
+      const key = String(r.reg_categoria || r.categoria_name || '').trim();
+      if (!key) continue;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    const overflow = new Set<number>();
+    for (const arr of groups.values()) {
+      arr.sort((a, b) => getRowTs(a).localeCompare(getRowTs(b)));
+      const maxC = Number(arr[0]?.cat_max) || 0;
+      if (!maxC || maxC === 99) continue;
+      for (let i = maxC; i < arr.length; i++) overflow.add(arr[i].id);
+    }
+    return overflow;
+  }, [rows]);
 
   /** Tracks which rows have an in-flight action button (per id+kind). */
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -573,6 +613,19 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     });
   }, [rows, section, search, folioFilter, categoriaFilter, dateMode, dateValue]);
 
+  /**
+   * Aplica el orden por fecha/hora de registro elegido por el admin.
+   * Se hace después de filtrar para no mover elementos ocultos.
+   */
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const ta = getRowTs(a), tb = getRowTs(b);
+      return sortOrder === 'newest' ? tb.localeCompare(ta) : ta.localeCompare(tb);
+    });
+    return arr;
+  }, [filtered, sortOrder]);
+
   /** Limpia todos los filtros (excepto la sección activa). */
   const clearFilters = () => {
     setSearch('');
@@ -687,7 +740,20 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
           {/* Resumen + botón limpiar */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{filtered.length} resultado(s)</span>
+            <div className="flex items-center gap-3">
+              <span>{filtered.length} resultado(s)</span>
+              {/* Selector de orden por fecha/hora de registro. */}
+              <div className="flex items-center gap-1">
+                <span>Ordenar:</span>
+                <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'newest' | 'oldest')}>
+                  <SelectTrigger className="h-7 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Más nuevos primero</SelectItem>
+                    <SelectItem value="oldest">Más viejos primero</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" className="gap-1 h-7" onClick={clearFilters}>
                 <X className="h-3 w-3" /> Limpiar filtros
@@ -730,11 +796,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(r => {
+                  {sorted.map(r => {
                     const verified = Number(r.reg_verificado) === 1;
                     const pagoVerif = Number(r.reg_pago_verificado) === 1;
                     const hasFile = Number(r.has_archivo) === 1;
                     const cargoCuenta = String(r.reg_cargo_socio ?? '') === '1';
+                    const isOverflow = overflowIds.has(r.id);
                     const moneda = r.reg_precio_moneda || 'MXN';
                     const montoCobrado = r.reg_precio_estimado !== undefined && r.reg_precio_estimado !== null && String(r.reg_precio_estimado) !== ''
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
@@ -744,10 +811,17 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <tr
                       className={cn(
                         'border-t hover:bg-muted/30 cursor-pointer',
-                        isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500'
+                        isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500',
+                        isOverflow && 'bg-rose-50 border-l-4 border-l-rose-500'
                       )}
                       onClick={() => toggleExpand(r.id)}
-                      title={isPreferenteMismatch(r) ? 'Registro capturado durante la ventana preferente con un club no autorizado — revisar membresía.' : undefined}
+                      title={
+                        isOverflow
+                          ? 'Este pre-registro excede el cupo máximo de la categoría (lista de espera por orden de llegada).'
+                          : isPreferenteMismatch(r)
+                            ? 'Registro capturado durante la ventana preferente con un club no autorizado — revisar membresía.'
+                            : undefined
+                      }
                     >
                         <td className="p-3 text-center">
                           <button
@@ -772,6 +846,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
                           <div className="text-xs text-muted-foreground">Hcp: {r.reg_handicap ?? '—'}</div>
+                          {isOverflow && (
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-rose-700 border-rose-400 bg-rose-50 text-xs">
+                                ⚠ Excede cupo{r.cat_max ? ` (max ${r.cat_max})` : ''}
+                              </Badge>
+                            </div>
+                          )}
                           {section === 'sec5' && (() => {
                             /*
                              * En lista de espera, mostrar conteo de ocupación
