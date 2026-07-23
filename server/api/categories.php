@@ -6,13 +6,44 @@
  */
 require_once 'config.php';
 
-// debugging
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
+
+/**
+ * Check whether a table exists without throwing SQL output into the JSON body.
+ * Used here because some deployed tournament databases lag behind optional
+ * Pre-Registro schema additions.
+ */
+function categories_table_exists($conn, $table) {
+    $table = esc($conn, $table);
+    $r = @$conn->query("SHOW TABLES LIKE '$table'");
+    $exists = $r && $r->num_rows > 0;
+    if ($r) $r->free();
+    return $exists;
+}
+
+/**
+ * Check whether a column exists in a table. Keeps categories.php backwards
+ * compatible with older IONOS MySQL schemas where registro columns may differ.
+ */
+function categories_column_exists($conn, $table, $column) {
+    $table = esc($conn, $table);
+    $column = esc($conn, $column);
+    $r = @$conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+    $exists = $r && $r->num_rows > 0;
+    if ($r) $r->free();
+    return $exists;
+}
+
+/**
+ * Return the first existing column from a list of legacy-compatible names.
+ */
+function categories_first_existing_column($conn, $table, $columns) {
+    foreach ($columns as $column) {
+        if (categories_column_exists($conn, $table, $column)) return $column;
+    }
+    return null;
+}
 
 /**
  * Optional `?skin=1` flag.
@@ -36,6 +67,33 @@ $ageMaxExists = $ageMaxExists && $ageMaxExists->num_rows > 0;
 $ageMinSel = $ageMinExists ? ', a.age_range_min' : '';
 $ageMaxSel = $ageMaxExists ? ', a.age_range_max' : '';
 
+/**
+ * registeredCount source for Pre-Registro availability.
+ *
+ * Recent behavior: count existing rows in `registro` for the same tournament
+ * and category so the public form shows the real queue/lista de espera. This
+ * block is defensive: if an older production DB is missing `registro` or uses
+ * a legacy tournament/category column name, the endpoint still returns
+ * categories with registeredCount=0 instead of failing the whole dropdown.
+ */
+$registeredCountSelect = '0 AS registeredCount';
+if (categories_table_exists($conn, 'registro')) {
+    $registroTorneoCol = categories_first_existing_column($conn, 'registro', [
+        'reg_id_torneo', 'torneo_id', 'id_torneo', 'idtorneo', 'reg_torneoid', 'reg_torneo_id', 'torneoid'
+    ]);
+    $registroCategoriaCol = categories_first_existing_column($conn, 'registro', [
+        'reg_categoria', 'categoriaid', 'categoria_id', 'catid'
+    ]);
+    if ($registroTorneoCol && $registroCategoriaCol) {
+        $statusFilter = categories_column_exists($conn, 'registro', 'status_pago')
+            ? ' AND (r.`status_pago` IS NULL OR r.`status_pago` <> 99)'
+            : '';
+        $registeredCountSelect = "(SELECT COUNT(*) FROM registro r
+                   WHERE r.`$registroTorneoCol` = a.torneo_id
+                     AND r.`$registroCategoriaCol` = a.categoria_id$statusFilter) AS registeredCount";
+    }
+}
+
 /** Query: fetch categories with player count, joined to jugadores */
 /** Query: fetch categories with player count, tee info, rating & slope */
 $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
@@ -44,22 +102,8 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
                a.gross, a.catrel, a.sexo, a.corte,
                a.maxjugadores, a.hoyosxronda,
                a.Skin_grupo_id, a.Skeenporcent$ageMinSel$ageMaxSel,
-               COUNT(b.id) as playerCount,
-               /**
-                * Conteo de PRE-REGISTROS realizados para esta categoría en
-                * el torneo activo. Fuente: tabla `registro` (formulario
-                * público de Pre-Registro). Se cuentan TODAS las filas de la
-                * categoría/torneo salvo las des-registradas (status_pago=99)
-                * — así, cuando el jugador ve "2/70 espacios disponibles",
-                * el "2" refleja cuánta gente ya se anotó en pre-registro
-                * (incluida lista de espera), no cuántos jugadores activos
-                * hay en la tabla `jugadores`. Esto le permite ver cuántos
-                * están adelante de él en la fila.
-                */
-               (SELECT COUNT(*) FROM registro r
-                  WHERE r.reg_id_torneo = a.torneo_id
-                    AND r.reg_categoria = a.categoria_id
-                    AND (r.status_pago IS NULL OR r.status_pago <> 99)) AS registeredCount,
+                COUNT(b.id) as playerCount,
+                $registeredCountSelect,
                s.tee AS teeName, s.color AS teeColorName,
                ct.rating, ct.slope, ct.parcampo
         FROM categorias a

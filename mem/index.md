@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Core
+- **DB migrations:** Never add GRANT/privilege SQL on IONOS MySQL; hosting user privileges are managed externally.
 - **🔒 LOCKED (2026-05-01):** App is fully working EXCEPT pre-registros. ONLY modify pre-registros. Never touch any other file/query/component, even for "small" fixes. No refactors, no scope expansion. See [LOCKED rule](mem://constraints/locked-everything-except-preregistros).
 - **Design:** Green/gold palette, functional aesthetic. Pure white (`#FFFFFF`) background for tables/logos; cards use `bg-card`.
 - **Stack:** React SPA frontend (Vite base `/`) deployed to IONOS shared hosting root. PHP JSON API backend in `/api/` querying MySQL DB (`torneos`).
@@ -73,3 +74,4 @@
 - [Dynamic round keys](mem://constraints/dynamic-round-keys) — Never hardcode r1/r2/r3 in Resultados/Live; spread all r{n} from API
 - [Resultados partial rounds](mem://features/resultados-partial-rounds) — Show in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
 - [O'Yes 300 competition](mem://features/oyes-300-competition) — Premio independiente: usa oyesx/oyesxjug, ganadores absolutos por hoyo sin filtro de categoría. NO confundir con O'Yes regular ni con Driver/Approach
+- [No SQL GRANT statements on IONOS](mem://constraints/no-sql-grants-on-ionos) — MySQL migrations must not include GRANT/privilege statements
