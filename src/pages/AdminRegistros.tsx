@@ -796,11 +796,12 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(r => {
+                  {sorted.map(r => {
                     const verified = Number(r.reg_verificado) === 1;
                     const pagoVerif = Number(r.reg_pago_verificado) === 1;
                     const hasFile = Number(r.has_archivo) === 1;
                     const cargoCuenta = String(r.reg_cargo_socio ?? '') === '1';
+                    const isOverflow = overflowIds.has(r.id);
                     const moneda = r.reg_precio_moneda || 'MXN';
                     const montoCobrado = r.reg_precio_estimado !== undefined && r.reg_precio_estimado !== null && String(r.reg_precio_estimado) !== ''
                       ? `${Number(r.reg_precio_estimado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}`
@@ -810,10 +811,17 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <tr
                       className={cn(
                         'border-t hover:bg-muted/30 cursor-pointer',
-                        isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500'
+                        isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500',
+                        isOverflow && 'bg-rose-50 border-l-4 border-l-rose-500'
                       )}
                       onClick={() => toggleExpand(r.id)}
-                      title={isPreferenteMismatch(r) ? 'Registro capturado durante la ventana preferente con un club no autorizado — revisar membresía.' : undefined}
+                      title={
+                        isOverflow
+                          ? 'Este pre-registro excede el cupo máximo de la categoría (lista de espera por orden de llegada).'
+                          : isPreferenteMismatch(r)
+                            ? 'Registro capturado durante la ventana preferente con un club no autorizado — revisar membresía.'
+                            : undefined
+                      }
                     >
                         <td className="p-3 text-center">
                           <button
