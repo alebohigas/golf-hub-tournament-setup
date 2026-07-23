@@ -52,7 +52,8 @@ const ResultadosSlide = ({ catid, scoringType }: Props) => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
-      <div className="text-center">
+      {/* Título de categoría sticky durante el autoscroll del rotador. */}
+      <div className="showcase-prize-sticky text-center py-3">
         <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2">
           {cat.categoryName}
         </h1>
@@ -65,7 +66,8 @@ const ResultadosSlide = ({ catid, scoringType }: Props) => {
         </span>
       </div>
 
-      <div className="bg-white rounded-md border border-border overflow-x-auto">
+      {/* Sin overflow-x-auto — rompe el sticky del <thead> contra el viewport. */}
+      <div className="bg-white rounded-md border border-border">
         <table className="w-full text-sm tournament-table">
           <thead>
             <tr className="bg-primary text-primary-foreground">
