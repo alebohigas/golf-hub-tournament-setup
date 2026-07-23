@@ -40,6 +40,13 @@ export interface ShowcaseConfig {
   defaultSeconds: number;
   /** Lista ordenada de slides a rotar. */
   slides: ShowcaseSlide[];
+  /**
+   * Mostrar la tira de patrocinadores (carrusel) sobre el rotador.
+   * Se controla desde el constructor de rotaciones y aplica a toda
+   * la sesión de showcase. Opcional para retrocompatibilidad con URLs
+   * antiguas — cuando no está definido se asume `false` (sin ribbon).
+   */
+  sponsorRibbon?: boolean;
 }
 
 /** Slide enriquecido con metadata para el admin (label, fuente). */
@@ -134,6 +141,7 @@ export const decodeShowcaseConfig = (encoded: string): ShowcaseConfig | null => 
     return {
       defaultSeconds: Number(obj.defaultSeconds) > 0 ? Number(obj.defaultSeconds) : 30,
       slides: obj.slides.filter((s) => s && typeof s.id === 'string'),
+      sponsorRibbon: Boolean(obj.sponsorRibbon),
     };
   } catch {
     return null;

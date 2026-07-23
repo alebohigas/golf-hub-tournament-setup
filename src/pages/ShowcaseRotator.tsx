@@ -33,6 +33,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getTournamentUrl, POLL_SLOW } from '@/config/api';
 import { Loader2 } from 'lucide-react';
+import SponsorRibbon from '@/components/layout/SponsorRibbon';
 
 /** Info mínima del torneo para mostrar el header arriba. */
 interface TournamentInfo {
@@ -242,8 +243,11 @@ const ShowcaseRotator = () => {
 
   return (
     <div className="showcase-tv min-h-screen bg-background text-foreground">
+      {/* Sponsor ribbon opcional — se controla desde el constructor de rotaciones. */}
+      {effective.sponsorRibbon && <SponsorRibbon />}
+
       {/* Barra de progreso superior */}
-      <div className="sticky top-0 z-20 h-1 bg-muted/50">
+      <div className="sticky top-0 z-30 h-1 bg-muted/50">
         <div
           className="h-full bg-primary transition-[width] duration-200 ease-linear"
           style={{ width: `${progress * 100}%` }}

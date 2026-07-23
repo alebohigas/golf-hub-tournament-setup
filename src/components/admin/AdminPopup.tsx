@@ -63,6 +63,7 @@ import { useSiteConfig, useSaveSiteConfig, type PopupConfig } from '@/hooks/useS
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { menuConfig } from '@/data/mockData';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Shared admin password (mirrors site_config.php usage). */
 const ADMIN_PASSWORD = 'admin2025';
@@ -109,14 +110,35 @@ const AdminPopup = () => {
   const { data: siteConfig, isLoading: isLoadingConfig } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
 
-  // Local editable copy of the popup config — hydrated from server.
-  const [config, setConfig] = useState<PopupConfig>(DEFAULT_POPUP);
+  // ---- Multi-slot state ---------------------------------------------------
+  // Up to 3 independent POP UP slots. When multiple are enabled on the
+  // same page they render side-by-side on desktop and stacked on mobile.
+  const [configs, setConfigs] = useState<PopupConfig[]>([
+    { ...DEFAULT_POPUP },
+    { ...DEFAULT_POPUP },
+    { ...DEFAULT_POPUP },
+  ]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const config = configs[activeIdx];
+  /** Wrapper mirroring React's setState signature but scoped to the active slot. */
+  const setConfig: React.Dispatch<React.SetStateAction<PopupConfig>> = (updater) => {
+    setConfigs((cs) =>
+      cs.map((c, i) => {
+        if (i !== activeIdx) return c;
+        return typeof updater === 'function'
+          ? (updater as (p: PopupConfig) => PopupConfig)(c)
+          : updater;
+      }),
+    );
+  };
 
-  // Hydrate the local form whenever server config changes.
+  // Hydrate the local form whenever server config changes. Accepts both
+  // legacy single-object payloads and the new array shape.
   useEffect(() => {
-    if (siteConfig?.popup_config) {
-      setConfig({ ...DEFAULT_POPUP, ...siteConfig.popup_config });
-    }
+    const raw = siteConfig?.popup_config;
+    if (!raw) return;
+    const arr: PopupConfig[] = Array.isArray(raw) ? raw : [raw as PopupConfig];
+    setConfigs([0, 1, 2].map((i) => ({ ...DEFAULT_POPUP, ...(arr[i] || {}) })));
   }, [siteConfig?.popup_config]);
 
   const files: UploadedFile[] = uploadsData?.files ?? [];
@@ -168,10 +190,12 @@ const AdminPopup = () => {
       {
         onSuccess: () => {
           toast({ title: 'Imagen eliminada', description: file.name });
-          // If the active image was just deleted, clear it from config.
-          if (config.imageUrl === file.url) {
-            setConfig((c) => ({ ...c, imageUrl: '', enabled: false }));
-          }
+          // Clear the deleted image from every slot that referenced it.
+          setConfigs((cs) =>
+            cs.map((c) =>
+              c.imageUrl === file.url ? { ...c, imageUrl: '', enabled: false } : c,
+            ),
+          );
         },
         onError: (err) =>
           toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' }),
@@ -189,17 +213,21 @@ const AdminPopup = () => {
 
   /** Persist the current config to the server. */
   const handleSave = () => {
-    const hasText = Boolean(config.text && config.text.trim().length > 0);
-    if (config.enabled && !config.imageUrl && !hasText) {
+    const invalid = configs.find(
+      (c) => c.enabled && !c.imageUrl && !(c.text && c.text.trim().length > 0),
+    );
+    if (invalid) {
       toast({
         title: 'Falta contenido',
-        description: 'Selecciona una imagen o escribe un texto antes de activar el POP UP.',
+        description:
+          'Cada POP UP activo debe tener una imagen o un texto. Revisa las pestañas.',
         variant: 'destructive',
       });
       return;
     }
     saveSiteConfig.mutate(
-      { password: ADMIN_PASSWORD, popup_config: config },
+      // Send the full array so all 3 slots persist in a single request.
+      { password: ADMIN_PASSWORD, popup_config: configs as unknown as PopupConfig },
       {
         onSuccess: () =>
           toast({
@@ -214,6 +242,24 @@ const AdminPopup = () => {
 
   return (
     <div className="space-y-6">
+      {/* Slot selector — one tab per POP UP. Enabled slots show a green dot. */}
+      <Tabs value={String(activeIdx)} onValueChange={(v) => setActiveIdx(Number(v))}>
+        <TabsList className="grid grid-cols-3 w-full max-w-md">
+          {configs.map((c, i) => (
+            <TabsTrigger key={i} value={String(i)} className="gap-2">
+              POP {i + 1}
+              {c.enabled && (
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-label="Activo" />
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      <p className="text-xs text-muted-foreground">
+        Puedes activar hasta 3 POP UP diferentes. Si dos o más coinciden en la
+        misma página se muestran lado a lado en escritorio y apilados en móvil.
+      </p>
+
       {/* ===== 1. Image bank ===== */}
       <Card>
         <CardHeader>

@@ -347,8 +347,17 @@ export interface SiteConfig {
   hoteles_config: HotelesConfig | null;
   theme_config: ThemeConfig | null;
   stats_config: StatsConfig | null;
-  popup_config: PopupConfig | null;
-  anuncio_config: AnuncioConfig | null;
+  /**
+   * POP UP config. Historically a single object; now supports an array of
+   * up to 3 independent slots (rendered side-by-side desktop, stacked mobile).
+   * Legacy single-object payloads are auto-wrapped as `[obj]`.
+   */
+  popup_config: PopupConfig | PopupConfig[] | null;
+  /**
+   * Anuncio ribbons. Same shape story as `popup_config` — supports up to
+   * 3 independent ribbons rendered one on top of the other in normal flow.
+   */
+  anuncio_config: AnuncioConfig | AnuncioConfig[] | null;
   stats_page_config: StatsPageConfig | null;
   home_config: HomeConfig | null;
 }
@@ -371,6 +380,10 @@ export interface SaveConfigPayload {
   stats_config?: StatsConfig | null;
   popup_config?: PopupConfig | null;
   anuncio_config?: AnuncioConfig | null;
+  /** Multi-slot payload for saving (up to 3 popups). */
+  popup_configs?: PopupConfig[] | null;
+  /** Multi-slot payload for saving (up to 3 anuncios). */
+  anuncio_configs?: AnuncioConfig[] | null;
   stats_page_config?: StatsPageConfig | null;
   home_config?: HomeConfig | null;
 }

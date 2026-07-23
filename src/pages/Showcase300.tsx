@@ -221,7 +221,9 @@ const PrizeSection = ({
 }) => {
   return (
     <Card className="overflow-hidden">
-      <div className="bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
+      {/* Wrapper opaco `showcase-prize-sticky` mantiene visible el encabezado
+          del premio mientras el autoscroll recorre la tabla. */}
+      <div className="showcase-prize-sticky bg-primary/10 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-primary/20">
         <div>
           <h4 className="text-lg font-bold text-foreground">
             GRUPO: {prize.description}
@@ -238,7 +240,9 @@ const PrizeSection = ({
         )}
       </div>
 
-      <div className="overflow-x-auto bg-white">
+      {/* Sin `overflow-x-auto` — un ancestro con overflow rompe `position:sticky`
+          contra el viewport. En showcase la tabla siempre cabe (max-w-6xl). */}
+      <div className="bg-white">
         <Table className="tournament-table">
           <TableHeader>
             <TableRow className="bg-primary hover:bg-primary">
