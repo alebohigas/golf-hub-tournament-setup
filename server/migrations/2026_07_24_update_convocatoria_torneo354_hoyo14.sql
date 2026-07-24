@@ -31,7 +31,7 @@ ON DUPLICATE KEY UPDATE section_type='competencias', content=@competencias, enab
 -- ---------- Patrocinadores Oficiales ---------------------------------
 SET @patrocinadores := '{"items":[{"premio":"Hole In One — Hoyo 4","patrocinador":"Geely / SEVEN / Triumph","descripcion":"SUV Geely Monjaro GF 2026, Carrito SEVEN 2026 y Motocicleta Triumph Speed 400 2026."},{"premio":"Hole In One — Hoyo 7","patrocinador":"GAC / Club Car / Indian Motorcycle","descripcion":"SUV GAC Enkoo HEV 2025, Carrito Club Car 2026 y Motocicleta Indian Sixty Bobber."},{"premio":"Hole In One — Hoyo 14","patrocinador":"Mercedes Benz STAR Patria / Triumph / Atlas Country Club","descripcion":"Mercedes Benz A 200 2026, Moto Triumph Scrambler 400 2026 y $1.5 millones de pesos al primer Hole In One en la última ronda."},{"premio":"Hole In One — Hoyo 17","patrocinador":"BMW / Triumph / Golf Lozano","descripcion":"BMW 220i Coupé 2027, Moto Triumph Scrambler 1200 X 2026 y Carrito Golf Lozano."},{"premio":"World Amateur Golf Ranking","patrocinador":"WAGR","descripcion":"Torneo reconocido por el World Amateur Golf Ranking."}]}';
 
-INSERT INTO convocatoria_content (torneoid, section_id, section_type, section_title, content, sort_order, enabled)
+INSERT INTO convocatoria_content (torneoid, section_id, section_type, title, content, sort_order, enabled)
 VALUES (354, 'patrocinadoresOficiales', 'patrocinadores', 'Patrocinadores Oficiales', @patrocinadores, 11, 1)
 ON DUPLICATE KEY UPDATE section_type='patrocinadores', content=@patrocinadores, enabled=1, updated_at=CURRENT_TIMESTAMP;
 
