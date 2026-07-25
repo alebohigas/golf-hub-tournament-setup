@@ -18,15 +18,20 @@ const ElegibilidadSection = ({ eligibilityText, notesText, inscripcionesText }: 
   const hasNotes = notesText && notesText.length > 0;
   const hasInscripciones = inscripcionesText && inscripcionesText.trim() !== '';
   if (!hasEligibility && !hasNotes && !hasInscripciones) return null;
+  // Dynamic grid: when only one of the two top cards has content, let it span
+  // the full width so we never render an empty Requisitos / Notas card.
+  const bothTop = hasEligibility && hasNotes;
   return (
     <div className="space-y-8">
       <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground text-center">
         Elegibilidad
       </h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Requisitos */}
-        <Card className="lg:col-span-1 shadow-card border-border/50">
+      {(hasEligibility || hasNotes) && (
+      <div className={`grid grid-cols-1 gap-8 ${bothTop ? 'lg:grid-cols-3' : ''}`}>
+        {/* Requisitos — only when eligibilityText has content */}
+        {hasEligibility && (
+        <Card className={`${bothTop ? 'lg:col-span-1' : ''} shadow-card border-border/50`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
               <CheckCircle className="h-5 w-5 text-primary" />
@@ -37,9 +42,11 @@ const ElegibilidadSection = ({ eligibilityText, notesText, inscripcionesText }: 
             <p className="text-muted-foreground leading-relaxed">{eligibilityText}</p>
           </CardContent>
         </Card>
+        )}
 
-        {/* Notas importantes */}
-        <Card className="lg:col-span-2 shadow-card border-border/50">
+        {/* Notas importantes — only when there are notes */}
+        {hasNotes && (
+        <Card className={`${bothTop ? 'lg:col-span-2' : ''} shadow-card border-border/50`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
               <AlertCircle className="h-5 w-5 text-accent" />
@@ -57,9 +64,12 @@ const ElegibilidadSection = ({ eligibilityText, notesText, inscripcionesText }: 
             </ul>
           </CardContent>
         </Card>
+        )}
       </div>
+      )}
 
       {/* Inscripciones */}
+      {hasInscripciones && (
       <Card className="shadow-card border-border/50 bg-primary/5 border-primary/20">
         <CardContent className="py-5 flex items-start gap-4">
           <Calendar className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -69,6 +79,7 @@ const ElegibilidadSection = ({ eligibilityText, notesText, inscripcionesText }: 
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 };
