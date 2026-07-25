@@ -31,7 +31,7 @@ const DesempatesSection = ({ data }: DesempatesSectionProps) => {
       <div className="text-center">
         <span className="inline-flex items-center gap-2 px-6 py-2 bg-accent text-accent-foreground rounded-full font-display font-bold text-xl">
           <Scale className="h-5 w-5" />
-          Desempates para Corte
+          Desempate
         </span>
       </div>
 
