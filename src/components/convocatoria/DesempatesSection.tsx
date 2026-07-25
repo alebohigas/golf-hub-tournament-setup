@@ -21,7 +21,9 @@ interface DesempatesSectionProps {
  */
 const DesempatesSection = ({ data }: DesempatesSectionProps) => {
   // Hide entire section when there is no data to display.
-  if (!data || (!data.paraCorte?.length && !data.paraTrofeos?.length)) return null;
+  const hasCorte = !!data?.paraCorte?.length;
+  const hasTrofeos = !!data?.paraTrofeos?.length;
+  if (!data || (!hasCorte && !hasTrofeos)) return null;
 
   return (
     <div className="space-y-6">
@@ -41,8 +43,9 @@ const DesempatesSection = ({ data }: DesempatesSectionProps) => {
       )}
 
       {/* Two-column layout for the two criteria sets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Para el Corte */}
+      <div className={`grid grid-cols-1 gap-6 ${hasCorte && hasTrofeos ? 'md:grid-cols-2' : ''}`}>
+        {/* Para el Corte — hidden if empty */}
+        {hasCorte && (
         <Card className="shadow-card border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 font-display text-lg">
@@ -60,8 +63,10 @@ const DesempatesSection = ({ data }: DesempatesSectionProps) => {
             </ol>
           </CardContent>
         </Card>
+        )}
 
-        {/* Para Trofeos */}
+        {/* Para Trofeos — hidden if empty */}
+        {hasTrofeos && (
         <Card className="shadow-card border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 font-display text-lg">
@@ -80,6 +85,7 @@ const DesempatesSection = ({ data }: DesempatesSectionProps) => {
             </ul>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Optional closing note */}
