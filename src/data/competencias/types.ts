@@ -76,5 +76,5 @@ export interface ColumnConfig {
   align?: 'left' | 'center' | 'right';
   width?: string;
   /** Format function name */
-  format?: 'number' | 'distance' | 'yards' | 'percentage' | 'medal';
+  format?: 'number' | 'distance' | 'distance3' | 'yards' | 'percentage' | 'medal';
 }
