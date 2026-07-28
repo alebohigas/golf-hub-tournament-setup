@@ -39,7 +39,12 @@ const formatValue = (
       return `${value} mts`;
     case 'distance3':
       // 3-decimal precision (e.g. O'Yes X closest-to-pin distances).
-      return `${Number(value).toFixed(3)} mts`;
+      return (
+        <div className="flex flex-col items-center leading-none">
+          <span className="font-mono font-bold">{Number(value).toFixed(3)}</span>
+          <span className="text-[10px] text-muted-foreground mt-0.5">Mts.</span>
+        </div>
+      );
     case 'yards':
       return `${value} yds`;
     case 'percentage':
