@@ -1392,9 +1392,9 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
     // `categoria` for the label and `categoria_id` as the join key.
     $sql = "SELECT a.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
-                   ROUND(TRUNCATE(a.distancia, 3), 2) as distancia,
+                   ROUND(a.distancia, 3) as distancia,
                    a.premio as hoyo,
-                   COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
+                   COALESCE(NULLIF(cat.abreviatura,''), cat.categoria, '') as categoria,
                    cl.logo, cl.nombre as club
             FROM oyesxjug a
             JOIN jugadores j ON (a.jugadorid = j.id)
