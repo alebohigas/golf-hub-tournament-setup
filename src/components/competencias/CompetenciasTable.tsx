@@ -41,8 +41,8 @@ const formatValue = (
       // 3-decimal precision (e.g. O'Yes X closest-to-pin distances).
       return (
         <div className="flex flex-col items-center leading-none">
-          <span className="font-mono font-bold">{Number(value).toFixed(3)}</span>
-          <span className="text-[10px] text-muted-foreground mt-0.5">Mts.</span>
+          <span className="font-mono font-bold text-sm">{Number(value).toFixed(3)}</span>
+          <span className="text-sm text-muted-foreground mt-0.5">Mts.</span>
         </div>
       );
     case 'yards':
