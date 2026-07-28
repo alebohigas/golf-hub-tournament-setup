@@ -983,7 +983,8 @@ if ($tipo === '' || $tipo === 'oyes300') {
                     ['key' => 'clubLogo', 'label' => 'Club', 'align' => 'center', 'width' => '50px'],
                     ['key' => 'name', 'label' => 'Jugador', 'align' => 'left'],
                     ['key' => 'category', 'label' => 'Cat', 'align' => 'center', 'width' => '70px'],
-                    ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance'],
+                    // O'Yes X shows 3-decimal precision (mm-level) for closest-to-pin distances.
+                    ['key' => 'distance', 'label' => 'Dist', 'align' => 'center', 'width' => '80px', 'format' => 'distance3'],
                 ],
             ];
         } else {
