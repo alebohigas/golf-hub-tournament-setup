@@ -122,14 +122,6 @@ const AUTH_PATHS_TO_SKIP = ['/api/admin_auth.php', '/api/staff_login.php', '/api
 const isAuthEndpoint = (url: URL): boolean =>
   AUTH_PATHS_TO_SKIP.some(p => url.pathname === p || url.pathname.endsWith(p));
 
-/** Attach the remembered superadmin password as a header for every admin-capable API request. */
-const withSuperAdminHeader = (input: RequestInfo | URL, init: RequestInit): RequestInit => {
-  if (!hasRememberedSuperAdminPassword()) return init;
-  const headers = new Headers(init.headers ?? (input instanceof Request ? input.headers : undefined));
-  headers.set('X-Superadmin-Password', getSuperAdminPassword());
-  return { ...init, headers };
-};
-
 /** Attach staff_token to non-login admin requests so normal users can save. */
 const attachStaffToken = (input: RequestInfo | URL, init: RequestInit, url: URL): [RequestInfo | URL, RequestInit] => {
   const staffToken = getRememberedStaffToken();
@@ -200,12 +192,12 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   let needsRescueHeader = requestUrl.searchParams.get('password') === DEFAULT_SUPERADMIN_PASSWORD;
 
   /** Attach the current password only for legacy admin calls that need rescue. */
-  const withRescueHeader = (): RequestInit => {
-    if (!needsRescueHeader) return withSuperAdminHeader(input, nextInit);
+  const withRescueHeader = (): RequestInit | undefined => {
+    if (!needsRescueHeader) return init ? nextInit : undefined;
     const headers = new Headers(nextInit.headers ?? (input instanceof Request ? input.headers : undefined));
     headers.set('X-Superadmin-Password', activePassword);
     nextInit.headers = headers;
-    return withSuperAdminHeader(input, nextInit);
+    return nextInit;
   };
 
   // Patch querystring password=admin2025 for admin GET endpoints.
@@ -220,7 +212,7 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
   }
 
   if (!nextInit?.body) {
-    const rescuedInit = withRescueHeader();
+    const rescuedInit = withRescueHeader() ?? nextInit;
     const [tokenInput, tokenInit] = attachStaffToken(input, rescuedInit, requestUrl);
     return [tokenInput, tokenInit];
   }
@@ -263,14 +255,14 @@ const replaceLegacyPassword = (input: RequestInfo | URL, init?: RequestInit): [R
     }
   }
 
-  const rescuedInit = withRescueHeader();
+  const rescuedInit = withRescueHeader() ?? nextInit;
   const [tokenInput, tokenInit] = attachStaffToken(input, rescuedInit, requestUrl);
   return [tokenInput, tokenInit];
 };
 
 /**
- * Install a compatibility layer so existing and new admin components always
- * send the current superadmin password for same-origin PHP API calls.
+ * Install a small compatibility layer so existing admin components that still
+ * send admin2025 automatically send the current changed superadmin password.
  */
 export const installSuperAdminPasswordFetchPatch = (): void => {
   if (typeof window === 'undefined' || fetchPatchInstalled) return;
