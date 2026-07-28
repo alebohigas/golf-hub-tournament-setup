@@ -12,6 +12,7 @@ import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } fr
 import reglasHero from '@/assets/reglas-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
+import { useValorStable } from '@/hooks/useValorStable';
 
 // ============= Helpers =============
 
@@ -64,6 +65,10 @@ const Reglas = () => {
 
   // DB-backed content (per active torneoid). Falls back to hardcoded defaults.
   const { bySectionId } = useConvocatoriaContent();
+
+  // Stableford points table (torneos.valorstable) — rendered inside
+  // "Reglas Locales del Torneo". Hidden when the DB has no row.
+  const { rows: stablefordRows } = useValorStable();
 
   // Intro cards (top of the page) — strictly DB-backed.
   const introCardsRow = bySectionId.get('reglas_intro_cards');
@@ -161,6 +166,39 @@ const Reglas = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Stableford points table — only shown when DB has data. */}
+                {stablefordRows.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-display font-semibold text-base mb-2 flex items-center gap-2">
+                      <Scale className="h-4 w-4 text-primary" />
+                      Puntaje Stableford
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Valor de los puntos en Stableford:
+                    </p>
+                    <div className="overflow-hidden rounded-lg border border-border/60">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/60">
+                          <tr>
+                            <th className="text-left px-4 py-2 font-semibold">Resultado</th>
+                            <th className="text-right px-4 py-2 font-semibold">Puntos</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stablefordRows.map((r) => (
+                            <tr key={r.label} className="border-t border-border/50">
+                              <td className="px-4 py-2">{r.label}</td>
+                              <td className="px-4 py-2 text-right font-semibold text-primary">
+                                {r.value}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 <Accordion type="multiple" className="w-full">
                   {reglasLocales.map((regla, idx) => (
                     <AccordionItem key={idx} value={`regla-${idx}`}>
