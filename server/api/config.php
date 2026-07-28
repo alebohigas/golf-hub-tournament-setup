@@ -9,7 +9,7 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Superadmin-Password');
 
 // ============= PHP Error Output Guard =============
 // API endpoints must never emit PHP warning/fatal HTML around JSON responses.
@@ -230,13 +230,13 @@ const SUPERADMIN_DEFAULT_PASSWORD = 'admin2025';
 const SUPERADMIN_USER_KEY = '__superadmin__';
 const SUPERADMIN_TIPO = 100;
 
-/** Lee el hash del superadmin desde `usuarios`, o null si no existe. */
+/** Lee el hash más reciente del superadmin desde `usuarios`, o null si no existe. */
 function superadmin_password_hash_from_db($conn) {
     static $hash = false;
     if ($hash !== false) return $hash;
     $hash = null;
     $key = SUPERADMIN_USER_KEY;
-    $r = @$conn->query("SELECT pwd FROM usuarios WHERE usuario='$key' LIMIT 1");
+    $r = @$conn->query("SELECT pwd FROM usuarios WHERE usuario='$key' ORDER BY tipo DESC, id DESC LIMIT 1");
     if ($r && $r->num_rows > 0) {
         $row = $r->fetch_assoc();
         $hash = !empty($row['pwd']) ? $row['pwd'] : null;
