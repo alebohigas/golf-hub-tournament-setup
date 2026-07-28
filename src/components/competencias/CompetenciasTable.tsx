@@ -37,6 +37,9 @@ const formatValue = (
   switch (format) {
     case 'distance':
       return `${value} mts`;
+    case 'distance3':
+      // 3-decimal precision (e.g. O'Yes X closest-to-pin distances).
+      return `${Number(value).toFixed(3)} mts`;
     case 'yards':
       return `${value} yds`;
     case 'percentage':
