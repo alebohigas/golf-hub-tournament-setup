@@ -111,6 +111,26 @@ const AdminRegistroPreferente = () => {
     setSelected(prev => ({ ...prev, [id]: { ...prev[id], [key]: v } }));
   };
 
+  /**
+   * toggleAllClubs
+   * Selecciona (on=true) o deselecciona (on=false) TODOS los clubes
+   * actualmente visibles según el filtro de búsqueda. Si no hay filtro,
+   * aplica al catálogo completo. Conserva las fechas por-club ya capturadas.
+   */
+  const toggleAllClubs = (on: boolean) => {
+    setSelected(prev => {
+      const next = { ...prev };
+      filteredClubs.forEach(c => {
+        if (on) {
+          next[c.id] = next[c.id] ?? { id: c.id, nombre: c.nombre, fecha_inicio: '', fecha_fin: '' };
+        } else {
+          delete next[c.id];
+        }
+      });
+      return next;
+    });
+  };
+
   /** POST the whole config. */
   const onSave = () => {
     if (!torneoId) {
@@ -197,7 +217,20 @@ const AdminRegistroPreferente = () => {
 
             {/* Buscador de clubes */}
             <div className="space-y-2">
-              <Label>Clubes autorizados ({selectedCount})</Label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label>Clubes autorizados ({selectedCount})</Label>
+                {/* Selección masiva — aplica a los clubes visibles/filtrados */}
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="all-clubs"
+                    checked={filteredClubs.length > 0 && filteredClubs.every(c => !!selected[c.id])}
+                    onCheckedChange={toggleAllClubs}
+                  />
+                  <Label htmlFor="all-clubs" className="cursor-pointer text-sm">
+                    Seleccionar todos {query.trim() ? '(filtrados)' : ''}
+                  </Label>
+                </div>
+              </div>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
