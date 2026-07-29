@@ -1348,10 +1348,18 @@ const Registro = () => {
     setSubmitting(true);
     try {
       const fd = new FormData();
+      /**
+       * Fallback GHIN (FMG / USGA): si el campo está habilitado pero el
+       * jugador no capturó ningún valor, enviamos 9999 para que la base de
+       * datos siempre tenga un número de referencia. Aplica tanto al campo
+       * histórico `reg_ghin` como a su equivalente `numghinspei`.
+       */
+      const isGhinField = (name: string) => name === 'reg_ghin' || name === 'numghinspei';
       Object.entries(values).forEach(([k, v]) => {
         // Skip our internal/private flags (prefixed with __).
         if (k.startsWith('__')) return;
-        if (v !== '' && v !== undefined && v !== null) fd.append(k, v);
+        const finalValue = isGhinField(k) && (!v || v === '') ? '9999' : v;
+        if (finalValue !== '' && finalValue !== undefined && finalValue !== null) fd.append(k, finalValue);
       });
       if (file) fd.append('reg_archivo', file);
       /**
