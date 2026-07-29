@@ -1363,6 +1363,14 @@ const Registro = () => {
       });
       if (file) fd.append('reg_archivo', file);
       /**
+       * Garantía extra del fallback GHIN: si el campo está habilitado en el
+       * formulario pero nunca fue tocado (no existe la llave en `values`),
+       * igual enviamos 9999 para que la BD siempre reciba un valor.
+       */
+      (['reg_ghin', 'numghinspei'] as const).forEach((ghinName) => {
+        if (isFieldEnabled(ghinName) && !fd.has(ghinName)) fd.append(ghinName, '9999');
+      });
+      /**
        * Marca de tiempo de envío capturada en el cliente. Enviamos:
        *  - `reg_client_utc`: ISO 8601 en UTC (Z), lo que el servidor guarda
        *    en `registro.fecharegistro` como hora absoluta de referencia.
