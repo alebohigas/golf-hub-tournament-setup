@@ -92,6 +92,45 @@ const isStrokePlaySystem = (system?: string): boolean => {
   return !system.toUpperCase().includes('STABLEFORD');
 };
 
+/**
+ * Stroke Play score coloring (per tournament spec):
+ *   score < par  → ROJO   #FF0000
+ *   score = par  → AZUL   #0000FF
+ *   score > par  → NEGRO  #000000
+ * Returns `undefined` when the system is not Stroke Play or the reference par
+ * is unknown, so the cell keeps its default theme color.
+ */
+const strokeScoreColor = (
+  value: number | null | undefined,
+  referencePar: number | undefined,
+  system: string | undefined,
+): string | undefined => {
+  if (!isStrokePlaySystem(system)) return undefined;
+  const n = Number(value);
+  if (!referencePar || !Number.isFinite(n)) return undefined;
+  if (n < referencePar) return '#FF0000';
+  if (n === referencePar) return '#0000FF';
+  return '#000000';
+};
+
+/**
+ * Number of rounds that count towards the accumulated total, used to build
+ * the total's reference par (coursePar × rounds). Prefers the API's
+ * `closedRounds`; falls back to counting rounds with a numeric score.
+ */
+const countedRounds = (
+  player: PlayerResult | CutPlayer,
+  totalDays: number,
+): number => {
+  if (typeof player.closedRounds === 'number' && player.closedRounds > 0) return player.closedRounds;
+  let n = 0;
+  for (let r = 1; r <= totalDays; r++) {
+    const v = player[`r${r}`];
+    if (v !== undefined && v !== null && Number.isFinite(Number(v))) n++;
+  }
+  return n;
+};
+
 // ============= Component =============
 
 const Resultados = () => {
