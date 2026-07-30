@@ -104,6 +104,18 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
   const isStroke = data.type === 'stroke' || tipo === 'stroke';
   const currentRoundDate = data.currentRoundDate ?? null;
 
+  /**
+   * Orden del leaderboard por el mismo valor mostrado en "Dif Par"/"Total"
+   * (`score`): Stroke Play ascendente (menor a mayor), Stableford descendente.
+   * La posición se recalcula (1..n) con este orden.
+   */
+  const sortedPlayers = [...data.players].sort((a, b) => {
+    const av = Number(a.score ?? 0);
+    const bv = Number(b.score ?? 0);
+    if (av !== bv) return isStroke ? av - bv : bv - av;
+    return 0;
+  });
+
   return (
     <div className="max-w-6xl mx-auto space-y-4">
       {/* Título de categoría registrado en el stack sticky superior del rotador. */}
@@ -156,7 +168,7 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
                   Sin jugadores en vivo.
                 </td>
               </tr>
-            ) : data.players.map((p) => {
+            ) : sortedPlayers.map((p, pIdx) => {
               const isPair = !!p.partner;
               const rs = isPair ? 2 : 1;
               const finished = isFinished(p, currentRoundDate);
@@ -174,7 +186,7 @@ const LiveSlide = ({ catid, tipo, gross }: Props) => {
                 <Fragment key={p.playerId}>
                   <tr className="border-t border-border">
                     <td rowSpan={rs} className="p-2 text-center font-bold align-middle">
-                      {p.position}
+                      {pIdx + 1}
                     </td>
                     <td className="p-1 text-center align-middle">
                       {p.clubLogo ? (
