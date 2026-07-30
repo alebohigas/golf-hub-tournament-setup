@@ -683,6 +683,8 @@ const Resultados = () => {
                                             isExpanded ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''
                                           }`}
                                           title={`Ver tarjeta R${round}`}
+                                          // Stroke Play round coloring vs course par.
+                                          style={{ color: strokeScoreColor(score as number, categoryDetail?.coursePar, categoryDetail?.system) }}
                                         >
                                           {score}
                                         </button>
@@ -690,7 +692,20 @@ const Resultados = () => {
                                     );
                                   })}
                                   {/* Total: show accumulated total when player has at least one closed round */}
-                                  <TableCell rowSpan={rowSpan} className="text-center font-bold text-muted-foreground align-middle">
+                                  <TableCell
+                                    rowSpan={rowSpan}
+                                    className="text-center font-bold text-muted-foreground align-middle"
+                                    // Total coloring for cut players (Stroke Play only).
+                                    style={{
+                                      color: cp.total && cp.total > 0
+                                        ? strokeScoreColor(
+                                            cp.total,
+                                            (categoryDetail?.coursePar || 0) * countedRounds(cp, categoryDetail?.days?.length || 0) || undefined,
+                                            categoryDetail?.system,
+                                          )
+                                        : undefined,
+                                    }}
+                                  >
                                     {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {cp.total && cp.total > 0 ? cp.total : '—'}
                                   </TableCell>
