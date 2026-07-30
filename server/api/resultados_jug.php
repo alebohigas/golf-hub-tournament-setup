@@ -703,7 +703,7 @@ $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
            WHERE j.categoriaid = $cid
              AND j.torneoid = $tid
              AND j.estatus != 'NORMAL'
-           ORDER BY j.estatus ASC, j.apellido ASC";
+           ORDER BY j.apellido ASC";
 
 debug_log_query('Cut players query', $cutSql);
 $cutRows = query_all($conn, $cutSql);
