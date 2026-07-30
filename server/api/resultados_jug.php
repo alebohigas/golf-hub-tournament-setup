@@ -331,7 +331,9 @@ function diax_tiebreaker($func, $diax, $direction = 'ASC') {
 /**
  * Maps player estatus to a display code:
  * NORMAL → null (active player), NO SHOW/SHOW-NO → S, 
- * RETIRO/ABANDONO → R, DESCALIFICADO/DQ → D, CORTE/CUT → C, other → D
+ * RETIRO/ABANDONO → R, DESCALIFICADO/DQ → D, CORTE/CUT → C,
+ * NO CONTIENDE → N, other → D
+ * (catálogo `estatusjugt`: NORMAL, RETIRO, DESCALIFICADO, SHOW-NO, CORTE, NO CONTIENDE)
  */
 function mapEstatus($estatus) {
     $e = strtoupper(trim($estatus));
@@ -340,6 +342,7 @@ function mapEstatus($estatus) {
     if ($e === 'RETIRO' || $e === 'ABANDONO') return 'R';
     if ($e === 'DESCALIFICADO' || $e === 'DQ') return 'D';
     if ($e === 'CORTE' || $e === 'CUT') return 'C';
+    if ($e === 'NO CONTIENDE' || $e === 'NO-CONTIENDE') return 'N';
     return 'D'; // default for unknown non-NORMAL statuses
 }
 
@@ -349,6 +352,7 @@ function statusLabel($code) {
     if ($code === 'R') return 'Retiro';
     if ($code === 'D') return 'Descalificado';
     if ($code === 'C') return 'Corte';
+    if ($code === 'N') return 'No Contiende';
     return '';
 }
 
@@ -699,7 +703,7 @@ $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
            WHERE j.categoriaid = $cid
              AND j.torneoid = $tid
              AND j.estatus != 'NORMAL'
-           ORDER BY j.estatus ASC, j.apellido ASC";
+           ORDER BY j.apellido ASC";
 
 debug_log_query('Cut players query', $cutSql);
 $cutRows = query_all($conn, $cutSql);
@@ -727,6 +731,24 @@ foreach ($cutRows as $row) {
         'closedRounds' => (int)($row['closed_rounds'] ?? 0),
     ], $cutRounds);
 }
+
+/**
+ * Orden de los jugadores debajo de la línea de corte (estatus != NORMAL):
+ * se acomodan por el Total, sin importar el estatus.
+ *  - STROKE PLAY → de menor a mayor (ASC)
+ *  - STABLEFORD  → de mayor a menor (DESC)
+ * Los que no tienen total (0 / sin tarjetas cerradas) siempre van al final.
+ */
+usort($cutPlayers, function ($a, $b) use ($sistema) {
+    $ta = (int)($a['total'] ?? 0);
+    $tb = (int)($b['total'] ?? 0);
+    $ea = ($ta === 0) ? 1 : 0;   // sin score → al final
+    $eb = ($tb === 0) ? 1 : 0;
+    if ($ea !== $eb) return $ea - $eb;
+    if ($ea === 1) return strcmp($a['name'], $b['name']);
+    if ($ta === $tb) return strcmp($a['name'], $b['name']);
+    return ($sistema === 'STABLEFORD') ? ($tb - $ta) : ($ta - $tb);
+});
 
 json_response([
     'categoryId'   => $catInfo['categoria_id'],

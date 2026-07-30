@@ -60,6 +60,7 @@ const getStatusBadgeClasses = (code: string) => {
   if (code === 'S') return 'bg-muted text-muted-foreground';
   if (code === 'R') return 'bg-amber-100 text-amber-800';
   if (code === 'C') return 'bg-blue-100 text-blue-800';
+  if (code === 'N') return 'bg-slate-200 text-slate-700'; // NO CONTIENDE
   return 'bg-red-100 text-red-800'; // D
 };
 
