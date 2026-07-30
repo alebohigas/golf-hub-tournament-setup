@@ -1,16 +1,19 @@
 <?php
 /**
- * index.php — SPA shell con overrides de meta tags por host.
+ * index.php — SPA shell con meta tags dinámicos por host (link preview).
  *
  * WhatsApp / Facebook / Twitter / LinkedIn NO ejecutan JS al scrapear,
  * así que react-helmet no sirve para el preview de links. Este shim
  * sirve el mismo `index.html` de la SPA pero sustituye <title>, la
- * meta description y todos los `og:*` / `twitter:*` según el Host que
- * el visitante está pidiendo.
+ * meta description y todos los `og:*` / `twitter:*` con los datos del
+ * torneo asociado al Host solicitado:
+ *   - título / og:title   → torneo.nombre  ("NOMBRE DEL TORNEO")
+ *   - og:image            → torneo.logo_header ("LOGO DEL TORNEO")
+ *   - descripción         → club del torneo (nunca el slogan fijo)
  *
- * Añadir un torneo/subdominio nuevo = agregar una entrada al mapa
- * `$HOST_OVERRIDES` de abajo. Si el host no está en el mapa se sirve
- * el `index.html` original sin cambios.
+ * La resolución host → torneoid usa la tabla `site_config` (misma
+ * lógica que /api/site_config.php). `$HOST_OVERRIDES` sigue existiendo
+ * y tiene prioridad para hosts con assets dedicados (p.ej. Atlas CC).
  */
 
 // ============= Overrides por host =============
@@ -29,6 +32,72 @@ $HOST_OVERRIDES = [
     ],
 ];
 
+// ============= Overrides dinámicos desde la base de datos =============
+/**
+ * resolve_tournament_meta()
+ * Busca el torneo ligado al host en `site_config` y devuelve
+ * ['title' => nombre, 'description' => club, 'image' => url absoluta del
+ * logo_header] o null si no se puede resolver (sin credenciales, sin
+ * registro para el dominio, error de conexión, etc.).
+ *
+ * @param string $host Host normalizado (sin puerto).
+ * @return array|null
+ */
+function resolve_tournament_meta(string $host): ?array {
+    $credentialsFile = __DIR__ . '/api/credentials.php';
+    if (!file_exists($credentialsFile)) {
+        return null;
+    }
+    // credentials.php define $DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, $DB_PORT
+    require $credentialsFile;
+    if (empty($DB_HOST) || empty($DB_USER) || empty($DB_NAME)) {
+        return null;
+    }
+
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $conn = @new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, (int)($DB_PORT ?? 3306));
+    if ($conn->connect_error) {
+        return null;
+    }
+    $conn->set_charset('utf8');
+
+    $safeHost = $conn->real_escape_string($host);
+    $row = null;
+
+    // 1) Dominio → torneoid
+    $res = @$conn->query("SELECT torneoid FROM site_config WHERE domain = '$safeHost' LIMIT 1");
+    $tid = ($res && ($r = $res->fetch_assoc())) ? (int)$r['torneoid'] : 0;
+    if ($tid > 0) {
+        // 2) torneoid → nombre + logo_header + club
+        $sql = "SELECT a.nombre, a.logo_header, a.logo, b.nombre AS club
+                FROM torneo a
+                LEFT JOIN clubs b ON (a.club_id = b.id)
+                WHERE a.torneo_id = $tid LIMIT 1";
+        $res2 = @$conn->query($sql);
+        if ($res2) {
+            $row = $res2->fetch_assoc();
+        }
+    }
+    $conn->close();
+
+    if (!$row) {
+        return null;
+    }
+
+    $logoFile = trim((string)($row['logo_header'] ?? '')) ?: trim((string)($row['logo'] ?? ''));
+    $image = '';
+    if ($logoFile !== '' && preg_match('/^[a-zA-Z0-9_\-\.]+$/', $logoFile)) {
+        // Se sirve por el proxy /api/logo.php para evitar hotlink/CORS.
+        $image = 'https://' . $host . '/api/logo.php?file=' . rawurlencode($logoFile);
+    }
+
+    return [
+        'title'       => trim((string)($row['nombre'] ?? '')),
+        'description' => trim((string)($row['club'] ?? '')),
+        'image'       => $image,
+    ];
+}
+
 // ============= Servir index.html =============
 $html = @file_get_contents(__DIR__ . '/index.html');
 if ($html === false) {
@@ -42,6 +111,9 @@ $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
 $host = preg_replace('/:\d+$/', '', $host);
 
 $ov = $HOST_OVERRIDES[$host] ?? null;
+if (!$ov) {
+    $ov = resolve_tournament_meta($host);
+}
 
 if ($ov) {
     $title = htmlspecialchars($ov['title']       ?? '', ENT_QUOTES, 'UTF-8');
