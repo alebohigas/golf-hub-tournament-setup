@@ -732,6 +732,24 @@ foreach ($cutRows as $row) {
     ], $cutRounds);
 }
 
+/**
+ * Orden de los jugadores debajo de la línea de corte (estatus != NORMAL):
+ * se acomodan por el Total, sin importar el estatus.
+ *  - STROKE PLAY → de menor a mayor (ASC)
+ *  - STABLEFORD  → de mayor a menor (DESC)
+ * Los que no tienen total (0 / sin tarjetas cerradas) siempre van al final.
+ */
+usort($cutPlayers, function ($a, $b) use ($sistema) {
+    $ta = (int)($a['total'] ?? 0);
+    $tb = (int)($b['total'] ?? 0);
+    $ea = ($ta === 0) ? 1 : 0;   // sin score → al final
+    $eb = ($tb === 0) ? 1 : 0;
+    if ($ea !== $eb) return $ea - $eb;
+    if ($ea === 1) return strcmp($a['name'], $b['name']);
+    if ($ta === $tb) return strcmp($a['name'], $b['name']);
+    return ($sistema === 'STABLEFORD') ? ($tb - $ta) : ($ta - $tb);
+});
+
 json_response([
     'categoryId'   => $catInfo['categoria_id'],
     'categoryName' => $catInfo['categoria'],
