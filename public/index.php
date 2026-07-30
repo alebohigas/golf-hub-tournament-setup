@@ -133,7 +133,9 @@ if ($ov) {
             $html
         );
     }
-    if ($desc !== '') {
+    // Se aplica siempre que haya override (incluso vacío) para eliminar
+    // el slogan fijo del index.html.
+    {
         $html = preg_replace(
             '#<meta\s+name="description"[^>]*>#i',
             '<meta name="description" content="' . $desc . '" />',
