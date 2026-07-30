@@ -599,7 +599,7 @@ const Live = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {leaderboard.players.map((player) => {
+                          {sortedPlayers.map((player, pIdx) => {
                             /* En categorías PAREJAS (cuando el backend manda `partner`) la pareja
                              * se renderiza como 2 renglones; columnas compartidas con rowSpan=2. */
                             const isPair = !!(player as { partner?: string }).partner;
@@ -609,7 +609,7 @@ const Live = () => {
                               <TableRow className="bg-white">
                                 {/* Position */}
                                 <TableCell rowSpan={rs} className="text-center font-bold sticky left-0 z-10 bg-white align-middle">
-                                  {player.position}
+                                  {pIdx + 1}
                                 </TableCell>
 
                                 {/* Club logo */}
