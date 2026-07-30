@@ -80,8 +80,8 @@ export interface CutPlayer {
   partner?: string;
   /** Nombre combinado de la pareja, p.e. "Juan Pérez / Luis López". */
   pairName?: string;
-  /** Status code: S = No Show, R = Retiro, D = Descalificado, C = Corte */
-  statusCode: 'S' | 'R' | 'D' | 'C';
+  /** Status code: S = Show-No, R = Retiro, D = Descalificado, C = Corte, N = No Contiende */
+  statusCode: 'S' | 'R' | 'D' | 'C' | 'N';
   /** Human-readable status label */
   statusLabel: string;
   /** Dynamic round scores keyed as r1, r2, r3, r4...; null if not played/closed. */
