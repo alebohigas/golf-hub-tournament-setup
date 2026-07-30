@@ -852,32 +852,21 @@ const Registro = () => {
 
   /**
    * Es-socio autofill rules:
-   *  - SI  → reg_club = host tournament club name (always overwrites).
+   *  - SI  → reg_club = club del torneo anfitrión (siempre sobrescribe).
+   *          Si el torneo no expone club, se usa el único club registrado
+   *          en clubs_registro como respaldo.
    *  - NO  → if we previously autofilled from SI, clear it so the user
    *          (or the player-lookup effect above) can fill the real club.
    */
   useEffect(() => {
     const ans = values.reg_es_socio;
     if (ans === 'SI') {
-      // Prefer the registered-club list for this tournament: if there's
-      // exactly one, auto-fill it; otherwise leave the field empty so the
-      // user picks from the restricted datalist. Fall back to
-      // tournamentInfo.club when clubs_registro has no rows.
-      if (socioClubs.length === 1) {
+      // Al declararse socio, el club de procedencia SIEMPRE es el club del
+      // torneo que se está registrando.
+      const hostClub = tournamentInfo?.club || (socioClubs.length === 1 ? socioClubs[0].nombre : '');
+      if (hostClub) {
         setSocioClubAutofilled(true);
-        setValues(v => ({ ...v, reg_club: socioClubs[0].nombre }));
-      } else if (socioClubs.length === 0 && tournamentInfo?.club) {
-        setSocioClubAutofilled(true);
-        setValues(v => ({ ...v, reg_club: tournamentInfo.club }));
-      } else {
-        // Multiple registered clubs → clear any prior autofill so the
-        // user must actively select one from the restricted datalist.
-        setSocioClubAutofilled(true);
-        setValues(v => {
-          const current = clubKey(v.reg_club || '');
-          const stillValid = socioClubs.some(c => clubKey(c.nombre) === current);
-          return stillValid ? v : { ...v, reg_club: '' };
-        });
+        setValues(v => (v.reg_club === hostClub ? v : { ...v, reg_club: hostClub }));
       }
     } else if (ans === 'NO' && socioClubAutofilled) {
       setSocioClubAutofilled(false);
