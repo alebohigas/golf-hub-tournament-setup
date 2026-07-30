@@ -300,6 +300,25 @@ const Live = () => {
   const isStroke = leaderboard?.type === 'stroke' || selected?.tipo === 'stroke';
 
   /**
+   * Ordenamiento del leaderboard por el MISMO valor que se muestra en la
+   * columna "Dif Par" (Stroke Play) o "Total" (Stableford), es decir
+   * `player.score` (rondas cerradas + ronda en juego).
+   *   - Stroke Play  → menor a mayor (ASC): -3, -1, E, +2 ...
+   *   - Stableford   → mayor a menor (DESC)
+   * Se recalcula la posición (1..n) según este orden para todos los torneos.
+   */
+  const sortedPlayers = useMemo(() => {
+    const list = leaderboard?.players ? [...leaderboard.players] : [];
+    list.sort((a, b) => {
+      const av = Number(a.score ?? 0);
+      const bv = Number(b.score ?? 0);
+      if (av !== bv) return isStroke ? av - bv : bv - av;
+      return 0;
+    });
+    return list;
+  }, [leaderboard?.players, isStroke]);
+
+  /**
    * Click on the "Total" column.
    * Shows the player's previously closed scorecards (statlsc=1) stacked
    * by date AND appends the in-progress live scorecard at the end (when
