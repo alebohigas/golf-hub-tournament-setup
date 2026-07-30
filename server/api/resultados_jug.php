@@ -331,7 +331,9 @@ function diax_tiebreaker($func, $diax, $direction = 'ASC') {
 /**
  * Maps player estatus to a display code:
  * NORMAL → null (active player), NO SHOW/SHOW-NO → S, 
- * RETIRO/ABANDONO → R, DESCALIFICADO/DQ → D, CORTE/CUT → C, other → D
+ * RETIRO/ABANDONO → R, DESCALIFICADO/DQ → D, CORTE/CUT → C,
+ * NO CONTIENDE → N, other → D
+ * (catálogo `estatusjugt`: NORMAL, RETIRO, DESCALIFICADO, SHOW-NO, CORTE, NO CONTIENDE)
  */
 function mapEstatus($estatus) {
     $e = strtoupper(trim($estatus));
@@ -340,6 +342,7 @@ function mapEstatus($estatus) {
     if ($e === 'RETIRO' || $e === 'ABANDONO') return 'R';
     if ($e === 'DESCALIFICADO' || $e === 'DQ') return 'D';
     if ($e === 'CORTE' || $e === 'CUT') return 'C';
+    if ($e === 'NO CONTIENDE' || $e === 'NO-CONTIENDE') return 'N';
     return 'D'; // default for unknown non-NORMAL statuses
 }
 
@@ -349,6 +352,7 @@ function statusLabel($code) {
     if ($code === 'R') return 'Retiro';
     if ($code === 'D') return 'Descalificado';
     if ($code === 'C') return 'Corte';
+    if ($code === 'N') return 'No Contiende';
     return '';
 }
 
