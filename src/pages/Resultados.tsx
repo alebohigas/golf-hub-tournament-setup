@@ -503,6 +503,8 @@ const Resultados = () => {
                                               isExpanded ? 'bg-primary/15 text-primary font-bold underline underline-offset-2' : ''
                                             }`}
                                             title={`Ver tarjeta R${round}`}
+                                            // Stroke Play round coloring vs course par.
+                                            style={{ color: strokeScoreColor(score as number, categoryDetail?.coursePar, categoryDetail?.system) }}
                                           >
                                             {/* Raw round total (golpes for Stroke, puntos for Stableford). */}
                                             {score}
@@ -513,7 +515,18 @@ const Resultados = () => {
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell rowSpan={rowSpan} className="text-center font-bold text-primary text-lg align-middle">
+                                  <TableCell
+                                    rowSpan={rowSpan}
+                                    className="text-center font-bold text-primary text-lg align-middle"
+                                    // Total coloring: compares accumulated strokes vs coursePar × rounds played.
+                                    style={{
+                                      color: strokeScoreColor(
+                                        player.total,
+                                        (categoryDetail?.coursePar || 0) * countedRounds(player, categoryDetail?.days?.length || 0) || undefined,
+                                        categoryDetail?.system,
+                                      ),
+                                    }}
+                                  >
                                     {/* Total comes directly from the API: Stroke Play = total strokes, Stableford = total points. */}
                                     {player.total ?? 0}
                                   </TableCell>
