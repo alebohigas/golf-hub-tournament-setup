@@ -70,6 +70,14 @@ const SponsorRibbon = () => {
    */
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportWidth, setViewportWidth] = useState<number>(0);
+  /**
+   * Ref + measured width of the scrolling track (`.sponsor-scroll`). Measuring
+   * the real rendered width lets us derive an animation duration that produces
+   * a CONSTANT pixel-per-second speed, independent of how many logos are
+   * visible or how many sponsors exist.
+   */
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [trackWidth, setTrackWidth] = useState<number>(0);
 
   /**
    * Keep `viewportWidth` in sync with the actual rendered ribbon width.
@@ -91,6 +99,17 @@ const SponsorRibbon = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  /** Keep `trackWidth` in sync with the rendered sponsor strip width. */
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const update = () => setTrackWidth(el.scrollWidth);
+    update();
+    const observer = new ResizeObserver(() => update());
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
