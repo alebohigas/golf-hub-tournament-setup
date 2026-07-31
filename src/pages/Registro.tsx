@@ -67,6 +67,14 @@ interface LocationRow { id: number; name: string }
  */
 const SIN_CLUB_NOMBRE = 'SIN CLUB';
 
+/**
+ * Campos de texto que deben guardarse siempre en NOMBRE PROPIO
+ * (Title Case + ortografía en español). Ver `src/lib/properName.ts`.
+ */
+const PROPER_NAME_FIELDS = ['reg_nombre', 'reg_apellido'] as const;
+const isProperNameField = (name: string) =>
+  (PROPER_NAME_FIELDS as readonly string[]).includes(name);
+
 /** Row returned by /api/clubs.php */
 interface ClubRow {
   id: number;
