@@ -126,8 +126,9 @@ const capitalizeSegment = (segment: string): string =>
 const properSegment = (segment: string, allowParticula: boolean): string => {
   if (!segment) return segment;
   const key = fold(segment);
+  // Las partículas tienen prioridad sobre el diccionario ("de" no es "Dé").
+  if (allowParticula && isParticula(key)) return key;
   if (ORTOGRAFIA[key]) return ORTOGRAFIA[key];
-  if (allowParticula && PARTICULAS.has(key)) return key;
   return capitalizeSegment(segment);
 };
 
@@ -137,9 +138,20 @@ const properSegment = (segment: string, allowParticula: boolean): string => {
  *   "garcia-lopez" -> "García-López"
  *   "o'neil"       -> "O'Neil"
  *   "d'angelo"     -> "D'Angelo"
+ *   "garcia-de la torre" -> "García-de la Torre" (partículas internas)
  * Los guiones se preservan tal cual (incluye guion largo "–" y no separable "‑").
+ *
+ * @param word        palabra a normalizar (puede contener guiones/apóstrofes)
+ * @param isFirstWord si es la primera palabra del nombre completo (nunca lleva
+ *                    partícula en minúscula al inicio)
+ * @param isLastWord  si es la última palabra del nombre completo (una partícula
+ *                    suelta al final se capitaliza: "Ana De")
  */
-const capitalizeWord = (word: string): string => {
+const capitalizeWord = (
+  word: string,
+  isFirstWord: boolean,
+  isLastWord: boolean
+): string => {
   // Se conservan los separadores gracias al grupo de captura del split.
   const parts = word.split(/([-‑–'’`´])/);
   return parts
@@ -154,7 +166,12 @@ const capitalizeWord = (word: string): string => {
           ? properSegment(part, false)
           : part.toLowerCase();
       }
-      return properSegment(part, false);
+      // Un segmento tras guion puede ser partícula ("García-de la Torre"),
+      // pero nunca si es el arranque absoluto del nombre ni la pieza final.
+      const isSegmentStart = index === 0;
+      const allowParticula =
+        !(isSegmentStart && isFirstWord) && !(isLastWord && parts.length === index + 1 && isSegmentStart);
+      return properSegment(part, allowParticula);
     })
     .join('');
 };
@@ -172,11 +189,8 @@ export const toProperName = (raw: string | null | undefined): string => {
 
   const words = value.split(' ');
   return words
-    .map((word, index) => {
-      // Las partículas sólo van en minúscula cuando son palabras sueltas internas.
-      const key = fold(word);
-      if (index > 0 && !/[-‑–'’`´]/.test(word) && PARTICULAS.has(key)) return key;
-      return capitalizeWord(word);
-    })
+    .map((word, index) =>
+      capitalizeWord(word, index === 0, index === words.length - 1)
+    )
     .join(' ');
 };
