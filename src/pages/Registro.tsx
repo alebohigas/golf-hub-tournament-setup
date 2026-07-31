@@ -60,6 +60,13 @@ import {
 /** Row returned by /api/locations.php */
 interface LocationRow { id: number; name: string }
 
+/**
+ * SIN_CLUB_NOMBRE
+ * Nombre del club por defecto (clubid 770042 en `torneos.clubs`) que se
+ * envía cuando el jugador no selecciona ningún club de procedencia.
+ */
+const SIN_CLUB_NOMBRE = 'SIN CLUB';
+
 /** Row returned by /api/clubs.php */
 interface ClubRow {
   id: number;
