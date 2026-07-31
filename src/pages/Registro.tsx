@@ -42,6 +42,7 @@ import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
 import { useCategoriasReglas, type CategoriaRegla } from '@/hooks/useCategoriasReglas';
 import { useRegistroPreferente } from '@/hooks/useRegistroPreferente';
 import type { CategoryDetail } from '@/data/playersData';
+import { toProperName } from '@/lib/properName';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
