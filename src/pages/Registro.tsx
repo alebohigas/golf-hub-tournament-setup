@@ -403,6 +403,14 @@ const Registro = () => {
    * seleccione "Sin club".
    */
   const [clubError, setClubError] = useState<string>('');
+  /**
+   * clubOpen
+   * Controla la apertura del combobox de "Club de procedencia".
+   * El campo es de SOLO SELECCIÓN: el usuario no puede escribir en el
+   * valor final, únicamente filtrar y elegir un club del catálogo
+   * (`torneos.clubs`). Si se omite, al enviar se usa SIN_CLUB_NOMBRE.
+   */
+  const [clubOpen, setClubOpen] = useState(false);
 
   /** Inline error message for the handicap field (shown on blur). */
   const [handicapError, setHandicapError] = useState<string>('');
