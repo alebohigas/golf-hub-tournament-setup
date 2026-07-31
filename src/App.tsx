@@ -49,6 +49,8 @@ import MatchPlay from "./pages/MatchPlay";
 import Stats from "./pages/Stats";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+// Forces every client-side navigation to start at the top of the page.
+import ScrollToTop from "./components/layout/ScrollToTop";
 
 // ============= Query Client =============
 const queryClient = new QueryClient();
@@ -108,6 +110,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
