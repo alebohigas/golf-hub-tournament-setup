@@ -109,7 +109,7 @@ const SponsorRibbon = () => {
     const observer = new ResizeObserver(() => update());
     observer.observe(el);
     return () => observer.disconnect();
-  });
+  }, []);
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
