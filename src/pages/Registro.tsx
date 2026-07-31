@@ -2079,12 +2079,26 @@ const Registro = () => {
             }
         />
         {isProperNameField(name) && (values[name] || '').trim() && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-primary font-medium">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-primary font-medium text-xs shrink-0">
               Así quedará:
             </span>
-            {toProperName(values[name] || '')}
-          </p>
+            {/*
+              Preview editable: el jugador puede ajustar directamente la
+              versión normalizada. Los cambios se escriben al mismo valor del
+              campo principal, y al perder el foco se vuelve a aplicar
+              NOMBRE PROPIO. El envío final también normaliza, por lo que la
+              transformación se mantiene aunque el usuario no salga del campo.
+            */}
+            <Input
+              type="text"
+              value={toProperName(values[name] || '')}
+              onChange={e => setValue(name, e.target.value)}
+              onBlur={() => setValue(name, toProperName(values[name] || ''))}
+              className="h-6 text-xs px-2 py-0.5 flex-1 min-w-0"
+              aria-label={`Editar ${label} normalizado`}
+            />
+          </div>
         )}
       </div>
     );
