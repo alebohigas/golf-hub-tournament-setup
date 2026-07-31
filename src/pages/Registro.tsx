@@ -1379,6 +1379,12 @@ const Registro = () => {
         const isClubField = k === 'reg_club';
         let finalValue = isGhinField(k) && (!v || v === '') ? '9999' : v;
         if (isClubField && (!v || String(v).trim() === '')) finalValue = SIN_CLUB_NOMBRE;
+        /**
+         * NOMBRE PROPIO: nombre y apellido siempre se envían normalizados
+         * (mayúsculas/minúsculas + ortografía), aunque el campo no haya
+         * perdido el foco antes de enviar.
+         */
+        if (isProperNameField(k)) finalValue = toProperName(finalValue);
         if (finalValue !== '' && finalValue !== undefined && finalValue !== null) fd.append(k, finalValue);
       });
       if (file) fd.append('reg_archivo', file);
