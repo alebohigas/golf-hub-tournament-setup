@@ -13,11 +13,36 @@
  * propósito.
  */
 
-/** Partículas que en español van en minúscula cuando no inician el texto. */
+/**
+ * Partículas / prefijos nobiliarios que van en minúscula cuando NO inician el
+ * texto. Incluye español, portugués, italiano, francés, alemán y holandés:
+ *   "PEDRO DE LA CRUZ"      -> "Pedro de la Cruz"
+ *   "MARIA DEL CARMEN"      -> "María del Carmen"
+ *   "JAN VAN DER BERG"      -> "Jan van der Berg"
+ *   "KARL VON MULLER"       -> "Karl von Müller" (ortografía si está en el dict.)
+ * NOTA: "San"/"Santa" NO son partículas en español ("San Martín", "Santa Cruz").
+ */
 const PARTICULAS = new Set([
-  'de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'das', 'do', 'dos',
-  'van', 'von', 'di', 'della', 'du', 'san', 'santa',
+  // Español
+  'de', 'del', 'la', 'las', 'lo', 'los', 'y', 'e',
+  // Portugués
+  'da', 'das', 'do', 'dos', 'e',
+  // Italiano
+  'di', 'della', 'delle', 'degli', 'dei', 'dal', 'dalla', 'lo',
+  // Francés
+  'du', 'des', 'le', 'les',
+  // Alemán / holandés / flamenco
+  'van', 'von', 'der', 'den', 'ten', 'ter', 'te', 'zu', 'zur', 'vom', 'op',
+  // Escandinavo
+  'af', 'av',
 ]);
+
+/**
+ * Secuencias de partículas válidas: una partícula puede ir en minúscula sólo si
+ * es interna Y va seguida de al menos otra palabra (nunca es la última pieza
+ * del nombre, ej. "Ana de la O" deja "O" capitalizada, pero "ANA DE" -> "Ana De").
+ */
+const isParticula = (key: string): boolean => PARTICULAS.has(key);
 
 /**
  * Diccionario de ortografía: forma sin acentos (minúsculas) -> forma correcta.
