@@ -81,16 +81,58 @@ const isUniformCase = (s: string): boolean => {
   return letters === letters.toUpperCase() || letters === letters.toLowerCase();
 };
 
-/** Capitaliza una palabra respetando guiones y apóstrofes (ej. "o'neill"). */
-const capitalizeWord = (word: string): string =>
-  word
-    .split(/([-'’])/)
-    .map(part =>
-      /[-'’]/.test(part) || !part
-        ? part
-        : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-    )
+/**
+ * Prefijos que se pegan con apóstrofe al resto del apellido.
+ * Se usan para decidir la capitalización del segmento posterior:
+ *   "o'neil"   -> "O'Neil"   (irlandés: ambas partes en mayúscula)
+ *   "d'angelo" -> "D'Angelo"
+ */
+const PREFIJOS_APOSTROFE = new Set(['o', 'd', 'l', 'dell', 'all', 'sant']);
+
+/** Capitaliza un segmento simple (sin separadores). */
+const capitalizeSegment = (segment: string): string =>
+  segment ? segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase() : segment;
+
+/**
+ * Capitaliza un segmento aplicando el diccionario de ortografía.
+ * `allowParticula` permite dejar en minúscula partículas internas
+ * (ej. "Pérez de la Cruz"), lo que NO aplica tras un guion o apóstrofe.
+ */
+const properSegment = (segment: string, allowParticula: boolean): string => {
+  if (!segment) return segment;
+  const key = fold(segment);
+  if (ORTOGRAFIA[key]) return ORTOGRAFIA[key];
+  if (allowParticula && PARTICULAS.has(key)) return key;
+  return capitalizeSegment(segment);
+};
+
+/**
+ * Capitaliza una palabra respetando guiones y apóstrofes, y aplicando el
+ * diccionario de ortografía a CADA parte:
+ *   "garcia-lopez" -> "García-López"
+ *   "o'neil"       -> "O'Neil"
+ *   "d'angelo"     -> "D'Angelo"
+ * Los guiones se preservan tal cual (incluye guion largo "–" y no separable "‑").
+ */
+const capitalizeWord = (word: string): string => {
+  // Se conservan los separadores gracias al grupo de captura del split.
+  const parts = word.split(/([-‑–'’`´])/);
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) return part; // separador: intacto
+      const prevSep = index > 0 ? parts[index - 1] : '';
+      const isApostrophe = /['’`´]/.test(prevSep);
+      // Tras un apóstrofe sólo capitalizamos si el prefijo es de tipo O'/D'/L'
+      if (isApostrophe) {
+        const prefix = fold(parts[index - 2] ?? '');
+        return PREFIJOS_APOSTROFE.has(prefix)
+          ? properSegment(part, false)
+          : part.toLowerCase();
+      }
+      return properSegment(part, false);
+    })
     .join('');
+};
 
 /**
  * Convierte un nombre o apellido a NOMBRE PROPIO con ortografía correcta.
@@ -106,9 +148,9 @@ export const toProperName = (raw: string | null | undefined): string => {
   const words = value.split(' ');
   return words
     .map((word, index) => {
+      // Las partículas sólo van en minúscula cuando son palabras sueltas internas.
       const key = fold(word);
-      if (ORTOGRAFIA[key]) return ORTOGRAFIA[key];
-      if (index > 0 && PARTICULAS.has(key)) return key;
+      if (index > 0 && !/[-‑–'’`´]/.test(word) && PARTICULAS.has(key)) return key;
       return capitalizeWord(word);
     })
     .join(' ');
