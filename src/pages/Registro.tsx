@@ -43,6 +43,7 @@ import { useCategoriasReglas, type CategoriaRegla } from '@/hooks/useCategoriasR
 import { useRegistroPreferente } from '@/hooks/useRegistroPreferente';
 import type { CategoryDetail } from '@/data/playersData';
 import { toProperName } from '@/lib/properName';
+import { ProperNameDiffIndicator } from '@/components/registro/ProperNameDiffIndicator';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
@@ -2099,6 +2100,10 @@ const Registro = () => {
               aria-label={`Editar ${label} normalizado`}
             />
           </div>
+        )}
+        {/* Indicador en vivo de qué partes cambian al normalizar */}
+        {isProperNameField(name) && (values[name] || '').trim() && (
+          <ProperNameDiffIndicator value={values[name] || ''} />
         )}
       </div>
     );
