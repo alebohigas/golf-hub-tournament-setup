@@ -78,6 +78,23 @@ const SponsorRibbon = () => {
    */
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [trackWidth, setTrackWidth] = useState<number>(0);
+  /**
+   * Window width, used as the STABLE reference for the ribbon's pixel speed.
+   * Unlike the measured container width, it is never 0 during the first paint,
+   * so the animation duration is identical on a fresh load and after a
+   * client-side route change (Layout remounts the ribbon on every page).
+   */
+  const [windowWidth, setWindowWidth] = useState<number>(() =>
+    typeof window === 'undefined' ? 1280 : window.innerWidth,
+  );
+
+  /** Keep `windowWidth` in sync with the viewport. */
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   /**
    * Keep `viewportWidth` in sync with the actual rendered ribbon width.
@@ -100,16 +117,42 @@ const SponsorRibbon = () => {
     return () => observer.disconnect();
   }, []);
 
-  /** Keep `trackWidth` in sync with the rendered sponsor strip width. */
+  /**
+   * Keep `trackWidth` in sync with the rendered sponsor strip width.
+   *
+   * Logos are <img> elements with `w-auto`, so the strip only reaches its final
+   * width once every image has decoded. On a client-side navigation the images
+   * come from cache and resolve at unpredictable times, which previously left
+   * `trackWidth` stale and made the ribbon crawl until a hard refresh.
+   * We therefore re-measure on: mount, ResizeObserver ticks, every image `load`
+   * (captured on the track) and a couple of animation frames afterwards.
+   */
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
-    const update = () => setTrackWidth(el.scrollWidth);
+    let raf = 0;
+    const update = () => {
+      const w = el.scrollWidth;
+      setTrackWidth((prev) => (Math.abs(prev - w) > 1 ? w : prev));
+    };
+    const scheduleUpdate = () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        update();
+      });
+    };
     update();
-    const observer = new ResizeObserver(() => update());
+    scheduleUpdate();
+    const observer = new ResizeObserver(() => scheduleUpdate());
     observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    el.addEventListener('load', scheduleUpdate, true);
+    return () => {
+      observer.disconnect();
+      el.removeEventListener('load', scheduleUpdate, true);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [orderedSponsorsKey]);
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
@@ -315,9 +358,10 @@ const SponsorRibbon = () => {
    * count: passWidth = trackWidth / 2, and the strip must cover that distance
    * at `viewportWidth / SECONDS_PER_VIEWPORT` px per second.
    */
+  const pxPerSec = windowWidth / SECONDS_PER_VIEWPORT;
   const animationDurationSec =
-    trackWidth > 0 && viewportWidth > 0
-      ? (trackWidth / 2 / viewportWidth) * SECONDS_PER_VIEWPORT
+    trackWidth > 0 && pxPerSec > 0
+      ? trackWidth / 2 / pxPerSec
       : SECONDS_PER_VIEWPORT;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${animationDurationSec}s`,
