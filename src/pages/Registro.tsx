@@ -2060,6 +2060,16 @@ const Registro = () => {
           type={type}
           value={values[name] || ''}
           onChange={e => setValue(name, e.target.value)}
+            /**
+             * Nombre/Apellido: al salir del campo se normaliza a NOMBRE PROPIO
+             * (p. ej. "LOPEZ" -> "López") para que el jugador vea exactamente
+             * cómo quedará registrado.
+             */
+            onBlur={
+              isProperNameField(name)
+                ? () => setValue(name, toProperName(values[name] || ''))
+                : undefined
+            }
         />
       </div>
     );
