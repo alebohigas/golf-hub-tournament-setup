@@ -152,7 +152,7 @@ const SponsorRibbon = () => {
       el.removeEventListener('load', scheduleUpdate, true);
       if (raf) window.cancelAnimationFrame(raf);
     };
-  }, [orderedSponsorsKey]);
+  }, [sponsors.length, pathname]);
 
   /**
    * Apply admin carousel config (order / randomize / visibleCount) to the
