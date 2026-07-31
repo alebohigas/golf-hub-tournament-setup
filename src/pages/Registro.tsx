@@ -1745,35 +1745,68 @@ const Registro = () => {
     }
 
     if (name === 'reg_club') {
-      // Editable text input + native <datalist> autocomplete reduces options
-      // as the user types. Auto-filled from existing jugadores match when
-      // available; user can overwrite freely (e.g. they changed clubs).
-      // When reg_es_socio = SI, the datalist is restricted to the clubs
-      // registered for the current tournament (from `clubs_registro`), so
-      // socios can only select among clubs actually enrolled in the event.
-      const listId = `${id}-clubs`;
+      /**
+       * Club de procedencia — combobox de SOLO SELECCIÓN.
+       * ------------------------------------------------------------------
+       * Se muestra un botón con flecha (chevron) que despliega el catálogo
+       * de clubes de `torneos.clubs` (o los clubes inscritos al torneo
+       * cuando reg_es_socio = SI). El buscador interno sólo filtra: el
+       * valor guardado siempre proviene de un club del catálogo, por lo que
+       * NO se puede sobrescribir con texto libre. Si se omite, al enviar se
+       * usa "SIN CLUB" (clubid 770042).
+       */
       const isSocio = values.reg_es_socio === 'SI';
       const listOptions = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
+      const currentClub = values[name] || '';
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
-          <Input
-            id={id}
-            type="text"
-            required={required}
-            placeholder={PLACEHOLDERS[name] ?? 'Ej: Club de Golf…'}
-            value={values[name] || ''}
-            onChange={e => { setValue(name, e.target.value); if (clubError) setClubError(''); }}
-            list={listId}
-            autoComplete="off"
-            aria-invalid={!!clubError}
-            className={clubError ? 'border-destructive focus-visible:ring-destructive' : ''}
-          />
-          <datalist id={listId}>
-            {listOptions.map(c => (
-              <option key={c.id} value={c.nombre} />
-            ))}
-          </datalist>
+          <Popover open={clubOpen} onOpenChange={setClubOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                id={id}
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={clubOpen}
+                aria-invalid={!!clubError}
+                className={`w-full justify-between font-normal ${clubError ? 'border-destructive focus-visible:ring-destructive' : ''} ${currentClub ? '' : 'text-muted-foreground'}`}
+              >
+                <span className="truncate">{currentClub || 'Selecciona tu club'}</span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="p-0 w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)]"
+              align="start"
+            >
+              <Command>
+                {/* El buscador SÓLO filtra la lista; no escribe el valor. */}
+                <CommandInput placeholder="Buscar club…" />
+                <CommandList className="max-h-64">
+                  <CommandEmpty>Sin resultados. Selecciona "SIN CLUB".</CommandEmpty>
+                  <CommandGroup>
+                    {listOptions.map(c => (
+                      <CommandItem
+                        key={c.id}
+                        value={c.nombre}
+                        onSelect={() => {
+                          setValue(name, c.nombre);
+                          if (clubError) setClubError('');
+                          setClubOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${currentClub === c.nombre ? 'opacity-100' : 'opacity-0'}`}
+                        />
+                        <span className="truncate">{c.nombre}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           {/* Mensaje de error cuando el jugador escribió un club que no
               coincide con ninguna opción del catálogo. Ver validación en
               onSubmit(). */}
