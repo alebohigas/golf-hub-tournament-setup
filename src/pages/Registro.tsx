@@ -42,6 +42,7 @@ import { useRegistroPrecioMatch } from '@/hooks/useRegistroPrecios';
 import { useCategoriasReglas, type CategoriaRegla } from '@/hooks/useCategoriasReglas';
 import { useRegistroPreferente } from '@/hooks/useRegistroPreferente';
 import type { CategoryDetail } from '@/data/playersData';
+import { toProperName } from '@/lib/properName';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
@@ -66,6 +67,14 @@ interface LocationRow { id: number; name: string }
  * envía cuando el jugador no selecciona ningún club de procedencia.
  */
 const SIN_CLUB_NOMBRE = 'SIN CLUB';
+
+/**
+ * Campos de texto que deben guardarse siempre en NOMBRE PROPIO
+ * (Title Case + ortografía en español). Ver `src/lib/properName.ts`.
+ */
+const PROPER_NAME_FIELDS = ['reg_nombre', 'reg_apellido'] as const;
+const isProperNameField = (name: string) =>
+  (PROPER_NAME_FIELDS as readonly string[]).includes(name);
 
 /** Row returned by /api/clubs.php */
 interface ClubRow {
@@ -1370,6 +1379,12 @@ const Registro = () => {
         const isClubField = k === 'reg_club';
         let finalValue = isGhinField(k) && (!v || v === '') ? '9999' : v;
         if (isClubField && (!v || String(v).trim() === '')) finalValue = SIN_CLUB_NOMBRE;
+        /**
+         * NOMBRE PROPIO: nombre y apellido siempre se envían normalizados
+         * (mayúsculas/minúsculas + ortografía), aunque el campo no haya
+         * perdido el foco antes de enviar.
+         */
+        if (isProperNameField(k)) finalValue = toProperName(finalValue);
         if (finalValue !== '' && finalValue !== undefined && finalValue !== null) fd.append(k, finalValue);
       });
       if (file) fd.append('reg_archivo', file);
@@ -2052,6 +2067,16 @@ const Registro = () => {
           type={type}
           value={values[name] || ''}
           onChange={e => setValue(name, e.target.value)}
+            /**
+             * Nombre/Apellido: al salir del campo se normaliza a NOMBRE PROPIO
+             * (p. ej. "LOPEZ" -> "López") para que el jugador vea exactamente
+             * cómo quedará registrado.
+             */
+            onBlur={
+              isProperNameField(name)
+                ? () => setValue(name, toProperName(values[name] || ''))
+                : undefined
+            }
         />
       </div>
     );
