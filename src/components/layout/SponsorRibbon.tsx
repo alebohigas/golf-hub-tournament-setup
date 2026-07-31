@@ -322,7 +322,7 @@ const SponsorRibbon = () => {
                       url={sponsor.logoUrl}
                       alt={sponsor.name}
                       onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                      className="h-[74px] md:h-24 w-auto max-w-none object-contain transition-all duration-300"
+                      className="h-[56px] md:h-[72px] w-auto max-w-none object-contain transition-all duration-300"
                     />
                   </a>
                 ) : (
@@ -330,7 +330,7 @@ const SponsorRibbon = () => {
                     url={sponsor.logoUrl}
                     alt={sponsor.name}
                     onStatusChange={(s) => handleStatus(String(sponsor.id), s)}
-                    className="h-[74px] md:h-24 w-auto max-w-none object-contain transition-all duration-300"
+                    className="h-[56px] md:h-[72px] w-auto max-w-none object-contain transition-all duration-300"
                   />
                 )}
               </div>
