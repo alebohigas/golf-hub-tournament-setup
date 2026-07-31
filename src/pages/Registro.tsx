@@ -2100,6 +2100,10 @@ const Registro = () => {
             />
           </div>
         )}
+        {/* Indicador en vivo de qué partes cambian al normalizar */}
+        {isProperNameField(name) && (values[name] || '').trim() && (
+          <ProperNameDiffIndicator value={values[name] || ''} />
+        )}
       </div>
     );
   };
