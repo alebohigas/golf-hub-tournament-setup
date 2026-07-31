@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import {
   GalleryHorizontal,
   GripVertical,
@@ -41,6 +42,9 @@ import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/
 
 /** Default visibleCount used when nothing is stored yet (0 = "all") */
 const DEFAULT_VISIBLE_COUNT = 0;
+
+/** Default ribbon speed in seconds per viewport width (higher = más lento) */
+const DEFAULT_SPEED_SECONDS = 25;
 
 // ============= Helpers =============
 
@@ -77,6 +81,12 @@ const AdminSponsorsCarousel = () => {
   const [randomize, setRandomize] = useState<boolean>(false);
   /** Local draft state — number of logos FULLY visible in the viewport (0 = auto) */
   const [visibleCount, setVisibleCount] = useState<number>(DEFAULT_VISIBLE_COUNT);
+  /**
+   * Local draft state — velocidad del ribbon en segundos por ancho de pantalla.
+   * Es independiente de la cantidad de logos visibles: el ribbon mide el ancho
+   * real de la tira y ajusta la animación para mantener la misma velocidad.
+   */
+  const [speedSeconds, setSpeedSeconds] = useState<number>(DEFAULT_SPEED_SECONDS);
   /**
    * Local draft state — set of sponsor IDs the admin has enabled for the ribbon.
    * The ribbon will only display sponsors whose ID is in this set. Null/undefined
@@ -135,6 +145,7 @@ const AdminSponsorsCarousel = () => {
     setOrderedIds([...savedOrder, ...missing]);
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
+    setSpeedSeconds(savedCarousel.speedSeconds ?? DEFAULT_SPEED_SECONDS);
     // Enabled list: if the server has no whitelist yet, default to ALL WORKING sponsors enabled.
     // Broken-logo sponsors are always force-excluded from the whitelist.
     const savedEnabled = savedCarousel.enabledIds;
@@ -176,10 +187,11 @@ const AdminSponsorsCarousel = () => {
    * raw seconds.
    */
   const speedLabel =
-    visibleCount === 1 ? 'rápida' :
-    visibleCount === 2 ? 'rápida' :
-    visibleCount === 3 ? 'moderada' :
-    'estándar';
+    speedSeconds <= 10 ? 'muy rápida' :
+    speedSeconds <= 18 ? 'rápida' :
+    speedSeconds <= 30 ? 'estándar' :
+    speedSeconds <= 50 ? 'lenta' :
+    'muy lenta';
 
   /** Detect unsaved changes vs. server-stored config */
   const savedEnabledArray = Array.isArray(savedCarousel.enabledIds)
@@ -190,6 +202,7 @@ const AdminSponsorsCarousel = () => {
     JSON.stringify(orderedIds) !== JSON.stringify(savedCarousel.order ?? []) ||
     Boolean(savedCarousel.randomize) !== randomize ||
     (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount ||
+    (savedCarousel.speedSeconds ?? DEFAULT_SPEED_SECONDS) !== speedSeconds ||
     JSON.stringify(savedEnabledArray) !== JSON.stringify(draftEnabledArray);
 
   /** DnD callback — applies the new order returned by react-beautiful-dnd */
@@ -216,6 +229,7 @@ const AdminSponsorsCarousel = () => {
             order: orderedIds,
             randomize,
             visibleCount,
+            speedSeconds,
             enabledIds: safeEnabled,
           },
         },
@@ -367,6 +381,28 @@ const AdminSponsorsCarousel = () => {
                   className="w-24 text-right font-mono"
                 />
               </div>
+            </div>
+
+            {/* Velocidad del ribbon — independiente de la cantidad de logos visibles */}
+            <div className="space-y-2 px-4 py-3 rounded-md border border-border bg-background">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="carousel-speed">Velocidad (menor = más rápido)</Label>
+                <span className="text-sm font-mono text-muted-foreground">
+                  {speedSeconds}s por pantalla
+                </span>
+              </div>
+              <Slider
+                id="carousel-speed"
+                min={5}
+                max={90}
+                step={1}
+                value={[speedSeconds]}
+                onValueChange={([v]) => setSpeedSeconds(v)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Segundos que tardan los logos en recorrer un ancho de pantalla.
+                La velocidad es la misma sin importar cuántos logos estén visibles.
+              </p>
             </div>
 
             {/* Drag-and-drop sponsor list */}

@@ -70,6 +70,14 @@ const SponsorRibbon = () => {
    */
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportWidth, setViewportWidth] = useState<number>(0);
+  /**
+   * Ref + measured width of the scrolling track (`.sponsor-scroll`). Measuring
+   * the real rendered width lets us derive an animation duration that produces
+   * a CONSTANT pixel-per-second speed, independent of how many logos are
+   * visible or how many sponsors exist.
+   */
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [trackWidth, setTrackWidth] = useState<number>(0);
 
   /**
    * Keep `viewportWidth` in sync with the actual rendered ribbon width.
@@ -89,6 +97,17 @@ const SponsorRibbon = () => {
     const observer = new ResizeObserver(() => updateWidth());
     observer.observe(el);
 
+    return () => observer.disconnect();
+  }, []);
+
+  /** Keep `trackWidth` in sync with the rendered sponsor strip width. */
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const update = () => setTrackWidth(el.scrollWidth);
+    update();
+    const observer = new ResizeObserver(() => update());
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
@@ -285,11 +304,21 @@ const SponsorRibbon = () => {
    * by one full viewport width. Higher = slower. Bumped from 12s → 25s
    * because 12s still felt like "top speed" on wide desktop viewports.
    */
-  const SECONDS_PER_VIEWPORT = 25;
+  /**
+   * Admin-configured seconds per viewport width (Admin → Patrocinadores →
+   * Carrusel → "Velocidad"). Falls back to 25s (previous hardcoded default).
+   */
+  const SECONDS_PER_VIEWPORT = Math.max(2, Number(carousel?.speedSeconds) || 25);
+  /**
+   * Duration for a full -50% pass. Using the MEASURED track width keeps the
+   * pixel speed identical regardless of `visibleCount`, logo widths or sponsor
+   * count: passWidth = trackWidth / 2, and the strip must cover that distance
+   * at `viewportWidth / SECONDS_PER_VIEWPORT` px per second.
+   */
   const animationDurationSec =
-    visibleCount > 0 && interleaved.length > 0
-      ? (interleaved.length / visibleCount) * SECONDS_PER_VIEWPORT
-      : 30;
+    trackWidth > 0 && viewportWidth > 0
+      ? (trackWidth / 2 / viewportWidth) * SECONDS_PER_VIEWPORT
+      : SECONDS_PER_VIEWPORT;
   const animationStyle: React.CSSProperties = {
     animationDuration: `${animationDurationSec}s`,
   };
@@ -304,7 +333,7 @@ const SponsorRibbon = () => {
     >
       <div className="container mx-auto">
         <div ref={viewportRef} className="fade-edge-left">
-          <div className="flex items-center sponsor-scroll" style={animationStyle}>
+          <div ref={trackRef} className="flex items-center sponsor-scroll" style={animationStyle}>
             {duplicatedSponsors.map((sponsor, index) => (
               <div
                 key={`${sponsor.id}-${index}`}
