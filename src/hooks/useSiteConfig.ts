@@ -60,6 +60,13 @@ export interface SponsorsConfig {
     randomize?: boolean;
     visibleCount?: number;
     enabledIds?: number[];
+    /**
+     * Ribbon scroll speed expressed as SECONDS PER VIEWPORT WIDTH.
+     * Higher = slower. Independent of `visibleCount` and sponsor count:
+     * the public ribbon measures the real track width and scales the CSS
+     * animation duration so the perceived speed stays constant.
+     */
+    speedSeconds?: number;
   };
 }
 
