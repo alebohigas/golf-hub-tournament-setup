@@ -383,6 +383,28 @@ const AdminSponsorsCarousel = () => {
               </div>
             </div>
 
+            {/* Velocidad del ribbon — independiente de la cantidad de logos visibles */}
+            <div className="space-y-2 px-4 py-3 rounded-md border border-border bg-background">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="carousel-speed">Velocidad (menor = más rápido)</Label>
+                <span className="text-sm font-mono text-muted-foreground">
+                  {speedSeconds}s por pantalla
+                </span>
+              </div>
+              <Slider
+                id="carousel-speed"
+                min={5}
+                max={90}
+                step={1}
+                value={[speedSeconds]}
+                onValueChange={([v]) => setSpeedSeconds(v)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Segundos que tardan los logos en recorrer un ancho de pantalla.
+                La velocidad es la misma sin importar cuántos logos estén visibles.
+              </p>
+            </div>
+
             {/* Drag-and-drop sponsor list */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
