@@ -1356,7 +1356,13 @@ const Registro = () => {
       Object.entries(values).forEach(([k, v]) => {
         // Skip our internal/private flags (prefixed with __).
         if (k.startsWith('__')) return;
-        const finalValue = isGhinField(k) && (!v || v === '') ? '9999' : v;
+        /**
+         * Fallback CLUB: si el jugador no seleccionó club, enviamos
+         * "SIN CLUB" (clubid 770042 en `torneos.clubs`).
+         */
+        const isClubField = k === 'reg_club';
+        let finalValue = isGhinField(k) && (!v || v === '') ? '9999' : v;
+        if (isClubField && (!v || String(v).trim() === '')) finalValue = SIN_CLUB_NOMBRE;
         if (finalValue !== '' && finalValue !== undefined && finalValue !== null) fd.append(k, finalValue);
       });
       if (file) fd.append('reg_archivo', file);
@@ -1368,6 +1374,11 @@ const Registro = () => {
       (['reg_ghin', 'numghinspei'] as const).forEach((ghinName) => {
         if (isFieldEnabled(ghinName) && !fd.has(ghinName)) fd.append(ghinName, '9999');
       });
+      /**
+       * Garantía extra del fallback de club: si el campo está habilitado
+       * pero nunca se seleccionó nada, enviamos "SIN CLUB".
+       */
+      if (isFieldEnabled('reg_club') && !fd.has('reg_club')) fd.append('reg_club', SIN_CLUB_NOMBRE);
       /**
        * Marca de tiempo de envío capturada en el cliente. Enviamos:
        *  - `reg_client_utc`: ISO 8601 en UTC (Z), lo que el servidor guarda
