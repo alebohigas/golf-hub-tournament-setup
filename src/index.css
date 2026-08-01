@@ -192,10 +192,25 @@
   }
 
   .fade-edge-left {
-    /* Soft fade on both edges of the sponsor ribbon so logos appear/disappear
-       gracefully as they scroll in and out of view. */
-    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    /* Soft fade-in / fade-out on both edges of the sponsor ribbon so logos
+       appear and disappear gracefully as they scroll in and out of view.
+       The fade width is fixed in px (not %) so it looks identical on phones,
+       tablets and desktop regardless of container width. */
+    overflow: hidden;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 72px,
+      black calc(100% - 72px),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 72px,
+      black calc(100% - 72px),
+      transparent 100%
+    );
   }
 }
 
