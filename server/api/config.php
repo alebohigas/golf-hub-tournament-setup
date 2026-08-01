@@ -58,7 +58,11 @@ if ($conn->connect_error) {
     exit;
 }
 
-$conn->set_charset('utf8');
+// utf8mb4 evita que los acentos y la "ñ" lleguen como caracteres partidos
+// (mojibake tipo "podrÃ¡n"). Si el servidor no soporta utf8mb4, cae a utf8.
+if (!@$conn->set_charset('utf8mb4')) {
+    @$conn->set_charset('utf8');
+}
 
 // ============= Debug Mode =============
 /** Check if debug mode is enabled via ?debug=1 query param */
