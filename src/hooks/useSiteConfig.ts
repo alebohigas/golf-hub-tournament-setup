@@ -148,6 +148,13 @@ export interface PremiosConfig {
   /** Shared custom poster order across breakpoints. */
   posterOrder?: number[];
   /** @deprecated Legacy per-breakpoint orders. */
+  desktopColumns: number;
+  mobileColumns: number;
+  desktopGap: EventosGap;
+  mobileGap: EventosGap;
+  /** Shared custom poster order across breakpoints. */
+  posterOrder?: number[];
+  /** @deprecated Legacy per-breakpoint orders. */
   desktopOrder?: number[];
   /** @deprecated See `desktopOrder`. */
   mobileOrder?: number[];
