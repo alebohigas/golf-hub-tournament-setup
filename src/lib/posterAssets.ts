@@ -122,6 +122,15 @@ export const AVISOS_POSTERS: DiscoveredPoster[] = buildPosterList(
   }) as Record<string, string>
 );
 
+/** All Menús posters discovered under `src/assets/menus/`. */
+export const MENUS_POSTERS: DiscoveredPoster[] = buildPosterList(
+  import.meta.glob('/src/assets/menus/*.{webp,jpg,jpeg,png,gif,WEBP,JPG,JPEG,PNG,GIF}', {
+    eager: true,
+    query: '?url',
+    import: 'default',
+  }) as Record<string, string>
+);
+
 /** All Premios posters discovered under `src/assets/premios/`. */
 export const PREMIOS_POSTERS: DiscoveredPoster[] = buildPosterList(
   import.meta.glob('/src/assets/premios/*.{webp,jpg,jpeg,png,gif,WEBP,JPG,JPEG,PNG,GIF}', {
