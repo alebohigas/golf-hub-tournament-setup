@@ -25,6 +25,7 @@ import CostosSection from '@/components/convocatoria/CostosSection';
 import CategoriasSection from '@/components/convocatoria/CategoriasSection';
 import PremiacionSection from '@/components/convocatoria/PremiacionSection';
 import DesempatesSection from '@/components/convocatoria/DesempatesSection';
+import StablefordSection from '@/components/convocatoria/StablefordSection';
 import ReglasSection from '@/components/convocatoria/ReglasSection';
 import CompetenciasEspecialesSection from '@/components/convocatoria/CompetenciasEspecialesSection';
 import ServiciosSection from '@/components/convocatoria/ServiciosSection';
@@ -129,6 +130,10 @@ const renderSection = (sectionId: string, dbRow?: ConvocatoriaContentRow) => {
           data={(c as DesempatesData) ?? { intro: '', paraCorte: [], paraTrofeos: [] }}
         />
       );
+    // Valores Stableford: los datos vienen de torneos.valorstable (BD),
+    // no de convocatoria_content, por eso no recibe payload.
+    case 'stableford':
+      return <StablefordSection />;
     case 'reglas':
       return <ReglasSection data={(c?.items as ReglaItem[]) ?? []} />;
     case 'competencias':
