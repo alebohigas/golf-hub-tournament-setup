@@ -43,7 +43,6 @@ import { useCategoriasReglas, type CategoriaRegla } from '@/hooks/useCategoriasR
 import { useRegistroPreferente } from '@/hooks/useRegistroPreferente';
 import type { CategoryDetail } from '@/data/playersData';
 import { toProperName } from '@/lib/properName';
-import { ProperNameDiffIndicator } from '@/components/registro/ProperNameDiffIndicator';
 import {
   getRegistroSubmitUrl,
   getLocationsCountriesUrl,
