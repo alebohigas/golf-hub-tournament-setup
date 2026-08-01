@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import { menuConfig } from '@/data/mockData';
 
 // ============= Constants =============
 
@@ -36,22 +37,25 @@ import { usePageVisibility } from '@/contexts/PageVisibilityContext';
  * currently visible to end users. `pageId: null` means the page is not
  * managed by visibility (e.g. /live-scoring) and is always treated as visible.
  */
+/**
+ * Extra public routes that are NOT part of `menuConfig` (no menu entry) but
+ * can still display the sponsor ribbon. `pageId: null` = always treated as
+ * visible for the eye indicator.
+ */
+const EXTRA_RIBBON_PAGES: { path: string; label: string; pageId: string | null }[] = [
+  { path: '/live-scoring', label: 'Live Scoring', pageId: 'live-scoring' },
+];
+
+/**
+ * Full list of pages where the ribbon can appear, derived from `menuConfig`
+ * (so every page managed in /admin → Página shows up here automatically)
+ * plus the extra non-menu routes above, sorted by menu order.
+ */
 const RIBBON_PAGES: { path: string; label: string; pageId: string | null }[] = [
-  { path: '/', label: 'Inicio', pageId: 'home' },
-  { path: '/convocatoria', label: 'Convocatoria', pageId: 'convocatoria' },
-  { path: '/eventos', label: 'Eventos', pageId: 'eventos' },
-  { path: '/jugadores', label: 'Jugadores', pageId: 'jugadores' },
-  { path: '/salidas', label: 'Salidas', pageId: 'salidas' },
-  { path: '/live', label: 'LIVE', pageId: 'live' },
-  { path: '/live-scoring', label: 'Live Scoring', pageId: null },
-  { path: '/resultados', label: 'Resultados', pageId: 'resultados' },
-  { path: '/competicion', label: 'Competición', pageId: 'competicion' },
-  { path: '/calendario', label: 'Calendario', pageId: 'calendario' },
-  { path: '/horarios', label: 'Horarios de Salidas', pageId: 'horarios' },
-  { path: '/avisos', label: 'Avisos', pageId: 'avisos' },
-  { path: '/premios', label: 'Premios', pageId: 'premios' },
-  { path: '/patrocinadores', label: 'Patrocinadores', pageId: 'patrocinadores' },
-  { path: '/reglas', label: 'Reglas', pageId: 'reglas' },
+  ...[...menuConfig]
+    .sort((a, b) => a.order - b.order)
+    .map((m) => ({ path: m.path, label: m.label, pageId: m.id })),
+  ...EXTRA_RIBBON_PAGES,
 ];
 
 /** Build a default visibility map (every page visible) */
