@@ -46,6 +46,9 @@ const DEFAULT_VISIBLE_COUNT = 0;
 /** Default ribbon speed in seconds per screen width (higher = más lento) */
 const DEFAULT_SPEED_SECONDS = 12;
 
+/** Default MOBILE ribbon speed (seconds per screen width, higher = más lento) */
+const DEFAULT_SPEED_SECONDS_MOBILE = 12;
+
 /** Rango permitido del slider de velocidad (segundos por ancho de pantalla) */
 const MIN_SPEED_SECONDS = 2;
 const MAX_SPEED_SECONDS = 60;
@@ -91,6 +94,10 @@ const AdminSponsorsCarousel = () => {
    * real de la tira y ajusta la animación para mantener la misma velocidad.
    */
   const [speedSeconds, setSpeedSeconds] = useState<number>(DEFAULT_SPEED_SECONDS);
+  /** Draft MOBILE-only ribbon speed (seconds per screen width) */
+  const [speedSecondsMobile, setSpeedSecondsMobile] = useState<number>(
+    DEFAULT_SPEED_SECONDS_MOBILE,
+  );
   /**
    * Local draft state — set of sponsor IDs the admin has enabled for the ribbon.
    * The ribbon will only display sponsors whose ID is in this set. Null/undefined
@@ -150,6 +157,9 @@ const AdminSponsorsCarousel = () => {
     setRandomize(Boolean(savedCarousel.randomize));
     setVisibleCount(savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT);
     setSpeedSeconds(savedCarousel.speedSeconds ?? DEFAULT_SPEED_SECONDS);
+    setSpeedSecondsMobile(
+      savedCarousel.speedSecondsMobile ?? savedCarousel.speedSeconds ?? DEFAULT_SPEED_SECONDS_MOBILE,
+    );
     // Enabled list: if the server has no whitelist yet, default to ALL WORKING sponsors enabled.
     // Broken-logo sponsors are always force-excluded from the whitelist.
     const savedEnabled = savedCarousel.enabledIds;
@@ -207,6 +217,8 @@ const AdminSponsorsCarousel = () => {
     Boolean(savedCarousel.randomize) !== randomize ||
     (savedCarousel.visibleCount ?? DEFAULT_VISIBLE_COUNT) !== visibleCount ||
     (savedCarousel.speedSeconds ?? DEFAULT_SPEED_SECONDS) !== speedSeconds ||
+    (savedCarousel.speedSecondsMobile ?? savedCarousel.speedSeconds ?? DEFAULT_SPEED_SECONDS_MOBILE) !==
+      speedSecondsMobile ||
     JSON.stringify(savedEnabledArray) !== JSON.stringify(draftEnabledArray);
 
   /** DnD callback — applies the new order returned by react-beautiful-dnd */
@@ -234,6 +246,7 @@ const AdminSponsorsCarousel = () => {
             randomize,
             visibleCount,
             speedSeconds,
+            speedSecondsMobile,
             enabledIds: safeEnabled,
           },
         },
@@ -406,6 +419,30 @@ const AdminSponsorsCarousel = () => {
               <p className="text-xs text-muted-foreground">
                 Segundos que tardan los logos en recorrer un ancho de pantalla.
                 La velocidad es la misma sin importar cuántos logos estén visibles.
+              </p>
+            </div>
+
+            {/* Velocidad EXCLUSIVA para celulares (<768px) */}
+            <div className="space-y-2 px-4 py-3 rounded-md border border-border bg-background">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="carousel-speed-mobile">
+                  Velocidad en celulares (menor = más rápido)
+                </Label>
+                <span className="text-sm font-mono text-muted-foreground">
+                  {speedSecondsMobile}s por pantalla
+                </span>
+              </div>
+              <Slider
+                id="carousel-speed-mobile"
+                min={MIN_SPEED_SECONDS}
+                max={MAX_SPEED_SECONDS}
+                step={1}
+                value={[speedSecondsMobile]}
+                onValueChange={([v]) => setSpeedSecondsMobile(v)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Aplica solo en pantallas de celular (menos de 768px de ancho).
+                Escritorio y tabletas usan la velocidad de arriba.
               </p>
             </div>
 
