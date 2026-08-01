@@ -162,7 +162,12 @@ const Convocatoria = () => {
   // DB-backed convocatoria content for the active tournament.
   // When a row exists for a given section_id we use it; otherwise the
   // page falls back to the static mockData values below.
-  const { bySectionId: dbContent } = useConvocatoriaContent();
+  // Auto-recarga desde la BD: poll cada 30s + refetch al enfocar la pestaña +
+  // sincronización inmediata cuando /admin habilita/deshabilita una sección.
+  const { bySectionId: dbContent } = useConvocatoriaContent({
+    pollMs: 30_000,
+    refreshOnFocus: true,
+  });
   // Resolve the convocatoria PDF URL.
   // ONLY the admin-uploaded PDF (via /admin → "convocatoria" section) is used.
   // The legacy `pdfs` bucket fallback and the build-time `/convocatoria-torneo.pdf`

@@ -7,6 +7,13 @@
  * Returns a Map<section_id, ConvocatoriaContentRow> so the page
  * can render DB-backed content when present and fall back to
  * mockData for sections without a row.
+ *
+ * Auto-refresh (no localStorage involved):
+ *  - `pollMs` re-fetches on an interval (public page keeps itself fresh).
+ *  - window focus / tab visibility triggers an immediate re-fetch.
+ *  - a BroadcastChannel signal (`CONVOCATORIA_CHANNEL`) fired by
+ *    saveSection/clearSection makes every open tab (public page included)
+ *    reload the config the instant an admin toggles a section.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -29,13 +36,39 @@ interface ApiResponse {
   sections: ConvocatoriaContentRow[];
 }
 
+/** Cross-tab channel name used to announce convocatoria config changes. */
+const CONVOCATORIA_CHANNEL = 'convocatoria_content_changed';
+
+/** Options accepted by {@link useConvocatoriaContent}. */
+export interface UseConvocatoriaContentOptions {
+  /** Poll interval in ms. `0`/undefined disables polling. */
+  pollMs?: number;
+  /** Re-fetch when the tab regains focus/visibility. Default: true. */
+  refreshOnFocus?: boolean;
+}
+
+/**
+ * Notifies all open tabs (and this one) that convocatoria config changed.
+ * Safe no-op when BroadcastChannel is unavailable.
+ */
+const broadcastConvocatoriaChange = () => {
+  try {
+    const ch = new BroadcastChannel(CONVOCATORIA_CHANNEL);
+    ch.postMessage({ type: 'changed', at: Date.now() });
+    ch.close();
+  } catch {
+    /* unsupported browser: polling/focus refresh still covers it */
+  }
+};
+
 // ============= Hook =============
 
 /**
  * Loads convocatoria content for the active tournament.
  * Returns the raw rows, a lookup map by `section_id`, plus loading state.
  */
-export const useConvocatoriaContent = () => {
+export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = {}) => {
+  const { pollMs = 0, refreshOnFocus = true } = options;
   const { torneoId } = useTorneoId();
   const [rows, setRows] = useState<ConvocatoriaContentRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -79,6 +112,49 @@ export const useConvocatoriaContent = () => {
     };
   }, [torneoId, refreshTick]);
 
+  /** Force re-fetch from the API (call after save/delete). */
+  const refresh = useCallback(() => setRefreshTick((n) => n + 1), []);
+
+  /** Interval polling so the public page picks up admin changes on its own. */
+  useEffect(() => {
+    if (!pollMs || pollMs <= 0) return;
+    const id = window.setInterval(refresh, pollMs);
+    return () => window.clearInterval(id);
+  }, [pollMs, refresh]);
+
+  /** Re-fetch on focus / tab visibility so a returning viewer sees the truth. */
+  useEffect(() => {
+    if (!refreshOnFocus) return;
+    const onFocus = () => refresh();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refreshOnFocus, refresh]);
+
+  /** Live cross-tab sync: admin toggle → public page reloads immediately. */
+  useEffect(() => {
+    let ch: BroadcastChannel | null = null;
+    try {
+      ch = new BroadcastChannel(CONVOCATORIA_CHANNEL);
+      ch.onmessage = () => refresh();
+    } catch {
+      ch = null;
+    }
+    return () => {
+      try {
+        ch?.close();
+      } catch {
+        /* noop */
+      }
+    };
+  }, [refresh]);
+
   /** Lookup by section_id for O(1) access from the page renderer. */
   const bySectionId = new Map<string, ConvocatoriaContentRow>();
   rows.forEach((r) => bySectionId.set(r.section_id, r));
@@ -107,9 +183,6 @@ export const useConvocatoriaContent = () => {
     if (typeof c === 'string') return c.trim() !== '';
     return true;
   }, [bySectionId]);
-
-  /** Force re-fetch from the API (call after save/delete). */
-  const refresh = useCallback(() => setRefreshTick((n) => n + 1), []);
 
   /**
    * Upsert a convocatoria_content row.
@@ -142,6 +215,7 @@ export const useConvocatoriaContent = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       refresh();
+      broadcastConvocatoriaChange();
       return true;
     } catch (err) {
       console.error('saveSection failed', err);
@@ -167,6 +241,7 @@ export const useConvocatoriaContent = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       refresh();
+      broadcastConvocatoriaChange();
       return true;
     } catch (err) {
       console.error('clearSection failed', err);
