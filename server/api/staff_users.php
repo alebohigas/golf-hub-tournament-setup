@@ -32,7 +32,7 @@ function require_admin_pwd($body) {
 
 /** Áreas válidas (whitelist sincronizada con el frontend). */
 $VALID_AREAS = [
-    'preregistros','brackets','banderas','pop','eventos','avisos',
+    'preregistros','brackets','banderas','pop','eventos','avisos','menus',
     'premios','convocatoria','reglas','uploads','stats','hoteles','matchplay','live',
 ];
 

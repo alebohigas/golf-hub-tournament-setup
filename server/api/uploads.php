@@ -11,6 +11,7 @@
  * Sections (subfolders under /api/uploads/):
  *   - eventos       (images: poster grid for Eventos page)
  *   - avisos        (images: poster grid for Avisos page)
+ *   - menus         (images: poster grid for Menús page)
  *   - convocatoria  (images + PDF: poster grid + downloadable convocatoria document)
  *   - reglas        (PDF only: downloadable reglas y CC document)
  *   - pdfs          (legacy bucket — kept for backwards compatibility with
@@ -61,6 +62,12 @@ $SECTION_RULES = [
         'kind'  => 'imagen',
     ],
     'avisos' => [
+        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
+        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
+        'kind'  => 'imagen',
+    ],
+    'menus' => [
+        // Menús poster grid (mirrors avisos behavior). Image-only.
         'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
         'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
         'kind'  => 'imagen',
