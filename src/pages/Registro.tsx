@@ -2098,17 +2098,10 @@ const Registro = () => {
               className="h-6 text-xs px-2 py-0.5 flex-1 min-w-0"
               aria-label={`Editar ${label} normalizado`}
             />
-          </div>
-        )}
-        {/* Indicador en vivo de qué partes cambian al normalizar */}
-        {isProperNameField(name) && (values[name] || '').trim() && (
-          <ProperNameDiffIndicator value={values[name] || ''} />
-        )}
-      </div>
-    );
-  };
-
-  return (
+        </div>
+      );
+    }
+    return (
     <Layout>
       <PageHero
         title="Pre-Registro"
