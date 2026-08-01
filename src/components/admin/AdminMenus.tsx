@@ -309,7 +309,7 @@ const PreviewFrame = ({
                   <div
                     className="absolute top-1 left-1 z-10 p-1 rounded bg-background/80 backdrop-blur-sm text-foreground/80 hover:text-foreground hover:bg-background cursor-grab active:cursor-grabbing"
                     title="Arrastra para reordenar"
-                    aria-label="Arrastra para reordenar este aviso"
+                    aria-label="Arrastra para reordenar este menú"
                   >
                     <GripVertical className="h-3 w-3" />
                   </div>
@@ -318,7 +318,7 @@ const PreviewFrame = ({
                   </div>
                   <img
                     src={src}
-                    alt={`Aviso ${posterIdx + 1}`}
+                    alt={`Menú ${posterIdx + 1}`}
                     loading="lazy"
                     className="h-full w-full object-contain pointer-events-none"
                   />

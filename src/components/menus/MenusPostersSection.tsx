@@ -1,7 +1,7 @@
 /**
  * MenusPostersSection
  * -------------------------------------------------------------
- * Renders a responsive grid of aviso poster cards (climatological notice,
+ * Renders a responsive grid of menu poster cards (comida, bebidas,
  * pricing tables, etc.). Mirrors `AtraccionesSection` (Eventos page) in
  * structure and behavior so the Menus page shares the same visual
  * language and lightbox UX.
@@ -43,7 +43,7 @@ interface MenuCard {
 }
 
 /**
- * Ordered list of aviso posters.
+ * Ordered list of menu posters.
  *
  * The list is **auto-discovered** from `src/assets/menus/` via
  * `posterAssets.ts`, then mapped to the local `MenuCard` shape. To add
