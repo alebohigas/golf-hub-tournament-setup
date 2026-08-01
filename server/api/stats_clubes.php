@@ -20,7 +20,7 @@
  *        total
  *     }, ...],
  *     tees:   [{ id, color, tee }, ...],
- *     noShow: { retiro, noShow, descalificado, total }
+ *     noShow: { retiro, noShow, descalificado, noContiende, total }
  *   }
  *
  * Resilient: on missing tables/columns returns { total:0, clubs:[] }.
