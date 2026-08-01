@@ -72,3 +72,32 @@ Los endpoints dependen de estas funciones MySQL que ya existen en la BD:
 - `v_ult_tarjeta0` - Última tarjeta activa
 - `v_equipo_ed` - Eliminación Directa
 - `v_campeon_gross_stoke`, `v_campeon_gross` - Campeón Gross
+
+## Job de normalización de mojibake (BD)
+
+`mojibake_normalize.php` corrige el mojibake **en la base de datos**, no solo en la
+respuesta JSON (`fix_mojibake()` de `config.php`).
+
+Dry-run (no escribe nada):
+
+```bash
+php server/api/mojibake_normalize.php --dry-run
+```
+
+Aplicar correcciones:
+
+```bash
+php server/api/mojibake_normalize.php --apply
+php server/api/mojibake_normalize.php --apply --tables=convocatoria_content,torneos
+```
+
+Sin acceso CLI (IONOS), vía HTTP con contraseña de superadmin:
+
+```bash
+curl -X POST https://cs.speitour.com/api/mojibake_normalize.php \
+  -H 'Content-Type: application/json' \
+  -d '{"password":"***","apply":false}'
+```
+
+Recomendación: correr primero en dry-run, revisar `details[].samples`
+(`before` → `after`) y luego repetir con `apply: true`.
