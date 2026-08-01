@@ -343,28 +343,34 @@ const SponsorRibbon = () => {
    * fixed 18s loop which felt right in QA.
    */
   /**
-   * Desktop scroll speed: how many seconds it takes the ribbon to advance
-   * by one full viewport width. Higher = slower. Bumped from 12s → 25s
-   * because 12s still felt like "top speed" on wide desktop viewports.
+   * Admin-configured speed (Admin → Patrocinadores → Carrusel → "Velocidad"),
+   * expressed as SECONDS PER SCREEN WIDTH: menor = más rápido.
+   * Clamped to the same range exposed by the admin slider (2s … 60s) so a
+   * stale/incorrect stored value can never freeze the ribbon.
    */
+  const SECONDS_PER_SCREEN = Math.min(
+    60,
+    Math.max(2, Number(carousel?.speedSeconds) || 12),
+  );
   /**
-   * Admin-configured seconds per viewport width (Admin → Patrocinadores →
-   * Carrusel → "Velocidad"). Falls back to 25s (previous hardcoded default).
+   * Reference width used to translate "seconds per screen" into pixels/second.
+   * Prefer the measured ribbon viewport (respects the `container` max-width)
+   * and fall back to the window width before the first measurement lands.
    */
-  const SECONDS_PER_VIEWPORT = Math.max(2, Number(carousel?.speedSeconds) || 25);
+  const referenceWidth = viewportWidth || windowWidth || 1280;
+  /** Constant pixel speed, independent of logo count / visibleCount. */
+  const pxPerSec = referenceWidth / SECONDS_PER_SCREEN;
   /**
-   * Duration for a full -50% pass. Using the MEASURED track width keeps the
-   * pixel speed identical regardless of `visibleCount`, logo widths or sponsor
-   * count: passWidth = trackWidth / 2, and the strip must cover that distance
-   * at `viewportWidth / SECONDS_PER_VIEWPORT` px per second.
+   * Duration of a full `-50%` pass (= one copy of `interleaved`).
+   * passWidth = trackWidth / 2 → duration = passWidth / pxPerSec.
+   * While `trackWidth` is still unknown (first paint), estimate the pass width
+   * from the number of logos so the ribbon never starts at a wrong speed.
    */
-  const pxPerSec = windowWidth / SECONDS_PER_VIEWPORT;
-  const animationDurationSec =
-    trackWidth > 0 && pxPerSec > 0
-      ? trackWidth / 2 / pxPerSec
-      : SECONDS_PER_VIEWPORT;
+  const estimatedPassWidth = Math.max(1, interleaved.length) * 160;
+  const passWidth = trackWidth > 0 ? trackWidth / 2 : estimatedPassWidth;
+  const animationDurationSec = Math.max(1, passWidth / pxPerSec);
   const animationStyle: React.CSSProperties = {
-    animationDuration: `${animationDurationSec}s`,
+    animationDuration: `${animationDurationSec.toFixed(2)}s`,
   };
 
   if (orderedSponsors.length === 0 && probeSponsors.length === 0) return null;

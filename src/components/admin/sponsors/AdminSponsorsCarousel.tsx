@@ -43,8 +43,12 @@ import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/
 /** Default visibleCount used when nothing is stored yet (0 = "all") */
 const DEFAULT_VISIBLE_COUNT = 0;
 
-/** Default ribbon speed in seconds per viewport width (higher = más lento) */
-const DEFAULT_SPEED_SECONDS = 25;
+/** Default ribbon speed in seconds per screen width (higher = más lento) */
+const DEFAULT_SPEED_SECONDS = 12;
+
+/** Rango permitido del slider de velocidad (segundos por ancho de pantalla) */
+const MIN_SPEED_SECONDS = 2;
+const MAX_SPEED_SECONDS = 60;
 
 // ============= Helpers =============
 
@@ -187,10 +191,10 @@ const AdminSponsorsCarousel = () => {
    * raw seconds.
    */
   const speedLabel =
-    speedSeconds <= 10 ? 'muy rápida' :
-    speedSeconds <= 18 ? 'rápida' :
-    speedSeconds <= 30 ? 'estándar' :
-    speedSeconds <= 50 ? 'lenta' :
+    speedSeconds <= 4 ? 'muy rápida' :
+    speedSeconds <= 8 ? 'rápida' :
+    speedSeconds <= 16 ? 'estándar' :
+    speedSeconds <= 35 ? 'lenta' :
     'muy lenta';
 
   /** Detect unsaved changes vs. server-stored config */
@@ -393,8 +397,8 @@ const AdminSponsorsCarousel = () => {
               </div>
               <Slider
                 id="carousel-speed"
-                min={5}
-                max={90}
+                min={MIN_SPEED_SECONDS}
+                max={MAX_SPEED_SECONDS}
                 step={1}
                 value={[speedSeconds]}
                 onValueChange={([v]) => setSpeedSeconds(v)}
