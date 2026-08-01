@@ -44,13 +44,13 @@ import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/
 const DEFAULT_VISIBLE_COUNT = 0;
 
 /** Default ribbon speed in seconds per screen width (higher = más lento) */
-const DEFAULT_SPEED_SECONDS = 12;
+const DEFAULT_SPEED_SECONDS = 6;
 
 /** Default MOBILE ribbon speed (seconds per screen width, higher = más lento) */
-const DEFAULT_SPEED_SECONDS_MOBILE = 12;
+const DEFAULT_SPEED_SECONDS_MOBILE = 6;
 
 /** Rango permitido del slider de velocidad (segundos por ancho de pantalla) */
-const MIN_SPEED_SECONDS = 2;
+const MIN_SPEED_SECONDS = 1;
 const MAX_SPEED_SECONDS = 60;
 
 // ============= Helpers =============
@@ -201,10 +201,10 @@ const AdminSponsorsCarousel = () => {
    * raw seconds.
    */
   const speedLabel =
-    speedSeconds <= 4 ? 'muy rápida' :
-    speedSeconds <= 8 ? 'rápida' :
-    speedSeconds <= 16 ? 'estándar' :
-    speedSeconds <= 35 ? 'lenta' :
+    speedSeconds <= 3 ? 'muy rápida' :
+    speedSeconds <= 6 ? 'rápida' :
+    speedSeconds <= 12 ? 'estándar' :
+    speedSeconds <= 30 ? 'lenta' :
     'muy lenta';
 
   /** Detect unsaved changes vs. server-stored config */

@@ -354,8 +354,8 @@ const SponsorRibbon = () => {
    * desktop value when the mobile speed was never configured.
    */
   const rawSpeed = isMobile
-    ? Number(carousel?.speedSecondsMobile) || Number(carousel?.speedSeconds) || 12
-    : Number(carousel?.speedSeconds) || 12;
+    ? Number(carousel?.speedSecondsMobile) || Number(carousel?.speedSeconds) || 6
+    : Number(carousel?.speedSeconds) || 6;
   const SECONDS_PER_SCREEN = Math.min(60, Math.max(2, rawSpeed));
   /**
    * Reference width used to translate "seconds per screen" into pixels/second.
