@@ -201,10 +201,10 @@ const AdminSponsorsCarousel = () => {
    * raw seconds.
    */
   const speedLabel =
-    speedSeconds <= 4 ? 'muy rápida' :
-    speedSeconds <= 8 ? 'rápida' :
-    speedSeconds <= 16 ? 'estándar' :
-    speedSeconds <= 35 ? 'lenta' :
+    speedSeconds <= 3 ? 'muy rápida' :
+    speedSeconds <= 6 ? 'rápida' :
+    speedSeconds <= 12 ? 'estándar' :
+    speedSeconds <= 30 ? 'lenta' :
     'muy lenta';
 
   /** Detect unsaved changes vs. server-stored config */
