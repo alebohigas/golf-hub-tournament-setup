@@ -62,7 +62,9 @@ const CostosSection = ({
 
       {/* Socios Pricing Tables — columns shown only if they have data */}
       {sociosPricing.map((table, idx) => {
-        const visibleMonths = MONTH_COLUMNS.filter((col) => columnHasData(table.tiers, col.key));
+        /* Defensivo: `tiers` puede faltar en filas de BD mal formadas. */
+        const tiers = Array.isArray(table?.tiers) ? table.tiers : [];
+        const visibleMonths = MONTH_COLUMNS.filter((col) => columnHasData(tiers, col.key));
 
         return (
           <Card key={idx} className="shadow-card border-border/50 overflow-hidden">
@@ -86,7 +88,7 @@ const CostosSection = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {table.tiers.map((tier, tierIdx) => (
+                    {tiers.map((tier, tierIdx) => (
                       <TableRow key={tierIdx} className="border-primary/10">
                         <TableCell className="font-medium text-primary text-sm border-l-4 border-l-primary">
                           {tier.categoria}
