@@ -6,20 +6,19 @@
  * pattern as the Eventos page.
  *
  * The grid layout (columns + gap per breakpoint) is admin-configurable
- * via the "Avisos" tab in /admin, persisted in `site_config.menus_config`.
+ * via the "Menús" tab in /admin, persisted in `site_config.menus_config`.
  */
 
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import MenusPostersSection, { MENUS_POSTERS } from '@/components/menus/MenusPostersSection';
 import { useUploadsList } from '@/hooks/useUploads';
-// Hero banner image for the Avisos page (golf course at golden hour with a
-// notice board) — mirrors the per-section hero pattern used across the app.
+// Hero banner image for the Menús page (club terrace at golden hour)
 import menusHero from '@/assets/menus-hero.jpg';
 
 const Menus = () => {
   // Section visibility: render when either server-uploaded files OR bundled
-  // fallback assets exist. This keeps Avisos working after removing default
+  // fallback assets exist. This keeps Menús working after removing default
   // assets and managing everything through /admin → Archivos.
   const { data: uploadsData } = useUploadsList('menus');
   const serverCount = uploadsData?.files?.length ?? 0;
@@ -29,7 +28,7 @@ const Menus = () => {
     <Layout>
       <PageHero
         title="Menús"
-        subtitle="Comunicados y noticias importantes del torneo"
+        subtitle="Menús disponibles durante el torneo"
         backgroundImage={menusHero}
       />
 
@@ -44,8 +43,8 @@ const Menus = () => {
               Próximamente
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Aún no hay avisos publicados para este torneo. Vuelve pronto para
-              consultar comunicados, costos y novedades.
+              Aún no hay menús publicados para este torneo. Vuelve pronto para
+              consultar los menús del club.
             </p>
           </div>
         </section>
