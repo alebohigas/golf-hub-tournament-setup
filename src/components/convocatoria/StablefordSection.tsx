@@ -31,7 +31,7 @@ const StablefordSection = () => {
         </span>
       </div>
 
-      <Card className="shadow-card border-border/50 max-w-xl mx-auto">
+      <Card className="shadow-card border-border/50 max-w-xs mx-auto">
         <CardHeader className="pb-3">
           <CardTitle className="font-display text-lg">Puntaje Stableford</CardTitle>
         </CardHeader>
@@ -40,8 +40,8 @@ const StablefordSection = () => {
             <table className="w-full text-sm">
               <thead className="bg-muted/60">
                 <tr>
-                  <th className="text-left px-4 py-2 font-semibold">Resultado</th>
-                  <th className="text-right px-4 py-2 font-semibold">Puntos</th>
+                  <th className="text-left px-4 py-2 font-semibold">Dif Par</th>
+                  <th className="text-right px-4 py-2 font-semibold">Valor</th>
                 </tr>
               </thead>
               <tbody>

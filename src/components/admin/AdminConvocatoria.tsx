@@ -74,8 +74,8 @@ const StablefordValuesPanel = () => {
           <table className="w-full text-sm">
             <thead className="bg-muted/60">
               <tr>
-                <th className="text-left px-3 py-1.5 font-semibold">Resultado</th>
-                <th className="text-right px-3 py-1.5 font-semibold">Puntos</th>
+                <th className="text-left px-3 py-1.5 font-semibold">Dif Par</th>
+                <th className="text-right px-3 py-1.5 font-semibold">Valor</th>
               </tr>
             </thead>
             <tbody>
