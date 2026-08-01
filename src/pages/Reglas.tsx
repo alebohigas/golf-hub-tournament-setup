@@ -13,6 +13,7 @@ import reglasHero from '@/assets/reglas-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
 import { useValorStable } from '@/hooks/useValorStable';
+import StablefordTable from '@/components/shared/StablefordTable';
 
 // ============= Helpers =============
 
