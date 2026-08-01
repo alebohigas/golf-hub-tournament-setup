@@ -108,6 +108,19 @@ function debug_context($extra = []) {
 // ============= Helper Functions =============
 
 /**
+ * API_BUILD
+ * ---------------------------------------------------------------------
+ * Marca de versión del código PHP subido al servidor. Sirve para VERIFICAR
+ * DESPLIEGUES: `GET /api/health.php` devuelve este valor, así se puede
+ * confirmar desde el navegador/curl que el `config.php` con `fix_mojibake`
+ * ya está en el hosting (IONOS se actualiza por SFTP manual).
+ * Súbelo/increméntalo cada vez que cambie algo crítico de la API.
+ */
+if (!defined('API_BUILD')) {
+    define('API_BUILD', '2026-08-01.mojibake-1');
+}
+
+/**
  * fix_mojibake
  * ---------------------------------------------------------------------
  * Repara texto en ESPAÑOL que fue guardado/leído como UTF-8 interpretado
