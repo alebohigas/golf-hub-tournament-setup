@@ -59,11 +59,20 @@ $baseWhere = "j.torneoid = $tid
 // Aggregate per (club, salida). Each row carries branch counts + tee metadata
 // so the frontend can filter dynamically by tee color/salida id.
 // ---- Clasificación de rama "Super Sr." ----
-// Cualquier categoría que contenga la palabra SUPER (SUPER SENIOR, SUPER SR.,
-// SÚPER SENIOR, SUPERSENIOR, etc.) cuenta como Super Sr. en TODOS los torneos.
-// Normalizamos acentos y espacios para que el LIKE '%SUPER%' los capture todos.
-$catNorm     = "REPLACE(REPLACE(REPLACE(UPPER(COALESCE(cat.categoria,'')),'Ú','U'),'ú','u'),' ','')";
-$isSuper     = "$catNorm LIKE '%SUPER%'";
+// Cuenta como Super Sr. en TODOS los torneos cualquier categoría que:
+//   • contenga la palabra SUPER   -> SUPER SENIOR, SUPER SR., SÚPER SR., SUPERSENIOR
+//   • use abreviatura de SUPER    -> SUP. SR., SUP SENIOR
+//   • use la inicial S al inicio  -> S. SENIOR, SSR, S SR.
+// `$catKey` normaliza a MAYÚSCULAS, quita acentos (Ú), espacios y puntos, de modo
+// que "SUP. SR." -> "SUPSR" y "S. SENIOR" -> "SSENIOR".
+// Las formas con inicial suelta (SSENIOR/SSR) se ancoran al INICIO para no
+// capturar falsos positivos como "DAMAS SENIOR" ("DAMASSENIOR").
+$catKey = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER(COALESCE(cat.categoria,'')),'Ú','U'),'ú','u'),' ',''),'.',''),'-','')";
+$isSuper = "($catKey LIKE '%SUPER%'"
+    . " OR $catKey LIKE '%SUPSR%'"
+    . " OR $catKey LIKE '%SUPSENIOR%'"
+    . " OR $catKey LIKE 'SSENIOR%'"
+    . " OR $catKey LIKE 'SSR%')";
 $isSeniorOnly = "UPPER(COALESCE(cat.categoria,'')) LIKE '%SENIOR%' AND NOT ($isSuper)";
 
 $sql = "SELECT c.id AS club_id, c.nombre AS club_name, $abrSelect c.logo AS club_logo,
