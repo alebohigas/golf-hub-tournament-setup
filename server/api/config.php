@@ -58,7 +58,11 @@ if ($conn->connect_error) {
     exit;
 }
 
-$conn->set_charset('utf8');
+// utf8mb4 evita que los acentos y la "ñ" lleguen como caracteres partidos
+// (mojibake tipo "podrÃ¡n"). Si el servidor no soporta utf8mb4, cae a utf8.
+if (!@$conn->set_charset('utf8mb4')) {
+    @$conn->set_charset('utf8');
+}
 
 // ============= Debug Mode =============
 /** Check if debug mode is enabled via ?debug=1 query param */
@@ -104,6 +108,64 @@ function debug_context($extra = []) {
 // ============= Helper Functions =============
 
 /**
+ * fix_mojibake
+ * ---------------------------------------------------------------------
+ * Repara texto en ESPAÑOL que fue guardado/leído como UTF-8 interpretado
+ * en Latin-1 (doble codificación). Ejemplos:
+ *   "podrÃ¡n"  -> "podrán"
+ *   "EdiciÃ³n" -> "Edición"
+ *   "aÃ±o"     -> "año"
+ * Solo actúa cuando detecta la firma típica (Ã / Â / â€) y cuando la
+ * reinterpretación produce UTF-8 válido; en caso contrario devuelve el
+ * texto original intacto.
+ *
+ * @param string $text Texto posiblemente mal codificado
+ * @return string Texto con acentos correctos
+ */
+function fix_mojibake($text) {
+    if (!is_string($text) || $text === '') return $text;
+    // Sin la firma de doble codificación no hay nada que reparar.
+    if (!preg_match('/[ÃÂ]|â€/u', $text) && !preg_match('/\xC3[\x80-\xBF]/', $text)) {
+        return $text;
+    }
+    $candidate = $text;
+    // Hasta 2 pasadas: algunos textos legacy están doblemente codificados.
+    for ($i = 0; $i < 2; $i++) {
+        $decoded = @mb_convert_encoding($candidate, 'ISO-8859-1', 'UTF-8');
+        if ($decoded === false || $decoded === '' || $decoded === $candidate) break;
+        // Solo se acepta si el resultado sigue siendo UTF-8 válido.
+        if (!mb_check_encoding($decoded, 'UTF-8')) break;
+        $candidate = $decoded;
+        if (!preg_match('/\xC3[\x80-\xBF]/', $candidate)) break;
+    }
+    return mb_check_encoding($candidate, 'UTF-8') ? $candidate : $text;
+}
+
+/**
+ * fix_mojibake_deep
+ * Aplica fix_mojibake() de forma recursiva a arrays/objetos antes de
+ * serializar la respuesta JSON (claves y valores).
+ *
+ * @param mixed $data Estructura de datos a limpiar
+ * @return mixed Estructura con textos normalizados
+ */
+function fix_mojibake_deep($data) {
+    if (is_string($data)) return fix_mojibake($data);
+    if (is_array($data)) {
+        $out = [];
+        foreach ($data as $k => $v) {
+            $out[is_string($k) ? fix_mojibake($k) : $k] = fix_mojibake_deep($v);
+        }
+        return $out;
+    }
+    if (is_object($data)) {
+        foreach ($data as $k => $v) { $data->$k = fix_mojibake_deep($v); }
+        return $data;
+    }
+    return $data;
+}
+
+/**
  * Send JSON response and exit
  * @param mixed $data - Data to encode as JSON
  * @param int $status - HTTP status code (default 200)
@@ -111,6 +173,8 @@ function debug_context($extra = []) {
 function json_response($data, $status = 200) {
     global $DEBUG_MODE, $DEBUG_QUERIES;
     http_response_code($status);
+    // Normaliza acentos/ñ antes de serializar (español correcto siempre).
+    $data = fix_mojibake_deep($data);
     $jsonOptions = JSON_UNESCAPED_UNICODE | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0);
     // In debug mode, wrap response with query info
     if ($DEBUG_MODE) {
