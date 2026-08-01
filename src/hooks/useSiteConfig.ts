@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api';
 import { DEFAULT_SUPERADMIN_PASSWORD, getSuperAdminPassword } from '@/lib/superAdminAuth';
+import { setStoredTorneoId } from '@/hooks/useTorneoId';
 
 // ============= Types =============
 
@@ -485,9 +486,11 @@ export const useSiteConfig = () => {
     queryFn: async () => {
       const config = await fetchSiteConfig();
 
-      // Sync torneoid
+      // Sync torneoid.
+      // Uses setStoredTorneoId (instead of a raw localStorage write) so every
+      // mounted `useTorneoId()` consumer is notified and refetches its data.
       if (config.torneoid) {
-        localStorage.setItem(TORNEO_ID_KEY, String(config.torneoid));
+        setStoredTorneoId(String(config.torneoid));
       }
 
       // Sync menu order
