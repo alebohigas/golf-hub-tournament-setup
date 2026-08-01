@@ -38,6 +38,8 @@ const sectionIcons: Record<string, string> = {
   calendario: '📅',
   reglas: '⚖️',
   competencias: '⚡',
+  desempates: '⚖️',
+  stableford: '🔢',
 };
 
 // ============= Component =============
@@ -49,9 +51,36 @@ const AdminConvocatoria = () => {
     reorderSections,
   } = useConvocatoriaSections();
   /** DB-backed status per section (drives the BD / Vacío badge). */
-  const { hasContent } = useConvocatoriaContent();
+  const { hasContent, bySectionId, saveSection } = useConvocatoriaContent();
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  /**
+   * Toggle de visibilidad de una sección.
+   *
+   * Persiste el flag en la BD (`convocatoria_content.enabled`) para que
+   * aplique en TODOS los dispositivos, y mantiene el override local para
+   * respuesta inmediata en la UI. Si la sección aún no tiene fila en BD
+   * (p. ej. "Valores Stableford", cuyos datos viven en torneos.valorstable),
+   * se crea una fila mínima solo para guardar la visibilidad.
+   */
+  const handleToggleEnabled = async (
+    sectionId: string,
+    enabled: boolean,
+    sortOrder: number,
+    label: string,
+  ) => {
+    setSectionEnabled(sectionId, enabled);
+    const row = bySectionId.get(sectionId);
+    await saveSection({
+      sectionId,
+      sectionType: row?.section_type ?? sectionId,
+      title: row?.title ?? label,
+      content: row?.content ?? {},
+      sortOrder: row?.sort_order ?? Math.round(sortOrder),
+      enabled,
+    });
+  };
 
   /** Handle drag end for reordering */
   const handleDragEnd = (result: DropResult) => {
@@ -163,7 +192,14 @@ const AdminConvocatoria = () => {
                           {/* Toggle enable/disable */}
                           <Switch
                             checked={section.enabled}
-                            onCheckedChange={(checked) => setSectionEnabled(section.id, checked)}
+                            onCheckedChange={(checked) =>
+                              handleToggleEnabled(
+                                section.id,
+                                checked,
+                                section.order,
+                                section.label,
+                              )
+                            }
                           />
 
                           {/* Expand/collapse for content editing */}
