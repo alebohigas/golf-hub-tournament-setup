@@ -13,6 +13,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scale } from 'lucide-react';
 import { useValorStable } from '@/hooks/useValorStable';
+import StablefordTable from '@/components/shared/StablefordTable';
 
 /** Renderiza la tabla de valores Stableford (Resultado / Puntos). */
 const StablefordSection = () => {
@@ -35,25 +36,9 @@ const StablefordSection = () => {
         <CardHeader className="pb-3">
           <CardTitle className="font-display text-lg">Puntaje Stableford</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden rounded-lg border border-border/60">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/60">
-                <tr>
-                  <th className="text-left px-4 py-2 font-semibold">Dif Par</th>
-                  <th className="text-right px-4 py-2 font-semibold">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.label} className="border-t border-border/50">
-                    <td className="px-4 py-2">{r.label}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-primary">{r.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <CardContent className="flex justify-center">
+          {/* Formato unificado (ver StablefordTable). */}
+          <StablefordTable rows={rows} />
         </CardContent>
       </Card>
     </div>

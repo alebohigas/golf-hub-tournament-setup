@@ -13,6 +13,7 @@ import reglasHero from '@/assets/reglas-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
 import { useValorStable } from '@/hooks/useValorStable';
+import StablefordTable from '@/components/shared/StablefordTable';
 
 // ============= Helpers =============
 
@@ -176,26 +177,8 @@ const Reglas = () => {
                     <p className="text-sm text-muted-foreground mb-3">
                       Valor de los puntos en Stableford:
                     </p>
-                    <div className="overflow-hidden rounded-lg border border-border/60">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/60">
-                          <tr>
-                            <th className="text-left px-4 py-2 font-semibold">Dif Par</th>
-                            <th className="text-right px-4 py-2 font-semibold">Valor</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {stablefordRows.map((r) => (
-                            <tr key={r.label} className="border-t border-border/50">
-                              <td className="px-4 py-2">{r.label}</td>
-                              <td className="px-4 py-2 text-right font-semibold text-primary">
-                                {r.value}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Formato unificado (ver StablefordTable). */}
+                    <StablefordTable rows={stablefordRows} />
                   </div>
                 )}
 

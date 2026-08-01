@@ -37,8 +37,11 @@ export interface StablefordPointRow {
   value: number;
 }
 
-/** Formats a difpar number for display: +3 / 0 / -2. */
-const formatDifpar = (n: number): string => (n > 0 ? `+${n}` : String(n));
+/**
+ * Formats a difpar for display exactly like the club's reference table:
+ * plain signed integers (3, 2, 1, 0, -1, ...) with no leading "+".
+ */
+const formatDifpar = (n: number): string => String(n);
 
 /** Maps API rows with { difpar, valor } into renderable rows. */
 const normalizeDifparRows = (raw: Array<Record<string, unknown>>): StablefordPointRow[] => {
