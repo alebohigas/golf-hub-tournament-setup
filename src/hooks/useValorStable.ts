@@ -43,19 +43,44 @@ export interface StablefordPointRow {
  */
 const formatDifpar = (n: number): string => String(n);
 
-/** Maps API rows with { difpar, valor } into renderable rows. */
+/**
+ * Coerces a raw DB/JSON value into a finite number.
+ * Accepts numbers and numeric strings such as " +3 ", "-2", "3,5", "04".
+ * Returns `null` when the value cannot be interpreted as a number.
+ */
+const toNumber = (raw: unknown): number | null => {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
+  if (typeof raw === 'string') {
+    const cleaned = raw.trim().replace(/\s+/g, '').replace(',', '.');
+    if (cleaned === '' || !/^[+-]?\d*\.?\d+$/.test(cleaned)) return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+/**
+ * Maps API rows with { difpar, valor } into renderable rows.
+ * Guarantees: both fields are numeric, invalid rows are discarded,
+ * duplicated `difpar` keeps the last occurrence, and the result is
+ * sorted by difpar descending (best score first) before rendering.
+ */
 const normalizeDifparRows = (raw: Array<Record<string, unknown>>): StablefordPointRow[] => {
-  const out: StablefordPointRow[] = [];
+  if (!Array.isArray(raw)) return [];
+  // Map keyed by numeric difpar → dedupes and preserves numeric identity.
+  const byDifpar = new Map<number, number>();
   raw.forEach((r) => {
+    if (!r || typeof r !== 'object') return;
     const lower: Record<string, unknown> = {};
-    Object.keys(r).forEach((k) => { lower[k.toLowerCase()] = r[k]; });
-    const d = Number(lower['difpar']);
-    const v = Number(lower['valor'] ?? lower['puntos'] ?? lower['value']);
-    if (Number.isFinite(d) && Number.isFinite(v)) {
-      out.push({ label: formatDifpar(d), value: v });
-    }
+    Object.keys(r).forEach((k) => { lower[k.toLowerCase().trim()] = r[k]; });
+    const d = toNumber(lower['difpar'] ?? lower['dif_par'] ?? lower['dif']);
+    const v = toNumber(lower['valor'] ?? lower['puntos'] ?? lower['value'] ?? lower['points']);
+    if (d === null || v === null) return;
+    byDifpar.set(d, v);
   });
-  return out;
+  return Array.from(byDifpar.entries())
+    .sort((a, b) => b[0] - a[0])
+    .map(([d, v]) => ({ label: formatDifpar(d), value: v }));
 };
 
 /**
