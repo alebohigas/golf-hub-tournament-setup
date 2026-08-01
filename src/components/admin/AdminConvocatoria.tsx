@@ -289,7 +289,10 @@ const AdminConvocatoria = () => {
                             (text / items repeater / JSON fallback) plus a
                             preview that uses the SAME public Section
                             component for visual fidelity. */}
-                        {expandedSection === section.id && (
+                        {/* Valores Stableford: se muestran SIEMPRE (solo lectura,
+                            provienen de la BD). El resto de secciones solo al
+                            expandirse. */}
+                        {(expandedSection === section.id || section.id === 'stableford') && (
                           <div className="px-4 pb-4 border-t border-border/50 pt-3">
                             {section.id === 'stableford' ? (
                               <StablefordValuesPanel />
