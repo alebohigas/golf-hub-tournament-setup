@@ -36,6 +36,16 @@ export interface UploadedFile {
   size: number;
   /** Last-modified Unix timestamp (seconds). */
   modified: number;
+  /**
+   * Generated WebP thumbnail URLs keyed by size (images only).
+   *  - `small`  ≈480px wide → poster grids
+   *  - `medium` ≈1000px wide → lightbox placeholder / small screens
+   * Absent (or empty) when the server can't generate thumbnails (no GD) or
+   * for non-image files; callers must fall back to `url`.
+   */
+  thumbs?: Partial<Record<'small' | 'medium', string>>;
+  /** Shorthand for `thumbs.small` — the grid-sized variant. */
+  thumbUrl?: string | null;
 }
 
 /** Response shape of `GET /api/uploads.php?section=...`. */
