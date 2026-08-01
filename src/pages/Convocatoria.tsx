@@ -196,6 +196,9 @@ const Convocatoria = () => {
     // not by `convocatoria_content`.
     if (id === 'categorias') return true;
     if (id === 'calendarioJuego') return hasCalendarioJuego;
+    // Valores Stableford: la presencia la decide `torneos.valorstable`
+    // dentro del propio componente (se auto-oculta si no hay fila).
+    if (id === 'stableford') return true;
 
     // DB-only sections: render only when there is an enabled DB row
     // with non-empty content for the active torneoid. No mock fallback.
@@ -220,8 +223,25 @@ const Convocatoria = () => {
     return true;
   };
 
+  /**
+   * Visibilidad efectiva de una sección.
+   *
+   * La BD (`convocatoria_content.enabled`) es la AUTORIDAD cuando existe
+   * fila para el torneo, porque es compartida por todos los dispositivos.
+   * El flag local (localStorage / defaults) solo aplica cuando no hay fila,
+   * lo que antes provocaba que una sección activada en /admin (p. ej.
+   * "Desempate") no se viera en otros dispositivos/navegadores.
+   */
+  const isSectionEnabled = (id: string, localEnabled: boolean): boolean => {
+    const dbRow = dbContent.get(id);
+    if (dbRow) return dbRow.enabled;
+    return localEnabled;
+  };
+
   /** Enabled sections, additionally filtered by content presence. */
-  const enabledSections = sections.filter((s) => s.enabled && sectionHasContent(s.id));
+  const enabledSections = sections.filter(
+    (s) => isSectionEnabled(s.id, s.enabled) && sectionHasContent(s.id)
+  );
 
   /** Scroll-based active section tracking */
   useEffect(() => {
