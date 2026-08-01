@@ -26,6 +26,7 @@ import CategoriasSection from '@/components/convocatoria/CategoriasSection';
 import PremiacionSection from '@/components/convocatoria/PremiacionSection';
 import DesempatesSection from '@/components/convocatoria/DesempatesSection';
 import StablefordSection from '@/components/convocatoria/StablefordSection';
+import { useValorStable } from '@/hooks/useValorStable';
 import ReglasSection from '@/components/convocatoria/ReglasSection';
 import CompetenciasEspecialesSection from '@/components/convocatoria/CompetenciasEspecialesSection';
 import ServiciosSection from '@/components/convocatoria/ServiciosSection';
@@ -186,6 +187,10 @@ const Convocatoria = () => {
   const { data: calData } = useCalendarioData();
   const { data: horData } = useHorariosData();
   const { isPageVisible } = usePageVisibility();
+  // Valores Stableford del torneo activo (torneos.valorstable). Se consulta
+  // aquí para que la sección y su entrada en el submenú solo aparezcan
+  // cuando la BD realmente tiene puntajes para este torneoid.
+  const { rows: stablefordRows } = useValorStable();
 
   const hasCalendarioJuego =
     (isPageVisible('calendario') && (calData?.entries?.length ?? 0) > 0) ||
@@ -202,8 +207,8 @@ const Convocatoria = () => {
     if (id === 'categorias') return true;
     if (id === 'calendarioJuego') return hasCalendarioJuego;
     // Valores Stableford: la presencia la decide `torneos.valorstable`
-    // dentro del propio componente (se auto-oculta si no hay fila).
-    if (id === 'stableford') return true;
+    // (fila del torneoid activo). Sin puntajes -> sección y submenú ocultos.
+    if (id === 'stableford') return stablefordRows.length > 0;
 
     // DB-only sections: render only when there is an enabled DB row
     // with non-empty content for the active torneoid. No mock fallback.
