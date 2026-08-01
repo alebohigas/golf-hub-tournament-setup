@@ -180,8 +180,8 @@ const Reglas = () => {
                       <table className="w-full text-sm">
                         <thead className="bg-muted/60">
                           <tr>
-                            <th className="text-left px-4 py-2 font-semibold">Resultado</th>
-                            <th className="text-right px-4 py-2 font-semibold">Puntos</th>
+                            <th className="text-left px-4 py-2 font-semibold">Dif Par</th>
+                            <th className="text-right px-4 py-2 font-semibold">Valor</th>
                           </tr>
                         </thead>
                         <tbody>
