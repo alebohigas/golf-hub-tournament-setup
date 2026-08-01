@@ -26,6 +26,7 @@ import Resultados from "./pages/Resultados";
 import Competencias from "./pages/Competencias";
 import Calendario from "./pages/Calendario";
 import Horarios from "./pages/Horarios";
+import Menus from '@/pages/Menus';
 import Avisos from "./pages/Avisos";
 import Premios from "./pages/Premios";
 import Patrocinadores from "./pages/Patrocinadores";
@@ -132,6 +133,7 @@ const App = () => (
               <Route path="/competicion" element={<ProtectedRoute pageId="competicion"><Competencias /></ProtectedRoute>} />
               <Route path="/calendario" element={<ProtectedRoute pageId="calendario"><Calendario /></ProtectedRoute>} />
               <Route path="/horarios" element={<ProtectedRoute pageId="horarios"><Horarios /></ProtectedRoute>} />
+              <Route path="/menus" element={<ProtectedRoute pageId="menus"><Menus /></ProtectedRoute>} />
               <Route path="/avisos" element={<ProtectedRoute pageId="avisos"><Avisos /></ProtectedRoute>} />
               <Route path="/premios" element={<ProtectedRoute pageId="premios"><Premios /></ProtectedRoute>} />
               <Route path="/patrocinadores" element={<ProtectedRoute pageId="patrocinadores"><Patrocinadores /></ProtectedRoute>} />

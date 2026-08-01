@@ -74,6 +74,7 @@ export const menuConfig: MenuItem[] = [
   { id: 'horarios', label: 'HORARIOS DE SALIDAS', path: '/horarios', enabled: true, order: 15 },
   { id: 'avisos', label: 'AVISOS', path: '/avisos', enabled: true, order: 11 },
   { id: 'premios', label: 'PREMIOS', path: '/premios', enabled: true, order: 12 },
+  { id: 'menus', label: 'MENÚS', path: '/menus', enabled: true, order: 12.5 },
   { id: 'hoteles', label: 'HOTELES', path: '/hoteles', enabled: true, order: 18 },
   { id: 'patrocinadores', label: 'PATROCINADORES', path: '/patrocinadores', enabled: true, order: 13 },
   { id: 'reglas', label: 'REGLAS Y CC', path: '/reglas', enabled: true, order: 14 },
