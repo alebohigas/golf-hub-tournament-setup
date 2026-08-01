@@ -20,7 +20,7 @@
  *        total
  *     }, ...],
  *     tees:   [{ id, color, tee }, ...],
- *     noShow: { retiro, noShow, descalificado, total }
+ *     noShow: { retiro, noShow, descalificado, noContiende, total }
  *   }
  *
  * Resilient: on missing tables/columns returns { total:0, clubs:[] }.
@@ -153,12 +153,14 @@ $nsRows = safe_rows($conn, "SELECT UPPER(TRIM(j.estatus)) AS est, COUNT(*) AS n
                                AND j.estatus IS NOT NULL AND j.estatus <> ''
                                AND UPPER(TRIM(j.estatus)) NOT IN ('NORMAL','BAJA')
                              GROUP BY UPPER(TRIM(j.estatus))");
-$retiro = 0; $noshow = 0; $desc = 0;
+$retiro = 0; $noshow = 0; $desc = 0; $nocont = 0;
 foreach ($nsRows as $r) {
     $e = $r['est']; $n = (int)$r['n'];
     if ($e === 'RETIRO' || $e === 'ABANDONO') $retiro += $n;
     else if ($e === 'NO SHOW' || $e === 'NO-SHOW' || $e === 'SHOW-NO') $noshow += $n;
     else if ($e === 'DESCALIFICADO' || $e === 'DQ') $desc += $n;
+    // "No contiende" (N): jugador inscrito que no compite por premios.
+    else if ($e === 'NO CONTIENDE' || $e === 'NO-CONTIENDE' || $e === 'N') $nocont += $n;
 }
 
 json_response([
@@ -169,6 +171,7 @@ json_response([
         'retiro'        => $retiro,
         'noShow'        => $noshow,
         'descalificado' => $desc,
-        'total'         => $retiro + $noshow + $desc,
+        'noContiende'   => $nocont,
+        'total'         => $retiro + $noshow + $desc + $nocont,
     ],
 ]);

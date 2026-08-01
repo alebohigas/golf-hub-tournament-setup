@@ -361,6 +361,8 @@ const NoShowCard = ({
         <NoShowRow label="Retiro"        value={noShow.retiro} />
         <NoShowRow label="No Show"       value={noShow.noShow} />
         <NoShowRow label="Descalificado" value={noShow.descalificado} />
+        {/* Estatus "NO CONTIENDE" (N) */}
+        <NoShowRow label="No contiende"  value={noShow.noContiende ?? 0} />
       </div>
     </CardContent>
   </Card>

@@ -47,6 +47,8 @@ export interface StatsNoShow {
   retiro: number;
   noShow: number;
   descalificado: number;
+  /** Jugadores con estatus "NO CONTIENDE" (N). */
+  noContiende?: number;
   total: number;
 }
 
