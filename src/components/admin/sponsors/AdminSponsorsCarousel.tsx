@@ -94,6 +94,10 @@ const AdminSponsorsCarousel = () => {
    * real de la tira y ajusta la animación para mantener la misma velocidad.
    */
   const [speedSeconds, setSpeedSeconds] = useState<number>(DEFAULT_SPEED_SECONDS);
+  /** Draft MOBILE-only ribbon speed (seconds per screen width) */
+  const [speedSecondsMobile, setSpeedSecondsMobile] = useState<number>(
+    DEFAULT_SPEED_SECONDS_MOBILE,
+  );
   /**
    * Local draft state — set of sponsor IDs the admin has enabled for the ribbon.
    * The ribbon will only display sponsors whose ID is in this set. Null/undefined
