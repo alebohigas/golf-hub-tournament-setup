@@ -38,8 +38,14 @@ import { MENUS_POSTERS as DISCOVERED_MENUS_POSTERS } from '@/lib/posterAssets';
  * `alt` : accessibility label.
  */
 interface MenuCard {
+  /** Full-resolution image URL (used by the lightbox). */
   src: string;
+  /** Accessibility label. */
   alt: string;
+  /** ~480px WebP thumbnail for the grid card (optional). */
+  thumbSmall?: string;
+  /** ~1000px WebP thumbnail — lightbox placeholder while `src` loads. */
+  thumbMedium?: string;
 }
 
 /**
@@ -122,9 +128,13 @@ const MenusPostersSection = () => {
   // Server-side uploaded posters. Take precedence over build-time assets so
   // editors can replace/extend the grid via /admin without a re-deploy.
   const { data: uploadsData } = useUploadsList('menus');
+  // Server-generated thumbnails (see server/api/_thumbs.php) keep the grid
+  // light: cards load the ~480px variant instead of the multi-MB poster.
   const serverPosters: MenuCard[] = (uploadsData?.files ?? []).map((f) => ({
     src: f.url,
     alt: f.alt,
+    thumbSmall: f.thumbs?.small ?? f.thumbUrl ?? undefined,
+    thumbMedium: f.thumbs?.medium ?? undefined,
   }));
   const sourcePosters: MenuCard[] = serverPosters.length > 0
     ? serverPosters
@@ -173,6 +183,26 @@ const MenusPostersSection = () => {
 
   const current = openIndex !== null ? orderedPosters[openIndex] : null;
 
+  /**
+   * True once the full-resolution image of the currently open poster has
+   * finished downloading. Until then the lightbox shows the medium
+   * thumbnail, so opening a poster feels instant.
+   */
+  const [fullLoaded, setFullLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!current) return;
+    setFullLoaded(false);
+    const img = new Image();
+    img.onload = () => setFullLoaded(true);
+    img.src = current.src;
+    // Already in the HTTP cache → resolve synchronously.
+    if (img.complete) setFullLoaded(true);
+    return () => {
+      img.onload = null;
+    };
+  }, [current?.src]);
+
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -209,10 +239,23 @@ const MenusPostersSection = () => {
                 background fills any letterbox gap.
               */}
               <div className="aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
+                {/*
+                  Prefer the generated thumbnails. `srcSet` lets the browser
+                  pick the 480px variant on phones/cards and the 1000px one on
+                  wide, few-column layouts; `src` stays as a safe fallback for
+                  build-time assets or servers without GD.
+                */}
                 <img
-                  src={card.src}
+                  src={card.thumbSmall ?? card.src}
+                  srcSet={
+                    card.thumbSmall && card.thumbMedium
+                      ? `${card.thumbSmall} 480w, ${card.thumbMedium} 1000w`
+                      : undefined
+                  }
+                  sizes="(max-width: 768px) 50vw, 33vw"
                   alt={card.alt}
                   loading="lazy"
+                  decoding="async"
                   className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
@@ -271,10 +314,15 @@ const MenusPostersSection = () => {
                 <ChevronRight className="h-6 w-6" />
               </Button>
 
-              {/* Full-size image */}
+              {/*
+                Progressive lightbox image: the already-cached medium
+                thumbnail paints immediately, then the full-resolution file
+                swaps in once decoded (see `fullLoaded`).
+              */}
               <img
-                src={current.src}
+                src={fullLoaded || !current.thumbMedium ? current.src : current.thumbMedium}
                 alt={current.alt}
+                decoding="async"
                 className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
               />
 
