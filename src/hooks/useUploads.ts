@@ -7,6 +7,7 @@
  * Sections supported by the backend:
  *   - 'eventos'      → poster grid for the Eventos page
  *   - 'avisos'       → poster grid for the Avisos page
+ *   - 'menus'        → poster grid for the Menús page
  *   - 'premios'      → poster grid for the Premios page
  *   - 'convocatoria' → reserved poster grid for the Convocatoria page
  *   - 'reglas'       → reserved poster grid for the Reglas page
@@ -21,7 +22,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/apiClient';
 
 /** Section identifiers accepted by the uploads endpoint. */
-export type UploadSection = 'eventos' | 'avisos' | 'premios' | 'hoteles' | 'convocatoria' | 'reglas' | 'skinrules' | 'banderas' | 'pdfs' | 'popup';
+export type UploadSection = 'eventos' | 'avisos' | 'menus' | 'premios' | 'hoteles' | 'convocatoria' | 'reglas' | 'skinrules' | 'banderas' | 'pdfs' | 'popup';
 
 /** Single uploaded file as returned by the listing endpoint. */
 export interface UploadedFile {

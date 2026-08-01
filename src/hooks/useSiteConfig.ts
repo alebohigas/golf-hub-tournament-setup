@@ -375,6 +375,8 @@ export interface SiteConfig {
   sponsors_config: SponsorsConfig | null;
   eventos_config: EventosConfig | null;
   avisos_config: AvisosConfig | null;
+  /** Menús page poster grid layout/order. */
+  menus_config: MenusConfig | null;
   premios_config: PremiosConfig | null;
   hoteles_config: HotelesConfig | null;
   theme_config: ThemeConfig | null;
@@ -406,6 +408,7 @@ export interface SaveConfigPayload {
   sponsors_config?: SponsorsConfig | null;
   eventos_config?: EventosConfig | null;
   avisos_config?: AvisosConfig | null;
+  menus_config?: MenusConfig | null;
   premios_config?: PremiosConfig | null;
   hoteles_config?: HotelesConfig | null;
   theme_config?: ThemeConfig | null;
@@ -431,6 +434,8 @@ const LIVE_SCORING_KEY = 'tournament_live_scoring_config';
 const SPONSORS_CONFIG_KEY = 'tournament_sponsors_config';
 const EVENTOS_CONFIG_KEY = 'tournament_eventos_config';
 const AVISOS_CONFIG_KEY = 'tournament_avisos_config';
+/** LocalStorage mirror of the Menús page grid config. */
+const MENUS_CONFIG_KEY = 'tournament_menus_config';
 const PREMIOS_CONFIG_KEY = 'tournament_premios_config';
 const HOTELES_CONFIG_KEY = 'tournament_hoteles_config';
 
@@ -523,6 +528,11 @@ export const useSiteConfig = () => {
       // Sync avisos config
       if (config.avisos_config) {
         localStorage.setItem(AVISOS_CONFIG_KEY, JSON.stringify(config.avisos_config));
+      }
+
+      // Sync menús config
+      if (config.menus_config) {
+        localStorage.setItem(MENUS_CONFIG_KEY, JSON.stringify(config.menus_config));
       }
 
       // Sync premios config
