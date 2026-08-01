@@ -60,7 +60,8 @@ $cases = [
     ['año',           "a\xC3\x83\xC2\xB1o",                    'año'],
     ['categoría',     "categor\xC3\x83\xC2\xADa",              'categoría'],
     ['Ningún',        "Ning\xC3\x83\xC2\xBAn",                 'Ningún'],
-    ['jugará (frase)', "El jugador jugar\xC3\x83\xC2\xA1 con hÃƒÂ¡ndicap", 'El jugador jugará con hándicap'],
+    // Frase completa con codificación uniforme (como llega de la BD legacy).
+    ['jugará (frase)', "El jugador jugar\xC3\x83\xC2\xA1 con h\xC3\x83\xC2\xA1ndicap", 'El jugador jugará con hándicap'],
 ];
 foreach ($cases as [$name, $in, $out]) {
     check("fix_mojibake: $name", fix_mojibake($in), $out);
