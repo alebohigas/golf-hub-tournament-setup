@@ -38,6 +38,8 @@ const sectionIcons: Record<string, string> = {
   calendario: '📅',
   reglas: '⚖️',
   competencias: '⚡',
+  desempates: '⚖️',
+  stableford: '🔢',
 };
 
 // ============= Component =============
@@ -49,9 +51,36 @@ const AdminConvocatoria = () => {
     reorderSections,
   } = useConvocatoriaSections();
   /** DB-backed status per section (drives the BD / Vacío badge). */
-  const { hasContent } = useConvocatoriaContent();
+  const { hasContent, bySectionId, saveSection } = useConvocatoriaContent();
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  /**
+   * Toggle de visibilidad de una sección.
+   *
+   * Persiste el flag en la BD (`convocatoria_content.enabled`) para que
+   * aplique en TODOS los dispositivos, y mantiene el override local para
+   * respuesta inmediata en la UI. Si la sección aún no tiene fila en BD
+   * (p. ej. "Valores Stableford", cuyos datos viven en torneos.valorstable),
+   * se crea una fila mínima solo para guardar la visibilidad.
+   */
+  const handleToggleEnabled = async (
+    sectionId: string,
+    enabled: boolean,
+    sortOrder: number,
+    label: string,
+  ) => {
+    setSectionEnabled(sectionId, enabled);
+    const row = bySectionId.get(sectionId);
+    await saveSection({
+      sectionId,
+      sectionType: row?.section_type ?? sectionId,
+      title: row?.title ?? label,
+      content: row?.content ?? {},
+      sortOrder: row?.sort_order ?? Math.round(sortOrder),
+      enabled,
+    });
+  };
 
   /** Handle drag end for reordering */
   const handleDragEnd = (result: DropResult) => {
@@ -64,7 +93,11 @@ const AdminConvocatoria = () => {
     reorderSections(items.map((s) => s.id));
   };
 
-  const enabledCount = sections.filter((s) => s.enabled).length;
+  /** Visibilidad efectiva: BD manda si existe fila, si no el flag local. */
+  const isEnabled = (id: string, localEnabled: boolean) =>
+    bySectionId.get(id)?.enabled ?? localEnabled;
+
+  const enabledCount = sections.filter((s) => isEnabled(s.id, s.enabled)).length;
   const disabledCount = sections.length - enabledCount;
 
   return (
@@ -102,7 +135,10 @@ const AdminConvocatoria = () => {
               >
                 {sections.map((section, index) => (
                   <Draggable key={section.id} draggableId={section.id} index={index}>
-                    {(provided, snapshot) => (
+                    {(provided, snapshot) => {
+                      /** Visibilidad efectiva de esta sección (BD > local). */
+                      const enabled = isEnabled(section.id, section.enabled);
+                      return (
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
@@ -110,7 +146,7 @@ const AdminConvocatoria = () => {
                           'rounded-lg border transition-all',
                           snapshot.isDragging
                             ? 'shadow-lg border-primary bg-primary/5'
-                            : section.enabled
+                            : enabled
                               ? 'border-border bg-card'
                               : 'border-border/50 bg-muted/30 opacity-70'
                         )}
@@ -133,7 +169,7 @@ const AdminConvocatoria = () => {
                             <div className="flex items-center gap-2">
                               <span className={cn(
                                 'font-medium text-sm',
-                                !section.enabled && 'text-muted-foreground line-through'
+                                !enabled && 'text-muted-foreground line-through'
                               )}>
                                 {section.label}
                               </span>
@@ -151,7 +187,7 @@ const AdminConvocatoria = () => {
                                   Vacío
                                 </Badge>
                               )}
-                              {!section.enabled && (
+                              {!enabled && (
                                 <Badge variant="outline" className="text-xs gap-1 text-amber-600 border-amber-300">
                                   <AlertTriangle className="h-3 w-3" />
                                   Oculta
@@ -162,8 +198,15 @@ const AdminConvocatoria = () => {
 
                           {/* Toggle enable/disable */}
                           <Switch
-                            checked={section.enabled}
-                            onCheckedChange={(checked) => setSectionEnabled(section.id, checked)}
+                            checked={enabled}
+                            onCheckedChange={(checked) =>
+                              handleToggleEnabled(
+                                section.id,
+                                checked,
+                                section.order,
+                                section.label,
+                              )
+                            }
                           />
 
                           {/* Expand/collapse for content editing */}
@@ -197,7 +240,7 @@ const AdminConvocatoria = () => {
                               label={section.label}
                               sortOrder={section.order}
                             />
-                            {!section.enabled && (
+                            {!enabled && (
                               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                                 <AlertTriangle className="h-3 w-3" />
                                 Sección oculta - no se mostrará en la página aunque tenga contenido
@@ -206,7 +249,8 @@ const AdminConvocatoria = () => {
                           </div>
                         )}
                       </div>
-                    )}
+                      );
+                    }}
                   </Draggable>
                 ))}
                 {provided.placeholder}
