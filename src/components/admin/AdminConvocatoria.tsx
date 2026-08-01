@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
+import { useValorStable } from '@/hooks/useValorStable';
 import SectionEditor from '@/components/admin/convocatoria/SectionEditor';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -40,6 +41,56 @@ const sectionIcons: Record<string, string> = {
   competencias: '⚡',
   desempates: '⚖️',
   stableford: '🔢',
+};
+
+// ============= Stableford (BD: torneos.valorstable) =============
+
+/**
+ * StablefordValuesPanel
+ * Panel de solo lectura que muestra SIEMPRE los valores Stableford del
+ * torneo activo leídos de la BD (`torneos.valorstable` por `torneoid`).
+ * No es editable desde /admin: cada torneo nuevo carga sus valores en
+ * automático al crearse en la base de datos.
+ */
+const StablefordValuesPanel = () => {
+  const { rows, loading } = useValorStable();
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Valores tomados automáticamente de la base de datos
+        (<code>torneos.valorstable</code>) para el torneo activo. Solo lectura.
+      </p>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Cargando valores…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-amber-600 flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" />
+          Este torneo aún no tiene fila en <code>valorstable</code>.
+        </p>
+      ) : (
+        <div className="overflow-hidden rounded-md border border-border/60 max-w-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/60">
+              <tr>
+                <th className="text-left px-3 py-1.5 font-semibold">Resultado</th>
+                <th className="text-right px-3 py-1.5 font-semibold">Puntos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.label} className="border-t border-border/50">
+                  <td className="px-3 py-1.5">{r.label}</td>
+                  <td className="px-3 py-1.5 text-right font-semibold text-primary">{r.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ============= Component =============
@@ -96,6 +147,9 @@ const AdminConvocatoria = () => {
   /** Visibilidad efectiva: BD manda si existe fila, si no el flag local. */
   const isEnabled = (id: string, localEnabled: boolean) =>
     bySectionId.get(id)?.enabled ?? localEnabled;
+
+  /** Valores Stableford del torneo activo (para el badge de la fila). */
+  const { rows: stablefordRows } = useValorStable();
 
   const enabledCount = sections.filter((s) => isEnabled(s.id, s.enabled)).length;
   const disabledCount = sections.length - enabledCount;
@@ -176,7 +230,9 @@ const AdminConvocatoria = () => {
                               {/* BD / Vacío badge: green when a non-empty
                                   convocatoria_content row exists for the
                                   active torneoid; grey otherwise. */}
-                              {hasContent(section.id) ? (
+                              {(section.id === 'stableford'
+                                ? stablefordRows.length > 0
+                                : hasContent(section.id)) ? (
                                 <Badge variant="outline" className="text-xs gap-1 text-emerald-700 border-emerald-300 bg-emerald-50">
                                   <Database className="h-3 w-3" />
                                   BD
@@ -233,13 +289,20 @@ const AdminConvocatoria = () => {
                             (text / items repeater / JSON fallback) plus a
                             preview that uses the SAME public Section
                             component for visual fidelity. */}
-                        {expandedSection === section.id && (
+                        {/* Valores Stableford: se muestran SIEMPRE (solo lectura,
+                            provienen de la BD). El resto de secciones solo al
+                            expandirse. */}
+                        {(expandedSection === section.id || section.id === 'stableford') && (
                           <div className="px-4 pb-4 border-t border-border/50 pt-3">
-                            <SectionEditor
-                              sectionId={section.id}
-                              label={section.label}
-                              sortOrder={section.order}
-                            />
+                            {section.id === 'stableford' ? (
+                              <StablefordValuesPanel />
+                            ) : (
+                              <SectionEditor
+                                sectionId={section.id}
+                                label={section.label}
+                                sortOrder={section.order}
+                              />
+                            )}
                             {!enabled && (
                               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                                 <AlertTriangle className="h-3 w-3" />
