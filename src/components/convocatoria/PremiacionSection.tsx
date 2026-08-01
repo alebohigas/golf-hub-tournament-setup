@@ -33,7 +33,8 @@ const PremiacionSection = ({ data }: PremiacionSectionProps) => {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {item.premios.map((premio, pIdx) => (
+                {/* Defensivo: filas de BD sin `premios` no deben romper la página. */}
+                {(Array.isArray(item?.premios) ? item.premios : []).map((premio, pIdx) => (
                   <li key={pIdx} className="flex items-start gap-3 text-muted-foreground">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
                     <span className="leading-relaxed">{premio}</span>
