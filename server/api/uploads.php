@@ -31,6 +31,7 @@
  */
 require_once 'config.php';
 require_once '_staff_auth.php';
+require_once '_thumbs.php';
 
 // Allow POST + DELETE for management operations
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -201,6 +202,34 @@ function public_versioned_url($section, $filename, $fullPath) {
     $mtime = @filemtime($fullPath) ?: time();
     $size = @filesize($fullPath) ?: 0;
     return public_url($section, $filename) . '?v=' . rawurlencode($mtime . '-' . $size);
+}
+
+/**
+ * Build a cache-busted public URL for a generated thumbnail.
+ * Thumbnails live in `{section}/_thumbs/`, which is served by the same
+ * static path as the originals (no rewrite rules required).
+ */
+function public_thumb_url($section, $thumbName, $thumbPath) {
+    $domain = safe_domain_folder();
+    $mtime = @filemtime($thumbPath) ?: time();
+    return '/api/uploads/' . rawurlencode($domain) . '/' . rawurlencode($section)
+        . '/' . THUMB_DIR_NAME . '/' . rawurlencode($thumbName) . '?v=' . rawurlencode((string)$mtime);
+}
+
+/**
+ * Build the `thumbs` payload for a listed image, generating any missing
+ * sizes on the fly (first request after a deploy / cache purge).
+ *
+ * @return array<string,string> size key → public thumbnail URL
+ */
+function build_thumbs_payload($section, $dir, $filename, $fullPath) {
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    if (!in_array($ext, ['webp', 'jpg', 'jpeg', 'png', 'gif'], true)) return [];
+    $urls = [];
+    foreach (generate_all_thumbnails($fullPath, $dir) as $key => $thumbName) {
+        $urls[$key] = public_thumb_url($section, $thumbName, $dir . '/' . THUMB_DIR_NAME . '/' . $thumbName);
+    }
+    return $urls;
 }
 
 /**
@@ -378,12 +407,18 @@ if ($method === 'GET') {
             if (!is_file($full)) continue;
             $ext = strtolower(pathinfo($entry, PATHINFO_EXTENSION));
             if (!in_array($ext, $rules['exts'], true)) continue;
+            // Thumbnails are generated lazily here so pre-existing uploads
+            // (from before this feature) also gain fast grid variants.
+            $thumbs = build_thumbs_payload($section, $dir, $entry, $full);
             $files[] = [
                 'name'     => $entry,
                 'url'      => public_versioned_url($section, $entry, $full),
                 'alt'      => filename_to_alt($entry),
                 'size'     => filesize($full),
                 'modified' => filemtime($full),
+                // size key → URL ('small' for grids, 'medium' for lightbox)
+                'thumbs'   => $thumbs,
+                'thumbUrl' => $thumbs['small'] ?? null,
             ];
         }
     }
@@ -420,6 +455,8 @@ if ($action === 'delete') {
     if (!@unlink($target)) {
         json_error('Failed to delete file', 500);
     }
+    // Drop derived thumbnails so the cache never outlives the original.
+    delete_thumbnails($name, section_dir($section));
     json_response(['deleted' => true, 'name' => $name]);
 }
 
