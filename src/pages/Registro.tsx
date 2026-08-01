@@ -2099,9 +2099,10 @@ const Registro = () => {
               aria-label={`Editar ${label} normalizado`}
             />
         </div>
-      );
-    }
-    return (
+      )}
+    </div>
+  );
+};
     <Layout>
       <PageHero
         title="Pre-Registro"
