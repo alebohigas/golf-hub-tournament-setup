@@ -16,7 +16,7 @@ import { API_BASE_URL } from '@/config/api';
 
 export type StaffArea =
   | 'preregistros' | 'brackets' | 'banderas' | 'pop'
-  | 'eventos' | 'avisos' | 'premios' | 'convocatoria'
+  | 'eventos' | 'avisos' | 'menus' | 'premios' | 'convocatoria'
   | 'reglas' | 'uploads' | 'stats' | 'hoteles' | 'matchplay' | 'live';
 
 export interface StaffSession {

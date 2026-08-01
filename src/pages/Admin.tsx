@@ -20,6 +20,7 @@ import AdminSponsors from '@/components/admin/AdminSponsors';
 import AdminPagina from '@/components/admin/AdminPagina';
 import AdminEventos from '@/components/admin/AdminEventos';
 import AdminAvisos from '@/components/admin/AdminAvisos';
+import AdminMenus from '@/components/admin/AdminMenus';
 import AdminPremios from '@/components/admin/AdminPremios';
 import AdminHoteles from '@/components/admin/AdminHoteles';
 import AdminUploads from '@/components/admin/AdminUploads';
@@ -212,6 +213,7 @@ const AdminDashboard = () => {
     convocatoria: 'convocatoria',
     eventos: 'eventos',
     avisos: 'avisos',
+    menus: 'menus',
     premios: 'premios',
     hoteles: 'hoteles',
     popup: 'pop',
@@ -241,6 +243,7 @@ const AdminDashboard = () => {
     pop: 'popup',
     eventos: 'eventos',
     avisos: 'avisos',
+    menus: 'menus',
     premios: 'premios',
     hoteles: 'hoteles',
     convocatoria: 'convocatoria',
@@ -445,6 +448,7 @@ const AdminDashboard = () => {
             { value: 'convocatoria', icon: FileText,        label: 'Convocatoria' },
             { value: 'eventos',      icon: CalendarDays,    label: 'Eventos' },
             { value: 'avisos',       icon: Bell,            label: 'Avisos' },
+            { value: 'menus',        icon: UtensilsCrossed, label: 'Menús' },
             { value: 'premios',      icon: Trophy,          label: 'Premios' },
             { value: 'hoteles',      icon: Hotel,           label: 'Hoteles' },
             { value: 'popup',        icon: MonitorPlay,     label: 'POP' },
@@ -625,6 +629,11 @@ const AdminDashboard = () => {
         {/* Avisos Tab — controls Avisos page poster grid layout (desktop & mobile) */}
         <TabsContent value="avisos">
           <AdminAvisos />
+        </TabsContent>
+
+        {/* Menús Tab — manages Menús page poster grid layout (desktop & mobile) */}
+        <TabsContent value="menus">
+          <AdminMenus />
         </TabsContent>
 
         {/* Premios Tab — manages Premios page poster grid (uploads + layout). */}
