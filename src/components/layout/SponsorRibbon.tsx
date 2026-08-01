@@ -348,10 +348,15 @@ const SponsorRibbon = () => {
    * Clamped to the same range exposed by the admin slider (2s … 60s) so a
    * stale/incorrect stored value can never freeze the ribbon.
    */
-  const SECONDS_PER_SCREEN = Math.min(
-    60,
-    Math.max(2, Number(carousel?.speedSeconds) || 12),
-  );
+  /**
+   * Mobile uses its own slider (`speedSecondsMobile`) because natural-width
+   * slots make the desktop value feel wrong on phones. Falls back to the
+   * desktop value when the mobile speed was never configured.
+   */
+  const rawSpeed = isMobile
+    ? Number(carousel?.speedSecondsMobile) || Number(carousel?.speedSeconds) || 12
+    : Number(carousel?.speedSeconds) || 12;
+  const SECONDS_PER_SCREEN = Math.min(60, Math.max(2, rawSpeed));
   /**
    * Reference width used to translate "seconds per screen" into pixels/second.
    * Prefer the measured ribbon viewport (respects the `container` max-width)

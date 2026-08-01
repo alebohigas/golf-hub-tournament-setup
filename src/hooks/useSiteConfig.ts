@@ -67,6 +67,13 @@ export interface SponsorsConfig {
      * animation duration so the perceived speed stays constant.
      */
     speedSeconds?: number;
+    /**
+     * Ribbon scroll speed used EXCLUSIVELY on mobile viewports (<768px),
+     * expressed as SECONDS PER VIEWPORT WIDTH (higher = slower).
+     * Desktop/tablet keep using `speedSeconds`. When undefined, mobile falls
+     * back to `speedSeconds` (legacy behavior).
+     */
+    speedSecondsMobile?: number;
   };
 }
 
