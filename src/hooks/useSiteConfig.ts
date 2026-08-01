@@ -148,6 +148,17 @@ export interface PremiosConfig {
   /** Shared custom poster order across breakpoints. */
   posterOrder?: number[];
   /** @deprecated Legacy per-breakpoint orders. */
+  desktopOrder?: number[];
+  /** @deprecated See `desktopOrder`. */
+  mobileOrder?: number[];
+}
+
+/**
+ * Configuration for the Menús page poster grid.
+ * Mirrors AvisosConfig (cols + gap per breakpoint + shared poster order)
+ * so the Menús gallery can be tuned independently from Avisos.
+ */
+export interface MenusConfig {
   desktopColumns: number;
   mobileColumns: number;
   desktopGap: EventosGap;
