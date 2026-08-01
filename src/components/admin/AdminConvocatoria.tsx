@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
 import { useValorStable } from '@/hooks/useValorStable';
+import StablefordTable from '@/components/shared/StablefordTable';
 import SectionEditor from '@/components/admin/convocatoria/SectionEditor';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -70,24 +71,8 @@ const StablefordValuesPanel = () => {
           Este torneo aún no tiene fila en <code>valorstable</code>.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-md border border-border/60 max-w-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/60">
-              <tr>
-                <th className="text-left px-3 py-1.5 font-semibold">Dif Par</th>
-                <th className="text-right px-3 py-1.5 font-semibold">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.label} className="border-t border-border/50">
-                  <td className="px-3 py-1.5">{r.label}</td>
-                  <td className="px-3 py-1.5 text-right font-semibold text-primary">{r.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        /* Formato unificado (ver StablefordTable). */
+        <StablefordTable rows={rows} />
       )}
     </div>
   );
