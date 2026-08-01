@@ -26,6 +26,7 @@ import CategoriasSection from '@/components/convocatoria/CategoriasSection';
 import PremiacionSection from '@/components/convocatoria/PremiacionSection';
 import DesempatesSection from '@/components/convocatoria/DesempatesSection';
 import StablefordSection from '@/components/convocatoria/StablefordSection';
+import { useValorStable } from '@/hooks/useValorStable';
 import ReglasSection from '@/components/convocatoria/ReglasSection';
 import CompetenciasEspecialesSection from '@/components/convocatoria/CompetenciasEspecialesSection';
 import ServiciosSection from '@/components/convocatoria/ServiciosSection';
