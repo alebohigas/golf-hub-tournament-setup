@@ -58,15 +58,23 @@ $baseWhere = "j.torneoid = $tid
 
 // Aggregate per (club, salida). Each row carries branch counts + tee metadata
 // so the frontend can filter dynamically by tee color/salida id.
+// ---- Clasificación de rama "Super Sr." ----
+// Cualquier categoría que contenga la palabra SUPER (SUPER SENIOR, SUPER SR.,
+// SÚPER SENIOR, SUPERSENIOR, etc.) cuenta como Super Sr. en TODOS los torneos.
+// Normalizamos acentos y espacios para que el LIKE '%SUPER%' los capture todos.
+$catNorm     = "REPLACE(REPLACE(REPLACE(UPPER(COALESCE(cat.categoria,'')),'Ú','U'),'ú','u'),' ','')";
+$isSuper     = "$catNorm LIKE '%SUPER%'";
+$isSeniorOnly = "UPPER(COALESCE(cat.categoria,'')) LIKE '%SENIOR%' AND NOT ($isSuper)";
+
 $sql = "SELECT c.id AS club_id, c.nombre AS club_name, $abrSelect c.logo AS club_logo,
                COALESCE(cat.salida, 0) AS salida_id,
                s.tee     AS tee_name,
                s.color   AS tee_color,
                s.bgcolor AS tee_bgcolor,
-               SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SUPER SENIOR%' THEN 1 ELSE 0 END) AS supersenior,
-               SUM(CASE WHEN UPPER(cat.categoria) LIKE '%SENIOR%' AND UPPER(cat.categoria) NOT LIKE '%SUPER SENIOR%' THEN 1 ELSE 0 END) AS seniors,
-               SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='M' THEN 1 ELSE 0 END) AS caballeros,
-               SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND UPPER(j.sexo)='F' THEN 1 ELSE 0 END) AS damas,
+               SUM(CASE WHEN $isSuper THEN 1 ELSE 0 END) AS supersenior,
+               SUM(CASE WHEN $isSeniorOnly THEN 1 ELSE 0 END) AS seniors,
+               SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND NOT ($isSuper) AND UPPER(j.sexo)='M' THEN 1 ELSE 0 END) AS caballeros,
+               SUM(CASE WHEN UPPER(COALESCE(cat.categoria,'')) NOT LIKE '%SENIOR%' AND NOT ($isSuper) AND UPPER(j.sexo)='F' THEN 1 ELSE 0 END) AS damas,
                COUNT(*) AS total
           FROM jugadores j
           LEFT JOIN clubs c ON (j.clubid = c.id)
