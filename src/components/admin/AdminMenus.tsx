@@ -1,10 +1,10 @@
 /**
  * AdminMenus Component
  * -------------------------------------------------------------
- * Admin tab for configuring the Avisos page poster grid.
+ * Admin tab for configuring the Menus page poster grid.
  *
  * Mirrors AdminEventos in structure and behavior, but persists to a
- * separate `menus_config` field on `site_config` so the Avisos page
+ * separate `menus_config` field on `site_config` so the Menus page
  * can be tuned independently from Eventos.
  *
  * Features:
@@ -14,7 +14,7 @@
  *    (~390px) widths, mirroring the AdminEventos pattern.
  *  - Persists settings server-side via `site_config.menus_config`.
  *
- * The public Avisos page (`AvisosPostersSection`) reads this config from
+ * The public Menus page (`MenusPostersSection`) reads this config from
  * `useSiteConfig` and applies the appropriate columns/gap per breakpoint.
  */
 
@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Loader2,
-  Bell,
+  UtensilsCrossed,
   Save,
   CheckCircle2,
   Monitor,
@@ -47,12 +47,12 @@ import {
 } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { resolveOrder, identityOrder, moveItem } from '@/lib/posterOrder';
-// Auto-discovered Avisos posters from `src/assets/menus/`.
-// Mirrors what AvisosPostersSection renders on the public page so the
+// Auto-discovered Menús posters from `src/assets/menus/`.
+// Mirrors what MenusPostersSection renders on the public page so the
 // admin preview always matches the live site.
 import { MENUS_POSTERS } from '@/lib/posterAssets';
 // Server-uploaded posters take precedence over build-time assets so the
-// admin preview matches what visitors actually see on /avisos.
+// admin preview matches what visitors actually see on /menus.
 import { useUploadsList } from '@/hooks/useUploads';
 
 // ============= Constants =============
@@ -349,7 +349,7 @@ const AdminMenus = () => {
 
   /**
    * Server-uploaded posters for this section. When present, they are the
-   * source of truth shown by the public `AvisosPostersSection` page, so
+   * source of truth shown by the public `MenusPostersSection` page, so
    * the admin preview MUST mirror them — otherwise drag-to-reorder would
    * generate indices into the wrong list and persisted orders would not
    * match what visitors see.
@@ -426,7 +426,7 @@ const AdminMenus = () => {
         onSuccess: () => {
           toast({
             title: 'Configuración guardada',
-            description: `Avisos: Desktop ${draft.desktopColumns} col / Mobile ${draft.mobileColumns} col.`,
+            description: `Menús: Desktop ${draft.desktopColumns} col / Mobile ${draft.mobileColumns} col.`,
           });
         },
         onError: (err) => {
@@ -444,11 +444,11 @@ const AdminMenus = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-primary" />
-          Configuración de Avisos
+          <UtensilsCrossed className="h-5 w-5 text-primary" />
+          Configuración de Menús
         </CardTitle>
         <CardDescription>
-          Define la cantidad de columnas y el espaciado del grid de avisos.
+          Define la cantidad de columnas y el espaciado del grid de menús.
           Desktop y móvil se configuran por separado. Menos columnas = imágenes más grandes.
         </CardDescription>
       </CardHeader>

@@ -3,7 +3,7 @@
  * -------------------------------------------------------------
  * Renders a responsive grid of aviso poster cards (climatological notice,
  * pricing tables, etc.). Mirrors `AtraccionesSection` (Eventos page) in
- * structure and behavior so the Avisos page shares the same visual
+ * structure and behavior so the Menus page shares the same visual
  * language and lightbox UX.
  *
  * Each card displays a vertical poster (.webp) imported from
@@ -179,10 +179,10 @@ const MenusPostersSection = () => {
         {/* ---------- Section header ---------- */}
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
-            Comunicados Importantes del Torneo
+            Menús
           </h2>
           <p className="text-muted-foreground">
-            Avisos importantes, tablas de inscripción y accesos para participantes
+            Consulta los menús disponibles durante el torneo
           </p>
         </div>
 
@@ -231,10 +231,10 @@ const MenusPostersSection = () => {
         >
           {/* Accessible label for screen readers */}
           <DialogTitle className="sr-only">
-            {current ? current.alt : 'Aviso'}
+            {current ? current.alt : 'Menú'}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Vista ampliada del aviso. Use las flechas para navegar.
+            Vista ampliada del menú. Use las flechas para navegar.
           </DialogDescription>
           {current && (
             <div className="relative">
