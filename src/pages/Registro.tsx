@@ -2102,7 +2102,9 @@ const Registro = () => {
       )}
     </div>
   );
-};
+  };
+
+  return (
     <Layout>
       <PageHero
         title="Pre-Registro"
