@@ -578,11 +578,19 @@ if ($action === 'upload') {
         $cleanName = maybe_convert_to_webp($target, $cleanName, $dir);
         $target = $dir . '/' . $cleanName;
 
+        // Pre-generate thumbnails right after the upload so the first
+        // visitor never pays the resize cost. Stale variants from a replaced
+        // file are cleared first.
+        delete_thumbnails($cleanName, $dir);
+        $thumbs = build_thumbs_payload($section, $dir, $cleanName, $target);
+
         $saved[] = [
             'name'     => $cleanName,
             'original' => $original,
             'url'      => public_versioned_url($section, $cleanName, $target),
             'size'     => filesize($target),
+            'thumbs'   => $thumbs,
+            'thumbUrl' => $thumbs['small'] ?? null,
         ];
     }
 
