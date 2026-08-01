@@ -93,7 +93,11 @@ const AdminConvocatoria = () => {
     reorderSections(items.map((s) => s.id));
   };
 
-  const enabledCount = sections.filter((s) => s.enabled).length;
+  /** Visibilidad efectiva: BD manda si existe fila, si no el flag local. */
+  const isEnabled = (id: string, localEnabled: boolean) =>
+    bySectionId.get(id)?.enabled ?? localEnabled;
+
+  const enabledCount = sections.filter((s) => isEnabled(s.id, s.enabled)).length;
   const disabledCount = sections.length - enabledCount;
 
   return (
