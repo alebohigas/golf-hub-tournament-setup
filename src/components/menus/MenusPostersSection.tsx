@@ -181,6 +181,17 @@ const MenusPostersSection = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [openIndex, goPrev, goNext]);
 
+  /**
+   * Set of poster URLs whose grid thumbnail has finished decoding. Used to
+   * cross-fade each card in and hide its skeleton placeholder.
+   */
+  const [loadedCards, setLoadedCards] = useState<Set<string>>(() => new Set());
+
+  /** Mark one card as loaded (idempotent — never re-renders twice per image). */
+  const markLoaded = useCallback((src: string) => {
+    setLoadedCards((prev) => (prev.has(src) ? prev : new Set(prev).add(src)));
+  }, []);
+
   const current = openIndex !== null ? orderedPosters[openIndex] : null;
 
   /**
@@ -202,6 +213,26 @@ const MenusPostersSection = () => {
       img.onload = null;
     };
   }, [current?.src]);
+
+  /**
+   * Prefetch the medium thumbnails of the previous/next posters while the
+   * lightbox is open, so ← → navigation paints without a blank frame.
+   */
+  useEffect(() => {
+    if (openIndex === null || orderedPosters.length < 2) return;
+    const neighbours = [
+      orderedPosters[(openIndex + 1) % orderedPosters.length],
+      orderedPosters[(openIndex - 1 + orderedPosters.length) % orderedPosters.length],
+    ];
+    const imgs = neighbours.map((n) => {
+      const img = new Image();
+      img.src = n.thumbMedium ?? n.src;
+      return img;
+    });
+    return () => {
+      imgs.forEach((img) => { img.src = ''; });
+    };
+  }, [openIndex, orderedPosters]);
 
   return (
     <section className="py-16 bg-muted/30">
@@ -238,7 +269,19 @@ const MenusPostersSection = () => {
                 completely without cropping or zoom-in artifacts. The card
                 background fills any letterbox gap.
               */}
-              <div className="aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
+              <div className="relative aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
+                {/*
+                  Skeleton placeholder: a shimmering muted block that occupies
+                  the exact card box until the thumbnail decodes. It removes the
+                  empty-white flash on slow connections without causing layout
+                  shift (the 9/16 box is reserved by CSS, not by the image).
+                */}
+                {!loadedCards.has(card.src) && (
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/60 to-muted"
+                  />
+                )}
                 {/*
                   Prefer the generated thumbnails. `srcSet` lets the browser
                   pick the 480px variant on phones/cards and the 1000px one on
@@ -254,9 +297,19 @@ const MenusPostersSection = () => {
                   }
                   sizes="(max-width: 768px) 50vw, 33vw"
                   alt={card.alt}
-                  loading="lazy"
+                  /* First two cards are above the fold on every layout →
+                     load them eagerly with high priority; the rest wait for
+                     the viewport (native lazy loading). */
+                  loading={idx < 2 ? 'eager' : 'lazy'}
+                  fetchPriority={idx < 2 ? 'high' : 'low'}
                   decoding="async"
-                  className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  onLoad={() => markLoaded(card.src)}
+                  onError={() => markLoaded(card.src)}
+                  className={cn(
+                    'relative max-h-full max-w-full object-contain',
+                    'transition-[opacity,transform] duration-500 group-hover:scale-105',
+                    loadedCards.has(card.src) ? 'opacity-100' : 'opacity-0'
+                  )}
                 />
               </div>
             </button>
@@ -319,11 +372,20 @@ const MenusPostersSection = () => {
                 thumbnail paints immediately, then the full-resolution file
                 swaps in once decoded (see `fullLoaded`).
               */}
+              {/* Placeholder behind the image: keeps the dialog from showing
+                  a transparent hole before the first byte paints. */}
+              {!fullLoaded && !current.thumbMedium && (
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 animate-pulse rounded-lg bg-muted/70"
+                />
+              )}
               <img
                 src={fullLoaded || !current.thumbMedium ? current.src : current.thumbMedium}
                 alt={current.alt}
                 decoding="async"
-                className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+                fetchPriority="high"
+                className="relative w-full h-auto max-h-[90vh] object-contain rounded-lg"
               />
 
               {/* Counter label */}
