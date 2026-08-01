@@ -41,6 +41,7 @@ import {
   Loader2,
   CalendarDays,
   Bell,
+  UtensilsCrossed,
   ScrollText,
   BookOpen,
   HardDrive,
@@ -99,6 +100,15 @@ const SECTIONS: SectionMeta[] = [
     Icon: Bell,
     description:
       'Imágenes para el grid de Avisos (clima, costos, comunicados). Mismo formato y reglas de orden que Eventos.',
+    accept: 'image/webp,image/jpeg,image/png,image/gif',
+    kind: 'image',
+  },
+  {
+    id: 'menus',
+    label: 'Menús',
+    Icon: UtensilsCrossed,
+    description:
+      'Imágenes para el grid de la página Menús (alimentos, bebidas, paquetes). Súbelas con prefijos numéricos (01-, 02-...) para controlar el orden.',
     accept: 'image/webp,image/jpeg,image/png,image/gif',
     kind: 'image',
   },

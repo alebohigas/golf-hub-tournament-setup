@@ -61,6 +61,7 @@ import {
   LayoutPanelTop,
   CalendarDays,
   Bell,
+  UtensilsCrossed,
   Upload,
   ClipboardList,
   Trophy,
