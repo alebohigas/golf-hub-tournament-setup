@@ -107,7 +107,10 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
   });
 
   // ----- Brackets putt -----
-  const brackets = usePuttFinales();
+  // En pantallas de club (otro dispositivo) el push de `bracketLive` no llega,
+  // así que se deja un poll de respaldo con el ritmo del showcase (5 min) para
+  // que un cambio de modo (Un solo bracket ↔ Caballeros y Damas) se refleje.
+  const brackets = usePuttFinales(POLL_SHOWCASE);
 
   // ----- Match Play categorías (un slide por categoría con matches) -----
   const matchplay = useMatchPlayCategories();

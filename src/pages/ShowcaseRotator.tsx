@@ -113,7 +113,25 @@ const ShowcaseRotator = () => {
 
   /** Config efectiva (usuario o fallback con todo). */
   const effective: ShowcaseConfig | null = useMemo(() => {
-    if (config && config.slides.length > 0) return config;
+    if (config && config.slides.length > 0) {
+      /**
+       * Los slides de Putt Finales (bracket / calificados) dependen del MODO
+       * activo en Brackets Putt: 'Un solo bracket' (sexo A) o 'Caballeros y
+       * Damas' (M y F). Cuando el admin cambia de modo, el backend purga los
+       * brackets que ya no aplican y el push de `bracketLive` invalida la
+       * caché aquí mismo, así que `fallback.all` refleja al instante los
+       * slides válidos. Filtramos los ids obsoletos de la rotación
+       * customizada para no mostrar datos viejos ni placeholders vacíos.
+       */
+      if (fallback.isLoading) return config;
+      const availableIds = new Set(fallback.all.map((s) => s.id));
+      const slides = config.slides.filter((s) => {
+        const { kind } = parseSlideId(s.id);
+        if (kind !== 'bracket' && kind !== 'qual') return true;
+        return availableIds.has(s.id);
+      });
+      return { ...config, slides };
+    }
     if (fallback.isLoading) return null;
     if (!fallback.all.length) return { defaultSeconds: 30, slides: [] };
     return {
@@ -135,8 +153,13 @@ const ShowcaseRotator = () => {
   /** Progreso 0..1 dentro del slide actual (para barra superior). */
   const [progress, setProgress] = useState(0);
 
-  /** Reset índice si la lista cambia bajo nuestros pies. */
-  useEffect(() => { setIdx(0); }, [effective?.slides.length]);
+  /**
+   * Reset índice si la lista cambia bajo nuestros pies (por cantidad O por
+   * contenido: al cambiar el modo de Putt Finales los ids cambian aunque el
+   * total coincida).
+   */
+  const slidesKey = (effective?.slides ?? []).map((s) => s.id).join('|');
+  useEffect(() => { setIdx(0); }, [slidesKey]);
 
   /**
    * Rotación + AUTO-SCROLL dinámico por fases.

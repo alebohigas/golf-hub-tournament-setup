@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
 import { usePuttFinales } from '@/hooks/useBrackets';
+import { POLL_SHOWCASE } from '@/config/api';
 import ShowcaseStickyTitle from '@/components/showcase/ShowcaseStickyTitle';
 
 /** Props del slide. */
@@ -29,7 +30,8 @@ interface Props {
  * bracket Putt-Finales del sexo indicado, en orden de seed (1..N).
  */
 const PuttCalificadosSlide = ({ sexo }: Props) => {
-  const { data, isLoading } = usePuttFinales();
+  /** Poll de respaldo (5 min) para TVs en otro dispositivo, además del push. */
+  const { data, isLoading } = usePuttFinales(POLL_SHOWCASE);
   const side = data?.[sexo];
   const qualifiers = side?.qualifiers ?? [];
   /** En modo único (A) no hay división por sexo → título general. */
