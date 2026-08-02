@@ -111,8 +111,19 @@ const ShowcaseRotator = () => {
   /** Fallback: si no hay config, listar TODOS los slides disponibles. */
   const fallback = useShowcaseSlides();
 
+  /**
+   * Clave ESTABLE de los slides disponibles. `fallback.all` es un array nuevo
+   * en CADA render (el hook lo reconstruye), así que usarlo como dependencia
+   * de useMemo/useEffect recreaba `effective` en cada render y reiniciaba el
+   * temporizador de rotación una y otra vez (la rotación se quedaba clavada
+   * en el primer slide). Con esta cadena la identidad sólo cambia cuando
+   * cambian de verdad los ids disponibles.
+   */
+  const availableKey = fallback.all.map((s) => s.id).join('|');
+
   /** Config efectiva (usuario o fallback con todo). */
   const effective: ShowcaseConfig | null = useMemo(() => {
+    const availableList = availableKey ? availableKey.split('|') : [];
     if (config && config.slides.length > 0) {
       /**
        * Los slides de Putt Finales (bracket / calificados) dependen del MODO
@@ -124,7 +135,7 @@ const ShowcaseRotator = () => {
        * customizada para no mostrar datos viejos ni placeholders vacíos.
        */
       if (fallback.isLoading) return config;
-      const availableIds = new Set(fallback.all.map((s) => s.id));
+      const availableIds = new Set(availableList);
       const slides = config.slides.filter((s) => {
         const { kind } = parseSlideId(s.id);
         if (kind !== 'bracket' && kind !== 'qual') return true;
@@ -133,12 +144,12 @@ const ShowcaseRotator = () => {
       return { ...config, slides };
     }
     if (fallback.isLoading) return null;
-    if (!fallback.all.length) return { defaultSeconds: 30, slides: [] };
+    if (!availableList.length) return { defaultSeconds: 30, slides: [] };
     return {
       defaultSeconds: 30,
-      slides: fallback.all.map((s) => ({ id: s.id })),
+      slides: availableList.map((id) => ({ id })),
     };
-  }, [config, fallback.isLoading, fallback.all]);
+  }, [config, fallback.isLoading, availableKey]);
 
   /** Tournament header (mismo estilo que /showcase/:tipo). */
   const { data: tInfo } = useQuery<TournamentInfo>({
