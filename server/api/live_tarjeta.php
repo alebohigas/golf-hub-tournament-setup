@@ -104,8 +104,12 @@ for ($h = 9; $h < 18; $h++) {
 json_response([
     'cardId'  => $card['id'],
     'date'    => $card['fecha'],
-    /** Last capture timestamp from tarjetas.fecha_cap — shown in Live as "Actualizado" */
-    'fechaCap' => $card['fecha_cap'],
+    /**
+     * Last capture timestamp shown as "Actualizado".
+     * Source of truth: tarjetas.fec_ult_act (fecha de registro real en la BD).
+     * `fecha_cap` queda solo como respaldo si fec_ult_act viene vacio.
+     */
+    'fechaCap' => (!empty($card['fec_ult_act']) ? $card['fec_ult_act'] : ($card['fecha_cap'] ?? null)),
     'course'  => $card['campo'],
     'type'    => $tipo,
     'totals'  => [
