@@ -11,8 +11,10 @@
  * Toda la auth admin se manda con la contraseña real guardada en la sesión
  * actual del superadmin, o con `staff_token` si es usuario temporal.
  */
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE_URL, POLL_ACTIVE } from '@/config/api';
+import { API_BASE_URL } from '@/config/api';
+import { publishBracketChange, subscribeBracketChanges } from '@/lib/bracketLive';
 import { getTorneoId } from '@/hooks/useTorneoId';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { useStaffAuth } from '@/contexts/StaffAuthContext';
@@ -86,9 +88,20 @@ export const useMatchPlayCategories = () => {
   });
 };
 
-/** Devuelve el bracket completo (D1 + D2) de una categoría. */
-export const useMatchPlayBracket = (catid: string | null) => {
+/**
+ * Devuelve el bracket completo (D1 + D2) de una categoría.
+ *
+ * Se actualiza por PUSH: cada captura del admin publica en `bracketLive` y
+ * esta vista invalida al instante (incluye el match por 3er lugar 199/299).
+ * `fallbackPollMs` es una red de seguridad opcional, desactivada por defecto.
+ */
+export const useMatchPlayBracket = (catid: string | null, fallbackPollMs = 0) => {
   const torneoId = getTorneoId();
+  const qc = useQueryClient();
+  useEffect(
+    () => subscribeBracketChanges(() => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] })),
+    [qc],
+  );
   return useQuery<BracketResponse>({
     queryKey: ['matchplay-bracket', torneoId, catid],
     queryFn: async () => {
@@ -99,7 +112,9 @@ export const useMatchPlayBracket = (catid: string | null) => {
       return res.json();
     },
     enabled: !!torneoId && !!catid,
-    refetchInterval: POLL_ACTIVE,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: fallbackPollMs > 0 ? fallbackPollMs : false,
   });
 };
 
@@ -153,7 +168,11 @@ export const useSetMatchWinner = () => {
       if (!res.ok) throw new Error(data.error || 'No se pudo marcar al ganador');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['matchplay-bracket'] });
+      /** Push inmediato a las vistas públicas (/matchplay y showcase). */
+      publishBracketChange('matchplay_admin');
+    },
   });
 };
 
@@ -172,7 +191,11 @@ export const useResetMatch = () => {
       if (!res.ok) throw new Error(data.error || 'No se pudo resetear el match');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['matchplay-bracket'] });
+      /** Push inmediato a las vistas públicas (/matchplay y showcase). */
+      publishBracketChange('matchplay_admin');
+    },
   });
 };
 
@@ -196,7 +219,11 @@ export const useEnableThirdPlace = () => {
       if (!res.ok) throw new Error(data.error || 'No se pudo habilitar el match por 3er lugar');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['matchplay-bracket'] });
+      /** Push inmediato a las vistas públicas (/matchplay y showcase). */
+      publishBracketChange('matchplay_admin');
+    },
   });
 };
 
