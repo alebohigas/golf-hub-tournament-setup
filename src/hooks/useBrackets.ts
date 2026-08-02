@@ -195,3 +195,17 @@ export const useResetBracketMatch = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
   });
 };
+
+/**
+ * Habilita el match por 3er lugar del bracket Putt (Caballero o Dama):
+ * crea la fila con `match_num = 99` en la última ronda y siembra a los
+ * perdedores de las dos semifinales. Idempotente.
+ */
+export const useEnablePuttThirdPlace = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F'; password: string }) =>
+      postBracketAction('enable_third_place', vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+  });
+};
