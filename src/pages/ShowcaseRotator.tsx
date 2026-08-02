@@ -60,10 +60,10 @@ const renderSlide = (id: string) => {
     return <MejorScoreSlide fecha={parts[0]} />;
   }
   if (kind === 'bracket') {
-    return <BracketSlide sexo={parts[0] as 'M' | 'F'} kind={parts[1]} />;
+    return <BracketSlide sexo={parts[0] as 'M' | 'F' | 'A'} kind={parts[1]} />;
   }
   if (kind === 'qual') {
-    return <PuttCalificadosSlide sexo={parts[0] as 'M' | 'F'} />;
+    return <PuttCalificadosSlide sexo={parts[0] as 'M' | 'F' | 'A'} />;
   }
   if (kind === 'matchplay') {
     // El catid puede contener ':' internos — recomponemos juntando las partes.

@@ -22,11 +22,19 @@ import BracketPairs from '@/components/brackets/BracketPairs';
 
 /** Props del slide de bracket. */
 interface Props {
-  /** Caballeros (M) o Damas (F). */
-  sexo: 'M' | 'F';
+  /** Caballeros (M), Damas (F) o bracket ÚNICO (A = "Un solo bracket"). */
+  sexo: 'M' | 'F' | 'A';
   /** 'full' | 'group0..3' | 'semis' | 'final' */
   kind: string;
 }
+
+/**
+ * Sufijo de título según el bracket. En modo "Un solo bracket" (A) no hay
+ * división por sexo, así que se omite el sufijo y se muestra sólo el nombre
+ * de la competición.
+ */
+const sideLabel = (sexo: 'M' | 'F' | 'A'): string =>
+  sexo === 'M' ? 'Caballeros' : sexo === 'F' ? 'Damas' : 'Putt Finales';
 
 /** Tarjeta de un match — 2 filas con resultado G/–. */
 const MatchCard = ({ match, championId }: { match: BracketMatch; championId: number | null }) => {
@@ -96,7 +104,7 @@ const RoundColumn = ({
 const BracketSlide = ({ sexo, kind }: Props) => {
   const { data, isLoading } = usePuttFinales();
   const side = data?.[sexo];
-  const titulo = sexo === 'M' ? 'Caballeros' : 'Damas';
+  const titulo = sideLabel(sexo);
 
   if (isLoading) {
     return (
