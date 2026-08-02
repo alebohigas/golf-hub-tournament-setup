@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
 import { type BracketMatch } from '@/hooks/useMatchPlay';
+import BracketPairs from '@/components/brackets/BracketPairs';
 
 interface BracketViewProps {
   matches: BracketMatch[];
@@ -317,7 +318,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                   <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                     {roundLabel(fromEnd)}
                   </h4>
-                  <div className="flex flex-col gap-3 justify-around flex-1">
+                  <BracketPairs connect={fromEnd > 1}>
                     {roundMatches.map((m, i) => (
                       <MatchCard
                         key={m?.matchId ?? `ph-${rIdx}-${i}`}
@@ -328,7 +329,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                         busy={!!m && busyMatchId === m.matchId}
                       />
                     ))}
-                  </div>
+                  </BracketPairs>
                 </div>
               );
             })}
@@ -368,7 +369,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
-                    <div className="flex flex-col gap-3 justify-around flex-1">
+                    <BracketPairs>
                       {leftHalf.map((m, i) => (
                         <MatchCard
                           key={m?.matchId ?? `blh-${idx}-${i}`}
@@ -379,7 +380,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                           busy={!!m && busyMatchId === m.matchId}
                         />
                       ))}
-                    </div>
+                    </BracketPairs>
                   </div>
                 );
               })}
@@ -389,7 +390,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   Semifinal 1
                 </h4>
-                <div className="flex flex-col gap-3 justify-around flex-1">
+                <BracketPairs>
                   <MatchCard
                     match={semisRound[0] ?? null}
                     admin={admin}
@@ -397,7 +398,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                     onReset={onReset}
                     busy={!!semisRound[0] && busyMatchId === semisRound[0]!.matchId}
                   />
-                </div>
+                </BracketPairs>
               </div>
 
               {/* Final central */}
@@ -421,7 +422,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   Semifinal 2
                 </h4>
-                <div className="flex flex-col gap-3 justify-around flex-1">
+                <BracketPairs mirrored>
                   <MatchCard
                     match={semisRound[1] ?? null}
                     admin={admin}
@@ -429,7 +430,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                     onReset={onReset}
                     busy={!!semisRound[1] && busyMatchId === semisRound[1]!.matchId}
                   />
-                </div>
+                </BracketPairs>
               </div>
 
               {/* Columnas extra derecha (cuartos, etc.) — segunda mitad */}
@@ -444,7 +445,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
-                    <div className="flex flex-col gap-3 justify-around flex-1">
+                    <BracketPairs mirrored>
                       {rightHalf.map((m, i) => (
                         <MatchCard
                           key={m?.matchId ?? `brh-${idx}-${i}`}
@@ -455,7 +456,7 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                           busy={!!m && busyMatchId === m.matchId}
                         />
                       ))}
-                    </div>
+                    </BracketPairs>
                   </div>
                 );
               })}

@@ -428,3 +428,62 @@
 .showcase-sticky-title {
   background-color: hsl(var(--background));
 }
+
+/* ============================================================================
+ * Llaves (conectores) de brackets Match Play
+ * ----------------------------------------------------------------------------
+ * `.bracket-pair` envuelve DOS match cards consecutivas de una ronda y dibuja
+ * la llave que las une con la card de la ronda siguiente:
+ *   ::before → caja con borde superior/derecho/inferior (la "llave" en forma
+ *              de corchete redondeado que sale de ambas cards).
+ *   ::after  → tramo horizontal corto que entra a la ronda siguiente.
+ * `.bracket-pair-single` (rondas con un solo match, ej. semifinal) dibuja sólo
+ * el tramo horizontal. `.bracket-pair-left` refleja la llave hacia la izquierda
+ * (usada en el lado derecho de los layouts bilaterales de Gran Final).
+ * ========================================================================== */
+.bracket-pair {
+  position: relative;
+}
+.bracket-pair::before,
+.bracket-pair::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border-color: hsl(var(--primary) / 0.45);
+  border-style: solid;
+}
+/* Corchete: sale del centro de cada card y converge a la derecha. */
+.bracket-pair::before {
+  left: 100%;
+  top: 25%;
+  bottom: 25%;
+  width: 10px;
+  border-width: 2px 2px 2px 0;
+  border-radius: 0 10px 10px 0;
+}
+/* Tramo horizontal hacia la ronda siguiente. */
+.bracket-pair::after {
+  left: calc(100% + 10px);
+  top: 50%;
+  width: 10px;
+  border-width: 2px 0 0 0;
+}
+/* Ronda con un solo match: sólo línea recta. */
+.bracket-pair-single::before {
+  top: 50%;
+  bottom: auto;
+  height: 0;
+  border-width: 2px 0 0 0;
+  border-radius: 0;
+}
+/* Variante espejo (lado derecho de la Gran Final bilateral). */
+.bracket-pair-left::before {
+  left: auto;
+  right: 100%;
+  border-width: 2px 0 2px 2px;
+  border-radius: 10px 0 0 10px;
+}
+.bracket-pair-left::after {
+  left: auto;
+  right: calc(100% + 10px);
+}
