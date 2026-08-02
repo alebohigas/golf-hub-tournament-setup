@@ -173,7 +173,18 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
   // Se recorre 'A' (bracket ÚNICO / "Un solo bracket") además de M y F; los
   // brackets que no aplican al modo activo no tienen config (el backend los
   // purga al cambiar de modo) y se omiten automáticamente.
-  (['A', 'M', 'F'] as const).forEach((sexo) => {
+  /**
+   * Modo ACTIVO de Putt Finales: si existe configuración para el bracket
+   * único ('A') el torneo está en "Un solo bracket" y los brackets por sexo
+   * quedan fuera (el backend los purga pero CONSERVA su fila de config, por
+   * lo que sin este filtro seguirían apareciendo slides vacíos de
+   * Caballeros/Damas).
+   */
+  const puttSides: readonly ('A' | 'M' | 'F')[] = brackets.data?.A?.config
+    ? (['A'] as const)
+    : (['M', 'F'] as const);
+
+  puttSides.forEach((sexo) => {
     const side = brackets.data?.[sexo];
     if (!side?.config) return;
     const size = Number(side.config.size);
