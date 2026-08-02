@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Award, Medal, RotateCcw, Trophy, User2 } from 'lucide-react';
 import { type BracketMatch } from '@/hooks/useMatchPlay';
 import BracketPairs from '@/components/brackets/BracketPairs';
+import Podium from '@/components/brackets/Podium';
 
 interface BracketViewProps {
   matches: BracketMatch[];
@@ -294,6 +295,21 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
 
   /** Nombre del 3er lugar: ganador del match por 3er lugar. */
   const thirdPlaceName = championOfMatch(thirdPlaceMatch);
+
+  /**
+   * Semifinalistas eliminados: perdedores de los matches de semifinales
+   * (penúltima ronda). Se usan en el podio cuando NO hay competencia por el
+   * 3er lugar, donde el tercer bloque pasa a llamarse "SEMIFINALISTAS".
+   */
+  const semifinalistNames: string[] = (() => {
+    const semis = totalRounds >= 2 ? rounds[totalRounds - 2] ?? [] : [];
+    return semis
+      .map((m) => {
+        if (!m || m.winner == null) return null;
+        return String(m.winner) === '1' ? m.player2.name : m.player1.name;
+      })
+      .filter((n): n is string => !!n && n.trim().length > 0);
+  })();
 
   return (
     <div className="space-y-8">
