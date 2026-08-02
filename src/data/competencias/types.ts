@@ -39,10 +39,10 @@ export interface CompetenciaGroup {
   lastUpdated?: string;
   /**
    * Cuando está presente, este grupo representa un bracket Putt Finales
-   * ('M' = Caballero, 'F' = Dama). El front renderiza <BracketView sexo />
-   * en lugar de la tabla estándar.
+   * ('M' = Caballero, 'F' = Dama, 'A' = bracket único/unificado). El front
+   * renderiza <BracketView sexo /> en lugar de la tabla estándar.
    */
-  bracketSexo?: 'M' | 'F';
+  bracketSexo?: 'M' | 'F' | 'A';
 }
 
 // ============= Competition Types =============

@@ -70,18 +70,24 @@ function require_admin($body) {
     }
 }
 
-/** Normaliza sexo a 'M' o 'F'; falla si distinto. */
+/**
+ * Normaliza sexo a 'M', 'F' o 'A'; falla si distinto.
+ * 'A' = bracket ÚNICO/unificado (una sola competición Putt Finales sin
+ * separar Caballero/Dama). Se usa cuando el torneo compite en un solo bracket.
+ */
 function require_sexo($val) {
     $s = strtoupper((string)$val);
-    if ($s !== 'M' && $s !== 'F') {
-        json_error("Invalid sexo '$val' — debe ser 'M' o 'F'", 400);
+    if ($s !== 'M' && $s !== 'F' && $s !== 'A') {
+        json_error("Invalid sexo '$val' — debe ser 'M', 'F' o 'A'", 400);
     }
     return $s;
 }
 
-/** prize_id convencional según sexo (1=M, 2=F). */
+/** prize_id convencional según sexo (1=M, 2=F, 3=A/unificado). */
 function prize_id_for_sexo($sexo) {
-    return $sexo === 'M' ? 1 : 2;
+    if ($sexo === 'M') return 1;
+    if ($sexo === 'F') return 2;
+    return 3;
 }
 
 /** Query single-row seguro (logea, no muere). */
@@ -166,6 +172,11 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
     $tid = (int)$torneoid;
     $sx  = esc($conn, strtoupper((string)$sexo));
     $lim = max(1, (int)$limit);
+    /**
+     * En modo bracket ÚNICO ('A') no se filtra por sexo: el ranking mezcla
+     * caballeros y damas en una sola competición.
+     */
+    $sexoFilter = ($sx === 'A') ? '' : "AND UPPER(TRIM(j.sexo)) = '$sx'";
 
     refresh_putt_best_flags($conn, $tid);
 
@@ -208,7 +219,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                    AND a.premio = $premio
                                    AND TRIM(a.premiosjugcol) = '$desc'
                                    AND a.orden = 1
-                                   AND UPPER(TRIM(j.sexo)) = '$sx'
+                                   $sexoFilter
                                  ORDER BY a.distancia ASC, a.ultact ASC, a.id ASC
                                  LIMIT $places");
 
@@ -328,8 +339,9 @@ function backfill_advanced_seeds($conn, $cfgId) {
 function action_get_putt_finales($conn, $torneoid) {
     global $PUTT_PRIZE_TABLE;
     $tid = (int)$torneoid;
-    $out = ['M' => null, 'F' => null];
-    foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
+    $out = ['M' => null, 'F' => null, 'A' => null];
+    /** 'A' = bracket único (una sola competición Putt Finales). */
+    foreach (['M' => 1, 'F' => 2, 'A' => 3] as $sx => $pid) {
         $cfg = safe_one($conn,
             "SELECT *, bracket_size AS size FROM bracket_config
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
@@ -411,8 +423,9 @@ function action_get_putt_finales($conn, $torneoid) {
 function action_get_putt_admin($conn, $torneoid) {
     global $PUTT_PRIZE_TABLE;
     $tid = (int)$torneoid;
-    $out = ['M' => null, 'F' => null];
-    foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
+    $out = ['M' => null, 'F' => null, 'A' => null];
+    /** 'A' = bracket único (una sola competición Putt Finales). */
+    foreach (['M' => 1, 'F' => 2, 'A' => 3] as $sx => $pid) {
         $cfg = safe_one($conn,
             "SELECT *, bracket_size AS size FROM bracket_config
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");

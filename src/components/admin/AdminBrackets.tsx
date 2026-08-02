@@ -58,6 +58,17 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const { torneoId } = useTorneoId();
   const { data, isLoading, refetch, isRefetching } = usePuttFinalesAdmin();
 
+  /**
+   * Modo de competición del Putt Finales:
+   *  - 'single' → UN SOLO bracket unificado (sexo 'A'): "Putt Finales".
+   *  - 'dual'   → dos brackets por sexo: "Putt Finales Caballero" / "Dama".
+   * Se deriva de los datos: si ya existe config del bracket unificado se
+   * arranca en 'single'; el admin puede cambiarlo con el selector.
+   */
+  const [bracketMode, setBracketMode] = useState<'single' | 'dual' | null>(null);
+  const effectiveMode: 'single' | 'dual' =
+    bracketMode ?? (data?.A?.config ? 'single' : 'dual');
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -80,10 +91,27 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               <CardDescription>
                 {mode === 'scores'
                   ? 'Captura los scores de cada match. El ganador avanza automáticamente al siguiente bracket.'
-                  : 'Genera dos brackets finales (Caballero y Dama) a partir del ranking acumulado de putt de todas las competiciones del torneo. Los jugadores se siembran automáticamente según distancia.'}
+                  : effectiveMode === 'single'
+                    ? 'Un solo bracket unificado (Caballeros y Damas juntos) generado desde el ranking acumulado de putt del torneo.'
+                    : 'Genera dos brackets finales (Caballero y Dama) a partir del ranking acumulado de putt de todas las competiciones del torneo. Los jugadores se siembran automáticamente según distancia.'}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {/* Selector de modo: un solo bracket vs. dos por sexo. */}
+              {mode !== 'scores' && (
+                <Select
+                  value={effectiveMode}
+                  onValueChange={(v) => setBracketMode(v as 'single' | 'dual')}
+                >
+                  <SelectTrigger className="w-[210px] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Un solo bracket</SelectItem>
+                    <SelectItem value="dual">Caballeros y Damas</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               {mode === 'config' && (
                 <Button asChild variant="outline" size="sm" className="gap-2">
                   <a href="/admin/brackets" target="_blank" rel="noopener noreferrer">
@@ -104,10 +132,17 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               Configura primero el ID del torneo en la pestaña Config.
             </p>
           )}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BracketSection sexo="M" label="Putt Finales Caballero" side={data?.M} mode={mode} />
-            <BracketSection sexo="F" label="Putt Finales Dama"      side={data?.F} mode={mode} />
-          </div>
+          {effectiveMode === 'single' ? (
+            /* Bracket ÚNICO: una sola competición unificada (sexo 'A'). */
+            <div className="grid grid-cols-1 gap-6">
+              <BracketSection sexo="A" label="Putt Finales" side={data?.A} mode={mode} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <BracketSection sexo="M" label="Putt Finales Caballero" side={data?.M} mode={mode} />
+              <BracketSection sexo="F" label="Putt Finales Dama"      side={data?.F} mode={mode} />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -119,7 +154,8 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
 // ============================================================================
 
 interface SectionProps {
-  sexo: 'M' | 'F';
+  /** 'M' = Caballero, 'F' = Dama, 'A' = bracket único unificado. */
+  sexo: 'M' | 'F' | 'A';
   label: string;
   side: PuttBracketSide | undefined;
   mode: 'config' | 'scores' | 'full';
@@ -197,7 +233,9 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
           )}
         </CardTitle>
         <CardDescription>
-          Candidatos con resultados de putt para sexo {sexo}: <strong>{candidates}</strong>
+          {sexo === 'A'
+            ? <>Candidatos con resultados de putt (todos): <strong>{candidates}</strong></>
+            : <>Candidatos con resultados de putt para sexo {sexo}: <strong>{candidates}</strong></>}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
