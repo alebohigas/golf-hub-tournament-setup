@@ -11,6 +11,7 @@
 import { TableRow, TableCell } from '@/components/ui/table';
 import { RoundScorecard, HoleScore, ScorecardType } from '@/data/resultadosData';
 import { X } from 'lucide-react';
+import { formatDbDateTime } from '@/lib/dbDateTime';
 
 interface ScorecardRowProps {
   /** The scorecard data to display */
@@ -225,15 +226,15 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
 
             {/* Right section: last-update timestamp (live only) + close button */}
             <div className="flex items-center gap-3">
-              {scorecard.fechaCap && (
+              {formatDbDateTime(scorecard.fechaCap) && (
                 <span
                   className="text-xs text-muted-foreground whitespace-nowrap"
-                  title="Última captura de la tarjeta (tarjetas.fecha_cap)"
+                  title="Última captura de la tarjeta (tarjetas.fec_ult_act)"
                 >
                   Fecha de captura:{' '}
                   <span className="font-medium text-foreground">
-                    {/* MySQL DATETIME comes as "YYYY-MM-DD HH:MM:SS" — trim seconds */}
-                    {String(scorecard.fechaCap).slice(0, 16).replace('T', ' ')}
+                    {/* Formateo textual, sin new Date(): misma hora en iPhone/Safari y Android */}
+                    {formatDbDateTime(scorecard.fechaCap)}
                   </span>
                 </span>
               )}
