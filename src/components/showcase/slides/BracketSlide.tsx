@@ -168,9 +168,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
     const rounds = Array.from({ length: totalRounds }, (_, i) => i + 1);
     return (
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
-          Bracket Completo — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle="Bracket completo" />
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-6 min-w-max px-2">
             {rounds.map((r) => (
@@ -202,9 +200,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
 
     return (
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
-          Grupo {g + 1} — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle={`Grupo ${g + 1}`} />
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-6 min-w-max px-2">
             {Array.from({ length: groupRoundsCount }, (_, i) => i + 1).map((r) => {
@@ -231,9 +227,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
       .sort((a, b) => Number(a.position) - Number(b.position));
     return (
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
-          Semifinales — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle="Semifinales" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {semis.map((m) => (
             <div key={m.id} className="space-y-2">
@@ -259,9 +253,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
     }
     return (
       <div className="max-w-3xl mx-auto text-center">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-accent pb-2 mb-6 flex items-center justify-center gap-2">
-          <Crown className="h-8 w-8 text-accent" /> Gran Final — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle="Gran Final" />
         <div className="max-w-md mx-auto mb-6">
           <MatchCard match={finalMatch} championId={championId} />
         </div>
