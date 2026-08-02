@@ -9,7 +9,7 @@
  *   1) UPDATE del match (gano, hoyo, fecha).
  *   2) Propaga ganador de D1 a la siguiente ronda usando `pl_grupo` / `sl_grupo`.
  *   3) Para matches de 1ª ronda D1 (matchx 101..108): clona al perdedor en
- *      `jugadores` con sufijo "-B" hacia la categoría de consolación
+ *      `jugadores` con sufijo "-B" hacia la categoría MATCH-2 (DRAW-2)
  *      (D2 / `categorias.categoriascol`) y lo coloca en su match D2 vacante.
  *   4) Para matches Scramble (matchx 109..112): clona al perdedor con sufijo
  *      "-C" hacia la categoría con `abreviatura='Scrm A'`.
@@ -144,14 +144,14 @@ function clone_loser_into_category($conn, $jugperdio_id, $catid_origen, $catperd
 
 /**
  * Propaga al PERDEDOR de un match D1 de primera ronda (101..108) hacia su match
- * vacante en la categoría de consolación (D2). Replica exactamente la lógica
+ * vacante en la categoría MATCH-2 (DRAW-2, D2). Replica exactamente la lógica
  * del legacy.
  */
 function propagate_loser_to_d2($conn, $catid, $juggano_id, $jugperdio_id) {
     $catid = (int)$catid;
     $juggano_id = (int)$juggano_id;
 
-    // Categoría de consolación viene de categorias.categoriascol.
+    // Categoría MATCH-2 (DRAW-2) viene de categorias.categoriascol.
     $cat = query_one($conn, "SELECT categoriascol FROM categorias WHERE categoria_id = $catid LIMIT 1");
     if (!$cat || !$cat['categoriascol']) return;
     $catperd = (int)$cat['categoriascol'];
