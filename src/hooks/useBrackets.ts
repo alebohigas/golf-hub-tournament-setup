@@ -98,22 +98,51 @@ export interface PuttFinalesData {
 
 // ============= Hooks (lectura) =============
 
-/** Público: bracket actual para un sexo (M o F). */
-export const usePuttFinales = () =>
-  useQuery<PuttFinalesData>({
+/**
+ * Suscribe la vista a los cambios de bracket publicados por el admin
+ * (`publishBracketChange`) e invalida la caché al instante. Es el mecanismo
+ * push que sustituye al polling: la tarjeta del 3er lugar se actualiza en el
+ * momento en que se guarda el score, no en el siguiente intervalo.
+ */
+export const useBracketLiveSync = () => {
+  const qc = useQueryClient();
+  useEffect(
+    () =>
+      subscribeBracketChanges(() => {
+        qc.invalidateQueries({ queryKey: ['brackets'] });
+      }),
+    [qc],
+  );
+};
+
+/**
+ * Público: bracket actual para un sexo (M o F).
+ *
+ * Actualización en vivo por PUSH (`useBracketLiveSync`), sin intervalo de
+ * polling. `fallbackPollMs` queda como red de seguridad opcional para
+ * pantallas de club en otro dispositivo (donde el push del navegador no
+ * llega); por defecto está desactivado.
+ */
+export const usePuttFinales = (fallbackPollMs = 0) => {
+  useBracketLiveSync();
+  return useQuery<PuttFinalesData>({
     queryKey: ['brackets', 'putt_finales', 'public'],
     queryFn: () => apiFetch(getPuttFinalesUrl()),
-    staleTime: POLL_ACTIVE,
-    refetchInterval: POLL_ACTIVE,
+    staleTime: 0,
+    refetchInterval: fallbackPollMs > 0 ? fallbackPollMs : false,
+    refetchOnWindowFocus: true,
   });
+};
 
 /** Admin: mismo + candidates_count por sexo. */
-export const usePuttFinalesAdmin = () =>
-  useQuery<PuttFinalesData>({
+export const usePuttFinalesAdmin = () => {
+  useBracketLiveSync();
+  return useQuery<PuttFinalesData>({
     queryKey: ['brackets', 'putt_finales', 'admin'],
     queryFn: () => apiFetch(getPuttFinalesAdminUrl()),
-    staleTime: POLL_ACTIVE,
+    staleTime: 0,
   });
+};
 
 // ============= POST helper =============
 
