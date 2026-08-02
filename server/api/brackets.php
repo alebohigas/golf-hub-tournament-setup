@@ -172,6 +172,11 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
     $tid = (int)$torneoid;
     $sx  = esc($conn, strtoupper((string)$sexo));
     $lim = max(1, (int)$limit);
+    /**
+     * En modo bracket ÚNICO ('A') no se filtra por sexo: el ranking mezcla
+     * caballeros y damas en una sola competición.
+     */
+    $sexoFilter = ($sx === 'A') ? '' : "AND UPPER(TRIM(j.sexo)) = '$sx'";
 
     refresh_putt_best_flags($conn, $tid);
 
@@ -214,7 +219,7 @@ function collect_putt_ranking($conn, $torneoid, $sexo, $limit) {
                                    AND a.premio = $premio
                                    AND TRIM(a.premiosjugcol) = '$desc'
                                    AND a.orden = 1
-                                   AND UPPER(TRIM(j.sexo)) = '$sx'
+                                   $sexoFilter
                                  ORDER BY a.distancia ASC, a.ultact ASC, a.id ASC
                                  LIMIT $places");
 
