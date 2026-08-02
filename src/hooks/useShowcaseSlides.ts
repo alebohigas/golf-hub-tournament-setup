@@ -180,7 +180,23 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
    * lo que sin este filtro seguirían apareciendo slides vacíos de
    * Caballeros/Damas).
    */
-  const puttSides: readonly ('A' | 'M' | 'F')[] = brackets.data?.A?.config
+  /**
+   * Un bracket se considera VIVO cuando tiene config y además datos reales
+   * (matches sembrados o clasificados). Las filas de config se conservan al
+   * alternar de modo, así que la presencia de config NO basta para decidir
+   * el modo activo: hay que mirar si quedan matches.
+   */
+  const isLive = (s?: { config: unknown; matches?: unknown[]; qualifiers?: unknown[] }) =>
+    !!s?.config && ((s.matches?.length ?? 0) > 0 || (s.qualifiers?.length ?? 0) > 0);
+
+  /**
+   * Modo ACTIVO:
+   *   - 'single' → sólo el bracket único ('A') → 1 grupo de slides.
+   *   - 'dual'   → Caballeros ('M') y Damas ('F') → 1 grupo de slides cada uno.
+   * Si el bracket único está vivo manda él; en cualquier otro caso se listan
+   * los brackets por sexo que existan.
+   */
+  const puttSides: readonly ('A' | 'M' | 'F')[] = isLive(brackets.data?.A)
     ? (['A'] as const)
     : (['M', 'F'] as const);
 
