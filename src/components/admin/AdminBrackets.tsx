@@ -274,8 +274,10 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
 // ============================================================================
 
 const MatchesEditor = ({ matches }: { matches: BracketMatch[] }) => {
+  /** El match por 3er lugar (position = 99) se lista aparte, al final. */
+  const thirdPlace = matches.find((m) => Number(m.position) === 99) ?? null;
   const byRound: Record<number, BracketMatch[]> = {};
-  for (const m of matches) {
+  for (const m of matches.filter((x) => Number(x.position) !== 99)) {
     if (!byRound[m.round]) byRound[m.round] = [];
     byRound[m.round].push(m);
   }
@@ -292,6 +294,12 @@ const MatchesEditor = ({ matches }: { matches: BracketMatch[] }) => {
           </div>
         </div>
       ))}
+      {thirdPlace && (
+        <div className="space-y-2">
+          <div className="text-xs uppercase text-primary font-bold tracking-wide">Match por 3er lugar</div>
+          <MatchRow match={thirdPlace} />
+        </div>
+      )}
     </div>
   );
 };
