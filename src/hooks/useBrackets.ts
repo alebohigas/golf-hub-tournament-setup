@@ -27,8 +27,8 @@ export interface BracketConfig {
   id: number;
   torneoid: number;
   prize_table: string;        // siempre 'putt_finales'
-  prize_id: number;           // 1=M, 2=F
-  sexo: 'M' | 'F' | null;
+  prize_id: number;           // 1=M, 2=F, 3=A (bracket único)
+  sexo: 'M' | 'F' | 'A' | null;
   size: number;
   status: 'draft' | 'active' | 'complete';
   visible: 0 | 1;
@@ -89,10 +89,14 @@ export interface BracketQualifier {
   categoria?: string | null;
 }
 
-/** Respuesta combinada M/F. */
+/**
+ * Respuesta combinada. `M`/`F` son los brackets por sexo (modo dual) y `A`
+ * es el bracket ÚNICO/unificado (una sola competición Putt Finales).
+ */
 export interface PuttFinalesData {
   M: PuttBracketSide;
   F: PuttBracketSide;
+  A?: PuttBracketSide;
 }
 
 // ============= Hooks (lectura) =============
@@ -169,7 +173,7 @@ export const useSavePuttConfig = () => {
   return useMutation({
     mutationFn: (vars: {
       torneoid: number;
-      sexo: 'M' | 'F';
+      sexo: 'M' | 'F' | 'A';
       size: number;
       visible: boolean;
       password: string;
@@ -186,7 +190,7 @@ export const useSavePuttConfig = () => {
 export const useGeneratePuttBracket = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F'; password: string }) =>
+    mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F' | 'A'; password: string }) =>
       postBracketAction('generate_putt', vars),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['brackets'] });
@@ -254,7 +258,7 @@ export const useResetBracketMatch = () => {
 export const useEnablePuttThirdPlace = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F'; password: string }) =>
+    mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F' | 'A'; password: string }) =>
       postBracketAction('enable_third_place', vars),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['brackets'] });
