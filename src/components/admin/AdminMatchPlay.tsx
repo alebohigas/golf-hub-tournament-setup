@@ -160,22 +160,7 @@ const AdminMatchPlay = () => {
           Volver
         </Button>
         <h3 className="text-lg font-semibold">{selectedCat?.categoryName}</h3>
-        {/* Botón para crear la fila matchx=199 + linkear semis. Sólo se ve
-            cuando el bracket tiene tamaño suficiente y aún no está habilitado. */}
-        {canEnableThirdPlaceD1 ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={enableThirdPlace.isPending}
-            onClick={handleEnableThirdPlace}
-          >
-            <Medal className="h-4 w-4" />
-            {enableThirdPlace.isPending ? 'Habilitando…' : 'Habilitar 3er lugar'}
-          </Button>
-        ) : (
-          <div className="w-20" />
-        )}
+        <div className="w-20" />
       </div>
       {loadingBracket || !bracket ? (
         <div className="flex justify-center py-12">
@@ -189,6 +174,7 @@ const AdminMatchPlay = () => {
             <TabsTrigger value="d2">MATCH-2</TabsTrigger>
           </TabsList>
           <TabsContent value="d1" className="mt-4">
+            {renderThirdPlaceButton(1)}
             <BracketView
               matches={bracket.d1}
               admin
@@ -198,6 +184,7 @@ const AdminMatchPlay = () => {
             />
           </TabsContent>
           <TabsContent value="d2" className="mt-4">
+            {renderThirdPlaceButton(2)}
             <BracketView
               matches={bracket.d2}
               admin
@@ -208,13 +195,16 @@ const AdminMatchPlay = () => {
           </TabsContent>
         </Tabs>
       ) : (
-        <BracketView
-          matches={bracket.d1}
-          admin
-          onSetWinner={handleSetWinner}
-          onReset={handleReset}
-          busyMatchId={busyMatch}
-        />
+        <>
+          {renderThirdPlaceButton(1)}
+          <BracketView
+            matches={bracket.d1}
+            admin
+            onSetWinner={handleSetWinner}
+            onReset={handleReset}
+            busyMatchId={busyMatch}
+          />
+        </>
       )}
     </div>
   );
