@@ -88,7 +88,8 @@ const PlayersTable = ({
                     />
                   ) : null}
                 </TableCell>
-                <TableCell className="player-name-cell">{p.jugador}</TableCell>
+                {/* Nombre recortado a 4 renglones en móvil (.player-name-clamp) */}
+                <TableCell className="player-name-cell"><span className="player-name-clamp">{p.jugador}</span></TableCell>
                 <TableCell className="text-left">{p.cat}</TableCell>
                 <TableCell className="text-center font-bold text-primary">{p.score}</TableCell>
               </TableRow>
