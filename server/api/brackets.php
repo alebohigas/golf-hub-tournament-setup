@@ -933,6 +933,7 @@ if ($method === 'GET') {
 } elseif ($method === 'POST') {
     $body = read_json_body();
     if     ($action === 'save_putt_config') action_save_putt_config($conn, $body);
+    elseif ($action === 'set_putt_mode')    action_set_putt_mode($conn, $body);
     elseif ($action === 'generate_putt')    action_generate_putt($conn, $body);
     elseif ($action === 'record_score')     action_record_score($conn, $body);
     elseif ($action === 'set_winner')       action_set_winner($conn, $body);
