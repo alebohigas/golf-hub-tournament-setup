@@ -23,6 +23,7 @@ import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import type { BracketQualifier } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import BracketPairs from '@/components/brackets/BracketPairs';
+import Podium from '@/components/brackets/Podium';
 import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils';
 import { useMemo, useRef, useState } from 'react';
 
@@ -117,6 +118,31 @@ const BracketView = ({ sexo }: BracketViewProps) => {
         : finalMatch?.player2_name ?? null
       : null;
   const searching = search.trim().length > 0;
+
+  /** Subcampeón: el lado de la final que no ganó. */
+  const runnerUpName: string | null =
+    championId != null && finalMatch
+      ? finalMatch.player1_id === championId
+        ? finalMatch.player2_name ?? null
+        : finalMatch.player1_name ?? null
+      : null;
+
+  /** Ganador del match por 3er lugar (null mientras no haya captura). */
+  const thirdPlaceName: string | null =
+    thirdPlaceMatch && thirdPlaceMatch.winner_id != null
+      ? thirdPlaceMatch.winner_id === thirdPlaceMatch.player1_id
+        ? thirdPlaceMatch.player1_name ?? null
+        : thirdPlaceMatch.player2_name ?? null
+      : null;
+
+  /**
+   * Semifinalistas eliminados (perdedores de la penúltima ronda). Se usan en
+   * el podio cuando no hay competencia por el 3er lugar.
+   */
+  const semifinalistNames: string[] = matches
+    .filter((m) => Number(m.round) === totalRounds - 1 && m.winner_id != null)
+    .map((m) => (m.winner_id === m.player1_id ? m.player2_name : m.player1_name))
+    .filter((n): n is string => !!n && n.trim().length > 0);
 
   /**
    * Reparto en grupos:
@@ -218,6 +244,15 @@ const BracketView = ({ sexo }: BracketViewProps) => {
           registerRef={(el) => matchRefs.current.set(thirdPlaceMatch.id, el)}
         />
       )}
+
+      {/* ============ Podio ============ */}
+      <Podium
+        championName={championName}
+        runnerUpName={runnerUpName}
+        thirdPlaceName={thirdPlaceName}
+        hasThirdPlaceMatch={!!thirdPlaceMatch}
+        semifinalistNames={semifinalistNames}
+      />
     </div>
   );
 };
