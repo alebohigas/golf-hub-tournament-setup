@@ -153,8 +153,13 @@ const ShowcaseRotator = () => {
   /** Progreso 0..1 dentro del slide actual (para barra superior). */
   const [progress, setProgress] = useState(0);
 
-  /** Reset índice si la lista cambia bajo nuestros pies. */
-  useEffect(() => { setIdx(0); }, [effective?.slides.length]);
+  /**
+   * Reset índice si la lista cambia bajo nuestros pies (por cantidad O por
+   * contenido: al cambiar el modo de Putt Finales los ids cambian aunque el
+   * total coincida).
+   */
+  const slidesKey = (effective?.slides ?? []).map((s) => s.id).join('|');
+  useEffect(() => { setIdx(0); }, [slidesKey]);
 
   /**
    * Rotación + AUTO-SCROLL dinámico por fases.
