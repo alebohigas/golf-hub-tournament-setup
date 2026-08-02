@@ -45,20 +45,24 @@ const BracketPairs = ({ children, connect = true, mirrored = false, className }:
   for (let i = 0; i < items.length; i += 2) pairs.push(items.slice(i, i + 2));
 
   return (
-    <div className={cn('flex flex-col flex-1', className)}>
+    <div
+      className={cn('grid flex-1', className)}
+      style={{ gridTemplateRows: `repeat(${Math.max(pairs.length, 1)}, minmax(0, 1fr))` }}
+    >
       {pairs.map((pair, idx) => (
         <div
           key={idx}
           className={cn(
-            'flex flex-col flex-1',
+            'grid min-h-0',
             connect && 'bracket-pair',
             connect && pair.length < 2 && 'bracket-pair-single',
             connect && mirrored && 'bracket-pair-left',
           )}
+          style={{ gridTemplateRows: `repeat(${pair.length}, minmax(0, 1fr))` }}
         >
           {pair.map((card, cardIdx) => (
             /** Slot de altura uniforme: mantiene la card centrada verticalmente. */
-            <div key={cardIdx} className="flex flex-1 flex-col justify-center py-1.5">
+            <div key={cardIdx} className="flex min-h-0 flex-col justify-center py-1.5">
               {card}
             </div>
           ))}
