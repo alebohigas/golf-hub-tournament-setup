@@ -388,7 +388,7 @@ const GrandFinalView = ({
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   {round === totalRounds - 1 ? 'Semifinal 1' : `Ronda ${round}`}
                 </h4>
-                <div className="flex flex-col gap-3 justify-around flex-1">
+                <BracketPairs>
                   {left.map((m) => (
                     <MatchCard
                       key={m.id}
@@ -399,7 +399,7 @@ const GrandFinalView = ({
                       registerRef={(el) => registerRef(m.id, el)}
                     />
                   ))}
-                </div>
+                </BracketPairs>
               </div>
             );
           })}
@@ -431,7 +431,7 @@ const GrandFinalView = ({
                 <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                   {round === totalRounds - 1 ? 'Semifinal 2' : `Ronda ${round}`}
                 </h4>
-                <div className="flex flex-col gap-3 justify-around flex-1">
+                <BracketPairs mirrored>
                   {right.map((m) => (
                     <MatchCard
                       key={m.id}
@@ -442,7 +442,7 @@ const GrandFinalView = ({
                       registerRef={(el) => registerRef(m.id, el)}
                     />
                   ))}
-                </div>
+                </BracketPairs>
               </div>
             );
           })}
