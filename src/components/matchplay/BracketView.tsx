@@ -522,79 +522,17 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
         </section>
       )}
 
-      {/* ============ Podio (Campeón / Subcampeón / 3er lugar) ============
-          Sólo se muestra cuando está habilitado el match por 3er lugar y ya
-          hay campeón definido (final jugada). Si el 3er lugar aún no se ha
-          decidido, ese slot queda "— por definir —". */}
-      {championName && thirdPlaceMatch && (
-        <section className="border-t-2 border-accent/50 pt-6">
-          <h3 className="text-center text-lg font-bold text-accent flex items-center justify-center gap-2 mb-4">
-            <Trophy className="h-5 w-5" /> Podio
-          </h3>
-          <div className="flex items-end justify-center gap-3 max-w-2xl mx-auto">
-            {/* 2do lugar (izquierda, block más bajo) */}
-            <PodiumSlot
-              place={2}
-              icon="silver"
-              name={runnerUpName}
-              heightClass="h-20"
-            />
-            {/* 1er lugar (centro, más alto) */}
-            <PodiumSlot
-              place={1}
-              icon="gold"
-              name={championName}
-              heightClass="h-28"
-            />
-            {/* 3er lugar (derecha, block más bajo aún) */}
-            <PodiumSlot
-              place={3}
-              icon="bronze"
-              name={thirdPlaceName}
-              heightClass="h-16"
-            />
-          </div>
-        </section>
-      )}
+      {/* ============ Podio ============
+          Con match por 3er lugar: 2 / 1 / 3er lugar.
+          Sin match por 3er lugar: 2 / 1 / SEMIFINALISTAS (perdedores de semis). */}
+      <Podium
+        championName={championName}
+        runnerUpName={runnerUpName}
+        thirdPlaceName={thirdPlaceName}
+        hasThirdPlaceMatch={!!thirdPlaceMatch}
+        semifinalistNames={semifinalistNames}
+      />
 
-    </div>
-  );
-};
-
-// ============= Podio ======================================================
-
-/**
- * Slot individual del podio. `place` sólo define el label; el diseño (color,
- * altura, icono) se pasa explícito para poder ordenar visualmente 2-1-3.
- */
-const PodiumSlot = ({
-  place,
-  icon,
-  name,
-  heightClass,
-}: {
-  place: 1 | 2 | 3;
-  icon: 'gold' | 'silver' | 'bronze';
-  name: string | null;
-  heightClass: string;
-}) => {
-  const colorMap = {
-    gold:   { badge: 'bg-yellow-500 text-white', block: 'bg-yellow-500/20 border-yellow-500' },
-    silver: { badge: 'bg-slate-400 text-white',  block: 'bg-slate-400/20 border-slate-400' },
-    bronze: { badge: 'bg-amber-700 text-white',  block: 'bg-amber-700/20 border-amber-700' },
-  }[icon];
-  return (
-    <div className="flex-1 min-w-0 flex flex-col items-center gap-2 max-w-[180px]">
-      <div className="text-center min-h-[3rem] flex items-center justify-center px-1">
-        <span className="text-sm font-semibold whitespace-normal break-words leading-tight">
-          {name || <span className="italic text-muted-foreground">— por definir —</span>}
-        </span>
-      </div>
-      <div className={`w-full ${heightClass} ${colorMap.block} border-2 rounded-t-md flex items-start justify-center pt-2`}>
-        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${colorMap.badge} font-bold text-lg shadow`}>
-          {place}
-        </span>
-      </div>
     </div>
   );
 };
