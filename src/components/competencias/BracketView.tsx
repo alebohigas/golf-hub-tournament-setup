@@ -28,8 +28,8 @@ import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils
 import { useMemo, useRef, useState } from 'react';
 
 interface BracketViewProps {
-  /** 'M' = Caballero, 'F' = Dama */
-  sexo: 'M' | 'F';
+  /** 'M' = Caballero, 'F' = Dama, 'A' = bracket único (competición unificada) */
+  sexo: 'M' | 'F' | 'A';
 }
 
 /**
@@ -592,7 +592,7 @@ export default BracketView;
  * <BracketView/>: se monta directamente en la vista de grupos para que la
  * tabla aparezca antes de que el usuario entre al detalle del bracket.
  */
-export const BracketQualifiersSection = ({ sexo }: { sexo: 'M' | 'F' }) => {
+export const BracketQualifiersSection = ({ sexo }: { sexo: 'M' | 'F' | 'A' }) => {
   const { data, isLoading } = usePuttFinales();
   const side = data?.[sexo];
 
@@ -638,7 +638,7 @@ const QualifiersTable = ({
 }: {
   qualifiers: BracketQualifier[];
   totalSlots: number;
-  sexo: 'M' | 'F';
+  sexo: 'M' | 'F' | 'A';
   /** Lista única de nombres para el autocomplete del buscador. */
   suggestions: string[];
 }) => {
@@ -677,13 +677,14 @@ const QualifiersTable = ({
 
   const slots = Math.max(0, totalSlots | 0);
   const filled = qualifiers.length;
-  const titulo = sexo === 'M' ? 'Caballeros' : 'Damas';
+  /** 'A' = bracket único → sin sufijo de sexo en el título. */
+  const titulo = sexo === 'A' ? '' : sexo === 'M' ? 'Caballeros' : 'Damas';
 
   return (
     <section className="space-y-3 border-t-2 border-primary/30 pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-base font-bold text-primary">
-          Clasificados — Putt Finales {titulo}
+          Clasificados — Putt Finales{titulo ? ` ${titulo}` : ''}
         </h3>
         <span className="text-sm text-muted-foreground">
           {filled} {filled === 1 ? 'jugador' : 'jugadores'}
