@@ -162,8 +162,12 @@ json_response([
         'format' => $catInfo['formato']
     ],
     'date'    => $fecha,
-    /** Last capture timestamp from tarjetas.fecha_cap (MySQL DATETIME). */
-    'fechaCap' => $playerData['fecha_cap'] ?? null,
+    /**
+     * Last capture timestamp shown as "Fecha de captura".
+     * Source of truth: tarjetas.fec_ult_act (fecha de registro real en la BD).
+     * `fecha_cap` queda solo como respaldo si fec_ult_act viene vacio.
+     */
+    'fechaCap' => (!empty($playerData['fec_ult_act']) ? $playerData['fec_ult_act'] : ($playerData['fecha_cap'] ?? null)),
     'totals'  => [
         'SO'     => (int)($scoreData['SO'] ?? 0),
         'SA'     => (int)($scoreData['SA'] ?? 0),
