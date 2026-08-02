@@ -27,6 +27,7 @@ $sql = "SELECT a.id,
                a.campoid,
                a.fecha_juego as fecha,
                a.fecha_cap as fecha_cap,
+               a.fec_ult_act as fec_ult_act,
                c.campo";
 
 // For Golfista de Oro (GORO) neto, include ventajas de golfista de oro
