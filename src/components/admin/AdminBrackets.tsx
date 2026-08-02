@@ -154,7 +154,8 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
 // ============================================================================
 
 interface SectionProps {
-  sexo: 'M' | 'F';
+  /** 'M' = Caballero, 'F' = Dama, 'A' = bracket único unificado. */
+  sexo: 'M' | 'F' | 'A';
   label: string;
   side: PuttBracketSide | undefined;
   mode: 'config' | 'scores' | 'full';
@@ -232,7 +233,9 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
           )}
         </CardTitle>
         <CardDescription>
-          Candidatos con resultados de putt para sexo {sexo}: <strong>{candidates}</strong>
+          {sexo === 'A'
+            ? <>Candidatos con resultados de putt (todos): <strong>{candidates}</strong></>
+            : <>Candidatos con resultados de putt para sexo {sexo}: <strong>{candidates}</strong></>}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
