@@ -94,7 +94,14 @@ const BracketView = ({ sexo }: BracketViewProps) => {
     );
   }
 
-  const { config, matches } = side;
+  const { config } = side;
+  /**
+   * El match por 3er lugar se guarda con `position = 99` en la última ronda.
+   * Se aparta del armado de rondas/grupos para no desalinear el bracket y se
+   * renderiza en su propia sección al final.
+   */
+  const thirdPlaceMatch = side.matches.find((m) => Number(m.position) === 99) ?? null;
+  const matches = side.matches.filter((m) => Number(m.position) !== 99);
   const totalRounds = Math.log2(Number(config.size));
 
   /**
@@ -201,6 +208,26 @@ const BracketView = ({ sexo }: BracketViewProps) => {
           dimChampion={searching}
           registerRef={(id, el) => matchRefs.current.set(id, el)}
         />
+      )}
+
+      {/* ============ Match por 3er lugar (si está habilitado) ============ */}
+      {thirdPlaceMatch && (
+        <section className="space-y-3 border-t border-border pt-6">
+          <h3 className="text-base font-bold text-primary flex items-center justify-center gap-2">
+            <Medal className="h-5 w-5" /> Match por 3er lugar
+          </h3>
+          <div className="flex justify-center">
+            <div className="w-full max-w-[260px]">
+              <MatchCard
+                match={thirdPlaceMatch}
+                highlight={search}
+                championId={championId}
+                dimChampion={searching}
+                registerRef={(el) => matchRefs.current.set(thirdPlaceMatch.id, el)}
+              />
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
