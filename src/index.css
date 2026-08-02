@@ -441,8 +441,21 @@
  * el tramo horizontal. `.bracket-pair-left` refleja la llave hacia la izquierda
  * (usada en el lado derecho de los layouts bilaterales de Gran Final).
  * ========================================================================== */
+/*
+ * `--bkt-elbow` = largo del codo curvo, `--bkt-stub` = tramo horizontal.
+ * En móvil el gap entre columnas es 12px (gap-3) y en md+ 16px (gap-4), así que
+ * la llave se acorta en móvil para no invadir la card de la ronda siguiente.
+ */
 .bracket-pair {
   position: relative;
+  --bkt-elbow: 6px;
+  --bkt-stub: 6px;
+}
+@media (min-width: 768px) {
+  .bracket-pair {
+    --bkt-elbow: 8px;
+    --bkt-stub: 8px;
+  }
 }
 .bracket-pair::before,
 .bracket-pair::after {
@@ -457,15 +470,15 @@
   left: 100%;
   top: 25%;
   bottom: 25%;
-  width: 10px;
+  width: var(--bkt-elbow);
   border-width: 2px 2px 2px 0;
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 var(--bkt-elbow) var(--bkt-elbow) 0;
 }
 /* Tramo horizontal hacia la ronda siguiente. */
 .bracket-pair::after {
-  left: calc(100% + 10px);
+  left: calc(100% + var(--bkt-elbow));
   top: 50%;
-  width: 10px;
+  width: var(--bkt-stub);
   border-width: 2px 0 0 0;
 }
 /* Ronda con un solo match: sólo línea recta. */
@@ -481,9 +494,9 @@
   left: auto;
   right: 100%;
   border-width: 2px 0 2px 2px;
-  border-radius: 10px 0 0 10px;
+  border-radius: var(--bkt-elbow) 0 0 var(--bkt-elbow);
 }
 .bracket-pair-left::after {
   left: auto;
-  right: calc(100% + 10px);
+  right: calc(100% + var(--bkt-elbow));
 }
