@@ -130,12 +130,33 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
   const { toast } = useToast();
   const saveConfig = useSavePuttConfig();
   const generate   = useGeneratePuttBracket();
+  const enableThird = useEnablePuttThirdPlace();
 
   const cfg = side?.config;
   const [size, setSize]       = useState<number>(cfg?.size ?? 16);
   const [visible, setVisible] = useState<boolean>(!!side?.visible);
 
   const candidates = side?.candidates_count ?? 0;
+
+  /** ¿Ya existe el match por 3er lugar? (match_num/position = 99). */
+  const hasThirdPlace = !!side?.matches?.some((m) => Number(m.position) === 99);
+  /** Se puede habilitar cuando el bracket ya está generado (hay matches). */
+  const canEnableThirdPlace = !hasThirdPlace && (side?.matches?.length ?? 0) >= 3;
+
+  /** Crea el match por 3er lugar entre los semifinalistas perdedores. */
+  const handleEnableThird = () => {
+    if (!torneoId) return;
+    enableThird.mutate(
+      { torneoid: Number(torneoId), sexo, password: ADMIN_PW() },
+      {
+        onSuccess: () => toast({
+          title: 'Match por 3er lugar habilitado',
+          description: 'Ya puedes capturar el resultado entre los semifinalistas perdedores.',
+        }),
+        onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+      },
+    );
+  };
 
   const handleSave = () => {
     if (!torneoId) return;
@@ -213,6 +234,17 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
           <Button variant="outline" onClick={handleGenerate} disabled={generate.isPending || !torneoId || !cfg} size="sm" className="gap-1">
             {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             Generar bracket
+          </Button>
+          {/* Habilitar el match por 3er lugar (semifinalistas perdedores). */}
+          <Button
+            variant="outline"
+            onClick={handleEnableThird}
+            disabled={enableThird.isPending || !torneoId || !canEnableThirdPlace}
+            size="sm"
+            className="gap-1"
+          >
+            {enableThird.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Medal className="h-4 w-4" />}
+            {hasThirdPlace ? '3er lugar habilitado' : 'Habilitar 3er lugar'}
           </Button>
           {!cfg && (
             <span className="text-xs text-muted-foreground self-center">
