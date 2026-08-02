@@ -177,19 +177,20 @@ export const useResetMatch = () => {
 };
 
 /**
- * Habilita el match por 3er lugar en la categoría D1: crea la fila
- * `matchx=199` y linkea las dos semifinales con `tl_grupo=199`. Idempotente:
- * si ya existe, no rompe nada; simplemente re-propaga.
+ * Habilita el match por 3er lugar en el draw indicado de la categoría:
+ * crea la fila `matchx=199` (MATCH-1) ó `matchx=299` (MATCH-2) y linkea las
+ * dos semifinales con `tl_grupo`. Idempotente: si ya existe, no rompe nada;
+ * simplemente re-propaga a los semifinalistas perdedores.
  */
 export const useEnableThirdPlace = () => {
   const qc = useQueryClient();
   const { session } = useStaffAuth();
   return useMutation({
-    mutationFn: async (vars: { catid: string | number }) => {
+    mutationFn: async (vars: { catid: string | number; draw?: 1 | 2 }) => {
       const res = await fetch(buildMatchPlayAdminUrl('enable_third_place'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildAdminBody(session, vars)),
+        body: JSON.stringify(buildAdminBody(session, { draw: 1, ...vars })),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo habilitar el match por 3er lugar');
