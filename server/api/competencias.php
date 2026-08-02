@@ -1013,10 +1013,28 @@ if ($tipo === '' || $tipo === 'putt' || $tipo === 'putt_finales') {
                    WHERE torneoid = $tid AND prize_table = 'putt_finales' AND visible = 1
                    ORDER BY prize_id ASC";
     $finalesRows = safe_query_all($conn, $sqlFinales);
+    /**
+     * Modo bracket ÚNICO: si existe un bracket unificado visible (sexo 'A',
+     * prize_id 3) se publica SOLO ese, con la etiqueta "Putt Finales", y se
+     * ignoran los brackets por sexo para no duplicar la competición.
+     */
+    $hasUnified = false;
+    foreach ($finalesRows as $fr) {
+        if (strtoupper((string)$fr['sexo']) === 'A' || (int)$fr['prize_id'] === 3) { $hasUnified = true; break; }
+    }
+    if ($hasUnified) {
+        $finalesRows = array_values(array_filter($finalesRows, function ($fr) {
+            return strtoupper((string)$fr['sexo']) === 'A' || (int)$fr['prize_id'] === 3;
+        }));
+    }
     foreach ($finalesRows as $idx => $fr) {
-        $sx       = strtoupper((string)$fr['sexo']) === 'F' ? 'F' : 'M';
-        $idSuffix = $sx === 'M' ? 'm' : 'f';
-        $label    = $sx === 'M' ? 'Putt Finales Caballero' : 'Putt Finales Dama';
+        $rawSx    = strtoupper((string)$fr['sexo']);
+        $sx       = in_array($rawSx, ['F', 'A'], true) ? $rawSx : 'M';
+        if ((int)$fr['prize_id'] === 3) $sx = 'A';
+        $idSuffix = $sx === 'M' ? 'm' : ($sx === 'F' ? 'f' : 'a');
+        $label    = $sx === 'A'
+            ? 'Putt Finales'
+            : ($sx === 'M' ? 'Putt Finales Caballero' : 'Putt Finales Dama');
         $competencias[] = [
             'id'          => 'putt-finales-' . $idSuffix,
             'name'        => $label,
