@@ -407,7 +407,8 @@ const Salidas = () => {
                                             ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                           </TableCell>
                                           <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                            {player.name}
+                                            {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
+                                            <span className="player-name-clamp">{player.name}</span>
                                           </TableCell>
                                           {/* Score: en parejas se centra entre los dos renglones (rowSpan=2). */}
                                           <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
@@ -428,7 +429,7 @@ const Salidas = () => {
                                               ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                             </TableCell>
                                             <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                              {player.partner}
+                                              <span className="player-name-clamp">{player.partner}</span>
                                             </TableCell>
                                           </TableRow>
                                         );
@@ -632,7 +633,8 @@ const Salidas = () => {
                                         ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                       </TableCell>
                                       <TableCell className="font-medium text-foreground player-name-cell">
-                                        {player.name}
+                                        {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
+                                        <span className="player-name-clamp">{player.name}</span>
                                       </TableCell>
                                       <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
                                         {player.score || '—'}
@@ -649,7 +651,7 @@ const Salidas = () => {
                                           ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                         </TableCell>
                                         <TableCell className="font-medium text-foreground player-name-cell">
-                                          {player.partner}
+                                          <span className="player-name-clamp">{player.partner}</span>
                                         </TableCell>
                                       </TableRow>
                                     );
