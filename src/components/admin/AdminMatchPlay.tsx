@@ -39,13 +39,19 @@ const AdminMatchPlay = () => {
   const selectedCat = categories.find(c => c.categoryId === selectedCatId) || null;
   const hasD2 = !!bracket?.d2?.length;
   /**
-   * ¿El bracket ya tiene match por 3er lugar habilitado? Se detecta por la
-   * presencia de una fila con `matchId % 100 === 99` en d1. Si existe,
-   * ocultamos el botón para no ofrecer una acción que ya no aplica.
+   * ¿El draw ya tiene match por 3er lugar habilitado? Se detecta por la
+   * presencia de una fila con `matchId % 100 === 99` (199 en MATCH-1,
+   * 299 en MATCH-2). Si existe, el botón se muestra deshabilitado.
    */
-  const hasThirdPlaceD1 = !!bracket?.d1?.some(m => (m.matchId % 100) === 99);
-  /** Sólo tiene sentido para brackets con ≥3 matches D1 (≥2 semis + 1 final). */
-  const canEnableThirdPlaceD1 = !hasThirdPlaceD1 && (bracket?.d1?.length ?? 0) >= 3;
+  const hasThirdPlace = (draw: 1 | 2): boolean => {
+    const list = draw === 1 ? bracket?.d1 : bracket?.d2;
+    return !!list?.some(m => (m.matchId % 100) === 99);
+  };
+  /** Sólo tiene sentido para draws con ≥3 matches (≥2 semis + 1 final). */
+  const canEnableThirdPlace = (draw: 1 | 2): boolean => {
+    const list = draw === 1 ? bracket?.d1 : bracket?.d2;
+    return !hasThirdPlace(draw) && (list?.length ?? 0) >= 3;
+  };
 
   /** Aplica set_winner y notifica vía toast. `side` = 1 ó 2 (player1/player2). */
   const handleSetWinner = async (match: BracketMatch, side: 1 | 2) => {
@@ -83,11 +89,14 @@ const AdminMatchPlay = () => {
   };
 
   /** Habilita el match por 3er lugar en la categoría D1 seleccionada. */
-  const handleEnableThirdPlace = async () => {
+  const handleEnableThirdPlace = async (draw: 1 | 2) => {
     if (!selectedCatId) return;
     try {
-      await enableThirdPlace.mutateAsync({ catid: selectedCatId });
-      toast({ title: 'Match por 3er lugar habilitado', description: 'Ya se puede capturar el resultado.' });
+      await enableThirdPlace.mutateAsync({ catid: selectedCatId, draw });
+      toast({
+        title: `Match por 3er lugar habilitado (MATCH-${draw})`,
+        description: 'Ya se puede capturar el resultado entre los semifinalistas perdedores.',
+      });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message || 'Falló habilitación', variant: 'destructive' });
     }
