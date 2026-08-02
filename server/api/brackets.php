@@ -70,18 +70,24 @@ function require_admin($body) {
     }
 }
 
-/** Normaliza sexo a 'M' o 'F'; falla si distinto. */
+/**
+ * Normaliza sexo a 'M', 'F' o 'A'; falla si distinto.
+ * 'A' = bracket ÚNICO/unificado (una sola competición Putt Finales sin
+ * separar Caballero/Dama). Se usa cuando el torneo compite en un solo bracket.
+ */
 function require_sexo($val) {
     $s = strtoupper((string)$val);
-    if ($s !== 'M' && $s !== 'F') {
-        json_error("Invalid sexo '$val' — debe ser 'M' o 'F'", 400);
+    if ($s !== 'M' && $s !== 'F' && $s !== 'A') {
+        json_error("Invalid sexo '$val' — debe ser 'M', 'F' o 'A'", 400);
     }
     return $s;
 }
 
-/** prize_id convencional según sexo (1=M, 2=F). */
+/** prize_id convencional según sexo (1=M, 2=F, 3=A/unificado). */
 function prize_id_for_sexo($sexo) {
-    return $sexo === 'M' ? 1 : 2;
+    if ($sexo === 'M') return 1;
+    if ($sexo === 'F') return 2;
+    return 3;
 }
 
 /** Query single-row seguro (logea, no muere). */
