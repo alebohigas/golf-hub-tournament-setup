@@ -445,7 +445,6 @@ const BracketView = ({ matches, admin, onSetWinner, onReset, busyMatchId }: Brac
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {roundLabel(fromEnd)}
                     </h4>
-                    <div className="flex flex-col gap-3 justify-around flex-1">
                     <BracketPairs mirrored>
                       {rightHalf.map((m, i) => (
                         <MatchCard
