@@ -16,7 +16,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Crown, Trophy } from 'lucide-react';
+import { Loader2, Trophy } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import { POLL_SHOWCASE } from '@/config/api';
 import BracketPairs from '@/components/brackets/BracketPairs';
@@ -36,6 +36,29 @@ interface Props {
  */
 const sideLabel = (sexo: 'M' | 'F' | 'A'): string =>
   sexo === 'M' ? 'Caballeros' : sexo === 'F' ? 'Damas' : 'Putt Finales';
+
+/**
+ * Nombre de la competición tal como se publica: en modo "Un solo bracket"
+ * es "Putt Finales"; en modo dual, "Putt Finales Caballeros" / "Damas".
+ */
+const compName = (sexo: 'M' | 'F' | 'A'): string =>
+  sexo === 'A' ? 'Putt Finales' : `Putt Finales ${sideLabel(sexo)}`;
+
+/**
+ * Encabezado estándar del slide: título grande + pill verde con el nombre
+ * de la competición (mismo look que la vista pública del bracket).
+ */
+const SlideHeader = ({ sexo, subtitle }: { sexo: 'M' | 'F' | 'A'; subtitle?: string }) => (
+  <div className="text-center mb-6">
+    <h1 className="text-4xl md:text-5xl font-bold">{compName(sexo)}</h1>
+    <div className="mt-3 inline-flex items-center rounded-full bg-primary px-5 py-2 text-primary-foreground font-semibold">
+      {compName(sexo)}
+    </div>
+    {subtitle && (
+      <h2 className="mt-4 text-2xl font-bold text-left">{subtitle}</h2>
+    )}
+  </div>
+);
 
 /** Tarjeta de un match — 2 filas con resultado G/–. */
 const MatchCard = ({ match, championId }: { match: BracketMatch; championId: number | null }) => {
@@ -106,7 +129,6 @@ const BracketSlide = ({ sexo, kind }: Props) => {
   /** Poll de respaldo (5 min) para TVs en otro dispositivo, además del push. */
   const { data, isLoading } = usePuttFinales(POLL_SHOWCASE);
   const side = data?.[sexo];
-  const titulo = sideLabel(sexo);
 
   if (isLoading) {
     return (
@@ -145,9 +167,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
     const rounds = Array.from({ length: totalRounds }, (_, i) => i + 1);
     return (
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
-          Bracket Completo — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle="Bracket completo" />
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-6 min-w-max px-2">
             {rounds.map((r) => (
@@ -179,9 +199,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
 
     return (
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
-          Grupo {g + 1} — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle={`Grupo ${g + 1}`} />
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-6 min-w-max px-2">
             {Array.from({ length: groupRoundsCount }, (_, i) => i + 1).map((r) => {
@@ -208,9 +226,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
       .sort((a, b) => Number(a.position) - Number(b.position));
     return (
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-primary pb-2 mb-4">
-          Semifinales — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle="Semifinales" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {semis.map((m) => (
             <div key={m.id} className="space-y-2">
@@ -236,9 +252,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
     }
     return (
       <div className="max-w-3xl mx-auto text-center">
-        <h1 className="text-3xl md:text-4xl font-bold border-b-2 border-accent pb-2 mb-6 flex items-center justify-center gap-2">
-          <Crown className="h-8 w-8 text-accent" /> Gran Final — {titulo}
-        </h1>
+        <SlideHeader sexo={sexo} subtitle="Gran Final" />
         <div className="max-w-md mx-auto mb-6">
           <MatchCard match={finalMatch} championId={championId} />
         </div>
