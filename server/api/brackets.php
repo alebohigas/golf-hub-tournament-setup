@@ -507,6 +507,59 @@ function action_save_putt_config($conn, $body) {
     json_response(['config' => $saved]);
 }
 
+// ============= Acción: set_putt_mode (admin) =============
+/**
+ * Sincroniza el modo de competición del Putt Finales y LIMPIA los brackets
+ * que dejan de aplicar, para que no queden resultados viejos mezclados
+ * cuando el admin alterna entre:
+ *   - mode = 'single' → bracket único (sexo 'A', prize_id 3).
+ *   - mode = 'dual'   → brackets por sexo (M=1, F=2).
+ *
+ * Para cada bracket INACTIVO:
+ *   1. Borra todos sus `bracket_matches` (scores, ganadores, 3er lugar).
+ *   2. Deja su `bracket_config` en visible = 0 y status = 'pending'
+ *      (se conserva la fila y el tamaño para poder volver al modo anterior).
+ *
+ * Body: { torneoid, mode, password }.
+ * Respuesta: { mode, active: [...], purged: { prize_id: matches_borrados } }.
+ */
+function action_set_putt_mode($conn, $body) {
+    global $PUTT_PRIZE_TABLE;
+    require_admin($body);
+    $tid  = (int)($body['torneoid'] ?? 0);
+    if ($tid <= 0) json_error('Invalid torneoid', 400);
+    $mode = strtolower((string)($body['mode'] ?? ''));
+    if ($mode !== 'single' && $mode !== 'dual') {
+        json_error("Invalid mode '$mode' — debe ser 'single' o 'dual'", 400);
+    }
+
+    /** prize_ids activos vs. inactivos según el modo elegido. */
+    $activeIds   = $mode === 'single' ? [3]    : [1, 2];
+    $inactiveIds = $mode === 'single' ? [1, 2] : [3];
+
+    $purged = [];
+    foreach ($inactiveIds as $pid) {
+        $cfg = safe_one($conn,
+            "SELECT id FROM bracket_config
+             WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
+        if (!$cfg) { $purged[$pid] = 0; continue; }
+        $cfgId = (int)$cfg['id'];
+        // 1) Fuera los matches viejos (incluye scores, ganadores y 3er lugar).
+        $conn->query("DELETE FROM bracket_matches WHERE bracket_id = $cfgId");
+        $purged[$pid] = (int)$conn->affected_rows;
+        // 2) Oculta el bracket y lo regresa a estado inicial.
+        $conn->query("UPDATE bracket_config
+                      SET visible = 0, status = 'pending', updated_at = NOW()
+                      WHERE id = $cfgId");
+    }
+
+    json_response([
+        'mode'   => $mode,
+        'active' => $activeIds,
+        'purged' => $purged,
+    ]);
+}
+
 // ============= Acción: generate_putt (admin) =============
 /**
  * Regenera bracket_matches para un sexo: tira los matches anteriores,
