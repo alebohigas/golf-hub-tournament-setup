@@ -12,6 +12,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Target, Flag, MousePointerClick, Crosshair, Layers, MonitorPlay, Users } from 'lucide-react';
+import { usePuttFinales } from '@/hooks/useBrackets';
 
 // ============= Showcase definitions =============
 

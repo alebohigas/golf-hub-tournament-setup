@@ -31,7 +31,8 @@ const RELOAD_INTERVAL_MS = 300_000;
 
 const PuttCalificados = () => {
   const { sexo } = useParams<{ sexo: string }>();
-  const sx = (sexo ?? '').toUpperCase() === 'F' ? 'F' : 'M';
+  const raw = (sexo ?? '').toUpperCase();
+  const sx = (['M', 'F', 'A'] as const).includes(raw as 'M' | 'F' | 'A') ? (raw as 'M' | 'F' | 'A') : 'M';
 
   // ----- Auto-reload cada 5 min -----
   useEffect(() => {
@@ -72,7 +73,7 @@ const PuttCalificados = () => {
         )}
       </header>
 
-      <PuttCalificadosSlide sexo={sx as 'M' | 'F'} />
+      <PuttCalificadosSlide sexo={sx} />
 
       <footer className="max-w-6xl mx-auto mt-8 text-center text-xs text-muted-foreground">
         Actualización automática cada 5 minutos.
