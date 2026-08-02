@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Crown, Trophy } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
+import { POLL_SHOWCASE } from '@/config/api';
 import BracketPairs from '@/components/brackets/BracketPairs';
 
 /** Props del slide de bracket. */
@@ -102,7 +103,8 @@ const RoundColumn = ({
 );
 
 const BracketSlide = ({ sexo, kind }: Props) => {
-  const { data, isLoading } = usePuttFinales();
+  /** Poll de respaldo (5 min) para TVs en otro dispositivo, además del push. */
+  const { data, isLoading } = usePuttFinales(POLL_SHOWCASE);
   const side = data?.[sexo];
   const titulo = sideLabel(sexo);
 
