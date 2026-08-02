@@ -168,7 +168,11 @@ export const useSetMatchWinner = () => {
       if (!res.ok) throw new Error(data.error || 'No se pudo marcar al ganador');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['matchplay-bracket'] });
+      /** Push inmediato a las vistas públicas (/matchplay y showcase). */
+      publishBracketChange('matchplay_admin');
+    },
   });
 };
 
@@ -187,7 +191,11 @@ export const useResetMatch = () => {
       if (!res.ok) throw new Error(data.error || 'No se pudo resetear el match');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['matchplay-bracket'] });
+      /** Push inmediato a las vistas públicas (/matchplay y showcase). */
+      publishBracketChange('matchplay_admin');
+    },
   });
 };
 
@@ -211,7 +219,11 @@ export const useEnableThirdPlace = () => {
       if (!res.ok) throw new Error(data.error || 'No se pudo habilitar el match por 3er lugar');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['matchplay-bracket'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['matchplay-bracket'] });
+      /** Push inmediato a las vistas públicas (/matchplay y showcase). */
+      publishBracketChange('matchplay_admin');
+    },
   });
 };
 
