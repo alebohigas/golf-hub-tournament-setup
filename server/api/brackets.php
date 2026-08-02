@@ -30,6 +30,10 @@
  *   POST ?action=set_winner                        (admin)
  *        body: { match_id, winner_id, password }
  *        Override manual (ej. walkover / corrección).
+ *   POST ?action=enable_third_place                 (admin)
+ *        body: { torneoid, sexo, password }
+ *        Crea (idempotente) el match por 3er lugar (round_num = última ronda,
+ *        match_num = 99) y siembra a los perdedores de las dos semifinales.
  */
 
 require_once 'config.php';
