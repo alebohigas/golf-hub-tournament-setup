@@ -187,6 +187,30 @@ export const useSavePuttConfig = () => {
 };
 
 /** Regenera todos los matches desde el ranking acumulado para un sexo. */
+export const useSetPuttMode = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    /**
+     * Sincroniza el modo del Putt Finales y purga los brackets que dejan de
+     * aplicar (borra sus matches y los oculta), evitando que queden
+     * resultados viejos mezclados al alternar entre:
+     *   - 'single' → un solo bracket unificado (sexo 'A').
+     *   - 'dual'   → brackets Caballero (M) y Dama (F).
+     */
+    mutationFn: (vars: { torneoid: number; mode: 'single' | 'dual'; password: string }) =>
+      postBracketAction<{ mode: string; active: number[]; purged: Record<string, number> }>(
+        'set_putt_mode',
+        vars,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Los brackets purgados desaparecen al instante de /competicion. */
+      publishBracketChange('brackets_admin');
+    },
+  });
+};
+
+/** Regenera todos los matches desde el ranking acumulado para un sexo. */
 export const useGeneratePuttBracket = () => {
   const qc = useQueryClient();
   return useMutation({
