@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal, AlertTriangle } from 'lucide-react';
+import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal, AlertTriangle, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
@@ -70,6 +70,9 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const { data, isLoading, refetch, isRefetching } = usePuttFinalesAdmin();
   const { toast } = useToast();
   const setPuttMode = useSetPuttMode();
+  /** Mutaciones usadas por el asistente "Crear bracket único" (1 clic). */
+  const saveConfigAuto = useSavePuttConfig();
+  const generateAuto   = useGeneratePuttBracket();
 
   /**
    * Modo de competición del Putt Finales:
@@ -85,6 +88,86 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   /** Diálogo de confirmación antes de cambiar el modo (se borran matches/resultados). */
   const [pendingMode, setPendingMode] = useState<'single' | 'dual' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  /**
+   * Cuando es `true`, tras confirmar el cambio a modo 'single' se ejecuta
+   * automáticamente la secuencia completa: guardar config del bracket único
+   * (sexo 'A') + generar sus matches desde el ranking acumulado.
+   */
+  const [autoAfterMode, setAutoAfterMode] = useState(false);
+
+  /** ¿El bracket único ya existe CON matches generados? */
+  const singleReady = !!data?.A?.config && (data?.A?.matches?.length ?? 0) > 0;
+
+  /** ¿Se está ejecutando el asistente automático? */
+  const autoRunning =
+    setPuttMode.isPending || saveConfigAuto.isPending || generateAuto.isPending;
+
+  /**
+   * Tamaño sugerido para el bracket único: la potencia de 2 soportada más
+   * grande que quepa en el número de candidatos con resultados de putt.
+   * Si ya existe config se respeta su tamaño; si no hay candidatos, mínimo 8.
+   */
+  const suggestedSingleSize = useMemo(() => {
+    const existing = data?.A?.config?.size;
+    if (existing) return Number(existing);
+    const candidates =
+      data?.A?.candidates_count ??
+      ((data?.M?.candidates_count ?? 0) + (data?.F?.candidates_count ?? 0));
+    const fit = [...BRACKET_SIZES].reverse().find((s) => s <= candidates);
+    return fit ?? 8;
+  }, [data]);
+
+  /**
+   * runAutoSingle
+   * Crea de punta a punta el bracket "Un solo bracket" (sexo 'A'):
+   *   1. Fija el modo 'single' (purga los brackets M/F que dejan de aplicar).
+   *   2. Guarda la configuración del bracket único (tamaño sugerido, visible).
+   *   3. Genera los matches sembrando desde el ranking acumulado de putt.
+   */
+  const runAutoSingle = async () => {
+    if (!torneoId) return;
+    const tid = Number(torneoId);
+    const pw = ADMIN_PW();
+    try {
+      await setPuttMode.mutateAsync({ torneoid: tid, mode: 'single', password: pw });
+      setBracketMode('single');
+      await saveConfigAuto.mutateAsync({
+        torneoid: tid,
+        sexo: 'A',
+        size: suggestedSingleSize,
+        visible: true,
+        password: pw,
+      });
+      const res: any = await generateAuto.mutateAsync({ torneoid: tid, sexo: 'A', password: pw });
+      await refetch();
+      toast({
+        title: 'Bracket único creado',
+        description: `${res?.players_seeded ?? 0} jugadores sembrados en ${res?.rounds ?? '?'} rondas (bracket de ${suggestedSingleSize}).`,
+      });
+    } catch (e: any) {
+      toast({
+        title: 'Error',
+        description: e?.message ?? 'No se pudo crear el bracket único.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  /**
+   * Handler del botón: si hay matches/resultados en los brackets M/F que se
+   * van a purgar, primero pide confirmación; si no, ejecuta directo.
+   */
+  const requestAutoSingle = () => {
+    if (!torneoId) return;
+    const dualMatches = (data?.M?.matches?.length ?? 0) + (data?.F?.matches?.length ?? 0);
+    if (effectiveMode === 'dual' && dualMatches > 0) {
+      setAutoAfterMode(true);
+      setPendingMode('single');
+      setConfirmOpen(true);
+      return;
+    }
+    void runAutoSingle();
+  };
 
   const modeSummary = useMemo(() => {
     if (!pendingMode || !data) return null;
@@ -122,10 +205,19 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const cancelModeChange = () => {
     setPendingMode(null);
     setConfirmOpen(false);
+    setAutoAfterMode(false);
   };
 
   const confirmModeChange = () => {
     if (!pendingMode || !torneoId) return;
+    /** Confirmación proveniente del asistente automático (1 clic). */
+    if (autoAfterMode) {
+      setAutoAfterMode(false);
+      setPendingMode(null);
+      setConfirmOpen(false);
+      void runAutoSingle();
+      return;
+    }
     setPuttMode.mutate(
       { torneoid: Number(torneoId), mode: pendingMode, password: ADMIN_PW() },
       {
@@ -175,6 +267,18 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {/* Asistente: crea el bracket único completo en un solo clic. */}
+              {mode !== 'scores' && !singleReady && (
+                <Button
+                  size="sm"
+                  onClick={requestAutoSingle}
+                  disabled={autoRunning || !torneoId}
+                  className="gap-2"
+                >
+                  {autoRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                  Crear bracket único
+                </Button>
+              )}
               {/* Selector de modo: un solo bracket vs. dos por sexo. */}
               {mode !== 'scores' && (
                 <Select
