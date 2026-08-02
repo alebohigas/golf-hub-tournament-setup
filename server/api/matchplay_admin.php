@@ -272,28 +272,36 @@ function clear_third_place_slot_on_reset($conn, $catid, $matchx, $loserId) {
 }
 
 /**
- * Habilita el match por 3er lugar en la categoría D1 indicada.
+ * Habilita el match por 3er lugar en el draw indicado de la categoría.
  *
- * Crea (idempotente) la fila `matchx = 199` en `elimin_salidas_cat` con
+ * `$draw` = 1 → MATCH-1 (matchx 101..198, 3er lugar = 199)
+ * `$draw` = 2 → MATCH-2 (matchx 201..298, 3er lugar = 299)
+ *
+ * Crea (idempotente) la fila `matchx = <base>+99` en `elimin_salidas_cat` con
  * ambos slots vacíos, y setea `tl_grupo = 199` en las dos filas de
  * semifinal (las dos filas con `matchx` más alto justo antes de la final).
  *
- * Detección de semifinales: se toman todos los matchx del cuadro D1
- * (rango 100..199 exclusive) y las dos últimas anteriores al final son las
- * semis. El final = max(matchx) del rango D1 contiguo.
+ * Detección de semifinales: se toman todos los matchx del draw
+ * (rango base+1..base+98) y las dos últimas anteriores al final son las
+ * semis. El final = max(matchx) del rango contiguo del draw.
  */
-function enable_third_place($conn, $catid) {
+function enable_third_place($conn, $catid, $draw = 1) {
     $cid = (int)$catid;
     if ($cid <= 0) return ['ok' => false, 'error' => 'catid inválido'];
+    $draw = ((int)$draw === 2) ? 2 : 1;
+    $base  = $draw * 100;          // 100 (MATCH-1) ó 200 (MATCH-2)
+    $thirdMx = $base + 99;         // 199 ó 299
+    $lowMx  = $base + 1;
+    $highMx = $base + 98;
 
-    // 1) Lista de matchx D1 contiguos (100..198). El 199 es el 3er lugar
+    // 1) Lista de matchx contiguos del draw. El base+99 es el 3er lugar
     //    mismo — se excluye para no confundirlo con el final.
     $rows = query_all($conn, "SELECT matchx FROM elimin_salidas_cat
                                WHERE catid = $cid
-                                 AND matchx BETWEEN 101 AND 198
+                                 AND matchx BETWEEN $lowMx AND $highMx
                                ORDER BY matchx ASC");
     if (count($rows) < 3) {
-        return ['ok' => false, 'error' => 'Bracket sin suficientes matches D1 (mínimo 3: 2 semis + 1 final)'];
+        return ['ok' => false, 'error' => 'Bracket sin suficientes matches en este draw (mínimo 3: 2 semis + 1 final)'];
     }
     $mxs = array_map(fn($r) => (int)$r['matchx'], $rows);
     $finalMx = end($mxs);
@@ -312,15 +320,15 @@ function enable_third_place($conn, $catid) {
     $tid = (int)$anyRow['torneoid'];
 
     $exists = query_one($conn, "SELECT idelimin_salidas FROM elimin_salidas_cat
-                                 WHERE catid = $cid AND matchx = 199 LIMIT 1");
+                                 WHERE catid = $cid AND matchx = $thirdMx LIMIT 1");
     if (!$exists) {
         $conn->query("INSERT INTO elimin_salidas_cat
                         (torneoid, catid, matchx, jugida, jugidb, gano, pl_grupo, sl_grupo, tl_grupo)
-                      VALUES ($tid, $cid, 199, 0, 0, 0, NULL, NULL, NULL)");
+                      VALUES ($tid, $cid, $thirdMx, 0, 0, 0, NULL, NULL, NULL)");
     }
 
-    // 3) Setea tl_grupo=199 en las dos filas de semifinal.
-    $conn->query("UPDATE elimin_salidas_cat SET tl_grupo = 199
+    // 3) Setea tl_grupo = matchx del 3er lugar en las dos filas de semifinal.
+    $conn->query("UPDATE elimin_salidas_cat SET tl_grupo = $thirdMx
                    WHERE catid = $cid AND matchx IN ($semi1, $semi2)");
 
     // 4) Si las semis YA tienen ganador, propaga los perdedores ahora mismo.
@@ -333,7 +341,7 @@ function enable_third_place($conn, $catid) {
         elseif ($g === 2) propagate_loser_third_place($conn, $cid, $sMx, (int)$s['jugida']);
     }
 
-    return ['ok' => true, 'catid' => $cid, 'semi1' => $semi1, 'semi2' => $semi2, 'third_place_matchx' => 199];
+    return ['ok' => true, 'catid' => $cid, 'draw' => $draw, 'semi1' => $semi1, 'semi2' => $semi2, 'third_place_matchx' => $thirdMx];
 }
 
 // =====================================================================
@@ -452,7 +460,8 @@ if ($action === 'reset_match') {
 if ($action === 'enable_third_place') {
     $catid = (int)($body['catid'] ?? 0);
     if ($catid <= 0) json_error('catid requerido', 400);
-    $result = enable_third_place($conn, $catid);
+    // `draw` opcional: 1 = MATCH-1 (199), 2 = MATCH-2 (299). Default 1.
+    $result = enable_third_place($conn, $catid, (int)($body['draw'] ?? 1));
     if (empty($result['ok'])) {
         json_error($result['error'] ?? 'No se pudo habilitar', 400);
     }

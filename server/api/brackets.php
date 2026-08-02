@@ -30,6 +30,10 @@
  *   POST ?action=set_winner                        (admin)
  *        body: { match_id, winner_id, password }
  *        Override manual (ej. walkover / corrección).
+ *   POST ?action=enable_third_place                 (admin)
+ *        body: { torneoid, sexo, password }
+ *        Crea (idempotente) el match por 3er lugar (round_num = última ronda,
+ *        match_num = 99) y siembra a los perdedores de las dos semifinales.
  */
 
 require_once 'config.php';
@@ -603,6 +607,12 @@ function advance_winner($conn, $matchId, $winnerId) {
     $conn->query("UPDATE bracket_matches
                   SET winner_player_id = $wid, status = 'completed', updated_at = NOW()
                   WHERE id = $mid");
+    /**
+     * Si este match es una semifinal y el bracket ya tiene habilitado el match
+     * por 3er lugar (match_num = 99 en la última ronda), coloca al PERDEDOR en
+     * el slot que le corresponde de ese match.
+     */
+    propagate_putt_third_place($conn, $mid, $wid);
     $row = safe_one($conn, "SELECT next_match_id, next_slot FROM bracket_matches WHERE id = $mid");
     if (!$row || $row['next_match_id'] === null) return;
     $nextId  = (int)$row['next_match_id'];
@@ -613,6 +623,134 @@ function advance_winner($conn, $matchId, $winnerId) {
     $conn->query("UPDATE bracket_matches
                   SET $slotCol = $wid, $seedCol = $seedSql, updated_at = NOW()
                   WHERE id = $nextId");
+}
+
+// ============= Helpers: match por 3er lugar (putt) =============
+/**
+ * Devuelve la última ronda "real" del bracket (excluye el match por 3er
+ * lugar, que se guarda con match_num = 99 en esa misma ronda).
+ */
+function putt_last_round($conn, $bracketId) {
+    $bid = (int)$bracketId;
+    $r = safe_one($conn, "SELECT MAX(round_num) AS mx FROM bracket_matches
+                          WHERE bracket_id = $bid AND match_num <> 99");
+    return (int)($r['mx'] ?? 0);
+}
+
+/**
+ * Devuelve la fila del match por 3er lugar del bracket (match_num = 99) o
+ * null si aún no está habilitado.
+ */
+function putt_third_place_row($conn, $bracketId) {
+    $bid = (int)$bracketId;
+    return safe_one($conn, "SELECT * FROM bracket_matches
+                            WHERE bracket_id = $bid AND match_num = 99 LIMIT 1");
+}
+
+/**
+ * Coloca al perdedor de una semifinal en el match por 3er lugar.
+ * Semifinal 1 (match_num = 1) → slot high; Semifinal 2 (match_num = 2) → low.
+ * No hace nada si el 3er lugar no está habilitado o el match no es semifinal.
+ */
+function propagate_putt_third_place($conn, $matchId, $winnerId) {
+    $mid = (int)$matchId;
+    $wid = (int)$winnerId;
+    $m = safe_one($conn, "SELECT bracket_id, round_num, match_num, player_high_id, player_low_id,
+                                 seed_high, seed_low
+                          FROM bracket_matches WHERE id = $mid");
+    if (!$m) return;
+    $bid = (int)$m['bracket_id'];
+    $lastRound = putt_last_round($conn, $bid);
+    if ($lastRound <= 1) return;
+    // Semifinales = penúltima ronda, match_num 1 y 2.
+    if ((int)$m['round_num'] !== $lastRound - 1) return;
+    $mn = (int)$m['match_num'];
+    if ($mn !== 1 && $mn !== 2) return;
+
+    $third = putt_third_place_row($conn, $bid);
+    if (!$third) return;
+    $tid = (int)$third['id'];
+
+    // Perdedor + su seed.
+    $loser = ((int)$m['player_high_id'] === $wid) ? (int)$m['player_low_id'] : (int)$m['player_high_id'];
+    $loserSeed = ((int)$m['player_high_id'] === $wid) ? $m['seed_low'] : $m['seed_high'];
+    if ($loser <= 0) return;
+    $slotCol = ($mn === 1) ? 'player_high_id' : 'player_low_id';
+    $seedCol = ($mn === 1) ? 'seed_high'      : 'seed_low';
+    $seedSql = ($loserSeed === null || $loserSeed === '') ? 'NULL' : (int)$loserSeed;
+    $conn->query("UPDATE bracket_matches
+                  SET $slotCol = $loser, $seedCol = $seedSql, updated_at = NOW()
+                  WHERE id = $tid");
+}
+
+/**
+ * Limpia el slot del match por 3er lugar cuando se resetea una semifinal.
+ * Sólo borra si el slot todavía contiene al perdedor propagado.
+ */
+function clear_putt_third_place_slot($conn, $matchId, $loserId) {
+    $mid = (int)$matchId;
+    $lid = (int)$loserId;
+    if ($lid <= 0) return;
+    $m = safe_one($conn, "SELECT bracket_id, round_num, match_num FROM bracket_matches WHERE id = $mid");
+    if (!$m) return;
+    $bid = (int)$m['bracket_id'];
+    $lastRound = putt_last_round($conn, $bid);
+    if ((int)$m['round_num'] !== $lastRound - 1) return;
+    $mn = (int)$m['match_num'];
+    if ($mn !== 1 && $mn !== 2) return;
+    $third = putt_third_place_row($conn, $bid);
+    if (!$third) return;
+    $tid = (int)$third['id'];
+    $slotCol = ($mn === 1) ? 'player_high_id' : 'player_low_id';
+    $seedCol = ($mn === 1) ? 'seed_high'      : 'seed_low';
+    $scoreCol = ($mn === 1) ? 'score_high'    : 'score_low';
+    $conn->query("UPDATE bracket_matches
+                  SET $slotCol = NULL, $seedCol = NULL, $scoreCol = NULL,
+                      winner_player_id = NULL, status = 'pending', updated_at = NOW()
+                  WHERE id = $tid AND $slotCol = $lid");
+}
+
+// ============= Acción: enable_third_place (admin) =============
+/**
+ * Habilita el match por 3er lugar del bracket putt indicado (torneoid+sexo).
+ * Crea la fila con round_num = última ronda y match_num = 99 (sin next_match)
+ * y, si las semifinales ya tienen ganador, siembra a los perdedores.
+ */
+function action_enable_third_place($conn, $body) {
+    global $PUTT_PRIZE_TABLE;
+    require_admin($body);
+    $tid  = (int)($body['torneoid'] ?? 0);
+    if ($tid <= 0) json_error('Invalid torneoid', 400);
+    $sexo = require_sexo($body['sexo'] ?? '');
+    $pid  = prize_id_for_sexo($sexo);
+
+    $cfg = safe_one($conn,
+        "SELECT id FROM bracket_config
+         WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
+    if (!$cfg) json_error('Bracket no configurado para este sexo.', 404);
+    $bid = (int)$cfg['id'];
+
+    $lastRound = putt_last_round($conn, $bid);
+    if ($lastRound < 2) json_error('El bracket aún no tiene semifinales (genera el bracket primero).', 400);
+
+    // 1) Crear la fila del 3er lugar si no existe.
+    if (!putt_third_place_row($conn, $bid)) {
+        $ok = $conn->query("INSERT INTO bracket_matches
+                              (bracket_id, round_num, match_num, next_match_id, next_slot, status, updated_at)
+                            VALUES ($bid, $lastRound, 99, NULL, NULL, 'pending', NOW())");
+        if (!$ok) json_error('No se pudo crear el match por 3er lugar: ' . $conn->error, 500);
+    }
+
+    // 2) Sembrar perdedores de semis ya resueltas.
+    $semis = safe_all($conn, "SELECT id, winner_player_id FROM bracket_matches
+                              WHERE bracket_id = $bid AND round_num = " . ($lastRound - 1) . "
+                                AND match_num IN (1,2)");
+    foreach ($semis as $s) {
+        if ($s['winner_player_id'] === null) continue;
+        propagate_putt_third_place($conn, (int)$s['id'], (int)$s['winner_player_id']);
+    }
+
+    json_response(['ok' => true, 'bracket_id' => $bid, 'round_num' => $lastRound, 'match_num' => 99]);
 }
 
 // ============= Acción: record_score (admin) =============
@@ -683,6 +821,16 @@ function action_reset_match($conn, $body) {
                           FROM bracket_matches WHERE id = $matchId");
     if (!$m) json_error('Match not found', 404);
 
+    /** 0) Si era semifinal, quitar a su perdedor del match por 3er lugar. */
+    if ($m['winner_player_id'] !== null) {
+        $cur = safe_one($conn, "SELECT player_high_id, player_low_id FROM bracket_matches WHERE id = $matchId");
+        if ($cur) {
+            $wid = (int)$m['winner_player_id'];
+            $loser = ((int)$cur['player_high_id'] === $wid) ? (int)$cur['player_low_id'] : (int)$cur['player_high_id'];
+            clear_putt_third_place_slot($conn, $matchId, $loser);
+        }
+    }
+
     /** 1) Si había ganador avanzado al next, limpiar ese slot. */
     if ($m['winner_player_id'] !== null && $m['next_match_id'] !== null) {
         $nextId    = (int)$m['next_match_id'];
@@ -723,6 +871,7 @@ if ($method === 'GET') {
     elseif ($action === 'record_score')     action_record_score($conn, $body);
     elseif ($action === 'set_winner')       action_set_winner($conn, $body);
     elseif ($action === 'reset_match')      action_reset_match($conn, $body);
+    elseif ($action === 'enable_third_place') action_enable_third_place($conn, $body);
     else json_error("Unknown POST action '$action'.", 400);
 } else {
     json_error('Method not allowed', 405);

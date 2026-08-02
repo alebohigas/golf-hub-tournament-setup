@@ -18,12 +18,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink } from 'lucide-react';
+import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
   useSavePuttConfig,
   useGeneratePuttBracket,
+  useEnablePuttThirdPlace,
   useRecordBracketScore,
   useSetBracketWinner,
   useResetBracketMatch,
@@ -129,12 +130,33 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
   const { toast } = useToast();
   const saveConfig = useSavePuttConfig();
   const generate   = useGeneratePuttBracket();
+  const enableThird = useEnablePuttThirdPlace();
 
   const cfg = side?.config;
   const [size, setSize]       = useState<number>(cfg?.size ?? 16);
   const [visible, setVisible] = useState<boolean>(!!side?.visible);
 
   const candidates = side?.candidates_count ?? 0;
+
+  /** ¿Ya existe el match por 3er lugar? (match_num/position = 99). */
+  const hasThirdPlace = !!side?.matches?.some((m) => Number(m.position) === 99);
+  /** Se puede habilitar cuando el bracket ya está generado (hay matches). */
+  const canEnableThirdPlace = !hasThirdPlace && (side?.matches?.length ?? 0) >= 3;
+
+  /** Crea el match por 3er lugar entre los semifinalistas perdedores. */
+  const handleEnableThird = () => {
+    if (!torneoId) return;
+    enableThird.mutate(
+      { torneoid: Number(torneoId), sexo, password: ADMIN_PW() },
+      {
+        onSuccess: () => toast({
+          title: 'Match por 3er lugar habilitado',
+          description: 'Ya puedes capturar el resultado entre los semifinalistas perdedores.',
+        }),
+        onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+      },
+    );
+  };
 
   const handleSave = () => {
     if (!torneoId) return;
@@ -213,6 +235,17 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
             {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             Generar bracket
           </Button>
+          {/* Habilitar el match por 3er lugar (semifinalistas perdedores). */}
+          <Button
+            variant="outline"
+            onClick={handleEnableThird}
+            disabled={enableThird.isPending || !torneoId || !canEnableThirdPlace}
+            size="sm"
+            className="gap-1"
+          >
+            {enableThird.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Medal className="h-4 w-4" />}
+            {hasThirdPlace ? '3er lugar habilitado' : 'Habilitar 3er lugar'}
+          </Button>
           {!cfg && (
             <span className="text-xs text-muted-foreground self-center">
               Guarda primero para poder generar.
@@ -241,8 +274,10 @@ const BracketSection = ({ sexo, label, side, mode }: SectionProps) => {
 // ============================================================================
 
 const MatchesEditor = ({ matches }: { matches: BracketMatch[] }) => {
+  /** El match por 3er lugar (position = 99) se lista aparte, al final. */
+  const thirdPlace = matches.find((m) => Number(m.position) === 99) ?? null;
   const byRound: Record<number, BracketMatch[]> = {};
-  for (const m of matches) {
+  for (const m of matches.filter((x) => Number(x.position) !== 99)) {
     if (!byRound[m.round]) byRound[m.round] = [];
     byRound[m.round].push(m);
   }
@@ -259,6 +294,12 @@ const MatchesEditor = ({ matches }: { matches: BracketMatch[] }) => {
           </div>
         </div>
       ))}
+      {thirdPlace && (
+        <div className="space-y-2">
+          <div className="text-xs uppercase text-primary font-bold tracking-wide">Match por 3er lugar</div>
+          <MatchRow match={thirdPlace} />
+        </div>
+      )}
     </div>
   );
 };
