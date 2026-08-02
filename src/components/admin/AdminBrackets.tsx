@@ -82,29 +82,67 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const effectiveMode: 'single' | 'dual' =
     bracketMode ?? (data?.A?.config ? 'single' : 'dual');
 
+  /** Diálogo de confirmación antes de cambiar el modo (se borran matches/resultados). */
+  const [pendingMode, setPendingMode] = useState<'single' | 'dual' | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const modeSummary = useMemo(() => {
+    if (!pendingMode || !data) return null;
+    const sidesToDelete: PuttBracketSide[] =
+      pendingMode === 'single'
+        ? [data.M, data.F]
+        : (data.A ? [data.A] : []);
+    let matches = 0;
+    let results = 0;
+    sidesToDelete.forEach((s) => {
+      if (!s) return;
+      matches += s.matches?.length ?? 0;
+      results += s.matches?.filter((m) => m.status === 'complete' || m.winner_id != null).length ?? 0;
+    });
+    const labelFrom = effectiveMode === 'single' ? 'Un solo bracket' : 'Caballeros y Damas';
+    const labelTo = pendingMode === 'single' ? 'Un solo bracket' : 'Caballeros y Damas';
+    return { labelFrom, labelTo, matches, results };
+  }, [pendingMode, data, effectiveMode]);
+
   /**
-   * Cambia el modo de competición y sincroniza el backend: los brackets que
-   * dejan de aplicar se purgan (matches borrados + ocultos), de modo que no
-   * queden resultados viejos mezclados con el modo nuevo.
+   * Solicita el cambio de modo: primero muestra un diálogo de confirmación
+   * explicando qué brackets y resultados se borrarán, y solo entonces
+   * dispara la mutación al backend.
    */
-  const handleModeChange = (next: 'single' | 'dual') => {
+  const requestModeChange = (next: 'single' | 'dual') => {
     if (next === effectiveMode) return;
-    if (!torneoId) { setBracketMode(next); return; }
-    const msg = next === 'single'
-      ? 'Cambiar a UN SOLO bracket borrará los matches y resultados de los brackets de Caballeros y Damas. ¿Continuar?'
-      : 'Cambiar a DOS brackets (Caballeros/Damas) borrará los matches y resultados del bracket único. ¿Continuar?';
-    if (!confirm(msg)) return;
+    if (!torneoId) {
+      setBracketMode(next);
+      return;
+    }
+    setPendingMode(next);
+    setConfirmOpen(true);
+  };
+
+  const cancelModeChange = () => {
+    setPendingMode(null);
+    setConfirmOpen(false);
+  };
+
+  const confirmModeChange = () => {
+    if (!pendingMode || !torneoId) return;
     setPuttMode.mutate(
-      { torneoid: Number(torneoId), mode: next, password: ADMIN_PW() },
+      { torneoid: Number(torneoId), mode: pendingMode, password: ADMIN_PW() },
       {
         onSuccess: () => {
-          setBracketMode(next);
+          setBracketMode(pendingMode);
+          setPendingMode(null);
+          setConfirmOpen(false);
           toast({
             title: 'Modo actualizado',
             description: 'Se limpiaron los brackets que ya no aplican. Genera el bracket del modo activo.',
           });
         },
-        onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+        onError: (e: any) => {
+          setPendingMode(null);
+          setConfirmOpen(false);
+          toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        },
       },
     );
   };
