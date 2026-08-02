@@ -214,7 +214,9 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
 
     // ----- Clasificados al bracket (lista de seeds que ya entraron) -----
     // Slide independiente que muestra cómo se va llenando el cupo 1..N.
-    if ((side.qualifiers?.length ?? 0) > 0) {
+    // En modo "Un solo bracket" ('A') NO se lista: ahí sólo interesan los
+    // BRACKETS, no la lista de calificación.
+    if (sexo !== 'A' && (side.qualifiers?.length ?? 0) > 0) {
       push({
         id: buildQualSlideId(sexo),
         label: `Calificados ${sideName}`,
