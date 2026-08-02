@@ -8,12 +8,16 @@
  * Los conectores son puramente CSS (`.bracket-pair`, ver src/index.css), así
  * que no requieren medir el DOM y funcionan igual en móvil con scroll lateral.
  *
- * ALINEACIÓN: cada match card se monta dentro de un "slot" `flex-1` centrado,
- * de modo que TODAS las cards de una ronda quedan en slots de idéntica altura
- * (independientemente de que un nombre ocupe una o dos líneas). Así el centro
- * de la card de la ronda N+1 coincide exactamente con el punto medio de la
- * llave de su pareja en la ronda N — sin esto, `justify-around` desplazaba los
- * conectores cuando las cards tenían alturas distintas.
+ * ALINEACIÓN (móvil/tablet incluidos): la columna se maqueta con CSS **grid**
+ * de filas `minmax(0, 1fr)` en DOS niveles (parejas y, dentro de cada pareja,
+ * los dos slots de card). A diferencia de flex `flex-1` — cuya base mínima es
+ * el contenido, por lo que una card con nombre en dos líneas (muy común en
+ * pantallas angostas) crecía más que sus hermanas — las filas de un grid `1fr`
+ * son SIEMPRE de altura idéntica y se igualan a la fila más alta. Así el punto
+ * medio de la llave de una pareja coincide exactamente con el centro de la card
+ * de la ronda siguiente en cualquier ancho de pantalla, y como los conectores
+ * son CSS absolutos respecto a la pareja, se mantienen alineados también al
+ * hacer scroll vertical u horizontal.
  *
  * Props:
  *   - children : las match cards de la ronda, en orden de posición.
