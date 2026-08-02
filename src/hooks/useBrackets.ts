@@ -18,7 +18,6 @@ import {
   getPuttFinalesUrl,
   getPuttFinalesAdminUrl,
   getBracketsActionUrl,
-  POLL_ACTIVE,
 } from '@/config/api';
 
 // ============= Tipos =============
@@ -175,7 +174,11 @@ export const useSavePuttConfig = () => {
       visible: boolean;
       password: string;
     }) => postBracketAction('save_putt_config', vars),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Push inmediato a todas las vistas públicas abiertas (/competicion). */
+      publishBracketChange('brackets_admin');
+    },
   });
 };
 
@@ -185,7 +188,11 @@ export const useGeneratePuttBracket = () => {
   return useMutation({
     mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F'; password: string }) =>
       postBracketAction('generate_putt', vars),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Push inmediato a todas las vistas públicas abiertas (/competicion). */
+      publishBracketChange('brackets_admin');
+    },
   });
 };
 
@@ -199,7 +206,11 @@ export const useRecordBracketScore = () => {
       player2_score: number | null;
       password: string;
     }) => postBracketAction('record_score', vars),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Push inmediato a todas las vistas públicas abiertas (/competicion). */
+      publishBracketChange('brackets_admin');
+    },
   });
 };
 
@@ -209,7 +220,11 @@ export const useSetBracketWinner = () => {
   return useMutation({
     mutationFn: (vars: { match_id: number; winner_id: number; password: string }) =>
       postBracketAction('set_winner', vars),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Push inmediato a todas las vistas públicas abiertas (/competicion). */
+      publishBracketChange('brackets_admin');
+    },
   });
 };
 
@@ -223,7 +238,11 @@ export const useResetBracketMatch = () => {
   return useMutation({
     mutationFn: (vars: { match_id: number; password: string }) =>
       postBracketAction('reset_match', vars),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Push inmediato a todas las vistas públicas abiertas (/competicion). */
+      publishBracketChange('brackets_admin');
+    },
   });
 };
 
@@ -237,6 +256,10 @@ export const useEnablePuttThirdPlace = () => {
   return useMutation({
     mutationFn: (vars: { torneoid: number; sexo: 'M' | 'F'; password: string }) =>
       postBracketAction('enable_third_place', vars),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['brackets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['brackets'] });
+      /** Push inmediato a todas las vistas públicas abiertas (/competicion). */
+      publishBracketChange('brackets_admin');
+    },
   });
 };
