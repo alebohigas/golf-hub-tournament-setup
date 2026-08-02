@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink } from 'lucide-react';
+import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
