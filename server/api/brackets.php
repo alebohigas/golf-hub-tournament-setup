@@ -625,7 +625,7 @@ function advance_winner($conn, $matchId, $winnerId) {
                   WHERE id = $nextId");
 }
 
-// ============= Acción: record_score (admin) =============
+// ============= Helpers: match por 3er lugar (putt) =============
 /**
  * Devuelve la última ronda "real" del bracket (excluye el match por 3er
  * lugar, que se guarda con match_num = 99 en esa misma ronda).
