@@ -166,21 +166,28 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
     });
   });
 
-  // Brackets — un slide por grupo / semis / final, por sexo (M y F)
-  (['M', 'F'] as const).forEach((sexo) => {
+  // Brackets — un slide por grupo / semis / final.
+  // Se recorre 'A' (bracket ÚNICO / "Un solo bracket") además de M y F; los
+  // brackets que no aplican al modo activo no tienen config (el backend los
+  // purga al cambiar de modo) y se omiten automáticamente.
+  (['A', 'M', 'F'] as const).forEach((sexo) => {
     const side = brackets.data?.[sexo];
     if (!side?.config) return;
     const size = Number(side.config.size);
     const totalRounds = Math.log2(size);
     const matches = side.matches || [];
-    const groupLabel = sexo === 'M' ? 'Brackets Caballeros' : 'Brackets Damas';
+    /** Nombre de la competición para etiquetas y agrupación. */
+    const sideName =
+      sexo === 'M' ? 'Caballeros' : sexo === 'F' ? 'Damas' : 'Putt Finales';
+    const groupLabel =
+      sexo === 'A' ? 'Putt Finales' : `Brackets ${sideName}`;
 
     // ----- Clasificados al bracket (lista de seeds que ya entraron) -----
     // Slide independiente que muestra cómo se va llenando el cupo 1..N.
     if ((side.qualifiers?.length ?? 0) > 0) {
       push({
         id: buildQualSlideId(sexo),
-        label: `Calificados ${sexo === 'M' ? 'Caballeros' : 'Damas'}`,
+        label: `Calificados ${sideName}`,
         group: groupLabel,
       });
     }
@@ -189,7 +196,7 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
       // un único slide con el bracket completo
       push({
         id: buildBracketSlideId(sexo, 'full'),
-        label: `Bracket completo ${sexo === 'M' ? 'Caballeros' : 'Damas'}`,
+        label: `Bracket completo ${sideName}`,
         group: groupLabel,
       });
       return;
@@ -212,7 +219,7 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
       if (!hasAnyMatch) continue;
       push({
         id: buildBracketSlideId(sexo, `group${g}`),
-        label: `Grupo ${g + 1} — ${sexo === 'M' ? 'Caballeros' : 'Damas'}`,
+        label: `Grupo ${g + 1} — ${sideName}`,
         group: groupLabel,
       });
     }
@@ -224,7 +231,7 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
     if (semisHasPlayers) {
       push({
         id: buildBracketSlideId(sexo, 'semis'),
-        label: `Semifinales — ${sexo === 'M' ? 'Caballeros' : 'Damas'}`,
+        label: `Semifinales — ${sideName}`,
         group: groupLabel,
       });
     }
@@ -234,7 +241,7 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
     if (finalMatch && (finalMatch.player1_id || finalMatch.player2_id)) {
       push({
         id: buildBracketSlideId(sexo, 'final'),
-        label: `Final + Campeón — ${sexo === 'M' ? 'Caballeros' : 'Damas'}`,
+        label: `Final + Campeón — ${sideName}`,
         group: groupLabel,
       });
     }
