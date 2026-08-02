@@ -10,7 +10,7 @@
  *   - Override manual del ganador (walkover / corrección).
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,17 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
@@ -72,29 +82,67 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const effectiveMode: 'single' | 'dual' =
     bracketMode ?? (data?.A?.config ? 'single' : 'dual');
 
+  /** Diálogo de confirmación antes de cambiar el modo (se borran matches/resultados). */
+  const [pendingMode, setPendingMode] = useState<'single' | 'dual' | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const modeSummary = useMemo(() => {
+    if (!pendingMode || !data) return null;
+    const sidesToDelete: PuttBracketSide[] =
+      pendingMode === 'single'
+        ? [data.M, data.F]
+        : (data.A ? [data.A] : []);
+    let matches = 0;
+    let results = 0;
+    sidesToDelete.forEach((s) => {
+      if (!s) return;
+      matches += s.matches?.length ?? 0;
+      results += s.matches?.filter((m) => m.status === 'complete' || m.winner_id != null).length ?? 0;
+    });
+    const labelFrom = effectiveMode === 'single' ? 'Un solo bracket' : 'Caballeros y Damas';
+    const labelTo = pendingMode === 'single' ? 'Un solo bracket' : 'Caballeros y Damas';
+    return { labelFrom, labelTo, matches, results };
+  }, [pendingMode, data, effectiveMode]);
+
   /**
-   * Cambia el modo de competición y sincroniza el backend: los brackets que
-   * dejan de aplicar se purgan (matches borrados + ocultos), de modo que no
-   * queden resultados viejos mezclados con el modo nuevo.
+   * Solicita el cambio de modo: primero muestra un diálogo de confirmación
+   * explicando qué brackets y resultados se borrarán, y solo entonces
+   * dispara la mutación al backend.
    */
-  const handleModeChange = (next: 'single' | 'dual') => {
+  const requestModeChange = (next: 'single' | 'dual') => {
     if (next === effectiveMode) return;
-    if (!torneoId) { setBracketMode(next); return; }
-    const msg = next === 'single'
-      ? 'Cambiar a UN SOLO bracket borrará los matches y resultados de los brackets de Caballeros y Damas. ¿Continuar?'
-      : 'Cambiar a DOS brackets (Caballeros/Damas) borrará los matches y resultados del bracket único. ¿Continuar?';
-    if (!confirm(msg)) return;
+    if (!torneoId) {
+      setBracketMode(next);
+      return;
+    }
+    setPendingMode(next);
+    setConfirmOpen(true);
+  };
+
+  const cancelModeChange = () => {
+    setPendingMode(null);
+    setConfirmOpen(false);
+  };
+
+  const confirmModeChange = () => {
+    if (!pendingMode || !torneoId) return;
     setPuttMode.mutate(
-      { torneoid: Number(torneoId), mode: next, password: ADMIN_PW() },
+      { torneoid: Number(torneoId), mode: pendingMode, password: ADMIN_PW() },
       {
         onSuccess: () => {
-          setBracketMode(next);
+          setBracketMode(pendingMode);
+          setPendingMode(null);
+          setConfirmOpen(false);
           toast({
             title: 'Modo actualizado',
             description: 'Se limpiaron los brackets que ya no aplican. Genera el bracket del modo activo.',
           });
         },
-        onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+        onError: (e: any) => {
+          setPendingMode(null);
+          setConfirmOpen(false);
+          toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        },
       },
     );
   };
@@ -131,7 +179,7 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               {mode !== 'scores' && (
                 <Select
                   value={effectiveMode}
-                  onValueChange={(v) => handleModeChange(v as 'single' | 'dual')}
+                  onValueChange={(v) => requestModeChange(v as 'single' | 'dual')}
                   disabled={setPuttMode.isPending}
                 >
                   <SelectTrigger className="w-[210px] h-9 text-sm">
@@ -176,6 +224,50 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de confirmación al cambiar el modo de brackets. */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              ¿Cambiar el modo de brackets?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Al cambiar de <strong>{modeSummary?.labelFrom}</strong> a{' '}
+                <strong>{modeSummary?.labelTo}</strong> se eliminarán los matches y resultados
+                del bracket que ya no aplique.
+              </p>
+              {modeSummary && (modeSummary.matches > 0 || modeSummary.results > 0) && (
+                <p className="text-foreground">
+                  Se borrarán{' '}
+                  <strong>{modeSummary.matches} match{modeSummary.matches === 1 ? '' : 'es'}</strong>{' '}
+                  existente{modeSummary.matches === 1 ? '' : 's'} y{' '}
+                  <strong>{modeSummary.results} resultado{modeSummary.results === 1 ? '' : 's'}</strong>{' '}
+                  capturado{modeSummary.results === 1 ? '' : 's'}.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Esta acción no se puede deshacer. Guarda primero cualquier información que necesites.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelModeChange} disabled={setPuttMode.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmModeChange}
+              disabled={setPuttMode.isPending}
+              className="gap-2"
+            >
+              {setPuttMode.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sí, cambiar y borrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
