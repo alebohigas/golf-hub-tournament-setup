@@ -52,11 +52,15 @@ const AdminShowcase300 = () => {
     window.open(`/showcase/${tipo}`, `showcase_${tipo}`, features);
   };
 
-  /** Abre la vista de calificados Putt Finales (M/F) en ventana nueva. */
-  const openCalificados = (sexo: 'm' | 'f') => {
+  /** Abre la vista de calificados Putt Finales (M/F/A) en ventana nueva. */
+  const openCalificados = (sexo: 'm' | 'f' | 'a') => {
     const features = 'noopener,noreferrer,width=1280,height=800';
     window.open(`/showcase/calificados/${sexo}`, `calificados_${sexo}`, features);
   };
+
+  const { data: puttData } = usePuttFinales();
+  /** Si existe un bracket único ('A') el torneo está en "Un solo bracket". */
+  const isSingleBracket = Boolean(puttData?.A?.config);
 
   return (
     <Card>
@@ -89,31 +93,49 @@ const AdminShowcase300 = () => {
           ))}
         </div>
 
-        {/* Botones extra: Calificados Putt Finales por sexo. Comparten el
-            mismo estilo de tarjeta para mantener el grid coherente. */}
+        {/* Botones extra: Calificados Putt Finales. En modo "Un solo bracket"
+            se muestra un único botón; en modo dual se separa por Caballeros y Damas. */}
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {(
-            [
-              { sx: 'm', label: 'Calificados Caballeros', desc: 'Seeds Putt Finales (M)' },
-              { sx: 'f', label: 'Calificados Damas',      desc: 'Seeds Putt Finales (F)' },
-            ] as const
-          ).map(({ sx, label, desc }) => (
+          {isSingleBracket ? (
             <Button
-              key={sx}
+              key="a"
               variant="outline"
               className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
-              onClick={() => openCalificados(sx)}
+              onClick={() => openCalificados('a')}
             >
               <div className="flex items-center gap-2 w-full">
                 <Users className="h-4 w-4 text-primary" />
-                <span className="font-semibold">{label}</span>
+                <span className="font-semibold">Calificados Putt Finales</span>
                 <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
               </div>
               <span className="text-xs text-muted-foreground font-normal whitespace-normal">
-                {desc}
+                Seeds Putt Finales (Único)
               </span>
             </Button>
-          ))}
+          ) : (
+            (
+              [
+                { sx: 'm', label: 'Calificados Caballeros', desc: 'Seeds Putt Finales (M)' },
+                { sx: 'f', label: 'Calificados Damas',      desc: 'Seeds Putt Finales (F)' },
+              ] as const
+            ).map(({ sx, label, desc }) => (
+              <Button
+                key={sx}
+                variant="outline"
+                className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
+                onClick={() => openCalificados(sx)}
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="font-semibold">{label}</span>
+                  <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+                </div>
+                <span className="text-xs text-muted-foreground font-normal whitespace-normal">
+                  {desc}
+                </span>
+              </Button>
+            ))
+          )}
         </div>
 
         {/* Acceso al constructor de vistas rotativas (brackets, multi-300,
