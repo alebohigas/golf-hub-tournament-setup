@@ -821,6 +821,16 @@ function action_reset_match($conn, $body) {
                           FROM bracket_matches WHERE id = $matchId");
     if (!$m) json_error('Match not found', 404);
 
+    /** 0) Si era semifinal, quitar a su perdedor del match por 3er lugar. */
+    if ($m['winner_player_id'] !== null) {
+        $cur = safe_one($conn, "SELECT player_high_id, player_low_id FROM bracket_matches WHERE id = $matchId");
+        if ($cur) {
+            $wid = (int)$m['winner_player_id'];
+            $loser = ((int)$cur['player_high_id'] === $wid) ? (int)$cur['player_low_id'] : (int)$cur['player_high_id'];
+            clear_putt_third_place_slot($conn, $matchId, $loser);
+        }
+    }
+
     /** 1) Si había ganador avanzado al next, limpiar ese slot. */
     if ($m['winner_player_id'] !== null && $m['next_match_id'] !== null) {
         $nextId    = (int)$m['next_match_id'];
@@ -861,6 +871,7 @@ if ($method === 'GET') {
     elseif ($action === 'record_score')     action_record_score($conn, $body);
     elseif ($action === 'set_winner')       action_set_winner($conn, $body);
     elseif ($action === 'reset_match')      action_reset_match($conn, $body);
+    elseif ($action === 'enable_third_place') action_enable_third_place($conn, $body);
     else json_error("Unknown POST action '$action'.", 400);
 } else {
     json_error('Method not allowed', 405);
