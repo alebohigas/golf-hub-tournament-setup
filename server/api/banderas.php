@@ -163,11 +163,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     } else {
         // Público: ignoramos `requested` — siempre devolvemos la única
         // fecha visible permitida por las reglas.
+        // Público: ignoramos `requested`.
+        //   1. Si hay pin sheet de HOY, se muestra hoy.
+        //   2. Si no hay hoy pero sí mañana y ya nadie está jugando, mañana.
+        //   3. Fallback (NUEVO): se conserva SIEMPRE la última fecha cargada
+        //      del torneo — preferimos la última fecha <= hoy; si sólo hay
+        //      fechas futuras, usamos la última disponible. Así las posiciones
+        //      nunca desaparecen al terminar el torneo.
         $activeDate = null;
         if ($hasToday) {
             $activeDate = $today;
         } elseif ($hasTomorrow && !$playersStillPlayingToday) {
             $activeDate = $tomorrow;
+        } elseif (count($allDates)) {
+            /** Última fecha pasada (<= hoy) con datos. */
+            $past = array_values(array_filter($allDates, function ($d) use ($today) {
+                return $d <= $today;
+            }));
+            $activeDate = count($past) ? end($past) : end($allDates);
         }
         $dates = $activeDate !== null ? [$activeDate] : [];
     }
