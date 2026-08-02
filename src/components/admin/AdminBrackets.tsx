@@ -318,7 +318,15 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
           {effectiveMode === 'single' ? (
             /* Bracket ÚNICO: una sola competición unificada (sexo 'A'). */
             <div className="grid grid-cols-1 gap-6">
-              <BracketSection sexo="A" label="Putt Finales" side={data?.A} mode={mode} />
+              {/* `key` con el tamaño: remonta la sección para que los campos
+                  locales (tamaño/visibilidad) reflejen la config recién creada. */}
+              <BracketSection
+                key={`A-${data?.A?.config?.size ?? 'none'}-${data?.A?.visible ? 1 : 0}`}
+                sexo="A"
+                label="Putt Finales"
+                side={data?.A}
+                mode={mode}
+              />
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
