@@ -24,6 +24,7 @@ import {
   usePuttFinalesAdmin,
   useSavePuttConfig,
   useGeneratePuttBracket,
+  useEnablePuttThirdPlace,
   useRecordBracketScore,
   useSetBracketWinner,
   useResetBracketMatch,
