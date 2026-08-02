@@ -102,9 +102,33 @@ const AdminMatchPlay = () => {
     }
   };
 
-  if (loadingCats) {
-    // (helpers de render definidos abajo, después de los early-returns)
-  }
+  /**
+   * Botón "Habilitar 3er lugar" del draw indicado. Siempre visible en cada
+   * draw del bracket (individual, parejas y putt-matchplay); se deshabilita
+   * cuando ya está habilitado o cuando el draw no tiene semifinales.
+   */
+  const renderThirdPlaceButton = (draw: 1 | 2) => {
+    const already = hasThirdPlace(draw);
+    const can = canEnableThirdPlace(draw);
+    return (
+      <div className="flex justify-end mb-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={enableThirdPlace.isPending || already || !can}
+          onClick={() => handleEnableThirdPlace(draw)}
+        >
+          <Medal className="h-4 w-4" />
+          {enableThirdPlace.isPending
+            ? 'Habilitando…'
+            : already
+              ? '3er lugar habilitado'
+              : 'Habilitar 3er lugar'}
+        </Button>
+      </div>
+    );
+  };
 
   if (loadingCats) {
     return (
