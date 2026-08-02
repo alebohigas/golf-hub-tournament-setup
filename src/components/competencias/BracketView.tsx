@@ -212,24 +212,81 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
       {/* ============ Match por 3er lugar (si está habilitado) ============ */}
       {thirdPlaceMatch && (
-        <section className="space-y-3 border-t border-border pt-6">
-          <h3 className="text-base font-bold text-primary flex items-center justify-center gap-2">
-            <Medal className="h-5 w-5" /> Match por 3er lugar
-          </h3>
-          <div className="flex justify-center">
-            <div className="w-full max-w-[260px]">
-              <MatchCard
-                match={thirdPlaceMatch}
-                highlight={search}
-                championId={championId}
-                dimChampion={searching}
-                registerRef={(el) => matchRefs.current.set(thirdPlaceMatch.id, el)}
-              />
-            </div>
-          </div>
-        </section>
+        <ThirdPlaceSection
+          match={thirdPlaceMatch}
+          highlight={search}
+          registerRef={(el) => matchRefs.current.set(thirdPlaceMatch.id, el)}
+        />
       )}
     </div>
+  );
+};
+
+// ============================================================================
+// ThirdPlaceSection — match por 3er lugar (position = 99)
+// ----------------------------------------------------------------------------
+// Se muestra debajo del bracket principal. A diferencia del resto del bracket
+// (donde sólo se pinta G / –), aquí SÍ se muestra el marcador final porque es
+// un resultado de podio que los jugadores esperan ver. El contenedor se
+// actualiza solo: `usePuttFinales` hace polling con POLL_ACTIVE, así que en
+// cuanto el admin captura los scores la tarjeta refleja ganador y marcador sin
+// que el usuario recargue la página.
+// ============================================================================
+
+const ThirdPlaceSection = ({
+  match,
+  highlight,
+  registerRef,
+}: {
+  match: BracketMatch;
+  highlight?: string;
+  registerRef?: (el: HTMLDivElement | null) => void;
+}) => {
+  const decided = match.winner_id != null;
+  /** Nombre del ganador del 3er lugar (null mientras no haya captura). */
+  const winnerName = !decided
+    ? null
+    : match.winner_id === match.player1_id
+      ? match.player1_name
+      : match.player2_name;
+  /** Marcador final "a–b" cuando ambos scores existen. */
+  const scoreText =
+    match.player1_score != null && match.player2_score != null
+      ? `${match.player1_score} – ${match.player2_score}`
+      : null;
+
+  return (
+    <section className="space-y-3 border-t border-border pt-6">
+      <h3 className="text-base font-bold text-primary flex items-center justify-center gap-2">
+        <Medal className="h-5 w-5" /> Match por 3er lugar
+      </h3>
+
+      <div className="flex justify-center">
+        <div className="w-full max-w-[300px] space-y-2">
+          <MatchCard match={match} highlight={highlight} showScores registerRef={registerRef} />
+
+          {/* Resumen del resultado: ganador + marcador, o estado pendiente. */}
+          {decided ? (
+            <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-center">
+              <p className="text-[11px] uppercase tracking-wide font-bold text-primary/80">3er lugar</p>
+              <p className="text-sm font-bold text-primary flex items-center justify-center gap-1.5">
+                <Medal className="h-4 w-4 shrink-0" />
+                <span className="truncate">{winnerName ?? '—'}</span>
+              </p>
+              {scoreText && (
+                <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
+                  Marcador final: {scoreText}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">
+              Pendiente de captura del resultado.
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 };
 
