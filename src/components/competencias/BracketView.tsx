@@ -22,6 +22,7 @@ import { Loader2, Trophy, Crown } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import type { BracketQualifier } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
+import BracketPairs from '@/components/brackets/BracketPairs';
 import { buildUniqueNameSuggestions, matchesPlayerName } from '@/lib/searchUtils';
 import { useMemo, useRef, useState } from 'react';
 
@@ -168,7 +169,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
                     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
                       {groupRoundLabel(round, groupRoundsCount)}
                     </h4>
-                    <div className="flex flex-col gap-3 justify-around flex-1">
+                    <BracketPairs connect={round < groupRoundsCount || hasGrandFinal}>
                       {matchesForGroupRound(g, round).map((m) => (
                         <MatchCard
                           key={m.id}
@@ -179,7 +180,7 @@ const BracketView = ({ sexo }: BracketViewProps) => {
                           registerRef={(el) => matchRefs.current.set(m.id, el)}
                         />
                       ))}
-                    </div>
+                    </BracketPairs>
                   </div>
                 ))}
               </div>
