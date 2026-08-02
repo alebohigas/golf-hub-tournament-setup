@@ -308,6 +308,23 @@
     white-space: normal;
   }
 
+  /**
+   * Límite de 4 renglones en nombres de jugador (solo móvil).
+   * ------------------------------------------------------------------
+   * Aplica a los reportes de Resultados, Live Scoring, Salidas,
+   * Jugadores, Skin Players y Competencias (O'Yes, O'Yes X, Driver de
+   * precisión/distancia, Putt, Approach) que usan `.player-name-cell`.
+   * Si el nombre ocupa 5 o más líneas, se corta en la cuarta con elipsis
+   * (`-webkit-line-clamp`), evitando filas desproporcionadamente altas.
+   */
+  .player-name-cell {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
+
   /** Numeric score columns: reduce horizontal padding on mobile */
   .tournament-table td.text-right,
   .tournament-table th.text-right {
