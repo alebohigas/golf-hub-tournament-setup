@@ -129,7 +129,6 @@ const BracketSlide = ({ sexo, kind }: Props) => {
   /** Poll de respaldo (5 min) para TVs en otro dispositivo, además del push. */
   const { data, isLoading } = usePuttFinales(POLL_SHOWCASE);
   const side = data?.[sexo];
-  /** Etiqueta corta del bracket (Caballeros/Damas/Putt Finales). */
 
   if (isLoading) {
     return (
