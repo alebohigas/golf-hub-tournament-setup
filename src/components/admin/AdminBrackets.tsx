@@ -224,6 +224,50 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de confirmación al cambiar el modo de brackets. */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              ¿Cambiar el modo de brackets?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Al cambiar de <strong>{modeSummary?.labelFrom}</strong> a{' '}
+                <strong>{modeSummary?.labelTo}</strong> se eliminarán los matches y resultados
+                del bracket que ya no aplique.
+              </p>
+              {modeSummary && (modeSummary.matches > 0 || modeSummary.results > 0) && (
+                <p className="text-foreground">
+                  Se borrarán{' '}
+                  <strong>{modeSummary.matches} match{modeSummary.matches === 1 ? '' : 'es'}</strong>{' '}
+                  existente{modeSummary.matches === 1 ? '' : 's'} y{' '}
+                  <strong>{modeSummary.results} resultado{modeSummary.results === 1 ? '' : 's'}</strong>{' '}
+                  capturado{modeSummary.results === 1 ? '' : 's'}.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Esta acción no se puede deshacer. Guarda primero cualquier información que necesites.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelModeChange} disabled={setPuttMode.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmModeChange}
+              disabled={setPuttMode.isPending}
+              className="gap-2"
+            >
+              {setPuttMode.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sí, cambiar y borrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
