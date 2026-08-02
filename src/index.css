@@ -325,6 +325,25 @@
     overflow: hidden;
   }
 
+  /**
+   * `.player-name-clamp`
+   * ------------------------------------------------------------------
+   * Variante para aplicar en un <span> INTERNO de la celda. Necesaria en
+   * RESULTADOS: `-webkit-line-clamp` no se aplica de forma confiable
+   * directamente sobre un `<td>` (display: table-cell + position: sticky),
+   * por lo que el quinto renglón seguía apareciendo. Envolviendo el nombre
+   * en un span block con `-webkit-box`, el recorte a 4 renglones sí ocurre.
+   */
+  .player-name-clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
   /** Numeric score columns: reduce horizontal padding on mobile */
   .tournament-table td.text-right,
   .tournament-table th.text-right {

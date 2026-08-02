@@ -486,7 +486,10 @@ const Resultados = () => {
                                       <span className="text-xs text-muted-foreground">{player.club}</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>{name1}</TableCell>
+                                  {/* Nombre recortado a 4 renglones en móvil vía span interno (.player-name-clamp) */}
+                                  <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>
+                                    <span className="player-name-clamp">{name1}</span>
+                                  </TableCell>
                                   {/* Round score cells — rowSpan=2 en parejas para centrar el score compartido */}
                                   {(categoryDetail?.days || []).map((_, i) => {
                                     const round = i + 1;
@@ -554,7 +557,7 @@ const Resultados = () => {
                                       )}
                                     </TableCell>
                                     <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>
-                                      {player.partner}
+                                      <span className="player-name-clamp">{player.partner}</span>
                                     </TableCell>
                                   </TableRow>
                                 )}
@@ -651,7 +654,7 @@ const Resultados = () => {
                                    * column / scrolls the table horizontally.
                                    */}
                                   <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
-                                    <span className="block leading-tight">{name1}</span>
+                                    <span className="block leading-tight player-name-clamp">{name1}</span>
                                     <span className="block text-[11px] leading-tight text-muted-foreground/70">
                                       ({cp.statusLabel})
                                     </span>
@@ -729,7 +732,7 @@ const Resultados = () => {
                                       )}
                                     </TableCell>
                                     <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
-                                      <span className="block leading-tight">{cp.partner}</span>
+                                      <span className="block leading-tight player-name-clamp">{cp.partner}</span>
                                     </TableCell>
                                   </TableRow>
                                 )}
