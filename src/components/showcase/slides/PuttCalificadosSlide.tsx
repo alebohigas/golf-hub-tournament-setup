@@ -19,8 +19,8 @@ import ShowcaseStickyTitle from '@/components/showcase/ShowcaseStickyTitle';
 
 /** Props del slide. */
 interface Props {
-  /** 'M' = Caballeros, 'F' = Damas. */
-  sexo: 'M' | 'F';
+  /** 'M' = Caballeros, 'F' = Damas, 'A' = bracket único ("Un solo bracket"). */
+  sexo: 'M' | 'F' | 'A';
 }
 
 /**
@@ -32,7 +32,8 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
   const { data, isLoading } = usePuttFinales();
   const side = data?.[sexo];
   const qualifiers = side?.qualifiers ?? [];
-  const titulo = sexo === 'M' ? 'CABALLEROS' : 'DAMAS';
+  /** En modo único (A) no hay división por sexo → título general. */
+  const titulo = sexo === 'M' ? 'CABALLEROS' : sexo === 'F' ? 'DAMAS' : 'GENERAL';
 
   if (isLoading) {
     return (
