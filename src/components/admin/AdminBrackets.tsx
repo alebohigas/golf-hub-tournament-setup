@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
   useSavePuttConfig,
+  useSetPuttMode,
   useGeneratePuttBracket,
   useEnablePuttThirdPlace,
   useRecordBracketScore,
@@ -57,6 +58,8 @@ interface AdminBracketsProps {
 const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const { torneoId } = useTorneoId();
   const { data, isLoading, refetch, isRefetching } = usePuttFinalesAdmin();
+  const { toast } = useToast();
+  const setPuttMode = useSetPuttMode();
 
   /**
    * Modo de competición del Putt Finales:
@@ -68,6 +71,33 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const [bracketMode, setBracketMode] = useState<'single' | 'dual' | null>(null);
   const effectiveMode: 'single' | 'dual' =
     bracketMode ?? (data?.A?.config ? 'single' : 'dual');
+
+  /**
+   * Cambia el modo de competición y sincroniza el backend: los brackets que
+   * dejan de aplicar se purgan (matches borrados + ocultos), de modo que no
+   * queden resultados viejos mezclados con el modo nuevo.
+   */
+  const handleModeChange = (next: 'single' | 'dual') => {
+    if (next === effectiveMode) return;
+    if (!torneoId) { setBracketMode(next); return; }
+    const msg = next === 'single'
+      ? 'Cambiar a UN SOLO bracket borrará los matches y resultados de los brackets de Caballeros y Damas. ¿Continuar?'
+      : 'Cambiar a DOS brackets (Caballeros/Damas) borrará los matches y resultados del bracket único. ¿Continuar?';
+    if (!confirm(msg)) return;
+    setPuttMode.mutate(
+      { torneoid: Number(torneoId), mode: next, password: ADMIN_PW() },
+      {
+        onSuccess: () => {
+          setBracketMode(next);
+          toast({
+            title: 'Modo actualizado',
+            description: 'Se limpiaron los brackets que ya no aplican. Genera el bracket del modo activo.',
+          });
+        },
+        onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+      },
+    );
+  };
 
   if (isLoading) {
     return (
@@ -101,7 +131,8 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               {mode !== 'scores' && (
                 <Select
                   value={effectiveMode}
-                  onValueChange={(v) => setBracketMode(v as 'single' | 'dual')}
+                  onValueChange={(v) => handleModeChange(v as 'single' | 'dual')}
+                  disabled={setPuttMode.isPending}
                 >
                   <SelectTrigger className="w-[210px] h-9 text-sm">
                     <SelectValue />
