@@ -8,6 +8,13 @@
  * Los conectores son puramente CSS (`.bracket-pair`, ver src/index.css), así
  * que no requieren medir el DOM y funcionan igual en móvil con scroll lateral.
  *
+ * ALINEACIÓN: cada match card se monta dentro de un "slot" `flex-1` centrado,
+ * de modo que TODAS las cards de una ronda quedan en slots de idéntica altura
+ * (independientemente de que un nombre ocupe una o dos líneas). Así el centro
+ * de la card de la ronda N+1 coincide exactamente con el punto medio de la
+ * llave de su pareja en la ronda N — sin esto, `justify-around` desplazaba los
+ * conectores cuando las cards tenían alturas distintas.
+ *
  * Props:
  *   - children : las match cards de la ronda, en orden de posición.
  *   - connect  : false en la ÚLTIMA columna (la final) para no dibujar llaves
@@ -34,18 +41,23 @@ const BracketPairs = ({ children, connect = true, mirrored = false, className }:
   for (let i = 0; i < items.length; i += 2) pairs.push(items.slice(i, i + 2));
 
   return (
-    <div className={cn('flex flex-col gap-3 justify-around flex-1', className)}>
+    <div className={cn('flex flex-col flex-1', className)}>
       {pairs.map((pair, idx) => (
         <div
           key={idx}
           className={cn(
-            'flex flex-col gap-3 justify-around',
+            'flex flex-col flex-1',
             connect && 'bracket-pair',
             connect && pair.length < 2 && 'bracket-pair-single',
             connect && mirrored && 'bracket-pair-left',
           )}
         >
-          {pair}
+          {pair.map((card, cardIdx) => (
+            /** Slot de altura uniforme: mantiene la card centrada verticalmente. */
+            <div key={cardIdx} className="flex flex-1 flex-col justify-center py-1.5">
+              {card}
+            </div>
+          ))}
         </div>
       ))}
     </div>
