@@ -10,8 +10,10 @@
  *   - BracketView en /competicion: render público read-only por sexo.
  */
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
+import { publishBracketChange, subscribeBracketChanges } from '@/lib/bracketLive';
 import {
   getPuttFinalesUrl,
   getPuttFinalesAdminUrl,
