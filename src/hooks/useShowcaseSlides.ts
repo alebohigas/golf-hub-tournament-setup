@@ -222,10 +222,11 @@ export const useShowcaseSlides = (): UseShowcaseSlidesResult => {
       });
     }
 
-    // Modo "Un solo bracket" ('A'): SIEMPRE un slide con el bracket completo
-    // (todas las rondas lado a lado con sus llaves), sin partirlo en grupos /
-    // semis / final, tal como se publica en pantallas del club.
-    if (sexo === 'A' || size <= 16) {
+    // Brackets de 16 o menos: un único slide con el bracket completo (cabe
+    // entero en pantalla). Para tamaños mayores —incluido el bracket ÚNICO
+    // ('A')— se parte en grupos + semis + final para que la rotación y el
+    // autoscroll sean legibles en las pantallas del club.
+    if (size <= 16) {
       // un único slide con el bracket completo
       push({
         id: buildBracketSlideId(sexo, 'full'),
