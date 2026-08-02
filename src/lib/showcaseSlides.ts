@@ -72,15 +72,19 @@ export const buildMejorSlideId = (fecha: string): string => `mejor:${fecha}`;
  *  - 'groupN'  → grupo N (0-indexed) cuando size > 16.
  *  - 'semis'   → semifinales (sólo size > 16).
  *  - 'final'   → final + campeón (sólo size > 16).
+ *
+ * `sexo` puede ser 'M' (Caballeros), 'F' (Damas) o 'A' (bracket ÚNICO /
+ * "Un solo bracket", una sola competición Putt Finales).
  */
-export const buildBracketSlideId = (sexo: 'M' | 'F', kind: string): string =>
+export const buildBracketSlideId = (sexo: 'M' | 'F' | 'A', kind: string): string =>
   `bracket:${sexo}:${kind}`;
 
 /**
  * Build slide id para "Clasificados Putt Finales" (lista de seeds
- * que ya entraron al ranking acumulado). `sexo` = 'M' o 'F'.
+ * que ya entraron al ranking acumulado). `sexo` = 'M', 'F' o 'A'
+ * (bracket único cuando el torneo compite en "Un solo bracket").
  */
-export const buildQualSlideId = (sexo: 'M' | 'F'): string => `qual:${sexo}`;
+export const buildQualSlideId = (sexo: 'M' | 'F' | 'A'): string => `qual:${sexo}`;
 
 /**
  * Build slide id para brackets Match Play de /matchplay.
