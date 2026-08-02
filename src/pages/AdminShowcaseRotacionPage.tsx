@@ -90,9 +90,9 @@ const openRotator = (cfg: ShowcaseConfig) => {
   window.open(url, '_blank', features);
 };
 
-/** Icono por nombre de grupo (estética). */
+/** Icono por nombre de grupo, incluidos los brackets Putt unificados. */
 const groupIcon = (group: string) => {
-  if (group.startsWith('Brackets')) return Trophy;
+  if (group.startsWith('Brackets') || group === 'Putt Finales') return Trophy;
   if (group === 'Driver') return Target;
   if (group === 'Approach') return Crosshair;
   if (group === 'Putt') return MousePointerClick;
@@ -164,10 +164,14 @@ const Dashboard = () => {
     { tipo: 'oyesx',    group: 'Oyes-X',   Icon: Layers },
   ];
 
-  /** Lista de grupos en orden estable. */
+  /**
+   * Lista de grupos en orden estable.
+   * `Putt Finales` corresponde al modo de un solo bracket; no debe confundirse
+   * con el reporte S300 del grupo `Putt`.
+   */
   const groupOrder = [
     'Driver', 'Approach', 'Putt', "O'Yes", 'Oyes-X',
-    'Mejor Score Diario', 'Brackets Caballeros', 'Brackets Damas',
+    'Mejor Score Diario', 'Putt Finales', 'Brackets Caballeros', 'Brackets Damas',
     'Match Play', 'Resultados', 'LIVE',
   ].filter((g) => groups[g]?.length);
 
@@ -216,12 +220,16 @@ const Dashboard = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Brackets (M+F) */}
+            {/* Brackets Putt: unificado (A) o separados (M/F), según el modo activo. */}
             <Button
               variant="outline"
               className="h-auto flex flex-col items-start gap-1 p-4 text-left hover:bg-primary/10"
-              disabled={!(groups['Brackets Caballeros']?.length || groups['Brackets Damas']?.length)}
-              onClick={() => openRotator(buildConfig((m) => m.group.startsWith('Brackets')))}
+              disabled={!groups['Putt Finales']?.length
+                && !groups['Brackets Caballeros']?.length
+                && !groups['Brackets Damas']?.length}
+              onClick={() => openRotator(buildConfig((m) =>
+                m.group === 'Putt Finales' || m.group.startsWith('Brackets')
+              ))}
             >
               <div className="flex items-center gap-2 w-full">
                 <Trophy className="h-4 w-4 text-primary" />
@@ -229,7 +237,9 @@ const Dashboard = () => {
                 <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
               </div>
               <span className="text-xs text-muted-foreground whitespace-normal">
-                Rota grupos + semis + final (M y F)
+                {groups['Putt Finales']?.length
+                  ? 'Rota los brackets de Putt Finales'
+                  : 'Rota grupos + semis + final (M y F)'}
               </span>
             </Button>
 
