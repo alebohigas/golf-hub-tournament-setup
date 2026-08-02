@@ -318,10 +318,10 @@
    * (`-webkit-line-clamp`), evitando filas desproporcionadamente altas.
    */
   .player-name-cell {
+    line-clamp: 4;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
-    line-clamp: 4;
     overflow: hidden;
   }
 
@@ -335,11 +335,21 @@
    * en un span block con `-webkit-box`, el recorte a 4 renglones sí ocurre.
    */
   .player-name-clamp {
+    /*
+     * Orden IMPORTANTE: `line-clamp` (estándar) va primero y
+     * `display: -webkit-box` después, para que Chromium no degrade el display
+     * a `flow-root` y Safari/iOS (que ignora `line-clamp`) siempre reciba la
+     * combinación clásica -webkit-box + -webkit-line-clamp, la única que
+     * recorta de forma fiable dentro de celdas de tabla sticky.
+     */
+    line-clamp: 4;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
-    line-clamp: 4;
     overflow: hidden;
+    /* En Safari, -webkit-box sin ancho explícito puede desbordar la celda. */
+    width: 100%;
+    max-width: 100%;
     word-break: normal;
     overflow-wrap: normal;
   }
