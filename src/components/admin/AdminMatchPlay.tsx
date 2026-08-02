@@ -103,6 +103,10 @@ const AdminMatchPlay = () => {
   };
 
   if (loadingCats) {
+    // (helpers de render definidos abajo, después de los early-returns)
+  }
+
+  if (loadingCats) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
