@@ -127,8 +127,15 @@ const CompetenciasTable = ({ players, columns }: CompetenciasTableProps) => {
                         <span className="text-xs text-muted-foreground">{player.club}</span>
                       )
                     ) : (
-                      /* Standard cell rendering */
-                      formatValue(getCellValue(player, col.key), col.format)
+                      /* Standard cell rendering — la columna de nombre se envuelve en
+                         un span .player-name-clamp para recortar a 4 renglones en móvil */
+                      col.key === 'name' ? (
+                        <span className="player-name-clamp">
+                          {formatValue(getCellValue(player, col.key), col.format)}
+                        </span>
+                      ) : (
+                        formatValue(getCellValue(player, col.key), col.format)
+                      )
                     )}
                   </TableCell>
                 ))}

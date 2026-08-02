@@ -627,7 +627,8 @@ const Live = () => {
 
                                 {/* Player name */}
                                 <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.125rem' }}>
-                                  {player.name}
+                                  {/* Recorte a 4 renglones en móvil vía span interno (.player-name-clamp) */}
+                                  <span className="player-name-clamp">{player.name}</span>
                                 </TableCell>
 
                                 {/*
@@ -726,7 +727,8 @@ const Live = () => {
                                     ) : null}
                                   </TableCell>
                                   <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.125rem' }}>
-                                    {player.partner}
+                                    {/* Recorte a 4 renglones en móvil (pareja) */}
+                                    <span className="player-name-clamp">{player.partner}</span>
                                   </TableCell>
                                 </TableRow>
                               )}

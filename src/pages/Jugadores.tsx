@@ -188,7 +188,8 @@ const Jugadores = () => {
                                         }}
                                       />
                                     </TableCell>
-                                    <TableCell className="player-name-cell">{player.name}</TableCell>
+                                    {/* Nombre recortado a 4 renglones en móvil (.player-name-clamp) */}
+                                    <TableCell className="player-name-cell"><span className="player-name-clamp">{player.name}</span></TableCell>
                                     <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
                                     <TableCell className="text-center">{player.handicapJuego}</TableCell>
                                     <TableCell className="text-center font-extrabold text-base text-primary">{player.handicapNeto}</TableCell>
@@ -268,7 +269,8 @@ const Jugadores = () => {
                                    }}
                                  />
                                </TableCell>
-                               <TableCell className="player-name-cell">{player.name}</TableCell>
+                               {/* Nombre recortado a 4 renglones en móvil (.player-name-clamp) */}
+                               <TableCell className="player-name-cell"><span className="player-name-clamp">{player.name}</span></TableCell>
                               {/* HI/HJ/HN values centered under their respective column headers */}
                               <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
                               <TableCell className="text-center">{player.handicapJuego}</TableCell>
