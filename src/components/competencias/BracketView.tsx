@@ -296,6 +296,7 @@ const MatchCard = ({
   highlight,
   championId,
   dimChampion,
+  showScores = false,
   registerRef,
 }: {
   match: BracketMatch;
@@ -304,6 +305,11 @@ const MatchCard = ({
   championId?: number | null;
   /** Cuando el usuario está buscando, atenuar el resaltado dorado del campeón. */
   dimChampion?: boolean;
+  /**
+   * Muestra el marcador numérico real en lugar de "G/–". Sólo se usa en el
+   * match por 3er lugar, donde el marcador final sí es información de podio.
+   */
+  showScores?: boolean;
   /** Callback para registrar el nodo DOM y permitir scroll automático. */
   registerRef?: (el: HTMLDivElement | null) => void;
 }) => {
@@ -320,7 +326,8 @@ const MatchCard = ({
    * Render del valor del lado derecho: "G" (ganador), "-" (perdedor) o
    * vacío cuando el match aún no está resuelto. No mostramos distancias.
    */
-  const resultLabel = (isWinner: boolean): string => {
+  const resultLabel = (isWinner: boolean, score: number | null): string => {
+    if (showScores) return score != null ? String(score) : '';
     if (match.winner_id == null) return '';
     return isWinner ? 'G' : '-';
   };
@@ -328,7 +335,7 @@ const MatchCard = ({
   const renderRow = (
     name: string | null,
     seed: number | null,
-    _score: number | null,
+    score: number | null,
     isWinner: boolean,
     isHighlighted: boolean,
     isChampion: boolean,
@@ -367,7 +374,7 @@ const MatchCard = ({
         </span>
       </div>
       <span
-        className={`text-sm font-bold tabular-nums w-6 text-center ${
+        className={`text-sm font-bold tabular-nums ${showScores ? 'w-10' : 'w-6'} text-center ${
           isHighlighted
             ? 'font-bold text-accent-foreground'
             : isChampion && !dimChampion
@@ -379,7 +386,7 @@ const MatchCard = ({
                   : 'text-muted-foreground'
         }`}
       >
-        {resultLabel(isWinner) || '–'}
+        {resultLabel(isWinner, score) || '–'}
       </span>
     </div>
   );
