@@ -179,7 +179,7 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               {mode !== 'scores' && (
                 <Select
                   value={effectiveMode}
-                  onValueChange={(v) => handleModeChange(v as 'single' | 'dual')}
+                  onValueChange={(v) => requestModeChange(v as 'single' | 'dual')}
                   disabled={setPuttMode.isPending}
                 >
                   <SelectTrigger className="w-[210px] h-9 text-sm">
