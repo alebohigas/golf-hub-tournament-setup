@@ -90,7 +90,7 @@ const Competencias = () => {
    * (inyectados por competencias.php como pseudo-competencias). En ese caso
    * el front renderiza <BracketView sexo /> en lugar de la tabla.
    */
-  const bracketSexo: 'M' | 'F' | null = selectedGroup?.bracketSexo ?? null;
+  const bracketSexo: 'M' | 'F' | 'A' | null = selectedGroup?.bracketSexo ?? null;
 
   /**
    * Handle local typing in the search input.
@@ -691,7 +691,9 @@ const Competencias = () => {
                 sin tener que abrir el detalle.
               */}
               {(() => {
-                const bracketGroup = groups.find((g) => g.bracketSexo === 'M' || g.bracketSexo === 'F');
+                const bracketGroup = groups.find(
+                  (g) => g.bracketSexo === 'M' || g.bracketSexo === 'F' || g.bracketSexo === 'A',
+                );
                 if (!bracketGroup?.bracketSexo) return null;
                 return (
                   <div className="max-w-4xl mx-auto mt-8">
