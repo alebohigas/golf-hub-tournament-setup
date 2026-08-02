@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Crown, Trophy } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
+import BracketPairs from '@/components/brackets/BracketPairs';
 
 /** Props del slide de bracket. */
 interface Props {
@@ -74,18 +75,21 @@ const RoundColumn = ({
   label,
   matches,
   championId,
+  connect = true,
 }: {
   label: string;
   matches: BracketMatch[];
   championId: number | null;
+  /** false en la última columna (final) para no dibujar llaves al vacío. */
+  connect?: boolean;
 }) => (
   <div className="flex flex-col gap-3 min-w-[220px]">
     <h4 className="text-xs font-bold uppercase text-center text-muted-foreground tracking-wide">
       {label}
     </h4>
-    <div className="flex flex-col gap-3 justify-around flex-1">
+    <BracketPairs connect={connect}>
       {matches.map((m) => <MatchCard key={m.id} match={m} championId={championId} />)}
-    </div>
+    </BracketPairs>
   </div>
 );
 
@@ -140,6 +144,7 @@ const BracketSlide = ({ sexo, kind }: Props) => {
               <RoundColumn
                 key={r}
                 label={`Ronda ${r}`}
+                connect={r < totalRounds}
                 matches={matches
                   .filter((m) => Number(m.round) === r)
                   .sort((a, b) => Number(a.position) - Number(b.position))}
