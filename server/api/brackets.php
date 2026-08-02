@@ -339,8 +339,9 @@ function backfill_advanced_seeds($conn, $cfgId) {
 function action_get_putt_finales($conn, $torneoid) {
     global $PUTT_PRIZE_TABLE;
     $tid = (int)$torneoid;
-    $out = ['M' => null, 'F' => null];
-    foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
+    $out = ['M' => null, 'F' => null, 'A' => null];
+    /** 'A' = bracket único (una sola competición Putt Finales). */
+    foreach (['M' => 1, 'F' => 2, 'A' => 3] as $sx => $pid) {
         $cfg = safe_one($conn,
             "SELECT *, bracket_size AS size FROM bracket_config
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
@@ -422,8 +423,9 @@ function action_get_putt_finales($conn, $torneoid) {
 function action_get_putt_admin($conn, $torneoid) {
     global $PUTT_PRIZE_TABLE;
     $tid = (int)$torneoid;
-    $out = ['M' => null, 'F' => null];
-    foreach (['M' => 1, 'F' => 2] as $sx => $pid) {
+    $out = ['M' => null, 'F' => null, 'A' => null];
+    /** 'A' = bracket único (una sola competición Putt Finales). */
+    foreach (['M' => 1, 'F' => 2, 'A' => 3] as $sx => $pid) {
         $cfg = safe_one($conn,
             "SELECT *, bracket_size AS size FROM bracket_config
              WHERE torneoid = $tid AND prize_table = '$PUTT_PRIZE_TABLE' AND prize_id = $pid LIMIT 1");
