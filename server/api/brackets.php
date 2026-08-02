@@ -607,6 +607,12 @@ function advance_winner($conn, $matchId, $winnerId) {
     $conn->query("UPDATE bracket_matches
                   SET winner_player_id = $wid, status = 'completed', updated_at = NOW()
                   WHERE id = $mid");
+    /**
+     * Si este match es una semifinal y el bracket ya tiene habilitado el match
+     * por 3er lugar (match_num = 99 en la última ronda), coloca al PERDEDOR en
+     * el slot que le corresponde de ese match.
+     */
+    propagate_putt_third_place($conn, $mid, $wid);
     $row = safe_one($conn, "SELECT next_match_id, next_slot FROM bracket_matches WHERE id = $mid");
     if (!$row || $row['next_match_id'] === null) return;
     $nextId  = (int)$row['next_match_id'];
