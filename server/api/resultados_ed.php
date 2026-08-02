@@ -13,7 +13,7 @@
  *   jugador, logojug, fecha, club, clubid, idelimin_salidas
  *
  * Detección de ganador: cuando `gano == postabla` ese lado es el winner.
- * D1 (Winners/Cuadro principal) → matchx 1xx. D2 (Consolación) → matchx 2xx.
+ * D1 (MATCH-1 / DRAW-1) → matchx 1xx. D2 (MATCH-2 / DRAW-2) → matchx 2xx.
  */
 require_once 'config.php';
 

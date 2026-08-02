@@ -84,8 +84,8 @@ export const buildQualSlideId = (sexo: 'M' | 'F'): string => `qual:${sexo}`;
 
 /**
  * Build slide id para brackets Match Play de /matchplay.
- * Un slide por categoría — internamente renderiza Cuadro Principal (D1) y
- * la Consolación (D2) si existe.
+ * Un slide por categoría — internamente renderiza MATCH-1 (DRAW-1, D1) y
+ * MATCH-2 (DRAW-2, D2) si existe.
  */
 export const buildMatchPlaySlideId = (catid: string | number): string =>
   `matchplay:${catid}`;
