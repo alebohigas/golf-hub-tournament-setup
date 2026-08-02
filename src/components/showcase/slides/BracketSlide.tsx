@@ -37,6 +37,29 @@ interface Props {
 const sideLabel = (sexo: 'M' | 'F' | 'A'): string =>
   sexo === 'M' ? 'Caballeros' : sexo === 'F' ? 'Damas' : 'Putt Finales';
 
+/**
+ * Nombre de la competición tal como se publica: en modo "Un solo bracket"
+ * es "Putt Finales"; en modo dual, "Putt Finales Caballeros" / "Damas".
+ */
+const compName = (sexo: 'M' | 'F' | 'A'): string =>
+  sexo === 'A' ? 'Putt Finales' : `Putt Finales ${sideLabel(sexo)}`;
+
+/**
+ * Encabezado estándar del slide: título grande + pill verde con el nombre
+ * de la competición (mismo look que la vista pública del bracket).
+ */
+const SlideHeader = ({ sexo, subtitle }: { sexo: 'M' | 'F' | 'A'; subtitle?: string }) => (
+  <div className="text-center mb-6">
+    <h1 className="text-4xl md:text-5xl font-bold">{compName(sexo)}</h1>
+    <div className="mt-3 inline-flex items-center rounded-full bg-primary px-5 py-2 text-primary-foreground font-semibold">
+      {compName(sexo)}
+    </div>
+    {subtitle && (
+      <h2 className="mt-4 text-2xl font-bold text-left">{subtitle}</h2>
+    )}
+  </div>
+);
+
 /** Tarjeta de un match — 2 filas con resultado G/–. */
 const MatchCard = ({ match, championId }: { match: BracketMatch; championId: number | null }) => {
   const w1 = match.winner_id != null && match.winner_id === match.player1_id;
