@@ -175,8 +175,9 @@ const AdminMatchPlay = () => {
       ) : hasD2 ? (
         <Tabs defaultValue="d1">
           <TabsList>
-            <TabsTrigger value="d1">Cuadro Principal</TabsTrigger>
-            <TabsTrigger value="d2">Consolación</TabsTrigger>
+            {/* DRAW-1 = matches 101..115 | DRAW-2 = matches 201..215 */}
+            <TabsTrigger value="d1">MATCH-1</TabsTrigger>
+            <TabsTrigger value="d2">MATCH-2</TabsTrigger>
           </TabsList>
           <TabsContent value="d1" className="mt-4">
             <BracketView

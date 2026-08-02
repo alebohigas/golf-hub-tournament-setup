@@ -5,8 +5,9 @@
  * dentro del rotador `/showcase/rotacion`.
  *
  * - Carga el bracket con useMatchPlayBracket(catid).
- * - Muestra título de la categoría, BracketView del Cuadro Principal (D1) y
- *   — si hay matches en la Consolación — un segundo bloque con D2.
+ * - Muestra título de la categoría, BracketView del DRAW-1 / MATCH-1 (D1, matches
+ *   101..115) y — si hay matches en el DRAW-2 / MATCH-2 (D2, 201..215) — un
+ *   segundo bloque.
  * - Reutiliza el mismo BracketView de /matchplay para mantener idéntica la
  *   estética (campeón, layout bilateral semis+final, etc.).
  * - El autoscroll lo controla el rotador, así que este slide sólo necesita
@@ -45,21 +46,21 @@ const MatchPlaySlide = ({ catid }: Props) => {
         )}
       </div>
 
-      {/* Cuadro principal (D1) — siempre presente */}
+      {/* DRAW-1 / MATCH-1 (D1, matches 101..115) — siempre presente */}
       <div>
         {hasD2 && (
           <h2 className="text-lg font-bold uppercase tracking-wide text-primary text-center mb-3">
-            Cuadro Principal
+            MATCH-1
           </h2>
         )}
         <BracketView matches={bracket.d1} />
       </div>
 
-      {/* Consolación (D2) — sólo si hay matches */}
+      {/* DRAW-2 / MATCH-2 (D2, matches 201..215) — sólo si hay matches */}
       {hasD2 && (
         <div>
           <h2 className="text-lg font-bold uppercase tracking-wide text-primary text-center mb-3">
-            Consolación
+            MATCH-2
           </h2>
           <BracketView matches={bracket.d2} />
         </div>
