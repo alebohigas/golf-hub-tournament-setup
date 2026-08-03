@@ -37,6 +37,29 @@ function _regmail_meta($conn) {
     return ['pk' => $pkCol, 'torneo' => $torneoCol, 'has' => $has];
 }
 
+/**
+ * Lista de CC internos para los correos de pre-registro.
+ * Siempre incluye info@speitour.mx y, cuando existe y es válido,
+ * el correo del torneo (`torneo.correotorne`). Soporta varios correos
+ * separados por coma o punto y coma en ese campo y evita duplicados.
+ *
+ * @param string $torneoMail Valor crudo de torneo.correotorne
+ * @return array<int,array{0:string,1:string}> Pares [email, nombre]
+ */
+function _regmail_admin_cc($torneoMail = '') {
+    $cc   = [['info@speitour.mx', 'SPEI Tour']];
+    $seen = ['info@speitour.mx' => true];
+    foreach (preg_split('/[;,]+/', (string)$torneoMail) as $mail) {
+        $mail = trim($mail);
+        if ($mail === '' || !filter_var($mail, FILTER_VALIDATE_EMAIL)) continue;
+        $key = strtolower($mail);
+        if (isset($seen[$key])) continue;
+        $seen[$key] = true;
+        $cc[] = [$mail, 'Comité del Torneo'];
+    }
+    return $cc;
+}
+
 /** Confirmation email after the initial pre-registration form is saved. */
 function send_registration_ack_email($conn, $registroId) {
     $registroId = (int)$registroId;
@@ -64,8 +87,15 @@ function send_registration_ack_email($conn, $registroId) {
         if ($cr) { $cc = $cr->fetch_assoc(); $cr->free(); if ($cc) $catName = $cc['categoria']; }
     }
     $torneoName = '';
-    $tr = @$conn->query("SELECT nombre FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
-    if ($tr) { $tt = $tr->fetch_assoc(); $tr->free(); if ($tt) $torneoName = $tt['nombre'] ?? ''; }
+    $torneoMail = '';
+    $tr = @$conn->query("SELECT nombre, correotorne FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
+    if ($tr) {
+        $tt = $tr->fetch_assoc(); $tr->free();
+        if ($tt) {
+            $torneoName = $tt['nombre'] ?? '';
+            $torneoMail = trim((string)($tt['correotorne'] ?? ''));
+        }
+    }
 
     $nombre = trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''));
     if ($nombre === '') $nombre = 'Jugador';
@@ -121,7 +151,8 @@ function send_registration_ack_email($conn, $registroId) {
         . ($torneoName ? "Torneo: $torneoName\n" : '');
 
     // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
-    $ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+    // Se añade también el correo del torneo (torneo.correotorne) cuando existe.
+    $ccAdmin = _regmail_admin_cc($torneoMail);
     $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
     if (!$res['ok']) {
         error_log('[registro_ack_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
@@ -149,8 +180,15 @@ function send_comprobante_received_email($conn, $registroId) {
         : ('' . (int)$row['id']);
 
     $torneoName = '';
-    $tr = @$conn->query("SELECT nombre FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
-    if ($tr) { $tt = $tr->fetch_assoc(); $tr->free(); if ($tt) $torneoName = $tt['nombre'] ?? ''; }
+    $torneoMail = '';
+    $tr = @$conn->query("SELECT nombre, correotorne FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
+    if ($tr) {
+        $tt = $tr->fetch_assoc(); $tr->free();
+        if ($tt) {
+            $torneoName = $tt['nombre'] ?? '';
+            $torneoMail = trim((string)($tt['correotorne'] ?? ''));
+        }
+    }
 
     $catName = '';
     if (!empty($row['reg_categoria'])) {
@@ -192,7 +230,8 @@ function send_comprobante_received_email($conn, $registroId) {
         . ($torneoName ? "Torneo: $torneoName\n" : '');
 
     // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
-    $ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+    // Se añade también el correo del torneo (torneo.correotorne) cuando existe.
+    $ccAdmin = _regmail_admin_cc($torneoMail);
     $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
     if (!$res['ok']) {
         error_log('[registro_comprobante_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
