@@ -60,6 +60,69 @@ function _regmail_admin_cc($torneoMail = '') {
     return $cc;
 }
 
+/**
+ * Etiquetas de los campos marcados como OBLIGATORIOS en
+ * "Pre-Registro · Configuración de campos" (registro_form_fields).
+ * Devuelve un mapa field_name => field_label sólo con los campos
+ * habilitados + requeridos del torneo. Si la tabla no existe o el
+ * torneo no tiene configuración, devuelve un arreglo vacío.
+ *
+ * @return array<string,string>
+ */
+function _regmail_required_fields($conn, $torneoid) {
+    $torneoid = (int)$torneoid;
+    if ($torneoid <= 0) return [];
+    $t = @$conn->query("SHOW TABLES LIKE 'registro_form_fields'");
+    if (!$t || $t->num_rows === 0) return [];
+    $r = @$conn->query(
+        "SELECT field_name, field_label FROM registro_form_fields
+          WHERE torneo_id = $torneoid AND is_enabled = 1 AND is_required = 1
+          ORDER BY display_order ASC"
+    );
+    $out = [];
+    if ($r) {
+        while ($f = $r->fetch_assoc()) {
+            $out[$f['field_name']] = $f['field_label'] ?: $f['field_name'];
+        }
+        $r->free();
+    }
+    return $out;
+}
+
+/**
+ * Normaliza el valor de un campo del registro para mostrarlo en el correo.
+ * Traduce catálogos (categoría, género, socio) y devuelve '' cuando el
+ * valor está vacío para poder omitir la fila.
+ */
+function _regmail_field_value($conn, $row, $field, $catName) {
+    switch ($field) {
+        case 'reg_categoria':
+            return $catName;
+        case 'reg_sexo':
+        case 'reg_genero':
+            $g = strtoupper(trim((string)($row['reg_genero'] ?? $row['reg_sexo'] ?? '')));
+            if ($g === '') return '';
+            if (in_array($g, ['M','H','MASCULINO','HOMBRE','C','CABALLERO'], true)) return 'Caballero';
+            if (in_array($g, ['F','D','FEMENINO','MUJER','DAMA'], true))          return 'Dama';
+            return $g;
+        case 'reg_telefono':
+        case 'reg_celular':
+            return trim((string)($row['reg_celular'] ?? $row['reg_telefono'] ?? ''));
+        case 'reg_es_socio':
+            $s = strtoupper(trim((string)($row['reg_es_socio'] ?? '')));
+            if ($s === '') return '';
+            return $s === 'SI' ? 'Sí' : 'No';
+        case 'reg_ghin':
+        case 'numghinspei':
+            return trim((string)($row['numghinspei'] ?? $row['reg_ghin'] ?? ''));
+        case 'reg_notas':
+        case 'reg_mensaje':
+            return trim((string)($row['reg_mensaje'] ?? $row['reg_notas'] ?? ''));
+        default:
+            return trim((string)($row[$field] ?? ''));
+    }
+}
+
 /** Confirmation email after the initial pre-registration form is saved. */
 function send_registration_ack_email($conn, $registroId) {
     $registroId = (int)$registroId;
@@ -68,13 +131,9 @@ function send_registration_ack_email($conn, $registroId) {
     if (!$meta) return;
     $pkCol = $meta['pk']; $torneoCol = $meta['torneo']; $has = $meta['has'];
 
-    $sel = ["$pkCol AS id", "$torneoCol AS torneoid"];
-    foreach (['reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_celular',
-              'reg_handicap','reg_categoria','reg_club','reg_es_socio','reg_tipo_socio',
-              'reg_cargo_socio','reg_precio_estimado','reg_precio_moneda'] as $c) {
-        if ($has($c)) $sel[] = $c;
-    }
-    $row = query_one($conn, "SELECT " . implode(',', $sel) . " FROM registro WHERE $pkCol = $registroId LIMIT 1");
+    // Se lee la fila completa: el correo debe poder mostrar cualquier campo
+    // marcado como obligatorio en la configuración del torneo.
+    $row = query_one($conn, "SELECT *, $pkCol AS id, $torneoCol AS torneoid FROM registro WHERE $pkCol = $registroId LIMIT 1");
     if (!$row || empty($row['reg_correo'])) return;
 
     $folio = ((int)$row['torneoid'] > 0)
@@ -101,14 +160,42 @@ function send_registration_ack_email($conn, $registroId) {
     if ($nombre === '') $nombre = 'Jugador';
 
     $b = fn($v) => '<strong>' . htmlspecialchars((string)($v ?? '—'), ENT_QUOTES, 'UTF-8') . '</strong>';
-    $entries = [
-        ['Folio',     '#' . $folio],
-        ['Jugador',   $nombre],
-        ['Categoría', $catName ?: '—'],
-        ['Club',      $row['reg_club'] ?? '—'],
-        ['Handicap',  $row['reg_handicap'] ?? '—'],
+
+    /**
+     * Bloque fijo obligatorio del correo (siempre presente):
+     * Torneo, Folio, Jugador, Categoría, Club, Handicap Índice, Género,
+     * Correo y Celular del jugador.
+     */
+    $genero  = _regmail_field_value($conn, $row, 'reg_genero',  $catName);
+    $celular = _regmail_field_value($conn, $row, 'reg_celular', $catName);
+    $entries = [];
+    if ($torneoName) $entries[] = ['Torneo', $torneoName];
+    $entries[] = ['Folio',            '#' . $folio];
+    $entries[] = ['Jugador',          $nombre];
+    $entries[] = ['Categoría',        $catName ?: '—'];
+    $entries[] = ['Club',             $row['reg_club'] ?: '—'];
+    $entries[] = ['Handicap Índice',  ($row['reg_handicap'] !== null && $row['reg_handicap'] !== '') ? $row['reg_handicap'] : '—'];
+    $entries[] = ['Género',           $genero ?: '—'];
+    $entries[] = ['Correo',           $row['reg_correo']];
+    $entries[] = ['Celular',          $celular ?: '—'];
+
+    /**
+     * Campos extra marcados como OBLIGATORIOS en Pre-Registro ·
+     * Configuración de campos. Los que ya están en el bloque fijo se
+     * omiten para no duplicar filas.
+     */
+    $skip = [
+        'reg_nombre' => 1, 'reg_apellido' => 1, 'reg_correo' => 1,
+        'reg_categoria' => 1, 'reg_club' => 1, 'reg_handicap' => 1,
+        'reg_sexo' => 1, 'reg_genero' => 1, 'reg_telefono' => 1,
+        'reg_celular' => 1, 'reg_archivo' => 1,
     ];
-    if ($torneoName) array_unshift($entries, ['Torneo', $torneoName]);
+    foreach (_regmail_required_fields($conn, (int)$row['torneoid']) as $fname => $flabel) {
+        if (isset($skip[$fname])) continue;
+        $val = _regmail_field_value($conn, $row, $fname, $catName);
+        if ($val === '') continue;
+        $entries[] = [$flabel, $val];
+    }
     $rowsHtml = '';
     foreach ($entries as [$label, $val]) {
         $rowsHtml .= '<tr>'
@@ -146,9 +233,8 @@ function send_registration_ack_email($conn, $registroId) {
 
     $textAlt = "Hola $nombre,\n\n"
         . "Hemos recibido tu pre-registro.\n\n"
-        . "Folio: #$folio\n"
-        . ($catName ? "Categoría: $catName\n" : '')
-        . ($torneoName ? "Torneo: $torneoName\n" : '');
+        . implode("\n", array_map(function($e) { return $e[0] . ': ' . $e[1]; }, $entries))
+        . "\n";
 
     // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
     // Se añade también el correo del torneo (torneo.correotorne) cuando existe.
