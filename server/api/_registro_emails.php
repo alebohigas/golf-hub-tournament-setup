@@ -64,8 +64,15 @@ function send_registration_ack_email($conn, $registroId) {
         if ($cr) { $cc = $cr->fetch_assoc(); $cr->free(); if ($cc) $catName = $cc['categoria']; }
     }
     $torneoName = '';
-    $tr = @$conn->query("SELECT nombre FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
-    if ($tr) { $tt = $tr->fetch_assoc(); $tr->free(); if ($tt) $torneoName = $tt['nombre'] ?? ''; }
+    $torneoMail = '';
+    $tr = @$conn->query("SELECT nombre, correotorne FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
+    if ($tr) {
+        $tt = $tr->fetch_assoc(); $tr->free();
+        if ($tt) {
+            $torneoName = $tt['nombre'] ?? '';
+            $torneoMail = trim((string)($tt['correotorne'] ?? ''));
+        }
+    }
 
     $nombre = trim(($row['reg_nombre'] ?? '') . ' ' . ($row['reg_apellido'] ?? ''));
     if ($nombre === '') $nombre = 'Jugador';
@@ -121,7 +128,8 @@ function send_registration_ack_email($conn, $registroId) {
         . ($torneoName ? "Torneo: $torneoName\n" : '');
 
     // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
-    $ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+    // Se añade también el correo del torneo (torneo.correotorne) cuando existe.
+    $ccAdmin = _regmail_admin_cc($torneoMail);
     $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
     if (!$res['ok']) {
         error_log('[registro_ack_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
@@ -149,8 +157,15 @@ function send_comprobante_received_email($conn, $registroId) {
         : ('' . (int)$row['id']);
 
     $torneoName = '';
-    $tr = @$conn->query("SELECT nombre FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
-    if ($tr) { $tt = $tr->fetch_assoc(); $tr->free(); if ($tt) $torneoName = $tt['nombre'] ?? ''; }
+    $torneoMail = '';
+    $tr = @$conn->query("SELECT nombre, correotorne FROM torneo WHERE torneo_id = " . (int)$row['torneoid'] . " LIMIT 1");
+    if ($tr) {
+        $tt = $tr->fetch_assoc(); $tr->free();
+        if ($tt) {
+            $torneoName = $tt['nombre'] ?? '';
+            $torneoMail = trim((string)($tt['correotorne'] ?? ''));
+        }
+    }
 
     $catName = '';
     if (!empty($row['reg_categoria'])) {
@@ -192,7 +207,8 @@ function send_comprobante_received_email($conn, $registroId) {
         . ($torneoName ? "Torneo: $torneoName\n" : '');
 
     // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
-    $ccAdmin = [['info@speitour.mx', 'SPEI Tour']];
+    // Se añade también el correo del torneo (torneo.correotorne) cuando existe.
+    $ccAdmin = _regmail_admin_cc($torneoMail);
     $res = smtp_send($row['reg_correo'], $nombre, $subject, $html, $textAlt, $ccAdmin);
     if (!$res['ok']) {
         error_log('[registro_comprobante_email] send failed id=' . $registroId . ' err=' . ($res['error'] ?? ''));
