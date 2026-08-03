@@ -233,9 +233,8 @@ function send_registration_ack_email($conn, $registroId) {
 
     $textAlt = "Hola $nombre,\n\n"
         . "Hemos recibido tu pre-registro.\n\n"
-        . "Folio: #$folio\n"
-        . ($catName ? "Categoría: $catName\n" : '')
-        . ($torneoName ? "Torneo: $torneoName\n" : '');
+        . implode("\n", array_map(function($e) { return $e[0] . ': ' . $e[1]; }, $entries))
+        . "\n";
 
     // CC fijo al buzón de coordinación para tener trazabilidad de cada paso del pre-registro.
     // Se añade también el correo del torneo (torneo.correotorne) cuando existe.
