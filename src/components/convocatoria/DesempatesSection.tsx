@@ -20,9 +20,14 @@ interface DesempatesSectionProps {
  * preceded by an intro paragraph and followed by an optional note.
  */
 const DesempatesSection = ({ data }: DesempatesSectionProps) => {
-  // Hide entire section when there is no data to display.
-  const hasCorte = !!data?.paraCorte?.length;
-  const hasTrofeos = !!data?.paraTrofeos?.length;
+  // Admin switches (default ON for backwards compatibility): allow hiding
+  // "Para el Corte" / "Para Trofeos" without deleting their content.
+  const showCorte = data?.showCorte !== false;
+  const showTrofeos = data?.showTrofeos !== false;
+
+  // Hide entire section when there is no data to display (or all disabled).
+  const hasCorte = showCorte && !!data?.paraCorte?.length;
+  const hasTrofeos = showTrofeos && !!data?.paraTrofeos?.length;
   if (!data || (!hasCorte && !hasTrofeos)) return null;
 
   return (
