@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Save, Trash2, Plus, X, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
@@ -74,7 +75,7 @@ const SHAPES: Record<string, ShapeMeta> = {
   elegibilidad:             { sectionType: 'elegibilidad', shape: 'elegibilidad',       empty: { eligibilityText: '', notesText: [], inscripcionesText: '' } },
   costos:                   { sectionType: 'costos',       shape: 'json',               empty: { sociosPricing: [], foraneosPricing: [], pricingNote: '', contactInfo: { bankName: '', clabe: '', cuenta: '', nombre: '', email: '', telefono: '', telefonoDirecto: '' }, contactWarning: '', inscripcionesText: '' } },
   premiacion:               { sectionType: 'premiacion',   shape: 'items_premio',       empty: { items: [] } },
-  desempates:               { sectionType: 'desempates',   shape: 'json',               empty: { intro: '', paraCorte: [], paraTrofeos: [] } },
+  desempates:               { sectionType: 'desempates',   shape: 'json',               empty: { intro: '', paraCorte: [], paraTrofeos: [], showCorte: true, showTrofeos: true } },
   reglas:                   { sectionType: 'reglas',       shape: 'items_regla',        empty: { items: [] } },
   competencias:             { sectionType: 'competencias', shape: 'items_competencia',  empty: { items: [] } },
   servicios:                { sectionType: 'servicios',    shape: 'items_servicio',     empty: { items: [] } },
@@ -208,6 +209,10 @@ const SectionEditor = ({ sectionId, label, sortOrder = 0 }: SectionEditorProps) 
         {/* FORM */}
         <div className="space-y-3">
           <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Editor</div>
+          {/* Desempate: interruptores de publicación de cada bloque. */}
+          {sectionId === 'desempates' && (
+            <DesempatesToggles draft={draft} setDraft={setDraft} jsonText={jsonText} setJsonText={setJsonText} />
+          )}
           <ShapeForm
             shape={meta.shape}
             draft={draft}
@@ -235,6 +240,55 @@ const SectionEditor = ({ sectionId, label, sortOrder = 0 }: SectionEditorProps) 
 };
 
 export default SectionEditor;
+
+// ============= Desempates visibility toggles =============
+
+/**
+ * DesempatesToggles
+ * Two switches that control whether "Para el Corte" and "Para Trofeos"
+ * are published on /convocatoria. They write `showCorte` / `showTrofeos`
+ * into the section payload and keep the JSON editor text in sync so the
+ * save (which re-parses the JSON) preserves the values.
+ */
+function DesempatesToggles({
+  draft, setDraft, jsonText, setJsonText,
+}: {
+  draft: any;
+  setDraft: (d: any) => void;
+  jsonText: string;
+  setJsonText: (s: string) => void;
+}) {
+  /** Apply a flag to both the draft object and the JSON mirror. */
+  const setFlag = (key: 'showCorte' | 'showTrofeos', value: boolean) => {
+    let base: any = draft;
+    try { base = JSON.parse(jsonText); } catch { /* keep draft if JSON is mid-edit */ }
+    const next = { ...base, [key]: value };
+    setDraft(next);
+    setJsonText(JSON.stringify(next, null, 2));
+  };
+
+  const showCorte = draft?.showCorte !== false;
+  const showTrofeos = draft?.showTrofeos !== false;
+
+  return (
+    <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
+      <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+        Publicación en /convocatoria
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor="sw-corte" className="text-sm">Mostrar “Para el Corte”</label>
+        <Switch id="sw-corte" checked={showCorte} onCheckedChange={(v) => setFlag('showCorte', v)} />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor="sw-trofeos" className="text-sm">Mostrar “Para Trofeos”</label>
+        <Switch id="sw-trofeos" checked={showTrofeos} onCheckedChange={(v) => setFlag('showTrofeos', v)} />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Apagar un bloque lo oculta en la página pública sin borrar sus criterios.
+      </p>
+    </div>
+  );
+}
 
 // ============= Preview router =============
 
