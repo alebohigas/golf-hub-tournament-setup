@@ -382,6 +382,13 @@ export interface DesempatesData {
   paraTrofeos: string[];
   /** Nota final mostrada debajo */
   nota?: string;
+  /**
+   * Interruptores administrables desde /admin → Convocatoria → Desempate.
+   * Cuando son `false` el bloque correspondiente no se publica aunque
+   * tenga criterios capturados. `undefined` = visible (retrocompatible).
+   */
+  showCorte?: boolean;
+  showTrofeos?: boolean;
 }
 
 /** Desempates — no publicado en la convocatoria del 56° Atlas 2026 */
@@ -390,6 +397,8 @@ export const desempatesData: DesempatesData = {
   paraTrofeos: [],
   paraCorte: [],
   nota: '',
+  showCorte: true,
+  showTrofeos: true,
 };
 
 /** Reglas locales - structured rules */
