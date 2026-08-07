@@ -208,6 +208,13 @@ export interface ThemeConfig {
   accent: string;
   /** Page background color. */
   background: string;
+  /**
+   * Hex color used for the "Última actualización" stamp shown under every
+   * report in /competicion (LastUpdatedStamp). Configurable from
+   * Admin > Paleta de Colores. When missing, the app falls back to the
+   * historical default #900000.
+   */
+  lastUpdatedColor?: string;
 }
 
 /**
