@@ -98,9 +98,11 @@ const AdminThemePalette = () => {
 
   /** Persist a palette to site_config and live-preview it immediately. */
   const persist = (theme: ThemeConfig) => {
-    applyThemeConfig(theme);
+    /** Keep the configured stamp color when switching palettes. */
+    const themeWithStamp: ThemeConfig = { ...theme, lastUpdatedColor };
+    applyThemeConfig(themeWithStamp);
     saveSiteConfig.mutate(
-      { password: 'admin2025', theme_config: theme },
+      { password: 'admin2025', theme_config: themeWithStamp },
       {
         onSuccess: () => {
           toast({
