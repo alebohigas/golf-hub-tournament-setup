@@ -135,6 +135,7 @@ const AdminThemePalette = () => {
   };
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -361,6 +362,73 @@ const AdminThemePalette = () => {
         )}
       </CardContent>
     </Card>
+
+    {/*
+      Color del sello "Última actualización" (LastUpdatedStamp).
+      Se guarda dentro de theme_config para que aplique a todos los
+      visitantes del dominio, sin depender del valor fijo #900000.
+    */}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-primary" />
+          Color de "Última actualización"
+        </CardTitle>
+        <CardDescription>
+          Color del texto de fecha y hora de última actualización mostrado en
+          todos los reportes de <strong>Competición</strong> (Oyes, Oyes-X,
+          Driver, Approach, Putt y Brackets). Default: #900000.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs">Color</Label>
+            <input
+              type="color"
+              value={lastUpdatedColor}
+              onChange={(e) => setLastUpdatedColor(e.target.value)}
+              className="h-12 w-12 rounded-md border border-border cursor-pointer bg-transparent p-0"
+              aria-label="Color de última actualización"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last-updated-hex" className="text-xs">Hex</Label>
+            <Input
+              id="last-updated-hex"
+              value={lastUpdatedColor}
+              onChange={(e) => setLastUpdatedColor(e.target.value)}
+              placeholder="#900000"
+              className="w-32 font-mono"
+            />
+          </div>
+          <p className="text-sm font-semibold" style={{ color: lastUpdatedColor }}>
+            Última actualización: 2026-08-07 12:00
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={persistLastUpdatedColor}
+            disabled={saveSiteConfig.isPending || !/^#[0-9a-fA-F]{6}$/.test(lastUpdatedColor)}
+            className="gap-2"
+          >
+            {saveSiteConfig.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+            Guardar color
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLastUpdatedColor(LAST_UPDATED_COLOR)}
+          >
+            Restaurar default
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+    </div>
   );
 };
 
