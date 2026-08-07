@@ -73,7 +73,7 @@ const Competencias = () => {
   const [focusedPlayerName, setFocusedPlayerName] = useState<string | null>(null);
 
   // Context for admin visibility control
-  const { isPageVisible } = usePageVisibility();
+  const { isPageVisible, visibilitySettings } = usePageVisibility();
 
   // Fetch all competition types (master list)
   const { data: allCompetencias = [], isLoading: loadingList } = useCompetencias();
@@ -161,6 +161,15 @@ const Competencias = () => {
   const competencias = useMemo(() => {
     return allCompetencias.filter(c => isPageVisible(`competencias-${c.id}`));
   }, [allCompetencias, isPageVisible]);
+
+  /**
+   * mejorScoreEnabled
+   * "Mejor Score del Día" está OCULTO POR DEFECTO en /competicion.
+   * Solo se muestra si su visibilidad fue activada explícitamente
+   * (clave `competencias-mejor-score` en la configuración de /admin).
+   * Las demás competencias (p. ej. OYES X) siguen visibles por defecto.
+   */
+  const mejorScoreEnabled = visibilitySettings['competencias-mejor-score'] === true;
 
   // Get the selected competition object (from detail or list)
   const selectedCompetencia = useMemo(() => {
@@ -518,14 +527,14 @@ const Competencias = () => {
                 selectedId={null}
                 onSelect={handleCompetenciaSelect}
                 mejorScoreActive={false}
-                onMejorScoreClick={() => {
+                onMejorScoreClick={mejorScoreEnabled ? () => {
                   setSelectedCompetenciaId(null);
                   setSelectedGroup(null);
                   setShowAllGroups(false);
                   setShowMejorScore(true);
-                }}
+                } : undefined}
               />
-              
+
               {/* Header */}
               <div className="text-center mb-10">
                 <h2 className="text-3xl font-bold text-foreground">
@@ -554,7 +563,8 @@ const Competencias = () => {
                     </CardContent>
                   </Card>
                 ))}
-                {/* Special card: Mejor Score del Día report */}
+                {/* Special card: Mejor Score del Día report (oculto por defecto) */}
+                {mejorScoreEnabled && (
                 <Card
                   className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
                   onClick={() => setShowMejorScore(true)}
@@ -571,6 +581,7 @@ const Competencias = () => {
                     </p>
                   </CardContent>
                 </Card>
+                )}
               </div>
 
               {/* Empty state */}
@@ -636,12 +647,12 @@ const Competencias = () => {
                 selectedId={selectedCompetencia.id}
                 onSelect={handleCompetenciaSelect}
                 mejorScoreActive={false}
-                onMejorScoreClick={() => {
+                onMejorScoreClick={mejorScoreEnabled ? () => {
                   setSelectedCompetenciaId(null);
                   setSelectedGroup(null);
                   setShowAllGroups(false);
                   setShowMejorScore(true);
-                }}
+                } : undefined}
               />
 
               {/* Header */}
