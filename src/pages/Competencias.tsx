@@ -24,6 +24,7 @@ import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasDa
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import { useMejorScoreAvailability } from '@/hooks/useMejorScoreAvailability';
 
 // ============= Icon Mapping =============
 
@@ -169,8 +170,14 @@ const Competencias = () => {
    * Solo se muestra si su visibilidad fue activada explícitamente
    * (clave `competencias-mejor-score` en la configuración de /admin).
    * Las demás competencias (p. ej. OYES X) siguen visibles por defecto.
+   *
+   * ADEMÁS: aunque esté activado en /admin, si el torneo NO tiene datos de
+   * mejor score diario (p. ej. torneos 360 y 349), el reporte NO se presenta
+   * ni en el submenú ni en la grilla de tarjetas.
    */
-  const mejorScoreEnabled = visibilitySettings['competencias-mejor-score'] === true;
+  const mejorScoreVisible = visibilitySettings['competencias-mejor-score'] === true;
+  const { hasData: mejorScoreHasData } = useMejorScoreAvailability(mejorScoreVisible);
+  const mejorScoreEnabled = mejorScoreVisible && mejorScoreHasData;
 
   // Get the selected competition object (from detail or list)
   const selectedCompetencia = useMemo(() => {
