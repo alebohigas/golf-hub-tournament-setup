@@ -24,6 +24,7 @@ import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasDa
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import { useMejorScoreAvailability } from '@/hooks/useMejorScoreAvailability';
 
 // ============= Icon Mapping =============
 
