@@ -19,6 +19,7 @@ import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import BracketView from '@/components/competencias/BracketView';
 import { BracketQualifiersSection } from '@/components/competencias/BracketView';
 import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
+import LastUpdatedStamp from '@/components/competencias/LastUpdatedStamp';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
