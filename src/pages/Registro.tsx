@@ -2250,11 +2250,11 @@ const Registro = () => {
                             </div>
 
                             {/* Cargo a cuenta de socio — rendered inside the "socios" section,
-                                al final, después de tipo de socio. Se muestra siempre que
-                                el jugador marque "Soy socio = SI" (sin depender del flag
-                                admin `reg_cargo_socio` para evitar que se oculte por error
-                                de configuración). */}
-                            {sec.key === 'socios' && values.reg_es_socio === 'SI' && (
+                                al final, después de tipo de socio. Requiere:
+                                1) que el campo `reg_cargo_socio` esté ACTIVADO en
+                                   "Pre-Registro · Configuración de campos" (admin), y
+                                2) que el jugador marque "Soy socio = SI". */}
+                            {sec.key === 'socios' && values.reg_es_socio === 'SI' && cargoSocioEnabled && (
                               <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
                                 <div className="flex items-start gap-3">
                                   <Checkbox
