@@ -4,10 +4,14 @@
  * (Oyes, Oyes-X, Driver Precisión, Driver Distancia, Approach, Putt y
  * Torneo Final Putt / Brackets).
  *
- * Reglas de estilo (definidas por el cliente):
- * - Color fijo #900000 (rojo vino) en todos los torneos y reportes.
+ * Reglas de estilo:
+ * - Color configurable desde /admin > Paleta de Colores
+ *   (site_config.theme_config.lastUpdatedColor). Default histórico:
+ *   #900000 (rojo vino).
  * - Centrado debajo de la tabla / bracket correspondiente.
  */
+
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 interface LastUpdatedStampProps {
   /** Fecha y hora de última actualización proveniente del API (string ya formateado). */
@@ -16,20 +20,27 @@ interface LastUpdatedStampProps {
   label?: string;
   /** Clases extra de layout (márgenes, tamaño de texto). */
   className?: string;
+  /** Sobrescribe el color configurado (uso puntual/preview). */
+  color?: string;
 }
 
-/** Hexcolor obligatorio para el sello de última actualización. */
+/** Color por defecto del sello cuando el admin no configuró uno. */
 export const LAST_UPDATED_COLOR = '#900000';
 
 const LastUpdatedStamp = ({
   value,
   label = 'Última actualización',
   className = 'text-center text-sm mt-4',
+  color,
 }: LastUpdatedStampProps) => {
+  /** Color configurado por dominio (Admin > Paleta de Colores). */
+  const { data: siteConfig } = useSiteConfig();
+  const resolvedColor = color || siteConfig?.theme_config?.lastUpdatedColor || LAST_UPDATED_COLOR;
+
   if (!value) return null;
 
   return (
-    <p className={`font-semibold ${className}`} style={{ color: LAST_UPDATED_COLOR }}>
+    <p className={`font-semibold ${className}`} style={{ color: resolvedColor }}>
       {label}: {value}
     </p>
   );
