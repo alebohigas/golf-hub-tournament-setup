@@ -762,11 +762,8 @@ const Competencias = () => {
                         players={group.players || []}
                         columns={selectedCompetenciaColumns}
                       />
-                      {group.lastUpdated && (
-                        <p className="text-center text-xs text-muted-foreground mt-3">
-                          Última actualización: {group.lastUpdated}
-                        </p>
-                      )}
+                      {/* Última actualización — hexcolor fijo #900000 */}
+                      <LastUpdatedStamp value={group.lastUpdated} className="text-center text-xs mt-3" />
                     </CardContent>
                   </Card>
                 ))}
@@ -827,12 +824,8 @@ const Competencias = () => {
                 </Card>
               )}
               
-              {/* Last updated */}
-              {selectedGroup.lastUpdated && (
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                  Última actualización: {selectedGroup.lastUpdated}
-                </p>
-              )}
+              {/* Última actualización — hexcolor fijo #900000 (incluye brackets de Putt Finales) */}
+              <LastUpdatedStamp value={selectedGroup.lastUpdated} className="text-center text-sm mt-4" />
             </>
           )}
         </div>
