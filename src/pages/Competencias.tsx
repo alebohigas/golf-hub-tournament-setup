@@ -162,6 +162,15 @@ const Competencias = () => {
     return allCompetencias.filter(c => isPageVisible(`competencias-${c.id}`));
   }, [allCompetencias, isPageVisible]);
 
+  /**
+   * mejorScoreEnabled
+   * "Mejor Score del Día" está OCULTO POR DEFECTO en /competicion.
+   * Solo se muestra si su visibilidad fue activada explícitamente
+   * (clave `competencias-mejor-score` en la configuración de /admin).
+   * Las demás competencias (p. ej. OYES X) siguen visibles por defecto.
+   */
+  const mejorScoreEnabled = visibilitySettings['competencias-mejor-score'] === true;
+
   // Get the selected competition object (from detail or list)
   const selectedCompetencia = useMemo(() => {
     if (!selectedCompetenciaId) return null;
