@@ -498,6 +498,13 @@ const Registro = () => {
   const isFieldEnabled = (name: string) => visibleFields.some(f => f.field_name === name);
   const isFieldRequired = (name: string) =>
     !!visibleFields.find(f => f.field_name === name && f.is_required);
+  /**
+   * cargoSocioEnabled
+   * True solo si el admin activó `reg_cargo_socio` en
+   * "Pre-Registro · Configuración de campos". Si está apagado, el bloque
+   * "Cargo a cuenta de socio" no se renderiza en el formulario público.
+   */
+  const cargoSocioEnabled = isFieldEnabled('reg_cargo_socio');
 
   /** Generic value setter used by all form controls and validation effects. */
   const setValue = useCallback((name: string, v: string) =>
