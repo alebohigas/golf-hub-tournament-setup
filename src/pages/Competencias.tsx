@@ -19,6 +19,7 @@ import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import BracketView from '@/components/competencias/BracketView';
 import { BracketQualifiersSection } from '@/components/competencias/BracketView';
 import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
+import LastUpdatedStamp from '@/components/competencias/LastUpdatedStamp';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
@@ -762,11 +763,8 @@ const Competencias = () => {
                         players={group.players || []}
                         columns={selectedCompetenciaColumns}
                       />
-                      {group.lastUpdated && (
-                        <p className="text-center text-xs text-muted-foreground mt-3">
-                          Última actualización: {group.lastUpdated}
-                        </p>
-                      )}
+                      {/* Última actualización — hexcolor fijo #900000 */}
+                      <LastUpdatedStamp value={group.lastUpdated} className="text-center text-xs mt-3" />
                     </CardContent>
                   </Card>
                 ))}
@@ -827,12 +825,8 @@ const Competencias = () => {
                 </Card>
               )}
               
-              {/* Last updated */}
-              {selectedGroup.lastUpdated && (
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                  Última actualización: {selectedGroup.lastUpdated}
-                </p>
-              )}
+              {/* Última actualización — hexcolor fijo #900000 (incluye brackets de Putt Finales) */}
+              <LastUpdatedStamp value={selectedGroup.lastUpdated} className="text-center text-sm mt-4" />
             </>
           )}
         </div>

@@ -7,6 +7,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, MapPin } from 'lucide-react';
 import { CompetenciaGroup } from '@/data/competenciasConfig';
+import LastUpdatedStamp from './LastUpdatedStamp';
 
 // ============= Types =============
 
@@ -55,12 +56,12 @@ const CompetenciasGroupCard = ({ group, onClick }: CompetenciasGroupCardProps) =
           )}
         </div>
         
-        {/* Last updated */}
-        {group.lastUpdated && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Actualizado: {group.lastUpdated}
-          </p>
-        )}
+        {/* Last updated — siempre en #900000 */}
+        <LastUpdatedStamp
+          value={group.lastUpdated}
+          label="Actualizado"
+          className="text-xs mt-2"
+        />
       </CardContent>
     </Card>
   );
