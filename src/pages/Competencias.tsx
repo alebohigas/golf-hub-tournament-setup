@@ -647,12 +647,12 @@ const Competencias = () => {
                 selectedId={selectedCompetencia.id}
                 onSelect={handleCompetenciaSelect}
                 mejorScoreActive={false}
-                onMejorScoreClick={() => {
+                onMejorScoreClick={mejorScoreEnabled ? () => {
                   setSelectedCompetenciaId(null);
                   setSelectedGroup(null);
                   setShowAllGroups(false);
                   setShowMejorScore(true);
-                }}
+                } : undefined}
               />
 
               {/* Header */}
