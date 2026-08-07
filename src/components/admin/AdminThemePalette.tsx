@@ -25,6 +25,7 @@ import {
   deleteCustomPreset,
   type CustomPalettePreset,
 } from '@/lib/theme-palettes';
+import { LAST_UPDATED_COLOR } from '@/components/competencias/LastUpdatedStamp';
 
 /** Small color swatch rendered from an HSL string. */
 const Swatch = ({ hsl, size = 'md' }: { hsl: string; size?: 'sm' | 'md' | 'lg' }) => (
@@ -62,6 +63,20 @@ const AdminThemePalette = () => {
 
   /** User-saved custom palettes library (persisted in localStorage). */
   const [customPresets, setCustomPresets] = useState<CustomPalettePreset[]>(() => loadCustomPresets());
+
+  /**
+   * lastUpdatedColor
+   * Editor state for the hex color of the "Última actualización" stamp.
+   * Persisted inside theme_config.lastUpdatedColor.
+   */
+  const [lastUpdatedColor, setLastUpdatedColor] = useState<string>(
+    saved?.lastUpdatedColor || LAST_UPDATED_COLOR,
+  );
+
+  // Sync once the server config arrives.
+  useEffect(() => {
+    if (saved?.lastUpdatedColor) setLastUpdatedColor(saved.lastUpdatedColor);
+  }, [saved?.lastUpdatedColor]);
 
   // Keep editor state synced if the server response arrives after mount.
   useEffect(() => {
@@ -132,6 +147,29 @@ const AdminThemePalette = () => {
       title: 'Preset eliminado',
       description: `"${name}" se quitó de tu biblioteca de paletas.`,
     });
+  };
+
+  /**
+   * persistLastUpdatedColor
+   * Saves only the stamp color, preserving the currently active palette
+   * (or the default custom palette when the domain has none saved yet).
+   */
+  const persistLastUpdatedColor = () => {
+    const base = saved ?? DEFAULT_CUSTOM;
+    saveSiteConfig.mutate(
+      { password: 'admin2025', theme_config: { ...base, lastUpdatedColor } },
+      {
+        onSuccess: () => toast({
+          title: 'Color guardado',
+          description: `La fecha de última actualización usará ${lastUpdatedColor.toUpperCase()}.`,
+        }),
+        onError: (err) => toast({
+          title: 'Error al guardar color',
+          description: err.message,
+          variant: 'destructive',
+        }),
+      },
+    );
   };
 
   return (
