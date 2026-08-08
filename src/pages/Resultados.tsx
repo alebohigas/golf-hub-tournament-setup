@@ -309,13 +309,13 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
 
   const isLoading = loadingCats || loadingDetail;
 
-  return (
-    <Layout>
-      <PageHero 
-        title="Resultados"
-        subtitle="Consulta los resultados de cada ronda y clasificación general"
-        backgroundImage={resultadosHero}
-      />
+  /**
+   * body
+   * Leaderboard markup shared by the standalone /resultados page and the
+   * embedded usage inside /historial.
+   */
+  const body = (
+    <>
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           {!selectedCategoryId ? (
