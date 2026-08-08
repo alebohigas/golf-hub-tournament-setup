@@ -108,11 +108,27 @@ export const getCalendarioDaysUrl = (): string => `${API_BASE_URL}/calendario.ph
 /** @deprecated Use getCalendarioUrl instead */
 export const getCalendarioSchedulesUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery({ modo: 'schedules' })}`;
 
-/** All results (master: list of categories) */
-export const getResultadosUrl = (): string => `${API_BASE_URL}/resultados.php${buildQuery()}`;
-/** Results by category - gross=1 for GROSS scoring, gross=0 (default) for NETO */
-export const getResultadosCategoryUrl = (categoryId: string, gross: '0' | '1' = '0'): string =>
-  `${API_BASE_URL}/resultados_jug.php${buildQuery({ catid: categoryId, gross })}`;
+/**
+ * All results (master: list of categories).
+ * @param torneoIdOverride  Optional tournament id that replaces the active one.
+ *                          Used by /historial to query past editions.
+ */
+export const getResultadosUrl = (torneoIdOverride?: string): string =>
+  `${API_BASE_URL}/resultados.php${buildQuery(torneoIdOverride ? { torneoid: torneoIdOverride } : {})}`;
+/**
+ * Results by category - gross=1 for GROSS scoring, gross=0 (default) for NETO.
+ * @param torneoIdOverride  Optional tournament id (historical editions).
+ */
+export const getResultadosCategoryUrl = (
+  categoryId: string,
+  gross: '0' | '1' = '0',
+  torneoIdOverride?: string,
+): string =>
+  `${API_BASE_URL}/resultados_jug.php${buildQuery({
+    catid: categoryId,
+    gross,
+    ...(torneoIdOverride ? { torneoid: torneoIdOverride } : {}),
+  })}`;
 
 /** Tee times summary */
 export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQuery()}`;
@@ -226,13 +242,16 @@ export const getResultadosTarjetaUrl = (
   jugadorId: string,
   categoriaId: string,
   fecha: string,
-  tipo: string = 'stroke'
+  tipo: string = 'stroke',
+  /** Optional tournament id override (historical editions). */
+  torneoIdOverride?: string,
 ): string =>
   `${API_BASE_URL}/resultados_tarjeta.php${buildQuery({
     jugadorid: jugadorId,
     categoriaid: categoriaId,
     fecha,
     tipo,
+    ...(torneoIdOverride ? { torneoid: torneoIdOverride } : {}),
   })}`;
 
 /**
@@ -408,11 +427,14 @@ export const getTarjetaParejasUrl = (
   jugadorId: string,
   categoriaId: string,
   fecha: string,
+  /** Optional tournament id override (historical editions). */
+  torneoIdOverride?: string,
 ): string =>
   `${API_BASE_URL}/tarjeta_parejas.php${buildQuery({
     jugadorid: jugadorId,
     categoriaid: categoriaId,
     fecha,
+    ...(torneoIdOverride ? { torneoid: torneoIdOverride } : {}),
   })}`;
 
 /** Cascading location dropdowns */
