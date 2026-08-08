@@ -261,10 +261,14 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
 
   /**
    * Check if a page is visible
+   * Falls back to the page's `enabled` default from menuConfig (NOT `true`),
+   * so pages that ship disabled by default (e.g. HISTORIAL) stay hidden until
+   * the admin turns the switch on for that tournament.
    */
   const isPageVisible = (pageId: string): boolean => {
     if (isAdmin) return true; // Admins see all pages
-    return visibilitySettings[pageId] ?? true;
+    if (pageId in visibilitySettings) return visibilitySettings[pageId];
+    return menuConfig.find((m) => m.id === pageId)?.enabled ?? true;
   };
 
   /**
