@@ -372,8 +372,10 @@ export const fetchParejasScorecardFromApi = async (
   playerId: string,
   categoryId: string,
   fecha: string,
+  /** Optional tournament id (historical editions). */
+  torneoIdOverride?: string,
 ): Promise<ParejaScorecard> => {
-  const raw = await apiFetch<any>(getTarjetaParejasUrl(playerId, categoryId, fecha));
+  const raw = await apiFetch<any>(getTarjetaParejasUrl(playerId, categoryId, fecha, torneoIdOverride));
   const holes: ParejaHoleScore[] = [];
   const baseHoles = raw.holes || [];
   const p1SO = raw.player1?.scoreSO || [];
