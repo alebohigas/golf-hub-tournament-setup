@@ -134,7 +134,19 @@ const countedRounds = (
 
 // ============= Component =============
 
-const Resultados = () => {
+/**
+ * ResultadosProps
+ * `embedded` + `torneoIdOverride` let the /historial page reuse this exact
+ * leaderboard UI for a PAST tournament edition without duplicating code:
+ *  - embedded: skip <Layout> and <PageHero> (the host page renders them)
+ *  - torneoIdOverride: query the API with another torneoid
+ */
+interface ResultadosProps {
+  embedded?: boolean;
+  torneoIdOverride?: string;
+}
+
+const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedScoringType, setSelectedScoringType] = useState<ScoringType | null>(null);
 
@@ -146,13 +158,14 @@ const Resultados = () => {
   const [scorecardLoading, setScorecardLoading] = useState(false);
 
   // Fetch all categories from API
-  const { data: categories = [], isLoading: loadingCats } = useAllResults();
+  const { data: categories = [], isLoading: loadingCats } = useAllResults(torneoIdOverride);
 
   // Fetch selected category detail from API (passes gross param based on scoring type)
   const { data: categoryDetail, isLoading: loadingDetail } = useCategoryResults(
     selectedCategoryId,
     !!selectedCategoryId && !!selectedScoringType,
-    selectedScoringType || 'NETO'
+    selectedScoringType || 'NETO',
+    torneoIdOverride,
   );
 
   /** Find the selected category object from the list (metadata only) */
