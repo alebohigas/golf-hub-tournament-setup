@@ -423,6 +423,8 @@ export interface SiteConfig {
   anuncio_config: AnuncioConfig | AnuncioConfig[] | null;
   stats_page_config: StatsPageConfig | null;
   home_config: HomeConfig | null;
+  /** /historial page config (past editions). Null = not configured. */
+  historial_config: HistorialConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -450,6 +452,7 @@ export interface SaveConfigPayload {
   anuncio_configs?: AnuncioConfig[] | null;
   stats_page_config?: StatsPageConfig | null;
   home_config?: HomeConfig | null;
+  historial_config?: HistorialConfig | null;
 }
 
 // ============= Constants =============
