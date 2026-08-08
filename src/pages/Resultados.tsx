@@ -786,6 +786,20 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
           )}
         </div>
       </section>
+    </>
+  );
+
+  /** Embedded mode: host page (e.g. /historial) provides Layout + hero. */
+  if (embedded) return body;
+
+  return (
+    <Layout>
+      <PageHero
+        title="Resultados"
+        subtitle="Consulta los resultados de cada ronda y clasificación general"
+        backgroundImage={resultadosHero}
+      />
+      {body}
     </Layout>
   );
 };
