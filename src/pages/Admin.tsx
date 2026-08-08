@@ -461,6 +461,7 @@ const AdminDashboard = () => {
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
+            { value: 'historial',    icon: History,         label: 'Historial' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
             { value: 'stats-page',   icon: BarChart3,       label: 'Página /stats' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
@@ -725,6 +726,12 @@ const AdminDashboard = () => {
             staff `brackets` para permisos. */}
         <TabsContent value="matchplay">
           <AdminMatchPlay />
+        </TabsContent>
+
+        {/* Historial Tab — tabla de años anteriores (año + torneo_id) que
+            alimenta la página pública /historial. */}
+        <TabsContent value="historial">
+          <AdminHistorial />
         </TabsContent>
 
         {/* Estadísticas Tab — override or auto-compute the home stats ribbon
