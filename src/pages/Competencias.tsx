@@ -166,18 +166,19 @@ const Competencias = () => {
 
   /**
    * mejorScoreEnabled
-   * "Mejor Score del Día" está OCULTO POR DEFECTO en /competicion.
-   * Solo se muestra si su visibilidad fue activada explícitamente
-   * (clave `competencias-mejor-score` en la configuración de /admin).
-   * Las demás competencias (p. ej. OYES X) siguen visibles por defecto.
-   *
-   * ADEMÁS: aunque esté activado en /admin, si el torneo NO tiene datos de
-   * mejor score diario (p. ej. torneos 360 y 349), el reporte NO se presenta
-   * ni en el submenú ni en la grilla de tarjetas.
+   * REGLA (todos los torneos):
+   * "Mejor Score del Día" se presenta en /competicion ÚNICAMENTE cuando el
+   * reporte está ACTIVADO EN EL SISTEMA LEGADO (configuracion/mejorscore.php)
+   * y además DEVUELVE DATOS desde /api/mejor_score_diario.php.
+   *   - Activado + con datos  → SÍ se presenta
+   *   - Sin activar / sin datos → NO se presenta
+   * La bandera de /admin (`competencias-mejor-score`) solo sirve para OCULTAR
+   * manualmente el reporte (si se pone explícitamente en false); ya no es
+   * requisito para mostrarlo.
    */
-  const mejorScoreVisible = visibilitySettings['competencias-mejor-score'] === true;
-  const { hasData: mejorScoreHasData } = useMejorScoreAvailability(mejorScoreVisible);
-  const mejorScoreEnabled = mejorScoreVisible && mejorScoreHasData;
+  const mejorScoreHiddenByAdmin = visibilitySettings['competencias-mejor-score'] === false;
+  const { hasData: mejorScoreHasData } = useMejorScoreAvailability(!mejorScoreHiddenByAdmin);
+  const mejorScoreEnabled = !mejorScoreHiddenByAdmin && mejorScoreHasData;
 
   // Get the selected competition object (from detail or list)
   const selectedCompetencia = useMemo(() => {
