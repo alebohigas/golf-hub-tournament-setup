@@ -35,6 +35,7 @@ import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminStatsPage from '@/components/admin/AdminStatsPage';
+import AdminHistorial from '@/components/admin/AdminHistorial';
 import AdminPopup from '@/components/admin/AdminPopup';
 import AdminAnuncio from '@/components/admin/AdminAnuncio';
 import AdminBanderas from '@/components/admin/AdminBanderas';
@@ -73,6 +74,7 @@ import {
   Users,
   Swords,
   Megaphone,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
