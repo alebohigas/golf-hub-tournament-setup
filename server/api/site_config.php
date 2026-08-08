@@ -250,13 +250,24 @@ $hasHomeConfig = site_config_has_home_config($conn);
 /**
  * Detect whether the historial_config column exists. Stores the /historial
  * page config: up to 5 previous editions (year + torneo_id) used to query
- * past leaderboards. Missing column => endpoint returns null.
+ * past leaderboards. If the column is missing we attempt to create it once
+ * (self-healing migration) so the admin tab works without manual SQL; if the
+ * hosting user lacks ALTER privileges the endpoint keeps returning null.
  */
 function site_config_has_historial_config($conn) {
     static $hasColumn = null;
     if ($hasColumn !== null) return $hasColumn;
     $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'historial_config'");
     $hasColumn = $result && $result->num_rows > 0;
+    if (!$hasColumn) {
+        // Self-healing: create the column on first use (MySQL has no
+        // "ADD COLUMN IF NOT EXISTS", hence the prior existence check).
+        if (@$conn->query("ALTER TABLE site_config ADD COLUMN historial_config TEXT DEFAULT NULL COMMENT 'JSON object with /historial page config'")) {
+            $hasColumn = true;
+        } else {
+            error_log('site_config: could not add historial_config column: ' . $conn->error);
+        }
+    }
     return $hasColumn;
 }
 
