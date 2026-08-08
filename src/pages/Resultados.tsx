@@ -280,6 +280,7 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
           player.id,
           categoryDetail.categoryId,
           fecha,
+          torneoIdOverride,
         );
         setParejaScorecardData(pareja);
       } else {
@@ -289,7 +290,8 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
           fecha,
           categoryDetail.system || '',
           selectedScoringType || 'NETO',
-          round
+          round,
+          torneoIdOverride,
         );
         setScorecardData(scorecard);
       }
