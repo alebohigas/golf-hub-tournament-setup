@@ -57,16 +57,20 @@ const mapCutRoundScores = (p: Record<string, unknown> | null | undefined): Recor
   ) as Record<`r${number}`, number | null | undefined>;
 };
 
-/** Fetch all categories with results, including GROSS when enabled */
-export const useAllResults = () => {
+/**
+ * Fetch all categories with results, including GROSS when enabled.
+ * @param torneoIdOverride  Optional tournament id (used by /historial to read
+ *                          a past edition instead of the active tournament).
+ */
+export const useAllResults = (torneoIdOverride?: string) => {
   return useQuery<ResultCategory[]>({
-    queryKey: ['resultados'],
+    queryKey: ['resultados', torneoIdOverride ?? 'active'],
     queryFn: async () => {
       // Step 1: Fetch category list from resultados.php
       const catListResp = await apiFetch<{
         strokePlay?: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }>;
         matchPlay?: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }>;
-      } | Array<{ categoryId: string; name: string; gross?: number; [key: string]: any }>>(getResultadosUrl());
+      } | Array<{ categoryId: string; name: string; gross?: number; [key: string]: any }>>(getResultadosUrl(torneoIdOverride));
 
       // /resultados only surfaces Stroke Play categories. Match Play lives en
       // /matchplay (bracket view) — mezclarlas confundía al usuario porque una
@@ -118,13 +122,19 @@ export const useAllResults = () => {
  * @param scoringType - NETO or GROSS (determines gross parameter)
  * @param enabled - Whether to enable the query
  */
-export const useCategoryResults = (categoryId: string | null, enabled = true, scoringType: string = 'NETO') => {
+export const useCategoryResults = (
+  categoryId: string | null,
+  enabled = true,
+  scoringType: string = 'NETO',
+  /** Optional tournament id (historical editions). */
+  torneoIdOverride?: string,
+) => {
   const gross: '0' | '1' = scoringType === 'GROSS' ? '1' : '0';
 
   return useQuery<ResultCategory>({
-    queryKey: ['resultados', categoryId, gross],
+    queryKey: ['resultados', categoryId, gross, torneoIdOverride ?? 'active'],
     queryFn: async () => {
-      const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!, gross));
+      const raw = await apiFetch<any>(getResultadosCategoryUrl(categoryId!, gross, torneoIdOverride));
       const daysLen = Array.isArray(raw.days) ? raw.days.length : undefined;
 
       // Normalize into ResultCategory with scoringTypes array
@@ -246,12 +256,14 @@ export const fetchPlayerScorecardFromApi = async (
   fecha: string,
   system: string,
   scoringType: string,
-  round: number
+  round: number,
+  /** Optional tournament id (historical editions). */
+  torneoIdOverride?: string,
 ): Promise<RoundScorecard> => {
   const tipo = mapSystemToTipo(system);
   const scType = mapScorecardType(system, scoringType);
 
-  const url = getResultadosTarjetaUrl(playerId, categoryId, fecha, tipo);
+  const url = getResultadosTarjetaUrl(playerId, categoryId, fecha, tipo, torneoIdOverride);
   const raw = await apiFetch<any>(url);
 
   // Map API holes to HoleScore[]
@@ -360,8 +372,10 @@ export const fetchParejasScorecardFromApi = async (
   playerId: string,
   categoryId: string,
   fecha: string,
+  /** Optional tournament id (historical editions). */
+  torneoIdOverride?: string,
 ): Promise<ParejaScorecard> => {
-  const raw = await apiFetch<any>(getTarjetaParejasUrl(playerId, categoryId, fecha));
+  const raw = await apiFetch<any>(getTarjetaParejasUrl(playerId, categoryId, fecha, torneoIdOverride));
   const holes: ParejaHoleScore[] = [];
   const baseHoles = raw.holes || [];
   const p1SO = raw.player1?.scoreSO || [];

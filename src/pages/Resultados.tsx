@@ -134,7 +134,19 @@ const countedRounds = (
 
 // ============= Component =============
 
-const Resultados = () => {
+/**
+ * ResultadosProps
+ * `embedded` + `torneoIdOverride` let the /historial page reuse this exact
+ * leaderboard UI for a PAST tournament edition without duplicating code:
+ *  - embedded: skip <Layout> and <PageHero> (the host page renders them)
+ *  - torneoIdOverride: query the API with another torneoid
+ */
+interface ResultadosProps {
+  embedded?: boolean;
+  torneoIdOverride?: string;
+}
+
+const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedScoringType, setSelectedScoringType] = useState<ScoringType | null>(null);
 
@@ -146,13 +158,14 @@ const Resultados = () => {
   const [scorecardLoading, setScorecardLoading] = useState(false);
 
   // Fetch all categories from API
-  const { data: categories = [], isLoading: loadingCats } = useAllResults();
+  const { data: categories = [], isLoading: loadingCats } = useAllResults(torneoIdOverride);
 
   // Fetch selected category detail from API (passes gross param based on scoring type)
   const { data: categoryDetail, isLoading: loadingDetail } = useCategoryResults(
     selectedCategoryId,
     !!selectedCategoryId && !!selectedScoringType,
-    selectedScoringType || 'NETO'
+    selectedScoringType || 'NETO',
+    torneoIdOverride,
   );
 
   /** Find the selected category object from the list (metadata only) */
@@ -267,6 +280,7 @@ const Resultados = () => {
           player.id,
           categoryDetail.categoryId,
           fecha,
+          torneoIdOverride,
         );
         setParejaScorecardData(pareja);
       } else {
@@ -276,7 +290,8 @@ const Resultados = () => {
           fecha,
           categoryDetail.system || '',
           selectedScoringType || 'NETO',
-          round
+          round,
+          torneoIdOverride,
         );
         setScorecardData(scorecard);
       }
@@ -294,13 +309,13 @@ const Resultados = () => {
 
   const isLoading = loadingCats || loadingDetail;
 
-  return (
-    <Layout>
-      <PageHero 
-        title="Resultados"
-        subtitle="Consulta los resultados de cada ronda y clasificación general"
-        backgroundImage={resultadosHero}
-      />
+  /**
+   * body
+   * Leaderboard markup shared by the standalone /resultados page and the
+   * embedded usage inside /historial.
+   */
+  const body = (
+    <>
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           {!selectedCategoryId ? (
@@ -771,6 +786,20 @@ const Resultados = () => {
           )}
         </div>
       </section>
+    </>
+  );
+
+  /** Embedded mode: host page (e.g. /historial) provides Layout + hero. */
+  if (embedded) return body;
+
+  return (
+    <Layout>
+      <PageHero
+        title="Resultados"
+        subtitle="Consulta los resultados de cada ronda y clasificación general"
+        backgroundImage={resultadosHero}
+      />
+      {body}
     </Layout>
   );
 };

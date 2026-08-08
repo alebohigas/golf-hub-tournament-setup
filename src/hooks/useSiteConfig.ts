@@ -298,6 +298,27 @@ export interface HomeConfig {
 }
 
 /**
+ * HistorialEdition
+ * One past tournament edition shown on the /historial page. `year` drives the
+ * selector button label and `torneoId` is the tournament id queried against
+ * the results endpoints.
+ */
+export interface HistorialEdition {
+  year: number;
+  torneoId: string;
+  /** Optional label shown under the year (e.g. "LXX Torneo Anual"). */
+  label?: string;
+}
+
+/**
+ * HistorialConfig
+ * /historial page config: up to 5 previous editions (most recent first).
+ */
+export interface HistorialConfig {
+  editions: HistorialEdition[];
+}
+
+/**
  * PopupConfig
  * -----------------------------------------------------------------------
  * Site-wide POP UP overlay configuration set from Admin > POP tab.
@@ -402,6 +423,8 @@ export interface SiteConfig {
   anuncio_config: AnuncioConfig | AnuncioConfig[] | null;
   stats_page_config: StatsPageConfig | null;
   home_config: HomeConfig | null;
+  /** /historial page config (past editions). Null = not configured. */
+  historial_config: HistorialConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -429,6 +452,7 @@ export interface SaveConfigPayload {
   anuncio_configs?: AnuncioConfig[] | null;
   stats_page_config?: StatsPageConfig | null;
   home_config?: HomeConfig | null;
+  historial_config?: HistorialConfig | null;
 }
 
 // ============= Constants =============
