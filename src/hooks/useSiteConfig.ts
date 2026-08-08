@@ -298,6 +298,27 @@ export interface HomeConfig {
 }
 
 /**
+ * HistorialEdition
+ * One past tournament edition shown on the /historial page. `year` drives the
+ * selector button label and `torneoId` is the tournament id queried against
+ * the results endpoints.
+ */
+export interface HistorialEdition {
+  year: number;
+  torneoId: string;
+  /** Optional label shown under the year (e.g. "LXX Torneo Anual"). */
+  label?: string;
+}
+
+/**
+ * HistorialConfig
+ * /historial page config: up to 5 previous editions (most recent first).
+ */
+export interface HistorialConfig {
+  editions: HistorialEdition[];
+}
+
+/**
  * PopupConfig
  * -----------------------------------------------------------------------
  * Site-wide POP UP overlay configuration set from Admin > POP tab.
