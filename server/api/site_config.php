@@ -247,6 +247,21 @@ function site_config_has_home_config($conn) {
 
 $hasHomeConfig = site_config_has_home_config($conn);
 
+/**
+ * Detect whether the historial_config column exists. Stores the /historial
+ * page config: up to 5 previous editions (year + torneo_id) used to query
+ * past leaderboards. Missing column => endpoint returns null.
+ */
+function site_config_has_historial_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'historial_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasHistorialConfig = site_config_has_historial_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -289,6 +304,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasHomeConfig) {
         $selectFields .= ', home_config';
     }
+    if ($hasHistorialConfig) {
+        $selectFields .= ', historial_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -314,6 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'anuncio_config'        => $hasAnuncioConfig && !empty($row['anuncio_config']) ? json_decode($row['anuncio_config'], true) : null,
             'stats_page_config'     => $hasStatsPageConfig && !empty($row['stats_page_config']) ? json_decode($row['stats_page_config'], true) : null,
             'home_config'           => $hasHomeConfig && !empty($row['home_config']) ? json_decode($row['home_config'], true) : null,
+            'historial_config'      => $hasHistorialConfig && !empty($row['historial_config']) ? json_decode($row['historial_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -336,6 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'anuncio_config'        => null,
             'stats_page_config'     => null,
             'home_config'           => null,
+            'historial_config'      => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -361,6 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'popup_config'           => 'pop',
             'stats_page_config'      => 'stats',
             'home_config'            => 'pagina',
+            'historial_config'       => 'pagina',
         ];
         $staffAllowed = false;
         foreach ($fieldAreas as $field => $area) {
@@ -545,6 +566,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['home_config'] !== null ? "'" . esc($conn, json_encode($body['home_config'])) . "'" : 'NULL';
         $fields[] = "home_config = $val";
         $insertFields[] = 'home_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('historial_config', $body)) {
+        if (!$hasHistorialConfig) {
+            json_error("Missing DB column historial_config in site_config. Run: ALTER TABLE site_config ADD COLUMN historial_config TEXT DEFAULT NULL COMMENT 'JSON object with /historial page config';", 500);
+        }
+        $val = $body['historial_config'] !== null ? "'" . esc($conn, json_encode($body['historial_config'])) . "'" : 'NULL';
+        $fields[] = "historial_config = $val";
+        $insertFields[] = 'historial_config';
         $insertValues[] = $val;
     }
     
