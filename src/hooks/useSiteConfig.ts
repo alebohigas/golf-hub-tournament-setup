@@ -455,10 +455,11 @@ export interface SiteConfig {
   home_config: HomeConfig | null;
   /** /historial page config (past editions). Null = not configured. */
   historial_config: HistorialConfig | null;
+  /** Per-tournament hero image overrides (Admin > Heros). Null = none. */
+  hero_config: HeroConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
-// (hero_config is appended to both shapes below.)
 export interface SaveConfigPayload {
   password: string;
   torneoid?: number;
@@ -484,6 +485,7 @@ export interface SaveConfigPayload {
   stats_page_config?: StatsPageConfig | null;
   home_config?: HomeConfig | null;
   historial_config?: HistorialConfig | null;
+  hero_config?: HeroConfig | null;
 }
 
 // ============= Constants =============
