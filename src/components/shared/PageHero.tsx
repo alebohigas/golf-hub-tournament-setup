@@ -1,3 +1,6 @@
+import { useLocation } from 'react-router-dom';
+import { useHeroOverride } from '@/hooks/useHeroOverride';
+
 interface PageHeroProps {
   title: string;
   subtitle?: string;
@@ -11,14 +14,24 @@ interface PageHeroProps {
 }
 
 const PageHero = ({ title, subtitle, backgroundImage, backgroundPosition }: PageHeroProps) => {
+  /**
+   * Per-tournament hero override (Admin > Heros). Keyed by the current route
+   * pathname, so any page using PageHero picks it up without extra props.
+   * Falls back to the bundled `backgroundImage` when there is no active
+   * override for this tournament.
+   */
+  const { pathname } = useLocation();
+  const override = useHeroOverride(pathname);
+  const effectiveImage = override || backgroundImage;
+
   return (
     <section className="relative py-28 md:py-36 lg:py-40 overflow-hidden">
       {/* Background */}
-      {backgroundImage ? (
+      {effectiveImage ? (
         <div
           className="absolute inset-0 bg-cover"
           style={{
-            backgroundImage: `url('${backgroundImage}')`,
+            backgroundImage: `url('${effectiveImage}')`,
             // Apply explicit position override when provided; otherwise
             // keep the legacy default of slightly-above-center (40%).
             backgroundPosition: backgroundPosition ?? 'center 40%',
