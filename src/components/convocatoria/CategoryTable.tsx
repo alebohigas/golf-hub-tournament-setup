@@ -6,9 +6,10 @@
  *  - CATEGORÍAS       → categoria.categoria (name)
  *  - RANGO DE HÁNDICAP → "{hcpIdxMin} A {hcpIdxMax}" with leading "+" if negative
  *  - FORMATO           → categoria.sistema
- *  - VENTAJAS          → "{porcentaje}%" exactly as stored in the DB
- *                        (categorias.porcentaje). Only shows "—" when the
- *                        value is missing/null in the database.
+ *  - VENTAJAS          → "{porcentaje}%" exactamente como está en la BD
+ *                        (categorias.porcentaje, vía `percentageRaw`),
+ *                        respetando el redondeo/decimales originales.
+ *                        Muestra "—" solo si el valor no existe en la BD.
  *  - CUPO              → "∞" if maxjugadores = 99, otherwise the number
  *  - RONDA             → "{hoyosajugar} HOYOS" — total holes to play (categorias.hoyosajugar)
  *  - HOYOS A CORTE     → "{hoyosacorte} HOYOS" — holes played before cut (categorias.hoyosacorte)
@@ -106,17 +107,17 @@ const formatHcpRange = (min: number, max: number): string => {
 };
 
 /**
- * Format the "VENTAJAS" column.
- * Shows the raw `categorias.porcentaje` value from the database for every
- * category (including 0% and 100%). Trailing ".0" decimals are trimmed so
- * 80.0 renders as "80%". Returns "—" only when the DB value is absent.
+ * Formatea la columna "VENTAJAS".
+ * Prioriza `percentageRaw` (cadena tal cual viene de la BD) para conservar
+ * exactamente el redondeo y los decimales almacenados (p.ej. "80.00" → "80.00%").
+ * Si no existe el valor crudo, usa el numérico. Devuelve "—" cuando no hay dato.
  */
-const formatVentajas = (porcentaje?: number | null): string => {
-  if (porcentaje === null || porcentaje === undefined || Number.isNaN(porcentaje)) return '—';
-  const num = Number(porcentaje);
-  // Keep decimals only when meaningful (e.g. 87.5% stays, 80.0% → 80%)
-  const label = Number.isInteger(num) ? String(num) : String(parseFloat(num.toFixed(2)));
-  return `${label}%`;
+const formatVentajas = (porcentaje?: number | null, raw?: string | null): string => {
+  if (raw !== null && raw !== undefined && String(raw).trim() !== '') {
+    return `${String(raw).trim()}%`;
+  }
+  if (porcentaje === null || porcentaje === undefined || Number.isNaN(Number(porcentaje))) return '—';
+  return `${porcentaje}%`;
 };
 
 /** Format the "CUPO" column (99 ⇒ ∞, anything else ⇒ number) */
@@ -215,7 +216,7 @@ const CategoryTable = () => {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">
-                  {formatVentajas(category.percentage)}
+                  {formatVentajas(category.percentage, category.percentageRaw)}
                 </TableCell>
                 <TableCell className="text-center font-medium text-foreground">
                   {formatCupo(category.maxPlayers)}
