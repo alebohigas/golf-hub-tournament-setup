@@ -319,6 +319,36 @@ export interface HistorialConfig {
 }
 
 /**
+ * HeroOverride
+ * One hero (page background) override configured from Admin > Heros.
+ *  - url:    image URL (uploaded file under /api/uploads/{domain}/heros/,
+ *            an AI-generated file, or any absolute https URL).
+ *  - active: master switch — when false the page keeps its bundled default
+ *            hero, so an admin can stage an image before publishing it.
+ *  - prompt: prompt used when the image came from the AI generator (kept for
+ *            traceability / regeneration).
+ */
+export interface HeroOverride {
+  url: string;
+  active: boolean;
+  prompt?: string;
+}
+
+/** Map of route pathname (e.g. '/convocatoria') → hero override. */
+export type HeroOverrideMap = Record<string, HeroOverride>;
+
+/**
+ * HeroConfig
+ * Per-tournament hero overrides. `byTorneo` is keyed by torneo_id as string
+ * (so the same domain can stage heros for the upcoming tournament, e.g. 365)
+ * and `default` applies to any tournament without its own entry.
+ */
+export interface HeroConfig {
+  byTorneo?: Record<string, HeroOverrideMap>;
+  default?: HeroOverrideMap;
+}
+
+/**
  * PopupConfig
  * -----------------------------------------------------------------------
  * Site-wide POP UP overlay configuration set from Admin > POP tab.
