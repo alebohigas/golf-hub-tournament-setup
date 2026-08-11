@@ -22,7 +22,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/apiClient';
 
 /** Section identifiers accepted by the uploads endpoint. */
-export type UploadSection = 'eventos' | 'avisos' | 'menus' | 'premios' | 'hoteles' | 'convocatoria' | 'reglas' | 'skinrules' | 'banderas' | 'pdfs' | 'popup';
+export type UploadSection = 'eventos' | 'avisos' | 'menus' | 'premios' | 'hoteles' | 'convocatoria' | 'reglas' | 'skinrules' | 'banderas' | 'pdfs' | 'popup' | 'heros';
 
 /** Single uploaded file as returned by the listing endpoint. */
 export interface UploadedFile {
