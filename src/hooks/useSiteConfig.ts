@@ -458,6 +458,7 @@ export interface SiteConfig {
 }
 
 /** Payload for saving config (all fields optional except password) */
+// (hero_config is appended to both shapes below.)
 export interface SaveConfigPayload {
   password: string;
   torneoid?: number;
