@@ -16,6 +16,9 @@ export interface CategoryDetail {
   hcpMin: number;          // Min handicap index
   hcpMax: number;          // Max handicap index
   percentage: number;      // Handicap percentage applied
+  /** Valor textual exacto de `categorias.porcentaje` en la BD (ej. "80.00").
+   *  Se usa para mostrar VENTAJAS con el mismo redondeo/decimales que la BD. */
+  percentageRaw?: string | null;
   holes: number;           // Holes to play
   cutHoles: number;        // Cut holes
   /** Final cut count (categorias.corte) — number of players advancing. */
