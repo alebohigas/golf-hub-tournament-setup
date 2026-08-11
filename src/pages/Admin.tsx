@@ -36,6 +36,7 @@ import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminStatsPage from '@/components/admin/AdminStatsPage';
 import AdminHistorial from '@/components/admin/AdminHistorial';
+import AdminHeros from '@/components/admin/AdminHeros';
 import AdminPopup from '@/components/admin/AdminPopup';
 import AdminAnuncio from '@/components/admin/AdminAnuncio';
 import AdminBanderas from '@/components/admin/AdminBanderas';
@@ -234,6 +235,8 @@ const AdminDashboard = () => {
     config: undefined,
     pagina: undefined,
     reglas: 'reglas',
+    // Heros (fondos por página/torneo) queda restringido a superadmin.
+    heros: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
   /** Áreas de staff → tab values del panel principal. */
@@ -464,6 +467,7 @@ const AdminDashboard = () => {
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'historial',    icon: History,         label: 'Historial' },
+            { value: 'heros',        icon: ImageIcon,       label: 'Heros' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
             { value: 'stats-page',   icon: BarChart3,       label: 'Página /stats' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
@@ -734,6 +738,12 @@ const AdminDashboard = () => {
             alimenta la página pública /historial. */}
         <TabsContent value="historial">
           <AdminHistorial />
+        </TabsContent>
+
+        {/* Heros Tab — sube/genera con IA, selecciona y activa la imagen de
+            fondo (hero) de cada página pública por torneo. */}
+        <TabsContent value="heros">
+          <AdminHeros />
         </TabsContent>
 
         {/* Estadísticas Tab — override or auto-compute the home stats ribbon

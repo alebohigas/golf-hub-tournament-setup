@@ -273,6 +273,33 @@ function site_config_has_historial_config($conn) {
 
 $hasHistorialConfig = site_config_has_historial_config($conn);
 
+/**
+ * Detect whether the hero_config column exists. Stores the per-tournament
+ * hero (page background) overrides configured in Admin > Heros:
+ *
+ *   { "byTorneo": { "365": { "/convocatoria": { "url": "...", "active": true } } },
+ *     "default":  { "/convocatoria": { "url": "...", "active": true } } }
+ *
+ * Self-healing: creates the column on first use so the admin tab works
+ * without manual SQL (no-op when the hosting user lacks ALTER privileges).
+ */
+function site_config_has_hero_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'hero_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    if (!$hasColumn) {
+        if (@$conn->query("ALTER TABLE site_config ADD COLUMN hero_config TEXT DEFAULT NULL COMMENT 'JSON object with per-tournament hero image overrides'")) {
+            $hasColumn = true;
+        } else {
+            error_log('site_config: could not add hero_config column: ' . $conn->error);
+        }
+    }
+    return $hasColumn;
+}
+
+$hasHeroConfig = site_config_has_hero_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -318,6 +345,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasHistorialConfig) {
         $selectFields .= ', historial_config';
     }
+    if ($hasHeroConfig) {
+        $selectFields .= ', hero_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -344,6 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'     => $hasStatsPageConfig && !empty($row['stats_page_config']) ? json_decode($row['stats_page_config'], true) : null,
             'home_config'           => $hasHomeConfig && !empty($row['home_config']) ? json_decode($row['home_config'], true) : null,
             'historial_config'      => $hasHistorialConfig && !empty($row['historial_config']) ? json_decode($row['historial_config'], true) : null,
+            'hero_config'           => $hasHeroConfig && !empty($row['hero_config']) ? json_decode($row['hero_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -367,6 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'     => null,
             'home_config'           => null,
             'historial_config'      => null,
+            'hero_config'           => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -393,6 +425,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'      => 'stats',
             'home_config'            => 'pagina',
             'historial_config'       => 'pagina',
+            'hero_config'            => 'pagina',
         ];
         $staffAllowed = false;
         foreach ($fieldAreas as $field => $area) {
@@ -587,6 +620,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['historial_config'] !== null ? "'" . esc($conn, json_encode($body['historial_config'])) . "'" : 'NULL';
         $fields[] = "historial_config = $val";
         $insertFields[] = 'historial_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('hero_config', $body)) {
+        if (!$hasHeroConfig) {
+            json_error("Missing DB column hero_config in site_config. Run: ALTER TABLE site_config ADD COLUMN hero_config TEXT DEFAULT NULL COMMENT 'JSON object with per-tournament hero image overrides';", 500);
+        }
+        $val = $body['hero_config'] !== null ? "'" . esc($conn, json_encode($body['hero_config'])) . "'" : 'NULL';
+        $fields[] = "hero_config = $val";
+        $insertFields[] = 'hero_config';
         $insertValues[] = $val;
     }
     
