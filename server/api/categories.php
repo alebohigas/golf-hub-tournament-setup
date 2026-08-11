@@ -137,6 +137,12 @@ $categories = array_map(function($row) {
         'hcpMin'      => (float)$row['hcpIdxMin'],
         'hcpMax'      => (float)$row['hcpIdxMax'],
         'percentage'  => (float)$row['porcentaje'],
+        /** Valor textual EXACTO de categorias.porcentaje tal como está en la BD
+         *  (p.ej. "80.00", "87.5"). El frontend lo usa en la columna VENTAJAS
+         *  de /convocatoria para respetar el redondeo/decimales originales. */
+        'percentageRaw' => isset($row['porcentaje']) && $row['porcentaje'] !== null
+                            ? (string)$row['porcentaje']
+                            : null,
         'holes'       => (int)$row['hoyosajugar'],
         'cutHoles'    => (int)$row['hoyosacorte'],
         // Final cut count (categorias.corte) — number of players advancing to the final round.
