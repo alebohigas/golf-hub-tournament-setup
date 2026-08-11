@@ -62,6 +62,14 @@ $SECTION_RULES = [
         'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
         'kind'  => 'imagen',
     ],
+    // Hero backgrounds per page/tournament. Managed from Admin > Heros
+    // (manual upload or AI generation via /api/hero_ai.php, which writes
+    // its output straight into this folder). Image-only.
+    'heros' => [
+        'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
+        'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
+        'kind'  => 'imagen',
+    ],
     'avisos' => [
         'exts'  => ['webp', 'jpg', 'jpeg', 'png', 'gif'],
         'mimes' => ['image/webp', 'image/jpeg', 'image/png', 'image/gif'],
