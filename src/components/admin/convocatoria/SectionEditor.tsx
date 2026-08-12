@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Save, Trash2, Plus, X, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 
 // Live-preview Section components (reuse the public ones so the
@@ -297,11 +298,74 @@ function DesempatesToggles({
 // ============= Preview router =============
 
 /**
+ * MONEY_INPUT_RE
+ * Formatos aceptados en los campos de importe: dígitos con separadores de
+ * miles opcionales, decimales opcionales y símbolo `$` opcional.
+ * Ej: `13550`, `13,550`, `$13,550.00`, `8000.5`
+ */
+const MONEY_INPUT_RE = /^\$?\s*\d{1,3}(,\d{3})*(\.\d{1,2})?$|^\$?\s*\d+(\.\d{1,2})?$/;
+
+/**
+ * parseMoney
+ * Convierte un texto de importe a número. Devuelve `null` si no es válido.
+ */
+function parseMoney(raw: string): number | null {
+  const s = (raw ?? '').trim();
+  if (!s) return null;
+  if (!MONEY_INPUT_RE.test(s)) return null;
+  const n = Number(s.replace(/[$,\s]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * formatMoney
+ * Normaliza un importe a moneda MXN con separador de miles y 2 decimales
+ * (`13550` → `$13,550.00`). Devuelve el texto original si no es válido.
+ */
+function formatMoney(raw: string): string {
+  const n = parseMoney(raw);
+  if (n === null) return raw;
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * MoneyField
+ * Input de importe con formateo automático a moneda al salir del campo y
+ * mensaje de error inline cuando el valor es inválido o requerido.
+ */
+function MoneyField({
+  label, value, onChange, required, error,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  error?: string | null;
+}) {
+  return (
+    <div className="space-y-1">
+      <Input
+        placeholder={label}
+        value={value}
+        aria-label={label}
+        aria-invalid={!!error}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => onChange(formatMoney(value))}
+        className={cn(error && 'border-destructive focus-visible:ring-destructive')}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+/**
  * CostosQuickFill
  * Botón de carga rápida para la sección "costos": captura los importes de
  * SOCIOS e INVITADOS (Caballeros / Damas y Juveniles) y los escribe en el
  * JSON de la sección con la estructura que espera `CostosSection`
  * (`sociosPricing[].tiers[]`), para que la tabla se vea llena en la página.
+ * Valida que SOCIOS no quede vacío y que todo importe capturado tenga
+ * formato de moneda válido antes de permitir la carga.
  */
 function CostosQuickFill(props: {
   draft: any;
@@ -323,18 +387,48 @@ function CostosQuickFill(props: {
   const [invCab, setInvCab] = useState(() => readCosto('INVITADOS', 'Caballeros') || '');
   const [invDam, setInvDam] = useState(() => readCosto('INVITADOS', 'Damas y Juveniles') || '');
 
+  /**
+   * validate
+   * `required`: obligatorio (SOCIOS). `optional`: puede quedar vacío
+   * (INVITADOS), pero si trae texto debe ser un importe válido.
+   */
+  const validate = (v: string, required: boolean): string | null => {
+    const s = (v ?? '').trim();
+    if (!s) return required ? 'Importe obligatorio' : null;
+    if (parseMoney(s) === null) return 'Formato inválido (ej. $13,550.00)';
+    return null;
+  };
+
+  const errors = {
+    socCab: validate(socCab, true),
+    socDam: validate(socDam, true),
+    invCab: validate(invCab, false),
+    invDam: validate(invDam, false),
+  };
+  /** Si se captura un lado de INVITADOS, se piden ambos importes. */
+  const invPartial = !!(invCab.trim()) !== !!(invDam.trim());
+  const hasErrors = Object.values(errors).some(Boolean) || invPartial;
+
   /** Escribe las dos tablas en el draft + sincroniza el editor JSON. */
   const apply = () => {
+    if (hasErrors) return;
+    /* Normaliza todo a moneda antes de publicar. */
+    const fSocCab = formatMoney(socCab);
+    const fSocDam = formatMoney(socDam);
+    const fInvCab = invCab.trim() ? formatMoney(invCab) : '';
+    const fInvDam = invDam.trim() ? formatMoney(invDam) : '';
+    setSocCab(fSocCab); setSocDam(fSocDam);
+    setInvCab(fInvCab); setInvDam(fInvDam);
     const tables: any[] = [
       { title: 'SOCIOS', tiers: [
-        { categoria: 'Caballeros', costo: socCab },
-        { categoria: 'Damas y Juveniles', costo: socDam },
+        { categoria: 'Caballeros', costo: fSocCab },
+        { categoria: 'Damas y Juveniles', costo: fSocDam },
       ] },
     ];
-    if (invCab || invDam) {
+    if (fInvCab && fInvDam) {
       tables.push({ title: 'INVITADOS', tiers: [
-        { categoria: 'Caballeros', costo: invCab },
-        { categoria: 'Damas y Juveniles', costo: invDam },
+        { categoria: 'Caballeros', costo: fInvCab },
+        { categoria: 'Damas y Juveniles', costo: fInvDam },
       ] });
     }
     const next = { ...(draft ?? {}), sociosPricing: tables };
@@ -351,19 +445,25 @@ function CostosQuickFill(props: {
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">SOCIOS</p>
         <div className="grid grid-cols-2 gap-2">
-          <Input placeholder="Caballeros" value={socCab} onChange={(e) => setSocCab(e.target.value)} />
-          <Input placeholder="Damas y Juveniles" value={socDam} onChange={(e) => setSocDam(e.target.value)} />
+          <MoneyField label="Caballeros" value={socCab} onChange={setSocCab} required error={errors.socCab} />
+          <MoneyField label="Damas y Juveniles" value={socDam} onChange={setSocDam} required error={errors.socDam} />
         </div>
       </div>
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">INVITADOS</p>
         <div className="grid grid-cols-2 gap-2">
-          <Input placeholder="Caballeros" value={invCab} onChange={(e) => setInvCab(e.target.value)} />
-          <Input placeholder="Damas y Juveniles" value={invDam} onChange={(e) => setInvDam(e.target.value)} />
+          <MoneyField label="Caballeros" value={invCab} onChange={setInvCab} error={errors.invCab} />
+          <MoneyField label="Damas y Juveniles" value={invDam} onChange={setInvDam} error={errors.invDam} />
         </div>
+        {invPartial && (
+          <p className="text-xs text-destructive">
+            Captura ambos importes de INVITADOS o deja los dos vacíos.
+          </p>
+        )}
       </div>
-      <Button size="sm" onClick={apply}>Cargar en el editor</Button>
+      <Button size="sm" onClick={apply} disabled={hasErrors}>Cargar en el editor</Button>
       <p className="text-xs text-muted-foreground">
+        Los importes se formatean automáticamente como moneda (ej. $13,550.00).
         Después presiona “Guardar” para publicar en /convocatoria.
       </p>
     </div>
