@@ -87,7 +87,14 @@ export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = 
     setLoading(true);
     setError(null);
 
-    fetch(`/api/convocatoria_content.php?torneoid=${encodeURIComponent(torneoId)}`)
+    /**
+     * Cache-buster (`_t`) + `no-store` para garantizar que el GET traiga
+     * siempre la versión más reciente guardada en el editor de /admin.
+     */
+    fetch(
+      `/api/convocatoria_content.php?torneoid=${encodeURIComponent(torneoId)}&_t=${Date.now()}`,
+      { cache: 'no-store' }
+    )
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<ApiResponse>;
