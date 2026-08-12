@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Building2 } from 'lucide-react';
 import type { PricingTable, ForaneosPricing, ContactInfo } from '@/data/mockData';
+import { formatMoney } from '@/lib/money';
 
 interface CostosSectionProps {
   sociosPricing: PricingTable[];
@@ -93,10 +94,14 @@ const CostosSection = ({
                         <TableCell className="font-medium text-primary text-sm border-l-4 border-l-primary">
                           {tier.categoria}
                         </TableCell>
-                        <TableCell className="text-center text-sm font-semibold">{tier.costo}</TableCell>
+                        {/* Los importes viven en BD como DECIMAL ("13550.00");
+                            aquí se presentan siempre como $13,550.00. */}
+                        <TableCell className="text-center text-sm font-semibold">
+                          {formatMoney(tier.costo)}
+                        </TableCell>
                         {visibleMonths.map((col) => (
                           <TableCell key={col.key} className="text-center text-sm text-muted-foreground">
-                            {(tier as any)[col.key]}
+                            {formatMoney((tier as any)[col.key])}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -126,11 +131,11 @@ const CostosSection = ({
                   <div className="space-y-2">
                     <p className="text-sm">
                       <span className="text-muted-foreground">Caballeros: </span>
-                      <span className="font-semibold text-foreground">{tier.caballeros}</span>
+                      <span className="font-semibold text-foreground">{formatMoney(tier.caballeros)}</span>
                     </p>
                     <p className="text-sm">
                       <span className="text-muted-foreground">Damas y Seniors: </span>
-                      <span className="font-semibold text-foreground">{tier.damasSeniors}</span>
+                      <span className="font-semibold text-foreground">{formatMoney(tier.damasSeniors)}</span>
                     </p>
                   </div>
                 </div>

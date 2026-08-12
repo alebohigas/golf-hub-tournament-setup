@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Save, Trash2, Plus, X, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatMoney, parseMoney, toDecimalString } from '@/lib/money';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 
 // Live-preview Section components (reuse the public ones so the
@@ -298,40 +299,10 @@ function DesempatesToggles({
 // ============= Preview router =============
 
 /**
- * MONEY_INPUT_RE
- * Formatos aceptados en los campos de importe: dígitos con separadores de
- * miles opcionales, decimales opcionales y símbolo `$` opcional.
- * Ej: `13550`, `13,550`, `$13,550.00`, `8000.5`
- */
-const MONEY_INPUT_RE = /^\$?\s*\d{1,3}(,\d{3})*(\.\d{1,2})?$|^\$?\s*\d+(\.\d{1,2})?$/;
-
-/**
- * parseMoney
- * Convierte un texto de importe a número. Devuelve `null` si no es válido.
- */
-function parseMoney(raw: string): number | null {
-  const s = (raw ?? '').trim();
-  if (!s) return null;
-  if (!MONEY_INPUT_RE.test(s)) return null;
-  const n = Number(s.replace(/[$,\s]/g, ''));
-  return Number.isFinite(n) ? n : null;
-}
-
-/**
- * formatMoney
- * Normaliza un importe a moneda MXN con separador de miles y 2 decimales
- * (`13550` → `$13,550.00`). Devuelve el texto original si no es válido.
- */
-function formatMoney(raw: string): string {
-  const n = parseMoney(raw);
-  if (n === null) return raw;
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-/**
  * MoneyField
- * Input de importe con formateo automático a moneda al salir del campo y
- * mensaje de error inline cuando el valor es inválido o requerido.
+ * Input de importe con formateo automático a moneda al salir del campo
+ * (solo visual) y mensaje de error inline cuando el valor es inválido o
+ * requerido. El valor que se persiste se normaliza a DECIMAL al guardar.
  */
 function MoneyField({
   label, value, onChange, required, error,
@@ -382,10 +353,19 @@ function CostosQuickFill(props: {
     return tier?.costo ?? '';
   };
 
-  const [socCab, setSocCab] = useState(() => readCosto('SOCIOS', 'Caballeros') || '$13,550.00');
-  const [socDam, setSocDam] = useState(() => readCosto('SOCIOS', 'Damas y Juveniles') || '$8,000.00');
-  const [invCab, setInvCab] = useState(() => readCosto('INVITADOS', 'Caballeros') || '');
-  const [invDam, setInvDam] = useState(() => readCosto('INVITADOS', 'Damas y Juveniles') || '');
+  /**
+   * Los valores llegan de BD como DECIMAL (`"13550.00"`) — o legados con
+   * formato — y se muestran siempre como moneda (`$13,550.00`).
+   */
+  const initial = (title: string, categoria: string, fallback = '') => {
+    const raw = readCosto(title, categoria);
+    return raw ? formatMoney(raw) : fallback;
+  };
+
+  const [socCab, setSocCab] = useState(() => initial('SOCIOS', 'Caballeros', '$13,550.00'));
+  const [socDam, setSocDam] = useState(() => initial('SOCIOS', 'Damas y Juveniles', '$8,000.00'));
+  const [invCab, setInvCab] = useState(() => initial('INVITADOS', 'Caballeros'));
+  const [invDam, setInvDam] = useState(() => initial('INVITADOS', 'Damas y Juveniles'));
 
   /**
    * validate
@@ -409,26 +389,32 @@ function CostosQuickFill(props: {
   const invPartial = !!(invCab.trim()) !== !!(invDam.trim());
   const hasErrors = Object.values(errors).some(Boolean) || invPartial;
 
-  /** Escribe las dos tablas en el draft + sincroniza el editor JSON. */
+  /**
+   * Escribe las dos tablas en el draft + sincroniza el editor JSON.
+   * Persiste los importes como DECIMAL canónico (`"13550.00"`); la
+   * presentación con `$` y miles la hace `CostosSection` al renderizar.
+   */
   const apply = () => {
     if (hasErrors) return;
-    /* Normaliza todo a moneda antes de publicar. */
-    const fSocCab = formatMoney(socCab);
-    const fSocDam = formatMoney(socDam);
-    const fInvCab = invCab.trim() ? formatMoney(invCab) : '';
-    const fInvDam = invDam.trim() ? formatMoney(invDam) : '';
-    setSocCab(fSocCab); setSocDam(fSocDam);
-    setInvCab(fInvCab); setInvDam(fInvDam);
+    /* Valores DECIMAL para la BD. */
+    const dSocCab = toDecimalString(socCab);
+    const dSocDam = toDecimalString(socDam);
+    const dInvCab = invCab.trim() ? toDecimalString(invCab) : '';
+    const dInvDam = invDam.trim() ? toDecimalString(invDam) : '';
+    /* Los campos se muestran formateados como moneda. */
+    setSocCab(formatMoney(dSocCab)); setSocDam(formatMoney(dSocDam));
+    setInvCab(dInvCab ? formatMoney(dInvCab) : '');
+    setInvDam(dInvDam ? formatMoney(dInvDam) : '');
     const tables: any[] = [
       { title: 'SOCIOS', tiers: [
-        { categoria: 'Caballeros', costo: fSocCab },
-        { categoria: 'Damas y Juveniles', costo: fSocDam },
+        { categoria: 'Caballeros', costo: dSocCab },
+        { categoria: 'Damas y Juveniles', costo: dSocDam },
       ] },
     ];
-    if (fInvCab && fInvDam) {
+    if (dInvCab && dInvDam) {
       tables.push({ title: 'INVITADOS', tiers: [
-        { categoria: 'Caballeros', costo: fInvCab },
-        { categoria: 'Damas y Juveniles', costo: fInvDam },
+        { categoria: 'Caballeros', costo: dInvCab },
+        { categoria: 'Damas y Juveniles', costo: dInvDam },
       ] });
     }
     const next = { ...(draft ?? {}), sociosPricing: tables };
