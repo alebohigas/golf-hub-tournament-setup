@@ -16,6 +16,14 @@
 require_once 'config.php';
 require_once '_staff_auth.php';
 header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
+/**
+ * Sin caché: el contenido de la convocatoria (costos incluidos) debe
+ * reflejar de inmediato cualquier cambio guardado desde /admin. Se
+ * desactiva la caché de navegador/proxy para el GET.
+ */
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 /**
  * Detect whether the convocatoria_content table exists, so a missing
