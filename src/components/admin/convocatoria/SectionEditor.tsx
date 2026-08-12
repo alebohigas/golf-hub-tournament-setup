@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Save, Trash2, Plus, X, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 
 // Live-preview Section components (reuse the public ones so the
