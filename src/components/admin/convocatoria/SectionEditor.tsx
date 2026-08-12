@@ -353,10 +353,19 @@ function CostosQuickFill(props: {
     return tier?.costo ?? '';
   };
 
-  const [socCab, setSocCab] = useState(() => readCosto('SOCIOS', 'Caballeros') || '$13,550.00');
-  const [socDam, setSocDam] = useState(() => readCosto('SOCIOS', 'Damas y Juveniles') || '$8,000.00');
-  const [invCab, setInvCab] = useState(() => readCosto('INVITADOS', 'Caballeros') || '');
-  const [invDam, setInvDam] = useState(() => readCosto('INVITADOS', 'Damas y Juveniles') || '');
+  /**
+   * Los valores llegan de BD como DECIMAL (`"13550.00"`) — o legados con
+   * formato — y se muestran siempre como moneda (`$13,550.00`).
+   */
+  const initial = (title: string, categoria: string, fallback = '') => {
+    const raw = readCosto(title, categoria);
+    return raw ? formatMoney(raw) : fallback;
+  };
+
+  const [socCab, setSocCab] = useState(() => initial('SOCIOS', 'Caballeros', '$13,550.00'));
+  const [socDam, setSocDam] = useState(() => initial('SOCIOS', 'Damas y Juveniles', '$8,000.00'));
+  const [invCab, setInvCab] = useState(() => initial('INVITADOS', 'Caballeros'));
+  const [invDam, setInvDam] = useState(() => initial('INVITADOS', 'Damas y Juveniles'));
 
   /**
    * validate
