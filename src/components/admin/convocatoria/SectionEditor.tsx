@@ -298,40 +298,10 @@ function DesempatesToggles({
 // ============= Preview router =============
 
 /**
- * MONEY_INPUT_RE
- * Formatos aceptados en los campos de importe: dígitos con separadores de
- * miles opcionales, decimales opcionales y símbolo `$` opcional.
- * Ej: `13550`, `13,550`, `$13,550.00`, `8000.5`
- */
-const MONEY_INPUT_RE = /^\$?\s*\d{1,3}(,\d{3})*(\.\d{1,2})?$|^\$?\s*\d+(\.\d{1,2})?$/;
-
-/**
- * parseMoney
- * Convierte un texto de importe a número. Devuelve `null` si no es válido.
- */
-function parseMoney(raw: string): number | null {
-  const s = (raw ?? '').trim();
-  if (!s) return null;
-  if (!MONEY_INPUT_RE.test(s)) return null;
-  const n = Number(s.replace(/[$,\s]/g, ''));
-  return Number.isFinite(n) ? n : null;
-}
-
-/**
- * formatMoney
- * Normaliza un importe a moneda MXN con separador de miles y 2 decimales
- * (`13550` → `$13,550.00`). Devuelve el texto original si no es válido.
- */
-function formatMoney(raw: string): string {
-  const n = parseMoney(raw);
-  if (n === null) return raw;
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-/**
  * MoneyField
- * Input de importe con formateo automático a moneda al salir del campo y
- * mensaje de error inline cuando el valor es inválido o requerido.
+ * Input de importe con formateo automático a moneda al salir del campo
+ * (solo visual) y mensaje de error inline cuando el valor es inválido o
+ * requerido. El valor que se persiste se normaliza a DECIMAL al guardar.
  */
 function MoneyField({
   label, value, onChange, required, error,
