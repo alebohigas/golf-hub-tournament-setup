@@ -213,6 +213,10 @@ const SectionEditor = ({ sectionId, label, sortOrder = 0 }: SectionEditorProps) 
           {sectionId === 'desempates' && (
             <DesempatesToggles draft={draft} setDraft={setDraft} jsonText={jsonText} setJsonText={setJsonText} />
           )}
+          {/* Costos: carga rápida de las tablas SOCIOS / INVITADOS. */}
+          {sectionId === 'costos' && (
+            <CostosQuickFill draft={draft} setDraft={setDraft} setJsonText={setJsonText} setJsonError={setJsonError} />
+          )}
           <ShapeForm
             shape={meta.shape}
             draft={draft}
