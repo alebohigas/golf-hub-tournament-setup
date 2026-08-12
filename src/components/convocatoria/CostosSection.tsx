@@ -39,6 +39,43 @@ const MONTH_COLUMNS: { key: keyof import('@/data/mockData').PricingTier; label: 
 const columnHasData = (tiers: import('@/data/mockData').PricingTier[], key: string) =>
   tiers.some((t) => (t as any)[key] && (t as any)[key].trim() !== '');
 
+/**
+ * pickKey
+ * Busca en un objeto la primera llave cuyo nombre normalizado (sin
+ * acentos, espacios, `/` ni mayúsculas) coincida con alguno de los
+ * alias dados. Permite leer valores guardados desde el editor de admin
+ * con variantes como `"damas /juveniles"` o `"Damas y Seniors"`.
+ */
+const pickKey = (obj: any, aliases: string[]): string => {
+  if (!obj || typeof obj !== 'object') return '';
+  const norm = (s: string) =>
+    s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+  const targets = aliases.map(norm);
+  for (const k of Object.keys(obj)) {
+    if (targets.includes(norm(k))) return String(obj[k] ?? '');
+  }
+  return '';
+};
+
+/**
+ * normalizeTiers
+ * Devuelve siempre `tiers[]` para una tabla de precios. Si la fila de BD
+ * ya trae `tiers`, se usan tal cual; si en su lugar trae los importes
+ * planos (`caballeros`, `damas y juveniles`, …) se construyen los tiers
+ * para que la tabla pública NO se muestre vacía.
+ */
+const normalizeTiers = (table: any): import('@/data/mockData').PricingTier[] => {
+  if (Array.isArray(table?.tiers) && table.tiers.length > 0) return table.tiers;
+  const cab = pickKey(table, ['caballeros', 'varonil', 'hombres']);
+  const dam = pickKey(table, [
+    'damasyjuveniles', 'damasjuveniles', 'damas', 'damasyseniors', 'damasseniors', 'juveniles',
+  ]);
+  const rows: any[] = [];
+  if (cab) rows.push({ categoria: 'Caballeros', costo: cab });
+  if (dam) rows.push({ categoria: 'Damas y Juveniles', costo: dam });
+  return rows;
+};
+
 const CostosSection = ({
   sociosPricing,
   foraneosPricing,
@@ -63,9 +100,10 @@ const CostosSection = ({
 
       {/* Socios Pricing Tables — columns shown only if they have data */}
       {sociosPricing.map((table, idx) => {
-        /* Defensivo: `tiers` puede faltar en filas de BD mal formadas. */
-        const tiers = Array.isArray(table?.tiers) ? table.tiers : [];
+        /* Defensivo: `tiers` puede faltar; se derivan de los importes planos. */
+        const tiers = normalizeTiers(table);
         const visibleMonths = MONTH_COLUMNS.filter((col) => columnHasData(tiers, col.key));
+        if (tiers.length === 0) return null;
 
         return (
           <Card key={idx} className="shadow-card border-border/50 overflow-hidden">
@@ -119,27 +157,38 @@ const CostosSection = ({
         <Card className="shadow-card border-border/50">
           <CardHeader className="bg-primary/5">
             <CardTitle className="text-center font-display">
-              <span className="text-primary text-xl">Foráneos</span>
+              <span className="text-primary text-xl">Foráneos e Invitados</span>
               <span className="text-muted-foreground text-sm ml-2">(Un solo pago)</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {foraneosPricing.map((tier, idx) => (
+              {foraneosPricing.map((tier, idx) => {
+                /* Tolerante a variantes de llaves guardadas desde admin. */
+                const cab = (tier as any).caballeros || pickKey(tier, ['caballeros', 'varonil']);
+                const dam = (tier as any).damasSeniors
+                  || pickKey(tier, ['damasyjuveniles', 'damasjuveniles', 'damas', 'damasyseniors', 'juveniles']);
+                if (!cab && !dam) return null;
+                return (
                 <div key={idx} className="text-center p-4 rounded-lg bg-muted/30">
                   <h4 className="font-display font-bold text-primary mb-4">{tier.title}</h4>
                   <div className="space-y-2">
-                    <p className="text-sm">
-                      <span className="text-muted-foreground">Caballeros: </span>
-                      <span className="font-semibold text-foreground">{formatMoney(tier.caballeros)}</span>
-                    </p>
-                    <p className="text-sm">
-                      <span className="text-muted-foreground">Damas y Seniors: </span>
-                      <span className="font-semibold text-foreground">{formatMoney(tier.damasSeniors)}</span>
-                    </p>
+                    {cab && (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Caballeros: </span>
+                        <span className="font-semibold text-foreground">{formatMoney(cab)}</span>
+                      </p>
+                    )}
+                    {dam && (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Damas y Juveniles: </span>
+                        <span className="font-semibold text-foreground">{formatMoney(dam)}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
