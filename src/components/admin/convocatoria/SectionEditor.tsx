@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Save, Trash2, Plus, X, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatMoney, parseMoney, toDecimalString } from '@/lib/money';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 
 // Live-preview Section components (reuse the public ones so the
@@ -379,26 +380,32 @@ function CostosQuickFill(props: {
   const invPartial = !!(invCab.trim()) !== !!(invDam.trim());
   const hasErrors = Object.values(errors).some(Boolean) || invPartial;
 
-  /** Escribe las dos tablas en el draft + sincroniza el editor JSON. */
+  /**
+   * Escribe las dos tablas en el draft + sincroniza el editor JSON.
+   * Persiste los importes como DECIMAL canónico (`"13550.00"`); la
+   * presentación con `$` y miles la hace `CostosSection` al renderizar.
+   */
   const apply = () => {
     if (hasErrors) return;
-    /* Normaliza todo a moneda antes de publicar. */
-    const fSocCab = formatMoney(socCab);
-    const fSocDam = formatMoney(socDam);
-    const fInvCab = invCab.trim() ? formatMoney(invCab) : '';
-    const fInvDam = invDam.trim() ? formatMoney(invDam) : '';
-    setSocCab(fSocCab); setSocDam(fSocDam);
-    setInvCab(fInvCab); setInvDam(fInvDam);
+    /* Valores DECIMAL para la BD. */
+    const dSocCab = toDecimalString(socCab);
+    const dSocDam = toDecimalString(socDam);
+    const dInvCab = invCab.trim() ? toDecimalString(invCab) : '';
+    const dInvDam = invDam.trim() ? toDecimalString(invDam) : '';
+    /* Los campos se muestran formateados como moneda. */
+    setSocCab(formatMoney(dSocCab)); setSocDam(formatMoney(dSocDam));
+    setInvCab(dInvCab ? formatMoney(dInvCab) : '');
+    setInvDam(dInvDam ? formatMoney(dInvDam) : '');
     const tables: any[] = [
       { title: 'SOCIOS', tiers: [
-        { categoria: 'Caballeros', costo: fSocCab },
-        { categoria: 'Damas y Juveniles', costo: fSocDam },
+        { categoria: 'Caballeros', costo: dSocCab },
+        { categoria: 'Damas y Juveniles', costo: dSocDam },
       ] },
     ];
-    if (fInvCab && fInvDam) {
+    if (dInvCab && dInvDam) {
       tables.push({ title: 'INVITADOS', tiers: [
-        { categoria: 'Caballeros', costo: fInvCab },
-        { categoria: 'Damas y Juveniles', costo: fInvDam },
+        { categoria: 'Caballeros', costo: dInvCab },
+        { categoria: 'Damas y Juveniles', costo: dInvDam },
       ] });
     }
     const next = { ...(draft ?? {}), sociosPricing: tables };
