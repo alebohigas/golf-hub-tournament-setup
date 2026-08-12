@@ -296,6 +296,80 @@ function DesempatesToggles({
 
 // ============= Preview router =============
 
+/**
+ * CostosQuickFill
+ * Botón de carga rápida para la sección "costos": captura los importes de
+ * SOCIOS e INVITADOS (Caballeros / Damas y Juveniles) y los escribe en el
+ * JSON de la sección con la estructura que espera `CostosSection`
+ * (`sociosPricing[].tiers[]`), para que la tabla se vea llena en la página.
+ */
+function CostosQuickFill(props: {
+  draft: any;
+  setDraft: (d: any) => void;
+  setJsonText: (s: string) => void;
+  setJsonError: (s: string | null) => void;
+}) {
+  const { draft, setDraft, setJsonText, setJsonError } = props;
+
+  /** Lee el importe actual de una tabla/categoría, si ya existe en el draft. */
+  const readCosto = (title: string, categoria: string) => {
+    const t = (draft?.sociosPricing ?? []).find((x: any) => x?.title === title);
+    const tier = (t?.tiers ?? []).find((r: any) => r?.categoria === categoria);
+    return tier?.costo ?? '';
+  };
+
+  const [socCab, setSocCab] = useState(() => readCosto('SOCIOS', 'Caballeros') || '$13,550.00');
+  const [socDam, setSocDam] = useState(() => readCosto('SOCIOS', 'Damas y Juveniles') || '$8,000.00');
+  const [invCab, setInvCab] = useState(() => readCosto('INVITADOS', 'Caballeros') || '');
+  const [invDam, setInvDam] = useState(() => readCosto('INVITADOS', 'Damas y Juveniles') || '');
+
+  /** Escribe las dos tablas en el draft + sincroniza el editor JSON. */
+  const apply = () => {
+    const tables: any[] = [
+      { title: 'SOCIOS', tiers: [
+        { categoria: 'Caballeros', costo: socCab },
+        { categoria: 'Damas y Juveniles', costo: socDam },
+      ] },
+    ];
+    if (invCab || invDam) {
+      tables.push({ title: 'INVITADOS', tiers: [
+        { categoria: 'Caballeros', costo: invCab },
+        { categoria: 'Damas y Juveniles', costo: invDam },
+      ] });
+    }
+    const next = { ...(draft ?? {}), sociosPricing: tables };
+    setDraft(next);
+    setJsonText(JSON.stringify(next, null, 2));
+    setJsonError(null);
+  };
+
+  return (
+    <div className="rounded-md border p-3 bg-muted/30 space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Carga rápida de costos
+      </p>
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">SOCIOS</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Input placeholder="Caballeros" value={socCab} onChange={(e) => setSocCab(e.target.value)} />
+          <Input placeholder="Damas y Juveniles" value={socDam} onChange={(e) => setSocDam(e.target.value)} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">INVITADOS</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Input placeholder="Caballeros" value={invCab} onChange={(e) => setInvCab(e.target.value)} />
+          <Input placeholder="Damas y Juveniles" value={invDam} onChange={(e) => setInvDam(e.target.value)} />
+        </div>
+      </div>
+      <Button size="sm" onClick={apply}>Cargar en el editor</Button>
+      <p className="text-xs text-muted-foreground">
+        Después presiona “Guardar” para publicar en /convocatoria.
+      </p>
+    </div>
+  );
+}
+
 /** Render the matching public Section component with the draft payload. */
 function renderPreview(sectionId: string, draft: any): JSX.Element | null {
   switch (sectionId) {
