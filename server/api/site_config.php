@@ -300,6 +300,34 @@ function site_config_has_hero_config($conn) {
 
 $hasHeroConfig = site_config_has_hero_config($conn);
 
+/**
+ * Detect whether the modules_config column exists. Stores which optional
+ * MODULES of the app are turned on/off for this project (see /setup and
+ * src/modules/registry.ts):
+ *
+ *   { "modules": { "skins": { "enabled": false, "lockedBy": "superadmin",
+ *                             "updatedAt": "2026-08-13T00:00:00Z" } } }
+ *
+ * A missing entry means "module enabled". Self-healing: creates the column on
+ * first use (no-op when the hosting user lacks ALTER privileges).
+ */
+function site_config_has_modules_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'modules_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    if (!$hasColumn) {
+        if (@$conn->query("ALTER TABLE site_config ADD COLUMN modules_config TEXT DEFAULT NULL COMMENT 'JSON object with enabled/disabled app modules'")) {
+            $hasColumn = true;
+        } else {
+            error_log('site_config: could not add modules_config column: ' . $conn->error);
+        }
+    }
+    return $hasColumn;
+}
+
+$hasModulesConfig = site_config_has_modules_config($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Return full config for current domain
     $selectFields = 'torneoid, menu_order, visibility, menu_groups, page_group_assignments';
@@ -348,6 +376,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasHeroConfig) {
         $selectFields .= ', hero_config';
     }
+    if ($hasModulesConfig) {
+        $selectFields .= ', modules_config';
+    }
 
     $sql = "SELECT $selectFields FROM site_config WHERE domain = '$domain' LIMIT 1";
     $row = query_one($conn, $sql);
@@ -375,6 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'home_config'           => $hasHomeConfig && !empty($row['home_config']) ? json_decode($row['home_config'], true) : null,
             'historial_config'      => $hasHistorialConfig && !empty($row['historial_config']) ? json_decode($row['historial_config'], true) : null,
             'hero_config'           => $hasHeroConfig && !empty($row['hero_config']) ? json_decode($row['hero_config'], true) : null,
+            'modules_config'        => $hasModulesConfig && !empty($row['modules_config']) ? json_decode($row['modules_config'], true) : null,
         ]);
     } else {
         json_response([
@@ -399,6 +431,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'home_config'           => null,
             'historial_config'      => null,
             'hero_config'           => null,
+            'modules_config'        => null,
         ]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -630,6 +663,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['hero_config'] !== null ? "'" . esc($conn, json_encode($body['hero_config'])) . "'" : 'NULL';
         $fields[] = "hero_config = $val";
         $insertFields[] = 'hero_config';
+        $insertValues[] = $val;
+    }
+
+    /**
+     * modules_config — qué módulos de la app están encendidos en este proyecto.
+     * SOLO el superadmin puede escribirlo: un módulo apagado no debe poder
+     * reactivarlo ningún usuario de staff (ver /setup).
+     */
+    if (array_key_exists('modules_config', $body)) {
+        if (!is_superadmin_password($conn, $password)) {
+            json_error('Solo el superadmin puede cambiar los módulos', 403);
+        }
+        if (!$hasModulesConfig) {
+            json_error("Missing DB column modules_config in site_config. Run: ALTER TABLE site_config ADD COLUMN modules_config TEXT DEFAULT NULL COMMENT 'JSON object with enabled/disabled app modules';", 500);
+        }
+        $val = $body['modules_config'] !== null ? "'" . esc($conn, json_encode($body['modules_config'])) . "'" : 'NULL';
+        $fields[] = "modules_config = $val";
+        $insertFields[] = 'modules_config';
         $insertValues[] = $val;
     }
     

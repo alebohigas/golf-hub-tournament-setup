@@ -10,6 +10,12 @@ import { menuConfig, MenuItem } from '@/data/mockData';
 import { LayoutMode, ColumnCount } from '@/components/admin/AdminLayoutSettings';
 import { MenuGroup } from '@/components/admin/AdminMenuGroups';
 import { clearSuperAdminPassword, hasRememberedSuperAdminPassword, validateSuperAdminPassword } from '@/lib/superAdminAuth';
+/**
+ * Módulos: "apagado en /setup" gana siempre sobre "visible en /admin", incluso
+ * para el superadmin. Se consulta el singleton (no un hook) porque este provider
+ * se monta antes de que llegue la configuración del servidor.
+ */
+import { isPageIdModuleDisabled, subscribeModules } from '@/modules/moduleState';
 
 // ============= Types =============
 
@@ -208,6 +214,13 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
     return {};
   });
 
+  /**
+   * Contador que se incrementa cuando cambia el set de módulos apagados, para
+   * forzar un re-render del menú y de las rutas protegidas.
+   */
+  const [, setModulesRevision] = useState(0);
+  useEffect(() => subscribeModules(() => setModulesRevision((n) => n + 1)), []);
+
   // Persist visibility settings to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(visibilitySettings));
@@ -264,8 +277,11 @@ export const PageVisibilityProvider = ({ children }: PageVisibilityProviderProps
    * Falls back to the page's `enabled` default from menuConfig (NOT `true`),
    * so pages that ship disabled by default (e.g. HISTORIAL) stay hidden until
    * the admin turns the switch on for that tournament.
+   * Un módulo apagado desde /setup oculta sus páginas para TODOS, incluido el
+   * superadmin (el interruptor de módulos está por encima del de visibilidad).
    */
   const isPageVisible = (pageId: string): boolean => {
+    if (isPageIdModuleDisabled(pageId)) return false;
     if (isAdmin) return true; // Admins see all pages
     if (pageId in visibilitySettings) return visibilitySettings[pageId];
     return menuConfig.find((m) => m.id === pageId)?.enabled ?? true;

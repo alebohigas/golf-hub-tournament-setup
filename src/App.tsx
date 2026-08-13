@@ -49,8 +49,13 @@ import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import MatchPlay from "./pages/MatchPlay";
 import Stats from "./pages/Stats";
+import Setup from "./pages/Setup";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+// Guardia de rutas que no pasan por ProtectedRoute (showcase y admin de módulo).
+import ModuleGate from "./components/modules/ModuleGate";
+// Sincroniza qué módulos están encendidos en este proyecto (ver /setup).
+import { useSyncModules } from "@/modules/useModules";
 // Forces every client-side navigation to start at the top of the page.
 import ScrollToTop from "./components/layout/ScrollToTop";
 
@@ -67,6 +72,13 @@ const SiteConfigSync = ({ children }: { children: React.ReactNode }) => {
 
   /** Set apple-touch-icon & favicon dynamically from tournament logo */
   useAppIcon();
+
+  /**
+   * Empuja la configuración de módulos al estado global. Debe ir aquí (una sola
+   * vez, lo más arriba posible) porque rutas, menú y /admin la consultan.
+   */
+  useSyncModules(data?.modules_config);
+
   const { 
     setMenuItemOrder, 
     setPageVisibility, 
@@ -117,11 +129,14 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/registros" element={<AdminRegistros />} />
-              <Route path="/admin/brackets" element={<AdminBracketsPage />} />
-              <Route path="/admin/showcase-rotacion" element={<AdminShowcaseRotacionPage />} />
+              {/* Configuración de módulos del proyecto (solo superadmin). */}
+              <Route path="/setup" element={<Setup />} />
+              {/* Rutas de admin que pertenecen a un módulo opcional. */}
+              <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
+              <Route path="/admin/brackets" element={<ModuleGate moduleId="matchplay"><AdminBracketsPage /></ModuleGate>} />
+              <Route path="/admin/showcase-rotacion" element={<ModuleGate moduleId="showcase"><AdminShowcaseRotacionPage /></ModuleGate>} />
               {/* Public: player upload page after admin sends the email link */}
-              <Route path="/registro/comprobante" element={<Comprobante />} />
+              <Route path="/registro/comprobante" element={<ModuleGate moduleId="registro"><Comprobante /></ModuleGate>} />
               
               {/* Protected Routes - visibility controlled by admin */}
               <Route path="/convocatoria" element={<ProtectedRoute pageId="convocatoria"><Convocatoria /></ProtectedRoute>} />
@@ -152,11 +167,11 @@ const App = () => (
               <Route path="/stats" element={<ProtectedRoute pageId="stats"><Stats /></ProtectedRoute>} />
 
               {/* Standalone Showcase 300 reports (no Layout, auto-refresh 5min) */}
-              <Route path="/showcase/:tipo" element={<Showcase300 />} />
+              <Route path="/showcase/:tipo" element={<ModuleGate moduleId="showcase"><Showcase300 /></ModuleGate>} />
               {/* Rotador customizable de slides (lee config del #hash). */}
-              <Route path="/showcase/rotacion" element={<ShowcaseRotator />} />
+              <Route path="/showcase/rotacion" element={<ModuleGate moduleId="showcase"><ShowcaseRotator /></ModuleGate>} />
               {/* Standalone: clasificados Putt Finales por sexo (m|f). */}
-              <Route path="/showcase/calificados/:sexo" element={<PuttCalificados />} />
+              <Route path="/showcase/calificados/:sexo" element={<ModuleGate moduleId="showcase"><PuttCalificados /></ModuleGate>} />
 
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
