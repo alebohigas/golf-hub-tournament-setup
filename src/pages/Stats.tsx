@@ -11,7 +11,8 @@
 import { useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
-import competenciasHero from '@/assets/competencias-hero.jpg';
+// Hero HD propio de la página de Estadísticas
+import statsHero from '@/assets/stats-hero.jpg';
 import ClubesAsistentesSection from '@/components/stats/ClubesAsistentesSection';
 import EstadisticasCategoriaSection from '@/components/stats/EstadisticasCategoriaSection';
 import EstadisticasJugadorSection from '@/components/stats/EstadisticasJugadorSection';
@@ -75,7 +76,7 @@ const Stats = () => {
       <PageHero
         title="ESTADÍSTICAS"
         subtitle="Datos y desempeño del torneo"
-        backgroundImage={competenciasHero}
+        backgroundImage={statsHero}
       />
       <div className="container mx-auto px-4 py-10 space-y-8">
         {sections.map(renderSection)}

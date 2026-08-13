@@ -16,7 +16,8 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CalendarClock, History, Loader2 } from 'lucide-react';
-import resultadosHero from '@/assets/resultados-hero.jpg';
+// Hero HD propio de la página de Historial
+import historialHero from '@/assets/historial-hero.jpg';
 import Resultados from '@/pages/Resultados';
 import { useSiteConfig, type HistorialEdition } from '@/hooks/useSiteConfig';
 
@@ -38,7 +39,7 @@ const Historial = () => {
       <PageHero
         title="Historial"
         subtitle="Consulta los resultados de ediciones anteriores"
-        backgroundImage={resultadosHero}
+        backgroundImage={historialHero}
       />
 
       {!selected ? (

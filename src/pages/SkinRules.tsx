@@ -16,7 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Scale, Gavel, ShieldCheck, Trophy, FileText, Clock, AlertTriangle, ScrollText } from 'lucide-react';
-import skinHero from '@/assets/skin-hero.jpg';
+// Hero HD propio de Skin Rules
+import skinHero from '@/assets/skin-rules-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
 

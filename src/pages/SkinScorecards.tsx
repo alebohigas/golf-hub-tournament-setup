@@ -21,7 +21,8 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Trophy } from 'lucide-react';
-import skinHero from '@/assets/skin-hero.jpg';
+// Hero HD propio de Skin Scorecards
+import skinHero from '@/assets/skin-scorecards-hero.jpg';
 import {
   getSkinScorecardMasterUrl,
   getSkinScorecardDetailUrl,
