@@ -1,4 +1,26 @@
+# Torneos de Golf — plataforma multi-torneo
 
+App React (Vite + TypeScript + Tailwind) con backend PHP/MySQL en `server/api/`.
+Un mismo código base sirve a varios clubes: cada instalación tiene su propia base
+de datos y elige qué **módulos** usa.
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [docs/MODULES.md](docs/MODULES.md) | Arquitectura modular: catálogo, estado en ejecución, `/setup`, cómo agregar un módulo, poda. |
+| [docs/NEW-PROJECT.md](docs/NEW-PROJECT.md) | Cómo arrancar un proyecto nuevo para otro club. |
+| [server/api/README.md](server/api/README.md) | Endpoints PHP disponibles y vistas/funciones MySQL requeridas. |
+
+## Módulos, en corto
+
+- `src/modules/registry.ts` — catálogo único de módulos (fuente de verdad).
+- `/setup` — página exclusiva del superadmin para encender/apagar módulos.
+- `site_config.modules_config` — dónde se guarda la selección (por dominio).
+- `bun scripts/prune-modules.ts --list` — borrar el código de los módulos que no se usen.
+
+Apagar un módulo oculta su página, su ruta y su tab de `/admin`, y **gana** sobre
+la visibilidad configurada en `/admin → Página`. Solo el superadmin puede reactivarlo.
 
 ## Project info
 
