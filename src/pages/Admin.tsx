@@ -262,9 +262,11 @@ const AdminDashboard = () => {
     uploads: 'archivos',
     stats: 'stats',
   };
-  const staffDefaultTab = isStaffOnly && staffSession && staffSession.areas.length
+  /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
+  const staffFirstTab = isStaffOnly && staffSession && staffSession.areas.length
     ? (AREA_TO_TAB[staffSession.areas[0]] || 'config')
     : 'config';
+  const staffDefaultTab = isAdminTabEnabled(staffFirstTab) ? staffFirstTab : 'config';
   /**
    * Filtra tabs por MÓDULO (apagado en /setup = no existe para nadie) y luego
    * por permisos del usuario activo.
@@ -384,6 +386,13 @@ const AdminDashboard = () => {
           <LogOut className="h-4 w-4" />
           Cerrar Sesión
         </Button>
+        {/* Acceso a la configuración de módulos: exclusivo del superadmin. */}
+        {isAdmin && (
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/setup')}>
+            <Blocks className="h-4 w-4" />
+            Módulos
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
