@@ -19,6 +19,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSiteConfig, type HeroConfig, type HeroOverride } from '@/hooks/useSiteConfig';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { uploadsQueryKey } from '@/hooks/useUploads';
+import { HERO_PATH_ALIASES } from '@/config/heroPages';
 import { ApiError } from '@/lib/apiClient';
 
 /**
@@ -33,7 +34,10 @@ export const resolveHeroOverride = (
 ): HeroOverride | undefined => {
   if (!config) return undefined;
   const key = String(torneoId ?? '');
-  const candidates = [config.byTorneo?.[key]?.[pathname], config.default?.[pathname]];
+  // Current pathname first, then any legacy alias keys saved by older admin
+  // versions (e.g. '/competencias' for the '/competicion' route).
+  const paths = [pathname, ...(HERO_PATH_ALIASES[pathname] ?? [])];
+  const candidates = paths.flatMap((p) => [config.byTorneo?.[key]?.[p], config.default?.[p]]);
   return candidates.find((entry) => !!entry && entry.active !== false && !!entry.url);
 };
 
