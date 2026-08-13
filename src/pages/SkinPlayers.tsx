@@ -21,7 +21,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Users, Loader2 } from 'lucide-react';
-import skinHero from '@/assets/skin-hero.jpg';
+// Hero HD propio de Skin Players
+import skinHero from '@/assets/skin-players-hero.jpg';
 import { useState } from 'react';
 import { useCategories, usePlayers } from '@/hooks/usePlayersData';
 import type { CategoryDetail } from '@/data/playersData';
