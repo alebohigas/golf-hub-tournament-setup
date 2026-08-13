@@ -82,6 +82,9 @@ import { useTorneoId } from '@/hooks/useTorneoId';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+/** Módulos: los tabs de un módulo apagado no se muestran ni se montan. */
+import { useModules } from '@/modules/useModules';
+import { Blocks } from 'lucide-react';
 
 // ============= Login Form Component =============
 
@@ -239,6 +242,8 @@ const AdminDashboard = () => {
     heros: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
+  /** Estado de módulos del proyecto (ver /setup y src/modules/registry.ts). */
+  const { isAdminTabEnabled } = useModules();
   /** Áreas de staff → tab values del panel principal. */
   const AREA_TO_TAB: Record<StaffArea, string> = {
     preregistros: 'registros',
@@ -260,10 +265,14 @@ const AdminDashboard = () => {
   const staffDefaultTab = isStaffOnly && staffSession && staffSession.areas.length
     ? (AREA_TO_TAB[staffSession.areas[0]] || 'config')
     : 'config';
-  /** Filtra tabs según permisos del usuario activo. */
+  /**
+   * Filtra tabs por MÓDULO (apagado en /setup = no existe para nadie) y luego
+   * por permisos del usuario activo.
+   */
   const visibleAdminTabs = <T extends { value: string }>(tabs: T[]): T[] => {
-    if (!isStaffOnly) return tabs;
-    return tabs.filter(t => {
+    const byModule = tabs.filter(t => isAdminTabEnabled(t.value));
+    if (!isStaffOnly) return byModule;
+    return byModule.filter(t => {
       const area = TAB_AREA[t.value];
       return !!area && staffSession!.areas.includes(area);
     });
