@@ -612,8 +612,9 @@ const AdminDashboard = () => {
           {/* Theme palette picker — applies per-domain via site_config.theme_config */}
           <AdminThemePalette />
 
-          {/* Showcase 300 — buttons to open lobby/TV reports in new windows */}
-          <AdminShowcase300 />
+          {/* Showcase 300 — buttons to open lobby/TV reports in new windows.
+              Solo si el módulo "showcase" está activo en /setup. */}
+          {isAdminTabEnabled('showcase-300') && <AdminShowcase300 />}
         </TabsContent>
 
         {/* Archivos Tab — upload images + PDFs to the server */}
