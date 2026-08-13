@@ -82,6 +82,9 @@ import { useTorneoId } from '@/hooks/useTorneoId';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+/** Módulos: los tabs de un módulo apagado no se muestran ni se montan. */
+import { useModules } from '@/modules/useModules';
+import { Blocks } from 'lucide-react';
 
 // ============= Login Form Component =============
 
@@ -239,6 +242,8 @@ const AdminDashboard = () => {
     heros: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
+  /** Estado de módulos del proyecto (ver /setup y src/modules/registry.ts). */
+  const { isAdminTabEnabled, isEnabled: isModuleOn } = useModules();
   /** Áreas de staff → tab values del panel principal. */
   const AREA_TO_TAB: Record<StaffArea, string> = {
     preregistros: 'registros',
@@ -257,13 +262,19 @@ const AdminDashboard = () => {
     uploads: 'archivos',
     stats: 'stats',
   };
-  const staffDefaultTab = isStaffOnly && staffSession && staffSession.areas.length
+  /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
+  const staffFirstTab = isStaffOnly && staffSession && staffSession.areas.length
     ? (AREA_TO_TAB[staffSession.areas[0]] || 'config')
     : 'config';
-  /** Filtra tabs según permisos del usuario activo. */
+  const staffDefaultTab = isAdminTabEnabled(staffFirstTab) ? staffFirstTab : 'config';
+  /**
+   * Filtra tabs por MÓDULO (apagado en /setup = no existe para nadie) y luego
+   * por permisos del usuario activo.
+   */
   const visibleAdminTabs = <T extends { value: string }>(tabs: T[]): T[] => {
-    if (!isStaffOnly) return tabs;
-    return tabs.filter(t => {
+    const byModule = tabs.filter(t => isAdminTabEnabled(t.value));
+    if (!isStaffOnly) return byModule;
+    return byModule.filter(t => {
       const area = TAB_AREA[t.value];
       return !!area && staffSession!.areas.includes(area);
     });
@@ -375,6 +386,13 @@ const AdminDashboard = () => {
           <LogOut className="h-4 w-4" />
           Cerrar Sesión
         </Button>
+        {/* Acceso a la configuración de módulos: exclusivo del superadmin. */}
+        {isAdmin && (
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/setup')}>
+            <Blocks className="h-4 w-4" />
+            Módulos
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -594,8 +612,9 @@ const AdminDashboard = () => {
           {/* Theme palette picker — applies per-domain via site_config.theme_config */}
           <AdminThemePalette />
 
-          {/* Showcase 300 — buttons to open lobby/TV reports in new windows */}
-          <AdminShowcase300 />
+          {/* Showcase 300 — buttons to open lobby/TV reports in new windows.
+              Solo si el módulo "showcase" está activo en /setup. */}
+          {isModuleOn('showcase') && <AdminShowcase300 />}
         </TabsContent>
 
         {/* Archivos Tab — upload images + PDFs to the server */}

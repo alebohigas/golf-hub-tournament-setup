@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api';
 import { DEFAULT_SUPERADMIN_PASSWORD, getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { setStoredTorneoId } from '@/hooks/useTorneoId';
+import type { ModulesConfig } from '@/modules/moduleState';
 
 // ============= Types =============
 
@@ -457,6 +458,11 @@ export interface SiteConfig {
   historial_config: HistorialConfig | null;
   /** Per-tournament hero image overrides (Admin > Heros). Null = none. */
   hero_config: HeroConfig | null;
+  /**
+   * Qué módulos opcionales de la app están encendidos en este proyecto
+   * (configurado en /setup). Null = todos encendidos.
+   */
+  modules_config: ModulesConfig | null;
 }
 
 /** Payload for saving config (all fields optional except password) */
@@ -486,6 +492,8 @@ export interface SaveConfigPayload {
   home_config?: HomeConfig | null;
   historial_config?: HistorialConfig | null;
   hero_config?: HeroConfig | null;
+  /** Solo el superadmin puede enviar este campo (ver /setup). */
+  modules_config?: ModulesConfig | null;
 }
 
 // ============= Constants =============
