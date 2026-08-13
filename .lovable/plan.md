@@ -1,59 +1,89 @@
-# Plan de cambios
+# Modularización del proyecto + página `/setup`
 
-## 1. Slogan editable desde /admin → Estadísticas
-Actualmente el tagline del footer está hardcoded en `Footer.tsx` (con un override para torneo 354). Mover a configuración por torneo.
+Objetivo: convertir este proyecto en una base reutilizable para otros torneos de golf (cada uno con su **propia base de datos**), donde cada funcionalidad es un **módulo** que se puede apagar desde una página de configuración sin romper el resto, y donde solo el superadmin puede volver a encenderlo.
 
-- **`site_config`**: reusar el JSON ya existente (`stats_page_config` o crear campo simple `footer_tagline`). Voy a añadirlo dentro de `stats_page_config` como `footerTagline` para no crear otra columna.
-- **`AdminStatsPage.tsx`**: nuevo `<Textarea>` "Slogan del footer" con guardado.
-- **`Footer.tsx`**: leer `stats_page_config.footerTagline` vía `useSiteConfig`; si vacío, usar el default actual (con el fallback 354).
+## 1. Catálogo de módulos
 
-## 2. Botones del Hero configurables en /admin → Páginas
-Actualmente el Hero muestra dos botones fijos con fallback a `/jugadores` y `/convocatoria`.
+Cada módulo agrupa: su(s) página(s) pública(s), su tab de `/admin`, sus endpoints PHP y sus migraciones SQL.
 
-- Añadir en `PageVisibilityContext` (persistido en `site_config`) un nuevo objeto:
-  ```
-  homeButtons: { button1: pageId, button2: pageId }
-  ```
-- **`AdminPagina.tsx` (subtab visibilidad o nuevo subtab pequeño "Botones Home")**: dos selects mostrando todas las páginas; validar máximo 2 seleccionadas.
-- **`Hero.tsx`**: leer `homeButtons`; si la página seleccionada está oculta o no existe, caer al fallback (`/jugadores` para botón 1, `/convocatoria` para botón 2).
+**Núcleo (nunca se apaga):** layout (header/footer/menús), visibilidad de páginas, staff/superadmin, `site_config`, `torneoid` por dominio, tema/paleta, Archivos (uploads), Heros, Home.
 
-## 3. Estandarizar "Cat" y "Dist" en /competicion
-Buscar en `src/components/competencias/CompetenciasTable.tsx` y `src/data/competencias/columns.ts` los headers de columna:
-- Reemplazar `"Categoría"` / `"Categoria"` → `"Cat"`
-- Reemplazar `"Distancia"` → `"Dist"`
+**Módulos opcionales:**
 
-Cambio puramente de labels (frontend), sin tocar keys ni backend.
+| Módulo | Páginas | Admin |
+|---|---|---|
+| convocatoria | /convocatoria | Convocatoria |
+| jugadores | /jugadores | — |
+| salidas | /salidas, /horarios | — |
+| resultados | /resultados | — |
+| historial | /historial | Historial |
+| live | /live, /live-scoring | LIVE |
+| competicion | /competicion | — |
+| matchplay | /matchplay, /admin/brackets | Match Play, Brackets |
+| skins | /skingame, /skinrules, /skinplayers, /skinscorecards | — |
+| stats | /stats | Estadísticas, Página de stats |
+| registro | /registro, /admin/registros, /registro/comprobante | Registro (campos, categorías, precios, preferente, socios), Registros |
+| posters | /eventos, /avisos, /menus, /premios, /hoteles | Eventos, Avisos, Menús, Premios, Hoteles |
+| calendario | /calendario | — |
+| banderas | /banderas | Banderas |
+| reglas | /reglas | — |
+| patrocinadores | /patrocinadores | Patrocinadores |
+| showcase | /showcase/* | Showcase 300 |
+| avisos-sitio | — | POP UP, Anuncio |
 
-## 4. Colores grises para no-show/DQ en /stats
-En `ClubesAsistentesSection.tsx` (NoShowCard) reemplazar clases de rojo/destructive por grises neutros (`text-muted-foreground`, `bg-muted`, `border-border`).
+## 2. Registro de módulos en código
 
-## 5. Relación de tipos de socio (nuevo subtab en /admin/pre-registro)
+- `src/modules/registry.ts`: un objeto por módulo con `id`, `label`, `descripcion`, `core: boolean`, `routes[]` (con carga diferida), `adminTabs[]`, `apiFiles[]`, `migrations[]`, `siteConfigKeys[]`.
+- `src/modules/useModules.ts`: hook que devuelve qué módulos están activos (lee la configuración del servidor, con caché).
+- `App.tsx` deja de listar rutas a mano: las genera desde el registro, filtrando módulos apagados. Una ruta de módulo apagado responde 404 igual que cualquier ruta inexistente.
+- `Admin.tsx` deja de listar tabs a mano: las genera desde el registro. Un módulo apagado no aparece, y su panel no se monta (así no dispara llamadas a endpoints que quizá no existan en ese servidor).
+- Los enlaces del menú y las tarjetas del Home filtran también por módulo activo, además de la visibilidad actual.
 
-### Backend
-- **Migración** `2026_07_21_socio_tipos.sql`:
-  ```sql
-  CREATE TABLE public.socio_tipos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    torneoid INT NOT NULL,
-    nombre_club VARCHAR(120) NOT NULL,    -- lo que ve el usuario
-    tipo_sistema ENUM('titular','emerito','dependiente') NOT NULL,
-    orden INT DEFAULT 0,
-    activo TINYINT(1) DEFAULT 1
-  );
-  ```
-- **Nuevo endpoint** `server/api/socio_tipos.php`: GET público (para el formulario), POST autenticado (superadmin/staff).
+## 3. Página `/setup`
 
-### Frontend
-- **`AdminSocioTipos.tsx`**: tabla editable (nombre club + dropdown tipo sistema), agregar/eliminar filas, guardar. Se monta como nuevo subtab dentro de `AdminRegistro` (o al nivel del contenedor Pre-Registro).
-- **`Registro.tsx`**: el dropdown de "Tipo de socio" ahora consume `/api/socio_tipos.php?torneoid=X`. Guarda `nombre_club` para display y **el valor que se envía al proceso existente sigue siendo `tipo_sistema`** (titular/emerito/dependiente) para no romper precios ni categorías.
-- Si no hay filas configuradas para el torneo → fallback al comportamiento actual (opciones hardcoded).
+- Ruta nueva `/setup`, accesible **solo para el superadmin** (misma sesión que `/admin`).
+- Lista los módulos agrupados por área, con: interruptor, descripción, y aviso de lo que se pierde al apagarlo.
+- Estado de cada módulo: `activo` / `apagado`.
+- **Candado:** apagar es reversible solo por superadmin. Si un staff con permiso apaga un módulo, queda `apagado` y el interruptor se muestra bloqueado con candado para todos menos el superadmin.
+- Modo "primer arranque": si la base no tiene configuración de módulos, `/setup` muestra un asistente de selección inicial (todo activo por defecto, se destildan los que no se usarán).
+- Aviso claro: apagar un módulo **no** borra datos, solo lo oculta; el borrado de código es un paso aparte (sección 6).
+
+## 4. Persistencia
+
+- Nueva columna `modules_config` (TEXT/JSON) en `site_config`, con auto-reparación en `site_config.php` como ya se hace con `hero_config`.
+- Formato: `{ "modules": { "skins": { "enabled": false, "lockedBy": "superadmin", "updatedAt": "..." } } }`.
+- Migración SQL en `server/migrations/` + endpoint `server/api/modules_config.php` (lectura pública mínima: solo la lista de módulos activos; escritura solo con credencial de superadmin).
+- Al ser por base de datos, cada proyecto clonado arranca con su propia selección.
+
+## 5. Aislamiento verificable
+
+- `scripts/check-modules.ts`: falla si algún archivo del núcleo importa un archivo de módulo, o si un módulo importa a otro sin declararlo como dependencia en el registro.
+- Resiliencia del backend: los endpoints de un módulo ausente devuelven JSON vacío en lugar de 500 (patrón ya usado en el proyecto), para que un clon sin esas tablas no muestre errores.
+
+## 6. Poda para proyectos nuevos
+
+- `scripts/prune-modules.ts --keep=convocatoria,registro,...`: borra páginas, componentes de admin, hooks, endpoints PHP y migraciones de los módulos no conservados, limpia el registro y corre el build para confirmar que queda sano.
+- Se ejecuta una sola vez en el clon, cuando ya se sabe qué se queda.
+
+## 7. Documentación
+
+- `docs/MODULES.md`: catálogo completo — qué hace cada módulo, qué páginas y tabs trae, qué endpoints y tablas/columnas necesita, dependencias, y qué se pierde al apagarlo.
+- `docs/ARCHITECTURE.md`: núcleo vs. módulos, flujo de `torneoid` por dominio, `site_config`, auth staff/superadmin, proxies de logos.
+- `docs/NEW-PROJECT.md`: receta paso a paso para un torneo nuevo (base de datos, dominio, `torneoid`, `/setup`, poda, despliegue).
+- `docs/DEPLOY-IONOS.md`: qué sube a la raíz, qué va en `/api/`, `.htaccess`, permisos de `uploads/`.
+- `README.md` reescrito (hoy es la plantilla por defecto) apuntando a los cuatro documentos anteriores.
+
+## Orden de trabajo
+
+1. Documentación + catálogo de módulos (sin tocar código de ejecución).
+2. Registro de módulos y generación de rutas y tabs desde él.
+3. Columna `modules_config`, endpoint y hook.
+4. Página `/setup` con candado de superadmin.
+5. Script de validación de aislamiento.
+6. Script de poda.
 
 ## Notas técnicas
-- Todos los cambios de backend pasan por los endpoints con auth dual superadmin/staff que ya arreglamos.
-- Nada rompe la funcionalidad de precios ni validación de socio existente (la clave sigue siendo `titular|emerito|dependiente`).
-- Los cambios son independientes; se pueden desplegar en cualquier orden.
 
-## Orden de implementación sugerido
-1, 3, 4 (cambios pequeños/frontend) → 2 (context + hero) → 5 (migración + endpoint + UI + integración en Registro).
-
-¿Procedo con los 5 en una sola tanda, o prefieres que los divida en dos entregas (1-4 primero, luego 5)?
+- Las rutas de módulo usan `React.lazy`, así el código de un módulo apagado ni se descarga.
+- Nada de esto cambia el aspecto visual de las páginas existentes.
+- La visibilidad actual de `/admin` sigue funcionando igual; los módulos son una capa superior: apagado en `/setup` gana siempre sobre visible en `/admin`.
