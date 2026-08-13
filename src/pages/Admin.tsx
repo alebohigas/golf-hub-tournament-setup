@@ -243,7 +243,7 @@ const AdminDashboard = () => {
   };
   const isStaffOnly = !!staffSession && !isAdmin;
   /** Estado de módulos del proyecto (ver /setup y src/modules/registry.ts). */
-  const { isAdminTabEnabled } = useModules();
+  const { isAdminTabEnabled, isEnabled: isModuleOn } = useModules();
   /** Áreas de staff → tab values del panel principal. */
   const AREA_TO_TAB: Record<StaffArea, string> = {
     preregistros: 'registros',
@@ -614,7 +614,7 @@ const AdminDashboard = () => {
 
           {/* Showcase 300 — buttons to open lobby/TV reports in new windows.
               Solo si el módulo "showcase" está activo en /setup. */}
-          {isAdminTabEnabled('showcase-300') && <AdminShowcase300 />}
+          {isModuleOn('showcase') && <AdminShowcase300 />}
         </TabsContent>
 
         {/* Archivos Tab — upload images + PDFs to the server */}
