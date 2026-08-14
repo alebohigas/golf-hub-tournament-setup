@@ -585,9 +585,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
     return rows.filter(r => {
       if (classify(r) !== section) return false;
 
-      // Búsqueda libre (nombre, correo, teléfono, club).
+      // Búsqueda libre (nombre, correo, teléfono, club, monto pagado).
       if (term) {
-        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club]
+        const hay = [r.reg_nombre, r.reg_apellido, r.reg_correo, r.reg_telefono, r.reg_club, r.akron_monto_pago]
           .filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(term)) return false;
       }
