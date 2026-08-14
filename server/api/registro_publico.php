@@ -102,6 +102,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sets[] = "`$col` = '" . esc($conn, $v) . "'";
     }
 
+    /**
+     * Monto pagado capturado por el jugador (campo "MONTO A PAGAR" en la
+     * pantalla de comprobante). Se normaliza a decimal sin símbolos ni
+     * separadores de miles antes de guardarlo en `registro.akron_monto_pago`.
+     */
+    if (array_key_exists('akron_monto_pago', $_POST) && pub_has($conn, 'akron_monto_pago')) {
+        $rawMonto = trim((string)$_POST['akron_monto_pago']);
+        $numMonto = preg_replace('/[^0-9.]/', '', str_replace(',', '', $rawMonto));
+        if ($numMonto !== '' && is_numeric($numMonto)) {
+            $sets[] = "`akron_monto_pago` = '" . esc($conn, number_format((float)$numMonto, 2, '.', '')) . "'";
+        }
+    }
+
     if (!$hasFile && empty($sets)) {
         json_error('Falta el archivo', 400);
     }
