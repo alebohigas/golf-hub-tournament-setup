@@ -637,6 +637,90 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const hasActiveFilters =
     !!search || !!folioFilter || categoriaFilter !== '__all__' || !!dateValue;
 
+  /**
+   * exportCsv
+   * ------------------------------------------------------------------
+   * Descarga los registros actualmente filtrados/ordenados como CSV
+   * compatible con Excel (BOM UTF-8 + separador ";"), incluyendo
+   * "Monto a pagar" (reg_precio_estimado), "Monto pagado"
+   * (akron_monto_pago) y el estado del comprobante.
+   */
+  const exportCsv = () => {
+    if (sorted.length === 0) {
+      toast({ title: 'No hay registros para exportar', variant: 'destructive' });
+      return;
+    }
+    /** Escapa un valor para CSV (comillas dobles + separador ";"). */
+    const cell = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    /** Normaliza importes a decimal plano para que Excel los lea como número. */
+    const money = (v: unknown) => {
+      if (v == null || String(v).trim() === '') return '';
+      const n = Number(String(v).replace(/[^0-9.\-]/g, ''));
+      return Number.isFinite(n) ? n.toFixed(2) : '';
+    };
+    /** Etiqueta legible del estatus de pago (tabla estatuspago). */
+    const estatusLabel = (r: RegistroRow) => {
+      const opt = estatusOpts.find(o => String(o.value) === String(r.reg_pago_verificado));
+      return opt ? opt.label : '';
+    };
+    /** Estado del comprobante: cargo a cuenta / archivo adjunto / sin comprobante. */
+    const comprobanteEstado = (r: RegistroRow) => {
+      const partes: string[] = [];
+      if (String(r.reg_cargo_socio ?? '') === '1') partes.push('Cargo a cuenta');
+      if (Number(r.has_archivo) === 1) partes.push('Comprobante adjunto');
+      return partes.length ? partes.join(' + ') : 'Sin comprobante';
+    };
+
+    const headers = [
+      'Folio', 'Fecha registro', 'Nombre', 'Apellido', 'Correo', 'Teléfono',
+      'Club', 'Categoría', 'Handicap', 'Socio', 'Tipo socio', 'Clave socio',
+      'Monto a pagar', 'Monto pagado', 'Monto confirmado', 'Moneda',
+      'Comprobante', 'Archivo', 'Estatus de pago', 'Sección',
+    ];
+    const sectionLabel = SECTIONS.find(s => s.id === section)?.label || section;
+    const lines = [headers.map(cell).join(';')];
+    for (const r of sorted) {
+      lines.push([
+        r.id,
+        r.reg_fecha || r.created_at || (r as any).fecha_alta || '',
+        r.reg_nombre || '',
+        r.reg_apellido || '',
+        r.reg_correo || '',
+        formatPhone(r.reg_telefono || r.reg_celular),
+        r.reg_club || '',
+        r.categoria_name || '',
+        r.reg_handicap ?? '',
+        r.reg_es_socio === 'SI' ? 'Sí' : 'No',
+        r.reg_tipo_socio || '',
+        r.reg_numsocio || '',
+        money(r.reg_precio_estimado),
+        money(r.akron_monto_pago),
+        money(r.reg_monto_confirmado),
+        r.reg_precio_moneda || 'MXN',
+        comprobanteEstado(r),
+        r.reg_archivo_nombre || '',
+        estatusLabel(r),
+        sectionLabel,
+      ].map(cell).join(';'));
+    }
+
+    // BOM para que Excel respete los acentos.
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `pre-registros_${section}_${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: `Exportados ${sorted.length} registro(s)` });
+  };
+
   /** Tabs definidos arriba — orden importa (botones). */
   const SECTIONS: { id: 'sec1'|'sec2'|'sec3'|'sec4'|'sec5'|'sec6'; label: string }[] = [
     { id: 'sec1', label: 'Sin validar registro' },
@@ -657,6 +741,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCsv} disabled={loading || sorted.length === 0} className="gap-2">
+            <FileDown className="h-4 w-4" /> Exportar CSV / Excel
+          </Button>
           <Button variant="outline" onClick={refresh} disabled={loading} className="gap-2">
             <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} /> Actualizar
           </Button>
