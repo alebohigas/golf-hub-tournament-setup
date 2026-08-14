@@ -86,6 +86,8 @@ const Comprobante = () => {
    */
   const [tallas, setTallas] = useState<Record<string, string>>({});
   const [tallasVisibles, setTallasVisibles] = useState<string[]>([]);
+  /** Monto pagado capturado por el jugador (se guarda en akron_monto_pago). */
+  const [montoPagado, setMontoPagado] = useState<string>('');
 
   /** Initial load — fetch registro by token. */
   useEffect(() => {
@@ -134,6 +136,8 @@ const Comprobante = () => {
       const fd = new FormData();
       fd.append('token', token);
       fd.append('reg_archivo', file);
+      // Monto pagado → registro.akron_monto_pago
+      fd.append('akron_monto_pago', montoPagado);
       // Enviar tallas editadas (solo las visibles/no-null originales)
       for (const k of tallasVisibles) {
         fd.append(k, tallas[k] ?? '');
@@ -223,7 +227,22 @@ const Comprobante = () => {
               <Field label="Categoría" value={registro.categoria_name} />
               <Field label="Handicap" value={registro.reg_handicap} />
               <Field label="Socio" value={registro.reg_es_socio === 'SI' ? `Sí · ${registro.reg_tipo_socio || ''}` : 'No'} />
-              <Field label="Monto a pagar" value={monto} />
+              {/* Monto a pagar: valor de referencia + entrada para el monto pagado */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">Monto a pagar</span>
+                <span className="font-bold text-foreground break-words">{monto}</span>
+                <Label htmlFor="akron_monto_pago" className="text-xs uppercase tracking-wide text-muted-foreground mt-2">
+                  Monto pagado
+                </Label>
+                <Input
+                  id="akron_monto_pago"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={montoPagado}
+                  onChange={(e) => setMontoPagado(e.target.value.replace(/[^0-9.,]/g, ''))}
+                  className="bg-background font-bold"
+                />
+              </div>
             </div>
 
             {/* Existing file note */}
