@@ -884,21 +884,28 @@ const Registro = () => {
 
   /**
    * Es-socio autofill rules:
-   *  - SI  → reg_club = club del torneo anfitrión (siempre sobrescribe).
-   *          Si el torneo no expone club, se usa el único club registrado
-   *          en clubs_registro como respaldo.
+   *  - SI  → reg_club = club del torneo anfitrión, PERO sólo como sugerencia:
+   *          si el torneo tiene más de un club autorizado (p. ej. durante el
+   *          registro preferente hay varios clubes con preferencia), no se
+   *          sobrescribe una selección hecha por el jugador — un socio de un
+   *          club preferente distinto al sede debe poder conservar su club.
    *  - NO  → if we previously autofilled from SI, clear it so the user
    *          (or the player-lookup effect above) can fill the real club.
    */
   useEffect(() => {
     const ans = values.reg_es_socio;
     if (ans === 'SI') {
-      // Al declararse socio, el club de procedencia SIEMPRE es el club del
-      // torneo que se está registrando.
       const hostClub = tournamentInfo?.club || (socioClubs.length === 1 ? socioClubs[0].nombre : '');
+      // Varios clubes autorizados → el jugador elige; sólo prellenamos si
+      // el campo está vacío o si el valor previo lo pusimos nosotros.
+      const multipleAuthorized = socioClubs.length > 1;
       if (hostClub) {
+        setValues(v => {
+          if (v.reg_club === hostClub) return v;
+          if (multipleAuthorized && v.reg_club && !socioClubAutofilled) return v;
+          return { ...v, reg_club: hostClub };
+        });
         setSocioClubAutofilled(true);
-        setValues(v => (v.reg_club === hostClub ? v : { ...v, reg_club: hostClub }));
       }
     } else if (ans === 'NO' && socioClubAutofilled) {
       setSocioClubAutofilled(false);
@@ -1349,12 +1356,21 @@ const Registro = () => {
      * vigente hoy. En caso contrario, bloqueamos con un toast.
      */
     if (preferenteCfg?.active_now) {
-      const isSocio = values.reg_es_socio === 'SI';
-      const typedClub = (values.reg_club || '').trim().toLowerCase();
-      const chosen = socioClubs.find(c => c.nombre.trim().toLowerCase() === typedClub);
+      /**
+       * La condición real es el CLUB: si el club seleccionado está entre los
+       * clubes con ventana preferente vigente hoy, se acepta — sin importar
+       * si es el club sede o no, y sin exigir la bandera `reg_es_socio = SI`
+       * (el comité valida la membresía después). Buscamos el club tanto en la
+       * lista del torneo como en el catálogo completo, comparando de forma
+       * insensible a acentos/mayúsculas.
+       */
+      const typedKey = clubKey(values.reg_club || '');
+      const chosen =
+        socioClubs.find(c => clubKey(c.nombre) === typedKey) ||
+        clubs.find(c => clubKey(c.nombre) === typedKey);
       const allowedIds = preferenteCfg.allowed_club_ids || [];
       const clubAllowed = !!chosen && allowedIds.includes(chosen.id);
-      if (!isSocio || !clubAllowed) {
+      if (!clubAllowed) {
         toast({
           title: 'Registro preferente activo',
           description:
