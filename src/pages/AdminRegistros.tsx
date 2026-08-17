@@ -872,8 +872,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <th className="text-left p-3">Socio</th>
                     <th className="text-center p-3">Pago / Comprobante</th>
                     <th className="text-center p-3">Monto cobrado</th>
-                    {/* Monto realmente pagado capturado por el jugador (akron_monto_pago). */}
-                    <th className="text-center p-3">Monto pagado</th>
                     {/*
                       Columnas siempre visibles en todas las secciones para
                       que el admin pueda capturar monto confirmado y mover
@@ -1032,15 +1030,6 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         {/* Monto cobrado (snapshot mostrado al jugador al enviar el form). */}
                         <td className="p-3 text-center font-mono text-xs">{montoCobrado}</td>
-                        {/* Monto pagado (capturado por el jugador junto al comprobante). */}
-                        <td className={cn(
-                          'p-3 text-center font-mono text-xs',
-                          montoPagadoNum == null
-                            ? 'text-muted-foreground'
-                            : montoMatch ? 'text-primary font-semibold' : 'text-amber-700 font-semibold'
-                        )}>
-                          {montoPagado}
-                        </td>
                         {/* Campo: monto confirmado recibido (se persiste onBlur). Disponible en todas las secciones. */}
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <Input
@@ -1184,7 +1173,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       {expanded.has(r.id) && (
                         <tr className="border-t bg-muted/20">
                           <td></td>
-                          <td colSpan={11} className="p-4">
+                          <td colSpan={10} className="p-4">
                             {/* Detalle completo: lista todos los campos llenados del registro. */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                               {[
