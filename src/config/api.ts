@@ -527,3 +527,10 @@ export const getPlayerLookupByIdUrl = (spei: string, ghin: string): string => {
   }).toString();
   return `${API_BASE_URL}/clubs.php?${qs}`;
 };
+
+/**
+ * Admin CRUD de categorías (/admin → Jugadores).
+ * GET lista categorías + catálogos de tees y campos; POST crea/edita/borra.
+ */
+export const getCategoriasAdminUrl = (): string =>
+  `${API_BASE_URL}/categorias_admin.php${buildQuery()}`;
