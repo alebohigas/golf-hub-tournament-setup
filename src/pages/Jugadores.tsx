@@ -114,13 +114,16 @@ const Jugadores = () => {
                   Categoría: <span className="font-bold">{selectedCategory.name}</span>
                 </h2>
                 <div className="text-muted-foreground space-y-1">
-                  <p><span className="font-bold text-foreground">Tee Salida:</span> {selectedCategory.teeName || selectedCategory.teeColor}</p>
+                  {/* Todas las filas se renderizan SIEMPRE; cuando el dato no
+                      existe en la BD se muestra un guion largo para que la
+                      ficha de categoría nunca aparezca incompleta. */}
+                  <p><span className="font-bold text-foreground">Tee Salida:</span> {selectedCategory.teeName || selectedCategory.teeColorName || selectedCategory.teeColor || '—'}</p>
                   <p>
-                    {selectedCategory.rating != null && <><span className="font-bold text-foreground">Rating:</span> {selectedCategory.rating} </>}
-                    {selectedCategory.slope != null && <><span className="font-bold text-foreground">Slope:</span> {selectedCategory.slope} </>}
-                    {selectedCategory.par != null && <><span className="font-bold text-foreground">Par:</span> {selectedCategory.par}</>}
+                    <span className="font-bold text-foreground">Rating:</span> {selectedCategory.rating != null ? selectedCategory.rating : '—'}{' '}
+                    <span className="font-bold text-foreground">Slope:</span> {selectedCategory.slope != null ? selectedCategory.slope : '—'}{' '}
+                    <span className="font-bold text-foreground">Par:</span> {selectedCategory.par != null ? selectedCategory.par : '—'}
                   </p>
-                  <p><span className="font-bold text-foreground">Sistema:</span> {selectedCategory.system}</p>
+                  <p><span className="font-bold text-foreground">Sistema:</span> {selectedCategory.system || '—'}</p>
                   <p><span className="font-bold text-foreground">Rango Handicaps:</span> {selectedCategory.hcpMin} - {selectedCategory.hcpMax}</p>
                   {/* Día Handicap: shown between Rango and Porcentaje. Displays formatted date or em-dash when no fechahandicap is set */}
                   <p>
@@ -133,7 +136,9 @@ const Jugadores = () => {
                         })()
                       : '—'}
                   </p>
-                  <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentage}%</p>
+                  {/* Se prefiere `percentageRaw` (valor textual exacto de la BD) para
+                      respetar decimales originales; si no viene, se usa el numérico. */}
+                  <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentageRaw ?? selectedCategory.percentage}%</p>
                   <p><span className="font-bold text-foreground">Total jugadores:</span>{' '}
                     <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
                   </p>
