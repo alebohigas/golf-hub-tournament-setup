@@ -414,7 +414,97 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                 </h2>
               </div>
 
-              {loadingCats ? (
+              {/* ============= Buscador por nombre (igual que JUGADORES / SALIDAS) ============= */}
+              <PlayerSearchInput
+                className="max-w-md mx-auto mb-8"
+                value={searchQuery}
+                onChange={setSearchQuery}
+                suggestions={playerSuggestions}
+              />
+
+              {searchActive ? (
+                /* ============= Resultados de búsqueda ============= */
+                <div className="max-w-4xl mx-auto">
+                  {searchLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                      <p className="text-muted-foreground">
+                        No se encontró ningún jugador con "{searchQuery}"
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-sm text-muted-foreground text-center">
+                        {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                      </p>
+                      {searchResults.map((hit, idx) => (
+                        <Card key={`${hit.category.categoryId}-${idx}`} className="border-border/50 bg-white">
+                          <CardContent className="p-0 bg-white">
+                            <div className="bg-muted/50 px-4 py-2 border-b border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-sm items-center justify-between">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                <span className="font-semibold text-foreground">{hit.category.categoryName}</span>
+                                <span className="text-primary font-medium">{hit.category.shortName}</span>
+                                <span className="text-muted-foreground">{hit.category.system}</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setSearchQuery('');
+                                  handleCategoryClick(hit.category);
+                                }}
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                Ver categoría
+                              </Button>
+                            </div>
+                            <div className="overflow-x-auto bg-white">
+                              <Table className="bg-white tournament-table">
+                                <TableHeader>
+                                  <TableRow className="bg-primary hover:bg-primary">
+                                    <TableHead className="text-primary-foreground font-bold text-center w-16">Pos</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  <TableRow className="bg-white hover:bg-white">
+                                    <TableCell className="text-center font-semibold">{hit.position}</TableCell>
+                                    <TableCell className="p-1 text-center align-middle">
+                                      {hit.clubLogo ? (
+                                        <img
+                                          src={hit.clubLogo}
+                                          alt="Club"
+                                          className="w-auto object-contain rounded inline-block"
+                                          style={{ height: '2.1375rem' }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs">{hit.club}</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="player-name-cell">
+                                      <span className="player-name-clamp">{hit.name}</span>
+                                      {hit.partner ? (
+                                        <span className="block text-xs text-muted-foreground">{hit.partner}</span>
+                                      ) : null}
+                                    </TableCell>
+                                    <TableCell className="text-center font-extrabold text-primary">{hit.total}</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : loadingCats ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
