@@ -85,8 +85,18 @@ const AnnouncementRibbon = () => {
   });
 
   if (active.length === 0) return null;
+  /**
+   * Si algún anuncio activo está marcado como sticky, el stack completo se
+   * fija debajo del header (usando la variable CSS `--header-height` que
+   * publica <Header />) en todos los dispositivos, quedando entre el menú y
+   * el carrusel de patrocinadores.
+   */
+  const isSticky = active.some((cfg) => cfg.sticky);
   return (
-    <div className="w-full flex flex-col">
+    <div
+      className={`w-full flex flex-col ${isSticky ? 'sticky z-40 shadow-sm' : ''}`}
+      style={isSticky ? { top: 'var(--header-height, 0px)' } : undefined}
+    >
       {active.map((cfg, i) => (
         <RibbonRow key={i} cfg={cfg} />
       ))}
