@@ -170,30 +170,122 @@ const Jugadores = () => {
                 </h2>
               </div>
 
-              {/* Loading State */}
-              {loadingCats ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {/* ============= Player Search Bar (with autocomplete) =============
+                  Always rendered at category-selection level (mirrors Salidas).
+                  Visible even while master data is loading or when no categories exist. */}
+              <PlayerSearchInput
+                className="max-w-md mx-auto mb-8"
+                value={searchQuery}
+                onChange={setSearchQuery}
+                suggestions={playerSuggestions}
+              />
+
+              {/* ============= Search Results ============= */}
+              {searchActive && searchQuery.trim().length >= 2 ? (
+                <div className="max-w-5xl mx-auto">
+                  {searchLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                      <p className="text-muted-foreground">No se encontró ningún jugador con "{searchQuery}"</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-sm text-muted-foreground text-center mb-4">
+                        {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                      </p>
+                      {searchFailures > 0 && (
+                        <p className="text-sm text-destructive text-center mb-2">
+                          ⚠️ {searchFailures} categoría(s) no se pudieron cargar — algunos resultados pueden faltar. Revisa la consola.
+                        </p>
+                      )}
+                      {searchResults.map((result, rIdx) => (
+                        <Card key={rIdx} className="border-border/50 bg-white">
+                          <CardContent className="p-0 bg-white">
+                            {/* Result context header */}
+                            <div className="bg-muted/50 px-4 py-2 border-b border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-sm items-center justify-between">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                <span className="font-semibold text-foreground">{result.category.name}</span>
+                                <span className="text-primary font-medium">{result.category.shortName}</span>
+                                <span className="text-muted-foreground">{result.category.system}</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleResultClick(result.category)}
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                Ver categoría
+                              </Button>
+                            </div>
+                            {/* Player table */}
+                            <div className="overflow-x-auto bg-white">
+                              <Table className="bg-white tournament-table">
+                                <TableHeader>
+                                  <TableRow className="bg-primary hover:bg-primary">
+                                    <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">HI</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">HJ</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">HN</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  <TableRow className="bg-white hover:bg-white">
+                                    <TableCell className="p-1 text-center align-middle">
+                                      <img
+                                        src={result.player.clubLogo}
+                                        alt="Club logo"
+                                        className="w-auto object-contain rounded inline-block"
+                                        style={{ height: '2.1375rem' }}
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="%23166534" rx="4"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-family="sans-serif">Club</text></svg>')}`;
+                                        }}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="player-name-cell"><span className="player-name-clamp">{result.player.name}</span></TableCell>
+                                    <TableCell className="text-center">{result.player.handicapIndex.toFixed(1)}</TableCell>
+                                    <TableCell className="text-center">{result.player.handicapJuego}</TableCell>
+                                    <TableCell className="text-center font-extrabold text-base text-primary">{result.player.handicapNeto}</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
-                /* Categories Grid */
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {categories.map((category) => (
-                    <Card key={category.id} className="border-border/50 hover:border-primary/50 transition-colors">
-                      <CardContent className="p-4 text-center">
-                        <h3 className="font-bold text-foreground">{category.shortName}</h3>
-                        <p className="text-2xl font-bold text-primary my-2">{category.playerCount}</p>
-                        <Button
-                          size="sm"
-                          onClick={() => setSelectedCategory(category)}
-                          className="w-full"
-                        >
-                          Ver
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                /* Loading State or Categories Grid */
+                loadingCats ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  /* Categories Grid */
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {categories.map((category) => (
+                      <Card key={category.id} className="border-border/50 hover:border-primary/50 transition-colors">
+                        <CardContent className="p-4 text-center">
+                          <h3 className="font-bold text-foreground">{category.shortName}</h3>
+                          <p className="text-2xl font-bold text-primary my-2">{category.playerCount}</p>
+                          <Button
+                            size="sm"
+                            onClick={() => setSelectedCategory(category)}
+                            className="w-full"
+                          >
+                            Ver
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )
               )}
             </>
           ) : (
