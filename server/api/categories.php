@@ -109,8 +109,24 @@ $sql = "SELECT a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
         FROM categorias a
         LEFT JOIN jugadores b ON $playerJoinCond
         LEFT JOIN salidas s ON (a.salida = s.id)
-        LEFT JOIN campo_tee ct ON (ct.salidaid = a.salida AND ct.campoid = (
-            SELECT campo FROM caljuego WHERE categoriaid = a.categoria_id LIMIT 1
+        /**
+         * Rating / Slope / Par resolution.
+         *
+         * Antes se tomaba `SELECT campo FROM caljuego ... LIMIT 1`, lo que en
+         * algunas categorías devolvía una ronda con `campo = 0` (sin campo
+         * asignado) y dejaba Rating/Slope/Par vacíos en /jugadores.
+         *
+         * Ahora se toma el primer campo VÁLIDO (campo > 0) y, si la categoría
+         * no tiene ninguna ronda con campo asignado, se cae al primer registro
+         * de campo_tee que exista para ese tee de salida.
+         */
+        LEFT JOIN campo_tee ct ON (ct.salidaid = a.salida AND ct.campoid = COALESCE(
+            (SELECT cj.campo FROM caljuego cj
+              WHERE cj.categoriaid = a.categoria_id AND cj.campo > 0
+              ORDER BY cj.campo ASC LIMIT 1),
+            (SELECT ct2.campoid FROM campo_tee ct2
+              WHERE ct2.salidaid = a.salida
+              ORDER BY ct2.campoid ASC LIMIT 1)
         ))
         WHERE a.estatus = 1 AND a.torneo_id = $tid $skinCatFilter
         GROUP BY a.categoria_id, a.torneo_id, a.categoria, a.abreviatura,
