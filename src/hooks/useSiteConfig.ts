@@ -421,6 +421,12 @@ export interface AnuncioConfig {
   speedSeconds: number;
   /** Routes where the ribbon should be shown. Missing = every page (legacy). */
   paths?: string[];
+  /**
+   * Cuando es true, la tira queda fija (sticky) justo debajo del header —
+   * entre el menú y el carrusel de patrocinadores — en todos los
+   * dispositivos (desktop, tablet y móvil). Missing/false = en flujo normal.
+   */
+  sticky?: boolean;
 }
 
 /** Full server response for site config */
