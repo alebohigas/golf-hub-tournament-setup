@@ -11,9 +11,14 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
+import { Trophy, ArrowLeft, Medal, Loader2, Search } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
-import { useState, Fragment } from 'react';
+import { useState, useMemo, Fragment } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
+import { apiFetch } from '@/lib/apiClient';
+import { getResultadosCategoryUrl, POLL_SLOW } from '@/config/api';
+import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
 import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi, fetchParejasScorecardFromApi } from '@/hooks/useResultadosData';
 import type { ParejaScorecard } from '@/hooks/useResultadosData';
 import type { 
