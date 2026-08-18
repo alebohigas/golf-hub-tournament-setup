@@ -11,9 +11,14 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trophy, ArrowLeft, Medal, Loader2 } from 'lucide-react';
+import { Trophy, ArrowLeft, Medal, Loader2, Search } from 'lucide-react';
 import resultadosHero from '@/assets/resultados-hero.jpg';
-import { useState, Fragment } from 'react';
+import { useState, useMemo, Fragment } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
+import { apiFetch } from '@/lib/apiClient';
+import { getResultadosCategoryUrl, POLL_SLOW } from '@/config/api';
+import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
 import { useAllResults, useCategoryResults, fetchPlayerScorecardFromApi, fetchParejasScorecardFromApi } from '@/hooks/useResultadosData';
 import type { ParejaScorecard } from '@/hooks/useResultadosData';
 import type { 
@@ -146,9 +151,28 @@ interface ResultadosProps {
   torneoIdOverride?: string;
 }
 
+/**
+ * ResultadosSearchHit
+ * Un jugador encontrado por el buscador por nombre, junto con la categoría
+ * (y el tipo de puntuación) donde aparece, para poder saltar a ella.
+ */
+interface ResultadosSearchHit {
+  category: ResultCategory;
+  position: number;
+  name: string;
+  partner?: string;
+  club: string;
+  clubLogo: string;
+  total: number | string;
+}
+
 const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedScoringType, setSelectedScoringType] = useState<ScoringType | null>(null);
+  /** Búsqueda de jugador por nombre (misma UX que JUGADORES y SALIDAS) */
+  const [searchQuery, setSearchQuery] = useState('');
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const searchActive = normalizedQuery.length >= 2;
 
   /** Track which scorecard is expanded: "playerId-round" */
   const [expandedScorecard, setExpandedScorecard] = useState<string | null>(null);
@@ -159,6 +183,69 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
 
   // Fetch all categories from API
   const { data: categories = [], isLoading: loadingCats } = useAllResults(torneoIdOverride);
+
+  /**
+   * Carga en paralelo el leaderboard NETO de TODAS las categorías (sólo cuando
+   * hay búsqueda activa) para poder localizar a un jugador sin abrir categorías.
+   */
+  const searchQueries = useQueries({
+    queries: categories.map((cat) => ({
+      queryKey: ['resultados-search', cat.categoryId, torneoIdOverride ?? 'active'],
+      queryFn: async () => {
+        const raw = await apiFetch<any>(
+          getResultadosCategoryUrl(cat.categoryId, '0', torneoIdOverride)
+        );
+        const list: any[] = Array.isArray(raw?.players)
+          ? raw.players
+          : (raw?.scoringTypes?.[0]?.players ?? []);
+        const hits = list.map((p: any, idx: number) => ({
+          category: cat,
+          position: p.position ?? idx + 1,
+          name: p.name || p.pairName || '',
+          partner: p.partner || '',
+          club: p.club || '',
+          clubLogo: p.clubLogo || '',
+          total: p.total ?? p.totalSA ?? 0,
+        })) as ResultadosSearchHit[];
+        return hits;
+      },
+      staleTime: POLL_SLOW,
+      enabled: searchActive,
+    })),
+  });
+
+  /** Nombres únicos para el autocompletado */
+  const playerSuggestions = useMemo(() => {
+    const names: string[] = [];
+    for (const q of searchQueries) {
+      for (const hit of q.data ?? []) {
+        if (hit.name) names.push(hit.name);
+        if (hit.partner) names.push(hit.partner);
+      }
+    }
+    return buildUniqueNameSuggestions(names);
+  }, [searchQueries]);
+
+  /** Resultados de búsqueda entre todas las categorías cargadas */
+  const searchResults = useMemo<ResultadosSearchHit[]>(() => {
+    if (!searchActive) return [];
+    const out: ResultadosSearchHit[] = [];
+    for (const q of searchQueries) {
+      for (const hit of q.data ?? []) {
+        if (
+          normalizeSearchText(hit.name).includes(normalizedQuery) ||
+          normalizeSearchText(hit.partner).includes(normalizedQuery)
+        ) {
+          out.push(hit);
+        }
+      }
+    }
+    return out;
+  }, [searchActive, normalizedQuery, searchQueries]);
+
+  /** Cargando mientras ninguna categoría ha resuelto todavía */
+  const searchLoading =
+    searchActive && searchQueries.length > 0 && searchQueries.every((q) => q.isLoading);
 
   // Fetch selected category detail from API (passes gross param based on scoring type)
   const { data: categoryDetail, isLoading: loadingDetail } = useCategoryResults(
@@ -327,7 +414,97 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                 </h2>
               </div>
 
-              {loadingCats ? (
+              {/* ============= Buscador por nombre (igual que JUGADORES / SALIDAS) ============= */}
+              <PlayerSearchInput
+                className="max-w-md mx-auto mb-8"
+                value={searchQuery}
+                onChange={setSearchQuery}
+                suggestions={playerSuggestions}
+              />
+
+              {searchActive ? (
+                /* ============= Resultados de búsqueda ============= */
+                <div className="max-w-4xl mx-auto">
+                  {searchLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                      <p className="text-muted-foreground">
+                        No se encontró ningún jugador con "{searchQuery}"
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-sm text-muted-foreground text-center">
+                        {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
+                      </p>
+                      {searchResults.map((hit, idx) => (
+                        <Card key={`${hit.category.categoryId}-${idx}`} className="border-border/50 bg-white">
+                          <CardContent className="p-0 bg-white">
+                            <div className="bg-muted/50 px-4 py-2 border-b border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-sm items-center justify-between">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                <span className="font-semibold text-foreground">{hit.category.categoryName}</span>
+                                <span className="text-primary font-medium">{hit.category.shortName}</span>
+                                <span className="text-muted-foreground">{hit.category.system}</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setSearchQuery('');
+                                  handleCategoryClick(hit.category);
+                                }}
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                Ver categoría
+                              </Button>
+                            </div>
+                            <div className="overflow-x-auto bg-white">
+                              <Table className="bg-white tournament-table">
+                                <TableHeader>
+                                  <TableRow className="bg-primary hover:bg-primary">
+                                    <TableHead className="text-primary-foreground font-bold text-center w-16">Pos</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">Club</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
+                                    <TableHead className="text-primary-foreground font-bold text-center">Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  <TableRow className="bg-white hover:bg-white">
+                                    <TableCell className="text-center font-semibold">{hit.position}</TableCell>
+                                    <TableCell className="p-1 text-center align-middle">
+                                      {hit.clubLogo ? (
+                                        <img
+                                          src={hit.clubLogo}
+                                          alt="Club"
+                                          className="w-auto object-contain rounded inline-block"
+                                          style={{ height: '2.1375rem' }}
+                                        />
+                                      ) : (
+                                        <span className="text-xs">{hit.club}</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="player-name-cell">
+                                      <span className="player-name-clamp">{hit.name}</span>
+                                      {hit.partner ? (
+                                        <span className="block text-xs text-muted-foreground">{hit.partner}</span>
+                                      ) : null}
+                                    </TableCell>
+                                    <TableCell className="text-center font-extrabold text-primary">{hit.total}</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : loadingCats ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
