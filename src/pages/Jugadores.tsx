@@ -1,21 +1,27 @@
 /**
  * Jugadores Page
  * Shows tournament categories as cards, then players table on category click
+ * Includes player search across all categories (same logic as Salidas)
  * Data fetched from categories.php and players.php via React Query hooks
  */
 
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
+import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowLeft, Users, Loader2, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Users, Loader2, HelpCircle, Search } from 'lucide-react';
 import jugadoresHero from '@/assets/jugadores-hero.jpg';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { useCategories, usePlayers } from '@/hooks/usePlayersData';
 import { useTournamentInfo } from '@/hooks/useTournamentData';
-import type { CategoryDetail } from '@/data/playersData';
+import { apiFetch } from '@/lib/apiClient';
+import { getPlayersApiUrl, POLL_SLOW } from '@/config/api';
+import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
+import type { Player, CategoryDetail } from '@/data/playersData';
 
 const Jugadores = () => {
   /** Currently selected category (null = show grid) */
