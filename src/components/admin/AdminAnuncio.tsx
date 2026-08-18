@@ -60,6 +60,7 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   italic: false,
   speedSeconds: 30,
   paths: ['*'],
+  sticky: false,
 };
 
 /**
@@ -263,6 +264,22 @@ const AdminAnuncio = () => {
           </div>
 
           {/* Text */}
+          {/* Sticky switch — fija la tira debajo del menú en todos los dispositivos */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <Label className="text-base">Fijar arriba (sticky)</Label>
+              <p className="text-xs text-muted-foreground">
+                La tira queda pegada debajo del menú (entre el menú y el
+                carrusel de patrocinadores) al hacer scroll, en computadora,
+                tableta y celular.
+              </p>
+            </div>
+            <Switch
+              checked={Boolean(config.sticky)}
+              onCheckedChange={(v) => setConfig((c) => ({ ...c, sticky: v }))}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="anuncio-text">Texto del anuncio</Label>
             <Textarea
