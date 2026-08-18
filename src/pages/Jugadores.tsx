@@ -136,9 +136,7 @@ const Jugadores = () => {
                         })()
                       : '—'}
                   </p>
-                  {/* Se prefiere `percentageRaw` (valor textual exacto de la BD) para
-                      respetar decimales originales; si no viene, se usa el numérico. */}
-                  <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentageRaw ?? selectedCategory.percentage}%</p>
+                  <p><span className="font-bold text-foreground">Porcentaje Handicap:</span> {selectedCategory.percentage}%</p>
                   <p><span className="font-bold text-foreground">Total jugadores:</span>{' '}
                     <span className="text-primary font-bold">{selectedCategory.playerCount}</span>
                   </p>
