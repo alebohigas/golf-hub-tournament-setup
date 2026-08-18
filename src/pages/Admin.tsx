@@ -29,6 +29,8 @@ import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminRegistroPreferente from '@/components/admin/AdminRegistroPreferente';
 import AdminSocioTipos from '@/components/admin/AdminSocioTipos';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
+/** CRUD de categorías (Tee Salida, Rating, Slope, Par) → pestaña "Jugadores". */
+import AdminJugadores from '@/components/admin/AdminJugadores';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
@@ -234,6 +236,8 @@ const AdminDashboard = () => {
     live: 'live',
     stats: 'stats',
     'stats-page': 'stats',
+    // Categorías de jugadores: restringido a superadmin.
+    jugadores: undefined,
     usuarios: undefined,
     config: undefined,
     pagina: undefined,
@@ -482,6 +486,7 @@ const AdminDashboard = () => {
             { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
+            { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'historial',    icon: History,         label: 'Historial' },
@@ -757,6 +762,12 @@ const AdminDashboard = () => {
             alimenta la página pública /historial. */}
         <TabsContent value="historial">
           <AdminHistorial />
+        </TabsContent>
+
+        {/* Jugadores Tab — CRUD de categorías del torneo con Tee de Salida,
+            Rating, Slope y Par (campo_tee). Alimenta /jugadores. */}
+        <TabsContent value="jugadores">
+          <AdminJugadores />
         </TabsContent>
 
         {/* Heros Tab — sube/genera con IA, selecciona y activa la imagen de
