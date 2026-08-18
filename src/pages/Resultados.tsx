@@ -151,9 +151,28 @@ interface ResultadosProps {
   torneoIdOverride?: string;
 }
 
+/**
+ * ResultadosSearchHit
+ * Un jugador encontrado por el buscador por nombre, junto con la categoría
+ * (y el tipo de puntuación) donde aparece, para poder saltar a ella.
+ */
+interface ResultadosSearchHit {
+  category: ResultCategory;
+  position: number;
+  name: string;
+  partner?: string;
+  club: string;
+  clubLogo: string;
+  total: number | string;
+}
+
 const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedScoringType, setSelectedScoringType] = useState<ScoringType | null>(null);
+  /** Búsqueda de jugador por nombre (misma UX que JUGADORES y SALIDAS) */
+  const [searchQuery, setSearchQuery] = useState('');
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const searchActive = normalizedQuery.length >= 2;
 
   /** Track which scorecard is expanded: "playerId-round" */
   const [expandedScorecard, setExpandedScorecard] = useState<string | null>(null);
@@ -164,6 +183,69 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
 
   // Fetch all categories from API
   const { data: categories = [], isLoading: loadingCats } = useAllResults(torneoIdOverride);
+
+  /**
+   * Carga en paralelo el leaderboard NETO de TODAS las categorías (sólo cuando
+   * hay búsqueda activa) para poder localizar a un jugador sin abrir categorías.
+   */
+  const searchQueries = useQueries({
+    queries: categories.map((cat) => ({
+      queryKey: ['resultados-search', cat.categoryId, torneoIdOverride ?? 'active'],
+      queryFn: async () => {
+        const raw = await apiFetch<any>(
+          getResultadosCategoryUrl(cat.categoryId, '0', torneoIdOverride)
+        );
+        const list: any[] = Array.isArray(raw?.players)
+          ? raw.players
+          : (raw?.scoringTypes?.[0]?.players ?? []);
+        const hits = list.map((p: any, idx: number) => ({
+          category: cat,
+          position: p.position ?? idx + 1,
+          name: p.name || p.pairName || '',
+          partner: p.partner || '',
+          club: p.club || '',
+          clubLogo: p.clubLogo || '',
+          total: p.total ?? p.totalSA ?? 0,
+        })) as ResultadosSearchHit[];
+        return hits;
+      },
+      staleTime: POLL_SLOW,
+      enabled: searchActive,
+    })),
+  });
+
+  /** Nombres únicos para el autocompletado */
+  const playerSuggestions = useMemo(() => {
+    const names: string[] = [];
+    for (const q of searchQueries) {
+      for (const hit of q.data ?? []) {
+        if (hit.name) names.push(hit.name);
+        if (hit.partner) names.push(hit.partner);
+      }
+    }
+    return buildUniqueNameSuggestions(names);
+  }, [searchQueries]);
+
+  /** Resultados de búsqueda entre todas las categorías cargadas */
+  const searchResults = useMemo<ResultadosSearchHit[]>(() => {
+    if (!searchActive) return [];
+    const out: ResultadosSearchHit[] = [];
+    for (const q of searchQueries) {
+      for (const hit of q.data ?? []) {
+        if (
+          normalizeSearchText(hit.name).includes(normalizedQuery) ||
+          normalizeSearchText(hit.partner).includes(normalizedQuery)
+        ) {
+          out.push(hit);
+        }
+      }
+    }
+    return out;
+  }, [searchActive, normalizedQuery, searchQueries]);
+
+  /** Cargando mientras ninguna categoría ha resuelto todavía */
+  const searchLoading =
+    searchActive && searchQueries.length > 0 && searchQueries.every((q) => q.isLoading);
 
   // Fetch selected category detail from API (passes gross param based on scoring type)
   const { data: categoryDetail, isLoading: loadingDetail } = useCategoryResults(
