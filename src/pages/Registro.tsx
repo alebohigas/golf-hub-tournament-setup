@@ -2242,6 +2242,8 @@ const Registro = () => {
                           if (!f.is_required) return true;
                           // Conditional required: tipo_socio only when es_socio = SI
                           if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return true;
+                          // Conditional required: cargo/numsocio only when es_socio = SI
+                          if (['reg_cargo_socio', 'reg_numsocio'].includes(f.field_name) && values.reg_es_socio !== 'SI') return true;
                           // Composite phone input stores its visible digits outside `values`; use it directly so progressive reveal updates immediately.
                           if (f.field_name === 'reg_telefono') return !!phoneLocal.trim();
                           return !!(values[f.field_name] || '').trim();
