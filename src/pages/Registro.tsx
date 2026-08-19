@@ -1823,10 +1823,16 @@ const Registro = () => {
        * (`allowed_club_ids`), aunque el campo esté activo/obligatorio.
        */
       const allowedIds = preferenteCfg?.allowed_club_ids || [];
-      const listOptions =
-        !isSocio && preferenteCfg?.active_now && allowedIds.length > 0
-          ? baseOptions.filter(c => allowedIds.includes(Number(c.id)))
-          : baseOptions;
+      let listOptions = baseOptions;
+      if (!isSocio && preferenteCfg?.active_now && allowedIds.length > 0) {
+        const filtered = baseOptions.filter(c => allowedIds.includes(Number(c.id)));
+        // Fallback: si el catálogo aún no cargó, usa los nombres del config.
+        listOptions = filtered.length > 0
+          ? filtered
+          : (preferenteCfg.clubs || [])
+              .filter(c => allowedIds.includes(Number(c.id)))
+              .map(c => ({ id: c.id, nombre: c.nombre })) as typeof baseOptions;
+      }
       const currentClub = values[name] || '';
       return (
         <div className="space-y-2" key={name}>
