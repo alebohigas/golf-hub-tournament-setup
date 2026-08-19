@@ -1812,7 +1812,21 @@ const Registro = () => {
        * usa "SIN CLUB" (clubid 770042).
        */
       const isSocio = values.reg_es_socio === 'SI';
-      const listOptions = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
+      /**
+       * Catálogo base: clubes inscritos al torneo cuando es socio, o el
+       * catálogo completo (`torneos.clubs`) cuando NO es socio.
+       */
+      const baseOptions = isSocio && socioClubs.length > 0 ? socioClubs : clubs;
+      /**
+       * Registro preferente activo + NO socio ⇒ el dropdown SÓLO muestra los
+       * "Clubes autorizados" con ventana preferente vigente hoy
+       * (`allowed_club_ids`), aunque el campo esté activo/obligatorio.
+       */
+      const allowedIds = preferenteCfg?.allowed_club_ids || [];
+      const listOptions =
+        !isSocio && preferenteCfg?.active_now && allowedIds.length > 0
+          ? baseOptions.filter(c => allowedIds.includes(Number(c.id)))
+          : baseOptions;
       const currentClub = values[name] || '';
       return (
         <div className="space-y-2" key={name}>
