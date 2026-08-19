@@ -2267,8 +2267,8 @@ const Registro = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {list
                                 .filter(f => {
-                                  // Hide reg_tipo_socio entirely until es_socio = SI.
-                                  if (f.field_name === 'reg_tipo_socio' && values.reg_es_socio !== 'SI') return false;
+                                  // Hide socio-only fields when es_socio = NO.
+                                  if (['reg_tipo_socio', 'reg_cargo_socio', 'reg_numsocio'].includes(f.field_name) && values.reg_es_socio !== 'SI') return false;
                                   return true;
                                 })
                                 .map(f => renderField(f.field_name, f.field_label, !!f.is_required))}
