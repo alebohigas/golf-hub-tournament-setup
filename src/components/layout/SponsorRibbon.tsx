@@ -161,28 +161,17 @@ const SponsorRibbon = () => {
    */
   const carousel = siteConfig?.sponsors_config?.carousel;
   /**
-   * Track sponsor IDs whose logo image failed to load. Mirrors the behavior
-   * of the public Patrocinadores page: broken logos are hidden entirely
-   * (no name, no placeholder) so the ribbon never advertises a sponsor we
-   * cannot actually display.
-   *
-   * Initialized from localStorage so previously-detected broken logos are
-   * NOT re-requested on page load (avoids repeated 404s in the console).
+   * Track sponsor IDs whose logo image failed to load IN THIS SESSION only.
+   * Never persisted: a transient failure must not permanently exclude a
+   * sponsor from the ribbon, which previously made only the newest sponsors
+   * appear on some browsers.
    */
-  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => loadPersistedBrokenIds());
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
 
-  /** Persist the broken-ID set whenever it changes so other pages skip them too. */
+  /** Purge any legacy persisted broken-ID cache from previous versions. */
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(
-        BROKEN_SPONSORS_LS_KEY,
-        JSON.stringify([...brokenIds])
-      );
-    } catch {
-      /* ignore quota errors */
-    }
-  }, [brokenIds]);
+    clearLegacyBrokenIds();
+  }, []);
 
   /** Mark/unmark a sponsor as broken based on the image load status. */
   const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
