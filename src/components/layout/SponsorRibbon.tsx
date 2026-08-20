@@ -12,23 +12,22 @@ import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/
 import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * localStorage key used to remember which sponsor IDs have a broken logo.
- * Persisting between sessions avoids re-issuing failing image requests on
- * every page load (which would otherwise spam the console with 404s).
+ * Legacy localStorage key that used to persist "broken logo" sponsor IDs
+ * between sessions. That cache proved harmful: a single transient network
+ * failure (slow logo proxy, offline moment) permanently removed a sponsor
+ * from the ribbon for that browser, so users only saw the most recently
+ * added logos. Broken logos are now tracked in memory only (per page load)
+ * and this key is purged on mount so old caches stop hiding sponsors.
  */
-const BROKEN_SPONSORS_LS_KEY = 'sponsor-ribbon-broken-ids';
+const LEGACY_BROKEN_SPONSORS_LS_KEY = 'sponsor-ribbon-broken-ids';
 
-/** Read the persisted broken-ID set from localStorage (best-effort). */
-const loadPersistedBrokenIds = (): Set<string> => {
-  if (typeof window === 'undefined') return new Set();
+/** Remove the legacy persisted broken-ID cache (best-effort). */
+const clearLegacyBrokenIds = () => {
+  if (typeof window === 'undefined') return;
   try {
-    const raw = window.localStorage.getItem(BROKEN_SPONSORS_LS_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return new Set(parsed.map(String));
-    return new Set();
+    window.localStorage.removeItem(LEGACY_BROKEN_SPONSORS_LS_KEY);
   } catch {
-    return new Set();
+    /* ignore storage errors */
   }
 };
 
@@ -162,28 +161,17 @@ const SponsorRibbon = () => {
    */
   const carousel = siteConfig?.sponsors_config?.carousel;
   /**
-   * Track sponsor IDs whose logo image failed to load. Mirrors the behavior
-   * of the public Patrocinadores page: broken logos are hidden entirely
-   * (no name, no placeholder) so the ribbon never advertises a sponsor we
-   * cannot actually display.
-   *
-   * Initialized from localStorage so previously-detected broken logos are
-   * NOT re-requested on page load (avoids repeated 404s in the console).
+   * Track sponsor IDs whose logo image failed to load IN THIS SESSION only.
+   * Never persisted: a transient failure must not permanently exclude a
+   * sponsor from the ribbon, which previously made only the newest sponsors
+   * appear on some browsers.
    */
-  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => loadPersistedBrokenIds());
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
 
-  /** Persist the broken-ID set whenever it changes so other pages skip them too. */
+  /** Purge any legacy persisted broken-ID cache from previous versions. */
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(
-        BROKEN_SPONSORS_LS_KEY,
-        JSON.stringify([...brokenIds])
-      );
-    } catch {
-      /* ignore quota errors */
-    }
-  }, [brokenIds]);
+    clearLegacyBrokenIds();
+  }, []);
 
   /** Mark/unmark a sponsor as broken based on the image load status. */
   const handleStatus = useCallback((id: string, status: SponsorLogoStatus) => {
