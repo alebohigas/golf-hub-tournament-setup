@@ -12,23 +12,22 @@ import SponsorLogoImage, { type SponsorLogoStatus } from '@/components/sponsors/
 import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * localStorage key used to remember which sponsor IDs have a broken logo.
- * Persisting between sessions avoids re-issuing failing image requests on
- * every page load (which would otherwise spam the console with 404s).
+ * Legacy localStorage key that used to persist "broken logo" sponsor IDs
+ * between sessions. That cache proved harmful: a single transient network
+ * failure (slow logo proxy, offline moment) permanently removed a sponsor
+ * from the ribbon for that browser, so users only saw the most recently
+ * added logos. Broken logos are now tracked in memory only (per page load)
+ * and this key is purged on mount so old caches stop hiding sponsors.
  */
-const BROKEN_SPONSORS_LS_KEY = 'sponsor-ribbon-broken-ids';
+const LEGACY_BROKEN_SPONSORS_LS_KEY = 'sponsor-ribbon-broken-ids';
 
-/** Read the persisted broken-ID set from localStorage (best-effort). */
-const loadPersistedBrokenIds = (): Set<string> => {
-  if (typeof window === 'undefined') return new Set();
+/** Remove the legacy persisted broken-ID cache (best-effort). */
+const clearLegacyBrokenIds = () => {
+  if (typeof window === 'undefined') return;
   try {
-    const raw = window.localStorage.getItem(BROKEN_SPONSORS_LS_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return new Set(parsed.map(String));
-    return new Set();
+    window.localStorage.removeItem(LEGACY_BROKEN_SPONSORS_LS_KEY);
   } catch {
-    return new Set();
+    /* ignore storage errors */
   }
 };
 
