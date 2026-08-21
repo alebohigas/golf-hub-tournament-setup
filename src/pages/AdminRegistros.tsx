@@ -1100,7 +1100,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1"
+                                className="gap-1 h-auto min-h-10 whitespace-normal w-36"
                                 disabled={!!busy[`email-${r.id}`] || !r.reg_correo}
                                 onClick={() => sendEmail(r)}
                               >
