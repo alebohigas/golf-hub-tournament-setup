@@ -1017,7 +1017,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1"
+                                className={cn(
+                                  "gap-1",
+                                  section === 'sec4' && "h-auto min-h-10 whitespace-normal w-28"
+                                )}
                                 onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
                               >
                                 <Eye className="h-4 w-4" /> Ver comprobante
@@ -1072,7 +1075,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   disabled={estatusOpts.length === 0}
                                   onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
                                 >
-                                  <SelectTrigger className="h-8 w-44 text-xs">
+                                  <SelectTrigger className={cn(
+                                    "h-8 text-xs",
+                                    section === 'sec4' ? "w-28 h-auto min-h-10 whitespace-normal" : "w-44"
+                                  )}>
                                     <SelectValue placeholder="—" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1116,7 +1122,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 <div className="flex flex-col items-center gap-1">
                                   <Button
                                     size="sm"
-                                    className="gap-1"
+                                    className={cn(
+                                      "gap-1",
+                                      section === 'sec4' && "h-auto min-h-10 whitespace-normal w-32"
+                                    )}
                                     disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
                                     onClick={() => sendWelcome(r)}
                                   >
