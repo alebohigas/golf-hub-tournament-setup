@@ -1017,7 +1017,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1"
+                                className={cn(
+                                  "gap-1",
+                                  section === 'sec4' && "h-auto min-h-10 whitespace-normal w-28"
+                                )}
                                 onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
                               >
                                 <Eye className="h-4 w-4" /> Ver comprobante
