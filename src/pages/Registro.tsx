@@ -1301,6 +1301,41 @@ const Registro = () => {
         return;
       }
     }
+    /**
+     * BLOQUEO DURO: SIN CATEGORÍA ELEGIBLE (HÁNDICAP FUERA DE RANGO)
+     * ---------------------------------------------------------------
+     * Si el campo de categoría está habilitado y los datos capturados
+     * (hándicap / sexo / edad) NO producen ninguna categoría elegible,
+     * el pre-registro NO se envía: no se guarda en la BD y no sale el
+     * correo de confirmación. Antes sólo se mostraba el aviso rojo en
+     * el formulario pero el envío continuaba con la categoría vacía.
+     */
+    if (isFieldEnabled('reg_categoria')) {
+      const hcpGiven = !!(values.reg_handicap || '').trim();
+      const sexGiven = !isFieldEnabled('reg_sexo') || !!(values.reg_sexo || '').trim();
+      if (hcpGiven && sexGiven && eligibleCategories.length === 0) {
+        toast({
+          title: 'Sin categoría disponible',
+          description:
+            'No existen categorías disponibles para tu edad/hándicap/género registrados. ' +
+            'Favor de contactar a la oficina del club directamente para más información.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      /**
+       * Categoría obligatoria sin seleccionar: el Select custom no tiene
+       * validación nativa de `required`, así que lo verificamos aquí.
+       */
+      if (isFieldRequired('reg_categoria') && !values.reg_categoria) {
+        toast({
+          title: 'Categoría requerida',
+          description: 'Selecciona la categoría en la que deseas participar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     // Block submission when email failed validation.
     if (isFieldEnabled('reg_correo') && (emailError || (values.reg_correo && !EMAIL_RE.test(values.reg_correo.trim())))) {
       validateEmailOnBlur();
