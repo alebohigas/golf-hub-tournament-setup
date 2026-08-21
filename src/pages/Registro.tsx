@@ -1138,6 +1138,59 @@ const Registro = () => {
 
   const eligibleCategories = categoryFilterResult.eligible;
 
+  /**
+   * Rango de hándicap legible de una categoría. Prioridad: reglas
+   * explícitas del admin (categorias_reglas) → columnas hcpMin/hcpMax de
+   * la BD → rango parseado del nombre → "Sin límite".
+   */
+  const catHcpRangeLabel = useCallback((c: CategoryDetail): string => {
+    const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
+    if (catReglas.length > 0) {
+      const mins = catReglas.map(r => toFiniteNumber(r.hcp_min)).filter((v): v is number => v !== null);
+      const maxs = catReglas.map(r => toFiniteNumber(r.hcp_max)).filter((v): v is number => v !== null);
+      if (mins.length || maxs.length) {
+        const lo = mins.length ? Math.min(...mins) : '−∞';
+        const hi = maxs.length ? Math.max(...maxs) : '+∞';
+        return `HCP ${lo} – ${hi}`;
+      }
+    }
+    if (c.hcpMax > 0) return `HCP ${c.hcpMin} – ${c.hcpMax}`;
+    const fromName = parseHcpFromName(c.name || '');
+    if (fromName) return `HCP ${fromName.min} – ${fromName.max}`;
+    return 'Sin límite de hándicap';
+  }, [reglas]);
+
+  /**
+   * Categorías que cubren el GÉNERO y la EDAD del jugador ignorando el
+   * hándicap. Alimentan el resumen de "rangos disponibles" que se muestra
+   * cuando ninguna categoría resulta elegible, para orientar al jugador
+   * sobre dónde podría ubicarse (no son seleccionables).
+   */
+  const categoriesNearGenderAge = useMemo(() => {
+    const sex = (values.reg_sexo || '').toUpperCase();
+    const ageFromBirth = calcAge(values.reg_fechanac || '');
+    const ageManual    = parseInt(values.akron_edad || '', 10);
+    const age = ageFromBirth !== null ? ageFromBirth : (!isNaN(ageManual) ? ageManual : null);
+    return categories.filter(c => {
+      const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
+      if (catReglas.length > 0) {
+        // hcp: null → playerMatchesRule ignora el rango de hándicap.
+        return catReglas.some(r => playerMatchesRule(r, { sex, age, hcp: null }));
+      }
+      if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
+      if (age !== null) {
+        const fromName = parseAgeFromName(c.name || '');
+        const minDb = c.ageMin != null && c.ageMin > 0 ? c.ageMin : null;
+        const maxDb = c.ageMax != null && c.ageMax > 0 ? c.ageMax : null;
+        const min = minDb ?? (fromName ? fromName.min : null);
+        const max = maxDb ?? (fromName ? fromName.max : null);
+        if (min != null && age < min) return false;
+        if (max != null && age > max) return false;
+      }
+      return true;
+    });
+  }, [categories, reglas, values.reg_sexo, values.reg_fechanac, values.akron_edad]);
+
   /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
   useEffect(() => {
     if (!values.reg_categoria) return;
@@ -1675,9 +1728,57 @@ const Registro = () => {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            {eligibleCategories.length} categoría(s) compatible(s) con tus datos.
-          </p>
+          {/* RESUMEN DE CATEGORÍAS VÁLIDAS: en cuanto el jugador captura
+              género/edad/hándicap se listan las categorías que sí aplican
+              como tarjetas clicables (selección inmediata, sincronizada
+              con el Select de arriba). */}
+          {eligibleCategories.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                {eligibleCategories.length} categoría(s) válida(s) para tus datos — toca una para seleccionarla:
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {eligibleCategories.map(c => {
+                  const max = Number(c.maxPlayers) || 0;
+                  const reg = Number(c.registeredCount) || 0;
+                  const unlimited = !max || max === 99;
+                  const left = Math.max(max - reg, 0);
+                  const full = !unlimited && left <= 0;
+                  const selected = String(values.reg_categoria || '') === String(c.id);
+                  const tee = (c.teeColorName || c.teeName || '').trim();
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setValue('reg_categoria', String(c.id))}
+                      aria-pressed={selected}
+                      className={
+                        'rounded-md border p-2.5 text-left text-sm transition-colors ' +
+                        (selected
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                          : 'border-border bg-card hover:bg-primary/5 hover:border-primary/40')
+                      }
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium leading-tight">{c.name}</span>
+                        {selected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {[tee ? `Tee ${tee}` : null, catHcpRangeLabel(c)].filter(Boolean).join(' · ')}
+                      </div>
+                      <div className={'mt-0.5 text-xs ' + (full ? 'font-medium text-amber-600' : 'text-muted-foreground')}>
+                        {unlimited
+                          ? 'Cupo ilimitado'
+                          : full
+                            ? `LLENO (${reg}/${max}) — entras a lista de espera`
+                            : `${left} espacios disponibles (${reg}/${max})`}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {/* Aviso al jugador cuando ya capturó sexo + edad + hándicap y
               ninguna categoría aplica. Mensaje no técnico: lo redirige a
               la oficina del club en lugar de exponer las reglas internas. */}
@@ -1685,11 +1786,31 @@ const Registro = () => {
             && !!categoryFilterResult.sex
             && categoryFilterResult.age !== null
             && !isNaN(categoryFilterResult.hcpRaw) && (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              No existen categorías disponibles para tu edad/hándicap/género
-              registrados. Favor de contactar a la oficina del club
-              directamente para más información.
-            </div>
+            <>
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                No existen categorías disponibles para tu edad/hándicap/género
+                registrados. Favor de contactar a la oficina del club
+                directamente para más información.
+              </div>
+              {/* Rangos de hándicap de las categorías que sí cubren su
+                  género/edad: orienta al jugador sobre dónde podría
+                  ubicarse (informativo, no seleccionable). */}
+              {categoriesNearGenderAge.length > 0 && (
+                <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
+                  <p className="text-xs font-medium">
+                    Rangos de hándicap de las categorías del torneo para tu género y edad:
+                  </p>
+                  <ul className="space-y-1 text-xs text-muted-foreground">
+                    {categoriesNearGenderAge.map(c => (
+                      <li key={c.id} className="flex items-baseline justify-between gap-3">
+                        <span>{c.name}</span>
+                        <span className="whitespace-nowrap font-medium text-foreground/80">{catHcpRangeLabel(c)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
           {/* Auditoría automática de cobertura HCP (-5 → 40.6 paso 0.1)
               por sexo. Aparece solo con ?debug=1. Muestra los rangos de
