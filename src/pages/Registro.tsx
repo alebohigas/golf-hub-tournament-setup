@@ -1138,65 +1138,13 @@ const Registro = () => {
 
   const eligibleCategories = categoryFilterResult.eligible;
 
-  /**
-   * Rango de hándicap legible de una categoría. Prioridad: reglas
-   * explícitas del admin (categorias_reglas) → columnas hcpMin/hcpMax de
-   * la BD → rango parseado del nombre → "Sin límite".
-   */
-  const catHcpRangeLabel = useCallback((c: CategoryDetail): string => {
-    const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
-    if (catReglas.length > 0) {
-      const mins = catReglas.map(r => toFiniteNumber(r.hcp_min)).filter((v): v is number => v !== null);
-      const maxs = catReglas.map(r => toFiniteNumber(r.hcp_max)).filter((v): v is number => v !== null);
-      if (mins.length || maxs.length) {
-        const lo = mins.length ? Math.min(...mins) : '−∞';
-        const hi = maxs.length ? Math.max(...maxs) : '+∞';
-        return `HCP ${lo} – ${hi}`;
-      }
-    }
-    if (c.hcpMax > 0) return `HCP ${c.hcpMin} – ${c.hcpMax}`;
-    const fromName = parseHcpFromName(c.name || '');
-    if (fromName) return `HCP ${fromName.min} – ${fromName.max}`;
-    return 'Sin límite de hándicap';
-  }, [reglas]);
-
-  /**
-   * Categorías que cubren el GÉNERO y la EDAD del jugador ignorando el
-   * hándicap. Alimentan el resumen de "rangos disponibles" que se muestra
-   * cuando ninguna categoría resulta elegible, para orientar al jugador
-   * sobre dónde podría ubicarse (no son seleccionables).
-   */
-  const categoriesNearGenderAge = useMemo(() => {
-    const sex = (values.reg_sexo || '').toUpperCase();
-    const ageFromBirth = calcAge(values.reg_fechanac || '');
-    const ageManual    = parseInt(values.akron_edad || '', 10);
-    const age = ageFromBirth !== null ? ageFromBirth : (!isNaN(ageManual) ? ageManual : null);
-    return categories.filter(c => {
-      const catReglas = reglas.filter(r => !!r.is_active && ruleMatchesCategory(r, { id: c.id, name: c.name }));
-      if (catReglas.length > 0) {
-        // hcp: null → playerMatchesRule ignora el rango de hándicap.
-        return catReglas.some(r => playerMatchesRule(r, { sex, age, hcp: null }));
-      }
-      if (sex && c.gender && (c.gender === 'M' || c.gender === 'F') && c.gender !== sex) return false;
-      if (age !== null) {
-        const fromName = parseAgeFromName(c.name || '');
-        const minDb = c.ageMin != null && c.ageMin > 0 ? c.ageMin : null;
-        const maxDb = c.ageMax != null && c.ageMax > 0 ? c.ageMax : null;
-        const min = minDb ?? (fromName ? fromName.min : null);
-        const max = maxDb ?? (fromName ? fromName.max : null);
-        if (min != null && age < min) return false;
-        if (max != null && age > max) return false;
-      }
-      return true;
-    });
-  }, [categories, reglas, values.reg_sexo, values.reg_fechanac, values.akron_edad]);
-
   /** If changed age/gender/hcp makes the selected category invalid, clear it immediately. */
   useEffect(() => {
     if (!values.reg_categoria) return;
     const stillEligible = eligibleCategories.some(c => String(c.id) === String(values.reg_categoria));
     if (!stillEligible) setValues(v => ({ ...v, reg_categoria: '' }));
   }, [eligibleCategories, values.reg_categoria]);
+
 
   // ============= Precio estimado de inscripción =============
 
