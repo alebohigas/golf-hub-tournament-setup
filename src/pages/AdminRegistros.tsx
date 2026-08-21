@@ -911,7 +911,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <Fragment key={r.id}>
                     <tr
                       className={cn(
-                        'border-t hover:bg-muted/30 cursor-pointer',
+                        'border-t hover:bg-muted/30 cursor-pointer [&>td]:align-middle',
                         isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500',
                         isOverflow && 'bg-rose-50 border-l-4 border-l-rose-500'
                       )}
