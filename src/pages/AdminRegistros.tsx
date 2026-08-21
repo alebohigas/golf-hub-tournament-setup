@@ -1116,10 +1116,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 <div className="flex flex-col items-center gap-1">
                                   <Button
                                     size="sm"
-                                    className={cn(
-                                      "gap-1",
-                                      section === 'sec4' && "h-auto min-h-10 whitespace-normal w-32"
-                                    )}
+                                    className="gap-1 h-auto min-h-10 whitespace-normal w-36"
                                     disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
                                     onClick={() => sendWelcome(r)}
                                   >
