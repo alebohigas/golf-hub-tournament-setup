@@ -911,7 +911,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                     <Fragment key={r.id}>
                     <tr
                       className={cn(
-                        'border-t hover:bg-muted/30 cursor-pointer',
+                        'border-t hover:bg-muted/30 cursor-pointer [&>td]:align-middle',
                         isPreferenteMismatch(r) && 'bg-amber-50 border-l-4 border-l-amber-500',
                         isOverflow && 'bg-rose-50 border-l-4 border-l-rose-500'
                       )}
@@ -1017,10 +1017,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className={cn(
-                                  "gap-1",
-                                  section === 'sec4' && "h-auto min-h-10 whitespace-normal w-28"
-                                )}
+                                className="gap-1 h-auto min-h-10 whitespace-normal w-28"
                                 onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
                               >
                                 <Eye className="h-4 w-4" /> Ver comprobante
@@ -1075,10 +1072,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   disabled={estatusOpts.length === 0}
                                   onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
                                 >
-                                  <SelectTrigger className={cn(
-                                    "h-8 text-xs",
-                                    section === 'sec4' ? "w-28 h-auto min-h-10 whitespace-normal" : "w-44"
-                                  )}>
+                                  <SelectTrigger className="h-10 text-xs w-36">
                                     <SelectValue placeholder="—" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1106,7 +1100,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1"
+                                className="gap-1 h-auto min-h-10 whitespace-normal w-36"
                                 disabled={!!busy[`email-${r.id}`] || !r.reg_correo}
                                 onClick={() => sendEmail(r)}
                               >
@@ -1122,10 +1116,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 <div className="flex flex-col items-center gap-1">
                                   <Button
                                     size="sm"
-                                    className={cn(
-                                      "gap-1",
-                                      section === 'sec4' && "h-auto min-h-10 whitespace-normal w-32"
-                                    )}
+                                    className="gap-1 h-auto min-h-10 whitespace-normal w-36"
                                     disabled={!!busy[`welcome-${r.id}`] || !r.reg_correo}
                                     onClick={() => sendWelcome(r)}
                                   >
@@ -1162,7 +1153,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 <Button
                                   size="sm"
                                   variant={hasRoom ? 'default' : 'outline'}
-                                  className="gap-1"
+                                  className="gap-1 h-auto min-h-10 whitespace-normal w-36"
                                   disabled={!hasRoom || !!busy[`promote-${r.id}`]}
                                   title={hasRoom
                                     ? 'Mover al flujo normal y enviar correo de pago'
