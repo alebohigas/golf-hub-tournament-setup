@@ -1153,7 +1153,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 <Button
                                   size="sm"
                                   variant={hasRoom ? 'default' : 'outline'}
-                                  className="gap-1"
+                                  className="gap-1 h-auto min-h-10 whitespace-normal w-36"
                                   disabled={!hasRoom || !!busy[`promote-${r.id}`]}
                                   title={hasRoom
                                     ? 'Mover al flujo normal y enviar correo de pago'
