@@ -51,6 +51,24 @@ const formatPhone = (raw?: string | null): string => {
   return s;
 };
 
+/**
+ * displayPhone
+ * ------------------------------------------------------------------
+ * Teléfono para tabla/detalle/exportación. Si el registro tiene la lada
+ * guardada (reg_tel_lada, capturada con el país en el formulario), arma el
+ * formato "(+52) 5512345678" a partir de esa lada + los dígitos locales;
+ * registros antiguos sin esos campos caen al parseo de formatPhone.
+ */
+const displayPhone = (r: RegistroRow): string => {
+  const raw = (r.reg_telefono || r.reg_celular || '').trim();
+  const lada = (r.reg_tel_lada || '').trim();
+  if (lada) {
+    const digits = raw.replace(/^\+\s*\d{1,4}[\s-]*/, '').trim();
+    if (digits) return `(${lada.startsWith('+') ? lada : `+${lada}`}) ${digits}`;
+  }
+  return formatPhone(raw);
+};
+
 /** A single registro row from /api/registro.php */
 interface RegistroRow {
   id: number;
@@ -62,6 +80,10 @@ interface RegistroRow {
   reg_telefono?: string;
   /** Alias canónico del teléfono en algunos esquemas. */
   reg_celular?: string;
+  /** País de la lada seleccionada en el formulario (id ISO, ej. 'MX'). */
+  reg_tel_pais?: string;
+  /** Lada telefónica seleccionada en el formulario (ej. '+52'). */
+  reg_tel_lada?: string;
   reg_handicap?: string;
   reg_categoria?: string;
   /** Nombre legible de la categoría (JOIN del backend). */
@@ -676,6 +698,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
     const headers = [
       'Folio', 'Fecha registro', 'Nombre', 'Apellido', 'Correo', 'Teléfono',
+      'País tel.', 'Lada',
       'Club', 'Categoría', 'Handicap', 'Socio', 'Tipo socio', 'Clave socio',
       'Monto a pagar', 'Monto pagado', 'Monto confirmado', 'Moneda',
       'Comprobante', 'Archivo', 'Estatus de pago', 'Sección',
@@ -689,7 +712,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         r.reg_nombre || '',
         r.reg_apellido || '',
         r.reg_correo || '',
-        formatPhone(r.reg_telefono || r.reg_celular),
+        displayPhone(r),
+        r.reg_tel_pais || '',
+        r.reg_tel_lada || '',
         r.reg_club || '',
         r.categoria_name || '',
         r.reg_handicap ?? '',

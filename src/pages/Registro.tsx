@@ -1514,6 +1514,16 @@ const Registro = () => {
        */
       if (isFieldEnabled('reg_club') && !fd.has('reg_club')) fd.append('reg_club', SIN_CLUB_NOMBRE);
       /**
+       * País y lada del teléfono: además del número completo
+       * (reg_telefono = "+52 5512345678") enviamos el país seleccionado
+       * (id de PHONE_CODES, ej. 'MX') y la lada ('+52') para que la BD
+       * conserve el formato correcto en el reporte y la exportación.
+       */
+      if (isFieldEnabled('reg_telefono') && phoneLocal.trim()) {
+        fd.append('reg_tel_pais', phoneEntry.id);
+        fd.append('reg_tel_lada', phoneEntry.code);
+      }
+      /**
        * Marca de tiempo de envío capturada en el cliente. Enviamos:
        *  - `reg_client_utc`: ISO 8601 en UTC (Z), lo que el servidor guarda
        *    en `registro.fecharegistro` como hora absoluta de referencia.

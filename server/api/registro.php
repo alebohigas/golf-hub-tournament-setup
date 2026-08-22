@@ -479,6 +479,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'veri
     /** Whitelist of safe field_names accepted from the form. */
     $allowedTextFields = [
         'reg_nombre', 'reg_apellido', 'reg_correo', 'reg_telefono',
+        // País (id ISO del formulario, ej. 'MX') y lada (ej. '+52')
+        // seleccionados junto con el número de teléfono.
+        'reg_tel_pais', 'reg_tel_lada',
         'reg_handicap', 'reg_categoria', 'reg_sexo', 'reg_fechanac', 'reg_edad', 'akron_edad',
         'reg_es_socio', 'reg_tipo_socio', 'reg_club', 'reg_ghin',
         'reg_pais', 'reg_estado', 'reg_ciudad', 'reg_notas',
@@ -974,6 +977,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $fields[] = "r.$torneoCol AS torneoid";
     $optional = [
         'reg_nombre','reg_apellido','reg_correo','reg_telefono','reg_handicap',
+        // País/lada del teléfono (formato correcto en reporte/exportación).
+        'reg_tel_pais','reg_tel_lada',
         'reg_categoria','reg_sexo','reg_fechanac','reg_es_socio','reg_tipo_socio',
         'reg_club','reg_ghin','reg_pais','reg_estado','reg_ciudad','reg_notas',
         'reg_fecha','created_at','fecha_alta','reg_archivo_nombre',
