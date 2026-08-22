@@ -904,7 +904,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       el `status_pago` desde cualquier vista.
                     */}
                     <th className="text-center p-3">Monto confirmado recibido</th>
-                    <th className="text-center p-3">Estatus de pago</th>
+                    <th className="text-center p-3 leading-tight">
+                      <span className="block">Estatus</span>
+                      <span className="block">de pago</span>
+                    </th>
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
