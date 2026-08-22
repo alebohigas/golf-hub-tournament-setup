@@ -315,21 +315,58 @@ const playerMatchesRule = (
 };
 
 // ============= Phone country codes =============
-/** Mini list of country dial codes shown in the phone <Select>. MX first. */
-const PHONE_CODES: { code: string; flag: string; label: string; len: number }[] = [
-  { code: '+52', flag: '🇲🇽', label: 'México',         len: 10 },
-  { code: '+1',  flag: '🇺🇸', label: 'EE. UU. / CAN', len: 10 },
-  { code: '+34', flag: '🇪🇸', label: 'España',         len: 9  },
-  { code: '+54', flag: '🇦🇷', label: 'Argentina',      len: 10 },
-  { code: '+55', flag: '🇧🇷', label: 'Brasil',         len: 11 },
-  { code: '+56', flag: '🇨🇱', label: 'Chile',          len: 9  },
-  { code: '+57', flag: '🇨🇴', label: 'Colombia',       len: 10 },
-  { code: '+58', flag: '🇻🇪', label: 'Venezuela',      len: 10 },
-  { code: '+51', flag: '🇵🇪', label: 'Perú',           len: 9  },
-  { code: '+593', flag: '🇪🇨', label: 'Ecuador',       len: 9  },
-  { code: '+502', flag: '🇬🇹', label: 'Guatemala',     len: 8  },
-  { code: '+503', flag: '🇸🇻', label: 'El Salvador',   len: 8  },
-  { code: '+506', flag: '🇨🇷', label: 'Costa Rica',    len: 8  },
+/**
+ * Lista de ladas mostrada en el <Select> de teléfono.
+ * - México va PRIMERO y es el país default del formulario.
+ * - `id` es la clave única usada como value del <Select> (EE. UU. y Canadá
+ *   comparten la lada +1, por eso el value NO puede ser el código).
+ * - `len` = dígitos típicos del número local (sin lada).
+ * - `flex` = tolerancia ± sobre `len` para países con numeración variable
+ *   (la mayoría de Europa). Sin `flex` la longitud es exacta.
+ */
+const PHONE_CODES: { id: string; code: string; flag: string; label: string; len: number; flex?: number }[] = [
+  { id: 'MX', code: '+52',  flag: '🇲🇽', label: 'México',          len: 10 },
+  { id: 'US', code: '+1',   flag: '🇺🇸', label: 'EE. UU.',         len: 10 },
+  { id: 'CA', code: '+1',   flag: '🇨🇦', label: 'Canadá',          len: 10 },
+  // ——— Unión Europea ———
+  { id: 'DE', code: '+49',  flag: '🇩🇪', label: 'Alemania',        len: 10, flex: 2 },
+  { id: 'AT', code: '+43',  flag: '🇦🇹', label: 'Austria',         len: 10, flex: 3 },
+  { id: 'BE', code: '+32',  flag: '🇧🇪', label: 'Bélgica',         len: 9,  flex: 1 },
+  { id: 'BG', code: '+359', flag: '🇧🇬', label: 'Bulgaria',        len: 9,  flex: 1 },
+  { id: 'CY', code: '+357', flag: '🇨🇾', label: 'Chipre',          len: 8  },
+  { id: 'HR', code: '+385', flag: '🇭🇷', label: 'Croacia',         len: 9,  flex: 1 },
+  { id: 'DK', code: '+45',  flag: '🇩🇰', label: 'Dinamarca',       len: 8  },
+  { id: 'SK', code: '+421', flag: '🇸🇰', label: 'Eslovaquia',      len: 9  },
+  { id: 'SI', code: '+386', flag: '🇸🇮', label: 'Eslovenia',       len: 8  },
+  { id: 'ES', code: '+34',  flag: '🇪🇸', label: 'España',          len: 9  },
+  { id: 'EE', code: '+372', flag: '🇪🇪', label: 'Estonia',         len: 8,  flex: 1 },
+  { id: 'FI', code: '+358', flag: '🇫🇮', label: 'Finlandia',       len: 9,  flex: 2 },
+  { id: 'FR', code: '+33',  flag: '🇫🇷', label: 'Francia',         len: 9  },
+  { id: 'GR', code: '+30',  flag: '🇬🇷', label: 'Grecia',          len: 10 },
+  { id: 'HU', code: '+36',  flag: '🇭🇺', label: 'Hungría',         len: 9,  flex: 1 },
+  { id: 'IE', code: '+353', flag: '🇮🇪', label: 'Irlanda',         len: 9,  flex: 1 },
+  { id: 'IT', code: '+39',  flag: '🇮🇹', label: 'Italia',          len: 10, flex: 1 },
+  { id: 'LV', code: '+371', flag: '🇱🇻', label: 'Letonia',         len: 8  },
+  { id: 'LT', code: '+370', flag: '🇱🇹', label: 'Lituania',        len: 8  },
+  { id: 'LU', code: '+352', flag: '🇱🇺', label: 'Luxemburgo',      len: 9,  flex: 2 },
+  { id: 'MT', code: '+356', flag: '🇲🇹', label: 'Malta',           len: 8  },
+  { id: 'NL', code: '+31',  flag: '🇳🇱', label: 'Países Bajos',    len: 9  },
+  { id: 'PL', code: '+48',  flag: '🇵🇱', label: 'Polonia',         len: 9  },
+  { id: 'PT', code: '+351', flag: '🇵🇹', label: 'Portugal',        len: 9  },
+  { id: 'CZ', code: '+420', flag: '🇨🇿', label: 'Chequia',         len: 9  },
+  { id: 'RO', code: '+40',  flag: '🇷🇴', label: 'Rumanía',         len: 9  },
+  { id: 'SE', code: '+46',  flag: '🇸🇪', label: 'Suecia',          len: 9,  flex: 2 },
+  // ——— Latinoamérica ———
+  { id: 'AR', code: '+54',  flag: '🇦🇷', label: 'Argentina',       len: 10 },
+  { id: 'BR', code: '+55',  flag: '🇧🇷', label: 'Brasil',          len: 11 },
+  { id: 'CL', code: '+56',  flag: '🇨🇱', label: 'Chile',           len: 9  },
+  { id: 'CO', code: '+57',  flag: '🇨🇴', label: 'Colombia',        len: 10 },
+  { id: 'VE', code: '+58',  flag: '🇻🇪', label: 'Venezuela',       len: 10 },
+  { id: 'PE', code: '+51',  flag: '🇵🇪', label: 'Perú',            len: 9  },
+  { id: 'EC', code: '+593', flag: '🇪🇨', label: 'Ecuador',         len: 9  },
+  { id: 'GT', code: '+502', flag: '🇬🇹', label: 'Guatemala',       len: 8  },
+  { id: 'SV', code: '+503', flag: '🇸🇻', label: 'El Salvador',     len: 8  },
+  { id: 'CR', code: '+506', flag: '🇨🇷', label: 'Costa Rica',      len: 8  },
 ];
 
 // ============= Component =============
@@ -439,7 +476,8 @@ const Registro = () => {
   /** Inline error for the phone field. */
   const [phoneError, setPhoneError] = useState<string>('');
   /** Selected dial code (defaults to MX). */
-  const [phoneCode, setPhoneCode] = useState<string>('+52');
+  /** País de la lada seleccionada (id de PHONE_CODES). México = default. */
+  const [phoneCodeId, setPhoneCodeId] = useState<string>('MX');
   /** Local 10-digit (or country-specific) phone digits, no spaces. */
   const [phoneLocal, setPhoneLocal] = useState<string>('');
 
@@ -725,11 +763,24 @@ const Registro = () => {
 
   // ============= Phone validation =============
 
-  /** Selected country's required digit length. */
-  const phoneLenRequired = useMemo(
-    () => PHONE_CODES.find(p => p.code === phoneCode)?.len ?? 10,
-    [phoneCode]
+  /** Entrada completa del país seleccionado (lada, bandera, longitudes). */
+  const phoneEntry = useMemo(
+    () => PHONE_CODES.find(p => p.id === phoneCodeId) ?? PHONE_CODES[0],
+    [phoneCodeId]
   );
+
+  /** Lada del país seleccionado, ej. "+52". */
+  const phoneCode = phoneEntry.code;
+
+  /** Rango de dígitos aceptado: exacto si no hay `flex`, rango si lo hay. */
+  const phoneFlex = phoneEntry.flex ?? 0;
+  const phoneLenMin = phoneEntry.len - phoneFlex;
+  const phoneLenMax = phoneEntry.len + phoneFlex;
+
+  /** Texto de ayuda para la longitud esperada. */
+  const phoneLenHint = phoneFlex > 0
+    ? `entre ${phoneLenMin} y ${phoneLenMax} dígitos`
+    : `${phoneEntry.len} dígitos`;
 
   /** Re-compose reg_telefono whenever code or local digits change as a safety mirror for derived phone state. */
   useEffect(() => {
@@ -750,8 +801,10 @@ const Registro = () => {
       toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
       return;
     }
-    if (phoneLocal.length !== phoneLenRequired) {
-      const msg = `Debe tener exactamente ${phoneLenRequired} dígitos.`;
+    if (phoneLocal.length < phoneLenMin || phoneLocal.length > phoneLenMax) {
+      const msg = phoneFlex > 0
+        ? `Debe tener ${phoneLenHint}.`
+        : `Debe tener exactamente ${phoneEntry.len} dígitos.`;
       setPhoneError(msg);
       toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
       return;
@@ -1350,7 +1403,7 @@ const Registro = () => {
         toast({ title: 'Teléfono requerido', variant: 'destructive' });
         return;
       }
-      if (phoneLocal && (phoneLocal.length !== phoneLenRequired || !/^\d+$/.test(phoneLocal))) {
+      if (phoneLocal && (phoneLocal.length < phoneLenMin || phoneLocal.length > phoneLenMax || !/^\d+$/.test(phoneLocal))) {
         validatePhoneOnBlur();
         return;
       }
@@ -1775,16 +1828,18 @@ const Registro = () => {
     if (name === 'reg_telefono') {
       // Composite phone input: dial-code <Select> with flag emoji + digits-only
       // text input. Joined value is mirrored into reg_telefono ("+52 5512345678").
-      const expectedLen = phoneLenRequired;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
           <div className="flex gap-2">
+            {/* El value del Select es el `id` del país (no la lada) porque
+                EE. UU. y Canadá comparten +1 y Radix exige values únicos. */}
             <Select
-              value={phoneCode}
-              onValueChange={(code) => {
-                setPhoneCode(code);
-                setValue('reg_telefono', phoneLocal ? `${code} ${phoneLocal}` : '');
+              value={phoneCodeId}
+              onValueChange={(countryId) => {
+                setPhoneCodeId(countryId);
+                const entry = PHONE_CODES.find(p => p.id === countryId) ?? PHONE_CODES[0];
+                setValue('reg_telefono', phoneLocal ? `${entry.code} ${phoneLocal}` : '');
                 if (phoneError) setPhoneError('');
               }}
             >
@@ -1793,7 +1848,7 @@ const Registro = () => {
               </SelectTrigger>
               <SelectContent>
                 {PHONE_CODES.map(p => (
-                  <SelectItem key={p.code} value={p.code}>
+                  <SelectItem key={p.id} value={p.id}>
                     <span className="mr-2">{p.flag}</span>{p.code}
                   </SelectItem>
                 ))}
@@ -1807,12 +1862,12 @@ const Registro = () => {
               autoComplete="off"
               name={`reg_telefono_${formInstanceKey}`}
               required={required}
-              maxLength={expectedLen}
-              placeholder={`${expectedLen} dígitos`}
+              maxLength={phoneLenMax}
+              placeholder={phoneLenHint}
               value={phoneLocal}
               onChange={e => {
                 // Strip everything that isn't a digit; cap at expected length.
-                const digits = e.target.value.replace(/\D/g, '').slice(0, expectedLen);
+                const digits = e.target.value.replace(/\D/g, '').slice(0, phoneLenMax);
                 setPhoneLocal(digits);
                 setValue('reg_telefono', digits ? `${phoneCode} ${digits}` : '');
                 if (phoneError) setPhoneError('');
@@ -1826,7 +1881,7 @@ const Registro = () => {
             <p className="text-xs text-destructive">{phoneError}</p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Selecciona la lada y escribe {expectedLen} dígitos sin espacios.
+              Selecciona la lada y escribe {phoneLenHint} sin espacios.
             </p>
           )}
         </div>
@@ -2220,7 +2275,7 @@ const Registro = () => {
                     setSubmittedWaitlist(false);
                     setValues({});
                     setFile(null);
-                    setPhoneCode('+52');
+                    setPhoneCodeId('MX');
                     setPhoneLocal('');
                     setPhoneError('');
                     setBirthDmy('');
