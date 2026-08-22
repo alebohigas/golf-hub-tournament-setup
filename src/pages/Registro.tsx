@@ -1828,16 +1828,18 @@ const Registro = () => {
     if (name === 'reg_telefono') {
       // Composite phone input: dial-code <Select> with flag emoji + digits-only
       // text input. Joined value is mirrored into reg_telefono ("+52 5512345678").
-      const expectedLen = phoneLenRequired;
       return (
         <div className="space-y-2" key={name}>
           <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
           <div className="flex gap-2">
+            {/* El value del Select es el `id` del país (no la lada) porque
+                EE. UU. y Canadá comparten +1 y Radix exige values únicos. */}
             <Select
-              value={phoneCode}
-              onValueChange={(code) => {
-                setPhoneCode(code);
-                setValue('reg_telefono', phoneLocal ? `${code} ${phoneLocal}` : '');
+              value={phoneCodeId}
+              onValueChange={(countryId) => {
+                setPhoneCodeId(countryId);
+                const entry = PHONE_CODES.find(p => p.id === countryId) ?? PHONE_CODES[0];
+                setValue('reg_telefono', phoneLocal ? `${entry.code} ${phoneLocal}` : '');
                 if (phoneError) setPhoneError('');
               }}
             >
@@ -1846,7 +1848,7 @@ const Registro = () => {
               </SelectTrigger>
               <SelectContent>
                 {PHONE_CODES.map(p => (
-                  <SelectItem key={p.code} value={p.code}>
+                  <SelectItem key={p.id} value={p.id}>
                     <span className="mr-2">{p.flag}</span>{p.code}
                   </SelectItem>
                 ))}
@@ -1860,12 +1862,12 @@ const Registro = () => {
               autoComplete="off"
               name={`reg_telefono_${formInstanceKey}`}
               required={required}
-              maxLength={expectedLen}
-              placeholder={`${expectedLen} dígitos`}
+              maxLength={phoneLenMax}
+              placeholder={phoneLenHint}
               value={phoneLocal}
               onChange={e => {
                 // Strip everything that isn't a digit; cap at expected length.
-                const digits = e.target.value.replace(/\D/g, '').slice(0, expectedLen);
+                const digits = e.target.value.replace(/\D/g, '').slice(0, phoneLenMax);
                 setPhoneLocal(digits);
                 setValue('reg_telefono', digits ? `${phoneCode} ${digits}` : '');
                 if (phoneError) setPhoneError('');
@@ -1879,7 +1881,7 @@ const Registro = () => {
             <p className="text-xs text-destructive">{phoneError}</p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Selecciona la lada y escribe {expectedLen} dígitos sin espacios.
+              Selecciona la lada y escribe {phoneLenHint} sin espacios.
             </p>
           )}
         </div>
