@@ -1403,7 +1403,7 @@ const Registro = () => {
         toast({ title: 'Teléfono requerido', variant: 'destructive' });
         return;
       }
-      if (phoneLocal && (phoneLocal.length !== phoneLenRequired || !/^\d+$/.test(phoneLocal))) {
+      if (phoneLocal && (phoneLocal.length < phoneLenMin || phoneLocal.length > phoneLenMax || !/^\d+$/.test(phoneLocal))) {
         validatePhoneOnBlur();
         return;
       }
