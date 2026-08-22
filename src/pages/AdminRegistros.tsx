@@ -754,7 +754,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       <Card>
         <CardContent className="pt-6 space-y-3">
           {/* Tabs de sección */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 scrollbar-hide">
             {SECTIONS.map(s => (
               <Button
                 key={s.id}
@@ -1072,7 +1072,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   disabled={estatusOpts.length === 0}
                                   onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
                                 >
-                                  <SelectTrigger className="h-10 text-xs w-36">
+                                  <SelectTrigger className={cn(
+                                    "text-xs w-36",
+                                    section === 'sec4' ? "h-auto min-h-10 whitespace-normal" : "h-10"
+                                  )}>
                                     <SelectValue placeholder="—" />
                                   </SelectTrigger>
                                   <SelectContent>
