@@ -476,7 +476,8 @@ const Registro = () => {
   /** Inline error for the phone field. */
   const [phoneError, setPhoneError] = useState<string>('');
   /** Selected dial code (defaults to MX). */
-  const [phoneCode, setPhoneCode] = useState<string>('+52');
+  /** País de la lada seleccionada (id de PHONE_CODES). México = default. */
+  const [phoneCodeId, setPhoneCodeId] = useState<string>('MX');
   /** Local 10-digit (or country-specific) phone digits, no spaces. */
   const [phoneLocal, setPhoneLocal] = useState<string>('');
 
