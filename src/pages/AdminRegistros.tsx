@@ -754,7 +754,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       <Card>
         <CardContent className="pt-6 space-y-3">
           {/* Tabs de sección */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 scrollbar-hide">
             {SECTIONS.map(s => (
               <Button
                 key={s.id}
