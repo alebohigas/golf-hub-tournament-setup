@@ -779,12 +779,13 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
       <Card>
         <CardContent className="pt-6 space-y-3">
           {/* Tabs de sección */}
-          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1 scrollbar-hide">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {SECTIONS.map(s => (
               <Button
                 key={s.id}
                 variant={section === s.id ? 'default' : 'outline'}
                 size="sm"
+                className="shrink-0 whitespace-nowrap"
                 onClick={() => setSection(s.id)}
               >
                 {s.label} <span className="ml-2 opacity-70">({counts[s.id]})</span>
@@ -903,7 +904,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                       el `status_pago` desde cualquier vista.
                     */}
                     <th className="text-center p-3">Monto confirmado recibido</th>
-                    <th className="text-center p-3">Estatus de pago</th>
+                    <th className="text-center p-3 leading-tight">
+                      <span className="block">Estatus</span>
+                      <span className="block">de pago</span>
+                    </th>
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
