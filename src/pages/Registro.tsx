@@ -2275,7 +2275,7 @@ const Registro = () => {
                     setSubmittedWaitlist(false);
                     setValues({});
                     setFile(null);
-                    setPhoneCode('+52');
+                    setPhoneCodeId('MX');
                     setPhoneLocal('');
                     setPhoneError('');
                     setBirthDmy('');
