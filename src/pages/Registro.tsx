@@ -763,11 +763,24 @@ const Registro = () => {
 
   // ============= Phone validation =============
 
-  /** Selected country's required digit length. */
-  const phoneLenRequired = useMemo(
-    () => PHONE_CODES.find(p => p.code === phoneCode)?.len ?? 10,
-    [phoneCode]
+  /** Entrada completa del país seleccionado (lada, bandera, longitudes). */
+  const phoneEntry = useMemo(
+    () => PHONE_CODES.find(p => p.id === phoneCodeId) ?? PHONE_CODES[0],
+    [phoneCodeId]
   );
+
+  /** Lada del país seleccionado, ej. "+52". */
+  const phoneCode = phoneEntry.code;
+
+  /** Rango de dígitos aceptado: exacto si no hay `flex`, rango si lo hay. */
+  const phoneFlex = phoneEntry.flex ?? 0;
+  const phoneLenMin = phoneEntry.len - phoneFlex;
+  const phoneLenMax = phoneEntry.len + phoneFlex;
+
+  /** Texto de ayuda para la longitud esperada. */
+  const phoneLenHint = phoneFlex > 0
+    ? `entre ${phoneLenMin} y ${phoneLenMax} dígitos`
+    : `${phoneEntry.len} dígitos`;
 
   /** Re-compose reg_telefono whenever code or local digits change as a safety mirror for derived phone state. */
   useEffect(() => {
@@ -788,8 +801,10 @@ const Registro = () => {
       toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
       return;
     }
-    if (phoneLocal.length !== phoneLenRequired) {
-      const msg = `Debe tener exactamente ${phoneLenRequired} dígitos.`;
+    if (phoneLocal.length < phoneLenMin || phoneLocal.length > phoneLenMax) {
+      const msg = phoneFlex > 0
+        ? `Debe tener ${phoneLenHint}.`
+        : `Debe tener exactamente ${phoneEntry.len} dígitos.`;
       setPhoneError(msg);
       toast({ title: 'Teléfono inválido', description: msg, variant: 'destructive' });
       return;
