@@ -51,6 +51,24 @@ const formatPhone = (raw?: string | null): string => {
   return s;
 };
 
+/**
+ * displayPhone
+ * ------------------------------------------------------------------
+ * Teléfono para tabla/detalle/exportación. Si el registro tiene la lada
+ * guardada (reg_tel_lada, capturada con el país en el formulario), arma el
+ * formato "(+52) 5512345678" a partir de esa lada + los dígitos locales;
+ * registros antiguos sin esos campos caen al parseo de formatPhone.
+ */
+const displayPhone = (r: RegistroRow): string => {
+  const raw = (r.reg_telefono || r.reg_celular || '').trim();
+  const lada = (r.reg_tel_lada || '').trim();
+  if (lada) {
+    const digits = raw.replace(/^\+\s*\d{1,4}[\s-]*/, '').trim();
+    if (digits) return `(${lada.startsWith('+') ? lada : `+${lada}`}) ${digits}`;
+  }
+  return formatPhone(raw);
+};
+
 /** A single registro row from /api/registro.php */
 interface RegistroRow {
   id: number;
@@ -62,6 +80,10 @@ interface RegistroRow {
   reg_telefono?: string;
   /** Alias canónico del teléfono en algunos esquemas. */
   reg_celular?: string;
+  /** País de la lada seleccionada en el formulario (id ISO, ej. 'MX'). */
+  reg_tel_pais?: string;
+  /** Lada telefónica seleccionada en el formulario (ej. '+52'). */
+  reg_tel_lada?: string;
   reg_handicap?: string;
   reg_categoria?: string;
   /** Nombre legible de la categoría (JOIN del backend). */
@@ -676,6 +698,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
 
     const headers = [
       'Folio', 'Fecha registro', 'Nombre', 'Apellido', 'Correo', 'Teléfono',
+      'País tel.', 'Lada',
       'Club', 'Categoría', 'Handicap', 'Socio', 'Tipo socio', 'Clave socio',
       'Monto a pagar', 'Monto pagado', 'Monto confirmado', 'Moneda',
       'Comprobante', 'Archivo', 'Estatus de pago', 'Sección',
@@ -689,7 +712,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
         r.reg_nombre || '',
         r.reg_apellido || '',
         r.reg_correo || '',
-        formatPhone(r.reg_telefono || r.reg_celular),
+        displayPhone(r),
+        r.reg_tel_pais || '',
+        r.reg_tel_lada || '',
         r.reg_club || '',
         r.categoria_name || '',
         r.reg_handicap ?? '',
@@ -942,7 +967,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         <td className="p-3">
                           <div>{r.reg_correo || '—'}</div>
-                          <div className="text-xs text-muted-foreground">{formatPhone(r.reg_telefono || r.reg_celular)}</div>
+                          <div className="text-xs text-muted-foreground">{displayPhone(r)}</div>
                         </td>
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
@@ -1183,7 +1208,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Nombre', r.reg_nombre],
                                 ['Apellido', r.reg_apellido],
                                 ['Correo', r.reg_correo],
-                                ['Teléfono', formatPhone(r.reg_telefono || r.reg_celular)],
+                                ['Teléfono', displayPhone(r)],
                                 ['Handicap', r.reg_handicap],
                                 ['Categoría', r.categoria_name],
                                 ['Club', r.reg_club],
@@ -1229,6 +1254,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   ['Talla de calzado/tenis', r.akron_calzado],
                                   ['Código de promoción',    r.akron_codigo],
                                   ['Monto pagado',           r.akron_monto_pago],
+                                  // País/lada capturados con el teléfono
+                                  ['País tel.',              r.reg_tel_pais],
+                                  ['Lada',                   r.reg_tel_lada],
                                 ] as Array<[string, unknown]>).filter(([, v]) =>
                                   v != null && String(v).trim() !== ''
                                 ),
