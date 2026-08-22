@@ -967,7 +967,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                         </td>
                         <td className="p-3">
                           <div>{r.reg_correo || '—'}</div>
-                          <div className="text-xs text-muted-foreground">{formatPhone(r.reg_telefono || r.reg_celular)}</div>
+                          <div className="text-xs text-muted-foreground">{displayPhone(r)}</div>
                         </td>
                         <td className="p-3">
                           <div>{r.categoria_name || '—'}</div>
@@ -1208,7 +1208,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 ['Nombre', r.reg_nombre],
                                 ['Apellido', r.reg_apellido],
                                 ['Correo', r.reg_correo],
-                                ['Teléfono', formatPhone(r.reg_telefono || r.reg_celular)],
+                                ['Teléfono', displayPhone(r)],
                                 ['Handicap', r.reg_handicap],
                                 ['Categoría', r.categoria_name],
                                 ['Club', r.reg_club],
@@ -1254,6 +1254,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   ['Talla de calzado/tenis', r.akron_calzado],
                                   ['Código de promoción',    r.akron_codigo],
                                   ['Monto pagado',           r.akron_monto_pago],
+                                  // País/lada capturados con el teléfono
+                                  ['País tel.',              r.reg_tel_pais],
+                                  ['Lada',                   r.reg_tel_lada],
                                 ] as Array<[string, unknown]>).filter(([, v]) =>
                                   v != null && String(v).trim() !== ''
                                 ),
