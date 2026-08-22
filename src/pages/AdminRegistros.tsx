@@ -1072,7 +1072,10 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   disabled={estatusOpts.length === 0}
                                   onValueChange={(v) => updateRegistro(r, { status_pago: Number(v) })}
                                 >
-                                  <SelectTrigger className="h-10 text-xs w-36">
+                                  <SelectTrigger className={cn(
+                                    "text-xs w-36",
+                                    section === 'sec4' ? "h-auto min-h-10 whitespace-normal" : "h-10"
+                                  )}>
                                     <SelectValue placeholder="—" />
                                   </SelectTrigger>
                                   <SelectContent>
