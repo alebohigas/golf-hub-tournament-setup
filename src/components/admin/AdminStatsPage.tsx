@@ -35,6 +35,7 @@ import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 const DEFAULT_SECTIONS: StatsPageSection[] = [
   { id: 'clubes',    enabled: true },
   { id: 'categoria', enabled: true },
+  { id: 'tees',      enabled: true },
   { id: 'jugador',   enabled: true },
 ];
 
@@ -42,6 +43,7 @@ const DEFAULT_SECTIONS: StatsPageSection[] = [
 const SECTION_LABELS: Record<StatsPageSection['id'], string> = {
   clubes:    'Clubes Asistentes',
   categoria: 'Estadísticas por Categoría',
+  tees:      'Estadísticas por Tee de Salida',
   jugador:   'Estadísticas por Jugador',
 };
 

@@ -15,6 +15,7 @@ import PageHero from '@/components/shared/PageHero';
 import statsHero from '@/assets/stats-hero.jpg';
 import ClubesAsistentesSection from '@/components/stats/ClubesAsistentesSection';
 import EstadisticasCategoriaSection from '@/components/stats/EstadisticasCategoriaSection';
+import EstadisticasSalidasSection from '@/components/stats/EstadisticasSalidasSection';
 import EstadisticasJugadorSection from '@/components/stats/EstadisticasJugadorSection';
 import { useSiteConfig, type StatsPageSection } from '@/hooks/useSiteConfig';
 
@@ -22,6 +23,7 @@ import { useSiteConfig, type StatsPageSection } from '@/hooks/useSiteConfig';
 const DEFAULT_SECTIONS: StatsPageSection[] = [
   { id: 'clubes',    enabled: true },
   { id: 'categoria', enabled: true },
+  { id: 'tees',      enabled: true },
   { id: 'jugador',   enabled: true },
 ];
 
@@ -62,6 +64,8 @@ const Stats = () => {
             overrideRounds={overrides.categoriaRounds ?? null}
           />
         );
+      case 'tees':
+        return <EstadisticasSalidasSection key="tees" />;
       case 'jugador':
         return (
           <EstadisticasJugadorSection key="jugador" note={overrides.jugadorNote ?? null} />
