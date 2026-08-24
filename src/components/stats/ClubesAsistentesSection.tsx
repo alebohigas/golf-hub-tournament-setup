@@ -42,7 +42,7 @@ const EMPTY_BRANCH = { caballeros: 0, seniors: 0, supersenior: 0, damas: 0, tota
  * DB stores real hex values (e.g. "FFD600" or "#FFD600"). We only add the
  * leading `#` if missing. Unknown/empty values fall back to neutral grey.
  */
-const normalizeHex = (raw?: string | null, fallback = '#999'): string => {
+export const normalizeHex = (raw?: string | null, fallback = '#999'): string => {
   if (!raw) return fallback;
   const v = raw.trim();
   if (!v) return fallback;

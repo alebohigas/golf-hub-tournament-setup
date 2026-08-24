@@ -15,7 +15,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Loader2, Trophy } from 'lucide-react';
 import { useCategories } from '@/hooks/usePlayersData';
-import { useStatsCategoria } from '@/hooks/useStatsData';
+import {
+  useStatsCategoria,
+  type StatsCategoriaHole,
+  type StatsCategoriaResponse,
+} from '@/hooks/useStatsData';
 
 interface Props {
   /** Manual overrides applied to the section header (null = auto). */
@@ -133,7 +137,7 @@ const EstadisticasCategoriaSection = ({
                 Cargando estadísticas...
               </div>
             ) : (
-              <CategoryStatsTable data={data} />
+              <StatsHolesTable holes={data.holes} subtotals={data.subtotals} />
             )}
           </div>
         )}
@@ -142,15 +146,20 @@ const EstadisticasCategoriaSection = ({
   );
 };
 
-// ============= Inner Table =============
+// ============= Shared Holes Matrix =============
+
+/** Props for the shared hole-by-hole stats matrix. */
+export interface StatsHolesTableProps {
+  holes: StatsCategoriaHole[];
+  subtotals: StatsCategoriaResponse['subtotals'];
+}
 
 /**
- * Renders the aggregated hole-by-hole matrix for a category, including
- * OUT / IN / TOTAL subtotal rows. Kept internal to this file since it
- * is only used here.
+ * Renders the aggregated hole-by-hole matrix, including OUT / IN / TOTAL
+ * subtotal rows. Exported so other stats sections (e.g. per-tee stats)
+ * can reuse the exact same layout.
  */
-const CategoryStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useStatsCategoria>['data']> }) => {
-  const { holes, subtotals } = data;
+export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
 
   /**
    * Left offset (px) accumulator for the three sticky columns: Hoyo, Par, Prom.
