@@ -250,7 +250,8 @@ export interface StatsConfig {
  * visibility settings (Admin > Páginas), not here.
  */
 export interface StatsPageSection {
-  id: 'clubes' | 'categoria' | 'jugador';
+  /** 'tees' = Estadísticas por Tee de Salida (mesa de salida / color). */
+  id: 'clubes' | 'categoria' | 'tees' | 'jugador';
   enabled: boolean;
 }
 
