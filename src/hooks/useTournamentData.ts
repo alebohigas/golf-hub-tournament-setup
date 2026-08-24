@@ -101,8 +101,14 @@ export const useTournamentStats = () => {
         ? Number(overrides!.maxCategories)
         : autoMaxCat;
 
-      /** Round years down to nearest multiple of 2 for the "+" display */
-      const rounded = Math.floor(years / 2) * 2;
+      /**
+       * Display rounding rule:
+       *   - Manual override (admin fijó el número): se muestra EXACTO (49 => "49+").
+       *   - Valor automático (calculado del histórico): se redondea hacia abajo
+       *     al múltiplo de 2 más cercano para no presumir años de más.
+       */
+      const hasYearsOverride = (overrides?.yearsHistory ?? null) !== null;
+      const rounded = hasYearsOverride ? years : Math.floor(years / 2) * 2;
 
       return {
         totalHistoricalPlayers: total,
