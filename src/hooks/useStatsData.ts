@@ -126,6 +126,35 @@ export interface StatsJugadorResponse {
   averages: (number | null)[];
 }
 
+// ============= Tee (mesa de salida) stats =============
+
+/** A tee option from stats_tee.php list mode (chip selector source). */
+export interface StatsTeeOption {
+  id: number;
+  tee: string;
+  color: string;
+  bgcolor?: string;
+}
+
+/**
+ * Detail response from stats_tee.php for one or several tees.
+ * holes/subtotals intentionally reuse the StatsCategoria* shapes so the
+ * shared holes matrix component renders them without mapping.
+ */
+export interface StatsTeeDetailResponse {
+  /** "Negras" for one tee, "Negras + Azules" for several. */
+  teeName: string;
+  /** Tee color — only set when exactly one tee is selected. */
+  teeColor?: string;
+  /** How many of the requested tees exist in the salidas table. */
+  teeCount: number;
+  course: string;
+  rounds: number;
+  updatedAt: string | null;
+  holes: StatsCategoriaHole[];
+  subtotals: StatsCategoriaResponse['subtotals'];
+}
+
 // ============= Helpers =============
 
 /** Build a URL with the current torneoid appended plus optional extras. */
@@ -178,5 +207,30 @@ export const useStatsJugador = (jugadorId: string | null) =>
         buildUrl('stats_jugador.php', { jugadorid: String(jugadorId) }),
       ),
     enabled: !!jugadorId,
+    staleTime: POLL_SLOW,
+  });
+
+/** List of tees (mesas de salida) used by the tournament's categories. */
+export const useStatsTeesList = () =>
+  useQuery<{ tees: StatsTeeOption[] }>({
+    queryKey: ['stats-tees', getTorneoId()],
+    queryFn: () => apiFetch<{ tees: StatsTeeOption[] }>(buildUrl('stats_tee.php')),
+    staleTime: POLL_SLOW,
+  });
+
+/**
+ * Aggregated hole-by-hole stats for one or several tees.
+ * @param salidaIds — explicit tee id list; the caller passes ALL tee ids
+ *                    when the "Todas" (no selection) filter is active.
+ *                    Empty array → query disabled.
+ */
+export const useStatsTee = (salidaIds: number[]) =>
+  useQuery<StatsTeeDetailResponse>({
+    queryKey: ['stats-tee', getTorneoId(), salidaIds.join(',')],
+    queryFn: () =>
+      apiFetch<StatsTeeDetailResponse>(
+        buildUrl('stats_tee.php', { salidaids: salidaIds.join(',') }),
+      ),
+    enabled: salidaIds.length > 0,
     staleTime: POLL_SLOW,
   });
