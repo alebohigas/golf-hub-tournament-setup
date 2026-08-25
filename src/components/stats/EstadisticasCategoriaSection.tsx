@@ -239,7 +239,11 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   // Solo scroll horizontal: el alto crece con el contenido (scroll de la página).
   // No max-height ni overflow-y para evitar que el frame recorte filas.
   return (
-    <div className="overflow-x-auto h-auto bg-white border border-border rounded">
+    // `overscroll-x-contain` + momentum scrolling = deslizamiento suave en celular.
+    <div
+      className="overflow-x-auto overflow-y-visible h-auto bg-white border border-border rounded overscroll-x-contain scroll-smooth"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
       <table className="w-full text-sm min-w-[720px] bg-white">
         <thead className="sticky top-0 z-30">
           <tr className="bg-white border-b border-border">
