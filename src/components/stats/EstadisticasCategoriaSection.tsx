@@ -266,11 +266,12 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
           {subtotals.in && renderSubtotal('V2', subtotals.in)}
           {subtotals.total && (
             <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
-              <td className="px-3 py-3 uppercase tracking-wide">Total</td>
-              <td className="px-3 py-3 text-center tabular-nums">
+              {/* Celdas fijas de la fila TOTAL: fondo sólido = no se transparenta */}
+              <td className="px-3 py-3 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: 'hsl(var(--primary))' }}>Total</td>
+              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: 'hsl(var(--primary))' }}>
                 {subtotals.total.par}
               </td>
-              <td className="px-3 py-3 text-center tabular-nums">
+              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: 'hsl(var(--primary))' }}>
                 {subtotals.total.promedio ?? '—'}
               </td>
               <td className="px-3 py-3" />
