@@ -250,13 +250,13 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
             <th className="text-left px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
             <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
             <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40 shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
-            <th className="text-center px-3 py-3 font-semibold">Rank</th>
-            <th className="text-center px-3 py-3 font-semibold">Águilas</th>
-            <th className="text-center px-3 py-3 font-semibold">Birdies</th>
-            <th className="text-center px-3 py-3 font-semibold">Pares</th>
-            <th className="text-center px-3 py-3 font-semibold">Bogeys</th>
-            <th className="text-center px-3 py-3 font-semibold">Dobles</th>
-            <th className="text-center px-3 py-3 font-semibold">Triples+</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Rank</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Águilas</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Birdies</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Pares</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Bogeys</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Dobles</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Triples+</th>
           </tr>
         </thead>
         <tbody>
