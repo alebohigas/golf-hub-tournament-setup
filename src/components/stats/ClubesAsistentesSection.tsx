@@ -355,60 +355,9 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
           )}
         </CardContent>
       </Card>
-
-      {/* Companion "NO SHOW" summary card — retiros / no-shows / descalificados */}
-      {noShow && noShow.total > 0 && (
-        <NoShowCard noShow={noShow} />
-      )}
     </div>
   );
 };
 
-/**
- * NoShowCard
- * Compact companion card sitting under the clubs table. Shows a single
- * headline number ("NO SHOW") with three itemized rows below.
- */
-const NoShowCard = ({
-  noShow,
-}: {
-  noShow: NonNullable<ReturnType<typeof useStatsClubes>['data']>['noShow'];
-}) => (
-  <Card className="overflow-hidden border-2 border-muted-foreground/25 bg-white">
-    <CardContent className="p-0">
-      <div className="bg-muted border-b border-muted-foreground/25 px-6 py-4 flex items-center gap-3">
-        <UserX className="h-6 w-6 text-muted-foreground" />
-        <div className="flex items-baseline gap-3 flex-wrap">
-          <h3 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide text-muted-foreground">
-            NO SHOW
-          </h3>
-          <span className="text-4xl md:text-5xl font-mono font-black text-muted-foreground leading-none">
-            {noShow.total}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            jugadores no jugaron
-          </span>
-        </div>
-      </div>
-      <div className="divide-y divide-border">
-        <NoShowRow label="Retiro"        value={noShow.retiro} />
-        <NoShowRow label="No Show"       value={noShow.noShow} />
-        <NoShowRow label="Descalificado" value={noShow.descalificado} />
-        {/* Estatus "NO CONTIENDE" (N) */}
-        <NoShowRow label="No contiende"  value={noShow.noContiende ?? 0} />
-      </div>
-    </CardContent>
-  </Card>
-);
-
-/** Single labeled row inside the NO SHOW card. */
-const NoShowRow = ({ label, value }: { label: string; value: number }) => (
-  <div className="px-6 py-3 flex items-center justify-between bg-white">
-    <span className="text-sm font-medium">{label}</span>
-    <Badge variant="secondary" className="font-mono tabular-nums text-base px-3">
-      {value}
-    </Badge>
-  </div>
-);
-
 export default ClubesAsistentesSection;
+
