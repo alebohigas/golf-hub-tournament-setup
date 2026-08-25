@@ -251,7 +251,8 @@ export interface StatsConfig {
  */
 export interface StatsPageSection {
   /** 'tees' = Estadísticas por Tee de Salida (mesa de salida / color). */
-  id: 'clubes' | 'categoria' | 'tees' | 'jugador';
+  /** 'noshow' = tarjeta NO SHOW (retiros, no shows, descalificados). */
+  id: 'clubes' | 'categoria' | 'tees' | 'jugador' | 'noshow';
   enabled: boolean;
 }
 

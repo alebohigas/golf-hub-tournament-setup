@@ -12,8 +12,8 @@
  *    the admin toggle (site_config.stats_page_config.overrides.clubNameField).
  *  - Sticky column header row + sticky "Club" column for long lists.
  *  - Total-de-clubes and Total-de-jugadores summary chips in the header.
- *  - Companion "NO SHOW" summary card rendered below the table with
- *    Retiro / No Show / Descalificado counts.
+ *  - La tarjeta "NO SHOW" vive ahora en NoShowSection.tsx (sección
+ *    independiente, ordenable desde Admin > Página de Estadísticas).
  *
  * The heavy lifting (per-tee breakdown + no-show counts) is done in
  * server/api/stats_clubes.php; this component only aggregates
@@ -24,9 +24,8 @@
 import { useStickyTableHead } from '@/hooks/useStickyTableHead';
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, Filter, UserX } from 'lucide-react';
+import { Loader2, Users, Filter } from 'lucide-react';
 import { useStatsClubes, type StatsTee } from '@/hooks/useStatsData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 
@@ -122,8 +121,6 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
     overrideTotal !== null && overrideTotal !== undefined && overrideTotal > 0
       ? overrideTotal
       : autoTotal;
-
-  const noShow = data?.noShow;
 
   /**
    * Keeps the clubs table header pinned inside its frame while the page

@@ -119,6 +119,7 @@ const AdminStats = () => {
             { id: 'categoria', enabled: true },
             { id: 'tees', enabled: true },
             { id: 'jugador', enabled: true },
+            { id: 'noshow', enabled: true },
           ],
           overrides: { footerTagline: footerTagline.trim() || null },
         };
