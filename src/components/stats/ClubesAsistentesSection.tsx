@@ -125,6 +125,13 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
 
   const noShow = data?.noShow;
 
+  /**
+   * Keeps the clubs table header pinned inside its frame while the page
+   * scrolls (the frame itself only scrolls horizontally).
+   */
+  const { wrapperRef: clubsWrapperRef, theadRef: clubsTheadRef } =
+    useStickyTableHead(0, [rows.length]);
+
   return (
     <div className="space-y-4">
       {/* Dynamic height: the card grows with the table; no overflow-y clipping. */}
