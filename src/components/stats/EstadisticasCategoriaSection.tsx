@@ -41,10 +41,12 @@ const EstadisticasCategoriaSection = ({
   const displayedUpdatedAt = overrideUpdatedAt || data?.updatedAt || null;
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20">
+    // Dynamic height: no max-height or overflow-y so the report grows with
+    // its table content and only the page scrolls vertically.
+    <Card className="h-auto border-2 border-primary/20">
       <CardContent className="p-0">
-        {/* Section header */}
-        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3">
+        {/* Section header — rounded top corners now that Card no longer clips */}
+        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3 rounded-t-lg">
           <BarChart3 className="h-6 w-6" />
           <h2 className="text-xl md:text-2xl font-display font-bold uppercase tracking-wide">
             Estadísticas por Categoría
