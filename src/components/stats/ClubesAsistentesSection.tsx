@@ -210,32 +210,35 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
           ) : (
             // Sin límite de alto: tabla completa, scroll de la página.
             // No overflow-y para evitar que el frame recorte filas.
-            <div className="overflow-x-auto h-auto bg-white">
+            <div
+              className="overflow-x-auto overflow-y-visible h-auto bg-white overscroll-x-contain scroll-smooth"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               <table className="w-full text-sm bg-white">
                 <thead className="sticky top-0 z-30">
                   <tr className="bg-white border-b border-border">
-                    <th className="text-left px-4 py-3 font-semibold w-16 bg-white">
+                    <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-white z-20" style={{ width: 64, minWidth: 64 }}>
                       Logo
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-white z-20 shadow-[2px_0_0_0_hsl(var(--border))]">
+                    <th className="text-left px-4 py-3 font-semibold sticky bg-white z-20 whitespace-nowrap shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: 64, minWidth: 140 }}>
                       Club
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
                       Caballeros
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
                       Seniors
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
                       Super Sr.
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
                       Damas
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white">
+                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white whitespace-nowrap">
                       Total
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white">
+                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white whitespace-nowrap">
                       %
                     </th>
                   </tr>
@@ -250,7 +253,7 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                         key={`${club.id ?? 'null'}-${idx}`}
                         className="border-b border-border/60 bg-white hover:bg-muted/20 transition-colors"
                       >
-                        <td className="px-4 py-2 bg-white">
+                        <td className="px-4 py-2 bg-white sticky left-0 z-10" style={{ width: 64, minWidth: 64 }}>
                           {club.logo ? (
                             <img
                               src={club.logo}
@@ -268,7 +271,8 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                           )}
                         </td>
                         <td
-                          className="px-4 py-2 font-medium sticky left-0 bg-white shadow-[2px_0_0_0_hsl(var(--border))]"
+                          className="px-4 py-2 font-medium sticky bg-white z-10 whitespace-nowrap shadow-[2px_0_0_0_hsl(var(--border))]"
+                          style={{ left: 64, minWidth: 140 }}
                           title={club.name}
                         >
                           {displayName}
@@ -296,8 +300,8 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                   })}
                   {/* Totals row */}
                   <tr className="bg-primary/10 border-t-2 border-primary font-bold">
-                    <td className="px-4 py-3 bg-primary/10" />
-                    <td className="px-4 py-3 uppercase tracking-wide sticky left-0 bg-primary/10 shadow-[2px_0_0_0_hsl(var(--border))]">
+                    <td className="px-4 py-3 sticky left-0 z-10" style={{ width: 64, minWidth: 64, background: '#e8f0e8' }} />
+                    <td className="px-4 py-3 uppercase tracking-wide sticky z-10 whitespace-nowrap shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: 64, minWidth: 140, background: '#e8f0e8' }}>
                       Totales
                     </td>
                     <td className="px-4 py-3 text-center tabular-nums">
