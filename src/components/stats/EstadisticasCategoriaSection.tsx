@@ -234,8 +234,9 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   const first = holes.filter((h) => h.hole <= 9);
   const back = holes.filter((h) => h.hole > 9);
 
+  // Solo scroll horizontal: el alto crece con el contenido (scroll de la página)
   return (
-    <div className="overflow-auto max-h-[70vh] bg-white border border-border rounded">
+    <div className="overflow-x-auto bg-white border border-border rounded">
       <table className="w-full text-sm min-w-[720px] bg-white">
         <thead className="sticky top-0 z-30">
           <tr className="bg-white border-b border-border">
