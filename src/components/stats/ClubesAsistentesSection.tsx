@@ -316,23 +316,37 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
                     <td className="px-4 py-3 uppercase tracking-wide sticky z-10 whitespace-nowrap shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: 64, minWidth: 140, background: '#e8f0e8' }}>
                       Totales
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">
-                      {sums.caballeros}
+                    <td className="px-4 py-3 text-center tabular-nums align-middle">
+                      <div>{sums.caballeros}</div>
+                      <div className="text-xs font-semibold text-primary/80">
+                        {sums.total > 0 ? `${((sums.caballeros / sums.total) * 100).toFixed(1)}%` : '—'}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">
-                      {sums.seniors}
+                    <td className="px-4 py-3 text-center tabular-nums align-middle">
+                      <div>{sums.seniors}</div>
+                      <div className="text-xs font-semibold text-primary/80">
+                        {sums.total > 0 ? `${((sums.seniors / sums.total) * 100).toFixed(1)}%` : '—'}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">
-                      {sums.supersenior}
+                    <td className="px-4 py-3 text-center tabular-nums align-middle">
+                      <div>{sums.supersenior}</div>
+                      <div className="text-xs font-semibold text-primary/80">
+                        {sums.total > 0 ? `${((sums.supersenior / sums.total) * 100).toFixed(1)}%` : '—'}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">
-                      {sums.damas}
+                    <td className="px-4 py-3 text-center tabular-nums align-middle">
+                      <div>{sums.damas}</div>
+                      <div className="text-xs font-semibold text-primary/80">
+                        {sums.total > 0 ? `${((sums.damas / sums.total) * 100).toFixed(1)}%` : '—'}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums text-primary text-base">
-                      {sums.total}
+                    <td className="px-4 py-3 text-center tabular-nums text-primary text-base align-middle">
+                      <div>{sums.total}</div>
+                      <div className="text-xs font-semibold text-primary/80">100%</div>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums text-primary">
-                      100%
+                    <td className="px-4 py-3 text-center tabular-nums text-primary align-middle">
+                      <div>100%</div>
+                      <div className="text-xs font-semibold text-primary/80">—</div>
                     </td>
                   </tr>
                 </tbody>
