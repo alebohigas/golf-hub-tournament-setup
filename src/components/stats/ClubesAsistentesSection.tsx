@@ -207,7 +207,7 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
               No hay jugadores registrados aún.
             </div>
           ) : (
-            {/* Sin límite de alto: la tabla se muestra completa y se usa el scroll de la página */}
+            // Sin límite de alto: tabla completa, scroll de la página
             <div className="overflow-x-auto bg-white">
               <table className="w-full text-sm bg-white">
                 <thead className="sticky top-0 z-30">
