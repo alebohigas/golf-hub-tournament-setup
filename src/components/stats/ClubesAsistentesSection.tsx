@@ -21,6 +21,7 @@
  * ---------------------------------------------------------------
  */
 
+import { useStickyTableHead } from '@/hooks/useStickyTableHead';
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -211,11 +212,12 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
             // Sin límite de alto: tabla completa, scroll de la página.
             // No overflow-y para evitar que el frame recorte filas.
             <div
+              ref={clubsWrapperRef}
               className="overflow-x-auto overflow-y-visible h-auto bg-white overscroll-x-contain scroll-smooth"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-sm bg-white">
-                <thead className="sticky top-0 z-30">
+                <thead ref={clubsTheadRef} className="relative z-30">
                   <tr className="bg-white border-b border-border">
                     <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-white z-20" style={{ width: 64, minWidth: 64 }}>
                       Logo
