@@ -247,12 +247,12 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   const renderPctRow = (s: NonNullable<typeof subtotals.total>) => {
     const scoreEvents = s.aguilas + s.birdies + s.pares + s.bogeys + s.dobles + s.triples;
     const pct = (n: number) => (scoreEvents > 0 ? (n / scoreEvents) * 100 : 0);
-    const bg = '#145a3a'; // darker primary green for contrast
+    const primaryBg = 'hsl(var(--primary))';
     return (
-      <tr className="font-bold text-xs" style={{ background: bg }}>
-        <td className="px-3 py-2 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: bg }}>%</td>
-        <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: bg }} />
-        <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: bg }} />
+      <tr className="bg-primary text-primary-foreground font-bold text-xs border-t border-primary-foreground/30">
+        <td className="px-3 py-2 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: primaryBg }}>%</td>
+        <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: primaryBg }} />
+        <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: primaryBg }} />
         <td className="px-3 py-2" />
         <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.aguilas).toFixed(1)}%` : '—'}</td>
         <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.birdies).toFixed(1)}%` : '—'}</td>
