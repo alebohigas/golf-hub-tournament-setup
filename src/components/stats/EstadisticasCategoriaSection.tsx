@@ -238,7 +238,7 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
 
   // Solo scroll horizontal: el alto crece con el contenido (scroll de la página)
   return (
-    <div className="overflow-x-auto bg-white border border-border rounded">
+    <div className="overflow-x-auto overflow-y-visible h-auto bg-white border border-border rounded">
       <table className="w-full text-sm min-w-[720px] bg-white">
         <thead className="sticky top-0 z-30">
           <tr className="bg-white border-b border-border">
