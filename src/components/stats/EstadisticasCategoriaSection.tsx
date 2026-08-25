@@ -300,35 +300,38 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
           {back.map((h, i) => renderHoleRow(h, i + first.length + 1))}
           {subtotals.in && renderSubtotal('V2', subtotals.in)}
           {subtotals.total && (
-            <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
-              {/* Celdas fijas de la fila TOTAL: fondo sólido = no se transparenta */}
-              <td className="px-3 py-3 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: 'hsl(var(--primary))' }}>Total</td>
-              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: 'hsl(var(--primary))' }}>
-                {subtotals.total.par}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: 'hsl(var(--primary))' }}>
-                {subtotals.total.promedio ?? '—'}
-              </td>
-              <td className="px-3 py-3" />
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.aguilas}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.birdies}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.pares}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.bogeys}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.dobles}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.triples}
-              </td>
-            </tr>
+            <>
+              <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
+                {/* Celdas fijas de la fila TOTAL: fondo sólido = no se transparenta */}
+                <td className="px-3 py-3 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: 'hsl(var(--primary))' }}>Total</td>
+                <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: 'hsl(var(--primary))' }}>
+                  {subtotals.total.par}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: 'hsl(var(--primary))' }}>
+                  {subtotals.total.promedio ?? '—'}
+                </td>
+                <td className="px-3 py-3" />
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.aguilas}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.birdies}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.pares}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.bogeys}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.dobles}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.triples}
+                </td>
+              </tr>
+              {renderPctRow(subtotals.total)}
+            </>
           )}
         </tbody>
       </table>
