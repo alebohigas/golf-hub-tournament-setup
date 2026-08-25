@@ -133,7 +133,8 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
         </p>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* No max-height / overflow-y: grows with content, only page scrolls. */}
+      <div className="overflow-x-auto h-auto">
         <table className="w-full min-w-[820px] text-sm border border-border rounded overflow-hidden">
           <thead>
             <tr className="bg-primary text-primary-foreground">
