@@ -45,7 +45,9 @@ const EstadisticasJugadorSection = ({ note }: Props) => {
   const { data: playerStats, isLoading } = useStatsJugador(selectedId);
 
   return (
-    <Card className="border-2 border-primary/20">
+    // Dynamic height: no max-height or overflow-y so the report grows with
+    // its table content and only the page scrolls vertically.
+    <Card className="h-auto border-2 border-primary/20">
       <CardContent className="p-0">
         {/* Section header — rounded top corners since Card no longer clips */}
         <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3 rounded-t-lg">
@@ -55,7 +57,7 @@ const EstadisticasJugadorSection = ({ note }: Props) => {
           </h2>
         </div>
 
-        <div className="p-4 md:p-6 space-y-4 overflow-visible">
+        <div className="p-4 md:p-6 space-y-4 overflow-visible h-auto">
           {note && (
             <div className="text-sm bg-accent/10 border border-accent/30 rounded-md px-4 py-2 text-foreground">
               {note}
