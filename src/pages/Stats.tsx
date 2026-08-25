@@ -17,6 +17,7 @@ import ClubesAsistentesSection from '@/components/stats/ClubesAsistentesSection'
 import EstadisticasCategoriaSection from '@/components/stats/EstadisticasCategoriaSection';
 import EstadisticasSalidasSection from '@/components/stats/EstadisticasSalidasSection';
 import EstadisticasJugadorSection from '@/components/stats/EstadisticasJugadorSection';
+import NoShowSection from '@/components/stats/NoShowSection';
 import { useSiteConfig, type StatsPageSection } from '@/hooks/useSiteConfig';
 
 /** Default section order used when no admin config is present yet. */
@@ -25,6 +26,7 @@ const DEFAULT_SECTIONS: StatsPageSection[] = [
   { id: 'categoria', enabled: true },
   { id: 'tees',      enabled: true },
   { id: 'jugador',   enabled: true },
+  { id: 'noshow',    enabled: true },
 ];
 
 const Stats = () => {
@@ -64,6 +66,8 @@ const Stats = () => {
             overrideRounds={overrides.categoriaRounds ?? null}
           />
         );
+      case 'noshow':
+        return <NoShowSection key="noshow" />;
       case 'tees':
         return <EstadisticasSalidasSection key="tees" />;
       case 'jugador':

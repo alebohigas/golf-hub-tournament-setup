@@ -12,8 +12,8 @@
  *    the admin toggle (site_config.stats_page_config.overrides.clubNameField).
  *  - Sticky column header row + sticky "Club" column for long lists.
  *  - Total-de-clubes and Total-de-jugadores summary chips in the header.
- *  - Companion "NO SHOW" summary card rendered below the table with
- *    Retiro / No Show / Descalificado counts.
+ *  - La tarjeta "NO SHOW" vive ahora en NoShowSection.tsx (sección
+ *    independiente, ordenable desde Admin > Página de Estadísticas).
  *
  * The heavy lifting (per-tee breakdown + no-show counts) is done in
  * server/api/stats_clubes.php; this component only aggregates
@@ -24,9 +24,8 @@
 import { useStickyTableHead } from '@/hooks/useStickyTableHead';
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, Filter, UserX } from 'lucide-react';
+import { Loader2, Users, Filter } from 'lucide-react';
 import { useStatsClubes, type StatsTee } from '@/hooks/useStatsData';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 
@@ -122,8 +121,6 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
     overrideTotal !== null && overrideTotal !== undefined && overrideTotal > 0
       ? overrideTotal
       : autoTotal;
-
-  const noShow = data?.noShow;
 
   /**
    * Keeps the clubs table header pinned inside its frame while the page
@@ -355,60 +352,9 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
           )}
         </CardContent>
       </Card>
-
-      {/* Companion "NO SHOW" summary card — retiros / no-shows / descalificados */}
-      {noShow && noShow.total > 0 && (
-        <NoShowCard noShow={noShow} />
-      )}
     </div>
   );
 };
 
-/**
- * NoShowCard
- * Compact companion card sitting under the clubs table. Shows a single
- * headline number ("NO SHOW") with three itemized rows below.
- */
-const NoShowCard = ({
-  noShow,
-}: {
-  noShow: NonNullable<ReturnType<typeof useStatsClubes>['data']>['noShow'];
-}) => (
-  <Card className="overflow-hidden border-2 border-muted-foreground/25 bg-white">
-    <CardContent className="p-0">
-      <div className="bg-muted border-b border-muted-foreground/25 px-6 py-4 flex items-center gap-3">
-        <UserX className="h-6 w-6 text-muted-foreground" />
-        <div className="flex items-baseline gap-3 flex-wrap">
-          <h3 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide text-muted-foreground">
-            NO SHOW
-          </h3>
-          <span className="text-4xl md:text-5xl font-mono font-black text-muted-foreground leading-none">
-            {noShow.total}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            jugadores no jugaron
-          </span>
-        </div>
-      </div>
-      <div className="divide-y divide-border">
-        <NoShowRow label="Retiro"        value={noShow.retiro} />
-        <NoShowRow label="No Show"       value={noShow.noShow} />
-        <NoShowRow label="Descalificado" value={noShow.descalificado} />
-        {/* Estatus "NO CONTIENDE" (N) */}
-        <NoShowRow label="No contiende"  value={noShow.noContiende ?? 0} />
-      </div>
-    </CardContent>
-  </Card>
-);
-
-/** Single labeled row inside the NO SHOW card. */
-const NoShowRow = ({ label, value }: { label: string; value: number }) => (
-  <div className="px-6 py-3 flex items-center justify-between bg-white">
-    <span className="text-sm font-medium">{label}</span>
-    <Badge variant="secondary" className="font-mono tabular-nums text-base px-3">
-      {value}
-    </Badge>
-  </div>
-);
-
 export default ClubesAsistentesSection;
+

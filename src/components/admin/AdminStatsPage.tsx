@@ -37,6 +37,7 @@ const DEFAULT_SECTIONS: StatsPageSection[] = [
   { id: 'categoria', enabled: true },
   { id: 'tees',      enabled: true },
   { id: 'jugador',   enabled: true },
+  { id: 'noshow',    enabled: true },
 ];
 
 /** Human-readable labels for each section id. */
@@ -45,6 +46,7 @@ const SECTION_LABELS: Record<StatsPageSection['id'], string> = {
   categoria: 'Estadísticas por Categoría',
   tees:      'Estadísticas por Tee de Salida',
   jugador:   'Estadísticas por Jugador',
+  noshow:    'NO SHOW (retiros / descalificados)',
 };
 
 // ============= Component =============
