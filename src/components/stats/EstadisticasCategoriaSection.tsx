@@ -162,6 +162,12 @@ export interface StatsHolesTableProps {
  * can reuse the exact same layout.
  */
 export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
+  /**
+   * Pin the column headers inside the frame while the page scrolls.
+   * The frame only scrolls horizontally, so native sticky can't work;
+   * the hook translates the <thead> with the page scroll instead.
+   */
+  const { wrapperRef, theadRef } = useStickyTableHead(0, [holes.length]);
 
   /**
    * Left offset (px) accumulator for the three sticky columns: Hoyo, Par, Prom.
