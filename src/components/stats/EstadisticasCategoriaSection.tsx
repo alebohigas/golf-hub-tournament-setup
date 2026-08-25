@@ -41,10 +41,12 @@ const EstadisticasCategoriaSection = ({
   const displayedUpdatedAt = overrideUpdatedAt || data?.updatedAt || null;
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20">
+    // Dynamic height: no max-height or overflow-y so the report grows with
+    // its table content and only the page scrolls vertically.
+    <Card className="h-auto border-2 border-primary/20">
       <CardContent className="p-0">
-        {/* Section header */}
-        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3">
+        {/* Section header — rounded top corners now that Card no longer clips */}
+        <div className="bg-primary text-primary-foreground px-6 py-5 flex items-center gap-3 rounded-t-lg">
           <BarChart3 className="h-6 w-6" />
           <h2 className="text-xl md:text-2xl font-display font-bold uppercase tracking-wide">
             Estadísticas por Categoría
@@ -234,9 +236,10 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   const first = holes.filter((h) => h.hole <= 9);
   const back = holes.filter((h) => h.hole > 9);
 
-  // Solo scroll horizontal: el alto crece con el contenido (scroll de la página)
+  // Solo scroll horizontal: el alto crece con el contenido (scroll de la página).
+  // No max-height ni overflow-y para evitar que el frame recorte filas.
   return (
-    <div className="overflow-x-auto bg-white border border-border rounded">
+    <div className="overflow-x-auto h-auto bg-white border border-border rounded">
       <table className="w-full text-sm min-w-[720px] bg-white">
         <thead className="sticky top-0 z-30">
           <tr className="bg-white border-b border-border">
