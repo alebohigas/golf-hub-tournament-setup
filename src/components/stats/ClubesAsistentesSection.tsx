@@ -126,10 +126,11 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border-2 border-primary/20">
+      {/* Dynamic height: the card grows with the table; no overflow-y clipping. */}
+      <Card className="h-auto border-2 border-primary/20">
         <CardContent className="p-0">
-          {/* Section header — title + summary chips */}
-          <div className="bg-primary text-primary-foreground px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          {/* Section header — title + summary chips; rounded top corners */}
+          <div className="bg-primary text-primary-foreground px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-t-lg">
             <div className="flex items-center gap-3">
               <Users className="h-6 w-6" />
               <h2 className="text-xl md:text-2xl font-display font-bold uppercase tracking-wide">
