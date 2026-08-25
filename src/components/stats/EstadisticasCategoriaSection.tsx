@@ -240,6 +240,30 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
     </tr>
   );
 
+  /**
+   * Percentage row rendered directly under the TOTAL row.
+   * Each score-type column shows its share of the total scoring events.
+   */
+  const renderPctRow = (s: NonNullable<typeof subtotals.total>) => {
+    const scoreEvents = s.aguilas + s.birdies + s.pares + s.bogeys + s.dobles + s.triples;
+    const pct = (n: number) => (scoreEvents > 0 ? (n / scoreEvents) * 100 : 0);
+    const primaryBg = 'hsl(var(--primary))';
+    return (
+      <tr className="bg-primary text-primary-foreground font-bold text-xs border-t border-primary-foreground/30">
+        <td className="px-3 py-2 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: primaryBg }}>%</td>
+        <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: primaryBg }} />
+        <td className="px-3 py-2 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: primaryBg }} />
+        <td className="px-3 py-2" />
+        <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.aguilas).toFixed(1)}%` : '—'}</td>
+        <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.birdies).toFixed(1)}%` : '—'}</td>
+        <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.pares).toFixed(1)}%` : '—'}</td>
+        <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.bogeys).toFixed(1)}%` : '—'}</td>
+        <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.dobles).toFixed(1)}%` : '—'}</td>
+        <td className="px-3 py-2 text-center tabular-nums">{scoreEvents > 0 ? `${pct(s.triples).toFixed(1)}%` : '—'}</td>
+      </tr>
+    );
+  };
+
   const first = holes.filter((h) => h.hole <= 9);
   const back = holes.filter((h) => h.hole > 9);
 
@@ -276,35 +300,38 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
           {back.map((h, i) => renderHoleRow(h, i + first.length + 1))}
           {subtotals.in && renderSubtotal('V2', subtotals.in)}
           {subtotals.total && (
-            <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
-              {/* Celdas fijas de la fila TOTAL: fondo sólido = no se transparenta */}
-              <td className="px-3 py-3 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: 'hsl(var(--primary))' }}>Total</td>
-              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: 'hsl(var(--primary))' }}>
-                {subtotals.total.par}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: 'hsl(var(--primary))' }}>
-                {subtotals.total.promedio ?? '—'}
-              </td>
-              <td className="px-3 py-3" />
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.aguilas}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.birdies}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.pares}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.bogeys}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.dobles}
-              </td>
-              <td className="px-3 py-3 text-center tabular-nums">
-                {subtotals.total.triples}
-              </td>
-            </tr>
+            <>
+              <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
+                {/* Celdas fijas de la fila TOTAL: fondo sólido = no se transparenta */}
+                <td className="px-3 py-3 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: 'hsl(var(--primary))' }}>Total</td>
+                <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: 'hsl(var(--primary))' }}>
+                  {subtotals.total.par}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: 'hsl(var(--primary))' }}>
+                  {subtotals.total.promedio ?? '—'}
+                </td>
+                <td className="px-3 py-3" />
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.aguilas}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.birdies}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.pares}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.bogeys}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.dobles}
+                </td>
+                <td className="px-3 py-3 text-center tabular-nums">
+                  {subtotals.total.triples}
+                </td>
+              </tr>
+              {renderPctRow(subtotals.total)}
+            </>
           )}
         </tbody>
       </table>
