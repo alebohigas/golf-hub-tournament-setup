@@ -11,6 +11,7 @@
  */
 
 import { useState } from 'react';
+import { useStickyTableHead } from '@/hooks/useStickyTableHead';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Loader2, Trophy } from 'lucide-react';
@@ -162,6 +163,12 @@ export interface StatsHolesTableProps {
  * can reuse the exact same layout.
  */
 export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
+  /**
+   * Pin the column headers inside the frame while the page scrolls.
+   * The frame only scrolls horizontally, so native sticky can't work;
+   * the hook translates the <thead> with the page scroll instead.
+   */
+  const { wrapperRef, theadRef } = useStickyTableHead(0, [holes.length]);
 
   /**
    * Left offset (px) accumulator for the three sticky columns: Hoyo, Par, Prom.
@@ -241,11 +248,12 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   return (
     // `overscroll-x-contain` + momentum scrolling = deslizamiento suave en celular.
     <div
+      ref={wrapperRef}
       className="overflow-x-auto overflow-y-visible h-auto bg-white border border-border rounded overscroll-x-contain scroll-smooth"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <table className="w-full text-sm min-w-[720px] bg-white">
-        <thead className="sticky top-0 z-30">
+        <thead ref={theadRef} className="relative z-30">
           <tr className="bg-white border-b border-border">
             <th className="text-left px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
             <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
