@@ -49,6 +49,9 @@ export function useStickyTableHead<T = unknown>(offsetTop = 0, deps: T[] = []) {
     thead.style.zIndex = '30';
     thead.style.position = 'relative';
     thead.style.willChange = 'transform';
+    // Toggle a data attribute so components can apply a visual "stuck" state
+    // (shadow / stronger border) through Tailwind data-* variants.
+    thead.dataset.stuck = shift > 0 ? 'true' : 'false';
   }, [offsetTop]);
 
   useEffect(() => {
