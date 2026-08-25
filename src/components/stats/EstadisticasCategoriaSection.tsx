@@ -253,7 +253,10 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <table className="w-full text-sm min-w-[720px] bg-white">
-        <thead ref={theadRef} className="relative z-30">
+        <thead
+          ref={theadRef}
+          className="relative z-30 data-[stuck=true]:shadow-[0_6px_16px_rgba(0,0,0,0.12)] data-[stuck=true]:border-b-2 data-[stuck=true]:border-primary transition-shadow"
+        >
           <tr className="bg-white border-b border-border">
             <th className="text-left px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
             <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
