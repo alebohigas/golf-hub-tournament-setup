@@ -224,7 +224,10 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-sm bg-white">
-                <thead ref={clubsTheadRef} className="relative z-30">
+                <thead
+                  ref={clubsTheadRef}
+                  className="relative z-30 data-[stuck=true]:shadow-[0_6px_16px_rgba(0,0,0,0.12)] data-[stuck=true]:border-b-2 data-[stuck=true]:border-primary transition-shadow"
+                >
                   <tr className="bg-white border-b border-border">
                     <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-white z-20" style={{ width: 64, minWidth: 64 }}>
                       Logo
