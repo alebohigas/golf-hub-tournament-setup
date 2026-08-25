@@ -134,7 +134,10 @@ const PlayerStatsTable = ({ data }: { data: NonNullable<ReturnType<typeof useSta
       </div>
 
       {/* No max-height / overflow-y: grows with content, only page scrolls. */}
-      <div className="overflow-x-auto h-auto">
+      <div
+        className="overflow-x-auto overflow-y-visible h-auto overscroll-x-contain scroll-smooth"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <table className="w-full min-w-[820px] text-sm border border-border rounded overflow-hidden">
           <thead>
             <tr className="bg-primary text-primary-foreground">

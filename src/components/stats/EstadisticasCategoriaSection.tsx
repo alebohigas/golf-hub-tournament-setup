@@ -239,20 +239,24 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   // Solo scroll horizontal: el alto crece con el contenido (scroll de la página).
   // No max-height ni overflow-y para evitar que el frame recorte filas.
   return (
-    <div className="overflow-x-auto h-auto bg-white border border-border rounded">
+    // `overscroll-x-contain` + momentum scrolling = deslizamiento suave en celular.
+    <div
+      className="overflow-x-auto overflow-y-visible h-auto bg-white border border-border rounded overscroll-x-contain scroll-smooth"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
       <table className="w-full text-sm min-w-[720px] bg-white">
         <thead className="sticky top-0 z-30">
           <tr className="bg-white border-b border-border">
             <th className="text-left px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
             <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
             <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40 shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
-            <th className="text-center px-3 py-3 font-semibold">Rank</th>
-            <th className="text-center px-3 py-3 font-semibold">Águilas</th>
-            <th className="text-center px-3 py-3 font-semibold">Birdies</th>
-            <th className="text-center px-3 py-3 font-semibold">Pares</th>
-            <th className="text-center px-3 py-3 font-semibold">Bogeys</th>
-            <th className="text-center px-3 py-3 font-semibold">Dobles</th>
-            <th className="text-center px-3 py-3 font-semibold">Triples+</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Rank</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Águilas</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Birdies</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Pares</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Bogeys</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Dobles</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Triples+</th>
           </tr>
         </thead>
         <tbody>
@@ -262,11 +266,12 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
           {subtotals.in && renderSubtotal('V2', subtotals.in)}
           {subtotals.total && (
             <tr className="bg-primary text-primary-foreground font-bold border-t-2 border-primary">
-              <td className="px-3 py-3 uppercase tracking-wide">Total</td>
-              <td className="px-3 py-3 text-center tabular-nums">
+              {/* Celdas fijas de la fila TOTAL: fondo sólido = no se transparenta */}
+              <td className="px-3 py-3 uppercase tracking-wide sticky whitespace-nowrap" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width, background: 'hsl(var(--primary))' }}>Total</td>
+              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width, background: 'hsl(var(--primary))' }}>
                 {subtotals.total.par}
               </td>
-              <td className="px-3 py-3 text-center tabular-nums">
+              <td className="px-3 py-3 text-center tabular-nums sticky" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width, background: 'hsl(var(--primary))' }}>
                 {subtotals.total.promedio ?? '—'}
               </td>
               <td className="px-3 py-3" />
