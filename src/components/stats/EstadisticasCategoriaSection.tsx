@@ -267,31 +267,27 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   const first = holes.filter((h) => h.hole <= 9);
   const back = holes.filter((h) => h.hole > 9);
 
-  // Solo scroll horizontal: el alto crece con el contenido (scroll de la página).
-  // No max-height ni overflow-y para evitar que el frame recorte filas.
+  // Frame con scroll vertical propio (max-height) + sticky header nativo:
+  // el encabezado y las columnas Hoyo/Par/Prom. quedan fijos dentro del frame.
   return (
-    // `overscroll-x-contain` + momentum scrolling = deslizamiento suave en celular.
+    // `overscroll-contain` + momentum scrolling = deslizamiento suave en celular.
     <div
-      ref={wrapperRef}
-      className="overflow-x-auto overflow-y-visible h-auto bg-white border border-border rounded overscroll-x-contain scroll-smooth"
+      className="overflow-auto max-h-[70vh] bg-white border border-border rounded overscroll-contain scroll-smooth relative"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
-      <table className="w-full text-sm min-w-[720px] bg-white">
-        <thead
-          ref={theadRef}
-          className="relative z-30 data-[stuck=true]:shadow-[0_6px_16px_rgba(0,0,0,0.12)] data-[stuck=true]:border-b-2 data-[stuck=true]:border-primary transition-shadow"
-        >
-          <tr className="bg-white border-b border-border">
-            <th className="text-left px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.hoyo.left, width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
-            <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
-            <th className="text-center px-3 py-3 font-semibold sticky bg-white z-40 shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Rank</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Águilas</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Birdies</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Pares</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Bogeys</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Dobles</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap">Triples+</th>
+      <table className="w-full text-sm min-w-[720px] bg-white border-separate border-spacing-0">
+        <thead>
+          <tr className="bg-white">
+            <th className="text-left px-3 py-3 font-semibold sticky top-0 left-0 bg-white z-40 border-b-2 border-primary shadow-[0_2px_6px_rgba(0,0,0,0.08)]" style={{ width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
+            <th className="text-center px-3 py-3 font-semibold sticky top-0 bg-white z-40 border-b-2 border-primary shadow-[0_2px_6px_rgba(0,0,0,0.08)]" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
+            <th className="text-center px-3 py-3 font-semibold sticky top-0 bg-white z-40 border-b-2 border-primary shadow-[2px_2px_6px_rgba(0,0,0,0.08)]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Rank</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Águilas</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Birdies</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Pares</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Bogeys</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Dobles</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Triples+</th>
           </tr>
         </thead>
         <tbody>
