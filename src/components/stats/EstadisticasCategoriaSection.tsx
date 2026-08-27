@@ -11,7 +11,6 @@
  */
 
 import { useState } from 'react';
-import { useStickyTableHead } from '@/hooks/useStickyTableHead';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Loader2, Trophy } from 'lucide-react';
@@ -164,13 +163,6 @@ export interface StatsHolesTableProps {
  */
 export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
   /**
-   * Pin the column headers inside the frame while the page scrolls.
-   * The frame only scrolls horizontally, so native sticky can't work;
-   * the hook translates the <thead> with the page scroll instead.
-   */
-  const { wrapperRef, theadRef } = useStickyTableHead(0, [holes.length]);
-
-  /**
    * Left offset (px) accumulator for the three sticky columns: Hoyo, Par, Prom.
    * Kept in one place so both header and body cells reference the same layout.
    */
@@ -275,19 +267,19 @@ export const StatsHolesTable = ({ holes, subtotals }: StatsHolesTableProps) => {
       className="overflow-auto max-h-[70vh] bg-white border border-border rounded overscroll-contain scroll-smooth relative"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
-      <table className="w-full text-sm min-w-[720px] bg-white border-separate border-spacing-0">
+      <table className="w-full text-sm min-w-[720px] bg-white">
         <thead>
           <tr className="bg-white">
-            <th className="text-left px-3 py-3 font-semibold sticky top-0 left-0 bg-white z-40 border-b-2 border-primary shadow-[0_2px_6px_rgba(0,0,0,0.08)]" style={{ width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
-            <th className="text-center px-3 py-3 font-semibold sticky top-0 bg-white z-40 border-b-2 border-primary shadow-[0_2px_6px_rgba(0,0,0,0.08)]" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
-            <th className="text-center px-3 py-3 font-semibold sticky top-0 bg-white z-40 border-b-2 border-primary shadow-[2px_2px_6px_rgba(0,0,0,0.08)]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Rank</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Águilas</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Birdies</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Pares</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Bogeys</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Dobles</th>
-            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 border-b-2 border-primary">Triples+</th>
+            <th className="text-left px-3 py-3 font-semibold sticky top-0 left-0 bg-white z-40 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]" style={{ width: STICKY.hoyo.width, minWidth: STICKY.hoyo.width }}>Hoyo</th>
+            <th className="text-center px-3 py-3 font-semibold sticky top-0 bg-white z-40 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]" style={{ left: STICKY.par.left, width: STICKY.par.width, minWidth: STICKY.par.width }}>Par</th>
+            <th className="text-center px-3 py-3 font-semibold sticky top-0 bg-white z-40 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),2px_4px_8px_rgba(0,0,0,0.08)]" style={{ left: STICKY.prom.left, width: STICKY.prom.width, minWidth: STICKY.prom.width }}>Prom.</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Rank</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Águilas</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Birdies</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Pares</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Bogeys</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Dobles</th>
+            <th className="text-center px-3 py-3 font-semibold whitespace-nowrap sticky top-0 bg-white z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">Triples+</th>
           </tr>
         </thead>
         <tbody>
