@@ -21,7 +21,6 @@
  * ---------------------------------------------------------------
  */
 
-import { useStickyTableHead } from '@/hooks/useStickyTableHead';
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,13 +121,6 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
       ? overrideTotal
       : autoTotal;
 
-  /**
-   * Keeps the clubs table header pinned inside its frame while the page
-   * scrolls (the frame itself only scrolls horizontally).
-   */
-  const { wrapperRef: clubsWrapperRef, theadRef: clubsTheadRef } =
-    useStickyTableHead(0, [rows.length]);
-
   return (
     <div className="space-y-4">
       {/* Dynamic height: the card grows with the table; no overflow-y clipping. */}
@@ -213,41 +205,37 @@ const ClubesAsistentesSection = ({ overrideTotal }: Props) => {
               No hay jugadores registrados aún.
             </div>
           ) : (
-            // Sin límite de alto: tabla completa, scroll de la página.
-            // No overflow-y para evitar que el frame recorte filas.
+            // Frame con scroll vertical propio + sticky header nativo:
+            // encabezado y columnas Logo/Club fijos dentro del frame.
             <div
-              ref={clubsWrapperRef}
-              className="overflow-x-auto overflow-y-visible h-auto bg-white overscroll-x-contain scroll-smooth"
+              className="overflow-auto max-h-[70vh] bg-white overscroll-contain scroll-smooth relative"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-sm bg-white">
-                <thead
-                  ref={clubsTheadRef}
-                  className="relative z-30 data-[stuck=true]:shadow-[0_6px_16px_rgba(0,0,0,0.12)] data-[stuck=true]:border-b-2 data-[stuck=true]:border-primary transition-shadow"
-                >
-                  <tr className="bg-white border-b border-border">
-                    <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-white z-20" style={{ width: 64, minWidth: 64 }}>
+                <thead>
+                  <tr className="bg-white">
+                    <th className="text-left px-4 py-3 font-semibold sticky top-0 left-0 bg-white z-40 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]" style={{ width: 64, minWidth: 64 }}>
                       Logo
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold sticky bg-white z-20 whitespace-nowrap shadow-[2px_0_0_0_hsl(var(--border))]" style={{ left: 64, minWidth: 140 }}>
+                    <th className="text-left px-4 py-3 font-semibold sticky top-0 bg-white z-40 whitespace-nowrap shadow-[inset_0_-2px_0_0_hsl(var(--primary)),2px_4px_8px_rgba(0,0,0,0.08)]" style={{ left: 64, minWidth: 140 }}>
                       Club
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap sticky top-0 z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">
                       Caballeros
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap sticky top-0 z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">
                       Seniors
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap sticky top-0 z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">
                       Super Sr.
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold bg-white whitespace-nowrap sticky top-0 z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">
                       Damas
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white whitespace-nowrap sticky top-0 z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">
                       Total
                     </th>
-                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold text-primary bg-white whitespace-nowrap sticky top-0 z-30 shadow-[inset_0_-2px_0_0_hsl(var(--primary)),0_4px_8px_rgba(0,0,0,0.08)]">
                       %
                     </th>
                   </tr>
