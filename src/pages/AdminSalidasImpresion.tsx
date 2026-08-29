@@ -735,6 +735,9 @@ const AdminSalidasImpresion = () => {
           </p>
           <p className="mt-1 text-xs font-semibold text-muted-foreground">
             Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf}
+            {' · '}
+            Grupos: {preview.totalGroups.toLocaleString('es-MX')} / Jugadores:{' '}
+            {preview.totalPlayers.toLocaleString('es-MX')}
           </p>
           <p className="text-[10px] text-muted-foreground">
             Generado: {generatedAt}
