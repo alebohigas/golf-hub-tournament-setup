@@ -240,6 +240,17 @@ const AdminSalidasImpresion = () => {
             <GroupBlock key={g.id} group={g} />
           ))}
         </div>
+
+        {/* Pie del reporte: torneo, fecha, rango de hoyos/horario y timestamp */}
+        <footer className="mt-6 border-t-2 border-primary pt-2 text-[10px] text-muted-foreground">
+          <p className="font-bold uppercase text-foreground">
+            {data?.tournament || 'Salidas'}
+            {data?.fechaFormato ? ` — ${data.fechaFormato}` : ''}
+          </p>
+          <p>
+            Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Generado: {generatedAt}
+          </p>
+        </footer>
         </div>
       </div>
     </div>
