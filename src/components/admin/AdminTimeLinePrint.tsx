@@ -40,6 +40,8 @@ const toMinutes = (t: string): number => {
 const AdminTimeLinePrint = () => {
   const { data, isLoading } = useSalidasImpresionDays();
   const days = data?.days ?? [];
+  /** Torneo activo (obligatorio: el API lo exige en cada petición). */
+  const { torneoId } = useTorneoId();
 
   // ============= Estado del formulario =============
   const [fecha, setFecha] = useState('');
