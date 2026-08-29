@@ -558,6 +558,7 @@ const AdminTimeLine = () => {
               {totals.groups} / Jugadores: {totals.players} · Generado: {generatedAt}
             </p>
           </footer>
+          </div>
         </div>
       </div>
     </div>
