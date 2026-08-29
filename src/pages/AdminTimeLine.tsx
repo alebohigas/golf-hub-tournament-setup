@@ -461,24 +461,39 @@ const AdminTimeLine = () => {
             controlado, sin depender de datos opcionales: si un dato falta se
             muestra "—" para que la maqueta no cambie de altura.
           */}
-          <header className="mb-4 break-inside-avoid border-b-2 border-primary pb-2 text-center">
+          <header
+            ref={headerRef}
+            className="mb-4 break-inside-avoid border-b-2 border-primary pb-2 text-center"
+          >
             {/* 1 — Torneo */}
-            <h1 className="block text-2xl font-extrabold uppercase leading-[1.25] tracking-tight text-foreground">
+            <h1
+              data-header-line="Nombre del torneo"
+              className="block text-2xl font-extrabold uppercase leading-[1.25] tracking-tight text-foreground"
+            >
               {data?.tournament || '—'}
             </h1>
             {/* 2 — Sede / fecha */}
-            <p className="block text-sm font-bold uppercase leading-[1.5] text-muted-foreground">
+            <p
+              data-header-line="Sede / fecha"
+              className="block text-sm font-bold uppercase leading-[1.5] text-muted-foreground"
+            >
               <span>{data?.course || data?.club || '—'}</span>
               <span className="text-primary"> / {data?.fechaFormato || filters.fecha || '—'}</span>
             </p>
             {/* 3 — Hoyos · Horario · Grupos / Jugadores */}
-            <p className="mt-1 block text-xs font-semibold leading-[1.5] text-muted-foreground">
+            <p
+              data-header-line="Hoyos / Horario / Grupos / Jugadores"
+              className="mt-1 block text-xs font-semibold leading-[1.5] text-muted-foreground"
+            >
               Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Grupos:{' '}
               {totals.groups.toLocaleString('es-MX')} / Jugadores:{' '}
               {totals.players.toLocaleString('es-MX')}
             </p>
             {/* 4 — Marca de generación */}
-            <p className="block text-[10px] leading-[1.5] text-muted-foreground">
+            <p
+              data-header-line="Generado"
+              className="block text-[10px] leading-[1.5] text-muted-foreground"
+            >
               Generado: {generatedAt}
             </p>
           </header>
