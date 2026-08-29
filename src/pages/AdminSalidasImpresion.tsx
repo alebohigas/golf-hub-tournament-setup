@@ -302,8 +302,19 @@ const AdminSalidasImpresion = () => {
         offset = cut;
       }
 
+      /* Numeración de páginas: "Página X de Y" centrada al pie de cada hoja. */
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+        pdf.setFontSize(9);
+        pdf.setTextColor(90);
+        pdf.text(`Página ${p} de ${totalPages}`, pageW / 2, pageH - 12, {
+          align: 'center',
+        });
+      }
 
       pdf.save(`salidas-${filters.fecha || 'reporte'}.pdf`);
+
     } catch {
       toast({
         title: 'No se pudo generar el PDF',
