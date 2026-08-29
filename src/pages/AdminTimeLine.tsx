@@ -505,33 +505,51 @@ const AdminTimeLine = () => {
     const CELL_CHROME_PX = 11;
     /** Ancho medio de un carácter tabular respecto al tamaño de letra. */
     const CHAR_RATIO = 0.58;
-    /** Tamaño mínimo legible antes de recurrir a la hora abreviada. */
-    const MIN_READABLE_PX = 6.5;
-    /** Piso absoluto de tamaño de letra. */
-    const MIN_PX = 5.5;
+    /**
+     * Tamaño mínimo aceptable de la HORA en formato completo ("12 :44"). Por
+     * debajo de esto se prefiere abreviar a HH:MM antes que seguir reduciendo.
+     */
+    const MIN_FULL_PX = 9;
+    /** Piso absoluto de tamaño de letra de la hora. */
+    const MIN_PX = 6.5;
+    /** Techo del número de hoyo y del par (sólo 1–2 dígitos: puede ser mayor). */
+    const MAX_NUM_PX = 13;
 
     const colW = (pageW - 8 - NAME_COL_PX) / 18;
     const avail = Math.max(1, colW - CELL_CHROME_PX);
+    const floor1 = (v: number) => Math.floor(v * 10) / 10;
+
+    /**
+     * Número de hoyo / par: sólo necesita 2 caracteres, así que se le da un
+     * tamaño cómodo (nunca más chico que la hora) acotado al ancho real y al
+     * techo legible.
+     */
+    const numSize = Math.max(
+      base,
+      Math.min(MAX_NUM_PX, floor1(avail / (2.4 * CHAR_RATIO)))
+    );
+
     /** Tamaño que permite el formato completo ("12 :44", 6 caracteres). */
-    const fitFull = avail / (6 * CHAR_RATIO);
-    if (fitFull >= MIN_READABLE_PX) {
-      return {
-        size: Math.max(MIN_PX, Math.min(base, Math.floor(fitFull * 10) / 10)),
-        mode: 'full' as const,
-      };
+    const fitFull = floor1(avail / (6 * CHAR_RATIO));
+    if (fitFull >= MIN_FULL_PX) {
+      return { size: Math.min(numSize, fitFull), mode: 'full' as const, numSize };
     }
-    /** Fallback: hora abreviada HH:MM (5 caracteres). */
-    const fitCompact = avail / (5 * CHAR_RATIO);
+    /** Fallback: hora abreviada HH:MM (5 caracteres), un poco más chica. */
+    const fitCompact = floor1(avail / (5 * CHAR_RATIO));
     return {
-      size: Math.max(MIN_PX, Math.min(base, Math.floor(fitCompact * 10) / 10)),
+      size: Math.max(MIN_PX, Math.min(numSize, fitCompact)),
       mode: 'compact' as const,
+      numSize,
     };
   }, [activeDensity, pageW]);
 
-  /** Tamaño de letra aplicado a las celdas de hoyo/hora. */
+  /** Tamaño de letra aplicado a las celdas de la HORA de cada hoyo. */
   const holeFontPx = holeFont.size;
+  /** Tamaño de letra del NÚMERO de hoyo y del PAR. */
+  const holeNumFontPx = holeFont.numSize;
   /** Modo de formato de la hora en la rejilla de hoyos. */
   const holeTimeMode = holeFont.mode;
+
 
 
 
