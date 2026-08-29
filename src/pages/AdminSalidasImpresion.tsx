@@ -811,12 +811,51 @@ const AdminSalidasImpresion = () => {
               Cancelar
             </Button>
             <Button onClick={runConfirmed}>
-              {confirmAction === 'pdf' ? 'Exportar PDF' : 'Imprimir'}
+              {confirmAction === 'pdf' ? 'Generar previsualización' : 'Imprimir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Previsualización real del PDF generado (papel + densidad aplicados).
+          Se muestra el documento en un iframe antes de descargarlo. */}
+      <Dialog open={pdfPreview !== null} onOpenChange={(o) => !o && closePdfPreview()}>
+        <DialogContent className="max-w-5xl print:hidden">
+          <DialogHeader>
+            <DialogTitle>Previsualización del PDF</DialogTitle>
+            <DialogDescription>
+              {PAPER_SIZES[paper].label} · Densidad {DENSITY_LEVELS[activeDensity].label} ·{' '}
+              {pdfPreview?.pages ?? 0} página(s) · {preview.totalGroups} grupos ·{' '}
+              {preview.totalPlayers} jugadores. Revisa que ningún bloque de salida quede
+              partido antes de descargar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pdfPreview && (
+            <iframe
+              src={pdfPreview.url}
+              title="Previsualización del PDF de salidas"
+              className="h-[70vh] w-full rounded-md border bg-white"
+            />
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={closePdfPreview}
+            >
+              Cerrar
+            </Button>
+            <Button onClick={downloadPreviewedPdf}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Descargar PDF
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+
 
   );
 
