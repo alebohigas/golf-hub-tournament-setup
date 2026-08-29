@@ -1352,13 +1352,17 @@ const AdminTimeLine = () => {
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
               /* En vertical la hoja es más angosta: la hora de cada hoyo se
                  reduce lo necesario para que quepa completa en su recuadro. */
-              ...({ '--tl-hole-size': `${holeFontPx}px` } as React.CSSProperties),
+              ...({
+                '--tl-hole-size': `${holeFontPx}px`,
+                '--tl-holenum-size': `${holeNumFontPx}px`,
+              } as React.CSSProperties),
               /* El control manual de alto de renglón pisa el de la densidad. */
               ...(rowPad !== null
                 ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
                 : {}),
             }}
-            className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
+            className="timeline-report relative mx-auto bg-background p-1 print:p-0"
+
           >
           {/* ============= VISTA PREVIA DE CORTES (sólo pantalla) =============
               Dibuja, sobre el reporte real:
