@@ -627,6 +627,26 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Densidad tipográfica: 'auto' baja el nivel hasta que ningún
+                bloque quede partido entre páginas. */}
+            <Select
+              value={density}
+              onValueChange={(v) => setDensity(v as 'auto' | DensityKey)}
+            >
+              <SelectTrigger className="h-9 w-[230px]">
+                <SelectValue placeholder="Densidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  Densidad: automática ({DENSITY_LEVELS[autoDensity].label})
+                </SelectItem>
+                {DENSITY_ORDER.map((k) => (
+                  <SelectItem key={k} value={k}>
+                    Densidad: {DENSITY_LEVELS[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
