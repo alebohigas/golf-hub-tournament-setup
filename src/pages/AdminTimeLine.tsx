@@ -34,10 +34,29 @@ import {
   type TimeLineHole,
 } from '@/hooks/useTimeLine';
 
-/** Tamaños de papel soportados (formato jsPDF y valor para @page). */
+/**
+ * Tamaños de papel soportados (formato jsPDF y valor para @page).
+ * `widthPx` / `heightPx` son las medidas ÚTILES en px @96 dpi con la hoja en
+ * horizontal y márgenes de 10 mm (≈38 px por lado). Se usan para renderizar el
+ * reporte SIEMPRE con el mismo ancho físico, independientemente del tamaño de
+ * pantalla, de modo que los saltos de línea del encabezado sean idénticos en
+ * pantalla, impresión y PDF.
+ */
 const PAPER_SIZES = {
-  letter: { label: 'Carta (11 × 8.5 in)', css: 'letter', jsPdf: 'letter' as const },
-  a4: { label: 'A4 (297 × 210 mm)', css: 'A4', jsPdf: 'a4' as const },
+  letter: {
+    label: 'Carta (11 × 8.5 in)',
+    css: 'letter',
+    jsPdf: 'letter' as const,
+    widthPx: 980,
+    heightPx: 740,
+  },
+  a4: {
+    label: 'A4 (297 × 210 mm)',
+    css: 'A4',
+    jsPdf: 'a4' as const,
+    widthPx: 1047,
+    heightPx: 718,
+  },
 };
 
 /** Clave de tamaño de papel. */
@@ -214,13 +233,50 @@ const AdminTimeLine = () => {
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
+  /** Encabezado del reporte (se verifica que sus 4 renglones no se partan). */
+  const headerRef = useRef<HTMLElement>(null);
   const [exporting, setExporting] = useState(false);
 
-  /** Recalcula la paginación antes de imprimir desde el navegador. */
+  /**
+   * Renglones del encabezado que se están partiendo en más de una línea.
+   * El encabezado debe verse SIEMPRE con exactamente 4 renglones (torneo,
+   * sede/fecha, hoyos-horario-conteos y marca de generación). Como el reporte
+   * se renderiza con el ancho útil fijo del papel, un salto extra sólo puede
+   * venir de un texto demasiado largo; se avisa en pantalla (nunca al imprimir)
+   * para poder corregirlo antes de imprimir o exportar.
+   */
+  const [headerWraps, setHeaderWraps] = useState<string[]>([]);
+
+  /** Mide cada renglón del encabezado y detecta líneas envueltas. */
+  const verifyHeaderLines = useCallback(() => {
+    const root = headerRef.current;
+    if (!root) return;
+    const wrapped: string[] = [];
+    root.querySelectorAll<HTMLElement>('[data-header-line]').forEach((el) => {
+      const lh = parseFloat(getComputedStyle(el).lineHeight || '0');
+      if (!lh) return;
+      // 1.5 líneas de tolerancia evita falsos positivos por redondeo.
+      if (el.getBoundingClientRect().height > lh * 1.5) {
+        wrapped.push(el.dataset.headerLine || '');
+      }
+    });
+    setHeaderWraps(wrapped);
+  }, []);
+
+  /** Verifica al cargar datos, al cambiar de papel y al redimensionar. */
+  useEffect(() => {
+    const run = () => requestAnimationFrame(verifyHeaderLines);
+    run();
+    window.addEventListener('resize', run);
+    return () => window.removeEventListener('resize', run);
+  }, [verifyHeaderLines, data, paper, totals.groups, totals.players]);
+
+  /** Recalcula la paginación y revalida el encabezado antes de imprimir. */
   const beforePrint = useCallback(() => {
     /* La impresión usa `break-inside: avoid` en cada bloque (ver index.css),
        por lo que no requiere cálculo adicional de cortes. */
-  }, []);
+    verifyHeaderLines();
+  }, [verifyHeaderLines]);
 
   useEffect(() => {
     window.addEventListener('beforeprint', beforePrint);
@@ -388,11 +444,30 @@ const AdminTimeLine = () => {
           </div>
         )}
 
+        {/* Aviso automático: algún renglón del encabezado se está partiendo */}
+        {headerWraps.length > 0 && (
+          <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm print:hidden">
+            El encabezado debe tener 4 renglones; estos se están partiendo en más de una línea:{' '}
+            <strong>{headerWraps.join(', ')}</strong>. El texto es demasiado largo para el ancho de{' '}
+            {PAPER_SIZES[paper].label}.
+          </div>
+        )}
+
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
         <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
 
-        {/* Contenedor exportable */}
-        <div ref={reportRef} className="relative bg-background p-1 print:p-0">
+        {/*
+          Contenedor exportable con ANCHO FIJO igual al ancho útil de la hoja
+          elegida. Así los saltos de línea (encabezado incluido) son idénticos
+          en cualquier pantalla, en la impresión y en el PDF. El scroll
+          horizontal queda en el envoltorio, no en el reporte.
+        */}
+        <div className="overflow-x-auto print:overflow-visible">
+          <div
+            ref={reportRef}
+            style={{ width: PAPER_SIZES[paper].widthPx }}
+            className="relative mx-auto bg-background p-1 print:w-full print:p-0"
+          >
           {/* Encabezado del reporte */}
           {/*
             Encabezado fijo del reporte — SIEMPRE cuatro renglones, en este
@@ -405,24 +480,39 @@ const AdminTimeLine = () => {
             controlado, sin depender de datos opcionales: si un dato falta se
             muestra "—" para que la maqueta no cambie de altura.
           */}
-          <header className="mb-4 break-inside-avoid border-b-2 border-primary pb-2 text-center">
+          <header
+            ref={headerRef}
+            className="mb-4 break-inside-avoid border-b-2 border-primary pb-2 text-center"
+          >
             {/* 1 — Torneo */}
-            <h1 className="block text-2xl font-extrabold uppercase leading-[1.25] tracking-tight text-foreground">
+            <h1
+              data-header-line="Nombre del torneo"
+              className="block text-2xl font-extrabold uppercase leading-[1.25] tracking-tight text-foreground"
+            >
               {data?.tournament || '—'}
             </h1>
             {/* 2 — Sede / fecha */}
-            <p className="block text-sm font-bold uppercase leading-[1.5] text-muted-foreground">
+            <p
+              data-header-line="Sede / fecha"
+              className="block text-sm font-bold uppercase leading-[1.5] text-muted-foreground"
+            >
               <span>{data?.course || data?.club || '—'}</span>
               <span className="text-primary"> / {data?.fechaFormato || filters.fecha || '—'}</span>
             </p>
             {/* 3 — Hoyos · Horario · Grupos / Jugadores */}
-            <p className="mt-1 block text-xs font-semibold leading-[1.5] text-muted-foreground">
+            <p
+              data-header-line="Hoyos / Horario / Grupos / Jugadores"
+              className="mt-1 block text-xs font-semibold leading-[1.5] text-muted-foreground"
+            >
               Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Grupos:{' '}
               {totals.groups.toLocaleString('es-MX')} / Jugadores:{' '}
               {totals.players.toLocaleString('es-MX')}
             </p>
             {/* 4 — Marca de generación */}
-            <p className="block text-[10px] leading-[1.5] text-muted-foreground">
+            <p
+              data-header-line="Generado"
+              className="block text-[10px] leading-[1.5] text-muted-foreground"
+            >
               Generado: {generatedAt}
             </p>
           </header>
@@ -468,6 +558,7 @@ const AdminTimeLine = () => {
               {totals.groups} / Jugadores: {totals.players} · Generado: {generatedAt}
             </p>
           </footer>
+          </div>
         </div>
       </div>
     </div>

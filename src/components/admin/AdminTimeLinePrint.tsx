@@ -22,8 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { AlertCircle, Clock, Loader2, Printer } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
+import { useTimeLineReport } from '@/hooks/useTimeLine';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { API_BASE_URL } from '@/config/api';
 
@@ -35,6 +44,25 @@ const toMinutes = (t: string): number => {
   const m = TIME_RE.exec(t.trim());
   return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
 };
+
+/**
+ * Alto útil (px @96 dpi) de cada hoja en horizontal con márgenes de 10 mm.
+ * Debe coincidir con PAPER_SIZES de `src/pages/AdminTimeLine.tsx`.
+ */
+const PAPER_SIZES = {
+  letter: { label: 'Carta (11 × 8.5 in)', heightPx: 740 },
+  a4: { label: 'A4 (297 × 210 mm)', heightPx: 718 },
+};
+
+/** Clave de tamaño de papel. */
+type PaperKey = keyof typeof PAPER_SIZES;
+
+/** Alto reservado en la primera hoja para encabezado + pie del reporte. */
+const HEADER_FOOTER_PX = 170;
+/** Alto de un bloque de salida sin jugadores (3 renglones + separación). */
+const BLOCK_BASE_PX = 78;
+/** Alto de cada renglón de jugador dentro del bloque. */
+const PLAYER_ROW_PX = 20;
 
 /** Panel de generación del reporte TIME LINE. */
 const AdminTimeLinePrint = () => {
@@ -106,10 +134,52 @@ const AdminTimeLinePrint = () => {
 
   const isValid = errors.length === 0;
 
+  // ============= Vista previa (encabezado + paginación) =============
+
+  /** Papel elegido para estimar la paginación de la vista previa. */
+  const [paper, setPaper] = useState<PaperKey>('letter');
+  /** Controla el diálogo de vista previa. */
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  /** Filtros congelados para la consulta de vista previa. */
+  const previewFilters = useMemo(
+    () => (isValid ? { fecha, campoid, hi, hf, hri, hrf } : null),
+    [isValid, fecha, campoid, hi, hf, hri, hrf]
+  );
+
+  const { data: report, isLoading: loadingPreview } = useTimeLineReport(
+    previewFilters,
+    previewOpen && isValid
+  );
+
+  /**
+   * Resumen de la vista previa: totales y estimación de páginas usando el
+   * mismo criterio que la impresión (bloques completos, sin partirse, dentro
+   * del alto útil de la hoja horizontal).
+   */
+  const summary = useMemo(() => {
+    const groups = report?.groups ?? [];
+    const players = groups.reduce((n, g) => n + g.players.length, 0);
+    const usable = PAPER_SIZES[paper].heightPx - HEADER_FOOTER_PX;
+    let pages = groups.length > 0 ? 1 : 0;
+    let used = 0;
+    for (const g of groups) {
+      const h = BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX;
+      if (used > 0 && used + h > usable) {
+        pages += 1;
+        used = h;
+      } else {
+        used += h;
+      }
+    }
+    return { groups: groups.length, players, pages };
+  }, [report, paper]);
+
   /** Abre el reporte imprimible en una pestaña nueva. */
   const generar = () => {
     if (!isValid) return;
     const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf }).toString();
+    setPreviewOpen(false);
     window.open(`/admin/time-line?${qs}`, '_blank');
   };
 
@@ -235,8 +305,25 @@ const AdminTimeLinePrint = () => {
               />
             </div>
 
-            {/* Acción */}
-            <Button onClick={generar} disabled={!isValid}>
+            {/* Papel (sólo para estimar la paginación de la vista previa) */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Papel</Label>
+              <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Papel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {PAPER_SIZES[k].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Acción — abre la vista previa antes de generar el reporte */}
+            <Button onClick={() => setPreviewOpen(true)} disabled={!isValid}>
               <Printer className="mr-2 h-4 w-4" />
               GENERA
             </Button>
@@ -254,6 +341,82 @@ const AdminTimeLinePrint = () => {
             ))}
           </ul>
         )}
+
+        {/* ============= Vista previa: encabezado + paginación ============= */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Vista previa del reporte Time Line</DialogTitle>
+              <DialogDescription>
+                Confirma el encabezado tal como se imprimirá y la paginación estimada para el papel
+                seleccionado.
+              </DialogDescription>
+            </DialogHeader>
+
+            {loadingPreview ? (
+              <div className="flex items-center gap-2 py-8 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Calculando vista previa…
+              </div>
+            ) : (
+              <>
+                {/* Encabezado exacto del reporte: 4 renglones */}
+                <div className="rounded-md border border-border bg-card p-3 text-center">
+                  <p className="text-lg font-extrabold uppercase leading-[1.25] text-foreground">
+                    {report?.tournament || '—'}
+                  </p>
+                  <p className="text-xs font-bold uppercase leading-[1.5] text-muted-foreground">
+                    {report?.course || report?.club || '—'}
+                    <span className="text-primary">
+                      {' '}
+                      / {report?.fechaFormato || fecha || '—'}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold leading-[1.5] text-muted-foreground">
+                    Hoyos {hi}–{hf} · Horario {hri}–{hrf} · Grupos: {summary.groups} / Jugadores:{' '}
+                    {summary.players}
+                  </p>
+                  <p className="text-[10px] leading-[1.5] text-muted-foreground">
+                    Generado: al abrir el reporte
+                  </p>
+                </div>
+
+                {/* Paginación estimada */}
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  <dt className="font-semibold text-muted-foreground">Papel</dt>
+                  <dd className="font-bold text-foreground">{PAPER_SIZES[paper].label}, horizontal</dd>
+                  <dt className="font-semibold text-muted-foreground">Grupos / Jugadores</dt>
+                  <dd className="font-bold text-foreground">
+                    {summary.groups} / {summary.players}
+                  </dd>
+                  <dt className="font-semibold text-muted-foreground">Páginas estimadas</dt>
+                  <dd className="font-bold text-foreground">
+                    {summary.pages} (numeradas “Página X de {summary.pages}”)
+                  </dd>
+                </dl>
+
+                {summary.groups === 0 && (
+                  <p className="text-sm text-destructive">
+                    No hay salidas para estos filtros: ajusta el rango de hoyos u horas.
+                  </p>
+                )}
+              </>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => setPreviewOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={generar} disabled={!isValid || summary.groups === 0}>
+                <Printer className="mr-2 h-4 w-4" />
+                Ver reporte
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

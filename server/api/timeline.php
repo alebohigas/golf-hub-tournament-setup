@@ -88,17 +88,75 @@ function tl_minutes_column($conn) {
 }
 
 // ============= Parámetros =============
-$fecha   = require_param('fecha');
-$campoid = optional_param('campoid', '');
-$hi      = (int)optional_param('hi', 1);
-$hf      = (int)optional_param('hf', 18);
-$hri     = optional_param('hri', '00:00');
-$hrf     = optional_param('hrf', '23:59');
+/*
+ * VALIDACIÓN DE ENTRADA (obligatoria en servidor, no sólo en el formulario):
+ *   - torneoid  → requerido y numérico (`require_param` arriba)
+ *   - fecha     → requerida, formato YYYY-MM-DD y fecha real de calendario
+ *   - campoid   → requerido y numérico > 0
+ *   - hi/hf     → enteros 1–18 con hf >= hi
+ *   - hri/hrf   → HH:MM (24 h) con hrf >= hri
+ * Cualquier violación devuelve 400 con un mensaje claro, sin tocar la BD.
+ */
+if (!preg_match('/^\d+$/', trim((string)$torneoid))) {
+    json_error('Parámetro inválido: torneoid debe ser numérico.', 400);
+}
+
+$fecha   = trim((string)require_param('fecha'));
+$campoid = trim((string)optional_param('campoid', ''));
+$hiRaw   = trim((string)optional_param('hi', '1'));
+$hfRaw   = trim((string)optional_param('hf', '18'));
+$hri     = trim((string)optional_param('hri', ''));
+$hrf     = trim((string)optional_param('hrf', ''));
+
+// --- fecha ---
+if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $fecha, $fm) ||
+    !checkdate((int)$fm[2], (int)$fm[3], (int)$fm[1])) {
+    json_error('Parámetro inválido: fecha debe tener formato YYYY-MM-DD.', 400);
+}
+
+// --- campo ---
+if ($campoid === '' || !preg_match('/^\d+$/', $campoid) || (int)$campoid <= 0) {
+    json_error('Parámetro inválido: campoid es obligatorio y debe ser numérico.', 400);
+}
+
+// --- rango de hoyos ---
+if (!preg_match('/^\d{1,2}$/', $hiRaw) || (int)$hiRaw < 1 || (int)$hiRaw > 18) {
+    json_error('Parámetro inválido: hi debe ser un entero entre 1 y 18.', 400);
+}
+if (!preg_match('/^\d{1,2}$/', $hfRaw) || (int)$hfRaw < 1 || (int)$hfRaw > 18) {
+    json_error('Parámetro inválido: hf debe ser un entero entre 1 y 18.', 400);
+}
+$hi = (int)$hiRaw;
+$hf = (int)$hfRaw;
+if ($hf < $hi) {
+    json_error('Parámetro inválido: hf debe ser mayor o igual a hi.', 400);
+}
+
+/** Normaliza "H:MM"/"HH:MM" a minutos desde medianoche; -1 si es inválido. */
+function tl_minutes_of($t) {
+    if (!preg_match('/^(\d{1,2}):(\d{2})$/', (string)$t, $m)) return -1;
+    $h = (int)$m[1]; $mi = (int)$m[2];
+    if ($h > 23 || $mi > 59) return -1;
+    return $h * 60 + $mi;
+}
+
+// --- rango de horas ---
+$mIni = tl_minutes_of($hri);
+$mFin = tl_minutes_of($hrf);
+if ($hri === '' || $mIni < 0) {
+    json_error('Parámetro inválido: hri es obligatorio con formato HH:MM (24 h).', 400);
+}
+if ($hrf === '' || $mFin < 0) {
+    json_error('Parámetro inválido: hrf es obligatorio con formato HH:MM (24 h).', 400);
+}
+if ($mFin < $mIni) {
+    json_error('Parámetro inválido: hrf debe ser mayor o igual a hri.', 400);
+}
 
 $fEsc   = esc($conn, $fecha);
-$cEsc   = $campoid !== '' ? (int)$campoid : 0;
-$hriEsc = esc($conn, substr(trim($hri), 0, 5) . ':00');
-$hrfEsc = esc($conn, substr(trim($hrf), 0, 5) . ':59');
+$cEsc   = (int)$campoid;
+$hriEsc = sprintf('%02d:%02d:00', intdiv($mIni, 60), $mIni % 60);
+$hrfEsc = sprintf('%02d:%02d:59', intdiv($mFin, 60), $mFin % 60);
 
 // ============= Encabezado =============
 $head = tl_one($conn, "SELECT a.nombre, b.nombre AS club
