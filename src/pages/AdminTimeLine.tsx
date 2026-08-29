@@ -146,7 +146,7 @@ const HoleCell = ({
     style={{ fontSize: 'var(--tl-hole-size)' }}
     className={`border border-border px-1 py-[3px] text-center align-middle leading-[1.6] tabular-nums ${
       bold ? 'font-bold text-foreground' : 'text-foreground'
-    } ${divider ? 'border-r-2 border-r-foreground/50' : ''}`}
+    } ${divider ? 'tl-divider border-r-2 border-r-foreground/60' : ''}`}
   >
     {children}
   </td>
@@ -366,27 +366,58 @@ const AdminTimeLine = () => {
   const [exporting, setExporting] = useState(false);
 
   /**
-   * Modo automático: mide el bloque más alto renderizado y, si no cabe completo
-   * en una hoja del papel elegido, baja un nivel de densidad. Converge en pocos
-   * renders y garantiza que ningún bloque tenga que partirse entre páginas.
+   * Aviso cuando ni el nivel más compacto logra que el bloque más alto quepa
+   * completo en una hoja (grupo con demasiados jugadores).
    */
-  useEffect(() => {
-    if (density !== 'auto') return;
+  const [densityOverflow, setDensityOverflow] = useState(false);
+
+  /**
+   * Modo automático: mide el bloque más alto ya renderizado y, si no cabe
+   * completo en una hoja del papel elegido, baja un nivel de densidad. El
+   * espacio disponible descuenta el encabezado del reporte y un margen de
+   * seguridad, porque el primer bloque comparte hoja con el encabezado; así se
+   * cubren también los casos límite (bloque que cabe "justo").
+   * Converge en pocos renders (cómoda → normal → compacta → muy compacta) y se
+   * revisa de nuevo al redimensionar y al terminar de cargar las fuentes.
+   */
+  const measureDensity = useCallback(() => {
     const root = reportRef.current;
     if (!root) return;
     const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
     if (!blocks.length) return;
     const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
-    const idx = DENSITY_ORDER.indexOf(autoDensity);
-    if (tallest > PAPER_SIZES[paper].heightPx && idx < DENSITY_ORDER.length - 1) {
-      setAutoDensity(DENSITY_ORDER[idx + 1]);
+    const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
+    /** 10px de holgura absorbe redondeos de impresión y el rótulo de página. */
+    const available = PAPER_SIZES[paper].heightPx - headerH - 10;
+    const fits = tallest <= available;
+    if (density !== 'auto') {
+      setDensityOverflow(!fits);
+      return;
     }
-  }, [density, paper, autoDensity, data]);
+    const idx = DENSITY_ORDER.indexOf(autoDensity);
+    if (!fits && idx < DENSITY_ORDER.length - 1) {
+      setAutoDensity(DENSITY_ORDER[idx + 1]);
+      setDensityOverflow(false);
+    } else {
+      setDensityOverflow(!fits);
+    }
+  }, [density, paper, autoDensity]);
+
+  /** Mide tras cada render relevante, al redimensionar y al cargar fuentes. */
+  useEffect(() => {
+    const run = () => requestAnimationFrame(measureDensity);
+    run();
+    window.addEventListener('resize', run);
+    void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(run);
+    return () => window.removeEventListener('resize', run);
+  }, [measureDensity, data, activeDensity]);
 
   /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
   useEffect(() => {
     if (density === 'auto') setAutoDensity('comoda');
+    setDensityOverflow(false);
   }, [density, paper, data]);
+
 
   /**
    * Cortes de página para la IMPRESIÓN NORMAL del navegador (px relativos al
@@ -693,6 +724,17 @@ const AdminTimeLine = () => {
           </div>
         )}
 
+        {/* Aviso: con la densidad actual algún bloque no cabe en una hoja */}
+        {densityOverflow && (
+          <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm print:hidden">
+            Con la densidad <strong>{DENSITY_LEVELS[activeDensity].label}</strong> hay un bloque
+            más alto que una hoja de {PAPER_SIZES[paper].label}
+            {density === 'auto'
+              ? ' incluso en el nivel más compacto: reduce el rango de hoyos u horas.'
+              : '. Usa una densidad más compacta o el modo automático.'}
+          </div>
+        )}
+
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
         <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
 
@@ -709,7 +751,7 @@ const AdminTimeLine = () => {
               width: PAPER_SIZES[paper].widthPx,
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
             }}
-            className="relative mx-auto bg-background p-1 print:w-full print:p-0"
+            className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
           {/* Numeración "Página X de Y" para la impresión del navegador.
               Se posicionan absolutamente al final de cada hoja calculada, por

@@ -590,3 +590,44 @@
     page-break-inside: avoid !important;
   }
 }
+
+/* ==========================================================================
+   Impresión / exportación del reporte TIME LINE (/admin/time-line)
+   Objetivo: que las líneas horizontales de cada renglón y la línea vertical
+   marcada cada 3 hoyos se vean IDÉNTICAS en pantalla, en impresión normal y
+   en el PDF (html2canvas). Los navegadores omiten fondos y aclaran bordes al
+   imprimir salvo que se fuerce `print-color-adjust: exact`.
+   ========================================================================== */
+.timeline-report table {
+  border-collapse: collapse;
+}
+.timeline-report td,
+.timeline-report th,
+.timeline-report table {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+@media print {
+  .timeline-report,
+  .timeline-report * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Bordes con grosor mínimo visible en cualquier escala de impresión. */
+  .timeline-report td {
+    border-width: 1px !important;
+  }
+  .timeline-report td.tl-divider {
+    border-right-width: 2px !important;
+  }
+  /* Ningún bloque de grupo se parte entre páginas. */
+  .timeline-report [data-group-block] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  /* Los renglones de jugador tampoco se cortan. */
+  .timeline-report [data-group-block] div {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
