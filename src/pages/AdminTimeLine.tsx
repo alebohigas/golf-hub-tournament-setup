@@ -81,6 +81,15 @@ const PAPER_SIZES = {
 /** Clave de tamaño de papel. */
 type PaperKey = keyof typeof PAPER_SIZES;
 
+/**
+ * Banda reservada al pie de CADA hoja (px @96 dpi) para la numeración
+ * "Página X de Y". El contenido nunca invade esta franja: los cortes de página
+ * (impresión y PDF) se calculan con `pageH - FOOTER_RESERVE_PX`, de modo que el
+ * rótulo queda siempre al final de la hoja sin empalmarse con el reporte.
+ */
+const FOOTER_RESERVE_PX = 26;
+
+
 /* ===========================================================================
  * Densidad tipográfica del reporte TIME LINE
  * ---------------------------------------------------------------------------
