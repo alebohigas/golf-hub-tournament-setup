@@ -546,3 +546,44 @@
   left: auto;
   right: calc(100% + var(--bkt-elbow));
 }
+
+/* ==========================================================================
+   Impresión del reporte de Salidas (/admin/salidas-impresion)
+   Objetivo: ningún bloque de salida (encabezado + jugadores) puede partirse
+   entre páginas, ni en impresión normal (márgenes/escala predeterminados)
+   ni al exportar a PDF. Se usa layout multi-columna en impresión porque
+   CSS Grid no respeta `break-inside: avoid` de forma confiable en Chrome.
+   ========================================================================== */
+@media print {
+  /* Márgenes de página predeterminados razonables para carta/A4. */
+  @page {
+    margin: 12mm;
+  }
+  /* Contenedor de bloques de salida: dos columnas fluidas. */
+  .salidas-print-grid {
+    display: block !important;
+    column-count: 2;
+    column-gap: 12px;
+    orphans: 3;
+    widows: 3;
+  }
+  /* Cada bloque de salida se mantiene íntegro; si no cabe, salta de página. */
+  .salidas-print-grid > [data-group-block],
+  [data-group-block] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    display: block;
+    width: 100%;
+    margin: 0 0 10px;
+  }
+  /* Las filas de jugadores tampoco se cortan. */
+  [data-group-block] > div > div {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  /* El pie del reporte se mantiene completo. */
+  .salidas-print-footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
