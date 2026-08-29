@@ -121,7 +121,6 @@ $where = ["cj.torneoid = $tid", "cj.fecha = '$fEsc'"];
 if ($cEsc) $where[] = "cj.campo = $cEsc";
 $where[] = "TIME(sg.horainicio1a) BETWEEN '$hriEsc' AND '$hrfEsc'";
 $where[] = "TIME(sg.horainicio1a) <> '00:00:00'";
-if ($holeCol) $where[] = "CAST(sg.`$holeCol` AS UNSIGNED) BETWEEN $hi AND $hf";
 $whereSql = implode(' AND ', $where);
 
 $groups = sgi_all($conn, "SELECT sg.id,
@@ -135,8 +134,29 @@ $groups = sgi_all($conn, "SELECT sg.id,
                            WHERE $whereSql
                            ORDER BY sg.horainicio1a ASC, sg.id ASC");
 
+/**
+ * Resuelve el hoyo de salida de un grupo.
+ * Usa la columna detectada en `salidagrupo` y, si no existe o viene vacía,
+ * extrae el número del texto del tee (p. ej. "H10" → 10, "1" → 1).
+ * @return int|null
+ */
+function sgi_group_hole($g) {
+    if (isset($g['hoyo']) && $g['hoyo'] !== null && $g['hoyo'] !== '' && (int)$g['hoyo'] > 0) {
+        return (int)$g['hoyo'];
+    }
+    if (!empty($g['teesal']) && preg_match('/(\d{1,2})/', (string)$g['teesal'], $m)) {
+        $n = (int)$m[1];
+        if ($n >= 1 && $n <= 18) return $n;
+    }
+    return null;
+}
+
 $out = [];
 foreach ($groups as $g) {
+    // Filtro de hoyos aplicado en PHP: el hoyo puede venir de la columna o del tee.
+    $hole = sgi_group_hole($g);
+    if ($hole === null || $hole < $hi || $hole > $hf) continue;
+
     $gid = (int)$g['id'];
     // Jugadores del grupo, en el orden de salida (columna `orden` del view).
     $players = sgi_all($conn, "SELECT CONCAT(nombre, ' ', apellido) AS jugador, logo
@@ -152,7 +172,7 @@ foreach ($groups as $g) {
     }
     $out[] = [
         'id'           => (string)$gid,
-        'hole'         => $g['hoyo'] !== null ? (int)$g['hoyo'] : null,
+        'hole'         => $hole,
         'time'         => $g['hora'] ?? '',
         'tee'          => $g['teesal'] ?? '',
         'categoryName' => $g['categoria'] ?? '',
@@ -160,6 +180,7 @@ foreach ($groups as $g) {
         'players'      => $list,
     ];
 }
+
 
 json_response([
     'tournament'   => $head['nombre'] ?? '',
