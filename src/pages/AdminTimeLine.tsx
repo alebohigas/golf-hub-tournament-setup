@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileDown, Loader2, Printer } from 'lucide-react';
+import { ArrowLeft, FileDown, Loader2, Printer, Eye, EyeOff } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -434,6 +434,17 @@ const AdminTimeLine = () => {
    */
   const [printPages, setPrintPages] = useState<number[]>([]);
 
+  /**
+   * Geometría de cada bloque de salida (px relativos al nodo del reporte).
+   * Alimenta la VISTA PREVIA DE CORTES en pantalla: permite dibujar los límites
+   * de bloque y detectar empalmes de layout en tiempo real.
+   */
+  const [blockZones, setBlockZones] = useState<{ top: number; bottom: number }[]>([]);
+  /** Alto total medido del reporte (para acotar las guías de la vista previa). */
+  const [reportHeight, setReportHeight] = useState(0);
+  /** Interruptor de la vista previa de cortes y límites (sólo pantalla). */
+  const [showGuides, setShowGuides] = useState(true);
+
   /** Recalcula los cortes de página del reporte impreso. */
   const computePrintPages = useCallback(() => {
     const root = reportRef.current;
@@ -462,6 +473,8 @@ const AdminTimeLine = () => {
       offset = cut;
     }
     setPrintPages(cuts);
+    setBlockZones(zones);
+    setReportHeight(total);
   }, [paper]);
 
   /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
@@ -469,6 +482,29 @@ const AdminTimeLine = () => {
     const id = window.setTimeout(computePrintPages, 150);
     return () => window.clearTimeout(id);
   }, [computePrintPages, data, activeDensity]);
+
+  /** Remide las guías al redimensionar la ventana (la vista previa es en vivo). */
+  useEffect(() => {
+    const run = () => requestAnimationFrame(computePrintPages);
+    window.addEventListener('resize', run);
+    return () => window.removeEventListener('resize', run);
+  }, [computePrintPages]);
+
+  /**
+   * Empalmes detectados: bloques que cruzan el pie físico de alguna hoja, es
+   * decir que se partirían al imprimir. Con `break-inside: avoid` sólo ocurre
+   * cuando el bloque es más alto que una hoja completa.
+   */
+  const overlaps = useMemo(() => {
+    const limit = PAPER_SIZES[paper].heightPx;
+    return blockZones.reduce((n, z) => {
+      const pageStart = printPages.findIndex((cut) => z.top < cut);
+      if (pageStart < 0) return n;
+      const start = pageStart === 0 ? 0 : printPages[pageStart - 1];
+      return z.bottom > start + limit ? n + 1 : n;
+    }, 0);
+  }, [blockZones, printPages, paper]);
+
 
 
   /**
@@ -654,6 +690,19 @@ const AdminTimeLine = () => {
             Volver a Admin
           </Button>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Vista previa de cortes: dibuja saltos de página y límites de bloque */}
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={() => setShowGuides((v) => !v)}
+            >
+              {showGuides ? (
+                <EyeOff className="mr-2 h-4 w-4" />
+              ) : (
+                <Eye className="mr-2 h-4 w-4" />
+              )}
+              {showGuides ? 'Ocultar guías' : 'Ver guías'}
+            </Button>
             <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
               <SelectTrigger className="h-9 w-[200px]">
                 <SelectValue placeholder="Papel" />
@@ -743,6 +792,15 @@ const AdminTimeLine = () => {
           </div>
         )}
 
+        {/* Aviso de la vista previa: empalmes detectados en el layout */}
+        {showGuides && overlaps > 0 && (
+          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive print:hidden">
+            La vista previa detectó <strong>{overlaps}</strong> bloque(s) que se empalman con el pie
+            de la hoja: son más altos que una página de {PAPER_SIZES[paper].label}. Usa una densidad
+            más compacta o reduce el rango de hoyos u horas.
+          </div>
+        )}
+
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
         <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
 
@@ -761,6 +819,63 @@ const AdminTimeLine = () => {
             }}
             className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
+          {/* ============= VISTA PREVIA DE CORTES (sólo pantalla) =============
+              Dibuja, sobre el reporte real:
+                · el pie físico de cada hoja (línea roja punteada) → hasta ahí
+                  imprime cada página;
+                · el punto de corte del flujo (línea verde discontinua) → si se
+                  adelanta al pie, es el salto que evita partir un bloque;
+                · el contorno de cada bloque de salida.
+              Es puramente visual (absoluta, sin afectar el flujo) y nunca se
+              imprime ni se incluye en el PDF. */}
+          {showGuides && reportHeight > 0 && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-10 print:hidden"
+            >
+              {/* Contornos de bloque */}
+              {blockZones.map((z, i) => (
+                <div
+                  key={`bz-${i}`}
+                  className="absolute left-0 right-0 rounded-sm border border-dashed border-primary/40"
+                  style={{ top: z.top, height: Math.max(0, z.bottom - z.top) }}
+                />
+              ))}
+              {/* Pie físico y corte de flujo de cada hoja */}
+              {printPages.map((cut, i) => {
+                const pageStart = i === 0 ? 0 : printPages[i - 1];
+                const pageEnd = pageStart + PAPER_SIZES[paper].heightPx;
+                return (
+                  <div key={`gp-${i}`}>
+                    {/* Zona sobrante: espacio que queda en blanco en la hoja */}
+                    {cut < pageEnd - 1 && (
+                      <div
+                        className="absolute left-0 right-0 bg-primary/5"
+                        style={{ top: cut, height: pageEnd - cut }}
+                      />
+                    )}
+                    {/* Corte del flujo (inicio de la hoja siguiente) */}
+                    <div
+                      className="absolute left-0 right-0 border-t-2 border-dashed border-primary/70"
+                      style={{ top: cut }}
+                    />
+                    <span
+                      className="absolute left-1 -translate-y-full rounded-sm bg-primary px-1 text-[10px] font-bold text-primary-foreground"
+                      style={{ top: cut }}
+                    >
+                      Salto · fin de página {i + 1} de {printPages.length}
+                    </span>
+                    {/* Pie físico de la hoja */}
+                    <div
+                      className="absolute left-0 right-0 border-t border-dotted border-destructive/60"
+                      style={{ top: Math.min(pageEnd, reportHeight) }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Numeración "Página X de Y" para la impresión del navegador.
               IMPORTANTE: el rótulo va al PIE FÍSICO de cada hoja, no en el punto
               de corte del flujo. Tras un salto de página el contenido reinicia
