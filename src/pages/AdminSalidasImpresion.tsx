@@ -19,10 +19,19 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   useSalidasImpresionReport,
   type SalidasImpresionGroup,
   type SalidasImpresionFilters,
 } from '@/hooks/useSalidasImpresion';
+
 
 
 /** Renglón de jugador con logo de club. */
