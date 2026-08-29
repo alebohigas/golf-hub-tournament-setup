@@ -305,8 +305,25 @@ const AdminTimeLinePrint = () => {
               />
             </div>
 
-            {/* Acción */}
-            <Button onClick={generar} disabled={!isValid}>
+            {/* Papel (sólo para estimar la paginación de la vista previa) */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Papel</Label>
+              <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Papel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {PAPER_SIZES[k].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Acción — abre la vista previa antes de generar el reporte */}
+            <Button onClick={() => setPreviewOpen(true)} disabled={!isValid}>
               <Printer className="mr-2 h-4 w-4" />
               GENERA
             </Button>
@@ -324,6 +341,82 @@ const AdminTimeLinePrint = () => {
             ))}
           </ul>
         )}
+
+        {/* ============= Vista previa: encabezado + paginación ============= */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Vista previa del reporte Time Line</DialogTitle>
+              <DialogDescription>
+                Confirma el encabezado tal como se imprimirá y la paginación estimada para el papel
+                seleccionado.
+              </DialogDescription>
+            </DialogHeader>
+
+            {loadingPreview ? (
+              <div className="flex items-center gap-2 py-8 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Calculando vista previa…
+              </div>
+            ) : (
+              <>
+                {/* Encabezado exacto del reporte: 4 renglones */}
+                <div className="rounded-md border border-border bg-card p-3 text-center">
+                  <p className="text-lg font-extrabold uppercase leading-[1.25] text-foreground">
+                    {report?.tournament || '—'}
+                  </p>
+                  <p className="text-xs font-bold uppercase leading-[1.5] text-muted-foreground">
+                    {report?.course || report?.club || '—'}
+                    <span className="text-primary">
+                      {' '}
+                      / {report?.fechaFormato || fecha || '—'}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold leading-[1.5] text-muted-foreground">
+                    Hoyos {hi}–{hf} · Horario {hri}–{hrf} · Grupos: {summary.groups} / Jugadores:{' '}
+                    {summary.players}
+                  </p>
+                  <p className="text-[10px] leading-[1.5] text-muted-foreground">
+                    Generado: al abrir el reporte
+                  </p>
+                </div>
+
+                {/* Paginación estimada */}
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  <dt className="font-semibold text-muted-foreground">Papel</dt>
+                  <dd className="font-bold text-foreground">{PAPER_SIZES[paper].label}, horizontal</dd>
+                  <dt className="font-semibold text-muted-foreground">Grupos / Jugadores</dt>
+                  <dd className="font-bold text-foreground">
+                    {summary.groups} / {summary.players}
+                  </dd>
+                  <dt className="font-semibold text-muted-foreground">Páginas estimadas</dt>
+                  <dd className="font-bold text-foreground">
+                    {summary.pages} (numeradas “Página X de {summary.pages}”)
+                  </dd>
+                </dl>
+
+                {summary.groups === 0 && (
+                  <p className="text-sm text-destructive">
+                    No hay salidas para estos filtros: ajusta el rango de hoyos u horas.
+                  </p>
+                )}
+              </>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => setPreviewOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={generar} disabled={!isValid || summary.groups === 0}>
+                <Printer className="mr-2 h-4 w-4" />
+                Ver reporte
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
