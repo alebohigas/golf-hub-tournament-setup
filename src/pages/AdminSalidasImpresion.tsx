@@ -187,6 +187,21 @@ const AdminSalidasImpresion = () => {
     };
   }, [data]);
 
+  /** Nombres completos de las categorías incluidas, para el pie del reporte. */
+  const footerCategories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (data?.groups ?? [])
+            .map((g) => g.categoryName || g.shortName)
+            .filter((v): v is string => Boolean(v))
+        )
+      ),
+    [data]
+  );
+
+
+
   /** Ejecuta la acción confirmada en la vista previa. */
   const runConfirmed = () => {
     const action = confirmAction;
