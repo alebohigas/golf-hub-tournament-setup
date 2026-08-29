@@ -366,7 +366,7 @@ const AdminSalidasImpresion = () => {
               {confirmAction === 'pdf' ? 'Confirmar exportación a PDF' : 'Confirmar impresión'}
             </DialogTitle>
             <DialogDescription>
-              Revisa el rango de hoyos, el horario y las categorías incluidas antes de continuar.
+              Revisa el rango de hoyos, el horario, la categoría y el primer/último encabezado antes de continuar.
             </DialogDescription>
           </DialogHeader>
 
@@ -413,11 +413,28 @@ const AdminSalidasImpresion = () => {
               )}
             </div>
 
-            {/* Muestra del encabezado tal como se imprimirá */}
-            {data?.groups[0] && (
-              <div>
-                <p className="mb-1 text-xs text-muted-foreground">Vista previa del encabezado</p>
-                <GroupBlock group={data.groups[0]} />
+            {/* Muestra del primer y último encabezado tal como se imprimirá */}
+            {data && data.groups.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">Vista previa de salidas</p>
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">
+                    Primer grupo · {data.groups[0].time}
+                    {data.groups[0].tee ? ` / ${data.groups[0].tee}` : ''}
+                  </p>
+                  <GroupBlock group={data.groups[0]} />
+                </div>
+                {data.groups.length > 1 && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">
+                      Último grupo · {data.groups[data.groups.length - 1].time}
+                      {data.groups[data.groups.length - 1].tee
+                        ? ` / ${data.groups[data.groups.length - 1].tee}`
+                        : ''}
+                    </p>
+                    <GroupBlock group={data.groups[data.groups.length - 1]} />
+                  </div>
+                )}
               </div>
             )}
           </div>
