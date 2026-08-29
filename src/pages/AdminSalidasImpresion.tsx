@@ -13,11 +13,18 @@
  * `print:` ocultan la barra de acciones y fuerzan fondo blanco.
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -32,20 +39,133 @@ import {
   type SalidasImpresionFilters,
 } from '@/hooks/useSalidasImpresion';
 
+/* ===========================================================================
+ * Densidad de impresión y tamaño de papel
+ * ---------------------------------------------------------------------------
+ * `DENSITY_LEVELS` va de la más holgada a la más compacta. Cada nivel expone
+ * variables CSS que consumen `PlayerRow` y `GroupBlock`, de modo que cambiar
+ * de nivel reajusta fuente, interlineado y alto de renglón sin tocar el
+ * layout (los bloques nunca se parten: ver reglas @media print en index.css).
+ *
+ * `PAPER_SIZES` define el alto útil por hoja (mm menos 12mm de margen arriba
+ * y abajo) para: (a) fijar @page en la impresión normal, (b) elegir el formato
+ * de jsPDF y (c) calcular en el modo "Automática" el nivel más holgado cuyo
+ * bloque más alto sí cabe completo en una página.
+ * =========================================================================== */
 
+/** Nivel de densidad tipográfica del reporte. */
+type DensityKey = 'comoda' | 'normal' | 'compacta' | 'ultra';
+
+/** Variables CSS por nivel de densidad. */
+const DENSITY_LEVELS: Record<
+  DensityKey,
+  {
+    label: string;
+    vars: Record<string, string>;
+  }
+> = {
+  comoda: {
+    label: 'Cómoda',
+    vars: {
+      '--sal-name-size': '13.5px',
+      '--sal-name-line': '1.6',
+      '--sal-row-pad': '5px',
+      '--sal-row-min': '2.35rem',
+      '--sal-logo-h': '1.6rem',
+      '--sal-head-size': '12.5px',
+      '--sal-time-size': '13.5px',
+      '--sal-gap': '0.85rem',
+    },
+  },
+  normal: {
+    label: 'Normal',
+    vars: {
+      '--sal-name-size': '13px',
+      '--sal-name-line': '1.5',
+      '--sal-row-pad': '3px',
+      '--sal-row-min': '2.1rem',
+      '--sal-logo-h': '1.5rem',
+      '--sal-head-size': '12px',
+      '--sal-time-size': '13px',
+      '--sal-gap': '0.75rem',
+    },
+  },
+  compacta: {
+    label: 'Compacta',
+    vars: {
+      '--sal-name-size': '11.5px',
+      '--sal-name-line': '1.35',
+      '--sal-row-pad': '1.5px',
+      '--sal-row-min': '1.7rem',
+      '--sal-logo-h': '1.25rem',
+      '--sal-head-size': '11px',
+      '--sal-time-size': '11.5px',
+      '--sal-gap': '0.5rem',
+    },
+  },
+  ultra: {
+    label: 'Muy compacta',
+    vars: {
+      '--sal-name-size': '10.5px',
+      '--sal-name-line': '1.25',
+      '--sal-row-pad': '1px',
+      '--sal-row-min': '1.4rem',
+      '--sal-logo-h': '1.05rem',
+      '--sal-head-size': '10px',
+      '--sal-time-size': '10.5px',
+      '--sal-gap': '0.4rem',
+    },
+  },
+};
+
+/** Orden de prueba en modo automático: de la más holgada a la más compacta. */
+const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
+
+/** Tamaños de papel soportados (alto útil en px CSS a 96dpi, margen 12mm). */
+const PAPER_SIZES = {
+  letter: {
+    label: 'Carta (8.5 × 11 in)',
+    css: 'letter',
+    jsPdf: 'letter' as const,
+    /** (279.4mm - 24mm) * 3.7795 px/mm */
+    usableHeightPx: Math.floor((279.4 - 24) * 3.7795),
+  },
+  a4: {
+    label: 'A4 (210 × 297 mm)',
+    css: 'A4',
+    jsPdf: 'a4' as const,
+    /** (297mm - 24mm) * 3.7795 px/mm */
+    usableHeightPx: Math.floor((297 - 24) * 3.7795),
+  },
+};
+
+/** Clave de tamaño de papel. */
+type PaperKey = keyof typeof PAPER_SIZES;
 
 /** Renglón de jugador con logo de club.
  *  Nota: se usa `leading-normal` + padding vertical y `min-h` en lugar de
  *  `truncate` puro, porque html2canvas recorta descendentes (g, j, y) cuando
- *  el contenedor tiene overflow-hidden con altura ajustada al texto. */
+ *  el contenedor tiene overflow-hidden con altura ajustada al texto.
+ *  Las medidas provienen de las variables CSS de densidad. */
 const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
-  <div className="flex min-h-[2.1rem] items-center gap-3 border-b border-border px-2 py-[3px] last:border-b-0">
-    <span className="flex h-6 w-10 shrink-0 items-center justify-center">
+  <div
+    className="flex items-center gap-3 border-b border-border px-2 last:border-b-0"
+    style={{
+      minHeight: 'var(--sal-row-min)',
+      paddingTop: 'var(--sal-row-pad)',
+      paddingBottom: 'var(--sal-row-pad)',
+    }}
+  >
+    <span
+      className="flex w-10 shrink-0 items-center justify-center"
+      style={{ height: 'var(--sal-logo-h)' }}
+    >
       {clubLogo ? (
         <img
           src={clubLogo}
           alt=""
-          className="h-6 max-w-10 object-contain"
+          className="max-w-10 object-contain"
+          style={{ height: 'var(--sal-logo-h)' }}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
           }}
@@ -53,13 +173,20 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
       ) : null}
     </span>
     <span
-      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[3px] text-[13px] font-semibold leading-[1.5] tracking-[0.01em] text-foreground antialiased"
+      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-semibold tracking-[0.01em] text-foreground antialiased"
+      style={{
+        fontSize: 'var(--sal-name-size)',
+        lineHeight: 'var(--sal-name-line)',
+        paddingTop: 'var(--sal-row-pad)',
+        paddingBottom: 'var(--sal-row-pad)',
+      }}
       title={name}
     >
       {name}
     </span>
   </div>
 );
+
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
  *  Encabezado en 2 celdas de ancho fijo para evitar saltos de layout:
@@ -73,20 +200,25 @@ const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   >
     {/* Encabezado del grupo: nombre completo de la categoría + hora/tee.
         Línea inferior para distinguir el encabezado en impresiones en blanco y negro. */}
-    <div className="border-b-2 border-foreground/40 bg-muted px-2 py-[5px]">
+    <div className="border-b-2 border-foreground/40 bg-muted px-2 py-[4px]">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <span
-          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-[2px] text-left text-[12px] font-bold uppercase leading-[1.5] tracking-[0.02em] text-primary antialiased"
+          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-[1px] text-left font-bold uppercase leading-[1.4] tracking-[0.02em] text-primary antialiased"
+          style={{ fontSize: 'var(--sal-head-size)' }}
           title={group.categoryName}
         >
           Categoría: {group.categoryName || group.shortName}
         </span>
-        <span className="whitespace-nowrap py-[2px] text-left text-[13px] font-bold leading-[1.5] tabular-nums text-foreground antialiased">
+        <span
+          className="whitespace-nowrap py-[1px] text-left font-bold leading-[1.4] tabular-nums text-foreground antialiased"
+          style={{ fontSize: 'var(--sal-time-size)' }}
+        >
           {group.time}
           {group.tee ? ` / ${group.tee}` : ''}
         </span>
       </div>
     </div>
+
 
     <div>
       {group.players.map((p, i) => (
@@ -170,6 +302,44 @@ const AdminSalidasImpresion = () => {
 
   /** Acción pendiente de confirmar en la vista previa ('print' | 'pdf' | null). */
   const [confirmAction, setConfirmAction] = useState<'print' | 'pdf' | null>(null);
+
+  /** Tamaño de papel del reporte (afecta @page y el formato del PDF). */
+  const [paper, setPaper] = useState<PaperKey>('letter');
+
+  /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
+  const [density, setDensity] = useState<'auto' | DensityKey>('auto');
+
+  /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
+  const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
+  const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
+  /**
+   * Modo automático: mide el bloque de salida más alto ya renderizado y, si no
+   * cabe completo en una hoja del papel elegido, baja un nivel de densidad.
+   * Converge en pocos renders (cómoda → normal → compacta → muy compacta) y
+   * garantiza que ningún bloque tenga que partirse entre páginas.
+   */
+  useEffect(() => {
+    if (density !== 'auto') return;
+    const root = reportRef.current;
+    if (!root) return;
+    const blocks = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-group-block]')
+    );
+    if (!blocks.length) return;
+    const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
+    const limit = PAPER_SIZES[paper].usableHeightPx;
+    const idx = DENSITY_ORDER.indexOf(autoDensity);
+    if (tallest > limit && idx < DENSITY_ORDER.length - 1) {
+      setAutoDensity(DENSITY_ORDER[idx + 1]);
+    }
+  }, [density, paper, autoDensity, data]);
+
+  /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
+  useEffect(() => {
+    if (density === 'auto') setAutoDensity('comoda');
+  }, [density, paper, data]);
+
 
   /** Resumen para la vista previa: categorías presentes y conteos. */
   const preview = useMemo(() => {
@@ -255,7 +425,12 @@ const AdminSalidasImpresion = () => {
       });
 
 
-      const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+      const pdf = new jsPDF({
+        unit: 'pt',
+        format: PAPER_SIZES[paper].jsPdf,
+        orientation: 'portrait',
+      });
+
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const margin = 24;
@@ -339,7 +514,42 @@ const AdminSalidasImpresion = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a Admin
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tamaño de papel: fija @page en impresión y el formato del PDF */}
+            <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
+              <SelectTrigger className="h-9 w-[190px]">
+                <SelectValue placeholder="Papel" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {PAPER_SIZES[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Densidad tipográfica: 'auto' ajusta el nivel para que ningún
+                bloque de salida tenga que partirse entre páginas */}
+            <Select
+              value={density}
+              onValueChange={(v) => setDensity(v as 'auto' | DensityKey)}
+            >
+              <SelectTrigger className="h-9 w-[210px]">
+                <SelectValue placeholder="Densidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  Densidad: automática ({DENSITY_LEVELS[autoDensity].label})
+                </SelectItem>
+                {DENSITY_ORDER.map((k) => (
+                  <SelectItem key={k} value={k}>
+                    Densidad: {DENSITY_LEVELS[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
@@ -380,8 +590,18 @@ const AdminSalidasImpresion = () => {
           </div>
         )}
 
-        {/* Contenedor exportable: encabezado + rejilla de grupos */}
-        <div ref={reportRef} className="bg-background p-1 print:p-0">
+        {/* @page dinámico: el tamaño de hoja elegido se aplica a la impresión
+            normal del navegador (márgenes predeterminados de 12mm). */}
+        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css}; margin: 12mm; } }`}</style>
+
+        {/* Contenedor exportable: encabezado + rejilla de grupos.
+            Las variables CSS de densidad se heredan a bloques y renglones. */}
+        <div
+          ref={reportRef}
+          className="bg-background p-1 print:p-0"
+          style={DENSITY_LEVELS[activeDensity].vars as React.CSSProperties}
+        >
+
 
 
 
@@ -426,7 +646,11 @@ const AdminSalidasImpresion = () => {
         {/* `salidas-print-grid`: en pantalla es grid; en impresión se convierte
             en layout multi-columna (ver index.css) para que ningún bloque de
             salida se parta entre páginas. */}
-        <div className="salidas-print-grid grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div
+          className="salidas-print-grid grid grid-cols-1 md:grid-cols-2"
+          style={{ gap: 'var(--sal-gap)' }}
+        >
+
 
           {data?.groups.map((g) => (
             <GroupBlock key={g.id} group={g} />
