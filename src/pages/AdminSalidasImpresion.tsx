@@ -590,8 +590,18 @@ const AdminSalidasImpresion = () => {
           </div>
         )}
 
-        {/* Contenedor exportable: encabezado + rejilla de grupos */}
-        <div ref={reportRef} className="bg-background p-1 print:p-0">
+        {/* @page dinámico: el tamaño de hoja elegido se aplica a la impresión
+            normal del navegador (márgenes predeterminados de 12mm). */}
+        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css}; margin: 12mm; } }`}</style>
+
+        {/* Contenedor exportable: encabezado + rejilla de grupos.
+            Las variables CSS de densidad se heredan a bloques y renglones. */}
+        <div
+          ref={reportRef}
+          className="bg-background p-1 print:p-0"
+          style={DENSITY_LEVELS[activeDensity].vars as React.CSSProperties}
+        >
+
 
 
 
