@@ -137,20 +137,27 @@ const HoleCell = ({
   children,
   bold = false,
   divider = false,
+  pad = true,
 }: {
   children?: React.ReactNode;
   bold?: boolean;
   divider?: boolean;
+  /** `false` en renglones de jugador: la altura la marca la celda del nombre. */
+  pad?: boolean;
 }) => (
   <td
     style={{ fontSize: 'var(--tl-hole-size)' }}
-    className={`border border-border px-1 py-[3px] text-center align-middle leading-[1.6] tabular-nums ${
-      bold ? 'font-bold text-foreground' : 'text-foreground'
-    } ${divider ? 'tl-divider border-r-2 border-r-foreground/60' : ''}`}
+    className={`border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
+      pad ? 'py-[3px]' : 'py-0'
+    } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
+      /* Línea vertical cada 3 hoyos: marcada pero suave (no negra). */
+      divider ? 'tl-divider border-r-2 border-r-foreground/25' : ''
+    }`}
   >
     {children}
   </td>
 );
+
 
 /**
  * Bloque TIME LINE de un grupo de salida.
