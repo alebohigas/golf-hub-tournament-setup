@@ -45,21 +45,26 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
 );
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
- *  Encabezado: CATEGORÍA (izquierda) · Hoyo · Hora/Tee. */
+ *  Encabezado en 3 celdas de ancho fijo para evitar saltos de layout:
+ *  CATEGORÍA (izquierda, ancho flexible) · Hoyo (3rem) · Hora/Tee (ancho automático). */
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   <div className="break-inside-avoid rounded-sm border border-border bg-card">
-    <div className="grid grid-cols-[1fr_3rem_1fr] items-center gap-2 bg-muted px-2 py-1.5">
-      <span className="truncate text-xs font-bold uppercase text-primary">
+    <div className="grid grid-cols-[minmax(0,1fr)_3rem_auto] items-center gap-2 bg-muted px-2 py-1.5">
+      <span
+        className="truncate text-left text-xs font-bold uppercase text-primary"
+        title={group.categoryName}
+      >
         {group.shortName || group.categoryName}
       </span>
-      <span className="text-sm font-bold text-foreground">
+      <span className="text-left text-sm font-bold tabular-nums text-foreground">
         {group.hole !== null ? `H${String(group.hole).padStart(2, '0')}` : '—'}
       </span>
-      <span className="text-right text-sm font-bold text-foreground">
+      <span className="whitespace-nowrap text-left text-sm font-bold tabular-nums text-foreground">
         {group.time}
         {group.tee ? ` / ${group.tee}` : ''}
       </span>
     </div>
+
 
     <div>
       {group.players.map((p, i) => (
@@ -100,7 +105,41 @@ const AdminSalidasImpresion = () => {
     [params]
   );
 
-  const { data, isLoading, isError } = useSalidasImpresionReport(filters);
+  /**
+   * Validación de los filtros recibidos por URL:
+   *  - hoyos enteros 1–18 y hoyo inicial <= hoyo final
+   *  - horas HH:MM (24h) y hora inicial <= hora final
+   * Si falla, se bloquean Imprimir y Exportar PDF.
+   */
+  const filterErrors = useMemo<string[]>(() => {
+    const errs: string[] = [];
+    const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    const toMin = (t: string) => {
+      const m = TIME_RE.exec((t ?? '').trim());
+      return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
+    };
+    const nHi = Number(filters.hi);
+    const nHf = Number(filters.hf);
+    if (!Number.isInteger(nHi) || nHi < 1 || nHi > 18)
+      errs.push('El hoyo inicial debe ser un entero entre 1 y 18.');
+    if (!Number.isInteger(nHf) || nHf < 1 || nHf > 18)
+      errs.push('El hoyo final debe ser un entero entre 1 y 18.');
+    if (Number.isInteger(nHi) && Number.isInteger(nHf) && nHi > nHf)
+      errs.push('El hoyo inicial debe ser menor o igual al hoyo final.');
+    const mIni = toMin(filters.hri);
+    const mFin = toMin(filters.hrf);
+    if (mIni < 0) errs.push('La hora inicial no tiene formato válido (HH:MM).');
+    if (mFin < 0) errs.push('La hora final no tiene formato válido (HH:MM).');
+    if (mIni >= 0 && mFin >= 0 && mIni > mFin)
+      errs.push('La hora inicial debe ser anterior o igual a la hora final.');
+    return errs;
+  }, [filters]);
+
+  /** Sólo se consulta y se permite imprimir cuando los filtros son válidos. */
+  const filtersValid = filterErrors.length === 0;
+
+  const { data, isLoading, isError } = useSalidasImpresionReport(filters, filtersValid);
+
 
   /** Nodo del reporte (encabezado + rejilla) usado para exportar a PDF. */
   const reportRef = useRef<HTMLDivElement>(null);
@@ -183,7 +222,9 @@ const AdminSalidasImpresion = () => {
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
               onClick={exportPdf}
-              disabled={exporting || isLoading || (data?.groups.length ?? 0) === 0}
+              disabled={
+                !filtersValid || exporting || isLoading || (data?.groups.length ?? 0) === 0
+              }
             >
               {exporting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -192,15 +233,31 @@ const AdminSalidasImpresion = () => {
               )}
               Exportar PDF
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => window.print()} disabled={!filtersValid}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
           </div>
         </div>
 
+        {/* Filtros inválidos: se bloquea el reporte */}
+        {!filtersValid && (
+          <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 print:hidden">
+            <p className="mb-2 font-semibold text-destructive">
+              No se puede generar el reporte: revisa los filtros.
+            </p>
+            <ul className="list-inside list-disc text-sm text-destructive">
+              {filterErrors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Contenedor exportable: encabezado + rejilla de grupos */}
         <div ref={reportRef} className="bg-background p-1 print:p-0">
+
+
 
 
         {/* Encabezado del reporte */}
