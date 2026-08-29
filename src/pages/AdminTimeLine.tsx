@@ -572,6 +572,86 @@ const AdminTimeLine = () => {
     }, 0);
   }, [blockZones, printPages, pageH]);
 
+  /**
+   * ============ PAGINACIÓN REAL EN IMPRESIÓN DIRECTA ============
+   * Al imprimir por impresora no basta con rotular el pie en una posición
+   * absoluta: si el alto de hoja calculado difiere unos píxeles del que usa el
+   * navegador, el rótulo se empalma con el reporte. Para evitarlo por completo,
+   * justo antes de imprimir se INSERTAN espaciadores en el flujo:
+   *   · cada espaciador rellena lo que sobra de la hoja hasta su pie físico,
+   *   · lleva dentro el rótulo "Página X de Y" pegado abajo (en flujo, nunca
+   *     encima del contenido),
+   *   · fuerza el salto con `break-after: page`, de modo que el corte ocurre
+   *     exactamente donde se calculó.
+   * Se retiran al terminar (`afterprint`) para no alterar la medición en
+   * pantalla ni el cálculo de cortes.
+   */
+  useEffect(() => {
+    /** Crea el nodo espaciador con su rótulo de página. */
+    const makeSpacer = (height: number, label: string) => {
+      const el = document.createElement('div');
+      el.dataset.pageSpacer = 'true';
+      el.style.height = `${Math.max(FOOTER_RESERVE_PX, height)}px`;
+      el.style.position = 'relative';
+      el.style.width = '100%';
+      el.style.breakInside = 'avoid';
+      el.style.breakAfter = 'page';
+      const tag = document.createElement('span');
+      tag.textContent = label;
+      tag.style.position = 'absolute';
+      tag.style.right = '0';
+      tag.style.bottom = '2px';
+      tag.style.fontSize = '10px';
+      tag.style.fontWeight = '600';
+      tag.style.opacity = '0.75';
+      el.appendChild(tag);
+      return el;
+    };
+
+    /** Inserta un espaciador por hoja antes de imprimir. */
+    const onBeforePrint = () => {
+      const root = reportRef.current;
+      if (!root || printPages.length === 0) return;
+      const rootTop = root.getBoundingClientRect().top;
+      const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
+      const total = printPages.length;
+
+      printPages.forEach((cut, i) => {
+        const start = i === 0 ? 0 : printPages[i - 1];
+        /* 2 px de holgura: mejor una hoja con un hueco mínimo que un desborde. */
+        const height = start + pageH - cut - 2;
+        const label = `Página ${i + 1} de ${total}`;
+        if (i === total - 1) {
+          /* Última hoja: el rótulo va después de todo el contenido. */
+          root.appendChild(makeSpacer(Math.max(0, height), label));
+          return;
+        }
+        /* Hojas intermedias: antes del primer bloque de la hoja siguiente. */
+        const next = blocks.find((b) => b.getBoundingClientRect().top - rootTop >= cut - 1);
+        const spacer = makeSpacer(Math.max(0, height), label);
+        if (next?.parentElement) next.parentElement.insertBefore(spacer, next);
+        else root.appendChild(spacer);
+      });
+    };
+
+    /** Retira los espaciadores al terminar la impresión. */
+    const onAfterPrint = () => {
+      reportRef.current
+        ?.querySelectorAll('[data-page-spacer]')
+        .forEach((el) => el.remove());
+    };
+
+    window.addEventListener('beforeprint', onBeforePrint);
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint);
+      window.removeEventListener('afterprint', onAfterPrint);
+      onAfterPrint();
+    };
+  }, [printPages, pageH]);
+
+
+
 
 
   /**
