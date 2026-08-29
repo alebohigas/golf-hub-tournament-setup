@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle, Clock, Loader2, Printer } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
+import { useTorneoId } from '@/hooks/useTorneoId';
+import { API_BASE_URL } from '@/config/api';
 
 /** Expresión de hora válida en formato 24h HH:MM (00:00 – 23:59). */
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
