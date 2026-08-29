@@ -127,7 +127,8 @@ $groups = sgi_all($conn, "SELECT sg.id,
                                  LEFT(RIGHT(sg.horainicio1a, 8), 5) AS hora,
                                  $holeExpr AS hoyo,
                                  sg.teesal,
-                                 cat.categoria, cat.abreviatura
+                                 cat.categoria, cat.abreviatura,
+                                 cat.sistema, cat.gross, cat.grossstb
                             FROM salidagrupo sg
                             JOIN caljuego cj  ON (sg.caljuegoid = cj.id)
                             JOIN categorias cat ON (sg.categoriaid = cat.categoria_id)
