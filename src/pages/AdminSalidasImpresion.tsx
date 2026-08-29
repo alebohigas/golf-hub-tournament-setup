@@ -303,6 +303,10 @@ const AdminSalidasImpresion = () => {
   /** Acción pendiente de confirmar en la vista previa ('print' | 'pdf' | null). */
   const [confirmAction, setConfirmAction] = useState<'print' | 'pdf' | null>(null);
 
+  /** PDF ya generado y listo para previsualizar (blob URL + total de páginas). */
+  const [pdfPreview, setPdfPreview] = useState<{ url: string; pages: number } | null>(null);
+
+
   /** Tamaño de papel del reporte (afecta @page y el formato del PDF). */
   const [paper, setPaper] = useState<PaperKey>('letter');
 
@@ -380,20 +384,25 @@ const AdminSalidasImpresion = () => {
       // Espera al cierre del diálogo para no capturarlo en la impresión.
       setTimeout(() => window.print(), 150);
     } else if (action === 'pdf') {
-      setTimeout(() => void exportPdf(), 150);
+      // El PDF se genera y se muestra primero como previsualización real.
+      setTimeout(() => void previewPdf(), 150);
     }
   };
 
 
+
   /**
-   * Exporta el reporte a PDF conservando el diseño de la página del torneo.
-   * Se renderiza el nodo a canvas (html2canvas) y se pagina en hojas carta
-   * verticales con jsPDF, cortando la imagen por alto de página.
+   * Construye el documento PDF del reporte con el papel y la densidad
+   * seleccionados. Se renderiza el nodo a canvas (html2canvas) y se pagina en
+   * hojas verticales con jsPDF, cortando la imagen por alto de página sin
+   * partir ningún bloque de salida.
+   *
+   * @returns instancia de jsPDF lista para guardar o previsualizar.
    */
-  const exportPdf = async () => {
-    if (!reportRef.current) return;
-    setExporting(true);
-    try {
+  const buildPdf = async () => {
+    if (!reportRef.current) return null;
+    {
+
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import('html2canvas'),
         import('jspdf'),
@@ -488,11 +497,31 @@ const AdminSalidasImpresion = () => {
         });
       }
 
-      pdf.save(`salidas-${filters.fecha || 'reporte'}.pdf`);
+      return pdf;
+    }
+  };
 
+  /** Nombre de archivo del PDF, derivado de la fecha del reporte. */
+  const pdfFileName = `salidas-${filters.fecha || 'reporte'}.pdf`;
+
+  /**
+   * Genera el PDF y lo muestra en una previsualización real (iframe con el
+   * documento) para confirmar densidad, papel y paginación antes de descargar.
+   */
+  const previewPdf = async () => {
+    setExporting(true);
+    try {
+      const pdf = await buildPdf();
+      if (!pdf) return;
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      setPdfPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev.url);
+        return { url, pages: pdf.getNumberOfPages() };
+      });
     } catch {
       toast({
-        title: 'No se pudo generar el PDF',
+        title: 'No se pudo generar la previsualización',
         description: 'Intenta de nuevo o usa Imprimir y elige "Guardar como PDF".',
         variant: 'destructive',
       });
@@ -500,6 +529,24 @@ const AdminSalidasImpresion = () => {
       setExporting(false);
     }
   };
+
+  /** Descarga el PDF ya previsualizado y cierra la previsualización. */
+  const downloadPreviewedPdf = () => {
+    if (!pdfPreview) return;
+    const a = document.createElement('a');
+    a.href = pdfPreview.url;
+    a.download = pdfFileName;
+    a.click();
+  };
+
+  /** Cierra la previsualización liberando el blob URL generado. */
+  const closePdfPreview = () => {
+    setPdfPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  };
+
 
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
@@ -764,12 +811,51 @@ const AdminSalidasImpresion = () => {
               Cancelar
             </Button>
             <Button onClick={runConfirmed}>
-              {confirmAction === 'pdf' ? 'Exportar PDF' : 'Imprimir'}
+              {confirmAction === 'pdf' ? 'Generar previsualización' : 'Imprimir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Previsualización real del PDF generado (papel + densidad aplicados).
+          Se muestra el documento en un iframe antes de descargarlo. */}
+      <Dialog open={pdfPreview !== null} onOpenChange={(o) => !o && closePdfPreview()}>
+        <DialogContent className="max-w-5xl print:hidden">
+          <DialogHeader>
+            <DialogTitle>Previsualización del PDF</DialogTitle>
+            <DialogDescription>
+              {PAPER_SIZES[paper].label} · Densidad {DENSITY_LEVELS[activeDensity].label} ·{' '}
+              {pdfPreview?.pages ?? 0} página(s) · {preview.totalGroups} grupos ·{' '}
+              {preview.totalPlayers} jugadores. Revisa que ningún bloque de salida quede
+              partido antes de descargar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pdfPreview && (
+            <iframe
+              src={pdfPreview.url}
+              title="Previsualización del PDF de salidas"
+              className="h-[70vh] w-full rounded-md border bg-white"
+            />
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={closePdfPreview}
+            >
+              Cerrar
+            </Button>
+            <Button onClick={downloadPreviewedPdf}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Descargar PDF
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+
 
   );
 
