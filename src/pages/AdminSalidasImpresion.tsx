@@ -13,15 +13,17 @@
  * `print:` ocultan la barra de acciones y fuerzan fondo blanco.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Printer, Loader2 } from 'lucide-react';
+import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import {
   useSalidasImpresionReport,
   type SalidasImpresionGroup,
   type SalidasImpresionFilters,
 } from '@/hooks/useSalidasImpresion';
+
 
 /** Renglón de jugador con logo de club. */
 const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
