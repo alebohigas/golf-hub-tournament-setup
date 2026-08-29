@@ -388,14 +388,17 @@ const AdminSalidasImpresion = () => {
 
 
   /**
-   * Exporta el reporte a PDF conservando el diseño de la página del torneo.
-   * Se renderiza el nodo a canvas (html2canvas) y se pagina en hojas carta
-   * verticales con jsPDF, cortando la imagen por alto de página.
+   * Construye el documento PDF del reporte con el papel y la densidad
+   * seleccionados. Se renderiza el nodo a canvas (html2canvas) y se pagina en
+   * hojas verticales con jsPDF, cortando la imagen por alto de página sin
+   * partir ningún bloque de salida.
+   *
+   * @returns instancia de jsPDF lista para guardar o previsualizar.
    */
-  const exportPdf = async () => {
-    if (!reportRef.current) return;
-    setExporting(true);
-    try {
+  const buildPdf = async () => {
+    if (!reportRef.current) return null;
+    {
+
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import('html2canvas'),
         import('jspdf'),
