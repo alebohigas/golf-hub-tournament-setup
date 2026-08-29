@@ -700,9 +700,23 @@ const AdminSalidasImpresion = () => {
             Las variables CSS de densidad se heredan a bloques y renglones. */}
         <div
           ref={reportRef}
-          className="bg-background p-1 print:p-0"
+          className="relative bg-background p-1 print:p-0"
           style={DENSITY_LEVELS[activeDensity].vars as React.CSSProperties}
         >
+
+        {/* Numeración "Página X de Y" para la impresión del navegador.
+            Se posicionan absolutamente al final de cada hoja calculada, por lo
+            que no alteran el flujo ni la altura de los bloques de salida. */}
+        {printPages.map((cut, i) => (
+          <span
+            key={`pg-${i}`}
+            aria-hidden
+            className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+            style={{ top: `${cut - 14}px` }}
+          >
+            Página {i + 1} de {printPages.length}
+          </span>
+        ))}
 
 
 
