@@ -18,7 +18,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileDown, Loader2, Printer, Eye, EyeOff } from 'lucide-react';
+import {
+  ArrowLeft,
+  FileDown,
+  Loader2,
+  Printer,
+  Eye,
+  EyeOff,
+  ScanSearch,
+  Wand2,
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -180,7 +199,7 @@ const TimeLineBlock = ({
   const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
   return (
-    <div data-group-block className="break-inside-avoid">
+    <div data-group-block data-players={group.players.length} className="break-inside-avoid">
       <table className="w-full table-fixed border-collapse border border-border">
         <tbody>
           {/* Fecha del día de juego + numeración de hoyos */}
@@ -357,6 +376,25 @@ const AdminTimeLine = () => {
     params.get('paper') === 'a4' ? 'a4' : 'letter'
   );
 
+  /** Milímetros por píxel CSS @96 dpi (para traducir márgenes a px). */
+  const MM_PX = 3.7795;
+
+  /** Margen de la hoja en mm (afecta @page, el PDF y el alto útil). */
+  const [marginMm, setMarginMm] = useState(10);
+
+  /**
+   * Geometría útil de la hoja con el margen elegido. Las medidas base de
+   * PAPER_SIZES asumen 10 mm por lado, así que se compensa la diferencia.
+   */
+  const pageW = useMemo(
+    () => Math.round(PAPER_SIZES[paper].widthPx + (10 - marginMm) * 2 * MM_PX),
+    [paper, marginMm]
+  );
+  const pageH = useMemo(
+    () => Math.round(PAPER_SIZES[paper].heightPx + (10 - marginMm) * 2 * MM_PX),
+    [paper, marginMm]
+  );
+
   /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
   const [density, setDensity] = useState<'auto' | DensityKey>(() => {
     const d = params.get('density');
@@ -366,6 +404,13 @@ const AdminTimeLine = () => {
   /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
   const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
+  /**
+   * Alto de renglón manual (padding vertical de cada renglón de jugador, px).
+   * `null` = usar el valor de la densidad activa. Se reinicia al cambiar de
+   * densidad para que el control siempre parta del valor real aplicado.
+   */
+  const [rowPad, setRowPad] = useState<number | null>(null);
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
@@ -396,7 +441,7 @@ const AdminTimeLine = () => {
     const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
     const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
     /** 10px de holgura absorbe redondeos de impresión y el rótulo de página. */
-    const available = PAPER_SIZES[paper].heightPx - headerH - 10;
+    const available = pageH - headerH - 10;
     const fits = tallest <= available;
     if (density !== 'auto') {
       setDensityOverflow(!fits);
@@ -409,7 +454,7 @@ const AdminTimeLine = () => {
     } else {
       setDensityOverflow(!fits);
     }
-  }, [density, paper, autoDensity]);
+  }, [density, pageH, autoDensity]);
 
   /** Mide tras cada render relevante, al redimensionar y al cargar fuentes. */
   useEffect(() => {
@@ -439,7 +484,9 @@ const AdminTimeLine = () => {
    * Alimenta la VISTA PREVIA DE CORTES en pantalla: permite dibujar los límites
    * de bloque y detectar empalmes de layout en tiempo real.
    */
-  const [blockZones, setBlockZones] = useState<{ top: number; bottom: number }[]>([]);
+  const [blockZones, setBlockZones] = useState<
+    { top: number; bottom: number; players: number }[]
+  >([]);
   /** Alto total medido del reporte (para acotar las guías de la vista previa). */
   const [reportHeight, setReportHeight] = useState(0);
   /** Interruptor de la vista previa de cortes y límites (sólo pantalla). */
@@ -451,11 +498,15 @@ const AdminTimeLine = () => {
     if (!root) return;
     const rootRect = root.getBoundingClientRect();
     const total = rootRect.height;
-    const limit = PAPER_SIZES[paper].heightPx;
+    const limit = pageH;
     const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
       (el) => {
         const r = el.getBoundingClientRect();
-        return { top: r.top - rootRect.top, bottom: r.bottom - rootRect.top };
+        return {
+          top: r.top - rootRect.top,
+          bottom: r.bottom - rootRect.top,
+          players: Number(el.dataset.players || 0),
+        };
       }
     );
     const cuts: number[] = [];
@@ -475,7 +526,7 @@ const AdminTimeLine = () => {
     setPrintPages(cuts);
     setBlockZones(zones);
     setReportHeight(total);
-  }, [paper]);
+  }, [pageH]);
 
   /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
   useEffect(() => {
@@ -496,14 +547,14 @@ const AdminTimeLine = () => {
    * cuando el bloque es más alto que una hoja completa.
    */
   const overlaps = useMemo(() => {
-    const limit = PAPER_SIZES[paper].heightPx;
+    const limit = pageH;
     return blockZones.reduce((n, z) => {
       const pageStart = printPages.findIndex((cut) => z.top < cut);
       if (pageStart < 0) return n;
       const start = pageStart === 0 ? 0 : printPages[pageStart - 1];
       return z.bottom > start + limit ? n + 1 : n;
     }, 0);
-  }, [blockZones, printPages, paper]);
+  }, [blockZones, printPages, pageH]);
 
 
 
@@ -556,59 +607,102 @@ const AdminTimeLine = () => {
   }, [beforePrint]);
 
   /**
-   * Exporta el reporte a PDF horizontal, paginando sin partir bloques.
+   * Resumen por página: jugadores y grupos que caen en cada hoja según los
+   * cortes calculados. Alimenta la vista previa (total de páginas, jugadores
+   * por página y densidad aplicada).
    */
-  const exportPdf = async () => {
-    if (!reportRef.current) return;
-    setExporting(true);
-    try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ]);
-      const rootRect = reportRef.current.getBoundingClientRect();
-      const scale = 2.5;
-      const canvas = await html2canvas(reportRef.current, {
+  const pageStats = useMemo(() => {
+    return printPages.map((cut, i) => {
+      const start = i === 0 ? 0 : printPages[i - 1];
+      const inPage = blockZones.filter((z) => z.top >= start - 0.5 && z.top < cut - 0.5);
+      return {
+        page: i + 1,
+        groups: inPage.length,
+        players: inPage.reduce((n, z) => n + z.players, 0),
+      };
+    });
+  }, [printPages, blockZones]);
+
+  /* ===================== Autoajustar ===================== */
+
+  /** Ciclos de autoajuste pendientes (cada uno reduce un poco el layout). */
+  const [autoFitting, setAutoFitting] = useState(false);
+
+  /**
+   * Autoajustar: vuelve a densidad automática y, si aún hay empalmes, va
+   * reduciendo el alto de renglón hasta que la vista previa no detecte ninguno.
+   */
+  const autoFit = () => {
+    setDensity('auto');
+    setAutoDensity('comoda');
+    setRowPad(null);
+    setAutoFitting(true);
+  };
+
+  /** Bucle de autoajuste: reduce el alto de renglón mientras existan empalmes. */
+  useEffect(() => {
+    if (!autoFitting) return;
+    const id = window.setTimeout(() => {
+      if (overlaps === 0 && !densityOverflow) {
+        setAutoFitting(false);
+        return;
+      }
+      const current = rowPad ?? parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-row-pad']);
+      if (activeDensity !== 'ultra') return; // deja que la densidad baje primero
+      if (current > 0) setRowPad(Math.max(0, Number((current - 0.5).toFixed(1))));
+      else setAutoFitting(false);
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [autoFitting, overlaps, densityOverflow, rowPad, activeDensity]);
+
+  /* ===================== Vista previa / PDF ===================== */
+
+  /** Diálogo de vista previa del PDF. */
+  const [previewOpen, setPreviewOpen] = useState(false);
+  /** Imágenes (una por página) de la vista previa del PDF. */
+  const [previewImgs, setPreviewImgs] = useState<string[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  /** Rango de páginas a exportar (1-based, inclusive). */
+  const [rangeFrom, setRangeFrom] = useState(1);
+  const [rangeTo, setRangeTo] = useState(1);
+
+  /**
+   * Rasteriza el reporte y lo corta en páginas SIN partir bloques.
+   * Devuelve las rebanadas como data URLs y el ancho del lienzo, de modo que
+   * la vista previa y el PDF final usen exactamente la misma paginación.
+   */
+  const renderSlices = useCallback(
+    async (scale: number): Promise<{ slices: { url: string; h: number }[]; width: number }> => {
+      const root = reportRef.current!;
+      const { default: html2canvas } = await import('html2canvas');
+      const rootRect = root.getBoundingClientRect();
+      const canvas = await html2canvas(root, {
         scale,
         useCORS: true,
         backgroundColor: '#ffffff',
+        /* Las guías de pantalla nunca se exportan. */
+        ignoreElements: (el) => el instanceof HTMLElement && el.dataset.guides === 'true',
       });
-
-      /** Zonas que no deben partirse: cada bloque de grupo. */
-      const blocks = Array.from(
-        reportRef.current.querySelectorAll<HTMLElement>('[data-group-block]')
-      ).map((el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          top: Math.max(0, Math.round((r.top - rootRect.top) * scale)),
-          bottom: Math.round((r.bottom - rootRect.top) * scale),
-        };
-      });
-
-      const pdf = new jsPDF({
-        unit: 'pt',
-        format: PAPER_SIZES[paper].jsPdf,
-        orientation: 'landscape',
-      });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const usableW = pageW - margin * 2;
-      const usableH = pageH - margin * 2 - 14;
-      const maxSliceH = Math.floor((usableH * canvas.width) / usableW);
-
-      /** Corte seguro: sube el salto al inicio del bloque que se partiría. */
+      const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
+        (el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            top: Math.max(0, Math.round((r.top - rootRect.top) * scale)),
+            bottom: Math.round((r.bottom - rootRect.top) * scale),
+          };
+        }
+      );
+      const limit = Math.floor(pageH * scale);
       const safeCut = (offset: number): number => {
-        let cut = Math.min(offset + maxSliceH, canvas.height);
+        let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
         for (const b of blocks) {
           if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
         }
-        return cut > offset ? cut : Math.min(offset + maxSliceH, canvas.height);
+        return cut > offset ? cut : Math.min(offset + limit, canvas.height);
       };
-
-      let page = 0;
-      for (let offset = 0; offset < canvas.height; page++) {
+      const slices: { url: string; h: number }[] = [];
+      for (let offset = 0; offset < canvas.height; ) {
         const cut = safeCut(offset);
         const h = cut - offset;
         const slice = document.createElement('canvas');
@@ -618,30 +712,80 @@ const AdminTimeLine = () => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, slice.width, slice.height);
         ctx.drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
-        if (page > 0) pdf.addPage();
-        pdf.addImage(
-          slice.toDataURL('image/jpeg', 0.95),
-          'JPEG',
-          margin,
-          margin,
-          usableW,
-          (h * usableW) / canvas.width
-        );
+        slices.push({ url: slice.toDataURL('image/jpeg', 0.92), h });
         offset = cut;
       }
+      return { slices, width: canvas.width };
+    },
+    [pageH]
+  );
 
-      /* Numeración "Página X de Y" al pie derecho de cada hoja. */
-      const totalPages = pdf.getNumberOfPages();
-      for (let p = 1; p <= totalPages; p++) {
-        pdf.setPage(p);
+  /** Abre la vista previa del PDF (rasterizada, hoja por hoja). */
+  const openPreview = async () => {
+    if (!reportRef.current) return;
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    try {
+      const { slices } = await renderSlices(1.4);
+      setPreviewImgs(slices.map((s) => s.url));
+      setRangeFrom(1);
+      setRangeTo(slices.length);
+    } catch {
+      toast({
+        title: 'No se pudo generar la vista previa',
+        description: 'Intenta de nuevo.',
+        variant: 'destructive',
+      });
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  /**
+   * Exporta el reporte a PDF horizontal, paginando sin partir bloques.
+   * @param range - rango 1-based de páginas a incluir; sin valor, todas.
+   */
+  const exportPdf = async (range?: { from: number; to: number }) => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { slices, width } = await renderSlices(2.5);
+
+      const pdf = new jsPDF({
+        unit: 'pt',
+        format: PAPER_SIZES[paper].jsPdf,
+        orientation: 'landscape',
+      });
+      const sheetW = pdf.internal.pageSize.getWidth();
+      const sheetH = pdf.internal.pageSize.getHeight();
+      /** Margen del PDF en puntos, tomado del control de márgenes (mm). */
+      const margin = marginMm * 2.8346;
+      const usableW = sheetW - margin * 2;
+
+      const from = Math.max(1, range?.from ?? 1);
+      const to = Math.min(slices.length, range?.to ?? slices.length);
+      const picked = slices.slice(from - 1, to);
+      if (!picked.length) throw new Error('rango vacío');
+
+      picked.forEach((s, i) => {
+        if (i > 0) pdf.addPage();
+        pdf.addImage(s.url, 'JPEG', margin, margin, usableW, (s.h * usableW) / width);
+      });
+
+      /* Numeración "Página X de Y" (conserva el número real de la hoja). */
+      for (let i = 0; i < picked.length; i++) {
+        pdf.setPage(i + 1);
         pdf.setFontSize(9);
         pdf.setTextColor(90);
-        pdf.text(`Página ${p} de ${totalPages}`, pageW - margin, pageH - 10, {
+        pdf.text(`Página ${from + i} de ${slices.length}`, sheetW - margin, sheetH - 10, {
           align: 'right',
         });
       }
 
-      pdf.save(`time-line-${filters.fecha || 'reporte'}.pdf`);
+      const suffix = picked.length === slices.length ? '' : `-p${from}-${to}`;
+      pdf.save(`time-line-${filters.fecha || 'reporte'}${suffix}.pdf`);
     } catch {
       toast({
         title: 'No se pudo exportar el PDF',
@@ -735,6 +879,31 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Autoajustar: baja densidad / alto de renglón hasta que no
+                queden empalmes detectados en la vista previa. */}
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={autoFit}
+              disabled={isLoading || totals.groups === 0}
+            >
+              {autoFitting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4" />
+              )}
+              Autoajustar
+            </Button>
+            {/* Vista previa del PDF hoja por hoja antes de imprimir/exportar */}
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={() => void openPreview()}
+              disabled={!filtersValid || isLoading || totals.groups === 0}
+            >
+              <ScanSearch className="mr-2 h-4 w-4" />
+              Vista previa PDF
+            </Button>
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
@@ -755,6 +924,59 @@ const AdminTimeLine = () => {
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
+          </div>
+        </div>
+
+        {/* Ajustes manuales de maqueta + resumen en vivo (no se imprimen) */}
+        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-md border border-border bg-card p-3 print:hidden">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Margen de hoja (mm)</Label>
+            <Input
+              type="number"
+              min={5}
+              max={25}
+              step={1}
+              value={marginMm}
+              onChange={(e) =>
+                setMarginMm(Math.min(25, Math.max(5, Number(e.target.value) || 10)))
+              }
+              className="h-9 w-[110px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Alto de renglón (px)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={12}
+              step={0.5}
+              value={rowPad ?? parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-row-pad'])}
+              onChange={(e) => setRowPad(Math.min(12, Math.max(0, Number(e.target.value) || 0)))}
+              className="h-9 w-[110px]"
+            />
+          </div>
+          <Button
+            variant="ghost"
+            className="h-9 bg-primary/10 hover:bg-primary/20"
+            onClick={() => setRowPad(null)}
+            disabled={rowPad === null}
+          >
+            Usar el de la densidad
+          </Button>
+          {/* Resumen en vivo: páginas, densidad y jugadores por página */}
+          <div className="ml-auto text-right text-xs text-muted-foreground">
+            <p>
+              <strong className="text-foreground">{printPages.length}</strong> página(s) ·
+              densidad <strong className="text-foreground">
+                {DENSITY_LEVELS[activeDensity].label}
+                {density === 'auto' ? ' (automática)' : ''}
+              </strong>{' '}
+              · {totals.groups} grupos / {totals.players} jugadores
+            </p>
+            <p>
+              Jugadores por página:{' '}
+              {pageStats.map((s) => `p${s.page}: ${s.players}`).join(' · ') || '—'}
+            </p>
           </div>
         </div>
 
@@ -802,7 +1024,7 @@ const AdminTimeLine = () => {
         )}
 
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
-        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
+        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: ${marginMm}mm; } }`}</style>
 
         {/*
           Contenedor exportable con ANCHO FIJO igual al ancho útil de la hoja
@@ -814,8 +1036,12 @@ const AdminTimeLine = () => {
           <div
             ref={reportRef}
             style={{
-              width: PAPER_SIZES[paper].widthPx,
+              width: pageW,
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+              /* El control manual de alto de renglón pisa el de la densidad. */
+              ...(rowPad !== null
+                ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
+                : {}),
             }}
             className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
@@ -831,6 +1057,7 @@ const AdminTimeLine = () => {
           {showGuides && reportHeight > 0 && (
             <div
               aria-hidden
+              data-guides="true"
               className="pointer-events-none absolute inset-0 z-10 print:hidden"
             >
               {/* Contornos de bloque */}
@@ -844,7 +1071,7 @@ const AdminTimeLine = () => {
               {/* Pie físico y corte de flujo de cada hoja */}
               {printPages.map((cut, i) => {
                 const pageStart = i === 0 ? 0 : printPages[i - 1];
-                const pageEnd = pageStart + PAPER_SIZES[paper].heightPx;
+                const pageEnd = pageStart + pageH;
                 return (
                   <div key={`gp-${i}`}>
                     {/* Zona sobrante: espacio que queda en blanco en la hoja */}
@@ -885,7 +1112,7 @@ const AdminTimeLine = () => {
               Al posicionarse absolutamente no altera el flujo ni el alto. */}
           {printPages.map((_cut, i) => {
             const pageStart = i === 0 ? 0 : printPages[i - 1];
-            const footerTop = pageStart + PAPER_SIZES[paper].heightPx - 14;
+            const footerTop = pageStart + pageH - 14;
             return (
               <span
                 key={`pg-${i}`}
@@ -991,8 +1218,171 @@ const AdminTimeLine = () => {
           </footer>
           </div>
         </div>
+
+        {/* ============= Vista previa del PDF (hoja por hoja) =============
+            Rasteriza el reporte con la misma paginación del PDF final, muestra
+            el resumen (páginas, jugadores por página, densidad, márgenes) y
+            permite exportar sólo un rango de páginas antes de imprimir. */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-5xl print:hidden">
+            <DialogHeader>
+              <DialogTitle>Vista previa del PDF</DialogTitle>
+              <DialogDescription>
+                Revisa cada hoja tal como se exportará o imprimirá y elige el rango de páginas.
+              </DialogDescription>
+            </DialogHeader>
+
+            {previewLoading ? (
+              <div className="flex items-center gap-2 py-10 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Generando vista previa…
+              </div>
+            ) : (
+              <>
+                {/* Resumen del documento */}
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-4">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Páginas</dt>
+                    <dd className="font-bold text-foreground">{previewImgs.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Densidad aplicada</dt>
+                    <dd className="font-bold text-foreground">
+                      {DENSITY_LEVELS[activeDensity].label}
+                      {density === 'auto' ? ' (automática)' : ''}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Margen / renglón</dt>
+                    <dd className="font-bold text-foreground">
+                      {marginMm} mm /{' '}
+                      {rowPad ?? parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-row-pad'])} px
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Grupos / Jugadores</dt>
+                    <dd className="font-bold text-foreground">
+                      {totals.groups} / {totals.players}
+                    </dd>
+                  </div>
+                </dl>
+
+                {/* Rango de páginas a exportar */}
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Desde página</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={previewImgs.length || 1}
+                      value={rangeFrom}
+                      onChange={(e) =>
+                        setRangeFrom(
+                          Math.min(
+                            Math.max(1, Number(e.target.value) || 1),
+                            previewImgs.length || 1
+                          )
+                        )
+                      }
+                      className="h-9 w-[100px]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Hasta página</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={previewImgs.length || 1}
+                      value={rangeTo}
+                      onChange={(e) =>
+                        setRangeTo(
+                          Math.min(
+                            Math.max(1, Number(e.target.value) || 1),
+                            previewImgs.length || 1
+                          )
+                        )
+                      }
+                      className="h-9 w-[100px]"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="h-9 bg-primary/10 hover:bg-primary/20"
+                    onClick={() => {
+                      setRangeFrom(1);
+                      setRangeTo(previewImgs.length || 1);
+                    }}
+                  >
+                    Todas
+                  </Button>
+                </div>
+
+                {/* Hojas rasterizadas con su resumen de jugadores */}
+                <div className="max-h-[55vh] space-y-4 overflow-y-auto rounded-md border border-border p-2">
+                  {previewImgs.map((src, i) => {
+                    const inRange = i + 1 >= rangeFrom && i + 1 <= rangeTo;
+                    const st = pageStats[i];
+                    return (
+                      <figure
+                        key={`prev-${i}`}
+                        className={`rounded-md border p-2 ${
+                          inRange ? 'border-primary/50' : 'border-border opacity-40'
+                        }`}
+                      >
+                        <img
+                          src={src}
+                          alt={`Página ${i + 1} del reporte Time Line`}
+                          className="w-full bg-background"
+                          loading="lazy"
+                        />
+                        <figcaption className="mt-1 text-xs text-muted-foreground">
+                          Página {i + 1} de {previewImgs.length}
+                          {st ? ` · ${st.groups} grupos / ${st.players} jugadores` : ''}
+                          {inRange ? '' : ' · fuera del rango'}
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <DialogFooter className="flex-wrap gap-2">
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => setPreviewOpen(false)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => {
+                  setPreviewOpen(false);
+                  window.print();
+                }}
+                disabled={previewLoading || previewImgs.length === 0}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir todo
+              </Button>
+              <Button
+                onClick={() => void exportPdf({ from: rangeFrom, to: rangeTo })}
+                disabled={previewLoading || exporting || previewImgs.length === 0}
+              >
+                {exporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-2 h-4 w-4" />
+                )}
+                Descargar páginas {rangeFrom}–{rangeTo}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
+
   );
 };
 
