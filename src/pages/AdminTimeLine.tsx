@@ -34,10 +34,29 @@ import {
   type TimeLineHole,
 } from '@/hooks/useTimeLine';
 
-/** Tamaños de papel soportados (formato jsPDF y valor para @page). */
+/**
+ * Tamaños de papel soportados (formato jsPDF y valor para @page).
+ * `widthPx` / `heightPx` son las medidas ÚTILES en px @96 dpi con la hoja en
+ * horizontal y márgenes de 10 mm (≈38 px por lado). Se usan para renderizar el
+ * reporte SIEMPRE con el mismo ancho físico, independientemente del tamaño de
+ * pantalla, de modo que los saltos de línea del encabezado sean idénticos en
+ * pantalla, impresión y PDF.
+ */
 const PAPER_SIZES = {
-  letter: { label: 'Carta (11 × 8.5 in)', css: 'letter', jsPdf: 'letter' as const },
-  a4: { label: 'A4 (297 × 210 mm)', css: 'A4', jsPdf: 'a4' as const },
+  letter: {
+    label: 'Carta (11 × 8.5 in)',
+    css: 'letter',
+    jsPdf: 'letter' as const,
+    widthPx: 980,
+    heightPx: 740,
+  },
+  a4: {
+    label: 'A4 (297 × 210 mm)',
+    css: 'A4',
+    jsPdf: 'a4' as const,
+    widthPx: 1047,
+    heightPx: 718,
+  },
 };
 
 /** Clave de tamaño de papel. */
