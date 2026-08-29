@@ -394,22 +394,37 @@ const AdminTimeLine = () => {
         {/* Contenedor exportable */}
         <div ref={reportRef} className="relative bg-background p-1 print:p-0">
           {/* Encabezado del reporte */}
-          <header className="mb-4 border-b-2 border-primary pb-2 text-center">
-            <h1 className="text-2xl font-extrabold uppercase tracking-tight text-foreground">
-              {data?.tournament || 'Time Line'}
+          {/*
+            Encabezado fijo del reporte — SIEMPRE cuatro renglones, en este
+            orden y con salto de línea propio (también al imprimir):
+              1) Nombre del torneo            → LXX TORNEO ANUAL DE INVITACION
+              2) Sede / fecha                 → VALLE ALTO / martes, 28 de abril 2026
+              3) Hoyos · Horario · Grupos / Jugadores
+              4) Generado: dd/mm/aaaa, hh:mm
+            Cada renglón es un bloque con `whitespace-nowrap`-free wrapping
+            controlado, sin depender de datos opcionales: si un dato falta se
+            muestra "—" para que la maqueta no cambie de altura.
+          */}
+          <header className="mb-4 break-inside-avoid border-b-2 border-primary pb-2 text-center">
+            {/* 1 — Torneo */}
+            <h1 className="block text-2xl font-extrabold uppercase leading-[1.25] tracking-tight text-foreground">
+              {data?.tournament || '—'}
             </h1>
-            <p className="text-sm font-bold uppercase text-muted-foreground">
-              {data?.course || data?.club}
-              {data?.fechaFormato ? (
-                <span className="text-primary"> / {data.fechaFormato}</span>
-              ) : null}
+            {/* 2 — Sede / fecha */}
+            <p className="block text-sm font-bold uppercase leading-[1.5] text-muted-foreground">
+              <span>{data?.course || data?.club || '—'}</span>
+              <span className="text-primary"> / {data?.fechaFormato || filters.fecha || '—'}</span>
             </p>
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">
+            {/* 3 — Hoyos · Horario · Grupos / Jugadores */}
+            <p className="mt-1 block text-xs font-semibold leading-[1.5] text-muted-foreground">
               Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Grupos:{' '}
               {totals.groups.toLocaleString('es-MX')} / Jugadores:{' '}
               {totals.players.toLocaleString('es-MX')}
             </p>
-            <p className="text-[10px] text-muted-foreground">Generado: {generatedAt}</p>
+            {/* 4 — Marca de generación */}
+            <p className="block text-[10px] leading-[1.5] text-muted-foreground">
+              Generado: {generatedAt}
+            </p>
           </header>
 
           {/* Cuerpo */}
