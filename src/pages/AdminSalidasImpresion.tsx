@@ -222,7 +222,9 @@ const AdminSalidasImpresion = () => {
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
               onClick={exportPdf}
-              disabled={exporting || isLoading || (data?.groups.length ?? 0) === 0}
+              disabled={
+                !filtersValid || exporting || isLoading || (data?.groups.length ?? 0) === 0
+              }
             >
               {exporting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -231,15 +233,31 @@ const AdminSalidasImpresion = () => {
               )}
               Exportar PDF
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => window.print()} disabled={!filtersValid}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
           </div>
         </div>
 
+        {/* Filtros inválidos: se bloquea el reporte */}
+        {!filtersValid && (
+          <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 print:hidden">
+            <p className="mb-2 font-semibold text-destructive">
+              No se puede generar el reporte: revisa los filtros.
+            </p>
+            <ul className="list-inside list-disc text-sm text-destructive">
+              {filterErrors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Contenedor exportable: encabezado + rejilla de grupos */}
         <div ref={reportRef} className="bg-background p-1 print:p-0">
+
+
 
 
         {/* Encabezado del reporte */}
