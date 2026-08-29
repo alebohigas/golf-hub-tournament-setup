@@ -1129,18 +1129,21 @@ const AdminTimeLine = () => {
               Al posicionarse absolutamente no altera el flujo ni el alto. */}
           {printPages.map((_cut, i) => {
             const pageStart = i === 0 ? 0 : printPages[i - 1];
-            const footerTop = pageStart + pageH - 14;
+            /* Dentro de la banda reservada (FOOTER_RESERVE_PX), al ras del pie
+               físico de la hoja: el contenido nunca llega hasta aquí. */
+            const footerTop = pageStart + pageH - FOOTER_RESERVE_PX + 6;
             return (
               <span
                 key={`pg-${i}`}
                 aria-hidden
-                className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+                className="pointer-events-none absolute right-0 hidden bg-background px-1 text-[10px] font-semibold text-muted-foreground print:block"
                 style={{ top: `${footerTop}px` }}
               >
                 Página {i + 1} de {printPages.length}
               </span>
             );
           })}
+
 
 
           {/* Encabezado del reporte */}
