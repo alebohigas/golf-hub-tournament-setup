@@ -22,8 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { AlertCircle, Clock, Loader2, Printer } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
+import { useTimeLineReport } from '@/hooks/useTimeLine';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { API_BASE_URL } from '@/config/api';
 
@@ -35,6 +44,25 @@ const toMinutes = (t: string): number => {
   const m = TIME_RE.exec(t.trim());
   return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
 };
+
+/**
+ * Alto útil (px @96 dpi) de cada hoja en horizontal con márgenes de 10 mm.
+ * Debe coincidir con PAPER_SIZES de `src/pages/AdminTimeLine.tsx`.
+ */
+const PAPER_SIZES = {
+  letter: { label: 'Carta (11 × 8.5 in)', heightPx: 740 },
+  a4: { label: 'A4 (297 × 210 mm)', heightPx: 718 },
+};
+
+/** Clave de tamaño de papel. */
+type PaperKey = keyof typeof PAPER_SIZES;
+
+/** Alto reservado en la primera hoja para encabezado + pie del reporte. */
+const HEADER_FOOTER_PX = 170;
+/** Alto de un bloque de salida sin jugadores (3 renglones + separación). */
+const BLOCK_BASE_PX = 78;
+/** Alto de cada renglón de jugador dentro del bloque. */
+const PLAYER_ROW_PX = 20;
 
 /** Panel de generación del reporte TIME LINE. */
 const AdminTimeLinePrint = () => {
