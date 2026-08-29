@@ -243,7 +243,9 @@ const AdminSalidasImpresion = () => {
        * cortado ni un bloque se parta a la mitad.
        */
       const blocks = Array.from(
-        reportRef.current.querySelectorAll<HTMLElement>('[data-group-block]')
+        reportRef.current.querySelectorAll<HTMLElement>(
+          '[data-group-block], .salidas-print-footer'
+        )
       ).map((el) => {
         const r = el.getBoundingClientRect();
         return {
@@ -251,6 +253,7 @@ const AdminSalidasImpresion = () => {
           bottom: Math.round((r.bottom - rootRect.top) * scale),
         };
       });
+
 
       const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const pageW = pdf.internal.pageSize.getWidth();
@@ -409,14 +412,18 @@ const AdminSalidasImpresion = () => {
           </p>
         )}
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 print:grid-cols-2">
+        {/* `salidas-print-grid`: en pantalla es grid; en impresión se convierte
+            en layout multi-columna (ver index.css) para que ningún bloque de
+            salida se parta entre páginas. */}
+        <div className="salidas-print-grid grid grid-cols-1 gap-3 md:grid-cols-2">
+
           {data?.groups.map((g) => (
             <GroupBlock key={g.id} group={g} />
           ))}
         </div>
 
         {/* Pie del reporte: torneo, fecha, categorías, rango de hoyos/horario y timestamp */}
-        <footer className="mt-6 break-inside-avoid border-t-2 border-primary pt-2 text-[10px] leading-[1.6] text-muted-foreground">
+        <footer className="salidas-print-footer mt-6 break-inside-avoid border-t-2 border-primary pt-2 text-[10px] leading-[1.6] text-muted-foreground">
           <p className="text-[11px] font-bold uppercase tracking-[0.02em] text-foreground">
             {data?.tournament || 'Salidas'}
             {data?.fechaFormato ? ` — ${data.fechaFormato}` : ''}
