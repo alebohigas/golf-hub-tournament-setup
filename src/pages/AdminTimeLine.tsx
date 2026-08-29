@@ -349,11 +349,88 @@ const AdminTimeLine = () => {
     params.get('paper') === 'a4' ? 'a4' : 'letter'
   );
 
+  /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
+  const [density, setDensity] = useState<'auto' | DensityKey>(() => {
+    const d = params.get('density');
+    return d && (DENSITY_ORDER as string[]).includes(d) ? (d as DensityKey) : 'auto';
+  });
+
+  /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
+  const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
+  const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
   /** Encabezado del reporte (se verifica que sus 4 renglones no se partan). */
   const headerRef = useRef<HTMLElement>(null);
   const [exporting, setExporting] = useState(false);
+
+  /**
+   * Modo automático: mide el bloque más alto renderizado y, si no cabe completo
+   * en una hoja del papel elegido, baja un nivel de densidad. Converge en pocos
+   * renders y garantiza que ningún bloque tenga que partirse entre páginas.
+   */
+  useEffect(() => {
+    if (density !== 'auto') return;
+    const root = reportRef.current;
+    if (!root) return;
+    const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
+    if (!blocks.length) return;
+    const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
+    const idx = DENSITY_ORDER.indexOf(autoDensity);
+    if (tallest > PAPER_SIZES[paper].heightPx && idx < DENSITY_ORDER.length - 1) {
+      setAutoDensity(DENSITY_ORDER[idx + 1]);
+    }
+  }, [density, paper, autoDensity, data]);
+
+  /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
+  useEffect(() => {
+    if (density === 'auto') setAutoDensity('comoda');
+  }, [density, paper, data]);
+
+  /**
+   * Cortes de página para la IMPRESIÓN NORMAL del navegador (px relativos al
+   * nodo del reporte). Se calculan igual que el PDF: se sube el corte al inicio
+   * de cualquier bloque que quedaría partido. Sirven para rotular "Página X de Y".
+   */
+  const [printPages, setPrintPages] = useState<number[]>([]);
+
+  /** Recalcula los cortes de página del reporte impreso. */
+  const computePrintPages = useCallback(() => {
+    const root = reportRef.current;
+    if (!root) return;
+    const rootRect = root.getBoundingClientRect();
+    const total = rootRect.height;
+    const limit = PAPER_SIZES[paper].heightPx;
+    const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
+      (el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top - rootRect.top, bottom: r.bottom - rootRect.top };
+      }
+    );
+    const cuts: number[] = [];
+    let offset = 0;
+    let guard = 0;
+    while (offset < total && guard++ < 200) {
+      let cut = Math.min(offset + limit, total);
+      if (cut < total) {
+        for (const z of zones) {
+          if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
+        }
+        if (cut <= offset) cut = Math.min(offset + limit, total);
+      }
+      cuts.push(cut);
+      offset = cut;
+    }
+    setPrintPages(cuts);
+  }, [paper]);
+
+  /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
+  useEffect(() => {
+    const id = window.setTimeout(computePrintPages, 150);
+    return () => window.clearTimeout(id);
+  }, [computePrintPages, data, activeDensity]);
+
 
   /**
    * Renglones del encabezado que se están partiendo en más de una línea.
