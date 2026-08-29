@@ -762,18 +762,27 @@ const AdminTimeLine = () => {
             className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
           {/* Numeración "Página X de Y" para la impresión del navegador.
-              Se posicionan absolutamente al final de cada hoja calculada, por
-              lo que no alteran el flujo ni el alto de los bloques. */}
-          {printPages.map((cut, i) => (
-            <span
-              key={`pg-${i}`}
-              aria-hidden
-              className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
-              style={{ top: `${cut - 14}px` }}
-            >
-              Página {i + 1} de {printPages.length}
-            </span>
-          ))}
+              IMPORTANTE: el rótulo va al PIE FÍSICO de cada hoja, no en el punto
+              de corte del flujo. Tras un salto de página el contenido reinicia
+              en la parte superior de la hoja siguiente, así que el pie de la
+              hoja i está en (inicio de la hoja i) + alto útil de la hoja, no en
+              el corte calculado (que puede adelantarse para no partir bloques).
+              Al posicionarse absolutamente no altera el flujo ni el alto. */}
+          {printPages.map((_cut, i) => {
+            const pageStart = i === 0 ? 0 : printPages[i - 1];
+            const footerTop = pageStart + PAPER_SIZES[paper].heightPx - 14;
+            return (
+              <span
+                key={`pg-${i}`}
+                aria-hidden
+                className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+                style={{ top: `${footerTop}px` }}
+              >
+                Página {i + 1} de {printPages.length}
+              </span>
+            );
+          })}
+
 
           {/* Encabezado del reporte */}
           {/*
