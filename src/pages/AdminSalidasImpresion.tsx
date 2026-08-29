@@ -380,9 +380,11 @@ const AdminSalidasImpresion = () => {
       // Espera al cierre del diálogo para no capturarlo en la impresión.
       setTimeout(() => window.print(), 150);
     } else if (action === 'pdf') {
-      setTimeout(() => void exportPdf(), 150);
+      // El PDF se genera y se muestra primero como previsualización real.
+      setTimeout(() => void previewPdf(), 150);
     }
   };
+
 
 
   /**
