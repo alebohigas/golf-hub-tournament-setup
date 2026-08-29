@@ -409,7 +409,11 @@ const AdminSalidasImpresion = () => {
           </p>
         )}
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 print:grid-cols-2">
+        {/* `salidas-print-grid`: en pantalla es grid; en impresión se convierte
+            en layout multi-columna (ver index.css) para que ningún bloque de
+            salida se parta entre páginas. */}
+        <div className="salidas-print-grid grid grid-cols-1 gap-3 md:grid-cols-2">
+
           {data?.groups.map((g) => (
             <GroupBlock key={g.id} group={g} />
           ))}
