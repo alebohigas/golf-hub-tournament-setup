@@ -1453,6 +1453,46 @@ const AdminTimeLine = () => {
                   </div>
                 </dl>
 
+                {/* Papel y orientación: al cambiarlos se recalcula la
+                    paginación y se regenera la vista previa. */}
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Tamaño de papel</Label>
+                    <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
+                      <SelectTrigger className="h-9 w-[200px]">
+                        <SelectValue placeholder="Papel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            {PAPER_SIZES[k].label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Orientación</Label>
+                    <Select
+                      value={orientation}
+                      onValueChange={(v) => setOrientation(v as OrientationKey)}
+                    >
+                      <SelectTrigger className="h-9 w-[150px]">
+                        <SelectValue placeholder="Orientación" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(ORIENTATION_LABELS) as OrientationKey[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            {ORIENTATION_LABELS[k]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+
+
                 {/* Rango de páginas a exportar */}
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="space-y-1">
