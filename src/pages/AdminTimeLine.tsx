@@ -563,7 +563,7 @@ const AdminTimeLine = () => {
    * cuando el bloque es más alto que una hoja completa.
    */
   const overlaps = useMemo(() => {
-    const limit = pageH;
+    const limit = pageH - FOOTER_RESERVE_PX;
     return blockZones.reduce((n, z) => {
       const pageStart = printPages.findIndex((cut) => z.top < cut);
       if (pageStart < 0) return n;
