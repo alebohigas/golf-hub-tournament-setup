@@ -106,10 +106,52 @@ const AdminTimeLinePrint = () => {
 
   const isValid = errors.length === 0;
 
+  // ============= Vista previa (encabezado + paginación) =============
+
+  /** Papel elegido para estimar la paginación de la vista previa. */
+  const [paper, setPaper] = useState<PaperKey>('letter');
+  /** Controla el diálogo de vista previa. */
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  /** Filtros congelados para la consulta de vista previa. */
+  const previewFilters = useMemo(
+    () => (isValid ? { fecha, campoid, hi, hf, hri, hrf } : null),
+    [isValid, fecha, campoid, hi, hf, hri, hrf]
+  );
+
+  const { data: report, isLoading: loadingPreview } = useTimeLineReport(
+    previewFilters,
+    previewOpen && isValid
+  );
+
+  /**
+   * Resumen de la vista previa: totales y estimación de páginas usando el
+   * mismo criterio que la impresión (bloques completos, sin partirse, dentro
+   * del alto útil de la hoja horizontal).
+   */
+  const summary = useMemo(() => {
+    const groups = report?.groups ?? [];
+    const players = groups.reduce((n, g) => n + g.players.length, 0);
+    const usable = PAPER_SIZES[paper].heightPx - HEADER_FOOTER_PX;
+    let pages = groups.length > 0 ? 1 : 0;
+    let used = 0;
+    for (const g of groups) {
+      const h = BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX;
+      if (used > 0 && used + h > usable) {
+        pages += 1;
+        used = h;
+      } else {
+        used += h;
+      }
+    }
+    return { groups: groups.length, players, pages };
+  }, [report, paper]);
+
   /** Abre el reporte imprimible en una pestaña nueva. */
   const generar = () => {
     if (!isValid) return;
     const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf }).toString();
+    setPreviewOpen(false);
     window.open(`/admin/time-line?${qs}`, '_blank');
   };
 
