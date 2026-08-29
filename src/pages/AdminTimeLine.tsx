@@ -644,7 +644,12 @@ const AdminTimeLine = () => {
       return h > 200 && h < 5000 ? h : null;
     };
 
-    /** Crea el nodo espaciador con su rótulo de página. */
+    /**
+     * Crea el nodo espaciador de hoja con su rótulo de página.
+     * El rótulo se ancla ARRIBA del espaciador, es decir JUSTO DEBAJO del
+     * último bloque de salidas de la hoja (no al pie físico del papel), y el
+     * resto del espaciador sólo rellena lo que sobra para forzar el salto.
+     */
     const makeSpacer = (height: number, label: string) => {
       const el = document.createElement('div');
       el.dataset.pageSpacer = 'true';
@@ -657,13 +662,14 @@ const AdminTimeLine = () => {
       tag.textContent = label;
       tag.style.position = 'absolute';
       tag.style.right = '0';
-      tag.style.bottom = '2px';
+      tag.style.top = '4px';
       tag.style.fontSize = '10px';
       tag.style.fontWeight = '600';
       tag.style.opacity = '0.75';
       el.appendChild(tag);
       return el;
     };
+
 
     /** Inserta un espaciador por hoja antes de imprimir. */
     const onBeforePrint = () => {
