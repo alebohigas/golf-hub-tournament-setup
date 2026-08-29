@@ -724,6 +724,17 @@ const AdminTimeLine = () => {
           </div>
         )}
 
+        {/* Aviso: con la densidad actual algún bloque no cabe en una hoja */}
+        {densityOverflow && (
+          <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm print:hidden">
+            Con la densidad <strong>{DENSITY_LEVELS[activeDensity].label}</strong> hay un bloque
+            más alto que una hoja de {PAPER_SIZES[paper].label}
+            {density === 'auto'
+              ? ' incluso en el nivel más compacto: reduce el rango de hoyos u horas.'
+              : '. Usa una densidad más compacta o el modo automático.'}
+          </div>
+        )}
+
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
         <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
 
