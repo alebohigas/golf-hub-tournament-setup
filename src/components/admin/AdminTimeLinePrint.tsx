@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertCircle, Clock, Loader2, Printer } from 'lucide-react';
+import { AlertCircle, Clock, FileDown, Loader2, Printer } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
 import { useTimeLineReport } from '@/hooks/useTimeLine';
 import { useTorneoId } from '@/hooks/useTorneoId';
