@@ -69,6 +69,19 @@ const AdminSalidasImpresion = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
+  /** Marca de tiempo de generación del reporte (se fija al renderizar). */
+  const generatedAt = useMemo(
+    () =>
+      new Date().toLocaleString('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    []
+  );
+
   /** Filtros tomados del query string de la URL. */
   const filters = useMemo<SalidasImpresionFilters>(
     () => ({
@@ -196,8 +209,11 @@ const AdminSalidasImpresion = () => {
               <span className="text-primary"> / {data.fechaFormato}</span>
             ) : null}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground print:hidden">
+          <p className="mt-1 text-xs font-semibold text-muted-foreground">
             Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Generado: {generatedAt}
           </p>
         </header>
 
@@ -224,6 +240,17 @@ const AdminSalidasImpresion = () => {
             <GroupBlock key={g.id} group={g} />
           ))}
         </div>
+
+        {/* Pie del reporte: torneo, fecha, rango de hoyos/horario y timestamp */}
+        <footer className="mt-6 border-t-2 border-primary pt-2 text-[10px] text-muted-foreground">
+          <p className="font-bold uppercase text-foreground">
+            {data?.tournament || 'Salidas'}
+            {data?.fechaFormato ? ` — ${data.fechaFormato}` : ''}
+          </p>
+          <p>
+            Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Generado: {generatedAt}
+          </p>
+        </footer>
         </div>
       </div>
     </div>
