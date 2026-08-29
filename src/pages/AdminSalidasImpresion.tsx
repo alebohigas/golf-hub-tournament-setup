@@ -54,19 +54,16 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
 );
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
- *  Encabezado en 3 celdas de ancho fijo para evitar saltos de layout:
- *  CATEGORÍA (izquierda, ancho flexible) · Hoyo (3rem) · Hora/Tee (ancho automático). */
+ *  Encabezado en 2 celdas de ancho fijo para evitar saltos de layout:
+ *  Categoría: <nombre> (izquierda, ancho flexible) · Hora/Tee (ancho automático). */
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   <div className="break-inside-avoid rounded-sm border border-border bg-card">
-    <div className="grid grid-cols-[minmax(0,1fr)_3rem_auto] items-center gap-2 bg-muted px-2 py-1.5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-muted px-2 py-1.5">
       <span
         className="truncate text-left text-xs font-bold uppercase text-primary"
         title={group.categoryName}
       >
-        {group.shortName || group.categoryName}
-      </span>
-      <span className="text-left text-sm font-bold tabular-nums text-foreground">
-        {group.hole !== null ? `H${String(group.hole).padStart(2, '0')}` : '—'}
+        Categoría: {group.shortName || group.categoryName}
       </span>
       <span className="whitespace-nowrap text-left text-sm font-bold tabular-nums text-foreground">
         {group.time}
