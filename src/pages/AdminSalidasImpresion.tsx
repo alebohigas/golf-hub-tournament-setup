@@ -69,6 +69,19 @@ const AdminSalidasImpresion = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
+  /** Marca de tiempo de generación del reporte (se fija al renderizar). */
+  const generatedAt = useMemo(
+    () =>
+      new Date().toLocaleString('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    []
+  );
+
   /** Filtros tomados del query string de la URL. */
   const filters = useMemo<SalidasImpresionFilters>(
     () => ({
