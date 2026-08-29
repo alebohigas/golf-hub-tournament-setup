@@ -512,7 +512,9 @@ const AdminTimeLine = () => {
     if (!root) return;
     const rootRect = root.getBoundingClientRect();
     const total = rootRect.height;
-    const limit = pageH;
+    /* Alto útil real: la hoja menos la banda del pie de página. */
+    const limit = pageH - FOOTER_RESERVE_PX;
+
     const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
       (el) => {
         const r = el.getBoundingClientRect();
