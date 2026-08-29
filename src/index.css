@@ -559,11 +559,14 @@
   @page {
     margin: 12mm;
   }
-  /* Contenedor de bloques de salida: dos columnas fluidas. */
+  /* Contenedor de bloques de salida: rejilla de 2 columnas para conservar el
+     mismo orden de lectura que el PDF (izquierda → derecha, luego abajo). */
   .salidas-print-grid {
-    display: block !important;
-    column-count: 2;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-auto-flow: row !important;
     column-gap: 12px;
+    row-gap: 10px;
     orphans: 3;
     widows: 3;
   }
@@ -572,10 +575,10 @@
   [data-group-block] {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
-    display: block;
     width: 100%;
-    margin: 0 0 10px;
+    margin: 0;
   }
+
   /* Las filas de jugadores tampoco se cortan. */
   [data-group-block] > div > div {
     break-inside: avoid !important;
