@@ -185,7 +185,7 @@ const HoleCell = ({
 }) => (
   <td
     style={{ fontSize: 'var(--tl-hole-size)' }}
-    className={`border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
+    className={`whitespace-nowrap border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
     } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
       /* Línea vertical cada 3 hoyos: marcada pero suave (no negra). */
