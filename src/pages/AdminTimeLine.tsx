@@ -400,6 +400,14 @@ const AdminTimeLine = () => {
     params.get('paper') === 'a4' ? 'a4' : 'letter'
   );
 
+  /**
+   * Orientación de la hoja (afecta @page, el PDF y la PAGINACIÓN completa).
+   * Se puede preseleccionar por URL (`?orientation=portrait|landscape`).
+   */
+  const [orientation, setOrientation] = useState<OrientationKey>(() =>
+    params.get('orientation') === 'portrait' ? 'portrait' : 'landscape'
+  );
+
   /** Milímetros por píxel CSS @96 dpi (para traducir márgenes a px). */
   const MM_PX = 3.7795;
 
@@ -407,17 +415,20 @@ const AdminTimeLine = () => {
   const [marginMm, setMarginMm] = useState(10);
 
   /**
-   * Geometría útil de la hoja con el margen elegido. Las medidas base de
-   * PAPER_SIZES asumen 10 mm por lado, así que se compensa la diferencia.
+   * Geometría útil de la hoja según papel, orientación y margen elegidos.
+   * En horizontal el lado largo es el ancho; en vertical, el alto.
    */
-  const pageW = useMemo(
-    () => Math.round(PAPER_SIZES[paper].widthPx + (10 - marginMm) * 2 * MM_PX),
-    [paper, marginMm]
-  );
-  const pageH = useMemo(
-    () => Math.round(PAPER_SIZES[paper].heightPx + (10 - marginMm) * 2 * MM_PX),
-    [paper, marginMm]
-  );
+  const pageW = useMemo(() => {
+    const full =
+      orientation === 'landscape' ? PAPER_SIZES[paper].longPx : PAPER_SIZES[paper].shortPx;
+    return Math.round(full - marginMm * 2 * MM_PX);
+  }, [paper, orientation, marginMm]);
+  const pageH = useMemo(() => {
+    const full =
+      orientation === 'landscape' ? PAPER_SIZES[paper].shortPx : PAPER_SIZES[paper].longPx;
+    return Math.round(full - marginMm * 2 * MM_PX);
+  }, [paper, orientation, marginMm]);
+
 
   /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
   const [density, setDensity] = useState<'auto' | DensityKey>(() => {
