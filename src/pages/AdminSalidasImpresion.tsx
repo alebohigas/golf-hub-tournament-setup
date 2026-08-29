@@ -63,23 +63,32 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
  *  Encabezado en 2 celdas de ancho fijo para evitar saltos de layout:
- *  Categoría: <nombre> (izquierda, ancho flexible) · Hora/Tee (ancho automático). */
+ *  Categoría: <abreviatura> (izquierda, ancho flexible) · Hora/Tee (ancho automático).
+ *  Debajo de la abreviatura se muestra el nombre completo de la categoría. */
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   <div className="break-inside-avoid rounded-sm border border-border bg-card">
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-muted px-2 py-1.5">
-      <span
-        className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-left text-xs font-bold uppercase leading-normal text-primary"
-        title={group.categoryName}
-      >
-        Categoría: {group.shortName || group.categoryName}
-      </span>
-      <span className="whitespace-nowrap py-0.5 text-left text-sm font-bold leading-normal tabular-nums text-foreground">
-        {group.time}
-        {group.tee ? ` / ${group.tee}` : ''}
-      </span>
+    <div className="bg-muted px-2 py-1.5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <span
+          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-left text-xs font-bold uppercase leading-normal text-primary"
+          title={group.categoryName}
+        >
+          Categoría: {group.shortName || group.categoryName}
+        </span>
+        <span className="whitespace-nowrap py-0.5 text-left text-sm font-bold leading-normal tabular-nums text-foreground">
+          {group.time}
+          {group.tee ? ` / ${group.tee}` : ''}
+        </span>
+      </div>
+      {group.categoryName && (
+        <p
+          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-left text-[11px] font-semibold uppercase leading-normal text-muted-foreground"
+          title={group.categoryName}
+        >
+          Categoría: {group.categoryName}
+        </p>
+      )}
     </div>
-
-
 
     <div>
       {group.players.map((p, i) => (
