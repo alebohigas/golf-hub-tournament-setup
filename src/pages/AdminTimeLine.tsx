@@ -146,7 +146,7 @@ const HoleCell = ({
     style={{ fontSize: 'var(--tl-hole-size)' }}
     className={`border border-border px-1 py-[3px] text-center align-middle leading-[1.6] tabular-nums ${
       bold ? 'font-bold text-foreground' : 'text-foreground'
-    } ${divider ? 'border-r-2 border-r-foreground/50' : ''}`}
+    } ${divider ? 'tl-divider border-r-2 border-r-foreground/60' : ''}`}
   >
     {children}
   </td>
