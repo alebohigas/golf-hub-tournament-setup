@@ -1,0 +1,194 @@
+/**
+ * AdminSalidasPrint — Admin → pestaña "Salidas"
+ * -----------------------------------------------------------------------------
+ * Formulario para generar el reporte imprimible de salidas por día:
+ *   - Fecha (día de juego)
+ *   - Campo (campoid)
+ *   - Desde / hasta hoyo
+ *   - Desde / hasta hora
+ * El botón GENERA abre `/admin/salidas-impresion` con los filtros en la URL.
+ */
+
+import { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Printer, Loader2, Flag } from 'lucide-react';
+import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
+
+/** Panel de impresión de salidas. */
+const AdminSalidasPrint = () => {
+  const { data, isLoading } = useSalidasImpresionDays();
+  const days = data?.days ?? [];
+
+  // ============= Estado del formulario =============
+  const [fecha, setFecha] = useState('');
+  const [campoid, setCampoid] = useState('');
+  const [hi, setHi] = useState('1');
+  const [hf, setHf] = useState('18');
+  const [hri, setHri] = useState('06:00');
+  const [hrf, setHrf] = useState('11:00');
+
+  /** Precarga el primer día de juego disponible. */
+  useEffect(() => {
+    if (!fecha && days.length > 0) {
+      setFecha(days[0].fecha);
+      setCampoid(days[0].campoid);
+    }
+  }, [days, fecha]);
+
+  /** Campos disponibles para la fecha elegida (con fallback a todos). */
+  const camposDeFecha = useMemo(() => {
+    const list = days.filter((d) => d.fecha === fecha);
+    return list.length > 0 ? list : days;
+  }, [days, fecha]);
+
+  /** Abre el reporte imprimible en una pestaña nueva. */
+  const generar = () => {
+    const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf }).toString();
+    window.open(`/admin/salidas-impresion?${qs}`, '_blank');
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Flag className="h-5 w-5 text-primary" />
+          Impresión de Salidas
+        </CardTitle>
+        <CardDescription>
+          Genera el reporte de salidas de un día de juego filtrando por campo, rango de hoyos y
+          rango de horas.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando días de juego…
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-end gap-4">
+            {/* Fecha */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Fecha</Label>
+              {days.length > 0 ? (
+                <Select
+                  value={fecha}
+                  onValueChange={(v) => {
+                    setFecha(v);
+                    const match = days.find((d) => d.fecha === v);
+                    if (match) setCampoid(match.campoid);
+                  }}
+                >
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Día de juego" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from(new Set(days.map((d) => d.fecha))).map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {days.find((d) => d.fecha === f)?.fechaFormato || f}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className="w-[180px]"
+                />
+              )}
+            </div>
+
+            {/* Campo */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Campo</Label>
+              {camposDeFecha.length > 0 ? (
+                <Select value={campoid} onValueChange={setCampoid}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Campo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {camposDeFecha.map((d) => (
+                      <SelectItem key={`${d.fecha}-${d.campoid}`} value={d.campoid}>
+                        {d.campo || `Campo ${d.campoid}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={campoid}
+                  onChange={(e) => setCampoid(e.target.value)}
+                  className="w-[120px]"
+                  placeholder="Campo ID"
+                />
+              )}
+            </div>
+
+            {/* Rango de hoyos */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Desde hoyo</Label>
+              <Input
+                type="number"
+                min={1}
+                max={18}
+                value={hi}
+                onChange={(e) => setHi(e.target.value)}
+                className="w-[100px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Hasta hoyo</Label>
+              <Input
+                type="number"
+                min={1}
+                max={18}
+                value={hf}
+                onChange={(e) => setHf(e.target.value)}
+                className="w-[100px]"
+              />
+            </div>
+
+            {/* Rango de horas */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Desde las</Label>
+              <Input
+                type="time"
+                value={hri}
+                onChange={(e) => setHri(e.target.value)}
+                className="w-[120px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Hasta las</Label>
+              <Input
+                type="time"
+                value={hrf}
+                onChange={(e) => setHrf(e.target.value)}
+                className="w-[120px]"
+              />
+            </div>
+
+            {/* Acción */}
+            <Button onClick={generar} disabled={!fecha}>
+              <Printer className="mr-2 h-4 w-4" />
+              GENERA
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AdminSalidasPrint;

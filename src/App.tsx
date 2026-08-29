@@ -45,6 +45,8 @@ import AdminBracketsPage from "./pages/AdminBracketsPage";
 import Showcase300 from "./pages/Showcase300";
 import ShowcaseRotator from "./pages/ShowcaseRotator";
 import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
+// Reporte imprimible de salidas por día (Admin → Salidas → GENERA).
+import AdminSalidasImpresion from "./pages/AdminSalidasImpresion";
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import MatchPlay from "./pages/MatchPlay";
@@ -131,6 +133,8 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               {/* Configuración de módulos del proyecto (solo superadmin). */}
               <Route path="/setup" element={<Setup />} />
+              {/* Reporte imprimible de salidas por día. */}
+              <Route path="/admin/salidas-impresion" element={<AdminSalidasImpresion />} />
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
               <Route path="/admin/brackets" element={<ModuleGate moduleId="matchplay"><AdminBracketsPage /></ModuleGate>} />

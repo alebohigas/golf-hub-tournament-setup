@@ -43,6 +43,8 @@ import AdminPopup from '@/components/admin/AdminPopup';
 import AdminAnuncio from '@/components/admin/AdminAnuncio';
 import AdminBanderas from '@/components/admin/AdminBanderas';
 import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
+/** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
+import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
 import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
@@ -78,6 +80,7 @@ import {
   Swords,
   Megaphone,
   History,
+  Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -487,6 +490,7 @@ const AdminDashboard = () => {
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
+            { value: 'salidas',      icon: Printer,         label: 'Salidas' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'historial',    icon: History,         label: 'Historial' },
@@ -780,6 +784,11 @@ const AdminDashboard = () => {
             numbers per tournament (domain). See AdminStats.tsx. */}
         <TabsContent value="stats">
           <AdminStats />
+        </TabsContent>
+
+        {/* Salidas — impresión del reporte de salidas por día. */}
+        <TabsContent value="salidas">
+          <AdminSalidasPrint />
         </TabsContent>
 
         {/* Página /stats — controla visibilidad, orden y overrides
