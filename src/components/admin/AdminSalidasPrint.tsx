@@ -239,15 +239,67 @@ const AdminSalidasPrint = () => {
               />
             </div>
 
-            {/* Acción */}
-            <Button onClick={generar} disabled={!fecha}>
+            {/* Acción — abre la vista previa de confirmación */}
+            <Button onClick={() => setPreviewOpen(true)} disabled={!isValid}>
               <Printer className="mr-2 h-4 w-4" />
               GENERA
             </Button>
           </div>
         )}
+
+        {/* Lista de errores de validación (sólo cuando hay datos cargados) */}
+        {!isLoading && errors.length > 0 && (
+          <ul className="mt-4 space-y-1 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+            {errors.map((e) => (
+              <li key={e} className="flex items-start gap-2 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {e}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* ============= Vista previa antes de imprimir ============= */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar impresión de salidas</DialogTitle>
+              <DialogDescription>
+                Revisa el rango de hoyos y el intervalo de horas que se aplicará al reporte.
+              </DialogDescription>
+            </DialogHeader>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+              <dt className="font-semibold text-muted-foreground">Día de juego</dt>
+              <dd className="font-bold text-foreground">{fechaLabel}</dd>
+              <dt className="font-semibold text-muted-foreground">Campo</dt>
+              <dd className="font-bold text-foreground">{campoLabel}</dd>
+              <dt className="font-semibold text-muted-foreground">Rango de hoyos</dt>
+              <dd className="font-bold text-foreground">
+                Hoyo {hi} a hoyo {hf}
+              </dd>
+              <dt className="font-semibold text-muted-foreground">Intervalo de horas</dt>
+              <dd className="font-bold text-foreground">
+                {hri} a {hrf} hrs
+              </dd>
+            </dl>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => setPreviewOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={generar} disabled={!isValid}>
+                <Printer className="mr-2 h-4 w-4" />
+                Ver reporte
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
+
   );
 };
 
