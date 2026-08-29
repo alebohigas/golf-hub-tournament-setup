@@ -198,6 +198,20 @@ const HoleCell = ({
 
 
 /**
+ * Normaliza la hora de un hoyo según el modo de formato:
+ * - `full`: se respeta tal cual la envía el API (p. ej. "12 :44").
+ * - `compact`: se abrevia a HH:MM ("12:44"), quitando espacios y segundos,
+ *   para que quepa completa en el recuadro cuando la columna es muy angosta.
+ */
+const formatHoleTime = (raw: string, mode: 'full' | 'compact'): string => {
+  if (!raw) return '';
+  if (mode === 'full') return raw;
+  const compact = raw.replace(/\s+/g, '');
+  const m = compact.match(/^(\d{1,2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : compact;
+};
+
+/**
  * Bloque TIME LINE de un grupo de salida.
  * `data-group-block` lo usa la exportación a PDF para no partir el bloque.
  * Cada jugador ocupa EXACTAMENTE un renglón (nombre recortado con elipsis) y
@@ -208,12 +222,16 @@ const TimeLineBlock = ({
   holes,
   dateLabel,
   courseName,
+  timeMode = 'full',
 }: {
   group: TimeLineGroup;
   holes: TimeLineHole[];
   dateLabel: string;
   courseName: string;
+  /** Formato de la hora dentro de la rejilla de hoyos. */
+  timeMode?: 'full' | 'compact';
 }) => {
+
   /** ¿Esta columna cierra un tramo de 3 hoyos? */
   const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
