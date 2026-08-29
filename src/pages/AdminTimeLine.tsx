@@ -705,9 +705,26 @@ const AdminTimeLine = () => {
         <div className="overflow-x-auto print:overflow-visible">
           <div
             ref={reportRef}
-            style={{ width: PAPER_SIZES[paper].widthPx }}
+            style={{
+              width: PAPER_SIZES[paper].widthPx,
+              ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+            }}
             className="relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
+          {/* Numeración "Página X de Y" para la impresión del navegador.
+              Se posicionan absolutamente al final de cada hoja calculada, por
+              lo que no alteran el flujo ni el alto de los bloques. */}
+          {printPages.map((cut, i) => (
+            <span
+              key={`pg-${i}`}
+              aria-hidden
+              className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+              style={{ top: `${cut - 14}px` }}
+            >
+              Página {i + 1} de {printPages.length}
+            </span>
+          ))}
+
           {/* Encabezado del reporte */}
           {/*
             Encabezado fijo del reporte — SIEMPRE cuatro renglones, en este
