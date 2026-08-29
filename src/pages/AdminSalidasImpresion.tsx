@@ -262,7 +262,7 @@ const AdminSalidasImpresion = () => {
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
-              onClick={exportPdf}
+              onClick={() => setConfirmAction('pdf')}
               disabled={
                 !filtersValid || exporting || isLoading || (data?.groups.length ?? 0) === 0
               }
@@ -274,10 +274,14 @@ const AdminSalidasImpresion = () => {
               )}
               Exportar PDF
             </Button>
-            <Button onClick={() => window.print()} disabled={!filtersValid}>
+            <Button
+              onClick={() => setConfirmAction('print')}
+              disabled={!filtersValid || isLoading || (data?.groups.length ?? 0) === 0}
+            >
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
+
           </div>
         </div>
 
