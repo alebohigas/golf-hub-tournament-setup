@@ -277,13 +277,18 @@ const TimeLineBlock = ({
                       {p.id}
                     </span>
                   ) : null}
+                  {/* Nombre en UN solo renglón. Se usa overflow-hidden con
+                      line-height amplio y padding vertical mínimo para que el
+                      recorte del texto largo NO corte los ascendentes ni los
+                      descendentes al rasterizar el PDF (html2canvas). */}
                   <span
-                    style={{ fontSize: 'var(--tl-name-size)' }}
+                    style={{ fontSize: 'var(--tl-name-size)', lineHeight: 1.9 }}
                     title={p.name}
-                    className="min-w-0 flex-1 truncate whitespace-nowrap font-semibold leading-[1.5] text-foreground"
+                    className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[1px] font-semibold text-foreground"
                   >
                     {p.name}
                   </span>
+
                 </div>
               </td>
               {holes.map((h, hi) => (
