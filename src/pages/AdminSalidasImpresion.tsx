@@ -243,7 +243,9 @@ const AdminSalidasImpresion = () => {
        * cortado ni un bloque se parta a la mitad.
        */
       const blocks = Array.from(
-        reportRef.current.querySelectorAll<HTMLElement>('[data-group-block]')
+        reportRef.current.querySelectorAll<HTMLElement>(
+          '[data-group-block], .salidas-print-footer'
+        )
       ).map((el) => {
         const r = el.getBoundingClientRect();
         return {
@@ -251,6 +253,7 @@ const AdminSalidasImpresion = () => {
           bottom: Math.round((r.bottom - rootRect.top) * scale),
         };
       });
+
 
       const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const pageW = pdf.internal.pageSize.getWidth();
