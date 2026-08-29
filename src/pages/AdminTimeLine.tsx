@@ -740,7 +740,7 @@ const AdminTimeLine = () => {
               width: PAPER_SIZES[paper].widthPx,
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
             }}
-            className="relative mx-auto bg-background p-1 print:w-full print:p-0"
+            className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
           {/* Numeración "Página X de Y" para la impresión del navegador.
               Se posicionan absolutamente al final de cada hoja calculada, por
