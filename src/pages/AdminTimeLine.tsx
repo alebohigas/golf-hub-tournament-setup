@@ -236,20 +236,20 @@ const TimeLineBlock = ({
             ))}
           </tr>
 
-          {/* Jugadores del grupo: un renglón por jugador, con líneas divisorias.
-              Las columnas de hoyos se repiten vacías para prolongar las líneas
-              verticales (una más marcada cada 3 hoyos) hasta el pie del bloque. */}
-          <tr>
-            <td className="border border-border p-0 align-top">
-              {group.players.map((p, i) => (
-                <div
-                  key={`${group.id}-${i}`}
-                  style={{
-                    paddingTop: 'var(--tl-row-pad)',
-                    paddingBottom: 'var(--tl-row-pad)',
-                  }}
-                  className="flex items-center gap-2 border-b border-border px-1 last:border-b-0"
-                >
+          {/* Jugadores del grupo: UN renglón de tabla por jugador, de modo que
+              la línea horizontal que lo delimita cruza todo el bloque (nombre
+              + columnas de hoyos) con un trazo claro, y las líneas verticales
+              (marcada cada 3 hoyos) llegan hasta el pie del bloque. */}
+          {group.players.map((p, i) => (
+            <tr key={`${group.id}-${i}`}>
+              <td
+                style={{
+                  paddingTop: 'var(--tl-row-pad)',
+                  paddingBottom: 'var(--tl-row-pad)',
+                }}
+                className="border border-border px-1 align-middle"
+              >
+                <div className="flex items-center gap-2">
                   {p.id ? (
                     <span
                       style={{ fontSize: 'var(--tl-id-size)' }}
@@ -266,12 +266,13 @@ const TimeLineBlock = ({
                     {p.name}
                   </span>
                 </div>
+              </td>
+              {holes.map((h, hi) => (
+                <HoleCell key={`f-${i}-${h.numero}`} divider={isDivider(hi)} pad={false} />
               ))}
-            </td>
-            {holes.map((h, i) => (
-              <HoleCell key={`f-${h.numero}`} divider={isDivider(i)} />
-            ))}
-          </tr>
+            </tr>
+          ))}
+
         </tbody>
       </table>
     </div>
