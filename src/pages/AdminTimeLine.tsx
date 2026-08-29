@@ -645,24 +645,23 @@ const AdminTimeLine = () => {
     };
 
     /**
-     * Crea el nodo espaciador de hoja con su rótulo de página.
-     * El rótulo se ancla ARRIBA del espaciador, es decir JUSTO DEBAJO del
-     * último bloque de salidas de la hoja (no al pie físico del papel), y el
-     * resto del espaciador sólo rellena lo que sobra para forzar el salto.
+     * Crea el pie de hoja con su rótulo "Página X de Y".
+     * Va EN FLUJO justo debajo del último bloque de salidas de la hoja (sin
+     * rellenar el sobrante, así no se generan huecos ni saltos extra) y fuerza
+     * el salto de hoja con `break-after: page`.
      */
-    const makeSpacer = (height: number, label: string) => {
+    const makeFooter = (label: string, last: boolean) => {
       const el = document.createElement('div');
       el.dataset.pageSpacer = 'true';
-      el.style.height = `${Math.max(FOOTER_RESERVE_PX, height)}px`;
-      el.style.position = 'relative';
+      el.style.height = `${FOOTER_RESERVE_PX}px`;
       el.style.width = '100%';
+      el.style.display = 'flex';
+      el.style.alignItems = 'flex-end';
+      el.style.justifyContent = 'flex-end';
       el.style.breakInside = 'avoid';
-      el.style.breakAfter = 'page';
+      if (!last) el.style.breakAfter = 'page';
       const tag = document.createElement('span');
       tag.textContent = label;
-      tag.style.position = 'absolute';
-      tag.style.right = '0';
-      tag.style.top = '4px';
       tag.style.fontSize = '10px';
       tag.style.fontWeight = '600';
       tag.style.opacity = '0.75';
@@ -671,13 +670,13 @@ const AdminTimeLine = () => {
     };
 
 
-    /** Inserta un espaciador por hoja antes de imprimir. */
+    /** Inserta el pie de página de cada hoja antes de imprimir. */
     const onBeforePrint = () => {
       const root = reportRef.current;
       if (!root) return;
       /* Alto de hoja: el imprimible REAL si se pudo medir; si no, el estimado. */
       const sheetH = measurePrintableHeight() ?? pageH;
-      /* El pie vive en su propia banda: el contenido nunca la invade. */
+      /* El pie ocupa su propia banda en flujo: el contenido nunca la invade. */
       const { cuts } = computeCuts(root, sheetH - FOOTER_RESERVE_PX);
       if (cuts.length === 0) return;
 
@@ -686,22 +685,21 @@ const AdminTimeLine = () => {
       const total = cuts.length;
 
       cuts.forEach((cut, i) => {
-        const start = i === 0 ? 0 : cuts[i - 1];
-        /* 2 px de holgura: mejor un hueco mínimo que un desborde de hoja. */
-        const height = start + sheetH - cut - 2;
         const label = `Página ${i + 1} de ${total}`;
-        if (i === total - 1) {
+        const last = i === total - 1;
+        if (last) {
           /* Última hoja: el rótulo va después de todo el contenido. */
-          root.appendChild(makeSpacer(Math.max(0, height), label));
+          root.appendChild(makeFooter(label, true));
           return;
         }
         /* Hojas intermedias: antes del primer bloque de la hoja siguiente. */
         const next = blocks.find((b) => b.getBoundingClientRect().top - rootTop >= cut - 1);
-        const spacer = makeSpacer(Math.max(0, height), label);
-        if (next?.parentElement) next.parentElement.insertBefore(spacer, next);
-        else root.appendChild(spacer);
+        const footer = makeFooter(label, false);
+        if (next?.parentElement) next.parentElement.insertBefore(footer, next);
+        else root.appendChild(footer);
       });
     };
+
 
     /** Retira los espaciadores y sondas al terminar la impresión. */
     const onAfterPrint = () => {
