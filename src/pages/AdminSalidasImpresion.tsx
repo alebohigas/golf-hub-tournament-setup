@@ -420,7 +420,7 @@ const AdminSalidasImpresion = () => {
         </div>
 
         {/* Pie del reporte: torneo, fecha, categorías, rango de hoyos/horario y timestamp */}
-        <footer className="mt-6 break-inside-avoid border-t-2 border-primary pt-2 text-[10px] leading-[1.6] text-muted-foreground">
+        <footer className="salidas-print-footer mt-6 break-inside-avoid border-t-2 border-primary pt-2 text-[10px] leading-[1.6] text-muted-foreground">
           <p className="text-[11px] font-bold uppercase tracking-[0.02em] text-foreground">
             {data?.tournament || 'Salidas'}
             {data?.fechaFormato ? ` — ${data.fechaFormato}` : ''}
