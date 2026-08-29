@@ -45,6 +45,8 @@ import AdminBanderas from '@/components/admin/AdminBanderas';
 import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 /** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
+/** Reporte TIME LINE: hora estimada de cada grupo en los 18 hoyos. */
+import AdminTimeLinePrint from '@/components/admin/AdminTimeLinePrint';
 import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
