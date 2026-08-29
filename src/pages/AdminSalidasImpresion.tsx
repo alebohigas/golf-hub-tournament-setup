@@ -19,10 +19,19 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   useSalidasImpresionReport,
   type SalidasImpresionGroup,
   type SalidasImpresionFilters,
 } from '@/hooks/useSalidasImpresion';
+
 
 
 /** Renglón de jugador con logo de club. */
@@ -145,6 +154,38 @@ const AdminSalidasImpresion = () => {
   const reportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
+  /** Acción pendiente de confirmar en la vista previa ('print' | 'pdf' | null). */
+  const [confirmAction, setConfirmAction] = useState<'print' | 'pdf' | null>(null);
+
+  /** Resumen para la vista previa: categorías presentes y conteos. */
+  const preview = useMemo(() => {
+    const groups = data?.groups ?? [];
+    const cats = new Map<string, number>();
+    groups.forEach((g) => {
+      const label = g.shortName || g.categoryName || '(sin categoría)';
+      cats.set(label, (cats.get(label) ?? 0) + 1);
+    });
+    return {
+      totalGroups: groups.length,
+      totalPlayers: groups.reduce((n, g) => n + g.players.length, 0),
+      categories: Array.from(cats.entries()).map(([label, count]) => ({ label, count })),
+      missingCategory: groups.filter((g) => !g.shortName && !g.categoryName).length,
+    };
+  }, [data]);
+
+  /** Ejecuta la acción confirmada en la vista previa. */
+  const runConfirmed = () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action === 'print') {
+      // Espera al cierre del diálogo para no capturarlo en la impresión.
+      setTimeout(() => window.print(), 150);
+    } else if (action === 'pdf') {
+      setTimeout(() => void exportPdf(), 150);
+    }
+  };
+
+
   /**
    * Exporta el reporte a PDF conservando el diseño de la página del torneo.
    * Se renderiza el nodo a canvas (html2canvas) y se pagina en hojas carta
@@ -221,7 +262,7 @@ const AdminSalidasImpresion = () => {
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
-              onClick={exportPdf}
+              onClick={() => setConfirmAction('pdf')}
               disabled={
                 !filtersValid || exporting || isLoading || (data?.groups.length ?? 0) === 0
               }
@@ -233,10 +274,14 @@ const AdminSalidasImpresion = () => {
               )}
               Exportar PDF
             </Button>
-            <Button onClick={() => window.print()} disabled={!filtersValid}>
+            <Button
+              onClick={() => setConfirmAction('print')}
+              disabled={!filtersValid || isLoading || (data?.groups.length ?? 0) === 0}
+            >
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
+
           </div>
         </div>
 
@@ -315,9 +360,89 @@ const AdminSalidasImpresion = () => {
         </footer>
         </div>
       </div>
+
+      {/* Vista previa de confirmación antes de imprimir / exportar PDF */}
+      <Dialog open={confirmAction !== null} onOpenChange={(o) => !o && setConfirmAction(null)}>
+        <DialogContent className="print:hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction === 'pdf' ? 'Confirmar exportación a PDF' : 'Confirmar impresión'}
+            </DialogTitle>
+            <DialogDescription>
+              Revisa el rango de hoyos, el horario y las categorías incluidas antes de continuar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Rango de hoyos</p>
+                <p className="font-semibold">
+                  {filters.hi} – {filters.hf}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Rango de horas</p>
+                <p className="font-semibold">
+                  {filters.hri} – {filters.hrf}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Grupos</p>
+                <p className="font-semibold">{preview.totalGroups}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Jugadores</p>
+                <p className="font-semibold">{preview.totalPlayers}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Categorías incluidas</p>
+              <div className="flex flex-wrap gap-1.5">
+                {preview.categories.map((c) => (
+                  <span
+                    key={c.label}
+                    className="rounded-sm bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase text-primary"
+                  >
+                    {c.label} · {c.count}
+                  </span>
+                ))}
+              </div>
+              {preview.missingCategory > 0 && (
+                <p className="mt-2 text-xs text-destructive">
+                  {preview.missingCategory} grupo(s) sin categoría asignada.
+                </p>
+              )}
+            </div>
+
+            {/* Muestra del encabezado tal como se imprimirá */}
+            {data?.groups[0] && (
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">Vista previa del encabezado</p>
+                <GroupBlock group={data.groups[0]} />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={() => setConfirmAction(null)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={runConfirmed}>
+              {confirmAction === 'pdf' ? 'Exportar PDF' : 'Imprimir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
 
   );
+
 };
 
 export default AdminSalidasImpresion;
