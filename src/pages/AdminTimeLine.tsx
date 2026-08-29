@@ -442,11 +442,16 @@ const AdminTimeLine = () => {
 
   /**
    * Tamaño de letra (px) de las celdas de hoyo/hora ajustado al ancho REAL de
-   * la columna. En vertical la hoja es mucho más angosta que en horizontal, así
-   * que la hora ("12 :44", 6 caracteres) se reduce hasta caber en el recuadro
-   * sin recortarse ni desbordarse.
+   * la columna, junto con el modo de formato de la hora.
+   *
+   * - `full`: formato original del API ("12 :44").
+   * - `compact`: hora abreviada HH:MM ("12:44"), sin espacio, que se usa cuando
+   *   ni con la reducción de tamaño mínima legible cabe el formato completo
+   *   (típicamente en orientación vertical con 18 hoyos).
+   *
+   * Devuelve `{ size, mode }` para que la rejilla use ambos valores.
    */
-  const holeFontPx = useMemo(() => {
+  const holeFont = useMemo(() => {
     const base = parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-hole-size']);
     /** Ancho fijo de la columna de nombres + bordes del contenedor. */
     const NAME_COL_PX = 240;
@@ -454,12 +459,34 @@ const AdminTimeLine = () => {
     const CELL_CHROME_PX = 11;
     /** Ancho medio de un carácter tabular respecto al tamaño de letra. */
     const CHAR_RATIO = 0.58;
-    /** Caracteres del texto más ancho de la celda ("12 :44"). */
-    const MAX_CHARS = 6;
+    /** Tamaño mínimo legible antes de recurrir a la hora abreviada. */
+    const MIN_READABLE_PX = 6.5;
+    /** Piso absoluto de tamaño de letra. */
+    const MIN_PX = 5.5;
+
     const colW = (pageW - 8 - NAME_COL_PX) / 18;
-    const fit = (colW - CELL_CHROME_PX) / (MAX_CHARS * CHAR_RATIO);
-    return Math.max(6, Math.min(base, Math.floor(fit * 10) / 10));
+    const avail = Math.max(1, colW - CELL_CHROME_PX);
+    /** Tamaño que permite el formato completo ("12 :44", 6 caracteres). */
+    const fitFull = avail / (6 * CHAR_RATIO);
+    if (fitFull >= MIN_READABLE_PX) {
+      return {
+        size: Math.max(MIN_PX, Math.min(base, Math.floor(fitFull * 10) / 10)),
+        mode: 'full' as const,
+      };
+    }
+    /** Fallback: hora abreviada HH:MM (5 caracteres). */
+    const fitCompact = avail / (5 * CHAR_RATIO);
+    return {
+      size: Math.max(MIN_PX, Math.min(base, Math.floor(fitCompact * 10) / 10)),
+      mode: 'compact' as const,
+    };
   }, [activeDensity, pageW]);
+
+  /** Tamaño de letra aplicado a las celdas de hoyo/hora. */
+  const holeFontPx = holeFont.size;
+  /** Modo de formato de la hora en la rejilla de hoyos. */
+  const holeTimeMode = holeFont.mode;
+
 
 
   /**
