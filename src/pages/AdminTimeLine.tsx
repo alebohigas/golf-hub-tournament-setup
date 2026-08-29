@@ -506,43 +506,56 @@ const AdminTimeLine = () => {
   /** Interruptor de la vista previa de cortes y límites (sólo pantalla). */
   const [showGuides, setShowGuides] = useState(true);
 
-  /** Recalcula los cortes de página del reporte impreso. */
+  /**
+   * Calcula los cortes de página de un reporte dado un alto útil (`limit`).
+   * Se comparte entre la vista previa en pantalla (alto estimado del papel) y la
+   * impresión directa (alto imprimible REAL medido del navegador/impresora).
+   */
+  const computeCuts = useCallback(
+    (root: HTMLElement, limit: number) => {
+      const rootRect = root.getBoundingClientRect();
+      const total = rootRect.height;
+      const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
+        (el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            top: r.top - rootRect.top,
+            bottom: r.bottom - rootRect.top,
+            players: Number(el.dataset.players || 0),
+          };
+        }
+      );
+      const cuts: number[] = [];
+      let offset = 0;
+      let guard = 0;
+      const safe = Math.max(120, limit);
+      while (offset < total && guard++ < 400) {
+        let cut = Math.min(offset + safe, total);
+        if (cut < total) {
+          for (const z of zones) {
+            if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
+          }
+          if (cut <= offset) cut = Math.min(offset + safe, total);
+        }
+        cuts.push(cut);
+        offset = cut;
+      }
+      return { cuts, zones, total };
+    },
+    []
+  );
+
+  /** Recalcula los cortes de página del reporte impreso (estimación en pantalla). */
   const computePrintPages = useCallback(() => {
     const root = reportRef.current;
     if (!root) return;
-    const rootRect = root.getBoundingClientRect();
-    const total = rootRect.height;
-    /* Alto útil real: la hoja menos la banda del pie de página. */
-    const limit = pageH - FOOTER_RESERVE_PX;
-
-    const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
-      (el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          top: r.top - rootRect.top,
-          bottom: r.bottom - rootRect.top,
-          players: Number(el.dataset.players || 0),
-        };
-      }
-    );
-    const cuts: number[] = [];
-    let offset = 0;
-    let guard = 0;
-    while (offset < total && guard++ < 200) {
-      let cut = Math.min(offset + limit, total);
-      if (cut < total) {
-        for (const z of zones) {
-          if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
-        }
-        if (cut <= offset) cut = Math.min(offset + limit, total);
-      }
-      cuts.push(cut);
-      offset = cut;
-    }
+    /* Alto útil estimado: la hoja menos la banda del pie de página. */
+    const { cuts, zones, total } = computeCuts(root, pageH - FOOTER_RESERVE_PX);
     setPrintPages(cuts);
     setBlockZones(zones);
     setReportHeight(total);
-  }, [pageH]);
+  }, [pageH, computeCuts]);
+
 
   /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
   useEffect(() => {
@@ -574,19 +587,42 @@ const AdminTimeLine = () => {
 
   /**
    * ============ PAGINACIÓN REAL EN IMPRESIÓN DIRECTA ============
-   * Al imprimir por impresora no basta con rotular el pie en una posición
-   * absoluta: si el alto de hoja calculado difiere unos píxeles del que usa el
-   * navegador, el rótulo se empalma con el reporte. Para evitarlo por completo,
-   * justo antes de imprimir se INSERTAN espaciadores en el flujo:
-   *   · cada espaciador rellena lo que sobra de la hoja hasta su pie físico,
-   *   · lleva dentro el rótulo "Página X de Y" pegado abajo (en flujo, nunca
+   * El alto de hoja estimado (papel − márgenes de la app) puede no coincidir con
+   * el ÁREA IMPRIMIBLE que finalmente aplica el navegador/impresora (márgenes
+   * del cuadro de diálogo, escala, papel del driver). Por eso, en `beforeprint`
+   * —cuando el documento ya está maquetado en modo impresión— se MIDE el área
+   * imprimible real con una sonda `position: fixed` que cubre la caja de página,
+   * se recalculan los cortes con ese alto y se insertan espaciadores en el flujo:
+   *   · cada espaciador rellena lo que sobra de la hoja hasta su pie real,
+   *   · lleva dentro el rótulo "Página X de Y" pegado abajo (en flujo, jamás
    *     encima del contenido),
-   *   · fuerza el salto con `break-after: page`, de modo que el corte ocurre
-   *     exactamente donde se calculó.
-   * Se retiran al terminar (`afterprint`) para no alterar la medición en
-   * pantalla ni el cálculo de cortes.
+   *   · fuerza el salto con `break-after: page`, así el corte cae exactamente
+   *     donde se calculó.
+   * Todo se retira en `afterprint` para no contaminar la medición en pantalla.
    */
   useEffect(() => {
+    /**
+     * Mide el alto del área imprimible real (px del layout de impresión).
+     * Devuelve `null` si la medición no es plausible (p. ej. el navegador no
+     * aplicó todavía la maqueta de impresión).
+     */
+    const measurePrintableHeight = (): number | null => {
+      const probe = document.createElement('div');
+      probe.dataset.printProbe = 'true';
+      probe.style.position = 'fixed';
+      probe.style.top = '0';
+      probe.style.left = '0';
+      probe.style.right = '0';
+      probe.style.bottom = '0';
+      probe.style.visibility = 'hidden';
+      probe.style.pointerEvents = 'none';
+      document.body.appendChild(probe);
+      const h = probe.getBoundingClientRect().height;
+      probe.remove();
+      /* Debe caber al menos el pie y no exceder un papel gigante. */
+      return h > 200 && h < 5000 ? h : null;
+    };
+
     /** Crea el nodo espaciador con su rótulo de página. */
     const makeSpacer = (height: number, label: string) => {
       const el = document.createElement('div');
@@ -611,15 +647,21 @@ const AdminTimeLine = () => {
     /** Inserta un espaciador por hoja antes de imprimir. */
     const onBeforePrint = () => {
       const root = reportRef.current;
-      if (!root || printPages.length === 0) return;
+      if (!root) return;
+      /* Alto de hoja: el imprimible REAL si se pudo medir; si no, el estimado. */
+      const sheetH = measurePrintableHeight() ?? pageH;
+      /* El pie vive en su propia banda: el contenido nunca la invade. */
+      const { cuts } = computeCuts(root, sheetH - FOOTER_RESERVE_PX);
+      if (cuts.length === 0) return;
+
       const rootTop = root.getBoundingClientRect().top;
       const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
-      const total = printPages.length;
+      const total = cuts.length;
 
-      printPages.forEach((cut, i) => {
-        const start = i === 0 ? 0 : printPages[i - 1];
-        /* 2 px de holgura: mejor una hoja con un hueco mínimo que un desborde. */
-        const height = start + pageH - cut - 2;
+      cuts.forEach((cut, i) => {
+        const start = i === 0 ? 0 : cuts[i - 1];
+        /* 2 px de holgura: mejor un hueco mínimo que un desborde de hoja. */
+        const height = start + sheetH - cut - 2;
         const label = `Página ${i + 1} de ${total}`;
         if (i === total - 1) {
           /* Última hoja: el rótulo va después de todo el contenido. */
@@ -634,11 +676,10 @@ const AdminTimeLine = () => {
       });
     };
 
-    /** Retira los espaciadores al terminar la impresión. */
+    /** Retira los espaciadores y sondas al terminar la impresión. */
     const onAfterPrint = () => {
-      reportRef.current
-        ?.querySelectorAll('[data-page-spacer]')
-        .forEach((el) => el.remove());
+      reportRef.current?.querySelectorAll('[data-page-spacer]').forEach((el) => el.remove());
+      document.querySelectorAll('[data-print-probe]').forEach((el) => el.remove());
     };
 
     window.addEventListener('beforeprint', onBeforePrint);
@@ -648,7 +689,8 @@ const AdminTimeLine = () => {
       window.removeEventListener('afterprint', onAfterPrint);
       onAfterPrint();
     };
-  }, [printPages, pageH]);
+  }, [pageH, computeCuts]);
+
 
 
 
