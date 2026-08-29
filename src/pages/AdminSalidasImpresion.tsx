@@ -514,7 +514,42 @@ const AdminSalidasImpresion = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a Admin
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tamaño de papel: fija @page en impresión y el formato del PDF */}
+            <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
+              <SelectTrigger className="h-9 w-[190px]">
+                <SelectValue placeholder="Papel" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {PAPER_SIZES[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Densidad tipográfica: 'auto' ajusta el nivel para que ningún
+                bloque de salida tenga que partirse entre páginas */}
+            <Select
+              value={density}
+              onValueChange={(v) => setDensity(v as 'auto' | DensityKey)}
+            >
+              <SelectTrigger className="h-9 w-[210px]">
+                <SelectValue placeholder="Densidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  Densidad: automática ({DENSITY_LEVELS[autoDensity].label})
+                </SelectItem>
+                {DENSITY_ORDER.map((k) => (
+                  <SelectItem key={k} value={k}>
+                    Densidad: {DENSITY_LEVELS[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
