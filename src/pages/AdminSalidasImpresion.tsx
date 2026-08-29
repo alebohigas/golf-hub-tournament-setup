@@ -303,6 +303,10 @@ const AdminSalidasImpresion = () => {
   /** Acción pendiente de confirmar en la vista previa ('print' | 'pdf' | null). */
   const [confirmAction, setConfirmAction] = useState<'print' | 'pdf' | null>(null);
 
+  /** PDF ya generado y listo para previsualizar (blob URL + total de páginas). */
+  const [pdfPreview, setPdfPreview] = useState<{ url: string; pages: number } | null>(null);
+
+
   /** Tamaño de papel del reporte (afecta @page y el formato del PDF). */
   const [paper, setPaper] = useState<PaperKey>('letter');
 
