@@ -387,10 +387,6 @@ const AdminTimeLine = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background print:bg-transparent">
-      <div className="mx-auto max-w-[1200px] px-4 py-6 print:max-w-none print:px-0 print:py-0">
-        {/* Barra de acciones (no se imprime) */}
   /**
    * Acción automática solicitada por URL (`?auto=pdf` o `?auto=print`).
    * La usa el botón de descarga directa de la vista previa en Admin: al abrir
