@@ -13,11 +13,18 @@
  * `print:` ocultan la barra de acciones y fuerzan fondo blanco.
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -32,20 +39,133 @@ import {
   type SalidasImpresionFilters,
 } from '@/hooks/useSalidasImpresion';
 
+/* ===========================================================================
+ * Densidad de impresión y tamaño de papel
+ * ---------------------------------------------------------------------------
+ * `DENSITY_LEVELS` va de la más holgada a la más compacta. Cada nivel expone
+ * variables CSS que consumen `PlayerRow` y `GroupBlock`, de modo que cambiar
+ * de nivel reajusta fuente, interlineado y alto de renglón sin tocar el
+ * layout (los bloques nunca se parten: ver reglas @media print en index.css).
+ *
+ * `PAPER_SIZES` define el alto útil por hoja (mm menos 12mm de margen arriba
+ * y abajo) para: (a) fijar @page en la impresión normal, (b) elegir el formato
+ * de jsPDF y (c) calcular en el modo "Automática" el nivel más holgado cuyo
+ * bloque más alto sí cabe completo en una página.
+ * =========================================================================== */
 
+/** Nivel de densidad tipográfica del reporte. */
+type DensityKey = 'comoda' | 'normal' | 'compacta' | 'ultra';
+
+/** Variables CSS por nivel de densidad. */
+const DENSITY_LEVELS: Record<
+  DensityKey,
+  {
+    label: string;
+    vars: Record<string, string>;
+  }
+> = {
+  comoda: {
+    label: 'Cómoda',
+    vars: {
+      '--sal-name-size': '13.5px',
+      '--sal-name-line': '1.6',
+      '--sal-row-pad': '5px',
+      '--sal-row-min': '2.35rem',
+      '--sal-logo-h': '1.6rem',
+      '--sal-head-size': '12.5px',
+      '--sal-time-size': '13.5px',
+      '--sal-gap': '0.85rem',
+    },
+  },
+  normal: {
+    label: 'Normal',
+    vars: {
+      '--sal-name-size': '13px',
+      '--sal-name-line': '1.5',
+      '--sal-row-pad': '3px',
+      '--sal-row-min': '2.1rem',
+      '--sal-logo-h': '1.5rem',
+      '--sal-head-size': '12px',
+      '--sal-time-size': '13px',
+      '--sal-gap': '0.75rem',
+    },
+  },
+  compacta: {
+    label: 'Compacta',
+    vars: {
+      '--sal-name-size': '11.5px',
+      '--sal-name-line': '1.35',
+      '--sal-row-pad': '1.5px',
+      '--sal-row-min': '1.7rem',
+      '--sal-logo-h': '1.25rem',
+      '--sal-head-size': '11px',
+      '--sal-time-size': '11.5px',
+      '--sal-gap': '0.5rem',
+    },
+  },
+  ultra: {
+    label: 'Muy compacta',
+    vars: {
+      '--sal-name-size': '10.5px',
+      '--sal-name-line': '1.25',
+      '--sal-row-pad': '1px',
+      '--sal-row-min': '1.4rem',
+      '--sal-logo-h': '1.05rem',
+      '--sal-head-size': '10px',
+      '--sal-time-size': '10.5px',
+      '--sal-gap': '0.4rem',
+    },
+  },
+};
+
+/** Orden de prueba en modo automático: de la más holgada a la más compacta. */
+const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
+
+/** Tamaños de papel soportados (alto útil en px CSS a 96dpi, margen 12mm). */
+const PAPER_SIZES = {
+  letter: {
+    label: 'Carta (8.5 × 11 in)',
+    css: 'letter',
+    jsPdf: 'letter' as const,
+    /** (279.4mm - 24mm) * 3.7795 px/mm */
+    usableHeightPx: Math.floor((279.4 - 24) * 3.7795),
+  },
+  a4: {
+    label: 'A4 (210 × 297 mm)',
+    css: 'A4',
+    jsPdf: 'a4' as const,
+    /** (297mm - 24mm) * 3.7795 px/mm */
+    usableHeightPx: Math.floor((297 - 24) * 3.7795),
+  },
+};
+
+/** Clave de tamaño de papel. */
+type PaperKey = keyof typeof PAPER_SIZES;
 
 /** Renglón de jugador con logo de club.
  *  Nota: se usa `leading-normal` + padding vertical y `min-h` en lugar de
  *  `truncate` puro, porque html2canvas recorta descendentes (g, j, y) cuando
- *  el contenedor tiene overflow-hidden con altura ajustada al texto. */
+ *  el contenedor tiene overflow-hidden con altura ajustada al texto.
+ *  Las medidas provienen de las variables CSS de densidad. */
 const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
-  <div className="flex min-h-[2.1rem] items-center gap-3 border-b border-border px-2 py-[3px] last:border-b-0">
-    <span className="flex h-6 w-10 shrink-0 items-center justify-center">
+  <div
+    className="flex items-center gap-3 border-b border-border px-2 last:border-b-0"
+    style={{
+      minHeight: 'var(--sal-row-min)',
+      paddingTop: 'var(--sal-row-pad)',
+      paddingBottom: 'var(--sal-row-pad)',
+    }}
+  >
+    <span
+      className="flex w-10 shrink-0 items-center justify-center"
+      style={{ height: 'var(--sal-logo-h)' }}
+    >
       {clubLogo ? (
         <img
           src={clubLogo}
           alt=""
-          className="h-6 max-w-10 object-contain"
+          className="max-w-10 object-contain"
+          style={{ height: 'var(--sal-logo-h)' }}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
           }}
@@ -53,13 +173,20 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
       ) : null}
     </span>
     <span
-      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[3px] text-[13px] font-semibold leading-[1.5] tracking-[0.01em] text-foreground antialiased"
+      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-semibold tracking-[0.01em] text-foreground antialiased"
+      style={{
+        fontSize: 'var(--sal-name-size)',
+        lineHeight: 'var(--sal-name-line)',
+        paddingTop: 'var(--sal-row-pad)',
+        paddingBottom: 'var(--sal-row-pad)',
+      }}
       title={name}
     >
       {name}
     </span>
   </div>
 );
+
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
  *  Encabezado en 2 celdas de ancho fijo para evitar saltos de layout:
