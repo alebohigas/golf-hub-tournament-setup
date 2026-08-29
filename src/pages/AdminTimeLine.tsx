@@ -444,11 +444,30 @@ const AdminTimeLine = () => {
           </div>
         )}
 
+        {/* Aviso automático: algún renglón del encabezado se está partiendo */}
+        {headerWraps.length > 0 && (
+          <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm print:hidden">
+            El encabezado debe tener 4 renglones; estos se están partiendo en más de una línea:{' '}
+            <strong>{headerWraps.join(', ')}</strong>. El texto es demasiado largo para el ancho de{' '}
+            {PAPER_SIZES[paper].label}.
+          </div>
+        )}
+
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
         <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
 
-        {/* Contenedor exportable */}
-        <div ref={reportRef} className="relative bg-background p-1 print:p-0">
+        {/*
+          Contenedor exportable con ANCHO FIJO igual al ancho útil de la hoja
+          elegida. Así los saltos de línea (encabezado incluido) son idénticos
+          en cualquier pantalla, en la impresión y en el PDF. El scroll
+          horizontal queda en el envoltorio, no en el reporte.
+        */}
+        <div className="overflow-x-auto print:overflow-visible">
+          <div
+            ref={reportRef}
+            style={{ width: PAPER_SIZES[paper].widthPx }}
+            className="relative mx-auto bg-background p-1 print:w-full print:p-0"
+          >
           {/* Encabezado del reporte */}
           {/*
             Encabezado fijo del reporte — SIEMPRE cuatro renglones, en este
