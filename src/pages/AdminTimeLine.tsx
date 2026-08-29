@@ -192,15 +192,25 @@ const HoleCell = ({
   bold = false,
   divider = false,
   pad = true,
+  variant = 'num',
 }: {
   children?: React.ReactNode;
   bold?: boolean;
   divider?: boolean;
   /** `false` en renglones de jugador: la altura la marca la celda del nombre. */
   pad?: boolean;
+  /**
+   * Tipo de contenido de la celda:
+   * - `num`: número de hoyo y par → tamaño cómodo (sólo 1–2 dígitos).
+   * - `time`: hora estimada → tamaño reducido para que quepa completa.
+   */
+  variant?: 'num' | 'time';
 }) => (
   <td
-    style={{ fontSize: 'var(--tl-hole-size)', lineHeight: 'var(--tl-hole-line)' }}
+    style={{
+      fontSize: variant === 'time' ? 'var(--tl-hole-size)' : 'var(--tl-holenum-size)',
+      lineHeight: 'var(--tl-hole-line)',
+    }}
     className={`whitespace-nowrap border border-border px-1 text-center align-middle tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
     } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
@@ -211,6 +221,7 @@ const HoleCell = ({
     {children}
   </td>
 );
+
 
 
 /**
@@ -302,10 +313,11 @@ const TimeLineBlock = ({
               </span>
             </td>
             {holes.map((h, i) => (
-              <HoleCell key={`t-${h.numero}`} divider={isDivider(i)}>
+              <HoleCell key={`t-${h.numero}`} divider={isDivider(i)} variant="time">
                 {formatHoleTime(group.times?.[String(h.numero)] ?? '', timeMode)}
               </HoleCell>
             ))}
+
           </tr>
 
           {/* Jugadores del grupo: UN renglón de tabla por jugador, de modo que
@@ -493,33 +505,51 @@ const AdminTimeLine = () => {
     const CELL_CHROME_PX = 11;
     /** Ancho medio de un carácter tabular respecto al tamaño de letra. */
     const CHAR_RATIO = 0.58;
-    /** Tamaño mínimo legible antes de recurrir a la hora abreviada. */
-    const MIN_READABLE_PX = 6.5;
-    /** Piso absoluto de tamaño de letra. */
-    const MIN_PX = 5.5;
+    /**
+     * Tamaño mínimo aceptable de la HORA en formato completo ("12 :44"). Por
+     * debajo de esto se prefiere abreviar a HH:MM antes que seguir reduciendo.
+     */
+    const MIN_FULL_PX = 9;
+    /** Piso absoluto de tamaño de letra de la hora. */
+    const MIN_PX = 6.5;
+    /** Techo del número de hoyo y del par (sólo 1–2 dígitos: puede ser mayor). */
+    const MAX_NUM_PX = 13;
 
     const colW = (pageW - 8 - NAME_COL_PX) / 18;
     const avail = Math.max(1, colW - CELL_CHROME_PX);
+    const floor1 = (v: number) => Math.floor(v * 10) / 10;
+
+    /**
+     * Número de hoyo / par: sólo necesita 2 caracteres, así que se le da un
+     * tamaño cómodo (nunca más chico que la hora) acotado al ancho real y al
+     * techo legible.
+     */
+    const numSize = Math.max(
+      base,
+      Math.min(MAX_NUM_PX, floor1(avail / (2.4 * CHAR_RATIO)))
+    );
+
     /** Tamaño que permite el formato completo ("12 :44", 6 caracteres). */
-    const fitFull = avail / (6 * CHAR_RATIO);
-    if (fitFull >= MIN_READABLE_PX) {
-      return {
-        size: Math.max(MIN_PX, Math.min(base, Math.floor(fitFull * 10) / 10)),
-        mode: 'full' as const,
-      };
+    const fitFull = floor1(avail / (6 * CHAR_RATIO));
+    if (fitFull >= MIN_FULL_PX) {
+      return { size: Math.min(numSize, fitFull), mode: 'full' as const, numSize };
     }
-    /** Fallback: hora abreviada HH:MM (5 caracteres). */
-    const fitCompact = avail / (5 * CHAR_RATIO);
+    /** Fallback: hora abreviada HH:MM (5 caracteres), un poco más chica. */
+    const fitCompact = floor1(avail / (5 * CHAR_RATIO));
     return {
-      size: Math.max(MIN_PX, Math.min(base, Math.floor(fitCompact * 10) / 10)),
+      size: Math.max(MIN_PX, Math.min(numSize, fitCompact)),
       mode: 'compact' as const,
+      numSize,
     };
   }, [activeDensity, pageW]);
 
-  /** Tamaño de letra aplicado a las celdas de hoyo/hora. */
+  /** Tamaño de letra aplicado a las celdas de la HORA de cada hoyo. */
   const holeFontPx = holeFont.size;
+  /** Tamaño de letra del NÚMERO de hoyo y del PAR. */
+  const holeNumFontPx = holeFont.numSize;
   /** Modo de formato de la hora en la rejilla de hoyos. */
   const holeTimeMode = holeFont.mode;
+
 
 
 
@@ -721,11 +751,20 @@ const AdminTimeLine = () => {
       probe.style.visibility = 'hidden';
       probe.style.pointerEvents = 'none';
       document.body.appendChild(probe);
-      const h = probe.getBoundingClientRect().height;
+      const rect = probe.getBoundingClientRect();
       probe.remove();
       /* Debe caber al menos el pie y no exceder un papel gigante. */
-      return h > 200 && h < 5000 ? h : null;
+      if (!(rect.height > 200 && rect.height < 5000)) return null;
+      /*
+       * Si el navegador reduce el documento para ajustarlo al ancho de la hoja,
+       * el alto disponible en píxeles de CONTENIDO es mayor que el medido: se
+       * corrige con la escala real (ancho de la caja de página / ancho fijo del
+       * reporte) para que los cortes no se adelanten y dejen hojas casi vacías.
+       */
+      const scale = rect.width > 0 ? Math.min(1, rect.width / pageW) : 1;
+      return rect.height / (scale || 1);
     };
+
 
     /**
      * Crea el pie de hoja con su rótulo "Página X de Y".
@@ -757,11 +796,20 @@ const AdminTimeLine = () => {
     const onBeforePrint = () => {
       const root = reportRef.current;
       if (!root) return;
-      /* Alto de hoja: el imprimible REAL si se pudo medir; si no, el estimado. */
-      const sheetH = measurePrintableHeight() ?? pageH;
+      /*
+       * Alto de hoja igual al del PDF (`pageH`, papel − márgenes de la app). Si
+       * el área imprimible real medida es MENOR, se usa esa para no desbordar.
+       * `SAFETY_PX` evita que el navegador adelante un salto natural antes del
+       * corte calculado: si eso pasara, sumaría un salto extra y saldrían hojas
+       * con un solo bloque.
+       */
+      const SAFETY_PX = 6;
+      const measured = measurePrintableHeight();
+      const sheetH = Math.min(pageH, measured ?? pageH) - SAFETY_PX;
       /* El pie ocupa su propia banda en flujo: el contenido nunca la invade. */
       const { cuts } = computeCuts(root, sheetH - FOOTER_RESERVE_PX);
       if (cuts.length === 0) return;
+
 
       const rootTop = root.getBoundingClientRect().top;
       const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
@@ -797,7 +845,8 @@ const AdminTimeLine = () => {
       window.removeEventListener('afterprint', onAfterPrint);
       onAfterPrint();
     };
-  }, [pageH, computeCuts]);
+  }, [pageH, pageW, computeCuts]);
+
 
 
 
@@ -1322,13 +1371,17 @@ const AdminTimeLine = () => {
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
               /* En vertical la hoja es más angosta: la hora de cada hoyo se
                  reduce lo necesario para que quepa completa en su recuadro. */
-              ...({ '--tl-hole-size': `${holeFontPx}px` } as React.CSSProperties),
+              ...({
+                '--tl-hole-size': `${holeFontPx}px`,
+                '--tl-holenum-size': `${holeNumFontPx}px`,
+              } as React.CSSProperties),
               /* El control manual de alto de renglón pisa el de la densidad. */
               ...(rowPad !== null
                 ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
                 : {}),
             }}
-            className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
+            className="timeline-report relative mx-auto bg-background p-1 print:p-0"
+
           >
           {/* ============= VISTA PREVIA DE CORTES (sólo pantalla) =============
               Dibuja, sobre el reporte real:
