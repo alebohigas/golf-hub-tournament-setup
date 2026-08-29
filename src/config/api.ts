@@ -157,6 +157,20 @@ export const getSalidasImpresionUrl = (p: {
   hrf: string;
 }): string => `${API_BASE_URL}/salidas_impresion.php${buildQuery({ ...p })}`;
 
+/**
+ * Reporte TIME LINE (horarios estimados por hoyo) de un día de juego.
+ * Mismos filtros que el reporte de salidas.
+ */
+export const getTimeLineUrl = (p: {
+  fecha: string;
+  campoid: string;
+  hi: string;
+  hf: string;
+  hri: string;
+  hrf: string;
+}): string => `${API_BASE_URL}/timeline.php${buildQuery({ ...p })}`;
+
+
 /** All competitions (competición - trofeos) */
 export const getCompeticionUrl = (): string => `${API_BASE_URL}/competicion.php${buildQuery()}`;
 

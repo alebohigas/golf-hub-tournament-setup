@@ -47,6 +47,8 @@ import ShowcaseRotator from "./pages/ShowcaseRotator";
 import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
 // Reporte imprimible de salidas por día (Admin → Salidas → GENERA).
 import AdminSalidasImpresion from "./pages/AdminSalidasImpresion";
+/** Reporte imprimible TIME LINE (horarios estimados por hoyo). */
+import AdminTimeLine from "./pages/AdminTimeLine";
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import MatchPlay from "./pages/MatchPlay";
@@ -135,6 +137,7 @@ const App = () => (
               <Route path="/setup" element={<Setup />} />
               {/* Reporte imprimible de salidas por día. */}
               <Route path="/admin/salidas-impresion" element={<AdminSalidasImpresion />} />
+              <Route path="/admin/time-line" element={<AdminTimeLine />} />
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
               <Route path="/admin/brackets" element={<ModuleGate moduleId="matchplay"><AdminBracketsPage /></ModuleGate>} />

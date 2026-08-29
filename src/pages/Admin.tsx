@@ -45,6 +45,8 @@ import AdminBanderas from '@/components/admin/AdminBanderas';
 import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 /** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
+/** Reporte TIME LINE: hora estimada de cada grupo en los 18 hoyos. */
+import AdminTimeLinePrint from '@/components/admin/AdminTimeLinePrint';
 import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
@@ -81,6 +83,7 @@ import {
   Megaphone,
   History,
   Printer,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -491,6 +494,7 @@ const AdminDashboard = () => {
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
             { value: 'salidas',      icon: Printer,         label: 'Salidas' },
+            { value: 'timeline',     icon: Clock,           label: 'Time Line' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'historial',    icon: History,         label: 'Historial' },
@@ -789,6 +793,11 @@ const AdminDashboard = () => {
         {/* Salidas — impresión del reporte de salidas por día. */}
         <TabsContent value="salidas">
           <AdminSalidasPrint />
+        </TabsContent>
+
+        {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
+        <TabsContent value="timeline">
+          <AdminTimeLinePrint />
         </TabsContent>
 
         {/* Página /stats — controla visibilidad, orden y overrides
