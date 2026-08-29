@@ -206,10 +206,11 @@ const AdminSalidasImpresion = () => {
         import('jspdf'),
       ]);
       const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff',
       });
+
 
       const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const pageW = pdf.internal.pageSize.getWidth();
