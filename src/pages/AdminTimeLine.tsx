@@ -55,39 +55,49 @@ import {
 
 /**
  * Tamaños de papel soportados (formato jsPDF y valor para @page).
- * `widthPx` / `heightPx` son las medidas ÚTILES en px @96 dpi con la hoja en
- * horizontal y márgenes de 10 mm (≈38 px por lado). Se usan para renderizar el
- * reporte SIEMPRE con el mismo ancho físico, independientemente del tamaño de
- * pantalla, de modo que los saltos de línea del encabezado sean idénticos en
- * pantalla, impresión y PDF.
+ * `longPx` / `shortPx` son las medidas TOTALES de la hoja en px @96 dpi (lado
+ * largo y lado corto). Combinadas con la orientación y el margen elegidos se
+ * obtiene el área útil con la que se renderiza el reporte SIEMPRE con el mismo
+ * ancho físico, de modo que los saltos de línea del encabezado sean idénticos
+ * en pantalla, impresión y PDF.
  */
 const PAPER_SIZES = {
   letter: {
     label: 'Carta (11 × 8.5 in)',
     css: 'letter',
     jsPdf: 'letter' as const,
-    widthPx: 980,
-    heightPx: 740,
+    longPx: 1056,
+    shortPx: 816,
   },
   a4: {
     label: 'A4 (297 × 210 mm)',
     css: 'A4',
     jsPdf: 'a4' as const,
-    widthPx: 1047,
-    heightPx: 718,
+    longPx: 1123,
+    shortPx: 794,
   },
 };
 
 /** Clave de tamaño de papel. */
 type PaperKey = keyof typeof PAPER_SIZES;
 
+/** Orientación de la hoja. */
+type OrientationKey = 'landscape' | 'portrait';
+
+/** Etiquetas de orientación para los selectores. */
+const ORIENTATION_LABELS: Record<OrientationKey, string> = {
+  landscape: 'Horizontal',
+  portrait: 'Vertical',
+};
+
 /**
- * Banda reservada al pie de CADA hoja (px @96 dpi) para la numeración
- * "Página X de Y". El contenido nunca invade esta franja: los cortes de página
- * (impresión y PDF) se calculan con `pageH - FOOTER_RESERVE_PX`, de modo que el
- * rótulo queda siempre al final de la hoja sin empalmarse con el reporte.
+ * Banda mínima reservada para la numeración "Página X de Y". El rótulo se
+ * imprime JUSTO DEBAJO del último bloque de cada hoja (no al pie físico), así
+ * que sólo se reserva el alto del propio rótulo para que nunca se empalme con
+ * el contenido ni se desborde a la hoja siguiente.
  */
-const FOOTER_RESERVE_PX = 26;
+const FOOTER_RESERVE_PX = 22;
+
 
 
 /* ===========================================================================
@@ -390,6 +400,14 @@ const AdminTimeLine = () => {
     params.get('paper') === 'a4' ? 'a4' : 'letter'
   );
 
+  /**
+   * Orientación de la hoja (afecta @page, el PDF y la PAGINACIÓN completa).
+   * Se puede preseleccionar por URL (`?orientation=portrait|landscape`).
+   */
+  const [orientation, setOrientation] = useState<OrientationKey>(() =>
+    params.get('orientation') === 'portrait' ? 'portrait' : 'landscape'
+  );
+
   /** Milímetros por píxel CSS @96 dpi (para traducir márgenes a px). */
   const MM_PX = 3.7795;
 
@@ -397,17 +415,20 @@ const AdminTimeLine = () => {
   const [marginMm, setMarginMm] = useState(10);
 
   /**
-   * Geometría útil de la hoja con el margen elegido. Las medidas base de
-   * PAPER_SIZES asumen 10 mm por lado, así que se compensa la diferencia.
+   * Geometría útil de la hoja según papel, orientación y margen elegidos.
+   * En horizontal el lado largo es el ancho; en vertical, el alto.
    */
-  const pageW = useMemo(
-    () => Math.round(PAPER_SIZES[paper].widthPx + (10 - marginMm) * 2 * MM_PX),
-    [paper, marginMm]
-  );
-  const pageH = useMemo(
-    () => Math.round(PAPER_SIZES[paper].heightPx + (10 - marginMm) * 2 * MM_PX),
-    [paper, marginMm]
-  );
+  const pageW = useMemo(() => {
+    const full =
+      orientation === 'landscape' ? PAPER_SIZES[paper].longPx : PAPER_SIZES[paper].shortPx;
+    return Math.round(full - marginMm * 2 * MM_PX);
+  }, [paper, orientation, marginMm]);
+  const pageH = useMemo(() => {
+    const full =
+      orientation === 'landscape' ? PAPER_SIZES[paper].shortPx : PAPER_SIZES[paper].longPx;
+    return Math.round(full - marginMm * 2 * MM_PX);
+  }, [paper, orientation, marginMm]);
+
 
   /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
   const [density, setDensity] = useState<'auto' | DensityKey>(() => {
@@ -623,7 +644,12 @@ const AdminTimeLine = () => {
       return h > 200 && h < 5000 ? h : null;
     };
 
-    /** Crea el nodo espaciador con su rótulo de página. */
+    /**
+     * Crea el nodo espaciador de hoja con su rótulo de página.
+     * El rótulo se ancla ARRIBA del espaciador, es decir JUSTO DEBAJO del
+     * último bloque de salidas de la hoja (no al pie físico del papel), y el
+     * resto del espaciador sólo rellena lo que sobra para forzar el salto.
+     */
     const makeSpacer = (height: number, label: string) => {
       const el = document.createElement('div');
       el.dataset.pageSpacer = 'true';
@@ -636,13 +662,14 @@ const AdminTimeLine = () => {
       tag.textContent = label;
       tag.style.position = 'absolute';
       tag.style.right = '0';
-      tag.style.bottom = '2px';
+      tag.style.top = '4px';
       tag.style.fontSize = '10px';
       tag.style.fontWeight = '600';
       tag.style.opacity = '0.75';
       el.appendChild(tag);
       return el;
     };
+
 
     /** Inserta un espaciador por hoja antes de imprimir. */
     const onBeforePrint = () => {
@@ -859,8 +886,8 @@ const AdminTimeLine = () => {
     [pageH]
   );
 
-  /** Abre la vista previa del PDF (rasterizada, hoja por hoja). */
-  const openPreview = async () => {
+  /** Abre (o regenera) la vista previa del PDF, rasterizada hoja por hoja. */
+  const openPreview = useCallback(async () => {
     if (!reportRef.current) return;
     setPreviewOpen(true);
     setPreviewLoading(true);
@@ -879,7 +906,20 @@ const AdminTimeLine = () => {
     } finally {
       setPreviewLoading(false);
     }
-  };
+  }, [renderSlices]);
+
+  /**
+   * Si la vista previa está abierta y cambia el papel, la orientación, el
+   * margen o la densidad, se vuelve a rasterizar para que la paginación
+   * mostrada corresponda EXACTAMENTE a esas opciones.
+   */
+  useEffect(() => {
+    if (!previewOpen) return;
+    const id = window.setTimeout(() => void openPreview(), 250);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paper, orientation, marginMm, activeDensity, rowPad]);
+
 
   /**
    * Exporta el reporte a PDF horizontal, paginando sin partir bloques.
@@ -895,7 +935,7 @@ const AdminTimeLine = () => {
       const pdf = new jsPDF({
         unit: 'pt',
         format: PAPER_SIZES[paper].jsPdf,
-        orientation: 'landscape',
+        orientation,
       });
       const sheetW = pdf.internal.pageSize.getWidth();
       const sheetH = pdf.internal.pageSize.getHeight();
@@ -908,20 +948,26 @@ const AdminTimeLine = () => {
       const picked = slices.slice(from - 1, to);
       if (!picked.length) throw new Error('rango vacío');
 
+      /* Alto real ocupado por la imagen de cada hoja: define dónde va el pie. */
+      const heights = picked.map((s) => (s.h * usableW) / width);
+
       picked.forEach((s, i) => {
         if (i > 0) pdf.addPage();
-        pdf.addImage(s.url, 'JPEG', margin, margin, usableW, (s.h * usableW) / width);
+        pdf.addImage(s.url, 'JPEG', margin, margin, usableW, heights[i]);
       });
 
-      /* Numeración "Página X de Y" (conserva el número real de la hoja). */
+      /* Numeración "Página X de Y" JUSTO DEBAJO del último bloque de la hoja
+         (conserva el número real de la página aunque se exporte un rango). */
       for (let i = 0; i < picked.length; i++) {
         pdf.setPage(i + 1);
         pdf.setFontSize(9);
         pdf.setTextColor(90);
-        pdf.text(`Página ${from + i} de ${slices.length}`, sheetW - margin, sheetH - 10, {
+        const y = Math.min(margin + heights[i] + 12, sheetH - 6);
+        pdf.text(`Página ${from + i} de ${slices.length}`, sheetW - margin, y, {
           align: 'right',
         });
       }
+
 
       const suffix = picked.length === slices.length ? '' : `-p${from}-${to}`;
       pdf.save(`time-line-${filters.fecha || 'reporte'}${suffix}.pdf`);
@@ -994,6 +1040,22 @@ const AdminTimeLine = () => {
                 {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
                   <SelectItem key={k} value={k}>
                     {PAPER_SIZES[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Orientación de la hoja: recalcula toda la paginación */}
+            <Select
+              value={orientation}
+              onValueChange={(v) => setOrientation(v as OrientationKey)}
+            >
+              <SelectTrigger className="h-9 w-[150px]">
+                <SelectValue placeholder="Orientación" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ORIENTATION_LABELS) as OrientationKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {ORIENTATION_LABELS[k]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1163,7 +1225,7 @@ const AdminTimeLine = () => {
         )}
 
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
-        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: ${marginMm}mm; } }`}</style>
+        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} ${orientation}; margin: ${marginMm}mm; } }`}</style>
 
         {/*
           Contenedor exportable con ANCHO FIJO igual al ancho útil de la hoja
@@ -1390,6 +1452,46 @@ const AdminTimeLine = () => {
                     </dd>
                   </div>
                 </dl>
+
+                {/* Papel y orientación: al cambiarlos se recalcula la
+                    paginación y se regenera la vista previa. */}
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Tamaño de papel</Label>
+                    <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
+                      <SelectTrigger className="h-9 w-[200px]">
+                        <SelectValue placeholder="Papel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(PAPER_SIZES) as PaperKey[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            {PAPER_SIZES[k].label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Orientación</Label>
+                    <Select
+                      value={orientation}
+                      onValueChange={(v) => setOrientation(v as OrientationKey)}
+                    >
+                      <SelectTrigger className="h-9 w-[150px]">
+                        <SelectValue placeholder="Orientación" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(ORIENTATION_LABELS) as OrientationKey[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            {ORIENTATION_LABELS[k]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+
 
                 {/* Rango de páginas a exportar */}
                 <div className="flex flex-wrap items-end gap-3">
