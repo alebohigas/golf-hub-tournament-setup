@@ -425,7 +425,12 @@ const AdminSalidasImpresion = () => {
       });
 
 
-      const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+      const pdf = new jsPDF({
+        unit: 'pt',
+        format: PAPER_SIZES[paper].jsPdf,
+        orientation: 'portrait',
+      });
+
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const margin = 24;
