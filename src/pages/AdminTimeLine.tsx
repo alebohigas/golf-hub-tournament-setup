@@ -796,11 +796,20 @@ const AdminTimeLine = () => {
     const onBeforePrint = () => {
       const root = reportRef.current;
       if (!root) return;
-      /* Alto de hoja: el imprimible REAL si se pudo medir; si no, el estimado. */
-      const sheetH = measurePrintableHeight() ?? pageH;
+      /*
+       * Alto de hoja igual al del PDF (`pageH`, papel − márgenes de la app). Si
+       * el área imprimible real medida es MENOR, se usa esa para no desbordar.
+       * `SAFETY_PX` evita que el navegador adelante un salto natural antes del
+       * corte calculado: si eso pasara, sumaría un salto extra y saldrían hojas
+       * con un solo bloque.
+       */
+      const SAFETY_PX = 6;
+      const measured = measurePrintableHeight();
+      const sheetH = Math.min(pageH, measured ?? pageH) - SAFETY_PX;
       /* El pie ocupa su propia banda en flujo: el contenido nunca la invade. */
       const { cuts } = computeCuts(root, sheetH - FOOTER_RESERVE_PX);
       if (cuts.length === 0) return;
+
 
       const rootTop = root.getBoundingClientRect().top;
       const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
