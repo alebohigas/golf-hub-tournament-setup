@@ -751,11 +751,20 @@ const AdminTimeLine = () => {
       probe.style.visibility = 'hidden';
       probe.style.pointerEvents = 'none';
       document.body.appendChild(probe);
-      const h = probe.getBoundingClientRect().height;
+      const rect = probe.getBoundingClientRect();
       probe.remove();
       /* Debe caber al menos el pie y no exceder un papel gigante. */
-      return h > 200 && h < 5000 ? h : null;
+      if (!(rect.height > 200 && rect.height < 5000)) return null;
+      /*
+       * Si el navegador reduce el documento para ajustarlo al ancho de la hoja,
+       * el alto disponible en píxeles de CONTENIDO es mayor que el medido: se
+       * corrige con la escala real (ancho de la caja de página / ancho fijo del
+       * reporte) para que los cortes no se adelanten y dejen hojas casi vacías.
+       */
+      const scale = rect.width > 0 ? Math.min(1, rect.width / pageW) : 1;
+      return rect.height / (scale || 1);
     };
+
 
     /**
      * Crea el pie de hoja con su rótulo "Página X de Y".
