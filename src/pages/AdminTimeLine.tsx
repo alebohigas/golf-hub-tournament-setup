@@ -588,59 +588,102 @@ const AdminTimeLine = () => {
   }, [beforePrint]);
 
   /**
-   * Exporta el reporte a PDF horizontal, paginando sin partir bloques.
+   * Resumen por página: jugadores y grupos que caen en cada hoja según los
+   * cortes calculados. Alimenta la vista previa (total de páginas, jugadores
+   * por página y densidad aplicada).
    */
-  const exportPdf = async () => {
-    if (!reportRef.current) return;
-    setExporting(true);
-    try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ]);
-      const rootRect = reportRef.current.getBoundingClientRect();
-      const scale = 2.5;
-      const canvas = await html2canvas(reportRef.current, {
+  const pageStats = useMemo(() => {
+    return printPages.map((cut, i) => {
+      const start = i === 0 ? 0 : printPages[i - 1];
+      const inPage = blockZones.filter((z) => z.top >= start - 0.5 && z.top < cut - 0.5);
+      return {
+        page: i + 1,
+        groups: inPage.length,
+        players: inPage.reduce((n, z) => n + z.players, 0),
+      };
+    });
+  }, [printPages, blockZones]);
+
+  /* ===================== Autoajustar ===================== */
+
+  /** Ciclos de autoajuste pendientes (cada uno reduce un poco el layout). */
+  const [autoFitting, setAutoFitting] = useState(false);
+
+  /**
+   * Autoajustar: vuelve a densidad automática y, si aún hay empalmes, va
+   * reduciendo el alto de renglón hasta que la vista previa no detecte ninguno.
+   */
+  const autoFit = () => {
+    setDensity('auto');
+    setAutoDensity('comoda');
+    setRowPad(null);
+    setAutoFitting(true);
+  };
+
+  /** Bucle de autoajuste: reduce el alto de renglón mientras existan empalmes. */
+  useEffect(() => {
+    if (!autoFitting) return;
+    const id = window.setTimeout(() => {
+      if (overlaps === 0 && !densityOverflow) {
+        setAutoFitting(false);
+        return;
+      }
+      const current = rowPad ?? parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-row-pad']);
+      if (activeDensity !== 'ultra') return; // deja que la densidad baje primero
+      if (current > 0) setRowPad(Math.max(0, Number((current - 0.5).toFixed(1))));
+      else setAutoFitting(false);
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [autoFitting, overlaps, densityOverflow, rowPad, activeDensity]);
+
+  /* ===================== Vista previa / PDF ===================== */
+
+  /** Diálogo de vista previa del PDF. */
+  const [previewOpen, setPreviewOpen] = useState(false);
+  /** Imágenes (una por página) de la vista previa del PDF. */
+  const [previewImgs, setPreviewImgs] = useState<string[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  /** Rango de páginas a exportar (1-based, inclusive). */
+  const [rangeFrom, setRangeFrom] = useState(1);
+  const [rangeTo, setRangeTo] = useState(1);
+
+  /**
+   * Rasteriza el reporte y lo corta en páginas SIN partir bloques.
+   * Devuelve las rebanadas como data URLs y el ancho del lienzo, de modo que
+   * la vista previa y el PDF final usen exactamente la misma paginación.
+   */
+  const renderSlices = useCallback(
+    async (scale: number): Promise<{ slices: { url: string; h: number }[]; width: number }> => {
+      const root = reportRef.current!;
+      const { default: html2canvas } = await import('html2canvas');
+      const rootRect = root.getBoundingClientRect();
+      const canvas = await html2canvas(root, {
         scale,
         useCORS: true,
         backgroundColor: '#ffffff',
+        /* Las guías de pantalla nunca se exportan. */
+        ignoreElements: (el) => el instanceof HTMLElement && el.dataset.guides === 'true',
       });
-
-      /** Zonas que no deben partirse: cada bloque de grupo. */
-      const blocks = Array.from(
-        reportRef.current.querySelectorAll<HTMLElement>('[data-group-block]')
-      ).map((el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          top: Math.max(0, Math.round((r.top - rootRect.top) * scale)),
-          bottom: Math.round((r.bottom - rootRect.top) * scale),
-        };
-      });
-
-      const pdf = new jsPDF({
-        unit: 'pt',
-        format: PAPER_SIZES[paper].jsPdf,
-        orientation: 'landscape',
-      });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const usableW = pageW - margin * 2;
-      const usableH = pageH - margin * 2 - 14;
-      const maxSliceH = Math.floor((usableH * canvas.width) / usableW);
-
-      /** Corte seguro: sube el salto al inicio del bloque que se partiría. */
+      const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
+        (el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            top: Math.max(0, Math.round((r.top - rootRect.top) * scale)),
+            bottom: Math.round((r.bottom - rootRect.top) * scale),
+          };
+        }
+      );
+      const limit = Math.floor(pageH * scale);
       const safeCut = (offset: number): number => {
-        let cut = Math.min(offset + maxSliceH, canvas.height);
+        let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
         for (const b of blocks) {
           if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
         }
-        return cut > offset ? cut : Math.min(offset + maxSliceH, canvas.height);
+        return cut > offset ? cut : Math.min(offset + limit, canvas.height);
       };
-
-      let page = 0;
-      for (let offset = 0; offset < canvas.height; page++) {
+      const slices: { url: string; h: number }[] = [];
+      for (let offset = 0; offset < canvas.height; ) {
         const cut = safeCut(offset);
         const h = cut - offset;
         const slice = document.createElement('canvas');
@@ -650,30 +693,80 @@ const AdminTimeLine = () => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, slice.width, slice.height);
         ctx.drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
-        if (page > 0) pdf.addPage();
-        pdf.addImage(
-          slice.toDataURL('image/jpeg', 0.95),
-          'JPEG',
-          margin,
-          margin,
-          usableW,
-          (h * usableW) / canvas.width
-        );
+        slices.push({ url: slice.toDataURL('image/jpeg', 0.92), h });
         offset = cut;
       }
+      return { slices, width: canvas.width };
+    },
+    [pageH]
+  );
 
-      /* Numeración "Página X de Y" al pie derecho de cada hoja. */
-      const totalPages = pdf.getNumberOfPages();
-      for (let p = 1; p <= totalPages; p++) {
-        pdf.setPage(p);
+  /** Abre la vista previa del PDF (rasterizada, hoja por hoja). */
+  const openPreview = async () => {
+    if (!reportRef.current) return;
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    try {
+      const { slices } = await renderSlices(1.4);
+      setPreviewImgs(slices.map((s) => s.url));
+      setRangeFrom(1);
+      setRangeTo(slices.length);
+    } catch {
+      toast({
+        title: 'No se pudo generar la vista previa',
+        description: 'Intenta de nuevo.',
+        variant: 'destructive',
+      });
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  /**
+   * Exporta el reporte a PDF horizontal, paginando sin partir bloques.
+   * @param range - rango 1-based de páginas a incluir; sin valor, todas.
+   */
+  const exportPdf = async (range?: { from: number; to: number }) => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { slices, width } = await renderSlices(2.5);
+
+      const pdf = new jsPDF({
+        unit: 'pt',
+        format: PAPER_SIZES[paper].jsPdf,
+        orientation: 'landscape',
+      });
+      const sheetW = pdf.internal.pageSize.getWidth();
+      const sheetH = pdf.internal.pageSize.getHeight();
+      /** Margen del PDF en puntos, tomado del control de márgenes (mm). */
+      const margin = marginMm * 2.8346;
+      const usableW = sheetW - margin * 2;
+
+      const from = Math.max(1, range?.from ?? 1);
+      const to = Math.min(slices.length, range?.to ?? slices.length);
+      const picked = slices.slice(from - 1, to);
+      if (!picked.length) throw new Error('rango vacío');
+
+      picked.forEach((s, i) => {
+        if (i > 0) pdf.addPage();
+        pdf.addImage(s.url, 'JPEG', margin, margin, usableW, (s.h * usableW) / width);
+      });
+
+      /* Numeración "Página X de Y" (conserva el número real de la hoja). */
+      for (let i = 0; i < picked.length; i++) {
+        pdf.setPage(i + 1);
         pdf.setFontSize(9);
         pdf.setTextColor(90);
-        pdf.text(`Página ${p} de ${totalPages}`, pageW - margin, pageH - 10, {
+        pdf.text(`Página ${from + i} de ${slices.length}`, sheetW - margin, sheetH - 10, {
           align: 'right',
         });
       }
 
-      pdf.save(`time-line-${filters.fecha || 'reporte'}.pdf`);
+      const suffix = picked.length === slices.length ? '' : `-p${from}-${to}`;
+      pdf.save(`time-line-${filters.fecha || 'reporte'}${suffix}.pdf`);
     } catch {
       toast({
         title: 'No se pudo exportar el PDF',
