@@ -886,8 +886,8 @@ const AdminTimeLine = () => {
     [pageH]
   );
 
-  /** Abre la vista previa del PDF (rasterizada, hoja por hoja). */
-  const openPreview = async () => {
+  /** Abre (o regenera) la vista previa del PDF, rasterizada hoja por hoja. */
+  const openPreview = useCallback(async () => {
     if (!reportRef.current) return;
     setPreviewOpen(true);
     setPreviewLoading(true);
@@ -906,7 +906,20 @@ const AdminTimeLine = () => {
     } finally {
       setPreviewLoading(false);
     }
-  };
+  }, [renderSlices]);
+
+  /**
+   * Si la vista previa está abierta y cambia el papel, la orientación, el
+   * margen o la densidad, se vuelve a rasterizar para que la paginación
+   * mostrada corresponda EXACTAMENTE a esas opciones.
+   */
+  useEffect(() => {
+    if (!previewOpen) return;
+    const id = window.setTimeout(() => void openPreview(), 250);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paper, orientation, marginMm, activeDensity, rowPad]);
+
 
   /**
    * Exporta el reporte a PDF horizontal, paginando sin partir bloques.
