@@ -192,15 +192,25 @@ const HoleCell = ({
   bold = false,
   divider = false,
   pad = true,
+  variant = 'num',
 }: {
   children?: React.ReactNode;
   bold?: boolean;
   divider?: boolean;
   /** `false` en renglones de jugador: la altura la marca la celda del nombre. */
   pad?: boolean;
+  /**
+   * Tipo de contenido de la celda:
+   * - `num`: número de hoyo y par → tamaño cómodo (sólo 1–2 dígitos).
+   * - `time`: hora estimada → tamaño reducido para que quepa completa.
+   */
+  variant?: 'num' | 'time';
 }) => (
   <td
-    style={{ fontSize: 'var(--tl-hole-size)', lineHeight: 'var(--tl-hole-line)' }}
+    style={{
+      fontSize: variant === 'time' ? 'var(--tl-hole-size)' : 'var(--tl-holenum-size)',
+      lineHeight: 'var(--tl-hole-line)',
+    }}
     className={`whitespace-nowrap border border-border px-1 text-center align-middle tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
     } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
@@ -211,6 +221,7 @@ const HoleCell = ({
     {children}
   </td>
 );
+
 
 
 /**
