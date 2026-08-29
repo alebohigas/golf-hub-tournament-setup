@@ -792,7 +792,7 @@ const AdminTimeLine = () => {
             </p>
           )}
 
-          <div className="space-y-3">
+          <div className="flex flex-col" style={{ gap: 'var(--tl-gap)' }}>
             {data?.groups.map((g) => (
               <TimeLineBlock
                 key={g.id}
