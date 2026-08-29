@@ -1031,6 +1031,22 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Orientación de la hoja: recalcula toda la paginación */}
+            <Select
+              value={orientation}
+              onValueChange={(v) => setOrientation(v as OrientationKey)}
+            >
+              <SelectTrigger className="h-9 w-[150px]">
+                <SelectValue placeholder="Orientación" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ORIENTATION_LABELS) as OrientationKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {ORIENTATION_LABELS[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {/* Densidad tipográfica: 'auto' baja el nivel hasta que ningún
                 bloque quede partido entre páginas. */}
             <Select
