@@ -13,7 +13,7 @@
  * `print:` ocultan la barra de acciones y fuerzan fondo blanco.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
@@ -379,12 +379,64 @@ const AdminSalidasImpresion = () => {
 
 
 
+  /**
+   * Marcas de paginación para la IMPRESIÓN NORMAL del navegador.
+   * Cada elemento es el desplazamiento vertical (en px CSS, relativo al nodo
+   * del reporte) donde termina una hoja. Se calculan con la misma lógica que
+   * el PDF: se parte del alto útil del papel y se sube el corte al inicio de
+   * cualquier bloque de salida que quedaría partido.
+   */
+  const [printPages, setPrintPages] = useState<number[]>([]);
+
+  /** Recalcula los cortes de página para colocar el "Página X de Y" impreso. */
+  const computePrintPages = useCallback(() => {
+    const root = reportRef.current;
+    if (!root) return;
+    const rootRect = root.getBoundingClientRect();
+    const total = rootRect.height;
+    const limit = PAPER_SIZES[paper].usableHeightPx;
+    const zones = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-group-block], .salidas-print-footer')
+    ).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top - rootRect.top, bottom: r.bottom - rootRect.top };
+    });
+
+    const cuts: number[] = [];
+    let offset = 0;
+    let guard = 0;
+    while (offset < total && guard++ < 200) {
+      let cut = Math.min(offset + limit, total);
+      if (cut < total) {
+        for (const z of zones) {
+          if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
+        }
+        if (cut <= offset) cut = Math.min(offset + limit, total);
+      }
+      cuts.push(cut);
+      offset = cut;
+    }
+    setPrintPages(cuts);
+  }, [paper]);
+
+  /** Mantiene la paginación al día ante cambios de datos, papel o densidad. */
+  useEffect(() => {
+    const id = window.setTimeout(computePrintPages, 120);
+    const onBefore = () => computePrintPages();
+    window.addEventListener('beforeprint', onBefore);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('beforeprint', onBefore);
+    };
+  }, [computePrintPages, data, activeDensity]);
+
   /** Ejecuta la acción confirmada en la vista previa. */
   const runConfirmed = () => {
     const action = confirmAction;
     setConfirmAction(null);
     if (action === 'print') {
       // Espera al cierre del diálogo para no capturarlo en la impresión.
+      computePrintPages();
       setTimeout(() => window.print(), 150);
     } else if (action === 'pdf') {
       // El PDF se genera y se muestra primero como previsualización real.
@@ -648,9 +700,23 @@ const AdminSalidasImpresion = () => {
             Las variables CSS de densidad se heredan a bloques y renglones. */}
         <div
           ref={reportRef}
-          className="bg-background p-1 print:p-0"
+          className="relative bg-background p-1 print:p-0"
           style={DENSITY_LEVELS[activeDensity].vars as React.CSSProperties}
         >
+
+        {/* Numeración "Página X de Y" para la impresión del navegador.
+            Se posicionan absolutamente al final de cada hoja calculada, por lo
+            que no alteran el flujo ni la altura de los bloques de salida. */}
+        {printPages.map((cut, i) => (
+          <span
+            key={`pg-${i}`}
+            aria-hidden
+            className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+            style={{ top: `${cut - 14}px` }}
+          >
+            Página {i + 1} de {printPages.length}
+          </span>
+        ))}
 
 
 
