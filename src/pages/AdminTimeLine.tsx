@@ -62,18 +62,91 @@ const PAPER_SIZES = {
 /** Clave de tamaño de papel. */
 type PaperKey = keyof typeof PAPER_SIZES;
 
-/** Celda de la rejilla de hoyos (números, pares y horas). */
+/* ===========================================================================
+ * Densidad tipográfica del reporte TIME LINE
+ * ---------------------------------------------------------------------------
+ * Cada nivel expone variables CSS que consumen las celdas y los renglones de
+ * jugador. En modo "automática" se mide el bloque más alto ya renderizado y se
+ * baja un nivel mientras no quepa completo en una hoja: así NINGÚN bloque se
+ * parte entre páginas (además de `break-inside: avoid`).
+ * =========================================================================== */
+
+/** Nivel de densidad del reporte. */
+type DensityKey = 'comoda' | 'normal' | 'compacta' | 'ultra';
+
+/** Variables CSS por nivel de densidad. */
+const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, string> }> = {
+  comoda: {
+    label: 'Cómoda',
+    vars: {
+      '--tl-name-size': '13px',
+      '--tl-row-pad': '5px',
+      '--tl-hole-size': '10.5px',
+      '--tl-time-size': '16px',
+      '--tl-head-size': '11.5px',
+      '--tl-id-size': '9.5px',
+      '--tl-gap': '0.85rem',
+    },
+  },
+  normal: {
+    label: 'Normal',
+    vars: {
+      '--tl-name-size': '12px',
+      '--tl-row-pad': '3px',
+      '--tl-hole-size': '10px',
+      '--tl-time-size': '15px',
+      '--tl-head-size': '11px',
+      '--tl-id-size': '9px',
+      '--tl-gap': '0.75rem',
+    },
+  },
+  compacta: {
+    label: 'Compacta',
+    vars: {
+      '--tl-name-size': '11px',
+      '--tl-row-pad': '1.5px',
+      '--tl-hole-size': '9.5px',
+      '--tl-time-size': '13px',
+      '--tl-head-size': '10px',
+      '--tl-id-size': '8.5px',
+      '--tl-gap': '0.5rem',
+    },
+  },
+  ultra: {
+    label: 'Muy compacta',
+    vars: {
+      '--tl-name-size': '10px',
+      '--tl-row-pad': '1px',
+      '--tl-hole-size': '9px',
+      '--tl-time-size': '11.5px',
+      '--tl-head-size': '9.5px',
+      '--tl-id-size': '8px',
+      '--tl-gap': '0.4rem',
+    },
+  },
+};
+
+/** Orden de tanteo en modo automático: de la más holgada a la más compacta. */
+const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
+
+/**
+ * Celda de la rejilla de hoyos (números, pares y horas).
+ * `divider` dibuja la línea vertical más marcada cada 3 hoyos.
+ */
 const HoleCell = ({
   children,
   bold = false,
+  divider = false,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   bold?: boolean;
+  divider?: boolean;
 }) => (
   <td
-    className={`border border-border px-1 py-[3px] text-center align-middle text-[10px] leading-[1.6] tabular-nums ${
+    style={{ fontSize: 'var(--tl-hole-size)' }}
+    className={`border border-border px-1 py-[3px] text-center align-middle leading-[1.6] tabular-nums ${
       bold ? 'font-bold text-foreground' : 'text-foreground'
-    }`}
+    } ${divider ? 'border-r-2 border-r-foreground/50' : ''}`}
   >
     {children}
   </td>
@@ -82,6 +155,8 @@ const HoleCell = ({
 /**
  * Bloque TIME LINE de un grupo de salida.
  * `data-group-block` lo usa la exportación a PDF para no partir el bloque.
+ * Cada jugador ocupa EXACTAMENTE un renglón (nombre recortado con elipsis) y
+ * los renglones están delimitados por líneas horizontales.
  */
 const TimeLineBlock = ({
   group,
@@ -93,72 +168,109 @@ const TimeLineBlock = ({
   holes: TimeLineHole[];
   dateLabel: string;
   courseName: string;
-}) => (
-  <div data-group-block className="break-inside-avoid">
-    <table className="w-full table-fixed border-collapse border border-border">
-      <tbody>
-        {/* Fecha del día de juego + numeración de hoyos */}
-        <tr className="bg-muted">
-          <td className="w-[240px] border border-border px-2 py-[3px] text-center text-[11px] font-bold uppercase leading-[1.6] text-foreground">
-            {dateLabel}
-          </td>
-          {holes.map((h) => (
-            <HoleCell key={`n-${h.numero}`} bold>
-              {String(h.numero).padStart(2, '0')}
-            </HoleCell>
-          ))}
-        </tr>
+}) => {
+  /** ¿Esta columna cierra un tramo de 3 hoyos? */
+  const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
-        {/* Nombre del campo + par de cada hoyo */}
-        <tr>
-          <td className="border border-border px-2 py-[3px] text-center text-[11px] font-bold uppercase leading-[1.6] text-primary">
-            {courseName}
-          </td>
-          {holes.map((h) => (
-            <HoleCell key={`p-${h.numero}`}>{h.par}</HoleCell>
-          ))}
-        </tr>
-
-        {/* Hora de salida + categoría (a un lado de la hora) + línea de tiempo */}
-        <tr>
-          <td className="border-b-2 border-border border-b-foreground/40 px-2 py-[4px] text-center leading-[1.7]">
-            <span className="text-[15px] font-extrabold tabular-nums text-foreground">
-              {group.time}
-            </span>
-            <span className="ml-2 text-[11px] font-bold uppercase text-primary">
-              {group.categoryName || group.shortName}
-            </span>
-          </td>
-          {holes.map((h) => (
-            <HoleCell key={`t-${h.numero}`}>{group.times?.[String(h.numero)] ?? ''}</HoleCell>
-          ))}
-        </tr>
-
-        {/* Jugadores del grupo (mismo orden que el grid de Salidas) */}
-        <tr>
-          <td className="border border-border p-0 align-top">
-            {group.players.map((p, i) => (
-              <div
-                key={`${group.id}-${i}`}
-                className="flex items-center gap-2 border-b border-border px-1 py-[3px] last:border-b-0"
-              >
-                {p.id ? (
-                  <span className="w-[46px] shrink-0 border-r border-border pr-1 text-right text-[9px] tabular-nums text-muted-foreground">
-                    {p.id}
-                  </span>
-                ) : null}
-                <span className="min-w-0 flex-1 text-[12px] font-semibold leading-[1.5] text-foreground">
-                  {p.name}
-                </span>
-              </div>
+  return (
+    <div data-group-block className="break-inside-avoid">
+      <table className="w-full table-fixed border-collapse border border-border">
+        <tbody>
+          {/* Fecha del día de juego + numeración de hoyos */}
+          <tr className="bg-muted">
+            <td
+              style={{ fontSize: 'var(--tl-head-size)' }}
+              className="w-[240px] border border-border px-2 py-[3px] text-center font-bold uppercase leading-[1.6] text-foreground"
+            >
+              {dateLabel}
+            </td>
+            {holes.map((h, i) => (
+              <HoleCell key={`n-${h.numero}`} bold divider={isDivider(i)}>
+                {String(h.numero).padStart(2, '0')}
+              </HoleCell>
             ))}
-          </td>
-          <td className="border border-border" colSpan={holes.length} />
-        </tr>
-      </tbody>
-    </table>
-  </div>
-);
+          </tr>
+
+          {/* Nombre del campo + par de cada hoyo */}
+          <tr>
+            <td
+              style={{ fontSize: 'var(--tl-head-size)' }}
+              className="border border-border px-2 py-[3px] text-center font-bold uppercase leading-[1.6] text-primary"
+            >
+              {courseName}
+            </td>
+            {holes.map((h, i) => (
+              <HoleCell key={`p-${h.numero}`} divider={isDivider(i)}>
+                {h.par}
+              </HoleCell>
+            ))}
+          </tr>
+
+          {/* Hora de salida + categoría (mismo tamaño de letra) + línea de tiempo */}
+          <tr>
+            <td className="border-b-2 border-border border-b-foreground/40 px-2 py-[4px] text-center leading-[1.7]">
+              <span
+                style={{ fontSize: 'var(--tl-time-size)' }}
+                className="font-extrabold tabular-nums text-foreground"
+              >
+                {group.time}
+              </span>
+              <span
+                style={{ fontSize: 'var(--tl-time-size)' }}
+                className="ml-2 font-bold uppercase text-primary"
+              >
+                {group.categoryName || group.shortName}
+              </span>
+            </td>
+            {holes.map((h, i) => (
+              <HoleCell key={`t-${h.numero}`} divider={isDivider(i)}>
+                {group.times?.[String(h.numero)] ?? ''}
+              </HoleCell>
+            ))}
+          </tr>
+
+          {/* Jugadores del grupo: un renglón por jugador, con líneas divisorias.
+              Las columnas de hoyos se repiten vacías para prolongar las líneas
+              verticales (una más marcada cada 3 hoyos) hasta el pie del bloque. */}
+          <tr>
+            <td className="border border-border p-0 align-top">
+              {group.players.map((p, i) => (
+                <div
+                  key={`${group.id}-${i}`}
+                  style={{
+                    paddingTop: 'var(--tl-row-pad)',
+                    paddingBottom: 'var(--tl-row-pad)',
+                  }}
+                  className="flex items-center gap-2 border-b border-border px-1 last:border-b-0"
+                >
+                  {p.id ? (
+                    <span
+                      style={{ fontSize: 'var(--tl-id-size)' }}
+                      className="w-[46px] shrink-0 border-r border-border pr-1 text-right tabular-nums text-muted-foreground"
+                    >
+                      {p.id}
+                    </span>
+                  ) : null}
+                  <span
+                    style={{ fontSize: 'var(--tl-name-size)' }}
+                    title={p.name}
+                    className="min-w-0 flex-1 truncate whitespace-nowrap font-semibold leading-[1.5] text-foreground"
+                  >
+                    {p.name}
+                  </span>
+                </div>
+              ))}
+            </td>
+            {holes.map((h, i) => (
+              <HoleCell key={`f-${h.numero}`} divider={isDivider(i)} />
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 
 /** Página imprimible del reporte TIME LINE. */
 const AdminTimeLine = () => {
@@ -237,11 +349,88 @@ const AdminTimeLine = () => {
     params.get('paper') === 'a4' ? 'a4' : 'letter'
   );
 
+  /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
+  const [density, setDensity] = useState<'auto' | DensityKey>(() => {
+    const d = params.get('density');
+    return d && (DENSITY_ORDER as string[]).includes(d) ? (d as DensityKey) : 'auto';
+  });
+
+  /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
+  const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
+  const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
   /** Encabezado del reporte (se verifica que sus 4 renglones no se partan). */
   const headerRef = useRef<HTMLElement>(null);
   const [exporting, setExporting] = useState(false);
+
+  /**
+   * Modo automático: mide el bloque más alto renderizado y, si no cabe completo
+   * en una hoja del papel elegido, baja un nivel de densidad. Converge en pocos
+   * renders y garantiza que ningún bloque tenga que partirse entre páginas.
+   */
+  useEffect(() => {
+    if (density !== 'auto') return;
+    const root = reportRef.current;
+    if (!root) return;
+    const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]'));
+    if (!blocks.length) return;
+    const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
+    const idx = DENSITY_ORDER.indexOf(autoDensity);
+    if (tallest > PAPER_SIZES[paper].heightPx && idx < DENSITY_ORDER.length - 1) {
+      setAutoDensity(DENSITY_ORDER[idx + 1]);
+    }
+  }, [density, paper, autoDensity, data]);
+
+  /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
+  useEffect(() => {
+    if (density === 'auto') setAutoDensity('comoda');
+  }, [density, paper, data]);
+
+  /**
+   * Cortes de página para la IMPRESIÓN NORMAL del navegador (px relativos al
+   * nodo del reporte). Se calculan igual que el PDF: se sube el corte al inicio
+   * de cualquier bloque que quedaría partido. Sirven para rotular "Página X de Y".
+   */
+  const [printPages, setPrintPages] = useState<number[]>([]);
+
+  /** Recalcula los cortes de página del reporte impreso. */
+  const computePrintPages = useCallback(() => {
+    const root = reportRef.current;
+    if (!root) return;
+    const rootRect = root.getBoundingClientRect();
+    const total = rootRect.height;
+    const limit = PAPER_SIZES[paper].heightPx;
+    const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
+      (el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top - rootRect.top, bottom: r.bottom - rootRect.top };
+      }
+    );
+    const cuts: number[] = [];
+    let offset = 0;
+    let guard = 0;
+    while (offset < total && guard++ < 200) {
+      let cut = Math.min(offset + limit, total);
+      if (cut < total) {
+        for (const z of zones) {
+          if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
+        }
+        if (cut <= offset) cut = Math.min(offset + limit, total);
+      }
+      cuts.push(cut);
+      offset = cut;
+    }
+    setPrintPages(cuts);
+  }, [paper]);
+
+  /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
+  useEffect(() => {
+    const id = window.setTimeout(computePrintPages, 150);
+    return () => window.clearTimeout(id);
+  }, [computePrintPages, data, activeDensity]);
+
 
   /**
    * Renglones del encabezado que se están partiendo en más de una línea.
@@ -279,10 +468,12 @@ const AdminTimeLine = () => {
 
   /** Recalcula la paginación y revalida el encabezado antes de imprimir. */
   const beforePrint = useCallback(() => {
-    /* La impresión usa `break-inside: avoid` en cada bloque (ver index.css),
-       por lo que no requiere cálculo adicional de cortes. */
+    /* Los bloques usan `break-inside: avoid` (ver index.css); aquí sólo se
+       recalculan los rótulos "Página X de Y" y se revalida el encabezado. */
+    computePrintPages();
     verifyHeaderLines();
-  }, [verifyHeaderLines]);
+  }, [computePrintPages, verifyHeaderLines]);
+
 
   useEffect(() => {
     window.addEventListener('beforeprint', beforePrint);
@@ -436,6 +627,26 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Densidad tipográfica: 'auto' baja el nivel hasta que ningún
+                bloque quede partido entre páginas. */}
+            <Select
+              value={density}
+              onValueChange={(v) => setDensity(v as 'auto' | DensityKey)}
+            >
+              <SelectTrigger className="h-9 w-[230px]">
+                <SelectValue placeholder="Densidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  Densidad: automática ({DENSITY_LEVELS[autoDensity].label})
+                </SelectItem>
+                {DENSITY_ORDER.map((k) => (
+                  <SelectItem key={k} value={k}>
+                    Densidad: {DENSITY_LEVELS[k].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
@@ -494,9 +705,26 @@ const AdminTimeLine = () => {
         <div className="overflow-x-auto print:overflow-visible">
           <div
             ref={reportRef}
-            style={{ width: PAPER_SIZES[paper].widthPx }}
+            style={{
+              width: PAPER_SIZES[paper].widthPx,
+              ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+            }}
             className="relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
+          {/* Numeración "Página X de Y" para la impresión del navegador.
+              Se posicionan absolutamente al final de cada hoja calculada, por
+              lo que no alteran el flujo ni el alto de los bloques. */}
+          {printPages.map((cut, i) => (
+            <span
+              key={`pg-${i}`}
+              aria-hidden
+              className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+              style={{ top: `${cut - 14}px` }}
+            >
+              Página {i + 1} de {printPages.length}
+            </span>
+          ))}
+
           {/* Encabezado del reporte */}
           {/*
             Encabezado fijo del reporte — SIEMPRE cuatro renglones, en este
@@ -564,7 +792,7 @@ const AdminTimeLine = () => {
             </p>
           )}
 
-          <div className="space-y-3">
+          <div className="flex flex-col" style={{ gap: 'var(--tl-gap)' }}>
             {data?.groups.map((g) => (
               <TimeLineBlock
                 key={g.id}
