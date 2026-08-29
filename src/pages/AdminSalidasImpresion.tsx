@@ -209,8 +209,11 @@ const AdminSalidasImpresion = () => {
               <span className="text-primary"> / {data.fechaFormato}</span>
             ) : null}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground print:hidden">
+          <p className="mt-1 text-xs font-semibold text-muted-foreground">
             Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Generado: {generatedAt}
           </p>
         </header>
 
