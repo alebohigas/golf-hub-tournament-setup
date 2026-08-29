@@ -105,7 +105,41 @@ const AdminSalidasImpresion = () => {
     [params]
   );
 
-  const { data, isLoading, isError } = useSalidasImpresionReport(filters);
+  /**
+   * Validación de los filtros recibidos por URL:
+   *  - hoyos enteros 1–18 y hoyo inicial <= hoyo final
+   *  - horas HH:MM (24h) y hora inicial <= hora final
+   * Si falla, se bloquean Imprimir y Exportar PDF.
+   */
+  const filterErrors = useMemo<string[]>(() => {
+    const errs: string[] = [];
+    const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    const toMin = (t: string) => {
+      const m = TIME_RE.exec((t ?? '').trim());
+      return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
+    };
+    const nHi = Number(filters.hi);
+    const nHf = Number(filters.hf);
+    if (!Number.isInteger(nHi) || nHi < 1 || nHi > 18)
+      errs.push('El hoyo inicial debe ser un entero entre 1 y 18.');
+    if (!Number.isInteger(nHf) || nHf < 1 || nHf > 18)
+      errs.push('El hoyo final debe ser un entero entre 1 y 18.');
+    if (Number.isInteger(nHi) && Number.isInteger(nHf) && nHi > nHf)
+      errs.push('El hoyo inicial debe ser menor o igual al hoyo final.');
+    const mIni = toMin(filters.hri);
+    const mFin = toMin(filters.hrf);
+    if (mIni < 0) errs.push('La hora inicial no tiene formato válido (HH:MM).');
+    if (mFin < 0) errs.push('La hora final no tiene formato válido (HH:MM).');
+    if (mIni >= 0 && mFin >= 0 && mIni > mFin)
+      errs.push('La hora inicial debe ser anterior o igual a la hora final.');
+    return errs;
+  }, [filters]);
+
+  /** Sólo se consulta y se permite imprimir cuando los filtros son válidos. */
+  const filtersValid = filterErrors.length === 0;
+
+  const { data, isLoading, isError } = useSalidasImpresionReport(filters, filtersValid);
+
 
   /** Nodo del reporte (encabezado + rejilla) usado para exportar a PDF. */
   const reportRef = useRef<HTMLDivElement>(null);
