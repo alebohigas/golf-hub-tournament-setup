@@ -137,20 +137,27 @@ const HoleCell = ({
   children,
   bold = false,
   divider = false,
+  pad = true,
 }: {
   children?: React.ReactNode;
   bold?: boolean;
   divider?: boolean;
+  /** `false` en renglones de jugador: la altura la marca la celda del nombre. */
+  pad?: boolean;
 }) => (
   <td
     style={{ fontSize: 'var(--tl-hole-size)' }}
-    className={`border border-border px-1 py-[3px] text-center align-middle leading-[1.6] tabular-nums ${
-      bold ? 'font-bold text-foreground' : 'text-foreground'
-    } ${divider ? 'tl-divider border-r-2 border-r-foreground/60' : ''}`}
+    className={`border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
+      pad ? 'py-[3px]' : 'py-0'
+    } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
+      /* Línea vertical cada 3 hoyos: marcada pero suave (no negra). */
+      divider ? 'tl-divider border-r-2 border-r-foreground/25' : ''
+    }`}
   >
     {children}
   </td>
 );
+
 
 /**
  * Bloque TIME LINE de un grupo de salida.
@@ -229,20 +236,20 @@ const TimeLineBlock = ({
             ))}
           </tr>
 
-          {/* Jugadores del grupo: un renglón por jugador, con líneas divisorias.
-              Las columnas de hoyos se repiten vacías para prolongar las líneas
-              verticales (una más marcada cada 3 hoyos) hasta el pie del bloque. */}
-          <tr>
-            <td className="border border-border p-0 align-top">
-              {group.players.map((p, i) => (
-                <div
-                  key={`${group.id}-${i}`}
-                  style={{
-                    paddingTop: 'var(--tl-row-pad)',
-                    paddingBottom: 'var(--tl-row-pad)',
-                  }}
-                  className="flex items-center gap-2 border-b border-border px-1 last:border-b-0"
-                >
+          {/* Jugadores del grupo: UN renglón de tabla por jugador, de modo que
+              la línea horizontal que lo delimita cruza todo el bloque (nombre
+              + columnas de hoyos) con un trazo claro, y las líneas verticales
+              (marcada cada 3 hoyos) llegan hasta el pie del bloque. */}
+          {group.players.map((p, i) => (
+            <tr key={`${group.id}-${i}`}>
+              <td
+                style={{
+                  paddingTop: 'var(--tl-row-pad)',
+                  paddingBottom: 'var(--tl-row-pad)',
+                }}
+                className="border border-border px-1 align-middle"
+              >
+                <div className="flex items-center gap-2">
                   {p.id ? (
                     <span
                       style={{ fontSize: 'var(--tl-id-size)' }}
@@ -259,12 +266,13 @@ const TimeLineBlock = ({
                     {p.name}
                   </span>
                 </div>
+              </td>
+              {holes.map((h, hi) => (
+                <HoleCell key={`f-${i}-${h.numero}`} divider={isDivider(hi)} pad={false} />
               ))}
-            </td>
-            {holes.map((h, i) => (
-              <HoleCell key={`f-${h.numero}`} divider={isDivider(i)} />
-            ))}
-          </tr>
+            </tr>
+          ))}
+
         </tbody>
       </table>
     </div>
@@ -754,18 +762,27 @@ const AdminTimeLine = () => {
             className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
           {/* Numeración "Página X de Y" para la impresión del navegador.
-              Se posicionan absolutamente al final de cada hoja calculada, por
-              lo que no alteran el flujo ni el alto de los bloques. */}
-          {printPages.map((cut, i) => (
-            <span
-              key={`pg-${i}`}
-              aria-hidden
-              className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
-              style={{ top: `${cut - 14}px` }}
-            >
-              Página {i + 1} de {printPages.length}
-            </span>
-          ))}
+              IMPORTANTE: el rótulo va al PIE FÍSICO de cada hoja, no en el punto
+              de corte del flujo. Tras un salto de página el contenido reinicia
+              en la parte superior de la hoja siguiente, así que el pie de la
+              hoja i está en (inicio de la hoja i) + alto útil de la hoja, no en
+              el corte calculado (que puede adelantarse para no partir bloques).
+              Al posicionarse absolutamente no altera el flujo ni el alto. */}
+          {printPages.map((_cut, i) => {
+            const pageStart = i === 0 ? 0 : printPages[i - 1];
+            const footerTop = pageStart + PAPER_SIZES[paper].heightPx - 14;
+            return (
+              <span
+                key={`pg-${i}`}
+                aria-hidden
+                className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+                style={{ top: `${footerTop}px` }}
+              >
+                Página {i + 1} de {printPages.length}
+              </span>
+            );
+          })}
+
 
           {/* Encabezado del reporte */}
           {/*
