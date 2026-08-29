@@ -408,7 +408,7 @@ const AdminTimeLinePrint = () => {
               </>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="flex-wrap gap-2">
               <Button
                 variant="ghost"
                 className="bg-primary/10 hover:bg-primary/20"
@@ -416,8 +416,27 @@ const AdminTimeLinePrint = () => {
               >
                 Cancelar
               </Button>
-              <Button onClick={generar} disabled={!isValid || summary.groups === 0}>
+              {/* Descarga directa del PDF final con la configuración mostrada */}
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => generar('pdf')}
+                disabled={!isValid || summary.groups === 0}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Descargar PDF
+              </Button>
+              {/* Impresión directa con la misma configuración */}
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => generar('print')}
+                disabled={!isValid || summary.groups === 0}
+              >
                 <Printer className="mr-2 h-4 w-4" />
+                Imprimir
+              </Button>
+              <Button onClick={() => generar()} disabled={!isValid || summary.groups === 0}>
                 Ver reporte
               </Button>
             </DialogFooter>
