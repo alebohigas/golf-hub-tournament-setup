@@ -228,8 +228,14 @@ const AdminTimeLine = () => {
     };
   }, [data]);
 
-  /** Tamaño de papel (afecta @page y el formato del PDF). */
-  const [paper, setPaper] = useState<PaperKey>('letter');
+  /**
+   * Tamaño de papel (afecta @page y el formato del PDF).
+   * Se puede preseleccionar por URL (`?paper=letter|a4`) para que la descarga
+   * directa desde la vista previa de Admin use la misma configuración.
+   */
+  const [paper, setPaper] = useState<PaperKey>(() =>
+    params.get('paper') === 'a4' ? 'a4' : 'letter'
+  );
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
