@@ -287,7 +287,7 @@ const TimeLineBlock = ({
             </td>
             {holes.map((h, i) => (
               <HoleCell key={`t-${h.numero}`} divider={isDivider(i)}>
-                {group.times?.[String(h.numero)] ?? ''}
+                {formatHoleTime(group.times?.[String(h.numero)] ?? '', timeMode)}
               </HoleCell>
             ))}
           </tr>
