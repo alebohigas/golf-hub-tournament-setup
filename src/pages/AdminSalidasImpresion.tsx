@@ -154,6 +154,38 @@ const AdminSalidasImpresion = () => {
   const reportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
+  /** Acción pendiente de confirmar en la vista previa ('print' | 'pdf' | null). */
+  const [confirmAction, setConfirmAction] = useState<'print' | 'pdf' | null>(null);
+
+  /** Resumen para la vista previa: categorías presentes y conteos. */
+  const preview = useMemo(() => {
+    const groups = data?.groups ?? [];
+    const cats = new Map<string, number>();
+    groups.forEach((g) => {
+      const label = g.shortName || g.categoryName || '(sin categoría)';
+      cats.set(label, (cats.get(label) ?? 0) + 1);
+    });
+    return {
+      totalGroups: groups.length,
+      totalPlayers: groups.reduce((n, g) => n + g.players.length, 0),
+      categories: Array.from(cats.entries()).map(([label, count]) => ({ label, count })),
+      missingCategory: groups.filter((g) => !g.shortName && !g.categoryName).length,
+    };
+  }, [data]);
+
+  /** Ejecuta la acción confirmada en la vista previa. */
+  const runConfirmed = () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action === 'print') {
+      // Espera al cierre del diálogo para no capturarlo en la impresión.
+      setTimeout(() => window.print(), 150);
+    } else if (action === 'pdf') {
+      setTimeout(() => void exportPdf(), 150);
+    }
+  };
+
+
   /**
    * Exporta el reporte a PDF conservando el diseño de la página del torneo.
    * Se renderiza el nodo a canvas (html2canvas) y se pagina en hojas carta
