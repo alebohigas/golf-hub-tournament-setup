@@ -185,7 +185,7 @@ const HoleCell = ({
 }) => (
   <td
     style={{ fontSize: 'var(--tl-hole-size)' }}
-    className={`border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
+    className={`whitespace-nowrap border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
     } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
       /* Línea vertical cada 3 hoyos: marcada pero suave (no negra). */
@@ -439,6 +439,28 @@ const AdminTimeLine = () => {
   /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
   const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
+  /**
+   * Tamaño de letra (px) de las celdas de hoyo/hora ajustado al ancho REAL de
+   * la columna. En vertical la hoja es mucho más angosta que en horizontal, así
+   * que la hora ("12 :44", 6 caracteres) se reduce hasta caber en el recuadro
+   * sin recortarse ni desbordarse.
+   */
+  const holeFontPx = useMemo(() => {
+    const base = parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-hole-size']);
+    /** Ancho fijo de la columna de nombres + bordes del contenedor. */
+    const NAME_COL_PX = 240;
+    /** Padding horizontal (px-1 ×2) + borde de cada celda de hoyo. */
+    const CELL_CHROME_PX = 11;
+    /** Ancho medio de un carácter tabular respecto al tamaño de letra. */
+    const CHAR_RATIO = 0.58;
+    /** Caracteres del texto más ancho de la celda ("12 :44"). */
+    const MAX_CHARS = 6;
+    const colW = (pageW - 8 - NAME_COL_PX) / 18;
+    const fit = (colW - CELL_CHROME_PX) / (MAX_CHARS * CHAR_RATIO);
+    return Math.max(6, Math.min(base, Math.floor(fit * 10) / 10));
+  }, [activeDensity, pageW]);
+
 
   /**
    * Alto de renglón manual (padding vertical de cada renglón de jugador, px).
@@ -1237,6 +1259,9 @@ const AdminTimeLine = () => {
             style={{
               width: pageW,
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+              /* En vertical la hoja es más angosta: la hora de cada hoyo se
+                 reduce lo necesario para que quepa completa en su recuadro. */
+              ...({ '--tl-hole-size': `${holeFontPx}px` } as React.CSSProperties),
               /* El control manual de alto de renglón pisa el de la densidad. */
               ...(rowPad !== null
                 ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
