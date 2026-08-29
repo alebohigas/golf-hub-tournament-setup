@@ -180,7 +180,7 @@ const TimeLineBlock = ({
   const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
   return (
-    <div data-group-block className="break-inside-avoid">
+    <div data-group-block data-players={group.players.length} className="break-inside-avoid">
       <table className="w-full table-fixed border-collapse border border-border">
         <tbody>
           {/* Fecha del día de juego + numeración de hoyos */}
@@ -357,6 +357,25 @@ const AdminTimeLine = () => {
     params.get('paper') === 'a4' ? 'a4' : 'letter'
   );
 
+  /** Milímetros por píxel CSS @96 dpi (para traducir márgenes a px). */
+  const MM_PX = 3.7795;
+
+  /** Margen de la hoja en mm (afecta @page, el PDF y el alto útil). */
+  const [marginMm, setMarginMm] = useState(10);
+
+  /**
+   * Geometría útil de la hoja con el margen elegido. Las medidas base de
+   * PAPER_SIZES asumen 10 mm por lado, así que se compensa la diferencia.
+   */
+  const pageW = useMemo(
+    () => Math.round(PAPER_SIZES[paper].widthPx + (10 - marginMm) * 2 * MM_PX),
+    [paper, marginMm]
+  );
+  const pageH = useMemo(
+    () => Math.round(PAPER_SIZES[paper].heightPx + (10 - marginMm) * 2 * MM_PX),
+    [paper, marginMm]
+  );
+
   /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
   const [density, setDensity] = useState<'auto' | DensityKey>(() => {
     const d = params.get('density');
@@ -366,6 +385,13 @@ const AdminTimeLine = () => {
   /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
   const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
+  /**
+   * Alto de renglón manual (padding vertical de cada renglón de jugador, px).
+   * `null` = usar el valor de la densidad activa. Se reinicia al cambiar de
+   * densidad para que el control siempre parta del valor real aplicado.
+   */
+  const [rowPad, setRowPad] = useState<number | null>(null);
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
@@ -396,7 +422,7 @@ const AdminTimeLine = () => {
     const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
     const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
     /** 10px de holgura absorbe redondeos de impresión y el rótulo de página. */
-    const available = PAPER_SIZES[paper].heightPx - headerH - 10;
+    const available = pageH - headerH - 10;
     const fits = tallest <= available;
     if (density !== 'auto') {
       setDensityOverflow(!fits);
@@ -409,7 +435,7 @@ const AdminTimeLine = () => {
     } else {
       setDensityOverflow(!fits);
     }
-  }, [density, paper, autoDensity]);
+  }, [density, pageH, autoDensity]);
 
   /** Mide tras cada render relevante, al redimensionar y al cargar fuentes. */
   useEffect(() => {
@@ -439,7 +465,9 @@ const AdminTimeLine = () => {
    * Alimenta la VISTA PREVIA DE CORTES en pantalla: permite dibujar los límites
    * de bloque y detectar empalmes de layout en tiempo real.
    */
-  const [blockZones, setBlockZones] = useState<{ top: number; bottom: number }[]>([]);
+  const [blockZones, setBlockZones] = useState<
+    { top: number; bottom: number; players: number }[]
+  >([]);
   /** Alto total medido del reporte (para acotar las guías de la vista previa). */
   const [reportHeight, setReportHeight] = useState(0);
   /** Interruptor de la vista previa de cortes y límites (sólo pantalla). */
@@ -451,11 +479,15 @@ const AdminTimeLine = () => {
     if (!root) return;
     const rootRect = root.getBoundingClientRect();
     const total = rootRect.height;
-    const limit = PAPER_SIZES[paper].heightPx;
+    const limit = pageH;
     const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
       (el) => {
         const r = el.getBoundingClientRect();
-        return { top: r.top - rootRect.top, bottom: r.bottom - rootRect.top };
+        return {
+          top: r.top - rootRect.top,
+          bottom: r.bottom - rootRect.top,
+          players: Number(el.dataset.players || 0),
+        };
       }
     );
     const cuts: number[] = [];
@@ -475,7 +507,7 @@ const AdminTimeLine = () => {
     setPrintPages(cuts);
     setBlockZones(zones);
     setReportHeight(total);
-  }, [paper]);
+  }, [pageH]);
 
   /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
   useEffect(() => {
@@ -496,14 +528,14 @@ const AdminTimeLine = () => {
    * cuando el bloque es más alto que una hoja completa.
    */
   const overlaps = useMemo(() => {
-    const limit = PAPER_SIZES[paper].heightPx;
+    const limit = pageH;
     return blockZones.reduce((n, z) => {
       const pageStart = printPages.findIndex((cut) => z.top < cut);
       if (pageStart < 0) return n;
       const start = pageStart === 0 ? 0 : printPages[pageStart - 1];
       return z.bottom > start + limit ? n + 1 : n;
     }, 0);
-  }, [blockZones, printPages, paper]);
+  }, [blockZones, printPages, pageH]);
 
 
 
