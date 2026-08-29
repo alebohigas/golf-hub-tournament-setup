@@ -13,7 +13,7 @@
  * `print:` ocultan la barra de acciones y fuerzan fondo blanco.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, Loader2, FileDown } from 'lucide-react';
