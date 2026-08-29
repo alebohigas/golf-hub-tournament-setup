@@ -18,7 +18,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileDown, Loader2, Printer, Eye, EyeOff } from 'lucide-react';
+import {
+  ArrowLeft,
+  FileDown,
+  Loader2,
+  Printer,
+  Eye,
+  EyeOff,
+  ScanSearch,
+  Wand2,
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -860,6 +879,31 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Autoajustar: baja densidad / alto de renglón hasta que no
+                queden empalmes detectados en la vista previa. */}
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={autoFit}
+              disabled={isLoading || totals.groups === 0}
+            >
+              {autoFitting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4" />
+              )}
+              Autoajustar
+            </Button>
+            {/* Vista previa del PDF hoja por hoja antes de imprimir/exportar */}
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={() => void openPreview()}
+              disabled={!filtersValid || isLoading || totals.groups === 0}
+            >
+              <ScanSearch className="mr-2 h-4 w-4" />
+              Vista previa PDF
+            </Button>
             <Button
               variant="ghost"
               className="bg-primary/10 hover:bg-primary/20"
@@ -880,6 +924,59 @@ const AdminTimeLine = () => {
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
+          </div>
+        </div>
+
+        {/* Ajustes manuales de maqueta + resumen en vivo (no se imprimen) */}
+        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-md border border-border bg-card p-3 print:hidden">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Margen de hoja (mm)</Label>
+            <Input
+              type="number"
+              min={5}
+              max={25}
+              step={1}
+              value={marginMm}
+              onChange={(e) =>
+                setMarginMm(Math.min(25, Math.max(5, Number(e.target.value) || 10)))
+              }
+              className="h-9 w-[110px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Alto de renglón (px)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={12}
+              step={0.5}
+              value={rowPad ?? parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-row-pad'])}
+              onChange={(e) => setRowPad(Math.min(12, Math.max(0, Number(e.target.value) || 0)))}
+              className="h-9 w-[110px]"
+            />
+          </div>
+          <Button
+            variant="ghost"
+            className="h-9 bg-primary/10 hover:bg-primary/20"
+            onClick={() => setRowPad(null)}
+            disabled={rowPad === null}
+          >
+            Usar el de la densidad
+          </Button>
+          {/* Resumen en vivo: páginas, densidad y jugadores por página */}
+          <div className="ml-auto text-right text-xs text-muted-foreground">
+            <p>
+              <strong className="text-foreground">{printPages.length}</strong> página(s) ·
+              densidad <strong className="text-foreground">
+                {DENSITY_LEVELS[activeDensity].label}
+                {density === 'auto' ? ' (automática)' : ''}
+              </strong>{' '}
+              · {totals.groups} grupos / {totals.players} jugadores
+            </p>
+            <p>
+              Jugadores por página:{' '}
+              {pageStats.map((s) => `p${s.page}: ${s.players}`).join(' · ') || '—'}
+            </p>
           </div>
         </div>
 
@@ -927,7 +1024,7 @@ const AdminTimeLine = () => {
         )}
 
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
-        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
+        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: ${marginMm}mm; } }`}</style>
 
         {/*
           Contenedor exportable con ANCHO FIJO igual al ancho útil de la hoja
@@ -939,8 +1036,12 @@ const AdminTimeLine = () => {
           <div
             ref={reportRef}
             style={{
-              width: PAPER_SIZES[paper].widthPx,
+              width: pageW,
               ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+              /* El control manual de alto de renglón pisa el de la densidad. */
+              ...(rowPad !== null
+                ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
+                : {}),
             }}
             className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
@@ -956,6 +1057,7 @@ const AdminTimeLine = () => {
           {showGuides && reportHeight > 0 && (
             <div
               aria-hidden
+              data-guides="true"
               className="pointer-events-none absolute inset-0 z-10 print:hidden"
             >
               {/* Contornos de bloque */}
@@ -969,7 +1071,7 @@ const AdminTimeLine = () => {
               {/* Pie físico y corte de flujo de cada hoja */}
               {printPages.map((cut, i) => {
                 const pageStart = i === 0 ? 0 : printPages[i - 1];
-                const pageEnd = pageStart + PAPER_SIZES[paper].heightPx;
+                const pageEnd = pageStart + pageH;
                 return (
                   <div key={`gp-${i}`}>
                     {/* Zona sobrante: espacio que queda en blanco en la hoja */}
@@ -1010,7 +1112,7 @@ const AdminTimeLine = () => {
               Al posicionarse absolutamente no altera el flujo ni el alto. */}
           {printPages.map((_cut, i) => {
             const pageStart = i === 0 ? 0 : printPages[i - 1];
-            const footerTop = pageStart + PAPER_SIZES[paper].heightPx - 14;
+            const footerTop = pageStart + pageH - 14;
             return (
               <span
                 key={`pg-${i}`}
