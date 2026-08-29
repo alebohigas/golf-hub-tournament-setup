@@ -379,12 +379,64 @@ const AdminSalidasImpresion = () => {
 
 
 
+  /**
+   * Marcas de paginación para la IMPRESIÓN NORMAL del navegador.
+   * Cada elemento es el desplazamiento vertical (en px CSS, relativo al nodo
+   * del reporte) donde termina una hoja. Se calculan con la misma lógica que
+   * el PDF: se parte del alto útil del papel y se sube el corte al inicio de
+   * cualquier bloque de salida que quedaría partido.
+   */
+  const [printPages, setPrintPages] = useState<number[]>([]);
+
+  /** Recalcula los cortes de página para colocar el "Página X de Y" impreso. */
+  const computePrintPages = useCallback(() => {
+    const root = reportRef.current;
+    if (!root) return;
+    const rootRect = root.getBoundingClientRect();
+    const total = rootRect.height;
+    const limit = PAPER_SIZES[paper].usableHeightPx;
+    const zones = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-group-block], .salidas-print-footer')
+    ).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top - rootRect.top, bottom: r.bottom - rootRect.top };
+    });
+
+    const cuts: number[] = [];
+    let offset = 0;
+    let guard = 0;
+    while (offset < total && guard++ < 200) {
+      let cut = Math.min(offset + limit, total);
+      if (cut < total) {
+        for (const z of zones) {
+          if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
+        }
+        if (cut <= offset) cut = Math.min(offset + limit, total);
+      }
+      cuts.push(cut);
+      offset = cut;
+    }
+    setPrintPages(cuts);
+  }, [paper]);
+
+  /** Mantiene la paginación al día ante cambios de datos, papel o densidad. */
+  useEffect(() => {
+    const id = window.setTimeout(computePrintPages, 120);
+    const onBefore = () => computePrintPages();
+    window.addEventListener('beforeprint', onBefore);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('beforeprint', onBefore);
+    };
+  }, [computePrintPages, data, activeDensity]);
+
   /** Ejecuta la acción confirmada en la vista previa. */
   const runConfirmed = () => {
     const action = confirmAction;
     setConfirmAction(null);
     if (action === 'print') {
       // Espera al cierre del diálogo para no capturarlo en la impresión.
+      computePrintPages();
       setTimeout(() => window.print(), 150);
     } else if (action === 'pdf') {
       // El PDF se genera y se muestra primero como previsualización real.
