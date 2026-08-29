@@ -120,6 +120,10 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-name-size': '13px',
       '--tl-row-pad': '5px',
       '--tl-hole-size': '10.5px',
+      /* Alto de renglón FIJO de la celda de hoyo: no depende del tamaño de
+         letra real (que se reduce/abrevia según el ancho), así los cortes de
+         página y la paginación no se mueven al abreviar la hora. */
+      '--tl-hole-line': '17px',
       '--tl-time-size': '16px',
       '--tl-head-size': '11.5px',
       '--tl-id-size': '9.5px',
@@ -132,6 +136,10 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-name-size': '12px',
       '--tl-row-pad': '3px',
       '--tl-hole-size': '10px',
+      /* Alto de renglón FIJO de la celda de hoyo: no depende del tamaño de
+         letra real (que se reduce/abrevia según el ancho), así los cortes de
+         página y la paginación no se mueven al abreviar la hora. */
+      '--tl-hole-line': '16px',
       '--tl-time-size': '15px',
       '--tl-head-size': '11px',
       '--tl-id-size': '9px',
@@ -144,6 +152,10 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-name-size': '11px',
       '--tl-row-pad': '1.5px',
       '--tl-hole-size': '9.5px',
+      /* Alto de renglón FIJO de la celda de hoyo: no depende del tamaño de
+         letra real (que se reduce/abrevia según el ancho), así los cortes de
+         página y la paginación no se mueven al abreviar la hora. */
+      '--tl-hole-line': '15px',
       '--tl-time-size': '13px',
       '--tl-head-size': '10px',
       '--tl-id-size': '8.5px',
@@ -156,6 +168,10 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-name-size': '10px',
       '--tl-row-pad': '1px',
       '--tl-hole-size': '9px',
+      /* Alto de renglón FIJO de la celda de hoyo: no depende del tamaño de
+         letra real (que se reduce/abrevia según el ancho), así los cortes de
+         página y la paginación no se mueven al abreviar la hora. */
+      '--tl-hole-line': '14px',
       '--tl-time-size': '11.5px',
       '--tl-head-size': '9.5px',
       '--tl-id-size': '8px',
@@ -184,8 +200,8 @@ const HoleCell = ({
   pad?: boolean;
 }) => (
   <td
-    style={{ fontSize: 'var(--tl-hole-size)' }}
-    className={`whitespace-nowrap border border-border px-1 text-center align-middle leading-[1.6] tabular-nums ${
+    style={{ fontSize: 'var(--tl-hole-size)', lineHeight: 'var(--tl-hole-line)' }}
+    className={`whitespace-nowrap border border-border px-1 text-center align-middle tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
     } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
       /* Línea vertical cada 3 hoyos: marcada pero suave (no negra). */
