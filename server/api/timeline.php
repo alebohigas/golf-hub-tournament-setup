@@ -120,11 +120,20 @@ if ($campoid === '' || !preg_match('/^\d+$/', $campoid) || (int)$campoid <= 0) {
 }
 
 // --- rango de hoyos ---
-if (!preg_match('/^\d{1,2}$/', $hiRaw) || (int)$hiRaw < 1 || (int)$hiRaw > 18) {
-    json_error('Parámetro inválido: hi debe ser un entero entre 1 y 18.', 400);
-}
-if (!preg_match('/^\d{1,2}$/', $hfRaw) || (int)$hfRaw < 1 || (int)$hfRaw > 18) {
-    json_error('Parámetro inválido: hf debe ser un entero entre 1 y 18.', 400);
+/*
+ * CASOS BORDE cubiertos: cadena vacía, espacios, signos (+/-), decimales,
+ * notación como "07" (válida), "018"/"1e1"/"1.0" (inválidas), 0 y 19+.
+ */
+foreach (array('hi' => $hiRaw, 'hf' => $hfRaw) as $nombre => $valor) {
+    if ($valor === '') {
+        json_error("Parámetro inválido: $nombre es obligatorio (entero entre 1 y 18).", 400);
+    }
+    if (!preg_match('/^\d{1,2}$/', $valor)) {
+        json_error("Parámetro inválido: $nombre debe ser un entero sin signo ni decimales.", 400);
+    }
+    if ((int)$valor < 1 || (int)$valor > 18) {
+        json_error("Parámetro inválido: $nombre debe estar entre 1 y 18.", 400);
+    }
 }
 $hi = (int)$hiRaw;
 $hf = (int)$hfRaw;
@@ -132,25 +141,37 @@ if ($hf < $hi) {
     json_error('Parámetro inválido: hf debe ser mayor o igual a hi.', 400);
 }
 
-/** Normaliza "H:MM"/"HH:MM" a minutos desde medianoche; -1 si es inválido. */
+/**
+ * Normaliza una hora a minutos desde medianoche; -1 si es inválida.
+ * Acepta "H:MM", "HH:MM" y "HH:MM:SS" (los segundos se ignoran, pero deben
+ * ser válidos). Rechaza 24:00, minutos/segundos > 59, separadores distintos
+ * de ":" y cualquier carácter extra.
+ */
 function tl_minutes_of($t) {
-    if (!preg_match('/^(\d{1,2}):(\d{2})$/', (string)$t, $m)) return -1;
-    $h = (int)$m[1]; $mi = (int)$m[2];
-    if ($h > 23 || $mi > 59) return -1;
+    if (!preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', (string)$t, $m)) return -1;
+    $h  = (int)$m[1];
+    $mi = (int)$m[2];
+    $s  = isset($m[3]) ? (int)$m[3] : 0;
+    if ($h > 23 || $mi > 59 || $s > 59) return -1;
     return $h * 60 + $mi;
 }
 
 // --- rango de horas ---
+/*
+ * CASOS BORDE cubiertos: cadena vacía, "6:0", "24:00", "23:60", "07:00 AM",
+ * "07.00", horas con segundos, y hrf < hri (incluido el cruce de medianoche,
+ * que NO se soporta: el reporte es de un solo día).
+ */
 $mIni = tl_minutes_of($hri);
 $mFin = tl_minutes_of($hrf);
 if ($hri === '' || $mIni < 0) {
-    json_error('Parámetro inválido: hri es obligatorio con formato HH:MM (24 h).', 400);
+    json_error('Parámetro inválido: hri es obligatorio con formato HH:MM de 24 horas (00:00–23:59).', 400);
 }
 if ($hrf === '' || $mFin < 0) {
-    json_error('Parámetro inválido: hrf es obligatorio con formato HH:MM (24 h).', 400);
+    json_error('Parámetro inválido: hrf es obligatorio con formato HH:MM de 24 horas (00:00–23:59).', 400);
 }
 if ($mFin < $mIni) {
-    json_error('Parámetro inválido: hrf debe ser mayor o igual a hri.', 400);
+    json_error('Parámetro inválido: hrf debe ser mayor o igual a hri (el reporte no cruza la medianoche).', 400);
 }
 
 $fEsc   = esc($conn, $fecha);

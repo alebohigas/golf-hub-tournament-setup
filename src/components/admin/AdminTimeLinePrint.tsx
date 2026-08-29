@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertCircle, Clock, Loader2, Printer } from 'lucide-react';
+import { AlertCircle, Clock, FileDown, Loader2, Printer } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
 import { useTimeLineReport } from '@/hooks/useTimeLine';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -175,12 +175,18 @@ const AdminTimeLinePrint = () => {
     return { groups: groups.length, players, pages };
   }, [report, paper]);
 
-  /** Abre el reporte imprimible en una pestaña nueva. */
-  const generar = () => {
+  /**
+   * Abre el reporte imprimible en una pestaña nueva con la configuración
+   * actual (papel incluido).
+   * @param auto - `'pdf'` descarga el PDF final en automático, `'print'` abre
+   *   el diálogo de impresión, y sin valor sólo muestra el reporte.
+   */
+  const generar = (auto?: 'pdf' | 'print') => {
     if (!isValid) return;
-    const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf }).toString();
+    const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf, paper });
+    if (auto) qs.set('auto', auto);
     setPreviewOpen(false);
-    window.open(`/admin/time-line?${qs}`, '_blank');
+    window.open(`/admin/time-line?${qs.toString()}`, '_blank');
   };
 
   return (
@@ -402,7 +408,7 @@ const AdminTimeLinePrint = () => {
               </>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="flex-wrap gap-2">
               <Button
                 variant="ghost"
                 className="bg-primary/10 hover:bg-primary/20"
@@ -410,8 +416,27 @@ const AdminTimeLinePrint = () => {
               >
                 Cancelar
               </Button>
-              <Button onClick={generar} disabled={!isValid || summary.groups === 0}>
+              {/* Descarga directa del PDF final con la configuración mostrada */}
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => generar('pdf')}
+                disabled={!isValid || summary.groups === 0}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Descargar PDF
+              </Button>
+              {/* Impresión directa con la misma configuración */}
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => generar('print')}
+                disabled={!isValid || summary.groups === 0}
+              >
                 <Printer className="mr-2 h-4 w-4" />
+                Imprimir
+              </Button>
+              <Button onClick={() => generar()} disabled={!isValid || summary.groups === 0}>
                 Ver reporte
               </Button>
             </DialogFooter>

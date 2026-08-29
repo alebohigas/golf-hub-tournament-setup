@@ -13,3 +13,5 @@ Admin → pestaña **Time Line** (`AdminTimeLinePrint.tsx`) → `/admin/time-lin
 - El reporte se renderiza con **ancho fijo = ancho útil del papel** (Carta 980 px / A4 1047 px, horizontal, márgenes 10 mm) para que los saltos de línea sean idénticos en pantalla, impresión y PDF.
 - Impresión y PDF horizontales, sin partir bloques (`break-inside: avoid` + corte al inicio del bloque en el PDF) y con paginación "Página X de Y".
 - El botón GENERA abre primero una **vista previa** con el encabezado real y las páginas estimadas.
+- La vista previa incluye botones de **Descargar PDF** e **Imprimir** que abren el reporte con `?paper=letter|a4&auto=pdf|print`; el reporte detecta `auto` y dispara la exportación/impresión una sola vez al terminar de cargar.
+- Validación de horas en el backend: acepta `H:MM`, `HH:MM` y `HH:MM:SS`; rechaza vacío, 24:00, minutos/segundos > 59, signos, decimales y `hrf < hri` (no cruza medianoche). Hoyos: sólo 1–2 dígitos sin signo, 1–18, con `hf >= hi`.

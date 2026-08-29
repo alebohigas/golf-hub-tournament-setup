@@ -228,8 +228,14 @@ const AdminTimeLine = () => {
     };
   }, [data]);
 
-  /** Tamaño de papel (afecta @page y el formato del PDF). */
-  const [paper, setPaper] = useState<PaperKey>('letter');
+  /**
+   * Tamaño de papel (afecta @page y el formato del PDF).
+   * Se puede preseleccionar por URL (`?paper=letter|a4`) para que la descarga
+   * directa desde la vista previa de Admin use la misma configuración.
+   */
+  const [paper, setPaper] = useState<PaperKey>(() =>
+    params.get('paper') === 'a4' ? 'a4' : 'letter'
+  );
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
@@ -380,6 +386,29 @@ const AdminTimeLine = () => {
       setExporting(false);
     }
   };
+
+  /**
+   * Acción automática solicitada por URL (`?auto=pdf` o `?auto=print`).
+   * La usa el botón de descarga directa de la vista previa en Admin: al abrir
+   * la pestaña, en cuanto el reporte está renderizado con datos válidos se
+   * dispara la exportación a PDF (o el diálogo de impresión) una sola vez.
+   */
+  const autoAction = params.get('auto');
+  const autoRan = useRef(false);
+
+  useEffect(() => {
+    if (autoRan.current) return;
+    if (autoAction !== 'pdf' && autoAction !== 'print') return;
+    if (!filtersValid || isLoading || totals.groups === 0) return;
+    autoRan.current = true;
+    // Espera un frame extra para que fuentes y logos estén pintados.
+    const id = window.setTimeout(() => {
+      if (autoAction === 'pdf') void exportPdf();
+      else window.print();
+    }, 600);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAction, filtersValid, isLoading, totals.groups]);
 
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
