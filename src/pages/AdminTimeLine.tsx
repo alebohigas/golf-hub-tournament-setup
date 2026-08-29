@@ -434,6 +434,17 @@ const AdminTimeLine = () => {
    */
   const [printPages, setPrintPages] = useState<number[]>([]);
 
+  /**
+   * Geometría de cada bloque de salida (px relativos al nodo del reporte).
+   * Alimenta la VISTA PREVIA DE CORTES en pantalla: permite dibujar los límites
+   * de bloque y detectar empalmes de layout en tiempo real.
+   */
+  const [blockZones, setBlockZones] = useState<{ top: number; bottom: number }[]>([]);
+  /** Alto total medido del reporte (para acotar las guías de la vista previa). */
+  const [reportHeight, setReportHeight] = useState(0);
+  /** Interruptor de la vista previa de cortes y límites (sólo pantalla). */
+  const [showGuides, setShowGuides] = useState(true);
+
   /** Recalcula los cortes de página del reporte impreso. */
   const computePrintPages = useCallback(() => {
     const root = reportRef.current;
@@ -462,6 +473,8 @@ const AdminTimeLine = () => {
       offset = cut;
     }
     setPrintPages(cuts);
+    setBlockZones(zones);
+    setReportHeight(total);
   }, [paper]);
 
   /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
@@ -469,6 +482,29 @@ const AdminTimeLine = () => {
     const id = window.setTimeout(computePrintPages, 150);
     return () => window.clearTimeout(id);
   }, [computePrintPages, data, activeDensity]);
+
+  /** Remide las guías al redimensionar la ventana (la vista previa es en vivo). */
+  useEffect(() => {
+    const run = () => requestAnimationFrame(computePrintPages);
+    window.addEventListener('resize', run);
+    return () => window.removeEventListener('resize', run);
+  }, [computePrintPages]);
+
+  /**
+   * Empalmes detectados: bloques que cruzan el pie físico de alguna hoja, es
+   * decir que se partirían al imprimir. Con `break-inside: avoid` sólo ocurre
+   * cuando el bloque es más alto que una hoja completa.
+   */
+  const overlaps = useMemo(() => {
+    const limit = PAPER_SIZES[paper].heightPx;
+    return blockZones.reduce((n, z, i) => {
+      const pageStart = printPages.findIndex((cut) => z.top < cut);
+      if (pageStart < 0) return n;
+      const start = pageStart === 0 ? 0 : printPages[pageStart - 1];
+      return z.bottom > start + limit ? n + 1 : n;
+    }, 0);
+  }, [blockZones, printPages, paper]);
+
 
 
   /**
