@@ -39,7 +39,7 @@ import {
  *  `truncate` puro, porque html2canvas recorta descendentes (g, j, y) cuando
  *  el contenedor tiene overflow-hidden con altura ajustada al texto. */
 const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
-  <div className="flex min-h-[2rem] items-center gap-3 border-b border-border px-2 py-1 last:border-b-0">
+  <div className="flex min-h-[2.1rem] items-center gap-3 border-b border-border px-2 py-[3px] last:border-b-0">
     <span className="flex h-6 w-10 shrink-0 items-center justify-center">
       {clubLogo ? (
         <img
@@ -53,7 +53,7 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
       ) : null}
     </span>
     <span
-      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-sm font-semibold leading-normal text-foreground"
+      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[3px] text-[13px] font-semibold leading-[1.5] tracking-[0.01em] text-foreground antialiased"
       title={name}
     >
       {name}
@@ -63,21 +63,25 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
  *  Encabezado en 2 celdas de ancho fijo para evitar saltos de layout:
- *  Categoría: <abreviatura> (izquierda, ancho flexible) · Hora/Tee (ancho automático).
- *  Debajo de la abreviatura se muestra el nombre completo de la categoría. */
+ *  Categoría (nombre completo, izquierda) · Hora/Tee (ancho automático).
+ *  `data-group-block` lo usa la exportación a PDF para no partir el bloque
+ *  a la mitad al calcular los saltos de página. */
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
-  <div className="break-inside-avoid rounded-sm border border-border bg-card">
+  <div
+    data-group-block
+    className="break-inside-avoid rounded-sm border border-border bg-card"
+  >
     {/* Encabezado del grupo: nombre completo de la categoría + hora/tee.
         Línea inferior para distinguir el encabezado en impresiones en blanco y negro. */}
-    <div className="border-b border-foreground/20 bg-muted px-2 py-1.5">
+    <div className="border-b-2 border-foreground/40 bg-muted px-2 py-[5px]">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <span
-          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-left text-xs font-bold uppercase leading-normal text-primary"
+          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-[2px] text-left text-[12px] font-bold uppercase leading-[1.5] tracking-[0.02em] text-primary antialiased"
           title={group.categoryName}
         >
           Categoría: {group.categoryName || group.shortName}
         </span>
-        <span className="whitespace-nowrap py-0.5 text-left text-sm font-bold leading-normal tabular-nums text-foreground">
+        <span className="whitespace-nowrap py-[2px] text-left text-[13px] font-bold leading-[1.5] tabular-nums text-foreground antialiased">
           {group.time}
           {group.tee ? ` / ${group.tee}` : ''}
         </span>
@@ -91,6 +95,7 @@ const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
     </div>
   </div>
 );
+
 
 /** Página imprimible de salidas. */
 const AdminSalidasImpresion = () => {
@@ -182,6 +187,21 @@ const AdminSalidasImpresion = () => {
     };
   }, [data]);
 
+  /** Nombres completos de las categorías incluidas, para el pie del reporte. */
+  const footerCategories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (data?.groups ?? [])
+            .map((g) => g.categoryName || g.shortName)
+            .filter((v): v is string => Boolean(v))
+        )
+      ),
+    [data]
+  );
+
+
+
   /** Ejecuta la acción confirmada en la vista previa. */
   const runConfirmed = () => {
     const action = confirmAction;
@@ -208,12 +228,29 @@ const AdminSalidasImpresion = () => {
         import('html2canvas'),
         import('jspdf'),
       ]);
+      const rootRect = reportRef.current.getBoundingClientRect();
+      const scale = 3;
       const canvas = await html2canvas(reportRef.current, {
-        scale: 3,
+        scale,
         useCORS: true,
         backgroundColor: '#ffffff',
       });
 
+      /**
+       * Zonas "prohibidas" de corte: cada bloque de salida (encabezado +
+       * jugadores) expresado en píxeles del canvas. Un salto de página nunca
+       * debe caer dentro de una de estas zonas, para que ningún nombre quede
+       * cortado ni un bloque se parta a la mitad.
+       */
+      const blocks = Array.from(
+        reportRef.current.querySelectorAll<HTMLElement>('[data-group-block]')
+      ).map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          top: Math.max(0, Math.round((r.top - rootRect.top) * scale)),
+          bottom: Math.round((r.bottom - rootRect.top) * scale),
+        };
+      });
 
       const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const pageW = pdf.internal.pageSize.getWidth();
@@ -221,27 +258,47 @@ const AdminSalidasImpresion = () => {
       const margin = 24;
       const usableW = pageW - margin * 2;
       const usableH = pageH - margin * 2;
-      /** Alto en píxeles del canvas que cabe en una hoja. */
-      const sliceH = Math.floor((usableH * canvas.width) / usableW);
+      /** Alto máximo en píxeles del canvas que cabe en una hoja. */
+      const maxSliceH = Math.floor((usableH * canvas.width) / usableW);
 
-      for (let offset = 0, page = 0; offset < canvas.height; offset += sliceH, page++) {
-        const h = Math.min(sliceH, canvas.height - offset);
+      /**
+       * Calcula el corte seguro para una página: parte del corte máximo y lo
+       * sube hasta el inicio del primer bloque que quedaría partido. Si el
+       * bloque es más alto que una hoja completa, se respeta el corte máximo
+       * (caso extremo inevitable).
+       */
+      const safeCut = (offset: number): number => {
+        let cut = Math.min(offset + maxSliceH, canvas.height);
+        if (cut >= canvas.height) return canvas.height;
+        for (const b of blocks) {
+          if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
+        }
+        return cut > offset ? cut : Math.min(offset + maxSliceH, canvas.height);
+      };
+
+      let page = 0;
+      for (let offset = 0; offset < canvas.height; page++) {
+        const cut = safeCut(offset);
+        const h = cut - offset;
         const slice = document.createElement('canvas');
         slice.width = canvas.width;
         slice.height = h;
-        slice
-          .getContext('2d')!
-          .drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
+        const ctx = slice.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, slice.width, slice.height);
+        ctx.drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
         if (page > 0) pdf.addPage();
         pdf.addImage(
-          slice.toDataURL('image/jpeg', 0.92),
+          slice.toDataURL('image/jpeg', 0.95),
           'JPEG',
           margin,
           margin,
           usableW,
           (h * usableW) / canvas.width
         );
+        offset = cut;
       }
+
 
       pdf.save(`salidas-${filters.fecha || 'reporte'}.pdf`);
     } catch {
@@ -358,16 +415,20 @@ const AdminSalidasImpresion = () => {
           ))}
         </div>
 
-        {/* Pie del reporte: torneo, fecha, rango de hoyos/horario y timestamp */}
-        <footer className="mt-6 border-t-2 border-primary pt-2 text-[10px] text-muted-foreground">
-          <p className="font-bold uppercase text-foreground">
+        {/* Pie del reporte: torneo, fecha, categorías, rango de hoyos/horario y timestamp */}
+        <footer className="mt-6 break-inside-avoid border-t-2 border-primary pt-2 text-[10px] leading-[1.6] text-muted-foreground">
+          <p className="text-[11px] font-bold uppercase tracking-[0.02em] text-foreground">
             {data?.tournament || 'Salidas'}
             {data?.fechaFormato ? ` — ${data.fechaFormato}` : ''}
+          </p>
+          <p className="font-semibold text-foreground">
+            Categoría(s): {footerCategories.length ? footerCategories.join(' · ') : '—'}
           </p>
           <p>
             Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Generado: {generatedAt}
           </p>
         </footer>
+
         </div>
       </div>
 
