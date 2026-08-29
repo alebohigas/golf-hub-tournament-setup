@@ -84,6 +84,69 @@ const AdminSalidasImpresion = () => {
 
   const { data, isLoading, isError } = useSalidasImpresionReport(filters);
 
+  /** Nodo del reporte (encabezado + rejilla) usado para exportar a PDF. */
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  /**
+   * Exporta el reporte a PDF conservando el diseño de la página del torneo.
+   * Se renderiza el nodo a canvas (html2canvas) y se pagina en hojas carta
+   * verticales con jsPDF, cortando la imagen por alto de página.
+   */
+  const exportPdf = async () => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 24;
+      const usableW = pageW - margin * 2;
+      const usableH = pageH - margin * 2;
+      /** Alto en píxeles del canvas que cabe en una hoja. */
+      const sliceH = Math.floor((usableH * canvas.width) / usableW);
+
+      for (let offset = 0, page = 0; offset < canvas.height; offset += sliceH, page++) {
+        const h = Math.min(sliceH, canvas.height - offset);
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = h;
+        slice
+          .getContext('2d')!
+          .drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
+        if (page > 0) pdf.addPage();
+        pdf.addImage(
+          slice.toDataURL('image/jpeg', 0.92),
+          'JPEG',
+          margin,
+          margin,
+          usableW,
+          (h * usableW) / canvas.width
+        );
+      }
+
+      pdf.save(`salidas-${filters.fecha || 'reporte'}.pdf`);
+    } catch {
+      toast({
+        title: 'No se pudo generar el PDF',
+        description: 'Intenta de nuevo o usa Imprimir y elige "Guardar como PDF".',
+        variant: 'destructive',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
       <div className="mx-auto max-w-5xl px-4 py-6 print:max-w-none print:px-0 print:py-0">
@@ -97,11 +160,30 @@ const AdminSalidasImpresion = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a Admin
           </Button>
-          <Button onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={exportPdf}
+              disabled={exporting || isLoading || (data?.groups.length ?? 0) === 0}
+            >
+              {exporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="mr-2 h-4 w-4" />
+              )}
+              Exportar PDF
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir
+            </Button>
+          </div>
         </div>
+
+        {/* Contenedor exportable: encabezado + rejilla de grupos */}
+        <div ref={reportRef} className="bg-background p-1 print:p-0">
+
 
         {/* Encabezado del reporte */}
         <header className="mb-4 border-b-2 border-primary pb-2">
