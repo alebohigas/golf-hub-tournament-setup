@@ -159,11 +159,44 @@ foreach ($groups as $g) {
     if ($hole === null || $hole < $hi || $hole > $hf) continue;
 
     $gid = (int)$g['id'];
-    // Jugadores del grupo, en el orden de salida (columna `orden` del view).
+    /*
+     * ORDEN DE JUGADORES — idéntico al grid de Salidas (salidas_det.php):
+     * réplica del ORDER BY legacy según sistema de juego de la categoría.
+     *   1. score acumulado (acumstbgross/acumsa/acumso) según modalidad
+     *   2. orden  (campo de despliegue del view; ASC en stableford, DESC en stroke)
+     *   3. f_score_dia_{sat blU|saxU|soxU}(jugadorid) (score de la última ronda)
+     *   4. tarjetaid DESC (fallback determinista)
+     * Override legacy: grossstb=1 siempre cambia a acumso ASC.
+     */
+    $sistema  = strtoupper($g['sistema'] ?? '');
+    $gross    = (int)($g['gross'] ?? 0);
+    $grossstb = (int)($g['grossstb'] ?? 0);
+
+    if ($sistema === 'STABLEFORD') {
+        if ($gross == 1 || $grossstb == 1) {
+            $orderSql = "ORDER BY salidagrupoid, acumstbgross DESC, orden ASC,
+                          f_score_dia_satblU(jugadorid) DESC, tarjetaid DESC";
+        } else {
+            $orderSql = "ORDER BY salidagrupoid, acumsa DESC, orden ASC,
+                          f_score_dia_saxU(jugadorid) DESC, tarjetaid DESC";
+        }
+        if ($grossstb == 1) {
+            $orderSql = "ORDER BY salidagrupoid, acumso, orden DESC,
+                          f_score_dia_soxU(jugadorid), tarjetaid DESC";
+        }
+    } else {
+        $orderSql = "ORDER BY salidagrupoid, acumsa, orden DESC,
+                      f_score_dia_saxU(jugadorid), tarjetaid DESC";
+        if ($gross == 1 || $grossstb == 1) {
+            $orderSql = "ORDER BY salidagrupoid, acumso, orden DESC,
+                          f_score_dia_soxU(jugadorid), tarjetaid DESC";
+        }
+    }
+
     $players = sgi_all($conn, "SELECT CONCAT(nombre, ' ', apellido) AS jugador, logo
                                  FROM v_sal_jug
                                 WHERE salidagrupoid = $gid
-                                ORDER BY orden ASC, tarjetaid ASC");
+                                $orderSql");
     $list = [];
     foreach ($players as $p) {
         $list[] = [
