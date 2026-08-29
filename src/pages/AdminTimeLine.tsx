@@ -391,6 +391,33 @@ const AdminTimeLine = () => {
     <div className="min-h-screen bg-background print:bg-transparent">
       <div className="mx-auto max-w-[1200px] px-4 py-6 print:max-w-none print:px-0 print:py-0">
         {/* Barra de acciones (no se imprime) */}
+  /**
+   * Acción automática solicitada por URL (`?auto=pdf` o `?auto=print`).
+   * La usa el botón de descarga directa de la vista previa en Admin: al abrir
+   * la pestaña, en cuanto el reporte está renderizado con datos válidos se
+   * dispara la exportación a PDF (o el diálogo de impresión) una sola vez.
+   */
+  const autoAction = params.get('auto');
+  const autoRan = useRef(false);
+
+  useEffect(() => {
+    if (autoRan.current) return;
+    if (autoAction !== 'pdf' && autoAction !== 'print') return;
+    if (!filtersValid || isLoading || totals.groups === 0) return;
+    autoRan.current = true;
+    // Espera un frame extra para que fuentes y logos estén pintados.
+    const id = window.setTimeout(() => {
+      if (autoAction === 'pdf') void exportPdf();
+      else window.print();
+    }, 600);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAction, filtersValid, isLoading, totals.groups]);
+
+  return (
+    <div className="min-h-screen bg-background print:bg-transparent">
+      <div className="mx-auto max-w-[1200px] px-4 py-6 print:max-w-none print:px-0 print:py-0">
+        {/* Barra de acciones (no se imprime) */}
         <div className="mb-6 flex items-center justify-between gap-2 print:hidden">
           <Button
             variant="ghost"
