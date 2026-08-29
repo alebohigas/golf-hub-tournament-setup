@@ -81,6 +81,15 @@ const PAPER_SIZES = {
 /** Clave de tamaño de papel. */
 type PaperKey = keyof typeof PAPER_SIZES;
 
+/**
+ * Banda reservada al pie de CADA hoja (px @96 dpi) para la numeración
+ * "Página X de Y". El contenido nunca invade esta franja: los cortes de página
+ * (impresión y PDF) se calculan con `pageH - FOOTER_RESERVE_PX`, de modo que el
+ * rótulo queda siempre al final de la hoja sin empalmarse con el reporte.
+ */
+const FOOTER_RESERVE_PX = 26;
+
+
 /* ===========================================================================
  * Densidad tipográfica del reporte TIME LINE
  * ---------------------------------------------------------------------------
@@ -277,13 +286,18 @@ const TimeLineBlock = ({
                       {p.id}
                     </span>
                   ) : null}
+                  {/* Nombre en UN solo renglón. Se usa overflow-hidden con
+                      line-height amplio y padding vertical mínimo para que el
+                      recorte del texto largo NO corte los ascendentes ni los
+                      descendentes al rasterizar el PDF (html2canvas). */}
                   <span
-                    style={{ fontSize: 'var(--tl-name-size)' }}
+                    style={{ fontSize: 'var(--tl-name-size)', lineHeight: 1.9 }}
                     title={p.name}
-                    className="min-w-0 flex-1 truncate whitespace-nowrap font-semibold leading-[1.5] text-foreground"
+                    className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[1px] font-semibold text-foreground"
                   >
                     {p.name}
                   </span>
+
                 </div>
               </td>
               {holes.map((h, hi) => (
@@ -498,7 +512,9 @@ const AdminTimeLine = () => {
     if (!root) return;
     const rootRect = root.getBoundingClientRect();
     const total = rootRect.height;
-    const limit = pageH;
+    /* Alto útil real: la hoja menos la banda del pie de página. */
+    const limit = pageH - FOOTER_RESERVE_PX;
+
     const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
       (el) => {
         const r = el.getBoundingClientRect();
@@ -547,7 +563,7 @@ const AdminTimeLine = () => {
    * cuando el bloque es más alto que una hoja completa.
    */
   const overlaps = useMemo(() => {
-    const limit = pageH;
+    const limit = pageH - FOOTER_RESERVE_PX;
     return blockZones.reduce((n, z) => {
       const pageStart = printPages.findIndex((cut) => z.top < cut);
       if (pageStart < 0) return n;
@@ -692,7 +708,8 @@ const AdminTimeLine = () => {
           };
         }
       );
-      const limit = Math.floor(pageH * scale);
+      /* Igual que la impresión: se descuenta la banda del pie de página. */
+      const limit = Math.floor((pageH - FOOTER_RESERVE_PX) * scale);
       const safeCut = (offset: number): number => {
         let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
@@ -1112,18 +1129,21 @@ const AdminTimeLine = () => {
               Al posicionarse absolutamente no altera el flujo ni el alto. */}
           {printPages.map((_cut, i) => {
             const pageStart = i === 0 ? 0 : printPages[i - 1];
-            const footerTop = pageStart + pageH - 14;
+            /* Dentro de la banda reservada (FOOTER_RESERVE_PX), al ras del pie
+               físico de la hoja: el contenido nunca llega hasta aquí. */
+            const footerTop = pageStart + pageH - FOOTER_RESERVE_PX + 6;
             return (
               <span
                 key={`pg-${i}`}
                 aria-hidden
-                className="pointer-events-none absolute right-0 hidden text-[10px] font-semibold text-muted-foreground print:block"
+                className="pointer-events-none absolute right-0 hidden bg-background px-1 text-[10px] font-semibold text-muted-foreground print:block"
                 style={{ top: `${footerTop}px` }}
               >
                 Página {i + 1} de {printPages.length}
               </span>
             );
           })}
+
 
 
           {/* Encabezado del reporte */}
