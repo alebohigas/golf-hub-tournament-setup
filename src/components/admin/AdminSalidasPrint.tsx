@@ -21,8 +21,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Printer, Loader2, Flag } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Printer, Loader2, Flag, AlertCircle } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
+
+/** Expresión de hora válida en formato 24h HH:MM (00:00 – 23:59). */
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** Convierte "HH:MM" a minutos desde medianoche; -1 si el formato es inválido. */
+const toMinutes = (t: string): number => {
+  const m = TIME_RE.exec(t.trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
+};
 
 /** Panel de impresión de salidas. */
 const AdminSalidasPrint = () => {
@@ -36,6 +53,8 @@ const AdminSalidasPrint = () => {
   const [hf, setHf] = useState('18');
   const [hri, setHri] = useState('06:00');
   const [hrf, setHrf] = useState('11:00');
+  /** Controla la vista previa de confirmación antes de imprimir. */
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   /** Precarga el primer día de juego disponible. */
   useEffect(() => {
@@ -51,11 +70,52 @@ const AdminSalidasPrint = () => {
     return list.length > 0 ? list : days;
   }, [days, fecha]);
 
+  /**
+   * Validación del formulario. Devuelve la lista de errores encontrados:
+   *   - fecha y campo obligatorios
+   *   - hoyos numéricos 1–18 y hoyo inicial <= hoyo final
+   *   - horas en formato HH:MM válido y hora inicial <= hora final
+   */
+  const errors = useMemo<string[]>(() => {
+    const errs: string[] = [];
+    if (!fecha) errs.push('Selecciona el día de juego.');
+    if (!campoid) errs.push('Selecciona el campo.');
+
+    const nHi = Number(hi);
+    const nHf = Number(hf);
+    if (!Number.isInteger(nHi) || nHi < 1 || nHi > 18)
+      errs.push('El hoyo inicial debe ser un número entero entre 1 y 18.');
+    if (!Number.isInteger(nHf) || nHf < 1 || nHf > 18)
+      errs.push('El hoyo final debe ser un número entero entre 1 y 18.');
+    if (Number.isInteger(nHi) && Number.isInteger(nHf) && nHi > nHf)
+      errs.push('El hoyo inicial debe ser menor o igual al hoyo final.');
+
+    const mIni = toMinutes(hri);
+    const mFin = toMinutes(hrf);
+    if (mIni < 0) errs.push('La hora inicial no tiene un formato válido (HH:MM, 24 horas).');
+    if (mFin < 0) errs.push('La hora final no tiene un formato válido (HH:MM, 24 horas).');
+    if (mIni >= 0 && mFin >= 0 && mIni > mFin)
+      errs.push('La hora inicial debe ser anterior o igual a la hora final.');
+
+    return errs;
+  }, [fecha, campoid, hi, hf, hri, hrf]);
+
+  const isValid = errors.length === 0;
+
+  /** Etiqueta legible del día seleccionado (para la vista previa). */
+  const fechaLabel = days.find((d) => d.fecha === fecha)?.fechaFormato || fecha;
+  /** Etiqueta legible del campo seleccionado (para la vista previa). */
+  const campoLabel =
+    camposDeFecha.find((d) => d.campoid === campoid)?.campo || (campoid ? `Campo ${campoid}` : '—');
+
   /** Abre el reporte imprimible en una pestaña nueva. */
   const generar = () => {
+    if (!isValid) return;
     const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf }).toString();
+    setPreviewOpen(false);
     window.open(`/admin/salidas-impresion?${qs}`, '_blank');
   };
+
 
   return (
     <Card>
