@@ -175,12 +175,18 @@ const AdminTimeLinePrint = () => {
     return { groups: groups.length, players, pages };
   }, [report, paper]);
 
-  /** Abre el reporte imprimible en una pestaña nueva. */
-  const generar = () => {
+  /**
+   * Abre el reporte imprimible en una pestaña nueva con la configuración
+   * actual (papel incluido).
+   * @param auto - `'pdf'` descarga el PDF final en automático, `'print'` abre
+   *   el diálogo de impresión, y sin valor sólo muestra el reporte.
+   */
+  const generar = (auto?: 'pdf' | 'print') => {
     if (!isValid) return;
-    const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf }).toString();
+    const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf, paper });
+    if (auto) qs.set('auto', auto);
     setPreviewOpen(false);
-    window.open(`/admin/time-line?${qs}`, '_blank');
+    window.open(`/admin/time-line?${qs.toString()}`, '_blank');
   };
 
   return (
