@@ -360,9 +360,89 @@ const AdminSalidasImpresion = () => {
         </footer>
         </div>
       </div>
+
+      {/* Vista previa de confirmación antes de imprimir / exportar PDF */}
+      <Dialog open={confirmAction !== null} onOpenChange={(o) => !o && setConfirmAction(null)}>
+        <DialogContent className="print:hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction === 'pdf' ? 'Confirmar exportación a PDF' : 'Confirmar impresión'}
+            </DialogTitle>
+            <DialogDescription>
+              Revisa el rango de hoyos, el horario y las categorías incluidas antes de continuar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Rango de hoyos</p>
+                <p className="font-semibold">
+                  {filters.hi} – {filters.hf}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Rango de horas</p>
+                <p className="font-semibold">
+                  {filters.hri} – {filters.hrf}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Grupos</p>
+                <p className="font-semibold">{preview.totalGroups}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Jugadores</p>
+                <p className="font-semibold">{preview.totalPlayers}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Categorías incluidas</p>
+              <div className="flex flex-wrap gap-1.5">
+                {preview.categories.map((c) => (
+                  <span
+                    key={c.label}
+                    className="rounded-sm bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase text-primary"
+                  >
+                    {c.label} · {c.count}
+                  </span>
+                ))}
+              </div>
+              {preview.missingCategory > 0 && (
+                <p className="mt-2 text-xs text-destructive">
+                  {preview.missingCategory} grupo(s) sin categoría asignada.
+                </p>
+              )}
+            </div>
+
+            {/* Muestra del encabezado tal como se imprimirá */}
+            {data?.groups[0] && (
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">Vista previa del encabezado</p>
+                <GroupBlock group={data.groups[0]} />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={() => setConfirmAction(null)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={runConfirmed}>
+              {confirmAction === 'pdf' ? 'Exportar PDF' : 'Imprimir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
 
   );
+
 };
 
 export default AdminSalidasImpresion;
