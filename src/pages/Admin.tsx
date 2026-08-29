@@ -83,6 +83,7 @@ import {
   Megaphone,
   History,
   Printer,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
