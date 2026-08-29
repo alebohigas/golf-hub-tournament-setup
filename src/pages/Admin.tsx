@@ -493,6 +493,7 @@ const AdminDashboard = () => {
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
             { value: 'salidas',      icon: Printer,         label: 'Salidas' },
+            { value: 'timeline',     icon: Clock,           label: 'Time Line' },
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'historial',    icon: History,         label: 'Historial' },
@@ -791,6 +792,11 @@ const AdminDashboard = () => {
         {/* Salidas — impresión del reporte de salidas por día. */}
         <TabsContent value="salidas">
           <AdminSalidasPrint />
+        </TabsContent>
+
+        {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
+        <TabsContent value="timeline">
+          <AdminTimeLinePrint />
         </TabsContent>
 
         {/* Página /stats — controla visibilidad, orden y overrides
