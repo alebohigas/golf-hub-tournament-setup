@@ -44,18 +44,23 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
   </div>
 );
 
-/** Bloque de un grupo de salida (encabezado + jugadores). */
+/** Bloque de un grupo de salida (encabezado + jugadores).
+ *  Encabezado: CATEGORÍA (izquierda) · Hoyo · Hora/Tee. */
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   <div className="break-inside-avoid rounded-sm border border-border bg-card">
-    <div className="grid grid-cols-[4rem_1fr] items-center gap-2 bg-muted px-2 py-1.5">
+    <div className="grid grid-cols-[1fr_3rem_1fr] items-center gap-2 bg-muted px-2 py-1.5">
+      <span className="truncate text-xs font-bold uppercase text-primary">
+        {group.shortName || group.categoryName}
+      </span>
       <span className="text-sm font-bold text-foreground">
         {group.hole !== null ? `H${String(group.hole).padStart(2, '0')}` : '—'}
       </span>
-      <span className="text-sm font-bold text-foreground">
+      <span className="text-right text-sm font-bold text-foreground">
         {group.time}
         {group.tee ? ` / ${group.tee}` : ''}
       </span>
     </div>
+
     <div>
       {group.players.map((p, i) => (
         <PlayerRow key={`${group.id}-${i}`} {...p} />

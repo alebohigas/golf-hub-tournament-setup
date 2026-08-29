@@ -72,6 +72,8 @@
 - [Resultados scorecard structure](mem://features/resultados-scorecard-structure) — Stableford/Neto vs Scratch rows and labels
 - [Resultados scoring type selection](mem://features/resultados-scoring-type-selection) — Dual NETO/GROSS selection if gross: 1
 - [Dynamic round keys](mem://constraints/dynamic-round-keys) — Never hardcode r1/r2/r3 in Resultados/Live; spread all r{n} from API
+- [Salidas impresión filtro de hoyos](mem://features/salidas-impresion-hole-filter) — Rango hi/hf estricto (1 a 1 = sólo hoyo 1), hoyo derivado del tee, categoría a la izquierda del encabezado
+
 - [Resultados partial rounds](mem://features/resultados-partial-rounds) — Show in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
 - [O'Yes 300 competition](mem://features/oyes-300-competition) — Premio independiente: usa oyesx/oyesxjug, ganadores absolutos por hoyo sin filtro de categoría. NO confundir con O'Yes regular ni con Driver/Approach
 - [No SQL GRANT statements on IONOS](mem://constraints/no-sql-grants-on-ionos) — MySQL migrations must not include GRANT/privilege statements
