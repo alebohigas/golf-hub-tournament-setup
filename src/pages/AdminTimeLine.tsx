@@ -922,7 +922,7 @@ const AdminTimeLine = () => {
       const pdf = new jsPDF({
         unit: 'pt',
         format: PAPER_SIZES[paper].jsPdf,
-        orientation: 'landscape',
+        orientation,
       });
       const sheetW = pdf.internal.pageSize.getWidth();
       const sheetH = pdf.internal.pageSize.getHeight();
@@ -935,20 +935,26 @@ const AdminTimeLine = () => {
       const picked = slices.slice(from - 1, to);
       if (!picked.length) throw new Error('rango vacío');
 
+      /* Alto real ocupado por la imagen de cada hoja: define dónde va el pie. */
+      const heights = picked.map((s) => (s.h * usableW) / width);
+
       picked.forEach((s, i) => {
         if (i > 0) pdf.addPage();
-        pdf.addImage(s.url, 'JPEG', margin, margin, usableW, (s.h * usableW) / width);
+        pdf.addImage(s.url, 'JPEG', margin, margin, usableW, heights[i]);
       });
 
-      /* Numeración "Página X de Y" (conserva el número real de la hoja). */
+      /* Numeración "Página X de Y" JUSTO DEBAJO del último bloque de la hoja
+         (conserva el número real de la página aunque se exporte un rango). */
       for (let i = 0; i < picked.length; i++) {
         pdf.setPage(i + 1);
         pdf.setFontSize(9);
         pdf.setTextColor(90);
-        pdf.text(`Página ${from + i} de ${slices.length}`, sheetW - margin, sheetH - 10, {
+        const y = Math.min(margin + heights[i] + 12, sheetH - 6);
+        pdf.text(`Página ${from + i} de ${slices.length}`, sheetW - margin, y, {
           align: 'right',
         });
       }
+
 
       const suffix = picked.length === slices.length ? '' : `-p${from}-${to}`;
       pdf.save(`time-line-${filters.fecha || 'reporte'}${suffix}.pdf`);
