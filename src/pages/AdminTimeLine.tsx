@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileDown, Loader2, Printer } from 'lucide-react';
+import { ArrowLeft, FileDown, Loader2, Printer, Eye, EyeOff } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -497,7 +497,7 @@ const AdminTimeLine = () => {
    */
   const overlaps = useMemo(() => {
     const limit = PAPER_SIZES[paper].heightPx;
-    return blockZones.reduce((n, z, i) => {
+    return blockZones.reduce((n, z) => {
       const pageStart = printPages.findIndex((cut) => z.top < cut);
       if (pageStart < 0) return n;
       const start = pageStart === 0 ? 0 : printPages[pageStart - 1];
@@ -690,6 +690,19 @@ const AdminTimeLine = () => {
             Volver a Admin
           </Button>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Vista previa de cortes: dibuja saltos de página y límites de bloque */}
+            <Button
+              variant="ghost"
+              className="bg-primary/10 hover:bg-primary/20"
+              onClick={() => setShowGuides((v) => !v)}
+            >
+              {showGuides ? (
+                <EyeOff className="mr-2 h-4 w-4" />
+              ) : (
+                <Eye className="mr-2 h-4 w-4" />
+              )}
+              {showGuides ? 'Ocultar guías' : 'Ver guías'}
+            </Button>
             <Select value={paper} onValueChange={(v) => setPaper(v as PaperKey)}>
               <SelectTrigger className="h-9 w-[200px]">
                 <SelectValue placeholder="Papel" />
