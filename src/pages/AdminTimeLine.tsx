@@ -468,10 +468,12 @@ const AdminTimeLine = () => {
 
   /** Recalcula la paginación y revalida el encabezado antes de imprimir. */
   const beforePrint = useCallback(() => {
-    /* La impresión usa `break-inside: avoid` en cada bloque (ver index.css),
-       por lo que no requiere cálculo adicional de cortes. */
+    /* Los bloques usan `break-inside: avoid` (ver index.css); aquí sólo se
+       recalculan los rótulos "Página X de Y" y se revalida el encabezado. */
+    computePrintPages();
     verifyHeaderLines();
-  }, [verifyHeaderLines]);
+  }, [computePrintPages, verifyHeaderLines]);
+
 
   useEffect(() => {
     window.addEventListener('beforeprint', beforePrint);
