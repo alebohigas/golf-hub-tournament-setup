@@ -34,9 +34,12 @@ import {
 
 
 
-/** Renglón de jugador con logo de club. */
+/** Renglón de jugador con logo de club.
+ *  Nota: se usa `leading-normal` + padding vertical y `min-h` en lugar de
+ *  `truncate` puro, porque html2canvas recorta descendentes (g, j, y) cuando
+ *  el contenedor tiene overflow-hidden con altura ajustada al texto. */
 const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
-  <div className="flex items-center gap-3 border-b border-border px-2 py-1.5 last:border-b-0">
+  <div className="flex min-h-[2rem] items-center gap-3 border-b border-border px-2 py-1 last:border-b-0">
     <span className="flex h-6 w-10 shrink-0 items-center justify-center">
       {clubLogo ? (
         <img
@@ -49,7 +52,12 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
         />
       ) : null}
     </span>
-    <span className="truncate text-sm font-semibold text-foreground">{name}</span>
+    <span
+      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-sm font-semibold leading-normal text-foreground"
+      title={name}
+    >
+      {name}
+    </span>
   </div>
 );
 
@@ -60,16 +68,17 @@ const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   <div className="break-inside-avoid rounded-sm border border-border bg-card">
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-muted px-2 py-1.5">
       <span
-        className="truncate text-left text-xs font-bold uppercase text-primary"
+        className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-left text-xs font-bold uppercase leading-normal text-primary"
         title={group.categoryName}
       >
         Categoría: {group.shortName || group.categoryName}
       </span>
-      <span className="whitespace-nowrap text-left text-sm font-bold tabular-nums text-foreground">
+      <span className="whitespace-nowrap py-0.5 text-left text-sm font-bold leading-normal tabular-nums text-foreground">
         {group.time}
         {group.tee ? ` / ${group.tee}` : ''}
       </span>
     </div>
+
 
 
     <div>
