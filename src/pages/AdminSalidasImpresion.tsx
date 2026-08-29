@@ -400,16 +400,20 @@ const AdminSalidasImpresion = () => {
           ))}
         </div>
 
-        {/* Pie del reporte: torneo, fecha, rango de hoyos/horario y timestamp */}
-        <footer className="mt-6 border-t-2 border-primary pt-2 text-[10px] text-muted-foreground">
-          <p className="font-bold uppercase text-foreground">
+        {/* Pie del reporte: torneo, fecha, categorías, rango de hoyos/horario y timestamp */}
+        <footer className="mt-6 break-inside-avoid border-t-2 border-primary pt-2 text-[10px] leading-[1.6] text-muted-foreground">
+          <p className="text-[11px] font-bold uppercase tracking-[0.02em] text-foreground">
             {data?.tournament || 'Salidas'}
             {data?.fechaFormato ? ` — ${data.fechaFormato}` : ''}
+          </p>
+          <p className="font-semibold text-foreground">
+            Categoría(s): {footerCategories.length ? footerCategories.join(' · ') : '—'}
           </p>
           <p>
             Hoyos {filters.hi}–{filters.hf} · Horario {filters.hri}–{filters.hrf} · Generado: {generatedAt}
           </p>
         </footer>
+
         </div>
       </div>
 
