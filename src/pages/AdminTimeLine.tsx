@@ -1196,7 +1196,7 @@ const AdminTimeLine = () => {
         )}
 
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
-        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: ${marginMm}mm; } }`}</style>
+        <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} ${orientation}; margin: ${marginMm}mm; } }`}</style>
 
         {/*
           Contenedor exportable con ANCHO FIJO igual al ancho útil de la hoja
