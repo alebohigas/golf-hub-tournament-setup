@@ -493,11 +493,31 @@ const AdminSalidasImpresion = () => {
         });
       }
 
-      pdf.save(`salidas-${filters.fecha || 'reporte'}.pdf`);
+      return pdf;
+    }
+  };
 
+  /** Nombre de archivo del PDF, derivado de la fecha del reporte. */
+  const pdfFileName = `salidas-${filters.fecha || 'reporte'}.pdf`;
+
+  /**
+   * Genera el PDF y lo muestra en una previsualización real (iframe con el
+   * documento) para confirmar densidad, papel y paginación antes de descargar.
+   */
+  const previewPdf = async () => {
+    setExporting(true);
+    try {
+      const pdf = await buildPdf();
+      if (!pdf) return;
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      setPdfPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev.url);
+        return { url, pages: pdf.getNumberOfPages() };
+      });
     } catch {
       toast({
-        title: 'No se pudo generar el PDF',
+        title: 'No se pudo generar la previsualización',
         description: 'Intenta de nuevo o usa Imprimir y elige "Guardar como PDF".',
         variant: 'destructive',
       });
@@ -505,6 +525,24 @@ const AdminSalidasImpresion = () => {
       setExporting(false);
     }
   };
+
+  /** Descarga el PDF ya previsualizado y cierra la previsualización. */
+  const downloadPreviewedPdf = () => {
+    if (!pdfPreview) return;
+    const a = document.createElement('a');
+    a.href = pdfPreview.url;
+    a.download = pdfFileName;
+    a.click();
+  };
+
+  /** Cierra la previsualización liberando el blob URL generado. */
+  const closePdfPreview = () => {
+    setPdfPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  };
+
 
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
