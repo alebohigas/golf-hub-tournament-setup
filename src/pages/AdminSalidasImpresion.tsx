@@ -39,7 +39,7 @@ import {
  *  `truncate` puro, porque html2canvas recorta descendentes (g, j, y) cuando
  *  el contenedor tiene overflow-hidden con altura ajustada al texto. */
 const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
-  <div className="flex min-h-[2rem] items-center gap-3 border-b border-border px-2 py-1 last:border-b-0">
+  <div className="flex min-h-[2.1rem] items-center gap-3 border-b border-border px-2 py-[3px] last:border-b-0">
     <span className="flex h-6 w-10 shrink-0 items-center justify-center">
       {clubLogo ? (
         <img
@@ -53,7 +53,7 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
       ) : null}
     </span>
     <span
-      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-sm font-semibold leading-normal text-foreground"
+      className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[3px] text-[13px] font-semibold leading-[1.5] tracking-[0.01em] text-foreground antialiased"
       title={name}
     >
       {name}
@@ -63,21 +63,25 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
 
 /** Bloque de un grupo de salida (encabezado + jugadores).
  *  Encabezado en 2 celdas de ancho fijo para evitar saltos de layout:
- *  Categoría: <abreviatura> (izquierda, ancho flexible) · Hora/Tee (ancho automático).
- *  Debajo de la abreviatura se muestra el nombre completo de la categoría. */
+ *  Categoría (nombre completo, izquierda) · Hora/Tee (ancho automático).
+ *  `data-group-block` lo usa la exportación a PDF para no partir el bloque
+ *  a la mitad al calcular los saltos de página. */
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
-  <div className="break-inside-avoid rounded-sm border border-border bg-card">
+  <div
+    data-group-block
+    className="break-inside-avoid rounded-sm border border-border bg-card"
+  >
     {/* Encabezado del grupo: nombre completo de la categoría + hora/tee.
         Línea inferior para distinguir el encabezado en impresiones en blanco y negro. */}
-    <div className="border-b border-foreground/20 bg-muted px-2 py-1.5">
+    <div className="border-b-2 border-foreground/40 bg-muted px-2 py-[5px]">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <span
-          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-0.5 text-left text-xs font-bold uppercase leading-normal text-primary"
+          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-[2px] text-left text-[12px] font-bold uppercase leading-[1.5] tracking-[0.02em] text-primary antialiased"
           title={group.categoryName}
         >
           Categoría: {group.categoryName || group.shortName}
         </span>
-        <span className="whitespace-nowrap py-0.5 text-left text-sm font-bold leading-normal tabular-nums text-foreground">
+        <span className="whitespace-nowrap py-[2px] text-left text-[13px] font-bold leading-[1.5] tabular-nums text-foreground antialiased">
           {group.time}
           {group.tee ? ` / ${group.tee}` : ''}
         </span>
@@ -91,6 +95,7 @@ const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
     </div>
   </div>
 );
+
 
 /** Página imprimible de salidas. */
 const AdminSalidasImpresion = () => {
