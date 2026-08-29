@@ -845,7 +845,8 @@ const AdminTimeLine = () => {
       window.removeEventListener('afterprint', onAfterPrint);
       onAfterPrint();
     };
-  }, [pageH, computeCuts]);
+  }, [pageH, pageW, computeCuts]);
+
 
 
 
