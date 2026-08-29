@@ -441,6 +441,28 @@ const AdminTimeLine = () => {
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
 
   /**
+   * Tamaño de letra (px) de las celdas de hoyo/hora ajustado al ancho REAL de
+   * la columna. En vertical la hoja es mucho más angosta que en horizontal, así
+   * que la hora ("12 :44", 6 caracteres) se reduce hasta caber en el recuadro
+   * sin recortarse ni desbordarse.
+   */
+  const holeFontPx = useMemo(() => {
+    const base = parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-hole-size']);
+    /** Ancho fijo de la columna de nombres + bordes del contenedor. */
+    const NAME_COL_PX = 240;
+    /** Padding horizontal (px-1 ×2) + borde de cada celda de hoyo. */
+    const CELL_CHROME_PX = 11;
+    /** Ancho medio de un carácter tabular respecto al tamaño de letra. */
+    const CHAR_RATIO = 0.58;
+    /** Caracteres del texto más ancho de la celda ("12 :44"). */
+    const MAX_CHARS = 6;
+    const colW = (pageW - 8 - NAME_COL_PX) / 18;
+    const fit = (colW - CELL_CHROME_PX) / (MAX_CHARS * CHAR_RATIO);
+    return Math.max(6, Math.min(base, Math.floor(fit * 10) / 10));
+  }, [activeDensity, pageW]);
+
+
+  /**
    * Alto de renglón manual (padding vertical de cada renglón de jugador, px).
    * `null` = usar el valor de la densidad activa. Se reinicia al cambiar de
    * densidad para que el control siempre parta del valor real aplicado.
