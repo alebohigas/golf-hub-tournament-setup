@@ -213,12 +213,29 @@ const AdminSalidasImpresion = () => {
         import('html2canvas'),
         import('jspdf'),
       ]);
+      const rootRect = reportRef.current.getBoundingClientRect();
+      const scale = 3;
       const canvas = await html2canvas(reportRef.current, {
-        scale: 3,
+        scale,
         useCORS: true,
         backgroundColor: '#ffffff',
       });
 
+      /**
+       * Zonas "prohibidas" de corte: cada bloque de salida (encabezado +
+       * jugadores) expresado en píxeles del canvas. Un salto de página nunca
+       * debe caer dentro de una de estas zonas, para que ningún nombre quede
+       * cortado ni un bloque se parta a la mitad.
+       */
+      const blocks = Array.from(
+        reportRef.current.querySelectorAll<HTMLElement>('[data-group-block]')
+      ).map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          top: Math.max(0, Math.round((r.top - rootRect.top) * scale)),
+          bottom: Math.round((r.bottom - rootRect.top) * scale),
+        };
+      });
 
       const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const pageW = pdf.internal.pageSize.getWidth();
@@ -226,27 +243,47 @@ const AdminSalidasImpresion = () => {
       const margin = 24;
       const usableW = pageW - margin * 2;
       const usableH = pageH - margin * 2;
-      /** Alto en píxeles del canvas que cabe en una hoja. */
-      const sliceH = Math.floor((usableH * canvas.width) / usableW);
+      /** Alto máximo en píxeles del canvas que cabe en una hoja. */
+      const maxSliceH = Math.floor((usableH * canvas.width) / usableW);
 
-      for (let offset = 0, page = 0; offset < canvas.height; offset += sliceH, page++) {
-        const h = Math.min(sliceH, canvas.height - offset);
+      /**
+       * Calcula el corte seguro para una página: parte del corte máximo y lo
+       * sube hasta el inicio del primer bloque que quedaría partido. Si el
+       * bloque es más alto que una hoja completa, se respeta el corte máximo
+       * (caso extremo inevitable).
+       */
+      const safeCut = (offset: number): number => {
+        let cut = Math.min(offset + maxSliceH, canvas.height);
+        if (cut >= canvas.height) return canvas.height;
+        for (const b of blocks) {
+          if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
+        }
+        return cut > offset ? cut : Math.min(offset + maxSliceH, canvas.height);
+      };
+
+      let page = 0;
+      for (let offset = 0; offset < canvas.height; page++) {
+        const cut = safeCut(offset);
+        const h = cut - offset;
         const slice = document.createElement('canvas');
         slice.width = canvas.width;
         slice.height = h;
-        slice
-          .getContext('2d')!
-          .drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
+        const ctx = slice.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, slice.width, slice.height);
+        ctx.drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
         if (page > 0) pdf.addPage();
         pdf.addImage(
-          slice.toDataURL('image/jpeg', 0.92),
+          slice.toDataURL('image/jpeg', 0.95),
           'JPEG',
           margin,
           margin,
           usableW,
           (h * usableW) / canvas.width
         );
+        offset = cut;
       }
+
 
       pdf.save(`salidas-${filters.fecha || 'reporte'}.pdf`);
     } catch {
