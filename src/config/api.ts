@@ -137,6 +137,26 @@ export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQu
 export const getSalidasDayUrl = (dayId: string, formato: string = 'individual'): string =>
   `${API_BASE_URL}/salidas_det.php${buildQuery({ caljgoid: dayId, formato })}`;
 
+/** Catálogo de días + campos disponibles para el reporte de impresión de salidas */
+export const getSalidasImpresionDaysUrl = (): string =>
+  `${API_BASE_URL}/salidas_impresion.php${buildQuery({ modo: 'dias' })}`;
+
+/**
+ * Reporte imprimible de salidas por día.
+ * @param p.fecha   Fecha de juego (YYYY-MM-DD)
+ * @param p.campoid ID del campo
+ * @param p.hi/p.hf Rango de hoyos de salida
+ * @param p.hri/p.hrf Rango de horas de salida (HH:MM)
+ */
+export const getSalidasImpresionUrl = (p: {
+  fecha: string;
+  campoid: string;
+  hi: string;
+  hf: string;
+  hri: string;
+  hrf: string;
+}): string => `${API_BASE_URL}/salidas_impresion.php${buildQuery({ ...p })}`;
+
 /** All competitions (competición - trofeos) */
 export const getCompeticionUrl = (): string => `${API_BASE_URL}/competicion.php${buildQuery()}`;
 
