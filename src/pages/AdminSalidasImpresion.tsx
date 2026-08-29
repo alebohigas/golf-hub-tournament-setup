@@ -224,8 +224,10 @@ const AdminSalidasImpresion = () => {
             <GroupBlock key={g.id} group={g} />
           ))}
         </div>
+        </div>
       </div>
     </div>
+
   );
 };
 
