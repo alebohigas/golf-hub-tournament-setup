@@ -1218,8 +1218,171 @@ const AdminTimeLine = () => {
           </footer>
           </div>
         </div>
+
+        {/* ============= Vista previa del PDF (hoja por hoja) =============
+            Rasteriza el reporte con la misma paginación del PDF final, muestra
+            el resumen (páginas, jugadores por página, densidad, márgenes) y
+            permite exportar sólo un rango de páginas antes de imprimir. */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-5xl print:hidden">
+            <DialogHeader>
+              <DialogTitle>Vista previa del PDF</DialogTitle>
+              <DialogDescription>
+                Revisa cada hoja tal como se exportará o imprimirá y elige el rango de páginas.
+              </DialogDescription>
+            </DialogHeader>
+
+            {previewLoading ? (
+              <div className="flex items-center gap-2 py-10 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Generando vista previa…
+              </div>
+            ) : (
+              <>
+                {/* Resumen del documento */}
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-4">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Páginas</dt>
+                    <dd className="font-bold text-foreground">{previewImgs.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Densidad aplicada</dt>
+                    <dd className="font-bold text-foreground">
+                      {DENSITY_LEVELS[activeDensity].label}
+                      {density === 'auto' ? ' (automática)' : ''}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Margen / renglón</dt>
+                    <dd className="font-bold text-foreground">
+                      {marginMm} mm /{' '}
+                      {rowPad ?? parseFloat(DENSITY_LEVELS[activeDensity].vars['--tl-row-pad'])} px
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Grupos / Jugadores</dt>
+                    <dd className="font-bold text-foreground">
+                      {totals.groups} / {totals.players}
+                    </dd>
+                  </div>
+                </dl>
+
+                {/* Rango de páginas a exportar */}
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Desde página</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={previewImgs.length || 1}
+                      value={rangeFrom}
+                      onChange={(e) =>
+                        setRangeFrom(
+                          Math.min(
+                            Math.max(1, Number(e.target.value) || 1),
+                            previewImgs.length || 1
+                          )
+                        )
+                      }
+                      className="h-9 w-[100px]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Hasta página</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={previewImgs.length || 1}
+                      value={rangeTo}
+                      onChange={(e) =>
+                        setRangeTo(
+                          Math.min(
+                            Math.max(1, Number(e.target.value) || 1),
+                            previewImgs.length || 1
+                          )
+                        )
+                      }
+                      className="h-9 w-[100px]"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="h-9 bg-primary/10 hover:bg-primary/20"
+                    onClick={() => {
+                      setRangeFrom(1);
+                      setRangeTo(previewImgs.length || 1);
+                    }}
+                  >
+                    Todas
+                  </Button>
+                </div>
+
+                {/* Hojas rasterizadas con su resumen de jugadores */}
+                <div className="max-h-[55vh] space-y-4 overflow-y-auto rounded-md border border-border p-2">
+                  {previewImgs.map((src, i) => {
+                    const inRange = i + 1 >= rangeFrom && i + 1 <= rangeTo;
+                    const st = pageStats[i];
+                    return (
+                      <figure
+                        key={`prev-${i}`}
+                        className={`rounded-md border p-2 ${
+                          inRange ? 'border-primary/50' : 'border-border opacity-40'
+                        }`}
+                      >
+                        <img
+                          src={src}
+                          alt={`Página ${i + 1} del reporte Time Line`}
+                          className="w-full bg-background"
+                          loading="lazy"
+                        />
+                        <figcaption className="mt-1 text-xs text-muted-foreground">
+                          Página {i + 1} de {previewImgs.length}
+                          {st ? ` · ${st.groups} grupos / ${st.players} jugadores` : ''}
+                          {inRange ? '' : ' · fuera del rango'}
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <DialogFooter className="flex-wrap gap-2">
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => setPreviewOpen(false)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                variant="ghost"
+                className="bg-primary/10 hover:bg-primary/20"
+                onClick={() => {
+                  setPreviewOpen(false);
+                  window.print();
+                }}
+                disabled={previewLoading || previewImgs.length === 0}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir todo
+              </Button>
+              <Button
+                onClick={() => void exportPdf({ from: rangeFrom, to: rangeTo })}
+                disabled={previewLoading || exporting || previewImgs.length === 0}
+              >
+                {exporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-2 h-4 w-4" />
+                )}
+                Descargar páginas {rangeFrom}–{rangeTo}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
+
   );
 };
 
