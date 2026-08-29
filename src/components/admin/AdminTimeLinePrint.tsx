@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle, Clock, Loader2, Printer } from 'lucide-react';
 import { useSalidasImpresionDays } from '@/hooks/useSalidasImpresion';
+import { useTorneoId } from '@/hooks/useTorneoId';
+import { API_BASE_URL } from '@/config/api';
 
 /** Expresión de hora válida en formato 24h HH:MM (00:00 – 23:59). */
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -38,6 +40,8 @@ const toMinutes = (t: string): number => {
 const AdminTimeLinePrint = () => {
   const { data, isLoading } = useSalidasImpresionDays();
   const days = data?.days ?? [];
+  /** Torneo activo (obligatorio: el API lo exige en cada petición). */
+  const { torneoId } = useTorneoId();
 
   // ============= Estado del formulario =============
   const [fecha, setFecha] = useState('');
@@ -61,30 +65,44 @@ const AdminTimeLinePrint = () => {
     return list.length > 0 ? list : days;
   }, [days, fecha]);
 
-  /** Validación del formulario (hoyos 1–18 ordenados, horas HH:MM ordenadas). */
+  /**
+   * Validación del formulario. Todo debe estar presente y coherente antes de
+   * abrir el reporte:
+   *   - URL base del API configurada
+   *   - torneo activo (torneoid)
+   *   - día de juego y campo seleccionados
+   *   - hoyos enteros 1–18 con hf >= hi
+   *   - horas HH:MM (24 h) con hora final >= hora inicial
+   */
   const errors = useMemo<string[]>(() => {
     const errs: string[] = [];
-    if (!fecha) errs.push('Selecciona el día de juego.');
-    if (!campoid) errs.push('Selecciona el campo.');
+    if (!API_BASE_URL || !API_BASE_URL.trim())
+      errs.push('La URL del API no está configurada.');
+    if (!torneoId || !torneoId.trim())
+      errs.push('No hay torneo activo configurado (torneoid).');
+    if (!fecha || !fecha.trim()) errs.push('Selecciona el día de juego.');
+    if (!campoid || !campoid.trim()) errs.push('Selecciona el campo.');
 
     const nHi = Number(hi);
     const nHf = Number(hf);
-    if (!Number.isInteger(nHi) || nHi < 1 || nHi > 18)
+    if (!hi.trim() || !Number.isInteger(nHi) || nHi < 1 || nHi > 18)
       errs.push('El hoyo inicial debe ser un número entero entre 1 y 18.');
-    if (!Number.isInteger(nHf) || nHf < 1 || nHf > 18)
+    if (!hf.trim() || !Number.isInteger(nHf) || nHf < 1 || nHf > 18)
       errs.push('El hoyo final debe ser un número entero entre 1 y 18.');
-    if (Number.isInteger(nHi) && Number.isInteger(nHf) && nHi > nHf)
-      errs.push('El hoyo inicial debe ser menor o igual al hoyo final.');
+    if (Number.isInteger(nHi) && Number.isInteger(nHf) && nHf < nHi)
+      errs.push('El hoyo final debe ser mayor o igual al hoyo inicial.');
 
     const mIni = toMinutes(hri);
     const mFin = toMinutes(hrf);
-    if (mIni < 0) errs.push('La hora inicial no tiene un formato válido (HH:MM, 24 horas).');
-    if (mFin < 0) errs.push('La hora final no tiene un formato válido (HH:MM, 24 horas).');
-    if (mIni >= 0 && mFin >= 0 && mIni > mFin)
-      errs.push('La hora inicial debe ser anterior o igual a la hora final.');
+    if (!hri.trim()) errs.push('Indica la hora inicial.');
+    else if (mIni < 0) errs.push('La hora inicial no tiene un formato válido (HH:MM, 24 horas).');
+    if (!hrf.trim()) errs.push('Indica la hora final.');
+    else if (mFin < 0) errs.push('La hora final no tiene un formato válido (HH:MM, 24 horas).');
+    if (mIni >= 0 && mFin >= 0 && mFin < mIni)
+      errs.push('La hora final debe ser posterior o igual a la hora inicial.');
 
     return errs;
-  }, [fecha, campoid, hi, hf, hri, hrf]);
+  }, [torneoId, fecha, campoid, hi, hf, hri, hrf]);
 
   const isValid = errors.length === 0;
 
