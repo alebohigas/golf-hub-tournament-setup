@@ -313,10 +313,11 @@ const TimeLineBlock = ({
               </span>
             </td>
             {holes.map((h, i) => (
-              <HoleCell key={`t-${h.numero}`} divider={isDivider(i)}>
+              <HoleCell key={`t-${h.numero}`} divider={isDivider(i)} variant="time">
                 {formatHoleTime(group.times?.[String(h.numero)] ?? '', timeMode)}
               </HoleCell>
             ))}
+
           </tr>
 
           {/* Jugadores del grupo: UN renglón de tabla por jugador, de modo que
