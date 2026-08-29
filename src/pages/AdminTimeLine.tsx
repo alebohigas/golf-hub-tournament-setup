@@ -233,13 +233,50 @@ const AdminTimeLine = () => {
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
+  /** Encabezado del reporte (se verifica que sus 4 renglones no se partan). */
+  const headerRef = useRef<HTMLElement>(null);
   const [exporting, setExporting] = useState(false);
 
-  /** Recalcula la paginación antes de imprimir desde el navegador. */
+  /**
+   * Renglones del encabezado que se están partiendo en más de una línea.
+   * El encabezado debe verse SIEMPRE con exactamente 4 renglones (torneo,
+   * sede/fecha, hoyos-horario-conteos y marca de generación). Como el reporte
+   * se renderiza con el ancho útil fijo del papel, un salto extra sólo puede
+   * venir de un texto demasiado largo; se avisa en pantalla (nunca al imprimir)
+   * para poder corregirlo antes de imprimir o exportar.
+   */
+  const [headerWraps, setHeaderWraps] = useState<string[]>([]);
+
+  /** Mide cada renglón del encabezado y detecta líneas envueltas. */
+  const verifyHeaderLines = useCallback(() => {
+    const root = headerRef.current;
+    if (!root) return;
+    const wrapped: string[] = [];
+    root.querySelectorAll<HTMLElement>('[data-header-line]').forEach((el) => {
+      const lh = parseFloat(getComputedStyle(el).lineHeight || '0');
+      if (!lh) return;
+      // 1.5 líneas de tolerancia evita falsos positivos por redondeo.
+      if (el.getBoundingClientRect().height > lh * 1.5) {
+        wrapped.push(el.dataset.headerLine || '');
+      }
+    });
+    setHeaderWraps(wrapped);
+  }, []);
+
+  /** Verifica al cargar datos, al cambiar de papel y al redimensionar. */
+  useEffect(() => {
+    const run = () => requestAnimationFrame(verifyHeaderLines);
+    run();
+    window.addEventListener('resize', run);
+    return () => window.removeEventListener('resize', run);
+  }, [verifyHeaderLines, data, paper, totals.groups, totals.players]);
+
+  /** Recalcula la paginación y revalida el encabezado antes de imprimir. */
   const beforePrint = useCallback(() => {
     /* La impresión usa `break-inside: avoid` en cada bloque (ver index.css),
        por lo que no requiere cálculo adicional de cortes. */
-  }, []);
+    verifyHeaderLines();
+  }, [verifyHeaderLines]);
 
   useEffect(() => {
     window.addEventListener('beforeprint', beforePrint);
