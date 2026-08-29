@@ -200,20 +200,25 @@ const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   >
     {/* Encabezado del grupo: nombre completo de la categoría + hora/tee.
         Línea inferior para distinguir el encabezado en impresiones en blanco y negro. */}
-    <div className="border-b-2 border-foreground/40 bg-muted px-2 py-[5px]">
+    <div className="border-b-2 border-foreground/40 bg-muted px-2 py-[4px]">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <span
-          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-[2px] text-left text-[12px] font-bold uppercase leading-[1.5] tracking-[0.02em] text-primary antialiased"
+          className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap py-[1px] text-left font-bold uppercase leading-[1.4] tracking-[0.02em] text-primary antialiased"
+          style={{ fontSize: 'var(--sal-head-size)' }}
           title={group.categoryName}
         >
           Categoría: {group.categoryName || group.shortName}
         </span>
-        <span className="whitespace-nowrap py-[2px] text-left text-[13px] font-bold leading-[1.5] tabular-nums text-foreground antialiased">
+        <span
+          className="whitespace-nowrap py-[1px] text-left font-bold leading-[1.4] tabular-nums text-foreground antialiased"
+          style={{ fontSize: 'var(--sal-time-size)' }}
+        >
           {group.time}
           {group.tee ? ` / ${group.tee}` : ''}
         </span>
       </div>
     </div>
+
 
     <div>
       {group.players.map((p, i) => (
