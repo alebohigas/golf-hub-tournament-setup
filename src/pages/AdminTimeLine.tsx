@@ -55,39 +55,49 @@ import {
 
 /**
  * Tamaños de papel soportados (formato jsPDF y valor para @page).
- * `widthPx` / `heightPx` son las medidas ÚTILES en px @96 dpi con la hoja en
- * horizontal y márgenes de 10 mm (≈38 px por lado). Se usan para renderizar el
- * reporte SIEMPRE con el mismo ancho físico, independientemente del tamaño de
- * pantalla, de modo que los saltos de línea del encabezado sean idénticos en
- * pantalla, impresión y PDF.
+ * `longPx` / `shortPx` son las medidas TOTALES de la hoja en px @96 dpi (lado
+ * largo y lado corto). Combinadas con la orientación y el margen elegidos se
+ * obtiene el área útil con la que se renderiza el reporte SIEMPRE con el mismo
+ * ancho físico, de modo que los saltos de línea del encabezado sean idénticos
+ * en pantalla, impresión y PDF.
  */
 const PAPER_SIZES = {
   letter: {
     label: 'Carta (11 × 8.5 in)',
     css: 'letter',
     jsPdf: 'letter' as const,
-    widthPx: 980,
-    heightPx: 740,
+    longPx: 1056,
+    shortPx: 816,
   },
   a4: {
     label: 'A4 (297 × 210 mm)',
     css: 'A4',
     jsPdf: 'a4' as const,
-    widthPx: 1047,
-    heightPx: 718,
+    longPx: 1123,
+    shortPx: 794,
   },
 };
 
 /** Clave de tamaño de papel. */
 type PaperKey = keyof typeof PAPER_SIZES;
 
+/** Orientación de la hoja. */
+type OrientationKey = 'landscape' | 'portrait';
+
+/** Etiquetas de orientación para los selectores. */
+const ORIENTATION_LABELS: Record<OrientationKey, string> = {
+  landscape: 'Horizontal',
+  portrait: 'Vertical',
+};
+
 /**
- * Banda reservada al pie de CADA hoja (px @96 dpi) para la numeración
- * "Página X de Y". El contenido nunca invade esta franja: los cortes de página
- * (impresión y PDF) se calculan con `pageH - FOOTER_RESERVE_PX`, de modo que el
- * rótulo queda siempre al final de la hoja sin empalmarse con el reporte.
+ * Banda mínima reservada para la numeración "Página X de Y". El rótulo se
+ * imprime JUSTO DEBAJO del último bloque de cada hoja (no al pie físico), así
+ * que sólo se reserva el alto del propio rótulo para que nunca se empalme con
+ * el contenido ni se desborde a la hoja siguiente.
  */
-const FOOTER_RESERVE_PX = 26;
+const FOOTER_RESERVE_PX = 22;
+
 
 
 /* ===========================================================================
