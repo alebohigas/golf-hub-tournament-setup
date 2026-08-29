@@ -708,7 +708,8 @@ const AdminTimeLine = () => {
           };
         }
       );
-      const limit = Math.floor(pageH * scale);
+      /* Igual que la impresión: se descuenta la banda del pie de página. */
+      const limit = Math.floor((pageH - FOOTER_RESERVE_PX) * scale);
       const safeCut = (offset: number): number => {
         let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
