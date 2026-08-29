@@ -506,43 +506,56 @@ const AdminTimeLine = () => {
   /** Interruptor de la vista previa de cortes y límites (sólo pantalla). */
   const [showGuides, setShowGuides] = useState(true);
 
-  /** Recalcula los cortes de página del reporte impreso. */
+  /**
+   * Calcula los cortes de página de un reporte dado un alto útil (`limit`).
+   * Se comparte entre la vista previa en pantalla (alto estimado del papel) y la
+   * impresión directa (alto imprimible REAL medido del navegador/impresora).
+   */
+  const computeCuts = useCallback(
+    (root: HTMLElement, limit: number) => {
+      const rootRect = root.getBoundingClientRect();
+      const total = rootRect.height;
+      const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
+        (el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            top: r.top - rootRect.top,
+            bottom: r.bottom - rootRect.top,
+            players: Number(el.dataset.players || 0),
+          };
+        }
+      );
+      const cuts: number[] = [];
+      let offset = 0;
+      let guard = 0;
+      const safe = Math.max(120, limit);
+      while (offset < total && guard++ < 400) {
+        let cut = Math.min(offset + safe, total);
+        if (cut < total) {
+          for (const z of zones) {
+            if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
+          }
+          if (cut <= offset) cut = Math.min(offset + safe, total);
+        }
+        cuts.push(cut);
+        offset = cut;
+      }
+      return { cuts, zones, total };
+    },
+    []
+  );
+
+  /** Recalcula los cortes de página del reporte impreso (estimación en pantalla). */
   const computePrintPages = useCallback(() => {
     const root = reportRef.current;
     if (!root) return;
-    const rootRect = root.getBoundingClientRect();
-    const total = rootRect.height;
-    /* Alto útil real: la hoja menos la banda del pie de página. */
-    const limit = pageH - FOOTER_RESERVE_PX;
-
-    const zones = Array.from(root.querySelectorAll<HTMLElement>('[data-group-block]')).map(
-      (el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          top: r.top - rootRect.top,
-          bottom: r.bottom - rootRect.top,
-          players: Number(el.dataset.players || 0),
-        };
-      }
-    );
-    const cuts: number[] = [];
-    let offset = 0;
-    let guard = 0;
-    while (offset < total && guard++ < 200) {
-      let cut = Math.min(offset + limit, total);
-      if (cut < total) {
-        for (const z of zones) {
-          if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
-        }
-        if (cut <= offset) cut = Math.min(offset + limit, total);
-      }
-      cuts.push(cut);
-      offset = cut;
-    }
+    /* Alto útil estimado: la hoja menos la banda del pie de página. */
+    const { cuts, zones, total } = computeCuts(root, pageH - FOOTER_RESERVE_PX);
     setPrintPages(cuts);
     setBlockZones(zones);
     setReportHeight(total);
-  }, [pageH]);
+  }, [pageH, computeCuts]);
+
 
   /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
   useEffect(() => {
