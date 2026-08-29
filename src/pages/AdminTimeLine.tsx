@@ -792,6 +792,15 @@ const AdminTimeLine = () => {
           </div>
         )}
 
+        {/* Aviso de la vista previa: empalmes detectados en el layout */}
+        {showGuides && overlaps > 0 && (
+          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive print:hidden">
+            La vista previa detectó <strong>{overlaps}</strong> bloque(s) que se empalman con el pie
+            de la hoja: son más altos que una página de {PAPER_SIZES[paper].label}. Usa una densidad
+            más compacta o reduce el rango de hoyos u horas.
+          </div>
+        )}
+
         {/* @page dinámico: hoja horizontal por el ancho de 18 columnas */}
         <style>{`@media print { @page { size: ${PAPER_SIZES[paper].css} landscape; margin: 10mm; } }`}</style>
 
@@ -810,6 +819,63 @@ const AdminTimeLine = () => {
             }}
             className="timeline-report relative mx-auto bg-background p-1 print:w-full print:p-0"
           >
+          {/* ============= VISTA PREVIA DE CORTES (sólo pantalla) =============
+              Dibuja, sobre el reporte real:
+                · el pie físico de cada hoja (línea roja punteada) → hasta ahí
+                  imprime cada página;
+                · el punto de corte del flujo (línea verde discontinua) → si se
+                  adelanta al pie, es el salto que evita partir un bloque;
+                · el contorno de cada bloque de salida.
+              Es puramente visual (absoluta, sin afectar el flujo) y nunca se
+              imprime ni se incluye en el PDF. */}
+          {showGuides && reportHeight > 0 && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-10 print:hidden"
+            >
+              {/* Contornos de bloque */}
+              {blockZones.map((z, i) => (
+                <div
+                  key={`bz-${i}`}
+                  className="absolute left-0 right-0 rounded-sm border border-dashed border-primary/40"
+                  style={{ top: z.top, height: Math.max(0, z.bottom - z.top) }}
+                />
+              ))}
+              {/* Pie físico y corte de flujo de cada hoja */}
+              {printPages.map((cut, i) => {
+                const pageStart = i === 0 ? 0 : printPages[i - 1];
+                const pageEnd = pageStart + PAPER_SIZES[paper].heightPx;
+                return (
+                  <div key={`gp-${i}`}>
+                    {/* Zona sobrante: espacio que queda en blanco en la hoja */}
+                    {cut < pageEnd - 1 && (
+                      <div
+                        className="absolute left-0 right-0 bg-primary/5"
+                        style={{ top: cut, height: pageEnd - cut }}
+                      />
+                    )}
+                    {/* Corte del flujo (inicio de la hoja siguiente) */}
+                    <div
+                      className="absolute left-0 right-0 border-t-2 border-dashed border-primary/70"
+                      style={{ top: cut }}
+                    />
+                    <span
+                      className="absolute left-1 -translate-y-full rounded-sm bg-primary px-1 text-[10px] font-bold text-primary-foreground"
+                      style={{ top: cut }}
+                    >
+                      Salto · fin de página {i + 1} de {printPages.length}
+                    </span>
+                    {/* Pie físico de la hoja */}
+                    <div
+                      className="absolute left-0 right-0 border-t border-dotted border-destructive/60"
+                      style={{ top: Math.min(pageEnd, reportHeight) }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Numeración "Página X de Y" para la impresión del navegador.
               IMPORTANTE: el rótulo va al PIE FÍSICO de cada hoja, no en el punto
               de corte del flujo. Tras un salto de página el contenido reinicia
