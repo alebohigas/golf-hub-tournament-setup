@@ -1456,6 +1456,8 @@ const AdminTimeLine = () => {
                 holes={data.holes}
                 dateLabel={data.fechaFormato}
                 courseName={data.course || data.club}
+                timeMode={holeTimeMode}
+
               />
             ))}
           </div>
