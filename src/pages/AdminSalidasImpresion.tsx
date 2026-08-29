@@ -303,6 +303,44 @@ const AdminSalidasImpresion = () => {
   /** Acción pendiente de confirmar en la vista previa ('print' | 'pdf' | null). */
   const [confirmAction, setConfirmAction] = useState<'print' | 'pdf' | null>(null);
 
+  /** Tamaño de papel del reporte (afecta @page y el formato del PDF). */
+  const [paper, setPaper] = useState<PaperKey>('letter');
+
+  /** Densidad elegida por el usuario: 'auto' o un nivel fijo. */
+  const [density, setDensity] = useState<'auto' | DensityKey>('auto');
+
+  /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
+  const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
+  const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
+
+  /**
+   * Modo automático: mide el bloque de salida más alto ya renderizado y, si no
+   * cabe completo en una hoja del papel elegido, baja un nivel de densidad.
+   * Converge en pocos renders (cómoda → normal → compacta → muy compacta) y
+   * garantiza que ningún bloque tenga que partirse entre páginas.
+   */
+  useEffect(() => {
+    if (density !== 'auto') return;
+    const root = reportRef.current;
+    if (!root) return;
+    const blocks = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-group-block]')
+    );
+    if (!blocks.length) return;
+    const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
+    const limit = PAPER_SIZES[paper].usableHeightPx;
+    const idx = DENSITY_ORDER.indexOf(autoDensity);
+    if (tallest > limit && idx < DENSITY_ORDER.length - 1) {
+      setAutoDensity(DENSITY_ORDER[idx + 1]);
+    }
+  }, [density, paper, autoDensity, data]);
+
+  /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
+  useEffect(() => {
+    if (density === 'auto') setAutoDensity('comoda');
+  }, [density, paper, data]);
+
+
   /** Resumen para la vista previa: categorías presentes y conteos. */
   const preview = useMemo(() => {
     const groups = data?.groups ?? [];
