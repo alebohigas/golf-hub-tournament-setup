@@ -179,14 +179,21 @@ const CardHeader = ({
 const Cell = ({
   children,
   className = '',
+  style,
 }: {
   children?: React.ReactNode;
   className?: string;
+  /** Estilo inline por celda (p. ej. resaltado del hoyo de inicio). */
+  style?: React.CSSProperties;
 }) => (
-  <td className={`border border-foreground/60 px-0 text-center align-middle ${className}`}>
+  <td
+    className={`border border-foreground/60 px-0 text-center align-middle ${className}`}
+    style={style}
+  >
     {children}
   </td>
 );
+
 
 /**
  * ANCHOS DE COLUMNA (en % del ancho útil de la tarjeta).
