@@ -55,6 +55,12 @@ export interface TimeLineReport {
 /** Filtros del reporte (los mismos que el reporte de salidas). */
 export type TimeLineFilters = SalidasImpresionFilters;
 
+/**
+ * Intervalo de recarga automática del dataset (30 s). Refleja cambios de
+ * hora hechos en `torneos.hoyos` sin que el usuario tenga que recargar.
+ */
+export const REFETCH_INTERVAL_MS = 30_000;
+
 // ============= Reporte =============
 
 /**
@@ -78,11 +84,21 @@ export const useTimeLineReport = (filters: TimeLineFilters | null, enabled = tru
       };
     },
     enabled: enabled && !!filters?.fecha,
-    // Los tiempos por hoyo se editan en la tabla `hoyos`: el reporte siempre
-    // pide datos frescos para que impresión y PDF usen los tiempos vigentes.
+    // Los tiempos por hoyo se editan en la tabla `hoyos` (`torneos.hoyos`):
+    // el reporte siempre pide datos frescos para que impresión y PDF usen
+    // los tiempos vigentes.
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
+    /**
+     * Recarga automática: cada REFETCH_INTERVAL_MS se vuelve a pedir el
+     * dataset; si la hora cambió en `torneos.hoyos`, el reporte (pantalla,
+     * impresión y PDF, que parten del mismo `data`) se actualiza solo.
+     * React Query hace "structural sharing": si los datos son idénticos no
+     * hay re-render, así que el polling no altera el layout.
+     */
+    refetchInterval: REFETCH_INTERVAL_MS,
+    refetchIntervalInBackground: false,
   });
 
