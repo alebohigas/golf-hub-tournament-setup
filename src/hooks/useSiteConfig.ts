@@ -449,6 +449,8 @@ export interface TarjetasPrintConfig {
   scale: number;
   /** Alto de cada renglón de la tabla de hoyos en mm (se acota a 1/2 carta). */
   rowMm?: number;
+  /** Orden y visibilidad de los renglones de la tarjeta (ver `@/lib/tarjetasRows`). */
+  rowOrder?: string[];
 }
 
 /** Full server response for site config */

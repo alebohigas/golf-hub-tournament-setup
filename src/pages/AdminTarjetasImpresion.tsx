@@ -35,6 +35,11 @@ import {
 } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, Download, Eye, Loader2, Printer } from 'lucide-react';
 import { useTarjetasReport, type TarjetaCard } from '@/hooks/useTarjetasImpresion';
+import {
+  TARJETA_ROW_LABELS,
+  normalizeTarjetaRows,
+  type TarjetaRowKey,
+} from '@/lib/tarjetasRows';
 
 // ============= Constantes de hoja =============
 
@@ -45,18 +50,17 @@ const SHEET_W_MM = 215.9;
 /** Alto de hoja carta. */
 const SHEET_H_MM = 279.4;
 
-/** Renglones de la tabla de hoyos (Hoyo, Par, Yardas, Par Time, Ventaja, Handicap, Score, Puntos). */
-const TABLE_ROWS = 8;
 /** Alto aproximado del bloque de datos del jugador + pie de firmas, en mm. */
 const CARD_CHROME_MM = 22;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
- * la media hoja carta (incluye cabecera configurable y escala aplicada).
+ * la media hoja carta (incluye cabecera configurable, escala aplicada y el
+ * número real de renglones que se van a imprimir).
  */
-const maxRowMm = (headerMm: number, scale: number) => {
+const maxRowMm = (headerMm: number, scale: number, tableRows: number) => {
   const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
-  return Math.max(3, disponible / TABLE_ROWS);
+  return Math.max(3, disponible / Math.max(1, tableRows));
 };
 
 /** Lee un número de la URL acotado a un rango. */
@@ -129,10 +133,46 @@ const Cell = ({
 );
 
 /**
+ * ANCHOS DE COLUMNA (en % del ancho útil de la tarjeta).
+ * Se fijan con <colgroup> + table-fixed para que el contenido NUNCA se recorte
+ * al imprimir: la etiqueta tiene su propio ancho y los 18 hoyos + V1/V2/TOTAL
+ * reparten el resto de forma exacta (suma = 100%).
+ */
+const COL_LABEL_PCT = 10.6;
+const COL_TOTAL_PCT = 5.6;
+const COL_HOLE_PCT = (100 - COL_LABEL_PCT - COL_TOTAL_PCT * 3) / 18;
+
+/** <colgroup> compartido por la vista previa, la impresión y el PDF. */
+const ColGroup = () => (
+  <colgroup>
+    <col style={{ width: `${COL_LABEL_PCT}%` }} />
+    {Array.from({ length: 9 }, (_, i) => (
+      <col key={`co-${i}`} style={{ width: `${COL_HOLE_PCT}%` }} />
+    ))}
+    <col style={{ width: `${COL_TOTAL_PCT}%` }} />
+    {Array.from({ length: 9 }, (_, i) => (
+      <col key={`ci-${i}`} style={{ width: `${COL_HOLE_PCT}%` }} />
+    ))}
+    <col style={{ width: `${COL_TOTAL_PCT}%` }} />
+    <col style={{ width: `${COL_TOTAL_PCT}%` }} />
+  </colgroup>
+);
+
+/**
  * Tarjeta de un jugador: encabezado de datos + tabla de 18 hoyos con las
  * columnas acumuladas V1 (ida), V2 (vuelta) y TOTAL.
+ *
+ * @param rows Orden de renglones configurado en Admin → Tarjetas.
  */
-const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
+const Scorecard = ({
+  card,
+  rowMm,
+  rows,
+}: {
+  card: TarjetaCard;
+  rowMm: number;
+  rows: TarjetaRowKey[];
+}) => {
   const out = card.holes.slice(0, 9);
   const inn = card.holes.slice(9, 18);
   const t = card.totals;
@@ -144,31 +184,82 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
     outTotal,
     inTotal,
     total,
-    bold = false,
+    head = false,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
     outTotal?: React.ReactNode;
     inTotal?: React.ReactNode;
     total?: React.ReactNode;
-    bold?: boolean;
+    head?: boolean;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
-    <tr className={bold ? 'font-bold' : ''} style={{ height: `${rowMm}mm` }}>
-      <Cell className="w-[16mm] whitespace-nowrap px-1 text-left text-[6pt] font-semibold uppercase">
+    <tr
+      className={head ? 'bg-muted/60 font-bold' : ''}
+      style={{ height: `${rowMm}mm` }}
+    >
+      <Cell className="truncate px-1 text-left text-[6pt] font-semibold uppercase">
         {label}
       </Cell>
       {out.map((h) => (
         <Cell key={`o-${h.numero}`}>{value(h)}</Cell>
       ))}
-      <Cell className="bg-muted/60 font-bold">{outTotal}</Cell>
+      <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{outTotal}</Cell>
       {inn.map((h) => (
         <Cell key={`i-${h.numero}`}>{value(h)}</Cell>
       ))}
-      <Cell className="bg-muted/60 font-bold">{inTotal}</Cell>
-      <Cell className="bg-muted/60 font-bold">{total}</Cell>
+      <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{inTotal}</Cell>
+      <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{total}</Cell>
     </tr>
   );
+
+  /** Definición de cada renglón disponible (se pinta según el orden pedido). */
+  const rowDefs: Record<TarjetaRowKey, React.ReactNode> = {
+    hoyo: (
+      <Row
+        key="hoyo"
+        head
+        label={TARJETA_ROW_LABELS.hoyo}
+        value={(h) => h.numero}
+        outTotal="V1"
+        inTotal="V2"
+        total="TOTAL"
+      />
+    ),
+    par: (
+      <Row key="par" label={TARJETA_ROW_LABELS.par} value={(h) => h.par ?? ''} />
+    ),
+    yardas: (
+      <Row
+        key="yardas"
+        label={TARJETA_ROW_LABELS.yardas}
+        value={(h) => h.yardas ?? ''}
+        outTotal={t.yardasOut}
+        inTotal={t.yardasIn}
+        total={t.yardas}
+      />
+    ),
+    partime: (
+      <Row key="partime" label={TARJETA_ROW_LABELS.partime} value={(h) => h.parTime} />
+    ),
+    ventaja: (
+      <Row key="ventaja" label={TARJETA_ROW_LABELS.ventaja} value={(h) => h.ventaja ?? ''} />
+    ),
+    /* Renglones en blanco para anotar */
+    gross: <Row key="gross" label={TARJETA_ROW_LABELS.gross} value={() => ''} />,
+    handicap: (
+      <Row
+        key="handicap"
+        label={TARJETA_ROW_LABELS.handicap}
+        value={(h) => (h.handicap > 0 ? h.handicap : '')}
+        outTotal={t.handicapOut}
+        inTotal={t.handicapIn}
+        total={t.handicap}
+      />
+    ),
+    neto: <Row key="neto" label={TARJETA_ROW_LABELS.neto} value={() => ''} />,
+    puntos: <Row key="puntos" label={TARJETA_ROW_LABELS.puntos} value={() => ''} />,
+  };
 
   return (
     <div className="border border-foreground/70">
@@ -183,7 +274,7 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
         </div>
 
         {/* Número y nombre del jugador */}
-        <div className="flex flex-1 items-center gap-2 px-2 py-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1">
           <span className="font-bold">{card.playerNumber}</span>
           <span className="truncate font-bold uppercase">{card.name}</span>
         </div>
@@ -195,58 +286,23 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
         </div>
 
         {/* Categoría + club */}
-        <div className="flex w-[46mm] flex-col justify-center border-l border-foreground/70 px-1 py-1 text-right leading-tight">
-          <div className="font-bold uppercase">{card.shortName || card.categoryName}</div>
+        <div className="flex w-[46mm] min-w-0 flex-col justify-center border-l border-foreground/70 px-1 py-1 text-right leading-tight">
+          <div className="truncate font-bold uppercase">
+            {card.shortName || card.categoryName}
+          </div>
           <div className="truncate uppercase text-foreground/80">{card.club}</div>
         </div>
       </div>
 
-      {/* ---------- Tabla de hoyos ---------- */}
+      {/* ---------- Tabla de hoyos (orden configurable desde Admin) ---------- */}
       <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
-        <tbody>
-          {/* Números de hoyo */}
-          <tr className="bg-muted/60 font-bold" style={{ height: `${rowMm}mm` }}>
-            <Cell className="w-[16mm] px-1 text-left text-[6pt] uppercase">Hoyo</Cell>
-            {out.map((h) => (
-              <Cell key={`h-${h.numero}`}>{h.numero}</Cell>
-            ))}
-            <Cell>V1</Cell>
-            {inn.map((h) => (
-              <Cell key={`h-${h.numero}`}>{h.numero}</Cell>
-            ))}
-            <Cell>V2</Cell>
-            <Cell>TOTAL</Cell>
-          </tr>
-
-          <Row
-            label="Yardas"
-            value={(h) => h.yardas ?? ''}
-            outTotal={t.yardasOut}
-            inTotal={t.yardasIn}
-            total={t.yardas}
-          />
-          <Row label="Par Time" value={(h) => h.parTime} />
-          <Row label="Ventaja" value={(h) => h.ventaja ?? ''} />
-
-          {/* Renglones en blanco para anotar */}
-          <Row label="Score Gross" value={() => ''} />
-
-          <Row
-            label="Handicap"
-            value={(h) => (h.handicap > 0 ? h.handicap : '')}
-            outTotal={t.handicapOut}
-            inTotal={t.handicapIn}
-            total={t.handicap}
-          />
-
-          <Row label="Score Neto" value={() => ''} />
-          <Row label="Puntos" value={() => ''} />
-        </tbody>
+        <ColGroup />
+        <tbody>{rows.map((key) => rowDefs[key])}</tbody>
       </table>
 
       {/* ---------- Pie: club sede, folio y firmas ---------- */}
       <div className="flex items-end justify-between gap-2 border-t border-foreground/70 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
-        <div className="font-semibold">{card.categoryName}</div>
+        <div className="truncate font-semibold">{card.categoryName}</div>
         <div className="flex-1 border-b border-foreground/60 text-center">Anotador</div>
         <div className="flex-1 border-b border-foreground/60 text-center">Firma jugador</div>
         <div className="whitespace-nowrap font-semibold">Folio {card.folio || '—'}</div>
@@ -272,9 +328,18 @@ const AdminTarjetasImpresion = () => {
    * Alto de renglón pedido (`rowh`, mm) acotado al máximo que cabe en la media
    * hoja: así se pueden hacer más altos los renglones sin desplazar la tarjeta.
    */
+  /**
+   * Orden de renglones configurado en Admin → Tarjetas (`rows=hoyo,yardas,...`).
+   * Si no llega o es inválido se usa el orden por defecto del club.
+   */
+  const rowOrder = useMemo(
+    () => normalizeTarjetaRows(params.get('rows')),
+    [params],
+  );
+
   const rowMm = Math.min(
     numParam(params.get('rowh'), 5.5, 3, 12),
-    maxRowMm(headerMm, scale),
+    maxRowMm(headerMm, scale, rowOrder.length),
   );
 
   /**
@@ -531,7 +596,7 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard card={card} rowMm={rowMm} />
+                    <Scorecard card={card} rowMm={rowMm} rows={rowOrder} />
                   </div>
                 </div>
               ))}
