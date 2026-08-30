@@ -373,12 +373,31 @@ const AdminTarjetasImpresion = () => {
     }
   }, [renderPages, sheets.length, filters.fecha]);
 
-  /** `?preview=1` abre la vista previa en cuanto hay datos. */
+  /**
+   * Prepara la vista previa en cuanto hay tarjetas del torneo activo.
+   * Se hace SIEMPRE (no sólo con `?preview=1`) para garantizar que el reporte
+   * se renderizó bien antes de habilitar la impresión; el diálogo sólo se abre
+   * automáticamente cuando viene `?preview=1`.
+   */
   useEffect(() => {
-    if (!autoPreview || autoRan.current || !sheets.length) return;
+    if (autoRan.current || !sheets.length) return;
     autoRan.current = true;
-    void openPreview();
-  }, [autoPreview, sheets.length, openPreview]);
+    void (async () => {
+      setBusy('preview');
+      try {
+        const pages = await renderPages(1.4);
+        setPreviewPages(pages);
+        setPreviewIdx(0);
+        if (autoPreview) setPreviewOpen(true);
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, [autoPreview, sheets.length, renderPages]);
+
+  /** La impresión sólo se habilita cuando la vista previa ya se generó. */
+  const previewReady = previewPages.length > 0 && !busy;
+
 
   /**
    * Imprime desde la vista previa: cierra el diálogo (para que el overlay del
