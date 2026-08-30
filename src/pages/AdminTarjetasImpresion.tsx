@@ -331,10 +331,12 @@ const Scorecard = ({
       <Row key="ventaja" label={TARJETA_ROW_LABELS.ventaja} value={(h) => h.ventaja ?? ''} />
     ),
     /* Renglones en blanco para anotar */
-    /* SCORE GROSS: renglón 1.5× más alto que los demás (donde se anota). */
+    /* SCORE GROSS: renglón 1.5× más alto que los demás (donde se anota).
+       La etiqueta "SCORE GROSS" siempre se imprime en negritas. */
     gross: (
       <Row
         key="gross"
+        bold
         label={TARJETA_ROW_LABELS.gross}
         value={() => ''}
         heightMm={rowMm * 1.5}
