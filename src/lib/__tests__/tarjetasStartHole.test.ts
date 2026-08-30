@@ -55,7 +55,7 @@ describe('isStartHole', () => {
 });
 
 describe('startHoleCellStyle', () => {
-  it('usa negro/blanco puro y fuerza el color al imprimir', () => {
+  it('usa gris #666666 / blanco puro y fuerza el color al imprimir', () => {
     const style = startHoleCellStyle(true)!;
     expect(style.background).toBe(START_HOLE_BG);
     expect(style.backgroundColor).toBe(START_HOLE_BG);
