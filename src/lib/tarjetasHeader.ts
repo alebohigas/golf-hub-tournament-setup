@@ -39,7 +39,12 @@ export const TARJETA_HEADER_LABELS: Record<TarjetaHeaderKey, string> = {
 export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
   hoyohora: '30mm',
   jugador: 'minmax(0,1fr)',
-  vtja: '16mm',
+  /*
+    HCP. NETO: ancho fijo de 20 mm — suficiente para la etiqueta completa
+    ("HCP. NETO" en una sola línea, sin cortes) en cualquier tamaño de hoja,
+    ya que el encabezado se mide en milímetros y no en porcentajes.
+  */
+  vtja: '20mm',
   categoria: '46mm',
   tee: '30mm',
   sistema: '26mm',
