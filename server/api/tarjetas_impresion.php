@@ -97,6 +97,34 @@ function tj_group_hole($g) {
     return null;
 }
 
+// ============= Modo 0: catálogo de TORNEOS (selector de Admin) =============
+/**
+ * GET ...?modo=torneos → { tournaments: [ { id, name, club, year } ] }
+ * Lista los torneos que tienen calendario de juego capturado, del más
+ * reciente al más antiguo, para que Admin → Tarjetas pueda elegir uno
+ * distinto al torneo activo del dominio.
+ */
+if (optional_param('modo') === 'torneos') {
+    $rows = tj_all($conn, "SELECT t.torneo_id, t.nombre, c.nombre AS club,
+                                  MIN(cj.fecha) AS primera_fecha
+                             FROM torneo t
+                        LEFT JOIN clubs c    ON (t.club_id = c.id)
+                             JOIN caljuego cj ON (cj.torneoid = t.torneo_id)
+                            GROUP BY t.torneo_id, t.nombre, c.nombre
+                            ORDER BY t.torneo_id DESC
+                            LIMIT 80");
+    $out = [];
+    foreach ($rows as $r) {
+        $out[] = [
+            'id'    => (string)$r['torneo_id'],
+            'name'  => $r['nombre'] ?? '',
+            'club'  => $r['club'] ?? '',
+            'year'  => !empty($r['primera_fecha']) ? substr((string)$r['primera_fecha'], 0, 4) : '',
+        ];
+    }
+    json_response(['tournaments' => $out]);
+}
+
 // ============= Modo 1: catálogo de días + campos + categorías =============
 if (optional_param('modo') === 'catalogo') {
     $rows = tj_all($conn, "SELECT DISTINCT cj.fecha,
@@ -135,14 +163,31 @@ if (optional_param('modo') === 'catalogo') {
 }
 
 // ============= Parámetros del reporte =============
-$fecha   = trim((string)require_param('fecha'));
+$fechaRaw = trim((string)require_param('fecha'));
 $catidRaw = trim((string)require_param('catid'));
 $campoid = trim((string)optional_param('campoid', ''));
+/** Filtro de tipo de juego: '' | 'auto' (= todas), 'stroke', 'stableford'. */
+$sistemaFilter = strtolower(trim((string)optional_param('sistema', 'auto')));
 
-if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $fecha, $fm) ||
-    !checkdate((int)$fm[2], (int)$fm[3], (int)$fm[1])) {
-    json_error('Parámetro inválido: fecha debe tener formato YYYY-MM-DD.', 400);
+/**
+ * `fecha` acepta un día (2026-04-30) o varios separados por coma
+ * (2026-04-30,2026-05-01) para imprimir un rango en un solo reporte.
+ */
+$fechas = [];
+foreach (explode(',', $fechaRaw) as $piece) {
+    $piece = trim($piece);
+    if ($piece === '') continue;
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $piece, $fm) ||
+        !checkdate((int)$fm[2], (int)$fm[3], (int)$fm[1])) {
+        json_error('Parámetro inválido: fecha debe tener formato YYYY-MM-DD.', 400);
+    }
+    $fechas[$piece] = $piece;
 }
+if (!$fechas) json_error('Parámetro inválido: fecha es obligatoria.', 400);
+$fechas = array_values($fechas);
+sort($fechas);
+/** Primera fecha: se usa para el encabezado y los datos del campo. */
+$fecha = $fechas[0];
 
 /** Lista de categorías solicitadas (enteros positivos, sin duplicados). */
 $catIds = [];
@@ -175,6 +220,22 @@ foreach (tj_all($conn, "SELECT categoria_id, categoria, abreviatura, sistema, sa
     $cats[(int)$c['categoria_id']] = $c;
 }
 if (!$cats) json_error('No se encontraron las categorías solicitadas.', 404);
+
+/**
+ * Filtro por tipo de juego: si Admin fuerza Stroke Play o Stableford se
+ * descartan las categorías del otro sistema ('auto' imprime todas).
+ */
+if ($sistemaFilter === 'stroke' || $sistemaFilter === 'stableford') {
+    foreach ($cats as $k => $c) {
+        $isStable = strpos(strtoupper((string)($c['sistema'] ?? '')), 'STABLE') !== false;
+        if (($sistemaFilter === 'stableford') !== $isStable) unset($cats[$k]);
+    }
+    if (!$cats) {
+        json_error('Ninguna categoría seleccionada corresponde al tipo de juego elegido.', 404);
+    }
+    $catIds = array_keys($cats);
+    $catList = implode(',', $catIds);
+}
 
 // Campo del reporte: el recibido o el de la primera categoría.
 if (!$cEsc) {
@@ -281,11 +342,17 @@ function tj_times($start, $hole, $holes) {
 $holeCol  = tj_hole_column($conn);
 $holeExpr = $holeCol ? "sg.`$holeCol`" : 'NULL';
 
-$where = ["cj.torneoid = $tid", "cj.fecha = '$fEsc'", "sg.categoriaid IN ($catList)"];
-if ($cEsc) $where[] = "cj.campo = $cEsc";
-$where[] = "TIME(sg.horainicio1a) <> '00:00:00'";
+/** Grupos de salida por cada fecha solicitada (rango de días). */
+$groupsByFecha = [];
+/** Fecha larga en español por cada día, para la cabecera de cada tarjeta. */
+$fechaFormatos = [];
+foreach ($fechas as $f) {
+    $fe = esc($conn, $f);
+    $where = ["cj.torneoid = $tid", "cj.fecha = '$fe'", "sg.categoriaid IN ($catList)"];
+    if ($cEsc) $where[] = "cj.campo = $cEsc";
+    $where[] = "TIME(sg.horainicio1a) <> '00:00:00'";
 
-$groups = tj_all($conn, "SELECT sg.id, sg.categoriaid,
+    $groupsByFecha[$f] = tj_all($conn, "SELECT sg.id, sg.categoriaid,
                                 LEFT(RIGHT(sg.horainicio1a, 8), 5) AS hora,
                                 $holeExpr AS hoyo,
                                 sg.teesal
@@ -293,6 +360,9 @@ $groups = tj_all($conn, "SELECT sg.id, sg.categoriaid,
                            JOIN caljuego cj ON (sg.caljuegoid = cj.id)
                           WHERE " . implode(' AND ', $where) . "
                           ORDER BY sg.horainicio1a ASC, sg.id ASC");
+    $row = tj_one($conn, "SELECT DATE_FORMAT('$fe', '%W, %e de %M %Y') AS f");
+    $fechaFormatos[$f] = $row['f'] ?? $f;
+}
 
 /** Cache de hoyos por tee de salida (una consulta por salidaid). */
 $holesBySalida = [];
@@ -323,6 +393,7 @@ $hasCol   = function ($name) use ($vsjCols) {
 };
 
 $cards = [];
+foreach ($groupsByFecha as $gFecha => $groups) {
 foreach ($groups as $g) {
     $catId = (int)$g['categoriaid'];
     if (!isset($cats[$catId])) continue;
@@ -378,6 +449,9 @@ foreach ($groups as $g) {
 
         $cards[] = [
             'groupId'      => (string)$gid,
+            /** Día de juego de esta tarjeta (útil al imprimir un rango). */
+            'fecha'        => (string)$gFecha,
+            'fechaFormato' => $fechaFormatos[$gFecha] ?? (string)$gFecha,
             'hole'         => $hole,
             'time'         => $g['hora'] ?? '',
             'teeSal'       => $g['teesal'] ?? '',
@@ -410,6 +484,7 @@ foreach ($groups as $g) {
         ];
     }
 }
+}
 
 $payload = [
     'tournament'   => $head['nombre'] ?? '',
@@ -419,6 +494,8 @@ $payload = [
     'logoHeader'   => !empty($head['logo_header']) ? $LOGOS_BASE_URL . $head['logo_header'] : '',
     'fecha'        => $fecha,
     'fechaFormato' => $fechaFmt['f'] ?? $fecha,
+    /** Todos los días incluidos en el reporte (rango). */
+    'fechas'       => $fechas,
     'cards'        => $cards,
 ];
 

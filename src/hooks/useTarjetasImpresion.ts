@@ -12,6 +12,7 @@ import { apiFetch } from '@/lib/apiClient';
 import {
   getTarjetasImpresionCatalogoUrl,
   getTarjetasImpresionUrl,
+  getTarjetasTorneosUrl,
   POLL_STATIC,
 } from '@/config/api';
 
@@ -63,6 +64,10 @@ export interface TarjetaTotals {
 /** Una tarjeta de juego completa (un jugador). */
 export interface TarjetaCard {
   groupId: string;
+  /** Día de juego de esta tarjeta (relevante al imprimir un rango). */
+  fecha: string;
+  /** Día de juego en formato largo español. */
+  fechaFormato: string;
   hole: number | null;
   time: string;
   teeSal: string;
@@ -90,18 +95,36 @@ export interface TarjetasReport {
   logoHeader: string;
   fecha: string;
   fechaFormato: string;
+  /** Todos los días incluidos en el reporte (rango). */
+  fechas?: string[];
   cards: TarjetaCard[];
+}
+
+/** Torneo disponible para imprimir tarjetas (selector de Admin). */
+export interface TarjetaTorneo {
+  id: string;
+  name: string;
+  club: string;
+  year: string;
 }
 
 // ============= Queries =============
 
 /** Catálogo de días de juego + campos + categorías con salidas capturadas. */
-export const useTarjetasCatalogo = () =>
+export const useTarjetasCatalogo = (torneoid?: string) =>
   useQuery<{ days: TarjetasCatalogoDay[] }>({
-    queryKey: ['tarjetas-impresion-catalogo'],
+    queryKey: ['tarjetas-impresion-catalogo', torneoid ?? 'activo'],
     queryFn: async () => {
-      return apiFetch<{ days: TarjetasCatalogoDay[] }>(getTarjetasImpresionCatalogoUrl());
+      return apiFetch<{ days: TarjetasCatalogoDay[] }>(getTarjetasImpresionCatalogoUrl(torneoid));
     },
+    staleTime: POLL_STATIC,
+  });
+
+/** Torneos con calendario capturado (selector de torneo en Admin → Tarjetas). */
+export const useTarjetasTorneos = () =>
+  useQuery<{ tournaments: TarjetaTorneo[] }>({
+    queryKey: ['tarjetas-impresion-torneos'],
+    queryFn: async () => apiFetch<{ tournaments: TarjetaTorneo[] }>(getTarjetasTorneosUrl()),
     staleTime: POLL_STATIC,
   });
 
@@ -111,9 +134,12 @@ export const useTarjetasCatalogo = () =>
  * por hoyo se refleje al abrir la página de impresión.
  */
 export const useTarjetasReport = (filters: {
+  /** Un día o varios separados por coma (rango). */
   fecha: string;
   catid: string;
   campoid?: string;
+  sistema?: string;
+  torneoid?: string;
 }) =>
   useQuery<TarjetasReport>({
     queryKey: ['tarjetas-impresion', filters],

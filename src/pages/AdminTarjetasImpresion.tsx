@@ -258,16 +258,6 @@ const Scorecard = ({ card }: { card: TarjetaCard }) => {
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
 
-  /** Filtros de datos. */
-  const filters = useMemo(
-    () => ({
-      fecha: params.get('fecha') ?? '',
-      catid: params.get('catid') ?? '',
-      campoid: params.get('campoid') ?? undefined,
-    }),
-    [params],
-  );
-
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
   const headerMm = numParam(params.get('header'), 30, 10, 60);
   const marginMm = numParam(params.get('margin'), 8, 0, 25);
@@ -275,7 +265,23 @@ const AdminTarjetasImpresion = () => {
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
   const autoPreview = params.get('preview') === '1';
 
+  /**
+   * Filtros de datos. `fecha` puede traer varios días separados por coma
+   * (rango) y `torneoid` permite imprimir un torneo distinto al activo.
+   */
+  const filters = useMemo(
+    () => ({
+      fecha: params.get('fecha') ?? '',
+      catid: params.get('catid') ?? '',
+      campoid: params.get('campoid') ?? undefined,
+      sistema,
+      torneoid: params.get('torneoid') ?? undefined,
+    }),
+    [params, sistema],
+  );
+
   const { data, isLoading, error } = useTarjetasReport(filters);
+
 
   /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
   const cards = useMemo(() => {
@@ -311,11 +317,21 @@ const AdminTarjetasImpresion = () => {
       const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-sheet]'));
       const pages: string[] = [];
       for (const node of nodes) {
+        /*
+          Se rasteriza el MISMO nodo de la hoja con su geometría exacta en px
+          (215.9 × 279.4 mm) para que el PDF no reflowee: mismo CSS de
+          impresión, misma cabecera superior y mismos márgenes laterales.
+        */
         const canvas = await html2canvas(node, {
           scale: pixelScale,
           backgroundColor: '#ffffff',
           useCORS: true,
           logging: false,
+          width: node.offsetWidth,
+          height: node.offsetHeight,
+          windowWidth: node.offsetWidth,
+          scrollX: 0,
+          scrollY: 0,
         });
         pages.push(canvas.toDataURL('image/png'));
       }
@@ -387,7 +403,7 @@ const AdminTarjetasImpresion = () => {
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
               {data
-                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
@@ -457,15 +473,23 @@ const AdminTarjetasImpresion = () => {
                     logo={data?.logoHeader ?? ''}
                     tournament={data?.tournament ?? ''}
                     course={data?.course ?? ''}
-                    fecha={data?.fechaFormato ?? ''}
+                    /* Cada tarjeta muestra SU día de juego (soporta rangos). */
+                    fecha={card.fechaFormato || data?.fechaFormato || ''}
                     heightMm={headerMm}
                   />
-                  {/* La escala mantiene el acomodo idéntico en cualquier impresora */}
+                  {/*
+                    Escala con transform (no `zoom`): es la única forma que
+                    html2canvas replica igual que la impresión, así que el PDF
+                    y la vista previa comparten exactamente el mismo layout,
+                    márgenes laterales y 2 tarjetas por hoja.
+                  */}
                   <div
                     style={{
                       paddingLeft: `${marginMm}mm`,
                       paddingRight: `${marginMm}mm`,
-                      zoom: scale,
+                      width: `${100 / scale}%`,
+                      transform: `scale(${scale})`,
+                      transformOrigin: 'top left',
                     }}
                   >
                     <Scorecard card={card} />

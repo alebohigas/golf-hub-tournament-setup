@@ -174,8 +174,18 @@ export const getTimeLineUrl = (p: {
  * Catálogo (días de juego + campo + categorías) para imprimir tarjetas.
  * Se usa en Admin → pestaña "Tarjetas".
  */
-export const getTarjetasImpresionCatalogoUrl = (): string =>
-  `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({ modo: 'catalogo' })}`;
+export const getTarjetasImpresionCatalogoUrl = (torneoid?: string): string =>
+  `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({
+    modo: 'catalogo',
+    ...(torneoid ? { torneoid } : {}),
+  })}`;
+
+/**
+ * Catálogo de TORNEOS con calendario de juego capturado (selector de Admin →
+ * Tarjetas), para imprimir tarjetas de un torneo distinto al activo.
+ */
+export const getTarjetasTorneosUrl = (): string =>
+  `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({ modo: 'torneos' })}`;
 
 /**
  * Reporte imprimible de TARJETAS de juego (Stroke Play / Stableford).
@@ -184,10 +194,22 @@ export const getTarjetasImpresionCatalogoUrl = (): string =>
  * @param p.campoid ID del campo (opcional; se deduce de la categoría)
  */
 export const getTarjetasImpresionUrl = (p: {
+  /** Un día (YYYY-MM-DD) o varios separados por coma para imprimir un rango. */
   fecha: string;
   catid: string;
   campoid?: string;
-}): string => `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({ ...p })}`;
+  /** 'auto' | 'stroke' | 'stableford' — filtra las categorías por sistema. */
+  sistema?: string;
+  /** Torneo a imprimir; por omisión el torneo activo del dominio. */
+  torneoid?: string;
+}): string =>
+  `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({
+    fecha: p.fecha,
+    catid: p.catid,
+    ...(p.campoid ? { campoid: p.campoid } : {}),
+    ...(p.sistema ? { sistema: p.sistema } : {}),
+    ...(p.torneoid ? { torneoid: p.torneoid } : {}),
+  })}`;
 
 
 
