@@ -53,7 +53,11 @@ import {
   type TimeLineHole,
 } from '@/hooks/useTimeLine';
 // Resaltado del hoyo de inicio (misma fuente de verdad que las tarjetas).
-import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+import {
+  resolveTimeLineStartHole,
+  timeLineStartHoleStyle,
+} from '@/lib/timelineStartHole';
+
 
 
 /**
