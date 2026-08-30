@@ -396,6 +396,12 @@ function tj_times($start, $hole, $holes) {
 // ============= Grupos de salida de las categorías del día =============
 $holeCol  = tj_hole_column($conn);
 $holeExpr = $holeCol ? "sg.`$holeCol`" : 'NULL';
+/*
+ * ORDEN DE IMPRESIÓN DE TARJETAS: 1) hora inicial de salida, 2) número de
+ * hoyo de salida. Los grupos sin hoyo registrado van al final del bloque de
+ * su hora (COALESCE 99) en lugar de al principio.
+ */
+$holeOrderExpr = $holeCol ? "COALESCE(sg.`$holeCol`, 99)" : 'sg.id';
 
 /** Grupos de salida por cada fecha solicitada (rango de días). */
 $groupsByFecha = [];
