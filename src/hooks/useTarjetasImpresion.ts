@@ -100,9 +100,7 @@ export const useTarjetasCatalogo = () =>
   useQuery<{ days: TarjetasCatalogoDay[] }>({
     queryKey: ['tarjetas-impresion-catalogo'],
     queryFn: async () => {
-      const res = await apiFetch(getTarjetasImpresionCatalogoUrl());
-      if (!res.ok) throw new Error('No se pudo cargar el catálogo de tarjetas');
-      return res.json();
+      return apiFetch<{ days: TarjetasCatalogoDay[] }>(getTarjetasImpresionCatalogoUrl());
     },
     staleTime: POLL_STATIC,
   });
@@ -120,9 +118,7 @@ export const useTarjetasReport = (filters: {
   useQuery<TarjetasReport>({
     queryKey: ['tarjetas-impresion', filters],
     queryFn: async () => {
-      const res = await apiFetch(getTarjetasImpresionUrl(filters));
-      if (!res.ok) throw new Error('No se pudo cargar el reporte de tarjetas');
-      return res.json();
+      return apiFetch<TarjetasReport>(getTarjetasImpresionUrl(filters));
     },
     enabled: !!filters.fecha && !!filters.catid,
     staleTime: 0,
