@@ -49,6 +49,9 @@ import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
 import AdminSalidasImpresion from "./pages/AdminSalidasImpresion";
 /** Reporte imprimible TIME LINE (horarios estimados por hoyo). */
 import AdminTimeLine from "./pages/AdminTimeLine";
+/** Reporte imprimible de TARJETAS de juego (2 por hoja carta). */
+import AdminTarjetasImpresion from "./pages/AdminTarjetasImpresion";
+
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import MatchPlay from "./pages/MatchPlay";
