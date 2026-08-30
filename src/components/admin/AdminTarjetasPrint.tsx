@@ -113,12 +113,7 @@ const AdminTarjetasPrint = () => {
   };
 
 
-  /** Al cambiar de torneo se limpian fecha/campo para recargar el catálogo. */
-  useEffect(() => {
-    setFecha('');
-    setFechaFin('');
-    setCampoid('');
-  }, [torneoid]);
+
 
   /** Precarga el primer día disponible. */
   useEffect(() => {
