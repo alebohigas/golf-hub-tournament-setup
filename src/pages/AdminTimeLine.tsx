@@ -280,10 +280,17 @@ const TimeLineBlock = ({
               {dateLabel}
             </td>
             {holes.map((h, i) => (
-              <HoleCell key={`n-${h.numero}`} bold divider={isDivider(i)}>
+              /* El hoyo donde arranca el grupo se resalta (#666666 / #FFFFFF). */
+              <HoleCell
+                key={`n-${h.numero}`}
+                bold
+                divider={isDivider(i)}
+                style={startHoleStyleFor(h.numero, group.hole)}
+              >
                 {String(h.numero).padStart(2, '0')}
               </HoleCell>
             ))}
+
           </tr>
 
           {/* Nombre del campo + par de cada hoyo */}
