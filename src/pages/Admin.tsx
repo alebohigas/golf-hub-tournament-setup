@@ -45,6 +45,9 @@ import AdminBanderas from '@/components/admin/AdminBanderas';
 import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 /** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
+/** Impresión de tarjetas de juego por día y categoría. */
+import AdminTarjetasPrint from '@/components/admin/AdminTarjetasPrint';
+
 /** Reporte TIME LINE: hora estimada de cada grupo en los 18 hoyos. */
 import AdminTimeLinePrint from '@/components/admin/AdminTimeLinePrint';
 import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
@@ -495,6 +498,8 @@ const AdminDashboard = () => {
             { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
             { value: 'salidas',      icon: Printer,         label: 'Salidas' },
             { value: 'timeline',     icon: Clock,           label: 'Time Line' },
+            { value: 'tarjetas',     icon: ClipboardList,   label: 'Tarjetas' },
+
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
             { value: 'historial',    icon: History,         label: 'Historial' },

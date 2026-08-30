@@ -141,6 +141,9 @@ const App = () => (
               {/* Reporte imprimible de salidas por día. */}
               <Route path="/admin/salidas-impresion" element={<AdminSalidasImpresion />} />
               <Route path="/admin/time-line" element={<AdminTimeLine />} />
+              {/* Tarjetas de juego imprimibles (Stroke Play / Stableford). */}
+              <Route path="/admin/tarjetas-impresion" element={<AdminTarjetasImpresion />} />
+
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
               <Route path="/admin/brackets" element={<ModuleGate moduleId="matchplay"><AdminBracketsPage /></ModuleGate>} />
