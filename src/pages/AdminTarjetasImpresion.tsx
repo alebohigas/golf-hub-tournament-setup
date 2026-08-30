@@ -224,6 +224,8 @@ const ColGroup = () => (
 const Scorecard = ({
   card,
   rowMm,
+  padMm,
+
   rows,
   headerFields,
 }: {
