@@ -177,19 +177,22 @@ const CardHeader = ({
   </div>
 );
 
-/** Celda de la tabla de la tarjeta con bordes finos uniformes. */
+/** Celda de la tabla de la tarjeta con bordes finos. */
 const Cell = ({
   children,
   className = '',
   style,
+  darkBorder = false,
 }: {
   children?: React.ReactNode;
   className?: string;
   /** Estilo inline por celda (p. ej. resaltado del hoyo de inicio). */
   style?: React.CSSProperties;
+  /** Borde oscuro (usado en la línea de SCORE GROSS); el resto usa borde claro. */
+  darkBorder?: boolean;
 }) => (
   <td
-    className={`border border-foreground/60 px-0 text-center align-middle ${className}`}
+    className={`border px-0 text-center align-middle ${darkBorder ? 'border-foreground/60' : 'border-foreground/30'} ${className}`}
     style={style}
   >
     {children}
