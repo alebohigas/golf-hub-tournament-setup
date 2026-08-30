@@ -190,13 +190,16 @@ $campoid = trim((string)optional_param('campoid', ''));
  * Campo de la BD que se usará para el HCP. NETO impreso en el encabezado.
  * Configurable en Admin → Tarjetas y enviado como `hcpfield=`:
  *   · 'auto'      → primer campo neto disponible y, si no hay, la suma de ventajas.
+ *   · 'match'     → valida hcpneto/handicapneto/vtjajug y elige el que mejor
+ *                   coincide con el neto calculado por ventajas por hoyo.
  *   · 'hcpneto' | 'handicapneto' | 'vtjajug' → columna específica de la vista.
  *   · 'ventajas'  → forzar la suma de golpes de ventaja por hoyo.
  * Cualquier otro valor se trata como 'auto' (no se aceptan columnas arbitrarias).
  */
-$HCP_FIELDS_OK = ['auto', 'hcpneto', 'handicapneto', 'vtjajug', 'ventajas'];
+$HCP_FIELDS_OK = ['auto', 'match', 'hcpneto', 'handicapneto', 'vtjajug', 'ventajas'];
 $hcpField = strtolower(trim((string)optional_param('hcpfield', 'auto')));
 if (!in_array($hcpField, $HCP_FIELDS_OK, true)) $hcpField = 'auto';
+
 
 /** Filtro de tipo de juego: '' | 'auto' (= todas), 'stroke', 'stableford'. */
 $sistemaFilter = strtolower(trim((string)optional_param('sistema', 'auto')));
