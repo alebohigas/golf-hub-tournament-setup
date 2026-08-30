@@ -250,6 +250,7 @@ const Scorecard = ({
     total,
     head = false,
     bold = false,
+    heightMm,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
@@ -259,11 +260,13 @@ const Scorecard = ({
     head?: boolean;
     /** Imprime TODO el renglón (etiqueta, hoyos y totales) en negritas. */
     bold?: boolean;
+    /** Alto del renglón en mm (por defecto `rowMm`; SCORE GROSS usa 1.5×). */
+    heightMm?: number;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
     <tr
       className={`${head ? 'bg-muted/60 font-bold' : ''} ${bold ? 'font-bold' : ''}`}
-      style={{ height: `${rowMm}mm` }}
+      style={{ height: `${heightMm ?? rowMm}mm` }}
     >
       <Cell
         className={`truncate px-1 text-left text-[6pt] uppercase ${
@@ -328,7 +331,15 @@ const Scorecard = ({
       <Row key="ventaja" label={TARJETA_ROW_LABELS.ventaja} value={(h) => h.ventaja ?? ''} />
     ),
     /* Renglones en blanco para anotar */
-    gross: <Row key="gross" label={TARJETA_ROW_LABELS.gross} value={() => ''} />,
+    /* SCORE GROSS: renglón 1.5× más alto que los demás (donde se anota). */
+    gross: (
+      <Row
+        key="gross"
+        label={TARJETA_ROW_LABELS.gross}
+        value={() => ''}
+        heightMm={rowMm * 1.5}
+      />
+    ),
     handicap: (
       <Row
         key="handicap"
