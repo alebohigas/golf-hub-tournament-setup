@@ -45,6 +45,20 @@ const SHEET_W_MM = 215.9;
 /** Alto de hoja carta. */
 const SHEET_H_MM = 279.4;
 
+/** Renglones de la tabla de hoyos (Hoyo, Par, Yardas, Par Time, Ventaja, Handicap, Score, Puntos). */
+const TABLE_ROWS = 8;
+/** Alto aproximado del bloque de datos del jugador + pie de firmas, en mm. */
+const CARD_CHROME_MM = 22;
+
+/**
+ * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
+ * la media hoja carta (incluye cabecera configurable y escala aplicada).
+ */
+const maxRowMm = (headerMm: number, scale: number) => {
+  const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
+  return Math.max(3, disponible / TABLE_ROWS);
+};
+
 /** Lee un número de la URL acotado a un rango. */
 const numParam = (v: string | null, def: number, min: number, max: number) => {
   const n = Number(v);
