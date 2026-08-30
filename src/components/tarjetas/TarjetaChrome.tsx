@@ -191,15 +191,25 @@ const headerBlocks = (
         </span>
       ),
     },
-    /* "HCP. NETO" + handicap grande. */
+    /*
+      "HCP. NETO" + handicap de juego (neto) en grande.
+      · La etiqueta va con `whitespace-nowrap` y SIN `truncate` para que nunca
+        se corte; la columna mide 20 mm fijos (ver TARJETA_HEADER_WIDTHS).
+      · El valor usa `tabular-nums` para que 1, 2 o 3 dígitos queden siempre
+        centrados igual en cualquier tamaño de hoja.
+    */
     vtja: {
       align: 'center',
       top: (
-        <span className="whitespace-nowrap text-[5.5pt] uppercase leading-none text-foreground/70">
+        <span className="block w-full whitespace-nowrap text-center text-[5.5pt] uppercase leading-none tracking-tight text-foreground/70">
           HCP. NETO
         </span>
       ),
-      bottom: <span className="text-[11pt] font-bold">{tarjetaNum(card.hcp)}</span>,
+      bottom: (
+        <span className="block w-full whitespace-nowrap text-center text-[11pt] font-bold tabular-nums">
+          {tarjetaNum(card.hcp)}
+        </span>
+      ),
     },
     /* Categoría (renglones 1-2) + marcas de salida (renglón 3). */
     categoria: {
