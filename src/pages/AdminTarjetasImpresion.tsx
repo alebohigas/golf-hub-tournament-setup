@@ -387,6 +387,7 @@ const Scorecard = ({
       <Row
         key="gross"
         bold
+        darkBorder
         label={TARJETA_ROW_LABELS.gross}
         value={() => ''}
         heightMm={rowMm * 1.5}
