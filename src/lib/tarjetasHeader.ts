@@ -25,7 +25,7 @@ export type TarjetaHeaderKey =
 export const TARJETA_HEADER_LABELS: Record<TarjetaHeaderKey, string> = {
   hoyohora: 'Hoyo + hora',
   jugador: 'Jugador (ID, nombre y club)',
-  vtja: 'HCP. NETO',
+  vtja: 'HANDICAP NETO',
   categoria: 'Categoría + marcas de salida',
   tee: 'Marcas de salida (solo)',
   sistema: 'Sistema de juego',
@@ -40,11 +40,11 @@ export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
   hoyohora: '30mm',
   jugador: 'minmax(0,1fr)',
   /*
-    HCP. NETO: ancho fijo de 20 mm — suficiente para la etiqueta completa
-    ("HCP. NETO" en una sola línea, sin cortes) en cualquier tamaño de hoja,
+    HANDICAP NETO: ancho fijo de 22 mm — suficiente para la etiqueta completa
+    ("HANDICAP NETO" en una sola línea, sin cortes) en cualquier tamaño de hoja,
     ya que el encabezado se mide en milímetros y no en porcentajes.
   */
-  vtja: '20mm',
+  vtja: '22mm',
   /*
     Categoría: se le cede ~1 columna de ancho al bloque del jugador
     (que es `1fr` y por lo tanto se encoge solo) para que el nombre de la

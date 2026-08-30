@@ -204,9 +204,9 @@ const headerBlocks = (
       ),
     },
     /*
-      "HCP. NETO" + handicap de juego (neto) en grande.
+      "HANDICAP NETO" + handicap de juego (neto) en grande.
       · La etiqueta va con `whitespace-nowrap` y SIN `truncate` para que nunca
-        se corte; la columna mide 20 mm fijos (ver TARJETA_HEADER_WIDTHS).
+        se corte; la columna mide 22 mm fijos (ver TARJETA_HEADER_WIDTHS).
       · El valor usa `tabular-nums` para que 1, 2 o 3 dígitos queden siempre
         centrados igual en cualquier tamaño de hoja.
     */
@@ -214,7 +214,7 @@ const headerBlocks = (
       align: 'center',
       top: (
         <span className="block w-full whitespace-nowrap text-center text-[5.5pt] uppercase leading-none tracking-tight text-foreground/70">
-          HCP. NETO
+          HANDICAP NETO
         </span>
       ),
       bottom: (

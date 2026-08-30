@@ -4,9 +4,9 @@
  * Garantiza que:
  *  - cualquier valor H01–H18 (número o texto) se normaliza correctamente,
  *  - sólo la celda del hoyo de inicio recibe estilo,
- *  - el estilo es negro/blanco puro con `printColorAdjust: 'exact'`, es decir
- *    idéntico en pantalla, impresión y exportación a PDF (misma función,
- *    estilo inline, sin depender de clases ni del tema de diseño).
+ *  - el estilo es gris #666666 / blanco puro con `printColorAdjust: 'exact'`,
+ *    es decir idéntico en pantalla, impresión y exportación a PDF (misma
+ *    función, estilo inline, sin depender de clases ni del tema de diseño).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -55,7 +55,7 @@ describe('isStartHole', () => {
 });
 
 describe('startHoleCellStyle', () => {
-  it('usa negro/blanco puro y fuerza el color al imprimir', () => {
+  it('usa gris #666666 / blanco puro y fuerza el color al imprimir', () => {
     const style = startHoleCellStyle(true)!;
     expect(style.background).toBe(START_HOLE_BG);
     expect(style.backgroundColor).toBe(START_HOLE_BG);
