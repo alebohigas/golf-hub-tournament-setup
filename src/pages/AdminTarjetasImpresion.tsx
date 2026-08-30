@@ -50,18 +50,24 @@ const SHEET_W_MM = 215.9;
 /** Alto de hoja carta. */
 const SHEET_H_MM = 279.4;
 
-/** Alto aproximado del bloque de datos del jugador + pie de firmas, en mm. */
-const CARD_CHROME_MM = 22;
+/**
+ * Alto aproximado del bloque de datos del jugador (encabezado de 3 renglones)
+ * + pie de firmas, en mm.
+ */
+const CARD_CHROME_MM = 26;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
- * la media hoja carta (incluye cabecera configurable, escala aplicada y el
- * número real de renglones que se van a imprimir).
+ * la media hoja carta (incluye cabecera configurable, escala aplicada, el
+ * número real de renglones a imprimir y el brinco de renglón que va después
+ * del encabezado de la tarjeta).
  */
 const maxRowMm = (headerMm: number, scale: number, tableRows: number) => {
   const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
-  return Math.max(3, disponible / Math.max(1, tableRows));
+  // +1 renglón: el espacio en blanco tras el encabezado también mide rowMm.
+  return Math.max(3, disponible / Math.max(1, tableRows + 1));
 };
+
 
 /** Lee un número de la URL acotado a un rango. */
 const numParam = (v: string | null, def: number, min: number, max: number) => {
