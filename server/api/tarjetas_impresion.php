@@ -522,31 +522,52 @@ foreach ($groups as $g) {
         */
         $hcpSuma = array_sum($ventajas);
         $hcpPick = ['value' => $hcpSuma, 'source' => 'ventajas'];
+        /**
+         * Valores crudos de las columnas netas de la BD, para la AUDITORÍA en
+         * pantalla (modo auditoría de Admin → Tarjetas). Sólo se incluyen las
+         * columnas que la vista realmente expone.
+         */
+        $hcpDb = [];
+        foreach (['hcpneto', 'handicapneto', 'vtjajug'] as $col) {
+            if (isset($p[$col]) && $p[$col] !== '' && $p[$col] !== null) {
+                $hcpDb[$col] = (int)round((float)$p[$col]);
+            }
+        }
+        /** Regla aplicada para elegir el valor impreso (texto legible). */
+        $hcpRule = 'Suma de ventajas por hoyo (sin columna neta en la BD)';
         if ($hcpField === 'match') {
             $mejor = null; // ['value','source','diff']
             foreach (['hcpneto', 'handicapneto', 'vtjajug'] as $col) {
-                if (!isset($p[$col]) || $p[$col] === '' || $p[$col] === null) continue;
-                $val = (int)round((float)$p[$col]);
+                if (!isset($hcpDb[$col])) continue;
+                $val = $hcpDb[$col];
                 $diff = abs($val - $hcpSuma);
                 if ($mejor === null || $diff < $mejor['diff']) {
-                    $mejor = ['value' => $val, 'source' => $col . ' (match)', 'diff' => $diff];
+                    $mejor = ['value' => $val, 'source' => $col . ' (match)', 'diff' => $diff, 'col' => $col];
                 }
                 if ($diff === 0) break; // coincidencia exacta: no hay mejor opción
             }
             if ($mejor !== null) {
                 $hcpPick = ['value' => $mejor['value'], 'source' => $mejor['source']];
+                $hcpRule = 'Mejor coincidencia: ' . $mejor['col']
+                    . ' (diferencia ' . $mejor['diff'] . ' vs ventajas por hoyo)';
+            } else {
+                $hcpRule = 'Mejor coincidencia: ninguna columna neta disponible, se usó la suma de ventajas';
             }
         } elseif ($hcpField !== 'ventajas') {
             $candidatos = $hcpField === 'auto'
                 ? ['hcpneto', 'handicapneto', 'vtjajug']
                 : [$hcpField];
             foreach ($candidatos as $col) {
-                if (isset($p[$col]) && $p[$col] !== '' && $p[$col] !== null) {
-                    $hcpPick = ['value' => (int)round((float)$p[$col]), 'source' => $col];
+                if (isset($hcpDb[$col])) {
+                    $hcpPick = ['value' => $hcpDb[$col], 'source' => $col];
+                    $hcpRule = ($hcpField === 'auto' ? 'Automático: ' : 'Columna fija: ') . $col;
                     break;
                 }
             }
+        } else {
+            $hcpRule = 'Forzado: suma de ventajas por hoyo';
         }
+
 
 
         $cards[] = [
