@@ -263,13 +263,13 @@ export const TarjetaHeaderGrid = ({
 };
 
 /**
- * TarjetaAnotadorRow — renglón "SCORE ANOTADOR" que va pegado abajo de la
- * tabla de hoyos (antes del pie de firmas).
+ * TarjetaAnotadorRow — bloque "SCORE ANOTADOR" en 2 renglones que va al
+ * final de la tarjeta, después de un brinco de renglón bajo el pie (firmas).
  *
- * Misma estructura que el renglón HOYO: 18 celdas con el número de hoyo y
- * las columnas acumuladas V1 / V2 / TOTAL, pero con la etiqueta
- * "SCORE ANOTADOR" a la izquierda para que el anotador escriba ahí sus
- * golpes. Lleva un padding-bottom de 3 mm antes de las firmas.
+ * Renglón 1: igual que el renglón HOYO — 18 celdas con el número de hoyo y
+ * las columnas acumuladas V1 / V2 / TOTAL, con la etiqueta "SCORE ANOTADOR"
+ * a la izquierda. Renglón 2: celdas vacías para que el anotador escriba ahí
+ * sus golpes. Lleva un padding-bottom de 3 mm al final de la tarjeta.
  *
  * Usa los mismos anchos de columna (%) que la tabla principal para que las
  * celdas queden perfectamente alineadas con los renglones de arriba.
