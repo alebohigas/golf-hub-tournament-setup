@@ -446,9 +446,16 @@ const AdminTarjetasImpresion = () => {
               )}
               Descargar PDF
             </Button>
-            <Button onClick={() => window.print()} disabled={!sheets.length}>
-              <Printer className="mr-2 h-4 w-4" /> Imprimir
+            {/* Imprimir sólo cuando la vista previa ya está lista */}
+            <Button onClick={() => window.print()} disabled={!previewReady}>
+              {busy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="mr-2 h-4 w-4" />
+              )}
+              {previewReady ? 'Imprimir' : 'Preparando vista previa…'}
             </Button>
+
           </div>
         </div>
 
