@@ -21,7 +21,9 @@
 import type { ReactNode } from 'react';
 import {
   TARJETA_HEADER_WIDTHS,
+  TARJETA_HEADER_FONTS_DEFAULT,
   resolveTeeMark,
+  type TarjetaHeaderFonts,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
 
