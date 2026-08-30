@@ -118,7 +118,7 @@ const Cell = ({
  * Tarjeta de un jugador: encabezado de datos + tabla de 18 hoyos con las
  * columnas acumuladas V1 (ida), V2 (vuelta) y TOTAL.
  */
-const Scorecard = ({ card }: { card: TarjetaCard }) => {
+const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
   const out = card.holes.slice(0, 9);
   const inn = card.holes.slice(9, 18);
   const t = card.totals;
