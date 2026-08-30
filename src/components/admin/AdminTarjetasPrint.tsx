@@ -281,8 +281,9 @@ const AdminTarjetasPrint = () => {
     if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
     if (rowMm < 3 || rowMm > 12) errs.push('El alto de renglón debe estar entre 3 y 12 mm.');
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
+    if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, rowOrder]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, rowOrder, headerOrder]);
 
   const isValid = errors.length === 0;
 
@@ -299,6 +300,7 @@ const AdminTarjetasPrint = () => {
       scale: String(scale),
       rowh: String(rowMm),
       rows: rowOrder.join(','),
+      hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
     }).toString()}`;
 
