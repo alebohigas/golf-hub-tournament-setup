@@ -69,7 +69,7 @@ const TarjetaHeaderFooterPreview = ({
   marginMm,
   sistema,
 }: TarjetaHeaderFooterPreviewProps) => {
-  const sistemaLabel = sistema === 'stableford' ? 'STABLEFORD' : 'STROKE PLAY';
+  const sistemaLabel = sistema === 'stableford' ? 'STABLEFORD' : 'STROKEPLAY';
 
   /** Bloques superior (renglones 1-2) e inferior (renglón 3) por campo. */
   const blocks: Record<
@@ -188,8 +188,11 @@ const TarjetaHeaderFooterPreview = ({
 
           {/* ---------- Pie: sistema, firmas y folio ---------- */}
           <div className="flex items-end justify-between gap-2 border-t border-foreground/70 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
+            {/* Bloque de categoría abajo a la izquierda: renglón 1 "SISTEMA",
+                renglones 2 y 3 el sistema de juego en negritas. */}
             <div className="min-w-0 leading-tight">
-              <div className="text-[5.5pt] text-foreground/70">Sistema</div>
+              <div className="text-[5.5pt] uppercase text-foreground/70">Sistema</div>
+              <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
               <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
             </div>
             <div className="flex-1 border-b border-foreground/60 text-center">Anotador</div>
