@@ -297,6 +297,24 @@ $groups = tj_all($conn, "SELECT sg.id, sg.categoriaid,
 /** Cache de hoyos por tee de salida (una consulta por salidaid). */
 $holesBySalida = [];
 
+/**
+ * Cache del NOMBRE (color) del tee de salida por salidaid — el "AZULES" que
+ * aparece bajo la hora en la tarjeta. Se lee de `campo_tee` por (campo, tee).
+ */
+$teeBySalida = [];
+/** Devuelve el color del tee de salida para el campo del reporte. */
+$teeName = function ($salidaid) use ($conn, $cEsc, &$teeBySalida) {
+    if (!isset($teeBySalida[$salidaid])) {
+        $row = $cEsc ? tj_one($conn, "SELECT tee FROM campo_tee
+                                       WHERE campoid = " . (int)$cEsc . "
+                                         AND salidaid = " . (int)$salidaid . " LIMIT 1") : null;
+        $teeBySalida[$salidaid] = $row['tee'] ?? '';
+    }
+    return $teeBySalida[$salidaid];
+};
+
+
+
 /** Columnas realmente disponibles en la vista de salidas por jugador. */
 $vsjCols  = tj_columns($conn, 'v_sal_jug');
 $hasCol   = function ($name) use ($vsjCols) {
