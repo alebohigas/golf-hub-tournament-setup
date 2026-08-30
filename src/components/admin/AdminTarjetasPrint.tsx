@@ -364,10 +364,51 @@ const AdminTarjetasPrint = () => {
             </div>
 
 
-            {/* Selección de categorías */}
+            {/*
+              Multiselector de categorías: lista con búsqueda dentro de un
+              Popover. Solo aparecen las categorías compatibles con el tipo de
+              juego elegido (todas cuando el tipo es "Automático").
+            */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
                 <Label className="text-xs text-muted-foreground">Categorías</Label>
+                <Popover open={catsOpen} onOpenChange={setCatsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-[320px] justify-between"
+                      disabled={!categorias.length}
+                    >
+                      <span className="truncate">{catsLabel}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar categoría…" />
+                      <CommandList className="max-h-72">
+                        <CommandEmpty>Sin coincidencias.</CommandEmpty>
+                        <CommandGroup>
+                          {categorias.map((c) => (
+                            <CommandItem
+                              key={c.id}
+                              value={`${c.name} ${c.system}`}
+                              onSelect={() => toggleCat(c.id)}
+                              className="gap-2"
+                            >
+                              <Checkbox
+                                checked={catIds.includes(c.id)}
+                                className="pointer-events-none"
+                              />
+                              <span className="flex-1 truncate">{c.name}</span>
+                              <span className="text-xs text-muted-foreground">{c.system}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="outline"
                   size="sm"
@@ -379,22 +420,22 @@ const AdminTarjetasPrint = () => {
                   Ninguna
                 </Button>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {categorias.map((c) => (
-                  <label
-                    key={c.id}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={catIds.includes(c.id)}
-                      onCheckedChange={() => toggleCat(c.id)}
-                    />
-                    <span className="flex-1">
+
+              {/* Resumen de lo seleccionado (clic en la X para quitar) */}
+              <div className="flex flex-wrap gap-2">
+                {categorias
+                  .filter((c) => catIds.includes(c.id))
+                  .map((c) => (
+                    <Badge
+                      key={`sel-${c.id}`}
+                      variant="secondary"
+                      className="cursor-pointer gap-1"
+                      onClick={() => toggleCat(c.id)}
+                    >
                       {c.name}
-                      <span className="ml-1 text-xs text-muted-foreground">({c.system})</span>
-                    </span>
-                  </label>
-                ))}
+                      <X className="h-3 w-3" />
+                    </Badge>
+                  ))}
                 {!categorias.length && (
                   <p className="text-sm text-muted-foreground">
                     No hay categorías con salidas capturadas para este día.
@@ -402,6 +443,7 @@ const AdminTarjetasPrint = () => {
                 )}
               </div>
             </div>
+
 
             {/* Errores de validación */}
             {!isValid && (
