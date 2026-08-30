@@ -10,7 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getTimeLineUrl, POLL_STATIC } from '@/config/api';
+import { getTimeLineUrl } from '@/config/api';
 import type { SalidasImpresionFilters } from '@/hooks/useSalidasImpresion';
 
 // ============= Tipos =============
