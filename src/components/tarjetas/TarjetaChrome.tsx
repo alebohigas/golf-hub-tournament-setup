@@ -302,14 +302,23 @@ export const TarjetaHeaderGrid = ({
  * Renglón 1: igual que el renglón HOYO — 18 celdas con el número de hoyo y
  * las columnas acumuladas V1 / V2 / TOTAL, con la etiqueta "SCORE ANOTADOR"
  * a la izquierda. Renglón 2: celdas vacías para que el anotador escriba ahí
- * sus golpes. Lleva un padding-bottom de 3 mm al final de la tarjeta.
+ * sus golpes. El padding-bottom final es CONFIGURABLE desde Admin → Tarjetas
+ * (`padMm`, 3 mm por omisión) y viaja en la URL del reporte como `pad=`.
  *
  * Usa los mismos anchos de columna (%) que la tabla principal para que las
  * celdas queden perfectamente alineadas con los renglones de arriba.
  *
  * @param rowMm Alto del renglón (el mismo configurable de Admin → Tarjetas).
+ * @param padMm Padding-bottom en mm al final de la tarjeta (default 3).
  */
-export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
+export const TarjetaAnotadorRow = ({
+  rowMm,
+  padMm = 3,
+}: {
+  rowMm: number;
+  padMm?: number;
+}) => {
+
   /** Ancho de la etiqueta y de las columnas de totales (idénticos a la tabla). */
   const COL_LABEL_PCT = 10.6;
   const COL_TOTAL_PCT = 5.6;
