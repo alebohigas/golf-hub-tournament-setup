@@ -338,7 +338,8 @@ export const TarjetaAnotadorRow = ({
   );
 
   return (
-    <div style={{ paddingBottom: '3mm' }}>
+    <div style={{ paddingBottom: `${padMm}mm` }}>
+
       <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
         <colgroup>
           <col style={{ width: `${COL_LABEL_PCT}%` }} />
