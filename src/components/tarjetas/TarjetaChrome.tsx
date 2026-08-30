@@ -311,6 +311,7 @@ export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
           <col style={{ width: `${COL_TOTAL_PCT}%` }} />
         </colgroup>
         <tbody>
+          {/* Renglón 1: números de hoyo, igual que el renglón HOYO */}
           <tr style={{ height: `${rowMm}mm` }}>
             {/* Etiqueta a la izquierda (puede partirse en 2 líneas) */}
             <ACell className="px-1 text-left text-[6pt] font-semibold uppercase leading-tight">
@@ -327,6 +328,12 @@ export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
             ))}
             <ACell className="bg-muted/60 font-bold">V2</ACell>
             <ACell className="bg-muted/60 font-bold">TOTAL</ACell>
+          </tr>
+          {/* Renglón 2: celdas vacías para escribir los golpes del anotador */}
+          <tr style={{ height: `${rowMm}mm` }}>
+            {Array.from({ length: 22 }, (_, i) => (
+              <ACell key={`an-w-${i}`} />
+            ))}
           </tr>
         </tbody>
       </table>
