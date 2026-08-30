@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -22,8 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, ClipboardList, Loader2, Printer } from 'lucide-react';
+import { AlertCircle, ClipboardList, Eye, Loader2, Printer } from 'lucide-react';
 import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+
 
 /** Panel de impresión de tarjetas. */
 const AdminTarjetasPrint = () => {
@@ -35,6 +37,42 @@ const AdminTarjetasPrint = () => {
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
+  /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
+  const [sistema, setSistema] = useState<'auto' | 'stroke' | 'stableford'>('auto');
+  /** Alto de la cabecera superior en mm (3 cm por defecto). */
+  const [headerMm, setHeaderMm] = useState(30);
+  /** Margen lateral de la tarjeta en mm. */
+  const [marginMm, setMarginMm] = useState(8);
+  /** Escala del contenido de la tarjeta en % (mantiene el acomodo estable). */
+  const [scale, setScale] = useState(100);
+
+  /** Clave de persistencia local de la configuración de maquetación. */
+  const LS_KEY = 'tarjetas-print-config';
+
+  /** Carga la configuración guardada. */
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const cfg = JSON.parse(raw) as Partial<{
+        sistema: 'auto' | 'stroke' | 'stableford';
+        headerMm: number;
+        marginMm: number;
+        scale: number;
+      }>;
+      if (cfg.sistema) setSistema(cfg.sistema);
+      if (cfg.headerMm) setHeaderMm(cfg.headerMm);
+      if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
+      if (cfg.scale) setScale(cfg.scale);
+    } catch {
+      /* configuración corrupta: se ignora */
+    }
+  }, []);
+
+  /** Persiste la configuración de maquetación. */
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, JSON.stringify({ sistema, headerMm, marginMm, scale }));
+  }, [sistema, headerMm, marginMm, scale]);
 
   /** Precarga el primer día disponible. */
   useEffect(() => {
@@ -59,10 +97,16 @@ const AdminTarjetasPrint = () => {
     const list = day?.categories ?? camposDeFecha.flatMap((d) => d.categories);
     const seen = new Map<string, (typeof list)[number]>();
     list.forEach((c) => seen.set(c.id, c));
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  }, [days, fecha, campoid, camposDeFecha]);
+    return Array.from(seen.values())
+      .filter((c) => {
+        if (sistema === 'stroke') return !c.system.toUpperCase().includes('STABLE');
+        if (sistema === 'stableford') return c.system.toUpperCase().includes('STABLE');
+        return true;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }, [days, fecha, campoid, camposDeFecha, sistema]);
 
-  /** Al cambiar día/campo se seleccionan todas las categorías por defecto. */
+  /** Al cambiar día/campo/tipo se seleccionan todas las categorías por defecto. */
   useEffect(() => {
     setCatIds(categorias.map((c) => c.id));
   }, [categorias]);
@@ -77,17 +121,33 @@ const AdminTarjetasPrint = () => {
     if (!fecha) errs.push('Selecciona el día de juego.');
     if (!campoid) errs.push('Selecciona el campo.');
     if (!catIds.length) errs.push('Selecciona al menos una categoría.');
+    if (headerMm < 10 || headerMm > 60) errs.push('La cabecera debe estar entre 10 y 60 mm.');
+    if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
+    if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
     return errs;
-  }, [fecha, campoid, catIds]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale]);
 
   const isValid = errors.length === 0;
 
+  /** Construye la URL del reporte con filtros + maquetación. */
+  const buildUrl = (preview: boolean) =>
+    `/admin/tarjetas-impresion?${new URLSearchParams({
+      fecha,
+      campoid,
+      catid: catIds.join(','),
+      sistema,
+      header: String(headerMm),
+      margin: String(marginMm),
+      scale: String(scale),
+      ...(preview ? { preview: '1' } : {}),
+    }).toString()}`;
+
   /** Abre el reporte imprimible en una pestaña nueva. */
-  const generar = () => {
+  const generar = (preview = false) => {
     if (!isValid) return;
-    const qs = new URLSearchParams({ fecha, campoid, catid: catIds.join(',') }).toString();
-    window.open(`/admin/tarjetas-impresion?${qs}`, '_blank');
+    window.open(buildUrl(preview), '_blank');
   };
+
 
   return (
     <Card>
@@ -151,10 +211,67 @@ const AdminTarjetasPrint = () => {
                 </Select>
               </div>
 
-              <Button onClick={generar} disabled={!isValid}>
+              {/* Tipo de juego: auto por categoría, o forzado */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Tipo de juego</Label>
+                <Select
+                  value={sistema}
+                  onValueChange={(v) => setSistema(v as 'auto' | 'stroke' | 'stableford')}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automático (por categoría)</SelectItem>
+                    <SelectItem value="stroke">Stroke Play</SelectItem>
+                    <SelectItem value="stableford">Stableford</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Maquetación: cabecera, margen lateral y escala */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Cabecera (mm)</Label>
+                <Input
+                  type="number"
+                  min={10}
+                  max={60}
+                  className="w-[110px]"
+                  value={headerMm}
+                  onChange={(e) => setHeaderMm(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Margen lateral (mm)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={25}
+                  className="w-[130px]"
+                  value={marginMm}
+                  onChange={(e) => setMarginMm(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Escala (%)</Label>
+                <Input
+                  type="number"
+                  min={60}
+                  max={130}
+                  className="w-[110px]"
+                  value={scale}
+                  onChange={(e) => setScale(Number(e.target.value))}
+                />
+              </div>
+
+              <Button variant="outline" onClick={() => generar(true)} disabled={!isValid}>
+                <Eye className="mr-2 h-4 w-4" /> Vista previa
+              </Button>
+              <Button onClick={() => generar(false)} disabled={!isValid}>
                 <Printer className="mr-2 h-4 w-4" /> Generar
               </Button>
             </div>
+
 
             {/* Selección de categorías */}
             <div className="space-y-2">
