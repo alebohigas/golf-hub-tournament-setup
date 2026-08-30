@@ -213,13 +213,25 @@ $head = tj_one($conn, "SELECT a.nombre, a.logo_header, b.nombre AS club
 $fechaFmt = tj_one($conn, "SELECT DATE_FORMAT('$fEsc', '%W, %e de %M %Y') AS f");
 
 // ============= Categorías solicitadas =============
+/**
+ * `categorias` NO tiene columna `campoid` en todas las instalaciones, por eso
+ * las columnas opcionales se resuelven con tj_columns antes de armar el SELECT:
+ * si se pide una columna inexistente MySQL falla y el reporte quedaba vacío
+ * ("No se encontraron las categorías solicitadas").
+ */
+$catCols = tj_columns($conn, 'categorias');
+$catSelect = ['categoria_id', 'categoria', 'abreviatura', 'sistema', 'salida'];
+foreach (['campoid', 'campo_id', 'campo'] as $optCol) {
+    if (in_array($optCol, $catCols, true)) { $catSelect[] = "`$optCol` AS campoid"; break; }
+}
 $cats = [];
-foreach (tj_all($conn, "SELECT categoria_id, categoria, abreviatura, sistema, salida, campoid
+foreach (tj_all($conn, "SELECT " . implode(', ', $catSelect) . "
                           FROM categorias
                          WHERE categoria_id IN ($catList) AND torneo_id = $tid") as $c) {
     $cats[(int)$c['categoria_id']] = $c;
 }
 if (!$cats) json_error('No se encontraron las categorías solicitadas.', 404);
+
 
 /**
  * Filtro por tipo de juego: si Admin fuerza Stroke Play o Stableford se
