@@ -311,6 +311,12 @@ const Scorecard = ({
         outTotal="V1"
         inTotal="V2"
         total="TOTAL"
+        /* Hoyo de salida (H01, H10, …): recuadro negro con número blanco. */
+        holeCellClass={(h) =>
+          card.hole != null && h.numero === card.hole
+            ? 'bg-black text-white font-bold print:bg-black print:text-white'
+            : ''
+        }
       />
     ),
     /* PAR CAMPO: todo el renglón (etiqueta, hoyos y totales) va en NEGRITAS. */
