@@ -41,11 +41,15 @@ import {
   type TarjetaRowKey,
 } from '@/lib/tarjetasRows';
 import {
-  TARJETA_HEADER_WIDTHS,
   normalizeTarjetaHeader,
-  resolveTeeMark,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
+/* Maqueta compartida (encabezado 3 renglones + pie de firmas) con la vista previa. */
+import {
+  TarjetaFooter,
+  TarjetaHeaderGrid,
+} from '@/components/tarjetas/TarjetaChrome';
+
 
 // ============= Constantes de hoja =============
 
