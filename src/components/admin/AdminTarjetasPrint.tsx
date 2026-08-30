@@ -55,11 +55,9 @@ import { useToast } from '@/hooks/use-toast';
 
 /** Panel de impresión de tarjetas. */
 const AdminTarjetasPrint = () => {
-  /** Torneo elegido ('' = torneo activo del dominio). */
-  const [torneoid, setTorneoid] = useState('');
-  const { data: torneosData } = useTarjetasTorneos();
-  const torneos = torneosData?.tournaments ?? [];
-  const { data, isLoading } = useTarjetasCatalogo(torneoid || undefined);
+  /** Catálogo del torneo ACTIVO del sitio (sin selector de torneo). */
+  const { data, isLoading } = useTarjetasCatalogo();
+
   const days = data?.days ?? [];
   const { data: siteConfig } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
