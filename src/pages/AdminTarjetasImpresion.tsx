@@ -191,21 +191,17 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
       <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
         <tbody>
           {/* Números de hoyo */}
-          <tr className="bg-muted/60 font-bold">
+          <tr className="bg-muted/60 font-bold" style={{ height: `${rowMm}mm` }}>
             <Cell className="w-[16mm] px-1 text-left text-[6pt] uppercase">Hoyo</Cell>
             {out.map((h) => (
-              <Cell key={`h-${h.numero}`} className="py-[1mm]">
-                {h.numero}
-              </Cell>
+              <Cell key={`h-${h.numero}`}>{h.numero}</Cell>
             ))}
-            <Cell className="py-[1mm]">V1</Cell>
+            <Cell>V1</Cell>
             {inn.map((h) => (
-              <Cell key={`h-${h.numero}`} className="py-[1mm]">
-                {h.numero}
-              </Cell>
+              <Cell key={`h-${h.numero}`}>{h.numero}</Cell>
             ))}
-            <Cell className="py-[1mm]">V2</Cell>
-            <Cell className="py-[1mm]">TOTAL</Cell>
+            <Cell>V2</Cell>
+            <Cell>TOTAL</Cell>
           </tr>
 
           <Row
