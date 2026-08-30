@@ -267,7 +267,14 @@ const TimeLineBlock = ({
   timeMode?: 'full' | 'compact';
 }) => {
 
+  /**
+   * Hoyo donde arranca el bloque: se deduce de la BD (columna de hoyo, hora de
+   * salida o marca de salida) y tolera hoyos intermedios faltantes.
+   */
+  const startHole = resolveTimeLineStartHole(group, holes);
+
   /** ¿Esta columna cierra un tramo de 3 hoyos? */
+
   const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
   return (
