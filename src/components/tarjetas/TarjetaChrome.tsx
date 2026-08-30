@@ -161,7 +161,7 @@ const headerBlocks = (
       align: 'left',
       topRows: 1,
       top: (
-        <span className="text-[9pt] font-bold leading-none">
+        <span className="text-[13pt] font-bold leading-none">
           {tarjetaHoleLabel(card.hole)}
         </span>
       ),
@@ -203,7 +203,7 @@ const headerBlocks = (
     categoria: {
       align: 'right',
       top: (
-        <span className="truncate text-[9pt] font-bold uppercase">
+        <span className="truncate text-[18pt] font-bold uppercase">
           {tarjetaText(card.categoryName || card.shortName, 'SIN CATEGORÍA')}
         </span>
       ),
@@ -392,7 +392,7 @@ export const TarjetaAnotadorRow = ({
 export const TarjetaFooter = ({ card }: { card: TarjetaChromeData }) => {
   const sistemaLabel = tarjetaSistemaLabel(card.system);
   return (
-    <div className="flex items-end justify-between gap-2 border-t border-foreground/70 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
+    <div className="flex items-end justify-between gap-2 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
       {/* Renglón 1 "SISTEMA"; renglón 2 el sistema en negritas (una sola vez). */}
       <div className="min-w-0 leading-tight">
         <div className="text-[5.5pt] uppercase text-foreground/70">Sistema</div>
