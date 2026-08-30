@@ -46,33 +46,37 @@ const AdminTarjetasPrint = () => {
   /** Escala del contenido de la tarjeta en % (mantiene el acomodo estable). */
   const [scale, setScale] = useState(100);
 
-  /** Clave de persistencia local de la configuración de maquetación. */
-  const LS_KEY = 'tarjetas-print-config';
-
-  /** Carga la configuración guardada. */
+  /**
+   * Hidrata la maquetación desde la base (`site_config.tarjetas_config`).
+   * Ya no se usa localStorage: la configuración es la misma en cualquier
+   * navegador o dispositivo.
+   */
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return;
-      const cfg = JSON.parse(raw) as Partial<{
-        sistema: 'auto' | 'stroke' | 'stableford';
-        headerMm: number;
-        marginMm: number;
-        scale: number;
-      }>;
-      if (cfg.sistema) setSistema(cfg.sistema);
-      if (cfg.headerMm) setHeaderMm(cfg.headerMm);
-      if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
-      if (cfg.scale) setScale(cfg.scale);
-    } catch {
-      /* configuración corrupta: se ignora */
-    }
-  }, []);
+    const cfg = siteConfig?.tarjetas_config;
+    if (!cfg) return;
+    if (cfg.sistema) setSistema(cfg.sistema);
+    if (typeof cfg.headerMm === 'number') setHeaderMm(cfg.headerMm);
+    if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
+    if (typeof cfg.scale === 'number') setScale(cfg.scale);
+  }, [siteConfig?.tarjetas_config]);
 
-  /** Persiste la configuración de maquetación. */
-  useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify({ sistema, headerMm, marginMm, scale }));
-  }, [sistema, headerMm, marginMm, scale]);
+  /** Guarda la maquetación en la base de datos. */
+  const guardarConfig = () => {
+    const payload: TarjetasPrintConfig = { sistema, headerMm, marginMm, scale };
+    saveSiteConfig.mutate(
+      { password: getSuperAdminPassword(), tarjetas_config: payload },
+      {
+        onSuccess: () =>
+          toast({
+            title: 'Maquetación guardada',
+            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}%.`,
+          }),
+        onError: (err) =>
+          toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
+      },
+    );
+  };
+
 
   /** Precarga el primer día disponible. */
   useEffect(() => {
