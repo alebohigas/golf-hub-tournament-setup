@@ -139,7 +139,8 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
     total?: React.ReactNode;
     bold?: boolean;
   }) => (
-    <tr className={bold ? 'font-bold' : ''}>
+    /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
+    <tr className={bold ? 'font-bold' : ''} style={{ height: `${rowMm}mm` }}>
       <Cell className="w-[16mm] whitespace-nowrap px-1 text-left text-[6pt] font-semibold uppercase">
         {label}
       </Cell>
