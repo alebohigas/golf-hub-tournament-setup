@@ -46,6 +46,7 @@ import {
   X,
 } from 'lucide-react';
 import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import TarjetaHeaderFooterPreview from '@/components/admin/TarjetaHeaderFooterPreview';
 import {
   useSiteConfig,
   useSaveSiteConfig,
@@ -623,6 +624,21 @@ const AdminTarjetasPrint = () => {
                 )}
               </div>
 
+              {/*
+                Previsualización EN VIVO del encabezado y del pie de firmas con
+                la configuración actual (misma maqueta que impresión y PDF).
+              */}
+              <div className="basis-full space-y-2 rounded-md border p-3">
+                <Label className="text-xs text-muted-foreground">
+                  Previsualización del encabezado y firmas
+                </Label>
+                <TarjetaHeaderFooterPreview
+                  headerOrder={headerOrder}
+                  rowMm={rowMm}
+                  marginMm={marginMm}
+                  sistema={sistema}
+                />
+              </div>
 
 
               <Button variant="outline" onClick={() => generar(true)} disabled={!isValid}>
