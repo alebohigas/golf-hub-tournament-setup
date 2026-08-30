@@ -64,6 +64,8 @@ import {
   TARJETA_HEADER_ALL,
   TARJETA_HEADER_DEFAULT,
   TARJETA_HEADER_LABELS,
+  TARJETA_HEADER_FONTS_DEFAULT,
+  clampTarjetaFont,
   normalizeTarjetaHeader,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
@@ -109,6 +111,16 @@ const AdminTarjetasPrint = () => {
    * la previsualización, la impresión y el PDF sean idénticos.
    */
   const [padMm, setPadMm] = useState(3);
+
+  /**
+   * Tamaños de letra (pt) del encabezado de la tarjeta:
+   *   · `fsHoyoPt` → hoyo (H01) y hora de salida.
+   *   · `fsCatPt`  → nombre de la categoría.
+   * Viajan al reporte como `fsh=` y `fsc=` para que la vista previa, la
+   * impresión y el PDF usen exactamente el mismo tamaño de letra.
+   */
+  const [fsHoyoPt, setFsHoyoPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.hoyoPt);
+  const [fsCatPt, setFsCatPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.catPt);
 
   /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
@@ -177,6 +189,10 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
     if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
     if (typeof cfg.padMm === 'number') setPadMm(cfg.padMm);
+    if (typeof cfg.fsHoyoPt === 'number')
+      setFsHoyoPt(clampTarjetaFont(cfg.fsHoyoPt, TARJETA_HEADER_FONTS_DEFAULT.hoyoPt));
+    if (typeof cfg.fsCatPt === 'number')
+      setFsCatPt(clampTarjetaFont(cfg.fsCatPt, TARJETA_HEADER_FONTS_DEFAULT.catPt));
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
     if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
@@ -192,6 +208,8 @@ const AdminTarjetasPrint = () => {
       padMm,
       rowOrder,
       headerOrder,
+      fsHoyoPt,
+      fsCatPt,
     };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
@@ -312,6 +330,8 @@ const AdminTarjetasPrint = () => {
       scale: String(scale),
       rowh: String(rowMm),
       pad: String(padMm),
+      fsh: String(fsHoyoPt),
+      fsc: String(fsCatPt),
       rows: rowOrder.join(','),
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
@@ -499,6 +519,43 @@ const AdminTarjetasPrint = () => {
               </div>
 
               {/*
+                Tamaño de letra (pt) del hoyo + hora de salida en el encabezado.
+                Viaja en la URL como `fsh=`.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Letra hoyo y hora (pt)
+                </Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={6}
+                  max={24}
+                  className="w-[140px]"
+                  value={fsHoyoPt}
+                  onChange={(e) => setFsHoyoPt(Number(e.target.value))}
+                />
+              </div>
+
+              {/*
+                Tamaño de letra (pt) del nombre de la categoría. Viaja como `fsc=`.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Letra categoría (pt)
+                </Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={6}
+                  max={24}
+                  className="w-[140px]"
+                  value={fsCatPt}
+                  onChange={(e) => setFsCatPt(Number(e.target.value))}
+                />
+              </div>
+
+              {/*
                 Orden de renglones de la tarjeta: se guarda en la base y viaja
                 en la URL del reporte, así la vista previa, la impresión y el
                 PDF usan exactamente la misma maqueta.
@@ -670,6 +727,7 @@ const AdminTarjetasPrint = () => {
                   padMm={padMm}
                   marginMm={marginMm}
                   sistema={sistema}
+                  headerFonts={{ hoyoPt: fsHoyoPt, catPt: fsCatPt }}
                 />
               </div>
 
