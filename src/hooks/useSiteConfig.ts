@@ -451,6 +451,8 @@ export interface TarjetasPrintConfig {
   rowMm?: number;
   /** Orden y visibilidad de los renglones de la tarjeta (ver `@/lib/tarjetasRows`). */
   rowOrder?: string[];
+  /** Campos y orden del encabezado de 3 renglones (ver `@/lib/tarjetasHeader`). */
+  headerOrder?: string[];
 }
 
 /** Full server response for site config */

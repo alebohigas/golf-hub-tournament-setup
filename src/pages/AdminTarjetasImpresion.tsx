@@ -40,6 +40,12 @@ import {
   normalizeTarjetaRows,
   type TarjetaRowKey,
 } from '@/lib/tarjetasRows';
+import {
+  TARJETA_HEADER_WIDTHS,
+  normalizeTarjetaHeader,
+  resolveTeeMark,
+  type TarjetaHeaderKey,
+} from '@/lib/tarjetasHeader';
 
 // ============= Constantes de hoja =============
 
@@ -51,22 +57,30 @@ const SHEET_W_MM = 215.9;
 const SHEET_H_MM = 279.4;
 
 /**
- * Alto aproximado del bloque de datos del jugador (encabezado de 3 renglones)
- * + pie de firmas, en mm.
+ * Alto aproximado del pie de firmas de la tarjeta, en mm (el encabezado y los
+ * brincos de renglón se calculan aparte porque miden `rowMm`).
  */
-const CARD_CHROME_MM = 26;
+const CARD_CHROME_MM = 9;
+
+/**
+ * Renglones "extra" que también miden `rowMm`:
+ *   3 → encabezado de datos del jugador
+ *   1 → brinco entre encabezado y tabla
+ *   3 → margen entre el último renglón de la tabla y las firmas
+ */
+const EXTRA_ROWS = 7;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
  * la media hoja carta (incluye cabecera configurable, escala aplicada, el
- * número real de renglones a imprimir y el brinco de renglón que va después
- * del encabezado de la tarjeta).
+ * número real de renglones a imprimir y los renglones extra de encabezado,
+ * brinco y margen de firmas).
  */
 const maxRowMm = (headerMm: number, scale: number, tableRows: number) => {
   const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
-  // +1 renglón: el espacio en blanco tras el encabezado también mide rowMm.
-  return Math.max(3, disponible / Math.max(1, tableRows + 1));
+  return Math.max(3, disponible / Math.max(1, tableRows + EXTRA_ROWS));
 };
+
 
 
 /** Lee un número de la URL acotado a un rango. */
@@ -180,20 +194,46 @@ const ColGroup = () => (
 );
 
 /**
+ * TeeMarkChip
+ * Leyenda del color de marcas de salida: cuadro con el color real del tee
+ * (según el tipo de salida guardado en la BD) + el nombre del tee.
+ */
+const TeeMarkChip = ({ tee, teeSal }: { tee?: string; teeSal?: string }) => {
+  const mark = resolveTeeMark(tee, teeSal);
+  if (!mark.label) return null;
+  return (
+    <span className="flex min-w-0 items-center justify-end gap-1">
+      {mark.color ? (
+        <span
+          className="inline-block shrink-0 rounded-[0.5mm] border border-foreground/70"
+          style={{ width: '3mm', height: '3mm', backgroundColor: mark.color }}
+          aria-hidden
+        />
+      ) : null}
+      <span className="truncate uppercase">{mark.label}</span>
+    </span>
+  );
+};
+
+/**
  * Tarjeta de un jugador: encabezado de datos + tabla de 18 hoyos con las
  * columnas acumuladas V1 (ida), V2 (vuelta) y TOTAL.
  *
- * @param rows Orden de renglones configurado en Admin → Tarjetas.
+ * @param rows         Orden de renglones configurado en Admin → Tarjetas.
+ * @param headerFields Campos y orden del encabezado (3 renglones), Admin.
  */
 const Scorecard = ({
   card,
   rowMm,
   rows,
+  headerFields,
 }: {
   card: TarjetaCard;
   rowMm: number;
   rows: TarjetaRowKey[];
+  headerFields: TarjetaHeaderKey[];
 }) => {
+
   const out = card.holes.slice(0, 9);
   const inn = card.holes.slice(9, 18);
   const t = card.totals;
@@ -206,6 +246,7 @@ const Scorecard = ({
     inTotal,
     total,
     head = false,
+    bold = false,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
@@ -213,13 +254,19 @@ const Scorecard = ({
     inTotal?: React.ReactNode;
     total?: React.ReactNode;
     head?: boolean;
+    /** Imprime TODO el renglón (etiqueta, hoyos y totales) en negritas. */
+    bold?: boolean;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
     <tr
-      className={head ? 'bg-muted/60 font-bold' : ''}
+      className={`${head ? 'bg-muted/60 font-bold' : ''} ${bold ? 'font-bold' : ''}`}
       style={{ height: `${rowMm}mm` }}
     >
-      <Cell className="truncate px-1 text-left text-[6pt] font-semibold uppercase">
+      <Cell
+        className={`truncate px-1 text-left text-[6pt] uppercase ${
+          bold ? 'font-bold' : 'font-semibold'
+        }`}
+      >
         {label}
       </Cell>
       {out.map((h) => (
@@ -247,9 +294,20 @@ const Scorecard = ({
         total="TOTAL"
       />
     ),
+    /* PAR CAMPO: todo el renglón (etiqueta, hoyos y totales) va en NEGRITAS. */
     par: (
-      <Row key="par" label={TARJETA_ROW_LABELS.par} value={(h) => h.par ?? ''} />
+      <Row
+        key="par"
+        bold
+        label={TARJETA_ROW_LABELS.par}
+        value={(h) => h.par ?? ''}
+        outTotal={t.parOut}
+        inTotal={t.parIn}
+        total={t.par}
+      />
     ),
+
+
     yardas: (
       <Row
         key="yardas"
@@ -282,63 +340,135 @@ const Scorecard = ({
     puntos: <Row key="puntos" label={TARJETA_ROW_LABELS.puntos} value={() => ''} />,
   };
 
+  /** Sistema de juego impreso en el pie ("STROKE PLAY" / "STABLEFORD"). */
+  const sistemaLabel = (card.system || '').toUpperCase().includes('STABLE')
+    ? 'STABLEFORD'
+    : 'STROKE PLAY';
+
+  /**
+   * Bloques del encabezado de 3 renglones. Cada campo es una columna con un
+   * bloque superior (renglones 1-2) y otro inferior (renglón 3); el orden y la
+   * visibilidad se configuran en Admin → Tarjetas.
+   */
+  const headerBlocks: Record<
+    TarjetaHeaderKey,
+    { top: React.ReactNode; bottom: React.ReactNode; align: 'left' | 'center' | 'right' }
+  > = {
+    /* Hoyo + hora de salida: ocupa los 3 renglones con letra grande. */
+    hoyohora: {
+      align: 'left',
+      top: (
+        <span className="text-[13pt] font-bold">
+          H{String(card.hole ?? 1).padStart(2, '0')} {card.time}
+        </span>
+      ),
+      bottom: null,
+    },
+    /* ID + nombre (renglones 1-2) y club del jugador (renglón 3). */
+    jugador: {
+      align: 'left',
+      top: (
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="text-[9.5pt] font-bold">{card.playerNumber}</span>
+          <span className="truncate text-[9.5pt] font-bold uppercase">{card.name}</span>
+        </span>
+      ),
+      bottom: <span className="truncate uppercase text-foreground/80">{card.club}</span>,
+    },
+    /* "VTJA" (renglón 1) + handicap grande (renglones 2-3). */
+    vtja: {
+      align: 'center',
+      top: (
+        <span className="text-[5.5pt] uppercase leading-none text-foreground/70">Vtja</span>
+      ),
+      bottom: <span className="text-[11pt] font-bold">{card.hcp}</span>,
+    },
+    /* Categoría completa (renglones 1-2) + marcas de salida (renglón 3). */
+    categoria: {
+      align: 'right',
+      top: (
+        <span className="truncate text-[9pt] font-bold uppercase">
+          {card.categoryName || card.shortName}
+        </span>
+      ),
+      bottom: <TeeMarkChip tee={card.tee} teeSal={card.teeSal} />,
+    },
+    /* Marcas de salida como campo independiente. */
+    tee: {
+      align: 'right',
+      top: (
+        <span className="text-[5.5pt] uppercase leading-none text-foreground/70">Salida</span>
+      ),
+      bottom: <TeeMarkChip tee={card.tee} teeSal={card.teeSal} />,
+    },
+    /* Sistema de juego. */
+    sistema: {
+      align: 'right',
+      top: (
+        <span className="text-[5.5pt] uppercase leading-none text-foreground/70">Sistema</span>
+      ),
+      bottom: <span className="truncate text-[7pt] font-bold uppercase">{sistemaLabel}</span>,
+    },
+    /* Folio de la tarjeta. */
+    folio: {
+      align: 'right',
+      top: (
+        <span className="text-[5.5pt] uppercase leading-none text-foreground/70">Folio</span>
+      ),
+      bottom: (
+        <span className="truncate text-[7pt] font-bold">{card.folio || '—'}</span>
+      ),
+    },
+  };
+
+  /** Clases de alineación horizontal por bloque. */
+  const alignCls = {
+    left: 'justify-start text-left',
+    center: 'justify-center text-center',
+    right: 'justify-end text-right',
+  } as const;
+
   return (
     <div className="border border-foreground/70">
       {/*
         ---------- Encabezado de datos del jugador (3 renglones) ----------
-        Rejilla de 3 renglones iguales y 4 columnas:
-          col 1: hoyo + hora (ocupa los 3 renglones, letra grande)
-          col 2: id + nombre (renglones 1-2) y club del jugador (renglón 3)
-          col 3: "VTJA" (renglón 1) y handicap (renglones 2-3)
-          col 4: nombre completo de categoría (renglones 1-2) y color de
-                 marcas de salida (renglón 3)
+        Rejilla de 3 renglones: los campos y su orden se definen en
+        Admin → Tarjetas (`hfields` en la URL del reporte). El bloque superior
+        de cada campo ocupa los renglones 1-2 y el inferior el renglón 3.
       */}
       <div
         className="grid border-b border-foreground/70 text-[8pt]"
         style={{
-          gridTemplateColumns: '30mm minmax(0,1fr) 14mm 46mm',
-          gridTemplateRows: 'repeat(3, 1fr)',
+          gridTemplateColumns: headerFields
+            .map((k) => TARJETA_HEADER_WIDTHS[k])
+            .join(' '),
+          height: `${rowMm * 3}mm`,
         }}
       >
-        {/* Hoyo + hora de salida (3 renglones, letra grande) */}
-        <div className="row-span-3 flex flex-col items-start justify-center border-r border-foreground/70 px-1 leading-tight">
-          <span className="text-[13pt] font-bold">
-            H{String(card.hole ?? 1).padStart(2, '0')} {card.time}
-          </span>
-        </div>
-
-        {/* Número y nombre del jugador (renglones 1-2) */}
-        <div className="row-span-2 flex min-w-0 items-center gap-2 px-2 leading-tight">
-          <span className="text-[9.5pt] font-bold">{card.playerNumber}</span>
-          <span className="truncate text-[9.5pt] font-bold uppercase">{card.name}</span>
-        </div>
-
-        {/* Etiqueta VTJA (renglón 1) */}
-        <div className="flex items-center justify-center border-l border-foreground/70 text-[5.5pt] uppercase leading-none text-foreground/70">
-          Vtja
-        </div>
-
-        {/* Categoría completa (renglones 1-2) */}
-        <div className="row-span-2 flex min-w-0 items-center justify-end border-l border-foreground/70 px-1 text-right leading-tight">
-          <span className="truncate text-[9pt] font-bold uppercase">
-            {card.categoryName || card.shortName}
-          </span>
-        </div>
-
-        {/* Club del jugador (renglón 3) */}
-        <div className="flex min-w-0 items-center px-2 leading-tight">
-          <span className="truncate uppercase text-foreground/80">{card.club}</span>
-        </div>
-
-        {/* Handicap total (renglones 2-3) */}
-        <div className="row-span-2 flex items-center justify-center border-l border-foreground/70 leading-none">
-          <span className="text-[11pt] font-bold">{card.hcp}</span>
-        </div>
-
-        {/* Color de marcas de salida (renglón 3) */}
-        <div className="flex min-w-0 items-center justify-end border-l border-foreground/70 px-1 text-right leading-tight">
-          <span className="truncate uppercase text-foreground/80">{card.tee}</span>
-        </div>
+        {headerFields.map((key, i) => {
+          const block = headerBlocks[key];
+          return (
+            <div
+              key={key}
+              className={`flex min-w-0 flex-col leading-tight ${
+                i > 0 ? 'border-l border-foreground/70' : ''
+              }`}
+            >
+              {/* Bloque superior: renglones 1 y 2 */}
+              <div
+                className={`flex min-w-0 flex-[2] items-center px-1 ${alignCls[block.align]}`}
+              >
+                {block.top}
+              </div>
+              {/* Bloque inferior: renglón 3 */}
+              <div
+                className={`flex min-w-0 flex-1 items-center px-1 ${alignCls[block.align]}`}
+              >
+                {block.bottom}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Brinco de renglón entre el encabezado y la tabla de hoyos */}
@@ -350,17 +480,27 @@ const Scorecard = ({
         <tbody>{rows.map((key) => rowDefs[key])}</tbody>
       </table>
 
+      {/* Margen de 3 renglones entre el último renglón y las firmas */}
+      <div style={{ height: `${rowMm * 3}mm` }} />
 
-      {/* ---------- Pie: club sede, folio y firmas ---------- */}
+      {/* ---------- Pie: sistema de juego, folio y firmas ---------- */}
       <div className="flex items-end justify-between gap-2 border-t border-foreground/70 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
-        <div className="truncate font-semibold">{card.categoryName}</div>
+        {/* Renglón 1: "SISTEMA"; renglones 2-3: STROKE PLAY / STABLEFORD */}
+        <div className="min-w-0 leading-tight">
+          <div className="text-[5.5pt] text-foreground/70">Sistema</div>
+          <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
+        </div>
         <div className="flex-1 border-b border-foreground/60 text-center">Anotador</div>
-        <div className="flex-1 border-b border-foreground/60 text-center">Firma jugador</div>
+        {/* En lugar de "Firma jugador" se imprime el nombre del jugador */}
+        <div className="flex-1 truncate border-b border-foreground/60 text-center">
+          {card.name}
+        </div>
         <div className="whitespace-nowrap font-semibold">Folio {card.folio || '—'}</div>
       </div>
     </div>
   );
 };
+
 
 // ============= Página =============
 
@@ -388,10 +528,20 @@ const AdminTarjetasImpresion = () => {
     [params],
   );
 
+  /**
+   * Campos y orden del encabezado de 3 renglones configurado en Admin
+   * (`hfields=hoyohora,jugador,...`).
+   */
+  const headerFields = useMemo(
+    () => normalizeTarjetaHeader(params.get('hfields')),
+    [params],
+  );
+
   const rowMm = Math.min(
     numParam(params.get('rowh'), 5.5, 3, 12),
     maxRowMm(headerMm, scale, rowOrder.length),
   );
+
 
   /**
    * Filtros de datos. `fecha` puede traer varios días separados por coma
@@ -650,7 +800,12 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard card={card} rowMm={rowMm} rows={rowOrder} />
+                    <Scorecard
+                      card={card}
+                      rowMm={rowMm}
+                      rows={rowOrder}
+                      headerFields={headerFields}
+                    />
                   </div>
                 </div>
               ))}
