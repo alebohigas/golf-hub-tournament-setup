@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AlertCircle, ClipboardList, Eye, Loader2, Printer, Save } from 'lucide-react';
-import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import { useTarjetasCatalogo, useTarjetasTorneos } from '@/hooks/useTarjetasImpresion';
 import {
   useSiteConfig,
   useSaveSiteConfig,
@@ -36,7 +36,11 @@ import { useToast } from '@/hooks/use-toast';
 
 /** Panel de impresión de tarjetas. */
 const AdminTarjetasPrint = () => {
-  const { data, isLoading } = useTarjetasCatalogo();
+  /** Torneo elegido ('' = torneo activo del dominio). */
+  const [torneoid, setTorneoid] = useState('');
+  const { data: torneosData } = useTarjetasTorneos();
+  const torneos = torneosData?.tournaments ?? [];
+  const { data, isLoading } = useTarjetasCatalogo(torneoid || undefined);
   const days = data?.days ?? [];
   const { data: siteConfig } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
@@ -44,6 +48,8 @@ const AdminTarjetasPrint = () => {
 
   // ============= Estado del formulario =============
   const [fecha, setFecha] = useState('');
+  /** Fecha final del rango ('' = un solo día). */
+  const [fechaFin, setFechaFin] = useState('');
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
@@ -88,6 +94,13 @@ const AdminTarjetasPrint = () => {
   };
 
 
+  /** Al cambiar de torneo se limpian fecha/campo para recargar el catálogo. */
+  useEffect(() => {
+    setFecha('');
+    setFechaFin('');
+    setCampoid('');
+  }, [torneoid]);
+
   /** Precarga el primer día disponible. */
   useEffect(() => {
     if (!fecha && days.length > 0) {
@@ -129,6 +142,17 @@ const AdminTarjetasPrint = () => {
   const toggleCat = (id: string) =>
     setCatIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  /**
+   * Días incluidos en el reporte: la fecha inicial y, si se eligió una fecha
+   * final, todos los días del catálogo entre ambas (inclusive).
+   */
+  const fechasRango = useMemo(() => {
+    if (!fecha) return [] as string[];
+    if (!fechaFin || fechaFin === fecha) return [fecha];
+    const [a, b] = fecha <= fechaFin ? [fecha, fechaFin] : [fechaFin, fecha];
+    return fechas.filter((f) => f >= a && f <= b);
+  }, [fecha, fechaFin, fechas]);
+
   /** Errores de validación del formulario. */
   const errors = useMemo<string[]>(() => {
     const errs: string[] = [];
@@ -146,8 +170,9 @@ const AdminTarjetasPrint = () => {
   /** Construye la URL del reporte con filtros + maquetación. */
   const buildUrl = (preview: boolean) =>
     `/admin/tarjetas-impresion?${new URLSearchParams({
-      fecha,
+      fecha: fechasRango.join(',') || fecha,
       campoid,
+      ...(torneoid ? { torneoid } : {}),
       catid: catIds.join(','),
       sistema,
       header: String(headerMm),
