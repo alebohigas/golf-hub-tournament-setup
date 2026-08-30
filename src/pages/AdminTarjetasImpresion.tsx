@@ -240,6 +240,7 @@ const Scorecard = ({
     inTotal,
     total,
     head = false,
+    bold = false,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
@@ -247,13 +248,19 @@ const Scorecard = ({
     inTotal?: React.ReactNode;
     total?: React.ReactNode;
     head?: boolean;
+    /** Imprime TODO el renglón (etiqueta, hoyos y totales) en negritas. */
+    bold?: boolean;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
     <tr
-      className={head ? 'bg-muted/60 font-bold' : ''}
+      className={`${head ? 'bg-muted/60 font-bold' : ''} ${bold ? 'font-bold' : ''}`}
       style={{ height: `${rowMm}mm` }}
     >
-      <Cell className="truncate px-1 text-left text-[6pt] font-semibold uppercase">
+      <Cell
+        className={`truncate px-1 text-left text-[6pt] uppercase ${
+          bold ? 'font-bold' : 'font-semibold'
+        }`}
+      >
         {label}
       </Cell>
       {out.map((h) => (
@@ -285,13 +292,15 @@ const Scorecard = ({
     par: (
       <Row
         key="par"
+        bold
         label={TARJETA_ROW_LABELS.par}
-        value={(h) => <span className="font-bold">{h.par ?? ''}</span>}
-        outTotal={<span className="font-bold">{t.parOut}</span>}
-        inTotal={<span className="font-bold">{t.parIn}</span>}
-        total={<span className="font-bold">{t.par}</span>}
+        value={(h) => h.par ?? ''}
+        outTotal={t.parOut}
+        inTotal={t.parIn}
+        total={t.par}
       />
     ),
+
 
     yardas: (
       <Row
