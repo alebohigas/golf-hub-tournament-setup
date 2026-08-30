@@ -317,11 +317,21 @@ const AdminTarjetasImpresion = () => {
       const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-sheet]'));
       const pages: string[] = [];
       for (const node of nodes) {
+        /*
+          Se rasteriza el MISMO nodo de la hoja con su geometría exacta en px
+          (215.9 × 279.4 mm) para que el PDF no reflowee: mismo CSS de
+          impresión, misma cabecera superior y mismos márgenes laterales.
+        */
         const canvas = await html2canvas(node, {
           scale: pixelScale,
           backgroundColor: '#ffffff',
           useCORS: true,
           logging: false,
+          width: node.offsetWidth,
+          height: node.offsetHeight,
+          windowWidth: node.offsetWidth,
+          scrollX: 0,
+          scrollY: 0,
         });
         pages.push(canvas.toDataURL('image/png'));
       }
@@ -467,12 +477,19 @@ const AdminTarjetasImpresion = () => {
                     fecha={card.fechaFormato || data?.fechaFormato || ''}
                     heightMm={headerMm}
                   />
-                  {/* La escala mantiene el acomodo idéntico en cualquier impresora */}
+                  {/*
+                    Escala con transform (no `zoom`): es la única forma que
+                    html2canvas replica igual que la impresión, así que el PDF
+                    y la vista previa comparten exactamente el mismo layout,
+                    márgenes laterales y 2 tarjetas por hoja.
+                  */}
                   <div
                     style={{
                       paddingLeft: `${marginMm}mm`,
                       paddingRight: `${marginMm}mm`,
-                      zoom: scale,
+                      width: `${100 / scale}%`,
+                      transform: `scale(${scale})`,
+                      transformOrigin: 'top left',
                     }}
                   >
                     <Scorecard card={card} />
