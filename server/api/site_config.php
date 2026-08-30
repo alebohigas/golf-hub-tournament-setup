@@ -491,7 +491,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'      => 'stats',
             'home_config'            => 'pagina',
             'historial_config'       => 'pagina',
-            'tarjetas_config'        => 'salidas',
+            'tarjetas_config'        => 'tarjetas',
             'hero_config'            => 'pagina',
         ];
         $staffAllowed = false;
