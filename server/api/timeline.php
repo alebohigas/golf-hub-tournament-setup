@@ -416,6 +416,8 @@ if (optional_param('debug') === '1') {
         'minutesColumn' => $minCol,
         'holeColumn'    => $holeCol,
         'holesFound'    => count($holes),
+        'hoyosTableRows' => count($hoyosTable),
+        'holeMinutes'   => array_map(function ($h) { return $h['minutes']; }, $holes),
         'groupsFound'   => count($groups),
     ];
 }
