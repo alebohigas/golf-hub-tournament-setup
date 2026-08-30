@@ -132,7 +132,9 @@ const TarjetaHeaderFooterPreview = ({
           <div style={{ height: `${rowMm}mm` }} />
 
           {/* ---------- SCORE ANOTADOR en 2 renglones (compartido, padding-bottom configurable) ---------- */}
-          <TarjetaAnotadorRow rowMm={rowMm} padMm={padMm} />
+          {/* El hoyo de inicio de la muestra sale resaltado (fondo negro). */}
+          <TarjetaAnotadorRow rowMm={rowMm} padMm={padMm} startHole={card.hole} />
+
         </div>
       </div>
     </div>

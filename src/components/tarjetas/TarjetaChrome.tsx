@@ -18,7 +18,9 @@
  * cambia de alto por celdas vacías.
  */
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+/* Resaltado del hoyo de inicio compartido con el reporte imprimible. */
+import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
 import {
   TARJETA_HEADER_WIDTHS,
   TARJETA_HEADER_FONTS_DEFAULT,
@@ -342,9 +344,12 @@ export const TarjetaHeaderGrid = ({
 export const TarjetaAnotadorRow = ({
   rowMm,
   padMm = 3,
+  startHole,
 }: {
   rowMm: number;
   padMm?: number;
+  /** Hoyo de inicio de la tarjeta (H01–H18) para resaltar su recuadro. */
+  startHole?: number | string | null;
 }) => {
 
   /** Ancho de la etiqueta y de las columnas de totales (idénticos a la tabla). */
@@ -356,11 +361,17 @@ export const TarjetaAnotadorRow = ({
   const ACell = ({
     children,
     className = '',
+    style,
   }: {
     children?: ReactNode;
     className?: string;
+    /** Estilo inline (resaltado negro/blanco del hoyo de inicio). */
+    style?: CSSProperties;
   }) => (
-    <td className={`border border-foreground/60 px-0 text-center align-middle ${className}`}>
+    <td
+      className={`border border-foreground/60 px-0 text-center align-middle ${className}`}
+      style={style}
+    >
       {children}
     </td>
   );
@@ -390,12 +401,16 @@ export const TarjetaAnotadorRow = ({
             </ACell>
             {/* Hoyos 1-9 */}
             {Array.from({ length: 9 }, (_, i) => (
-              <ACell key={`an-o-${i}`}>{i + 1}</ACell>
+              <ACell key={`an-o-${i}`} style={startHoleStyleFor(i + 1, startHole)}>
+                {i + 1}
+              </ACell>
             ))}
             <ACell className="bg-muted/60 font-bold">V1</ACell>
             {/* Hoyos 10-18 */}
             {Array.from({ length: 9 }, (_, i) => (
-              <ACell key={`an-i-${i}`}>{i + 10}</ACell>
+              <ACell key={`an-i-${i}`} style={startHoleStyleFor(i + 10, startHole)}>
+                {i + 10}
+              </ACell>
             ))}
             <ACell className="bg-muted/60 font-bold">V2</ACell>
             <ACell className="bg-muted/60 font-bold">TOTAL</ACell>
