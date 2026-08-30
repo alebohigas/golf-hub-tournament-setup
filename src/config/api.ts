@@ -170,6 +170,27 @@ export const getTimeLineUrl = (p: {
   hrf: string;
 }): string => `${API_BASE_URL}/timeline.php${buildQuery({ ...p })}`;
 
+/**
+ * Catálogo (días de juego + campo + categorías) para imprimir tarjetas.
+ * Se usa en Admin → pestaña "Tarjetas".
+ */
+export const getTarjetasImpresionCatalogoUrl = (): string =>
+  `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({ modo: 'catalogo' })}`;
+
+/**
+ * Reporte imprimible de TARJETAS de juego (Stroke Play / Stableford).
+ * @param p.fecha   Fecha de juego (YYYY-MM-DD)
+ * @param p.catid   Categoría o lista de categorías separadas por coma
+ * @param p.campoid ID del campo (opcional; se deduce de la categoría)
+ */
+export const getTarjetasImpresionUrl = (p: {
+  fecha: string;
+  catid: string;
+  campoid?: string;
+}): string => `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({ ...p })}`;
+
+
+
 
 /** All competitions (competición - trofeos) */
 export const getCompeticionUrl = (): string => `${API_BASE_URL}/competicion.php${buildQuery()}`;

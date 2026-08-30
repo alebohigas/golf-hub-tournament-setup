@@ -49,6 +49,9 @@ import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
 import AdminSalidasImpresion from "./pages/AdminSalidasImpresion";
 /** Reporte imprimible TIME LINE (horarios estimados por hoyo). */
 import AdminTimeLine from "./pages/AdminTimeLine";
+/** Reporte imprimible de TARJETAS de juego (2 por hoja carta). */
+import AdminTarjetasImpresion from "./pages/AdminTarjetasImpresion";
+
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
 import MatchPlay from "./pages/MatchPlay";
@@ -138,6 +141,9 @@ const App = () => (
               {/* Reporte imprimible de salidas por día. */}
               <Route path="/admin/salidas-impresion" element={<AdminSalidasImpresion />} />
               <Route path="/admin/time-line" element={<AdminTimeLine />} />
+              {/* Tarjetas de juego imprimibles (Stroke Play / Stableford). */}
+              <Route path="/admin/tarjetas-impresion" element={<AdminTarjetasImpresion />} />
+
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
               <Route path="/admin/brackets" element={<ModuleGate moduleId="matchplay"><AdminBracketsPage /></ModuleGate>} />
