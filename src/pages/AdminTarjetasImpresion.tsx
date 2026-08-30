@@ -63,16 +63,18 @@ const SHEET_H_MM = 279.4;
 /**
  * Alto aproximado del pie de firmas de la tarjeta, en mm (el encabezado y los
  * brincos de renglón se calculan aparte porque miden `rowMm`).
+ * Incluye los 3 mm de padding-bottom del renglón SCORE ANOTADOR.
  */
-const CARD_CHROME_MM = 9;
+const CARD_CHROME_MM = 12;
 
 /**
  * Renglones "extra" que también miden `rowMm`:
  *   3 → encabezado de datos del jugador
  *   1 → brinco entre encabezado y tabla
  *   3 → margen entre el último renglón de la tabla y las firmas
+ *   1 → renglón SCORE ANOTADOR (abajo de la tabla, antes de las firmas)
  */
-const EXTRA_ROWS = 7;
+const EXTRA_ROWS = 8;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
@@ -350,6 +352,14 @@ const Scorecard = ({
 
       {/* Margen de 3 renglones entre el último renglón y las firmas */}
       <div style={{ height: `${rowMm * 3}mm` }} />
+
+      {/*
+        ---------- Renglón SCORE ANOTADOR (compartido con la vista previa) ----------
+        Igual que el renglón HOYO (hoyos 1-18 + V1/V2/TOTAL) con la etiqueta a
+        la izquierda y 3 mm de padding-bottom antes de las firmas. Su alto ya
+        está contemplado en EXTRA_ROWS para no perder el formato de 1/2 carta.
+      */}
+      <TarjetaAnotadorRow rowMm={rowMm} />
 
       {/* ---------- Pie: sistema de juego, firmas y folio (compartido) ---------- */}
       <TarjetaFooter card={card} />
