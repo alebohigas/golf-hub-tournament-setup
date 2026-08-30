@@ -112,6 +112,9 @@ const TarjetaHeaderFooterPreview = ({
           {/* Margen de 3 renglones antes de las firmas */}
           <div style={{ height: `${rowMm * 3}mm` }} />
 
+          {/* ---------- Renglón SCORE ANOTADOR (compartido, con 3 mm de padding-bottom) ---------- */}
+          <TarjetaAnotadorRow rowMm={rowMm} />
+
           {/* ---------- Pie: sistema, firmas y folio (compartido) ---------- */}
           <TarjetaFooter card={card} />
         </div>

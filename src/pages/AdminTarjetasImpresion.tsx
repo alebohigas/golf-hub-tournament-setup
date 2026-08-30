@@ -46,6 +46,7 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Maqueta compartida (encabezado 3 renglones + pie de firmas) con la vista previa. */
 import {
+  TarjetaAnotadorRow,
   TarjetaFooter,
   TarjetaHeaderGrid,
 } from '@/components/tarjetas/TarjetaChrome';
