@@ -186,6 +186,18 @@ if (optional_param('modo') === 'catalogo') {
 $fechaRaw = trim((string)require_param('fecha'));
 $catidRaw = trim((string)require_param('catid'));
 $campoid = trim((string)optional_param('campoid', ''));
+/**
+ * Campo de la BD que se usará para el HCP. NETO impreso en el encabezado.
+ * Configurable en Admin → Tarjetas y enviado como `hcpfield=`:
+ *   · 'auto'      → primer campo neto disponible y, si no hay, la suma de ventajas.
+ *   · 'hcpneto' | 'handicapneto' | 'vtjajug' → columna específica de la vista.
+ *   · 'ventajas'  → forzar la suma de golpes de ventaja por hoyo.
+ * Cualquier otro valor se trata como 'auto' (no se aceptan columnas arbitrarias).
+ */
+$HCP_FIELDS_OK = ['auto', 'hcpneto', 'handicapneto', 'vtjajug', 'ventajas'];
+$hcpField = strtolower(trim((string)optional_param('hcpfield', 'auto')));
+if (!in_array($hcpField, $HCP_FIELDS_OK, true)) $hcpField = 'auto';
+
 /** Filtro de tipo de juego: '' | 'auto' (= todas), 'stroke', 'stableford'. */
 $sistemaFilter = strtolower(trim((string)optional_param('sistema', 'auto')));
 
@@ -496,6 +508,24 @@ foreach ($groups as $g) {
             return $t;
         };
 
+        /*
+          Resuelve el HCP. NETO según el campo configurado en Admin
+          (`hcpfield`), con la suma de ventajas por hoyo como respaldo.
+        */
+        $hcpSuma = array_sum($ventajas);
+        $hcpPick = ['value' => $hcpSuma, 'source' => 'ventajas'];
+        if ($hcpField !== 'ventajas') {
+            $candidatos = $hcpField === 'auto'
+                ? ['hcpneto', 'handicapneto', 'vtjajug']
+                : [$hcpField];
+            foreach ($candidatos as $col) {
+                if (isset($p[$col]) && $p[$col] !== '' && $p[$col] !== null) {
+                    $hcpPick = ['value' => (int)round((float)$p[$col]), 'source' => $col];
+                    break;
+                }
+            }
+        }
+
         $cards[] = [
             'groupId'      => (string)$gid,
             /** Día de juego de esta tarjeta (útil al imprimir un rango). */
@@ -525,14 +555,17 @@ foreach ($groups as $g) {
              *      exactamente el mismo neto repartido hoyo por hoyo.
              * Nunca se usa el índice (indexjgo), que es HCP índice y no neto.
              */
-            'hcp'          => (function () use ($p, $ventajas) {
-                foreach (['hcpneto', 'handicapneto', 'vtjajug'] as $col) {
-                    if (isset($p[$col]) && $p[$col] !== '' && $p[$col] !== null) {
-                        return (int)round((float)$p[$col]);
-                    }
-                }
-                return array_sum($ventajas);
-            })(),
+            /*
+              HCP. NETO impreso + datos para la VALIDACIÓN en pantalla:
+                · hcp          → valor que se imprime (según `hcpfield`).
+                · hcpVentajas  → neto derivado de la suma de ventajas por hoyo.
+                · hcpSource    → de dónde salió el valor impreso.
+              La interfaz compara `hcp` vs `hcpVentajas` y marca discrepancias.
+              Nunca se usa el índice (indexjgo), que es HCP índice y no neto.
+            */
+            'hcp'          => $hcpPick['value'],
+            'hcpVentajas'  => array_sum($ventajas),
+            'hcpSource'    => $hcpPick['source'],
             'holes'        => $holeRows,
             'totals'       => [
                 'parOut'      => $sum(1, 9, 'par'),
