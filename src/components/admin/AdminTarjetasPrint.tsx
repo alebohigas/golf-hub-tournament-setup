@@ -35,6 +35,8 @@ import {
 } from '@/components/ui/command';
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
   ChevronsUpDown,
   ClipboardList,
   Eye,
@@ -50,6 +52,13 @@ import {
   type TarjetasPrintConfig,
 } from '@/hooks/useSiteConfig';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+import {
+  TARJETA_ROWS_ALL,
+  TARJETA_ROWS_DEFAULT,
+  TARJETA_ROW_LABELS,
+  normalizeTarjetaRows,
+  type TarjetaRowKey,
+} from '@/lib/tarjetasRows';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -86,6 +95,30 @@ const AdminTarjetasPrint = () => {
    * reporte para no perder las 2 tarjetas por hoja carta.
    */
   const [rowMm, setRowMm] = useState(5.5);
+  /**
+   * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
+   * como `rows=hoyo,yardas,...` para no depender de un orden fijo en el código.
+   */
+  const [rowOrder, setRowOrder] = useState<TarjetaRowKey[]>([...TARJETA_ROWS_DEFAULT]);
+
+  /** Activa/desactiva un renglón conservando su posición relativa por defecto. */
+  const toggleRow = (key: TarjetaRowKey) =>
+    setRowOrder((prev) =>
+      prev.includes(key)
+        ? prev.filter((k) => k !== key)
+        : TARJETA_ROWS_ALL.filter((k) => k === key || prev.includes(k)),
+    );
+
+  /** Mueve un renglón una posición arriba (-1) o abajo (+1). */
+  const moveRow = (key: TarjetaRowKey, delta: -1 | 1) =>
+    setRowOrder((prev) => {
+      const i = prev.indexOf(key);
+      const j = i + delta;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   /**
    * Hidrata la maquetación desde la base (`site_config.tarjetas_config`).
@@ -100,11 +133,12 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
     if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
+    if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
   }, [siteConfig?.tarjetas_config]);
 
   /** Guarda la maquetación en la base de datos. */
   const guardarConfig = () => {
-    const payload: TarjetasPrintConfig = { sistema, headerMm, marginMm, scale, rowMm };
+    const payload: TarjetasPrintConfig = { sistema, headerMm, marginMm, scale, rowMm, rowOrder };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
       {
@@ -202,8 +236,9 @@ const AdminTarjetasPrint = () => {
     if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
     if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
     if (rowMm < 3 || rowMm > 12) errs.push('El alto de renglón debe estar entre 3 y 12 mm.');
+    if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, rowOrder]);
 
   const isValid = errors.length === 0;
 
@@ -219,6 +254,7 @@ const AdminTarjetasPrint = () => {
       margin: String(marginMm),
       scale: String(scale),
       rowh: String(rowMm),
+      rows: rowOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
     }).toString()}`;
 
@@ -381,6 +417,85 @@ const AdminTarjetasPrint = () => {
                   value={rowMm}
                   onChange={(e) => setRowMm(Number(e.target.value))}
                 />
+              </div>
+
+              {/*
+                Orden de renglones de la tarjeta: se guarda en la base y viaja
+                en la URL del reporte, así la vista previa, la impresión y el
+                PDF usan exactamente la misma maqueta.
+              */}
+              <div className="basis-full space-y-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Orden de renglones de la tarjeta
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRowOrder([...TARJETA_ROWS_DEFAULT])}
+                  >
+                    Restablecer orden
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {rowOrder.map((key, idx) => (
+                    <div
+                      key={key}
+                      className="flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-xs"
+                    >
+                      <span className="font-semibold">{idx + 1}.</span>
+                      <span className="uppercase">{TARJETA_ROW_LABELS[key]}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={idx === 0}
+                        onClick={() => moveRow(key, -1)}
+                        aria-label={`Subir ${TARJETA_ROW_LABELS[key]}`}
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={idx === rowOrder.length - 1}
+                        onClick={() => moveRow(key, 1)}
+                        aria-label={`Bajar ${TARJETA_ROW_LABELS[key]}`}
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => toggleRow(key)}
+                        aria-label={`Quitar ${TARJETA_ROW_LABELS[key]}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Renglones disponibles que no se están imprimiendo */}
+                {TARJETA_ROWS_ALL.some((k) => !rowOrder.includes(k)) && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-xs text-muted-foreground">Agregar:</span>
+                    {TARJETA_ROWS_ALL.filter((k) => !rowOrder.includes(k)).map((key) => (
+                      <Button
+                        key={key}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => toggleRow(key)}
+                      >
+                        + {TARJETA_ROW_LABELS[key]}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <Button variant="outline" onClick={() => generar(true)} disabled={!isValid}>
