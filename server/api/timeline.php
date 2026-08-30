@@ -187,6 +187,59 @@ $courseRow = $cEsc ? tl_one($conn, "SELECT campo FROM campos WHERE id = $cEsc LI
 $fechaFmt  = tl_one($conn, "SELECT DATE_FORMAT('$fEsc', '%W, %e de %M %Y') AS f");
 
 // ============= Hoyos del campo (par + minutos) =============
+/*
+ * FUENTE DE VERDAD DE LOS TIEMPOS
+ * La tabla `hoyos` de la base `torneos` es la que el staff edita: cuando ahí se
+ * cambia el tiempo de un hoyo, el reporte (pantalla, impresión y PDF) debe
+ * reflejarlo tal cual. Por eso se lee PRIMERO `hoyos` y sólo si no hay dato se
+ * cae a `hoyosxsalida` y, en último caso, a la estimación por par.
+ */
+
+/**
+ * Convierte un valor de tiempo por hoyo a minutos.
+ * Acepta minutos numéricos ("14", "14.0") y relojes ("00:14", "00:14:00").
+ * Devuelve 0 cuando el valor está vacío o no es interpretable.
+ */
+function tl_to_minutes($v) {
+    if ($v === null) return 0;
+    $s = trim((string)$v);
+    if ($s === '') return 0;
+    if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $s, $m)) {
+        // Relojes tipo 00:14:00 → 14 min (las horas se suman como 60 min).
+        return (int)$m[1] * 60 + (int)$m[2] + ((int)($m[3] ?? 0) >= 30 ? 1 : 0);
+    }
+    if (preg_match('/^\d+(?:\.\d+)?$/', $s)) return (int)round((float)$s);
+    return 0;
+}
+
+/**
+ * Minutos (y par) por hoyo tomados de la tabla `hoyos` para un campo.
+ * Los nombres de columna varían entre instalaciones, así que se detectan.
+ * @return array numero => ['par' => int, 'minutes' => int]
+ */
+function tl_hoyos_table($conn, $campoid) {
+    $cols = tl_columns($conn, 'hoyos');
+    if (!$cols) return [];
+    $numCol   = tl_pick_column($conn, 'hoyos', ['numero', 'hoyo', 'num', 'nohoyo']);
+    $campoCol = tl_pick_column($conn, 'hoyos', ['campoid', 'campo_id', 'campo']);
+    $parCol   = tl_pick_column($conn, 'hoyos', ['par']);
+    $minCol   = tl_pick_column($conn, 'hoyos', [
+        'tiempo', 'minutos', 'tiempojuego', 'tiempo_juego', 'hora', 'horas',
+        'partime', 'par_time', 'timepar', 'tpo', 'mins', 'minutosjuego',
+    ]);
+    if (!$numCol || !$minCol) return [];
+
+    $sel = "`$numCol` AS numero, `$minCol` AS minutos" . ($parCol ? ", `$parCol` AS par" : ', NULL AS par');
+    $where = ($campoCol && $campoid) ? "WHERE `$campoCol` = " . (int)$campoid : '';
+    $out = [];
+    foreach (tl_all($conn, "SELECT $sel FROM `hoyos` $where ORDER BY `$numCol` ASC") as $r) {
+        $n = (int)$r['numero'];
+        if ($n < 1 || $n > 18) continue;
+        $out[$n] = ['par' => (int)($r['par'] ?? 0), 'minutes' => tl_to_minutes($r['minutos'])];
+    }
+    return $out;
+}
+
 $minCol  = tl_minutes_column($conn);
 $minExpr = $minCol ? "hx.`$minCol`" : 'NULL';
 $holeRows = $cEsc
@@ -196,17 +249,36 @@ $holeRows = $cEsc
                       ORDER BY hx.numero ASC")
     : [];
 
+/** Tiempos editables por el staff (prioridad máxima). */
+$hoyosTable = tl_hoyos_table($conn, $cEsc);
+
 /** Hoyos normalizados: numero, par y minutos de juego resueltos. */
 $holes = [];
 foreach ($holeRows as $h) {
     $num = (int)$h['numero'];
     if ($num < 1 || $num > 18) continue;
     $par = (int)$h['par'];
-    $min = isset($h['minutos']) ? (int)$h['minutos'] : 0;
+    if ($par <= 0 && !empty($hoyosTable[$num]['par'])) $par = (int)$hoyosTable[$num]['par'];
+
+    // 1) `hoyos` → 2) `hoyosxsalida` → 3) estimación por par.
+    $min = (int)($hoyosTable[$num]['minutes'] ?? 0);
+    if ($min <= 0) $min = isset($h['minutos']) ? (int)$h['minutos'] : 0;
     if ($min <= 0) $min = $TL_PAR_MINUTES[$par] ?? 15;
+
     $holes[$num] = ['numero' => $num, 'par' => $par, 'minutes' => $min];
 }
+
+// Si `hoyosxsalida` no tuvo filas pero `hoyos` sí, el reporte se arma con ella.
+if (!$holes && $hoyosTable) {
+    foreach ($hoyosTable as $num => $h) {
+        $par = (int)$h['par'];
+        $min = (int)$h['minutes'];
+        if ($min <= 0) $min = $TL_PAR_MINUTES[$par] ?? 15;
+        $holes[$num] = ['numero' => $num, 'par' => $par, 'minutes' => $min];
+    }
+}
 ksort($holes);
+
 
 /**
  * Construye la línea de tiempo de un grupo.
