@@ -269,6 +269,7 @@ const Scorecard = ({
     bold = false,
     heightMm,
     holeCellClass,
+    holeCellStyle,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
@@ -282,6 +283,8 @@ const Scorecard = ({
     heightMm?: number;
     /** Clase extra por celda de hoyo (p. ej. resaltar el hoyo de salida). */
     holeCellClass?: (h: TarjetaCard['holes'][number]) => string;
+    /** Estilo inline por celda de hoyo (resaltado del hoyo de inicio). */
+    holeCellStyle?: (h: TarjetaCard['holes'][number]) => React.CSSProperties | undefined;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
     <tr
@@ -296,11 +299,23 @@ const Scorecard = ({
         {label}
       </Cell>
       {out.map((h) => (
-        <Cell key={`o-${h.numero}`} className={holeCellClass?.(h)}>{value(h)}</Cell>
+        <Cell
+          key={`o-${h.numero}`}
+          className={holeCellClass?.(h)}
+          style={holeCellStyle?.(h)}
+        >
+          {value(h)}
+        </Cell>
       ))}
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{outTotal}</Cell>
       {inn.map((h) => (
-        <Cell key={`i-${h.numero}`} className={holeCellClass?.(h)}>{value(h)}</Cell>
+        <Cell
+          key={`i-${h.numero}`}
+          className={holeCellClass?.(h)}
+          style={holeCellStyle?.(h)}
+        >
+          {value(h)}
+        </Cell>
       ))}
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{inTotal}</Cell>
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{total}</Cell>
@@ -318,13 +333,10 @@ const Scorecard = ({
         outTotal="V1"
         inTotal="V2"
         total="TOTAL"
-        /* Hoyo de salida (H01, H10, …): recuadro negro con número blanco.
-           Se imprime con estilo inline para garantizar negro/blanco en PDF. */
-        holeCellClass={(h) =>
-          card.hole != null && h.numero === card.hole
-            ? 'font-bold [background:#000] [color:#fff] print:[background:#000] print:[color:#fff]'
-            : ''
-        }
+        /* Hoyo de inicio (H01–H18): recuadro negro con número blanco. El
+           estilo es inline y compartido (tarjetasStartHole) para que pantalla,
+           impresión y PDF se vean idénticos en cualquier tema. */
+        holeCellStyle={(h) => startHoleStyleFor(h.numero, card.hole)}
       />
     ),
     /* PAR CAMPO: todo el renglón (etiqueta, hoyos y totales) va en NEGRITAS. */
@@ -422,7 +434,7 @@ const Scorecard = ({
         vacío para escribir los golpes. El padding-bottom final es configurable (`pad`).
         Su alto ya está contemplado en EXTRA_ROWS para no perder el formato de 1/2 carta.
       */}
-      <TarjetaAnotadorRow rowMm={rowMm} padMm={padMm} />
+      <TarjetaAnotadorRow rowMm={rowMm} padMm={padMm} startHole={card.hole} />
     </div>
   );
 };
