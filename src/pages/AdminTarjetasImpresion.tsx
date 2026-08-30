@@ -103,29 +103,34 @@ const CardHeader = ({
     }}
   >
 
-    {/* Logo del torneo (list1_logo_header) */}
-    <div className="flex h-full items-center">
+    {/* Logo del torneo (list1_logo_header) — no se encoge ni se desborda */}
+    <div className="flex h-full shrink-0 items-center">
       {logo ? (
         <img
           src={logo}
           alt={tournament}
           className="w-auto object-contain"
-          style={{ maxHeight: `${Math.max(10, heightMm - 6)}mm` }}
+          style={{
+            maxHeight: `${Math.max(10, heightMm - 6)}mm`,
+            /* Nunca más de un tercio del ancho útil de la hoja. */
+            maxWidth: `${Math.max(30, (SHEET_W_MM - marginMm * 2) / 3)}mm`,
+          }}
           loading="eager"
           crossOrigin="anonymous"
         />
       ) : null}
     </div>
 
-    {/* Torneo / campo + fecha, ajustados a la derecha */}
-    <div className="text-right leading-tight">
-      <div className="text-[12pt] font-bold uppercase">{tournament}</div>
-      <div className="text-[10pt] font-semibold uppercase text-foreground/80">
+    {/* Torneo / campo + fecha, ajustados a la derecha dentro del margen */}
+    <div className="min-w-0 flex-1 text-right leading-tight">
+      <div className="truncate text-[12pt] font-bold uppercase">{tournament}</div>
+      <div className="truncate text-[10pt] font-semibold uppercase text-foreground/80">
         {course}
         {course && fecha ? ' · ' : ''}
         {fecha}
       </div>
     </div>
+
   </div>
 );
 
