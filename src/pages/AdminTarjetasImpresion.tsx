@@ -47,6 +47,10 @@ import {
   type TarjetaHeaderFonts,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
+import {
+  TARJETA_HCP_FIELD_LABELS,
+  normalizeTarjetaHcpField,
+} from '@/lib/tarjetasHcp';
 /* Maqueta compartida (encabezado 3 renglones + pie de firmas) con la vista previa. */
 import {
   TarjetaAnotadorRow,
@@ -455,6 +459,15 @@ const AdminTarjetasImpresion = () => {
     [params],
   );
 
+  /**
+   * Campo de la BD del que el backend toma el HCP. NETO (`hcpfield=`), tal como
+   * se configuró en Admin → Tarjetas.
+   */
+  const hcpField = useMemo(
+    () => normalizeTarjetaHcpField(params.get('hcpfield')),
+    [params],
+  );
+
   /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
   const padMm = numParam(params.get('pad'), 3, 0, 15);
 
@@ -482,8 +495,10 @@ const AdminTarjetasImpresion = () => {
       catid: params.get('catid') ?? '',
       campoid: params.get('campoid') ?? undefined,
       sistema,
+      // Campo de la BD para el HCP. NETO (Admin → Tarjetas).
+      hcpfield: hcpField,
     }),
-    [params, sistema],
+    [params, sistema, hcpField],
   );
 
   const { data, isLoading, error } = useTarjetasReport(filters);
@@ -504,6 +519,32 @@ const AdminTarjetasImpresion = () => {
     for (let i = 0; i < cards.length; i += 2) out.push(cards.slice(i, i + 2));
     return out;
   }, [cards]);
+
+  /**
+   * VALIDACIÓN DE HCP. NETO (sólo en pantalla, no se imprime)
+   * -----------------------------------------------------------------------
+   * Compara el valor mostrado en el encabezado (`hcp`, tomado del campo de la
+   * BD configurado en Admin) contra el neto calculado con la suma de golpes de
+   * ventaja por hoyo (`hcpVentajas`). Si no coinciden se listan las tarjetas
+   * afectadas para revisar la captura en el sistema de torneos.
+   */
+  const hcpMismatches = useMemo(
+    () =>
+      cards
+        .filter(
+          (c) =>
+            typeof c.hcpVentajas === 'number' && c.hcpVentajas !== c.hcp,
+        )
+        .map((c) => ({
+          key: `${c.groupId}-${c.playerId}-${c.fecha}`,
+          name: c.name || 'JUGADOR POR ASIGNAR',
+          category: c.shortName || c.categoryName,
+          hcp: c.hcp,
+          ventajas: c.hcpVentajas as number,
+          source: c.hcpSource ?? '',
+        })),
+    [cards],
+  );
 
   // ============= Vista previa + PDF =============
 
@@ -674,6 +715,48 @@ const AdminTarjetasImpresion = () => {
         {error && (
           <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm print:hidden">
             No se pudo generar el reporte de tarjetas.
+          </div>
+        )}
+
+        {/*
+          Aviso de discrepancias en HCP. NETO: sólo se ve en pantalla
+          (print:hidden) para no alterar la maqueta impresa.
+        */}
+        {!isLoading && !error && !!cards.length && (
+          <div
+            className={`mb-4 rounded-md border p-3 text-sm print:hidden ${
+              hcpMismatches.length
+                ? 'border-destructive/40 bg-destructive/10'
+                : 'border-border bg-muted/40'
+            }`}
+          >
+            <p className="font-medium">
+              HCP. NETO · fuente: {TARJETA_HCP_FIELD_LABELS[hcpField]}
+            </p>
+            {hcpMismatches.length ? (
+              <>
+                <p className="mt-1 text-muted-foreground">
+                  {hcpMismatches.length} tarjeta(s) con el valor impreso
+                  distinto al neto calculado por ventajas por hoyo:
+                </p>
+                <ul className="mt-2 max-h-40 space-y-1 overflow-auto">
+                  {hcpMismatches.map((m) => (
+                    <li key={m.key} className="tabular-nums">
+                      <span className="font-medium">{m.name}</span>
+                      {m.category ? ` · ${m.category}` : ''} — impreso{' '}
+                      <strong>{m.hcp}</strong>
+                      {m.source ? ` (${m.source})` : ''} · ventajas{' '}
+                      <strong>{m.ventajas}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="mt-1 text-muted-foreground">
+                Todas las tarjetas coinciden con el neto calculado por ventajas
+                por hoyo.
+              </p>
+            )}
           </div>
         )}
 
