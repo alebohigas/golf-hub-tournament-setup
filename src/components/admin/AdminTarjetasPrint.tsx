@@ -46,6 +46,7 @@ import {
   X,
 } from 'lucide-react';
 import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import TarjetaHeaderFooterPreview from '@/components/admin/TarjetaHeaderFooterPreview';
 import {
   useSiteConfig,
   useSaveSiteConfig,
