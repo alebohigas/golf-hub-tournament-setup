@@ -32,11 +32,31 @@
  */
 require_once 'config.php';
 
-$torneoid = require_param('torneoid');
-if (!preg_match('/^\d+$/', trim((string)$torneoid))) {
-    json_error('Parámetro inválido: torneoid debe ser numérico.', 400);
+/**
+ * Torneo ACTIVO del dominio (`site_config.torneoid`).
+ * Permite que el frontend no dependa del parámetro `torneoid`.
+ * @return string ID del torneo activo o '' si no hay configuración.
+ */
+function tj_active_torneoid($conn) {
+    $domain = esc($conn, $_SERVER['HTTP_HOST'] ?? 'localhost');
+    $r = @$conn->query("SELECT torneoid FROM site_config WHERE domain = '$domain' LIMIT 1");
+    if ($r && ($row = $r->fetch_assoc())) {
+        $r->free();
+        if (!empty($row['torneoid'])) return (string)(int)$row['torneoid'];
+    }
+    return '';
+}
+
+// `torneoid` es opcional: si no viene, se usa el torneo activo del dominio.
+$torneoid = trim((string)(optional_param('torneoid', '') ?? ''));
+if ($torneoid === '') {
+    $torneoid = tj_active_torneoid($conn);
+}
+if (!preg_match('/^\d+$/', $torneoid)) {
+    json_error('No se pudo determinar el torneo activo del sitio.', 400);
 }
 $tid = esc($conn, $torneoid);
+
 
 // Fechas/meses en español para los encabezados del reporte.
 @$conn->query("SET lc_time_names = 'es_ES'");

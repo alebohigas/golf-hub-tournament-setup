@@ -267,7 +267,8 @@ const AdminTarjetasImpresion = () => {
 
   /**
    * Filtros de datos. `fecha` puede traer varios días separados por coma
-   * (rango) y `torneoid` permite imprimir un torneo distinto al activo.
+   * (rango). El torneo NO se manda: el backend usa siempre el torneo ACTIVO
+   * del sitio (`site_config.torneoid`) para evitar inconsistencias.
    */
   const filters = useMemo(
     () => ({
@@ -275,12 +276,12 @@ const AdminTarjetasImpresion = () => {
       catid: params.get('catid') ?? '',
       campoid: params.get('campoid') ?? undefined,
       sistema,
-      torneoid: params.get('torneoid') ?? undefined,
     }),
     [params, sistema],
   );
 
   const { data, isLoading, error } = useTarjetasReport(filters);
+
 
 
   /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
@@ -372,12 +373,31 @@ const AdminTarjetasImpresion = () => {
     }
   }, [renderPages, sheets.length, filters.fecha]);
 
-  /** `?preview=1` abre la vista previa en cuanto hay datos. */
+  /**
+   * Prepara la vista previa en cuanto hay tarjetas del torneo activo.
+   * Se hace SIEMPRE (no sólo con `?preview=1`) para garantizar que el reporte
+   * se renderizó bien antes de habilitar la impresión; el diálogo sólo se abre
+   * automáticamente cuando viene `?preview=1`.
+   */
   useEffect(() => {
-    if (!autoPreview || autoRan.current || !sheets.length) return;
+    if (autoRan.current || !sheets.length) return;
     autoRan.current = true;
-    void openPreview();
-  }, [autoPreview, sheets.length, openPreview]);
+    void (async () => {
+      setBusy('preview');
+      try {
+        const pages = await renderPages(1.4);
+        setPreviewPages(pages);
+        setPreviewIdx(0);
+        if (autoPreview) setPreviewOpen(true);
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, [autoPreview, sheets.length, renderPages]);
+
+  /** La impresión sólo se habilita cuando la vista previa ya se generó. */
+  const previewReady = previewPages.length > 0 && !busy;
+
 
   /**
    * Imprime desde la vista previa: cierra el diálogo (para que el overlay del
@@ -426,9 +446,16 @@ const AdminTarjetasImpresion = () => {
               )}
               Descargar PDF
             </Button>
-            <Button onClick={() => window.print()} disabled={!sheets.length}>
-              <Printer className="mr-2 h-4 w-4" /> Imprimir
+            {/* Imprimir sólo cuando la vista previa ya está lista */}
+            <Button onClick={() => window.print()} disabled={!previewReady}>
+              {busy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="mr-2 h-4 w-4" />
+              )}
+              {previewReady ? 'Imprimir' : 'Preparando vista previa…'}
             </Button>
+
           </div>
         </div>
 
