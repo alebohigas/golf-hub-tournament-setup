@@ -163,12 +163,18 @@ const headerBlocks = (
       align: 'left',
       topRows: 1,
       top: (
-        <span className="text-[13pt] font-bold leading-none">
+        <span
+          className="font-bold leading-none"
+          style={{ fontSize: `${fonts.hoyoPt}pt` }}
+        >
           {tarjetaHoleLabel(card.hole)}
         </span>
       ),
       bottom: (
-        <span className="text-[13pt] font-bold leading-none">
+        <span
+          className="font-bold leading-none"
+          style={{ fontSize: `${fonts.hoyoPt}pt` }}
+        >
           {tarjetaText(card.time, '--:--')}
         </span>
       ),
