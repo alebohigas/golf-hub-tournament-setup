@@ -424,6 +424,8 @@ const AdminTarjetasImpresion = () => {
   const scale = numParam(params.get('scale'), 100, 60, 130) / 100;
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
   const autoPreview = params.get('preview') === '1';
+  /** Imprimir el logo del torneo en la cabecera (Admin → Tarjetas, `logo=`). */
+  const showLogo = params.get('logo') !== '0';
 
   /**
    * Alto de renglón pedido (`rowh`, mm) acotado al máximo que cabe en la media
@@ -545,6 +547,26 @@ const AdminTarjetasImpresion = () => {
         })),
     [cards],
   );
+
+  /**
+   * MODO AUDITORÍA (sólo pantalla)
+   * -----------------------------------------------------------------------
+   * Detalle del cálculo por jugador: el neto derivado de los golpes de ventaja
+   * por hoyo (que dependen de la MESA DE SALIDA registrada al jugador, no del
+   * handicap de la categoría) contra los valores de las columnas netas de la
+   * BD, más el campo y la regla que finalmente se aplicaron.
+   */
+  const [auditOpen, setAuditOpen] = useState(false);
+
+  /** Conteo de tarjetas por campo de la BD realmente usado. */
+  const hcpSourceCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    cards.forEach((c) => {
+      const k = c.hcpSource || 'ventajas';
+      map.set(k, (map.get(k) ?? 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [cards]);
 
   // ============= Vista previa + PDF =============
 
@@ -760,6 +782,85 @@ const AdminTarjetasImpresion = () => {
           </div>
         )}
 
+        {/*
+          MODO AUDITORÍA: tabla con el detalle del cálculo por jugador. Nunca
+          se imprime (print:hidden).
+        */}
+        {!isLoading && !error && !!cards.length && (
+          <div className="mb-4 rounded-md border p-3 text-sm print:hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium">Modo auditoría de HCP. NETO</p>
+                <p className="text-[12px] text-muted-foreground">
+                  Campos usados:{' '}
+                  {hcpSourceCounts
+                    .map(([k, n]) => `${k}: ${n} tarjeta(s)`)
+                    .join(' · ')}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAuditOpen((v) => !v)}
+              >
+                {auditOpen ? 'Ocultar detalle' : 'Ver detalle por jugador'}
+              </Button>
+            </div>
+
+            {auditOpen && (
+              <div className="mt-3 max-h-[60vh] overflow-auto rounded-md border">
+                <table className="w-full text-[12px] tabular-nums">
+                  <thead className="sticky top-0 bg-muted">
+                    <tr className="text-left">
+                      <th className="whitespace-nowrap p-2">Jugador</th>
+                      <th className="whitespace-nowrap p-2">Categoría</th>
+                      <th className="whitespace-nowrap p-2">Mesa de salida</th>
+                      <th className="whitespace-nowrap p-2">Neto x ventajas</th>
+                      <th className="whitespace-nowrap p-2">hcpneto</th>
+                      <th className="whitespace-nowrap p-2">handicapneto</th>
+                      <th className="whitespace-nowrap p-2">vtjajug</th>
+                      <th className="whitespace-nowrap p-2">Impreso</th>
+                      <th className="whitespace-nowrap p-2">Campo usado</th>
+                      <th className="whitespace-nowrap p-2">Regla</th>
+                      <th className="whitespace-nowrap p-2">Ventajas por hoyo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cards.map((c) => {
+                      const ventajas = c.hcpVentajas ?? 0;
+                      const diff = c.hcp - ventajas;
+                      return (
+                        <tr
+                          key={`audit-${c.groupId}-${c.playerId}-${c.fecha}`}
+                          className={diff !== 0 ? 'bg-destructive/10' : undefined}
+                        >
+                          <td className="p-2">{c.name || 'JUGADOR POR ASIGNAR'}</td>
+                          <td className="p-2">{c.shortName || c.categoryName}</td>
+                          <td className="p-2">{c.tee || 'SIN MESA'}</td>
+                          <td className="p-2 font-medium">{ventajas}</td>
+                          <td className="p-2">{c.hcpDb?.hcpneto ?? '—'}</td>
+                          <td className="p-2">{c.hcpDb?.handicapneto ?? '—'}</td>
+                          <td className="p-2">{c.hcpDb?.vtjajug ?? '—'}</td>
+                          <td className="p-2 font-semibold">
+                            {c.hcp}
+                            {diff !== 0 ? ` (Δ${diff > 0 ? '+' : ''}${diff})` : ''}
+                          </td>
+                          <td className="p-2">{c.hcpSource ?? 'ventajas'}</td>
+                          <td className="p-2 text-muted-foreground">{c.hcpRule ?? ''}</td>
+                          <td className="whitespace-nowrap p-2 text-muted-foreground">
+                            {(c.hcpPorHoyo ?? c.holes.map((h) => h.handicap)).join('-')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {!isLoading && !error && !cards.length && (
           <div className="rounded-md border p-4 text-sm text-muted-foreground print:hidden">
             No hay tarjetas para la fecha, categorías y tipo de juego seleccionados.
@@ -786,7 +887,7 @@ const AdminTarjetasImpresion = () => {
                   style={{ height: `${HALF_SHEET_MM}mm`, breakInside: 'avoid' }}
                 >
                   <CardHeader
-                    logo={data?.logoHeader ?? ''}
+                    logo={showLogo ? (data?.logoHeader ?? '') : ''}
                     tournament={data?.tournament ?? ''}
                     course={data?.course ?? ''}
                     /* Cada tarjeta muestra SU día de juego (soporta rangos). */
