@@ -433,9 +433,16 @@ const AdminTarjetasImpresion = () => {
   /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
   const padMm = numParam(params.get('pad'), 3, 0, 15);
 
+  /**
+   * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
+   * total de renglones para que el alto calculado nunca desborde 1/2 carta.
+   */
+  const effectiveRows =
+    rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
+
   const rowMm = Math.min(
     numParam(params.get('rowh'), 5.5, 3, 12),
-    maxRowMm(headerMm, scale, rowOrder.length, padMm),
+    maxRowMm(headerMm, scale, effectiveRows, padMm),
   );
 
 
