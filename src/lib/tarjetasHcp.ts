@@ -14,6 +14,7 @@
 /** Campos de la BD válidos para el HCP. NETO. */
 export type TarjetaHcpField =
   | 'auto'
+  | 'match'
   | 'hcpneto'
   | 'handicapneto'
   | 'vtjajug'
@@ -22,6 +23,7 @@ export type TarjetaHcpField =
 /** Todas las opciones, en el orden en que se muestran en Admin. */
 export const TARJETA_HCP_FIELDS: TarjetaHcpField[] = [
   'auto',
+  'match',
   'hcpneto',
   'handicapneto',
   'vtjajug',
@@ -34,11 +36,13 @@ export const TARJETA_HCP_FIELD_DEFAULT: TarjetaHcpField = 'auto';
 /** Etiquetas legibles para el selector de Admin. */
 export const TARJETA_HCP_FIELD_LABELS: Record<TarjetaHcpField, string> = {
   auto: 'Automático (hcpneto → handicapneto → vtjajug → ventajas)',
+  match: 'Mejor coincidencia (valida hcpneto y handicapneto vs ventajas)',
   hcpneto: 'Columna hcpneto',
   handicapneto: 'Columna handicapneto',
   vtjajug: 'Columna vtjajug',
   ventajas: 'Suma de ventajas por hoyo',
 };
+
 
 /** Normaliza un valor guardado o recibido por URL a un campo válido. */
 export const normalizeTarjetaHcpField = (
