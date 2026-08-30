@@ -193,27 +193,12 @@ const ColGroup = () => (
   </colgroup>
 );
 
-/**
- * TeeMarkChip
- * Leyenda del color de marcas de salida: cuadro con el color real del tee
- * (según el tipo de salida guardado en la BD) + el nombre del tee.
+/*
+ * El encabezado (3 renglones), el chip de marcas de salida y el pie de firmas
+ * viven en `@/components/tarjetas/TarjetaChrome`, compartidos 1:1 con la
+ * previsualización en vivo de Admin → Tarjetas.
  */
-const TeeMarkChip = ({ tee, teeSal }: { tee?: string; teeSal?: string }) => {
-  const mark = resolveTeeMark(tee, teeSal);
-  if (!mark.label) return null;
-  return (
-    <span className="flex min-w-0 items-center justify-end gap-1">
-      {mark.color ? (
-        <span
-          className="inline-block shrink-0 rounded-[0.5mm] border border-foreground/70"
-          style={{ width: '3mm', height: '3mm', backgroundColor: mark.color }}
-          aria-hidden
-        />
-      ) : null}
-      <span className="truncate uppercase">{mark.label}</span>
-    </span>
-  );
-};
+
 
 /**
  * Tarjeta de un jugador: encabezado de datos + tabla de 18 hoyos con las
