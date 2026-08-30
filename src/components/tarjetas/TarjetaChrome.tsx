@@ -191,11 +191,13 @@ const headerBlocks = (
         </span>
       ),
     },
-    /* "VTJA" + handicap grande. */
+    /* "HCP. NETO" + handicap grande. */
     vtja: {
       align: 'center',
       top: (
-        <span className="text-[5.5pt] uppercase leading-none text-foreground/70">Vtja</span>
+        <span className="whitespace-nowrap text-[5.5pt] uppercase leading-none text-foreground/70">
+          HCP. NETO
+        </span>
       ),
       bottom: <span className="text-[11pt] font-bold">{tarjetaNum(card.hcp)}</span>,
     },
