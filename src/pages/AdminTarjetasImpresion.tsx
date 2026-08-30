@@ -281,9 +281,18 @@ const Scorecard = ({
         total="TOTAL"
       />
     ),
+    /* PAR CAMPO: todo el renglón (etiqueta, hoyos y totales) va en NEGRITAS. */
     par: (
-      <Row key="par" label={TARJETA_ROW_LABELS.par} value={(h) => h.par ?? ''} />
+      <Row
+        key="par"
+        label={TARJETA_ROW_LABELS.par}
+        value={(h) => <span className="font-bold">{h.par ?? ''}</span>}
+        outTotal={<span className="font-bold">{t.parOut}</span>}
+        inTotal={<span className="font-bold">{t.parIn}</span>}
+        total={<span className="font-bold">{t.par}</span>}
+      />
     ),
+
     yardas: (
       <Row
         key="yardas"
