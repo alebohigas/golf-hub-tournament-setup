@@ -363,6 +363,18 @@ const AdminTarjetasImpresion = () => {
     void openPreview();
   }, [autoPreview, sheets.length, openPreview]);
 
+  /**
+   * Imprime desde la vista previa: cierra el diálogo (para que el overlay del
+   * modal no aparezca en la hoja) y abre el diálogo nativo de impresión con la
+   * misma maquetación carta/cabecera/margen/escala del reporte.
+   */
+  const printFromPreview = useCallback(() => {
+    setPreviewOpen(false);
+    window.setTimeout(() => window.print(), 250);
+  }, []);
+
+
+
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
       {/* @page: hoja carta sin márgenes; el margen real lo aplica el layout */}
