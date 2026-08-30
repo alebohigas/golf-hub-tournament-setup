@@ -261,6 +261,7 @@ const Scorecard = ({
     head = false,
     bold = false,
     heightMm,
+    holeCellClass,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
@@ -272,6 +273,8 @@ const Scorecard = ({
     bold?: boolean;
     /** Alto del renglón en mm (por defecto `rowMm`; SCORE GROSS usa 1.5×). */
     heightMm?: number;
+    /** Clase extra por celda de hoyo (p. ej. resaltar el hoyo de salida). */
+    holeCellClass?: (h: TarjetaCard['holes'][number]) => string;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
     <tr
