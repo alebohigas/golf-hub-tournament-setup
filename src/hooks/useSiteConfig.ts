@@ -447,6 +447,8 @@ export interface TarjetasPrintConfig {
   headerMm: number;
   marginMm: number;
   scale: number;
+  /** Alto de cada renglón de la tabla de hoyos en mm (se acota a 1/2 carta). */
+  rowMm?: number;
 }
 
 /** Full server response for site config */
