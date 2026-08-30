@@ -23,7 +23,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, ClipboardList, Eye, Loader2, Printer, Save } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  AlertCircle,
+  ChevronsUpDown,
+  ClipboardList,
+  Eye,
+  Loader2,
+  Printer,
+  Save,
+  X,
+} from 'lucide-react';
 import { useTarjetasCatalogo, useTarjetasTorneos } from '@/hooks/useTarjetasImpresion';
 import {
   useSiteConfig,
@@ -53,6 +72,8 @@ const AdminTarjetasPrint = () => {
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
+  /** Estado abierto/cerrado del multiselector de categorías. */
+  const [catsOpen, setCatsOpen] = useState(false);
   /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
   const [sistema, setSistema] = useState<'auto' | 'stroke' | 'stableford'>('auto');
   /** Alto de la cabecera superior en mm (3 cm por defecto). */
@@ -133,10 +154,28 @@ const AdminTarjetasPrint = () => {
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [days, fecha, campoid, camposDeFecha, sistema]);
 
-  /** Al cambiar día/campo/tipo se seleccionan todas las categorías por defecto. */
+  /**
+   * Al cambiar día/campo/tipo se conserva la selección que siga siendo válida;
+   * si no queda ninguna (o es la primera carga) se marcan todas.
+   */
   useEffect(() => {
-    setCatIds(categorias.map((c) => c.id));
+    setCatIds((prev) => {
+      const validos = categorias.map((c) => c.id);
+      const conservados = prev.filter((id) => validos.includes(id));
+      return conservados.length ? conservados : validos;
+    });
   }, [categorias]);
+
+  /** Texto del botón multiselector: "Todas", "N de M" o el nombre único. */
+  const catsLabel = useMemo(() => {
+    if (!categorias.length) return 'Sin categorías';
+    if (catIds.length === categorias.length) return `Todas las categorías (${categorias.length})`;
+    if (!catIds.length) return 'Ninguna categoría';
+    if (catIds.length === 1) {
+      return categorias.find((c) => c.id === catIds[0])?.name ?? '1 categoría';
+    }
+    return `${catIds.length} de ${categorias.length} categorías`;
+  }, [categorias, catIds]);
 
   /** Alterna una categoría de la selección. */
   const toggleCat = (id: string) =>
