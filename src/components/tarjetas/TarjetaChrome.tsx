@@ -18,7 +18,9 @@
  * cambia de alto por celdas vacías.
  */
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+/* Resaltado del hoyo de inicio compartido con el reporte imprimible. */
+import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
 import {
   TARJETA_HEADER_WIDTHS,
   TARJETA_HEADER_FONTS_DEFAULT,
