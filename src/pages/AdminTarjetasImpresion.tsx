@@ -511,9 +511,15 @@ const AdminTarjetasImpresion = () => {
               <Button variant="outline" size="sm" onClick={downloadPdf} disabled={!!busy}>
                 <Download className="mr-2 h-4 w-4" /> Descargar PDF
               </Button>
-              <Button size="sm" onClick={() => window.print()}>
+              {/*
+                Imprime con la MISMA maquetación (carta + cabecera/margen/escala):
+                cierra el diálogo primero para que el overlay del modal no
+                entre en el documento impreso y luego abre el diálogo nativo.
+              */}
+              <Button size="sm" onClick={printFromPreview}>
                 <Printer className="mr-2 h-4 w-4" /> Imprimir
               </Button>
+
             </div>
           </div>
         </DialogContent>
