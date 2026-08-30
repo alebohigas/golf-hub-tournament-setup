@@ -52,6 +52,9 @@ import {
   type TimeLineGroup,
   type TimeLineHole,
 } from '@/hooks/useTimeLine';
+// Resaltado del hoyo de inicio (misma fuente de verdad que las tarjetas).
+import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+
 
 /**
  * Tamaños de papel soportados (formato jsPDF y valor para @page).
