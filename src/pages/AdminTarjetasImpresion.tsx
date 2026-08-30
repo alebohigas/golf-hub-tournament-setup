@@ -528,10 +528,20 @@ const AdminTarjetasImpresion = () => {
     [params],
   );
 
+  /**
+   * Campos y orden del encabezado de 3 renglones configurado en Admin
+   * (`hfields=hoyohora,jugador,...`).
+   */
+  const headerFields = useMemo(
+    () => normalizeTarjetaHeader(params.get('hfields')),
+    [params],
+  );
+
   const rowMm = Math.min(
     numParam(params.get('rowh'), 5.5, 3, 12),
     maxRowMm(headerMm, scale, rowOrder.length),
   );
+
 
   /**
    * Filtros de datos. `fecha` puede traer varios días separados por coma
