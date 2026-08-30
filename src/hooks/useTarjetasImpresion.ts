@@ -81,7 +81,12 @@ export interface TarjetaCard {
   categoryName: string;
   shortName: string;
   system: string;
+  /** HCP. NETO impreso (según el campo configurado en Admin → Tarjetas). */
   hcp: number;
+  /** Neto derivado de la suma de golpes de ventaja por hoyo (validación). */
+  hcpVentajas?: number;
+  /** Columna de la BD de la que salió `hcp` ('hcpneto', 'ventajas', …). */
+  hcpSource?: string;
   holes: TarjetaHole[];
   totals: TarjetaTotals;
 }

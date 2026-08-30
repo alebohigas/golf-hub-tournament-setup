@@ -459,6 +459,12 @@ export interface TarjetasPrintConfig {
   fsHoyoPt?: number;
   /** Tamaño de letra (pt) del nombre de la categoría en el encabezado. */
   fsCatPt?: number;
+  /**
+   * Campo de la BD usado para el HCP. NETO del encabezado
+   * ('auto' | 'hcpneto' | 'handicapneto' | 'vtjajug' | 'ventajas').
+   * Ver `@/lib/tarjetasHcp`.
+   */
+  hcpField?: string;
 }
 
 /** Full server response for site config */
