@@ -249,10 +249,18 @@ if ($sistemaFilter === 'stroke' || $sistemaFilter === 'stableford') {
     $catList = implode(',', $catIds);
 }
 
-// Campo del reporte: el recibido o el de la primera categoría.
+// Campo del reporte: el recibido, el de la categoría (si existe la columna) o
+// el primer campo válido del calendario de juego de esa fecha.
 if (!$cEsc) {
-    foreach ($cats as $c) { if ((int)$c['campoid'] > 0) { $cEsc = (int)$c['campoid']; break; } }
+    foreach ($cats as $c) { if ((int)($c['campoid'] ?? 0) > 0) { $cEsc = (int)$c['campoid']; break; } }
 }
+if (!$cEsc) {
+    $cjRow = tj_one($conn, "SELECT campo FROM caljuego
+                             WHERE torneoid = $tid AND fecha = '$fEsc' AND campo > 0
+                             ORDER BY campo ASC LIMIT 1");
+    $cEsc = $cjRow ? (int)$cjRow['campo'] : 0;
+}
+
 $courseRow = $cEsc ? tj_one($conn, "SELECT campo FROM campos WHERE id = $cEsc LIMIT 1") : null;
 
 // ============= Hoyos del campo por tee de salida =============
