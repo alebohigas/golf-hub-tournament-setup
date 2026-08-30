@@ -75,7 +75,7 @@ const CARD_CHROME_MM = 12;
  *   3 → margen entre el último renglón de la tabla y las firmas
  *   1 → renglón SCORE ANOTADOR (abajo de la tabla, antes de las firmas)
  */
-const EXTRA_ROWS = 8;
+const EXTRA_ROWS = 10;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de

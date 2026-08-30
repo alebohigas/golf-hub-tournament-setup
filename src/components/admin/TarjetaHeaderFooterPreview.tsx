@@ -110,14 +110,17 @@ const TarjetaHeaderFooterPreview = ({
             Tabla de hoyos (renglones configurados)
           </div>
 
-          {/* Margen de 3 renglones antes de las firmas */}
+          {/* Margen de 3 renglones antes del pie */}
           <div style={{ height: `${rowMm * 3}mm` }} />
-
-          {/* ---------- Renglón SCORE ANOTADOR (compartido, con 3 mm de padding-bottom) ---------- */}
-          <TarjetaAnotadorRow rowMm={rowMm} />
 
           {/* ---------- Pie: sistema, firmas y folio (compartido) ---------- */}
           <TarjetaFooter card={card} />
+
+          {/* Brinco de renglón entre el pie y el score del anotador */}
+          <div style={{ height: `${rowMm}mm` }} />
+
+          {/* ---------- SCORE ANOTADOR en 2 renglones (compartido, con 3 mm de padding-bottom) ---------- */}
+          <TarjetaAnotadorRow rowMm={rowMm} />
         </div>
       </div>
     </div>
