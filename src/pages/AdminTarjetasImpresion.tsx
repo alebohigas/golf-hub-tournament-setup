@@ -219,14 +219,6 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
           </tr>
 
           <Row
-            label="Par"
-            bold
-            value={(h) => h.par ?? ''}
-            outTotal={t.parOut}
-            inTotal={t.parIn}
-            total={t.par}
-          />
-          <Row
             label="Yardas"
             value={(h) => h.yardas ?? ''}
             outTotal={t.yardasOut}
@@ -235,6 +227,10 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
           />
           <Row label="Par Time" value={(h) => h.parTime} />
           <Row label="Ventaja" value={(h) => h.ventaja ?? ''} />
+
+          {/* Renglones en blanco para anotar */}
+          <Row label="Score Gross" value={() => ''} />
+
           <Row
             label="Handicap"
             value={(h) => (h.handicap > 0 ? h.handicap : '')}
@@ -243,12 +239,8 @@ const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
             total={t.handicap}
           />
 
-          {/* Renglones en blanco para anotar (score y, en Stableford, puntos) */}
-          <Row label="Score" value={() => ''} />
-          <Row
-            label={card.system.includes('STABLE') ? 'Puntos' : 'Neto'}
-            value={() => ''}
-          />
+          <Row label="Score Neto" value={() => ''} />
+          <Row label="Puntos" value={() => ''} />
         </tbody>
       </table>
 
