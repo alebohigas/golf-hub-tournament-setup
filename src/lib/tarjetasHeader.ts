@@ -25,7 +25,7 @@ export type TarjetaHeaderKey =
 export const TARJETA_HEADER_LABELS: Record<TarjetaHeaderKey, string> = {
   hoyohora: 'Hoyo + hora',
   jugador: 'Jugador (ID, nombre y club)',
-  vtja: 'Vtja / Handicap',
+  vtja: 'HCP. NETO',
   categoria: 'Categoría + marcas de salida',
   tee: 'Marcas de salida (solo)',
   sistema: 'Sistema de juego',
@@ -39,7 +39,7 @@ export const TARJETA_HEADER_LABELS: Record<TarjetaHeaderKey, string> = {
 export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
   hoyohora: '30mm',
   jugador: 'minmax(0,1fr)',
-  vtja: '14mm',
+  vtja: '16mm',
   categoria: '46mm',
   tee: '30mm',
   sistema: '26mm',
@@ -49,8 +49,8 @@ export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
 /** Orden por defecto (el solicitado por el club). */
 export const TARJETA_HEADER_DEFAULT: TarjetaHeaderKey[] = [
   'hoyohora',
-  'jugador',
   'vtja',
+  'jugador',
   'categoria',
 ];
 
