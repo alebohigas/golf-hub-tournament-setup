@@ -272,12 +272,15 @@ export const TarjetaHeaderGrid = ({
   card,
   fields,
   rowMm,
+  fonts = TARJETA_HEADER_FONTS_DEFAULT,
 }: {
   card: TarjetaChromeData;
   fields: TarjetaHeaderKey[];
   rowMm: number;
+  /** Tamaños de letra (pt) de hoyo/hora y categoría, configurables en Admin. */
+  fonts?: TarjetaHeaderFonts;
 }) => {
-  const blocks = headerBlocks(card);
+  const blocks = headerBlocks(card, fonts);
   return (
     <div
       className="grid border-b border-foreground/70 text-[8pt]"
