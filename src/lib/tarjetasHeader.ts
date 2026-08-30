@@ -45,7 +45,12 @@ export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
     ya que el encabezado se mide en milímetros y no en porcentajes.
   */
   vtja: '20mm',
-  categoria: '46mm',
+  /*
+    Categoría: se le cede ~1 columna de ancho al bloque del jugador
+    (que es `1fr` y por lo tanto se encoge solo) para que el nombre de la
+    categoría quepa completo sin recortes.
+  */
+  categoria: '58mm',
   tee: '30mm',
   sistema: '26mm',
   folio: '24mm',
