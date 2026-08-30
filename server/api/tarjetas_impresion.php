@@ -514,10 +514,29 @@ foreach ($groups as $g) {
         /*
           Resuelve el HCP. NETO según el campo configurado en Admin
           (`hcpfield`), con la suma de ventajas por hoyo como respaldo.
+
+          Modo 'match': valida automáticamente todas las columnas netas
+          disponibles (hcpneto, handicapneto, vtjajug) contra el neto calculado
+          por ventajas por hoyo y elige la que menos difiere. Con empate gana
+          el orden de preferencia; si ninguna existe se usa la suma de ventajas.
         */
         $hcpSuma = array_sum($ventajas);
         $hcpPick = ['value' => $hcpSuma, 'source' => 'ventajas'];
-        if ($hcpField !== 'ventajas') {
+        if ($hcpField === 'match') {
+            $mejor = null; // ['value','source','diff']
+            foreach (['hcpneto', 'handicapneto', 'vtjajug'] as $col) {
+                if (!isset($p[$col]) || $p[$col] === '' || $p[$col] === null) continue;
+                $val = (int)round((float)$p[$col]);
+                $diff = abs($val - $hcpSuma);
+                if ($mejor === null || $diff < $mejor['diff']) {
+                    $mejor = ['value' => $val, 'source' => $col . ' (match)', 'diff' => $diff];
+                }
+                if ($diff === 0) break; // coincidencia exacta: no hay mejor opción
+            }
+            if ($mejor !== null) {
+                $hcpPick = ['value' => $mejor['value'], 'source' => $mejor['source']];
+            }
+        } elseif ($hcpField !== 'ventajas') {
             $candidatos = $hcpField === 'auto'
                 ? ['hcpneto', 'handicapneto', 'vtjajug']
                 : [$hcpField];
@@ -528,6 +547,7 @@ foreach ($groups as $g) {
                 }
             }
         }
+
 
         $cards[] = [
             'groupId'      => (string)$gid,
