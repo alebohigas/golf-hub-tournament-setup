@@ -75,6 +75,8 @@ const numParam = (v: string | null, def: number, min: number, max: number) => {
 /**
  * Cabecera superior de cada tarjeta (3 cm por defecto): logo del torneo a la
  * izquierda y, alineados a la derecha, el nombre del torneo y el campo + fecha.
+ * Usa EXACTAMENTE los mismos márgenes laterales que la tabla de la tarjeta
+ * (`marginMm`) para que logo y título nunca se salgan del área imprimible.
  */
 const CardHeader = ({
   logo,
@@ -82,40 +84,53 @@ const CardHeader = ({
   course,
   fecha,
   heightMm,
+  marginMm,
 }: {
   logo: string;
   tournament: string;
   course: string;
   fecha: string;
   heightMm: number;
+  /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
+  marginMm: number;
 }) => (
   <div
-    className="flex items-center justify-between gap-3 px-2"
-    style={{ height: `${heightMm}mm` }}
+    className="flex items-center justify-between gap-3"
+    style={{
+      height: `${heightMm}mm`,
+      paddingLeft: `${marginMm}mm`,
+      paddingRight: `${marginMm}mm`,
+    }}
   >
-    {/* Logo del torneo (list1_logo_header) */}
-    <div className="flex h-full items-center">
+
+    {/* Logo del torneo (list1_logo_header) — no se encoge ni se desborda */}
+    <div className="flex h-full shrink-0 items-center">
       {logo ? (
         <img
           src={logo}
           alt={tournament}
           className="w-auto object-contain"
-          style={{ maxHeight: `${Math.max(10, heightMm - 6)}mm` }}
+          style={{
+            maxHeight: `${Math.max(10, heightMm - 6)}mm`,
+            /* Nunca más de un tercio del ancho útil de la hoja. */
+            maxWidth: `${Math.max(30, (SHEET_W_MM - marginMm * 2) / 3)}mm`,
+          }}
           loading="eager"
           crossOrigin="anonymous"
         />
       ) : null}
     </div>
 
-    {/* Torneo / campo + fecha, ajustados a la derecha */}
-    <div className="text-right leading-tight">
-      <div className="text-[12pt] font-bold uppercase">{tournament}</div>
-      <div className="text-[10pt] font-semibold uppercase text-foreground/80">
+    {/* Torneo / campo + fecha, ajustados a la derecha dentro del margen */}
+    <div className="min-w-0 flex-1 text-right leading-tight">
+      <div className="truncate text-[12pt] font-bold uppercase">{tournament}</div>
+      <div className="truncate text-[10pt] font-semibold uppercase text-foreground/80">
         {course}
         {course && fecha ? ' · ' : ''}
         {fecha}
       </div>
     </div>
+
   </div>
 );
 
@@ -580,6 +595,9 @@ const AdminTarjetasImpresion = () => {
                     /* Cada tarjeta muestra SU día de juego (soporta rangos). */
                     fecha={card.fechaFormato || data?.fechaFormato || ''}
                     heightMm={headerMm}
+                    /* Mismos márgenes laterales que la tabla de la tarjeta. */
+                    marginMm={marginMm}
+
                   />
                   {/*
                     Escala con transform (no `zoom`): es la única forma que
