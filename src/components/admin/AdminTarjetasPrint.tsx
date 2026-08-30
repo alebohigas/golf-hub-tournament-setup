@@ -59,6 +59,13 @@ import {
   normalizeTarjetaRows,
   type TarjetaRowKey,
 } from '@/lib/tarjetasRows';
+import {
+  TARJETA_HEADER_ALL,
+  TARJETA_HEADER_DEFAULT,
+  TARJETA_HEADER_LABELS,
+  normalizeTarjetaHeader,
+  type TarjetaHeaderKey,
+} from '@/lib/tarjetasHeader';
 import { useToast } from '@/hooks/use-toast';
 
 
