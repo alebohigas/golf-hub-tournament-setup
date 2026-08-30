@@ -35,6 +35,42 @@ const AdminTarjetasPrint = () => {
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
+  /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
+  const [sistema, setSistema] = useState<'auto' | 'stroke' | 'stableford'>('auto');
+  /** Alto de la cabecera superior en mm (3 cm por defecto). */
+  const [headerMm, setHeaderMm] = useState(30);
+  /** Margen lateral de la tarjeta en mm. */
+  const [marginMm, setMarginMm] = useState(8);
+  /** Escala del contenido de la tarjeta en % (mantiene el acomodo estable). */
+  const [scale, setScale] = useState(100);
+
+  /** Clave de persistencia local de la configuración de maquetación. */
+  const LS_KEY = 'tarjetas-print-config';
+
+  /** Carga la configuración guardada. */
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const cfg = JSON.parse(raw) as Partial<{
+        sistema: 'auto' | 'stroke' | 'stableford';
+        headerMm: number;
+        marginMm: number;
+        scale: number;
+      }>;
+      if (cfg.sistema) setSistema(cfg.sistema);
+      if (cfg.headerMm) setHeaderMm(cfg.headerMm);
+      if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
+      if (cfg.scale) setScale(cfg.scale);
+    } catch {
+      /* configuración corrupta: se ignora */
+    }
+  }, []);
+
+  /** Persiste la configuración de maquetación. */
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, JSON.stringify({ sistema, headerMm, marginMm, scale }));
+  }, [sistema, headerMm, marginMm, scale]);
 
   /** Precarga el primer día disponible. */
   useEffect(() => {
@@ -59,10 +95,16 @@ const AdminTarjetasPrint = () => {
     const list = day?.categories ?? camposDeFecha.flatMap((d) => d.categories);
     const seen = new Map<string, (typeof list)[number]>();
     list.forEach((c) => seen.set(c.id, c));
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  }, [days, fecha, campoid, camposDeFecha]);
+    return Array.from(seen.values())
+      .filter((c) => {
+        if (sistema === 'stroke') return !c.system.toUpperCase().includes('STABLE');
+        if (sistema === 'stableford') return c.system.toUpperCase().includes('STABLE');
+        return true;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }, [days, fecha, campoid, camposDeFecha, sistema]);
 
-  /** Al cambiar día/campo se seleccionan todas las categorías por defecto. */
+  /** Al cambiar día/campo/tipo se seleccionan todas las categorías por defecto. */
   useEffect(() => {
     setCatIds(categorias.map((c) => c.id));
   }, [categorias]);
@@ -77,17 +119,33 @@ const AdminTarjetasPrint = () => {
     if (!fecha) errs.push('Selecciona el día de juego.');
     if (!campoid) errs.push('Selecciona el campo.');
     if (!catIds.length) errs.push('Selecciona al menos una categoría.');
+    if (headerMm < 10 || headerMm > 60) errs.push('La cabecera debe estar entre 10 y 60 mm.');
+    if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
+    if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
     return errs;
-  }, [fecha, campoid, catIds]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale]);
 
   const isValid = errors.length === 0;
 
+  /** Construye la URL del reporte con filtros + maquetación. */
+  const buildUrl = (preview: boolean) =>
+    `/admin/tarjetas-impresion?${new URLSearchParams({
+      fecha,
+      campoid,
+      catid: catIds.join(','),
+      sistema,
+      header: String(headerMm),
+      margin: String(marginMm),
+      scale: String(scale),
+      ...(preview ? { preview: '1' } : {}),
+    }).toString()}`;
+
   /** Abre el reporte imprimible en una pestaña nueva. */
-  const generar = () => {
+  const generar = (preview = false) => {
     if (!isValid) return;
-    const qs = new URLSearchParams({ fecha, campoid, catid: catIds.join(',') }).toString();
-    window.open(`/admin/tarjetas-impresion?${qs}`, '_blank');
+    window.open(buildUrl(preview), '_blank');
   };
+
 
   return (
     <Card>
