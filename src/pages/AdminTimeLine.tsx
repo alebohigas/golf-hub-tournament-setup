@@ -193,6 +193,7 @@ const HoleCell = ({
   divider = false,
   pad = true,
   variant = 'num',
+  style,
 }: {
   children?: React.ReactNode;
   bold?: boolean;
@@ -205,11 +206,14 @@ const HoleCell = ({
    * - `time`: hora estimada → tamaño reducido para que quepa completa.
    */
   variant?: 'num' | 'time';
+  /** Estilo inline adicional (p. ej. resaltado del hoyo de inicio). */
+  style?: React.CSSProperties;
 }) => (
   <td
     style={{
       fontSize: variant === 'time' ? 'var(--tl-hole-size)' : 'var(--tl-holenum-size)',
       lineHeight: 'var(--tl-hole-line)',
+      ...style,
     }}
     className={`whitespace-nowrap border border-border px-1 text-center align-middle tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
@@ -221,6 +225,7 @@ const HoleCell = ({
     {children}
   </td>
 );
+
 
 
 
