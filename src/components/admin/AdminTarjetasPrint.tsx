@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -22,8 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, ClipboardList, Loader2, Printer } from 'lucide-react';
+import { AlertCircle, ClipboardList, Eye, Loader2, Printer } from 'lucide-react';
 import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+
 
 /** Panel de impresión de tarjetas. */
 const AdminTarjetasPrint = () => {
