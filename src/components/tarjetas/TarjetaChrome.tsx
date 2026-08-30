@@ -263,6 +263,9 @@ export const TarjetaHeaderGrid = ({
     >
       {fields.map((key, i) => {
         const block = blocks[key];
+        /* Cuántos renglones toma cada bloque (por omisión 2 arriba y 1 abajo). */
+        const topRows = block.topRows ?? 2;
+        const bottomRows = Math.max(1, 3 - topRows);
         return (
           <div
             key={key}
@@ -270,17 +273,24 @@ export const TarjetaHeaderGrid = ({
               i > 0 ? 'border-l border-foreground/70' : ''
             }`}
           >
-            {/* Bloque superior: renglones 1 y 2 */}
-            <div className={`flex min-w-0 flex-[2] items-center px-1 ${alignCls[block.align]}`}>
+            {/* Bloque superior */}
+            <div
+              className={`flex min-w-0 items-center px-1 ${alignCls[block.align]}`}
+              style={{ flex: `${topRows} 1 0%` }}
+            >
               {block.top}
             </div>
-            {/* Bloque inferior: renglón 3 */}
-            <div className={`flex min-w-0 flex-1 items-center px-1 ${alignCls[block.align]}`}>
+            {/* Bloque inferior (merge de los renglones restantes) */}
+            <div
+              className={`flex min-w-0 items-center px-1 ${alignCls[block.align]}`}
+              style={{ flex: `${bottomRows} 1 0%` }}
+            >
               {block.bottom}
             </div>
           </div>
         );
       })}
+
     </div>
   );
 };
