@@ -104,6 +104,13 @@ const AdminTarjetasPrint = () => {
    */
   const [rowMm, setRowMm] = useState(5.5);
   /**
+   * Padding-bottom (mm) al final de la tarjeta, debajo del renglón SCORE
+   * ANOTADOR. Configurable aquí y enviado al reporte como `pad=` para que
+   * la previsualización, la impresión y el PDF sean idénticos.
+   */
+  const [padMm, setPadMm] = useState(3);
+
+  /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
    * como `rows=hoyo,yardas,...` para no depender de un orden fijo en el código.
    */
