@@ -141,6 +141,8 @@ const alignCls = {
  */
 const headerBlocks = (
   card: TarjetaChromeData,
+  /** Tamaños de letra configurables en Admin → Tarjetas (hoyo/hora y categoría). */
+  fonts: TarjetaHeaderFonts = TARJETA_HEADER_FONTS_DEFAULT,
 ): Record<
   TarjetaHeaderKey,
   {
