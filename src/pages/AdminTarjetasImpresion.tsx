@@ -800,7 +800,12 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard card={card} rowMm={rowMm} rows={rowOrder} />
+                    <Scorecard
+                      card={card}
+                      rowMm={rowMm}
+                      rows={rowOrder}
+                      headerFields={headerFields}
+                    />
                   </div>
                 </div>
               ))}
