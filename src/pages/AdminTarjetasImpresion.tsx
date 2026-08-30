@@ -177,19 +177,22 @@ const CardHeader = ({
   </div>
 );
 
-/** Celda de la tabla de la tarjeta con bordes finos uniformes. */
+/** Celda de la tabla de la tarjeta con bordes finos. */
 const Cell = ({
   children,
   className = '',
   style,
+  darkBorder = false,
 }: {
   children?: React.ReactNode;
   className?: string;
   /** Estilo inline por celda (p. ej. resaltado del hoyo de inicio). */
   style?: React.CSSProperties;
+  /** Borde oscuro (usado en la línea de SCORE GROSS); el resto usa borde claro. */
+  darkBorder?: boolean;
 }) => (
   <td
-    className={`border border-foreground/60 px-0 text-center align-middle ${className}`}
+    className={`border px-0 text-center align-middle ${darkBorder ? 'border-foreground/60' : 'border-foreground/30'} ${className}`}
     style={style}
   >
     {children}
@@ -269,6 +272,7 @@ const Scorecard = ({
     total,
     head = false,
     bold = false,
+    darkBorder = false,
     heightMm,
     holeCellClass,
     holeCellStyle,
@@ -281,6 +285,8 @@ const Scorecard = ({
     head?: boolean;
     /** Imprime TODO el renglón (etiqueta, hoyos y totales) en negritas. */
     bold?: boolean;
+    /** Borde oscuro para toda la línea (SCORE GROSS); el resto usa borde claro. */
+    darkBorder?: boolean;
     /** Alto del renglón en mm (por defecto `rowMm`; SCORE GROSS usa 1.5×). */
     heightMm?: number;
     /** Clase extra por celda de hoyo (p. ej. resaltar el hoyo de salida). */
@@ -294,6 +300,7 @@ const Scorecard = ({
       style={{ height: `${heightMm ?? rowMm}mm` }}
     >
       <Cell
+        darkBorder={darkBorder}
         className={`truncate px-1 text-left text-[6pt] uppercase ${
           bold ? 'font-bold' : 'font-semibold'
         }`}
@@ -303,24 +310,26 @@ const Scorecard = ({
       {out.map((h) => (
         <Cell
           key={`o-${h.numero}`}
+          darkBorder={darkBorder}
           className={holeCellClass?.(h)}
           style={holeCellStyle?.(h)}
         >
           {value(h)}
         </Cell>
       ))}
-      <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{outTotal}</Cell>
+      <Cell darkBorder={darkBorder} className={head ? '' : 'bg-muted/60 font-bold'}>{outTotal}</Cell>
       {inn.map((h) => (
         <Cell
           key={`i-${h.numero}`}
+          darkBorder={darkBorder}
           className={holeCellClass?.(h)}
           style={holeCellStyle?.(h)}
         >
           {value(h)}
         </Cell>
       ))}
-      <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{inTotal}</Cell>
-      <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{total}</Cell>
+      <Cell darkBorder={darkBorder} className={head ? '' : 'bg-muted/60 font-bold'}>{inTotal}</Cell>
+      <Cell darkBorder={darkBorder} className={head ? '' : 'bg-muted/60 font-bold'}>{total}</Cell>
     </tr>
   );
 
@@ -378,6 +387,7 @@ const Scorecard = ({
       <Row
         key="gross"
         bold
+        darkBorder
         label={TARJETA_ROW_LABELS.gross}
         value={() => ''}
         heightMm={rowMm * 1.5}
