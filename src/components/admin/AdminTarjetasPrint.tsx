@@ -43,7 +43,7 @@ import {
   Save,
   X,
 } from 'lucide-react';
-import { useTarjetasCatalogo, useTarjetasTorneos } from '@/hooks/useTarjetasImpresion';
+import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
 import {
   useSiteConfig,
   useSaveSiteConfig,
@@ -55,11 +55,9 @@ import { useToast } from '@/hooks/use-toast';
 
 /** Panel de impresión de tarjetas. */
 const AdminTarjetasPrint = () => {
-  /** Torneo elegido ('' = torneo activo del dominio). */
-  const [torneoid, setTorneoid] = useState('');
-  const { data: torneosData } = useTarjetasTorneos();
-  const torneos = torneosData?.tournaments ?? [];
-  const { data, isLoading } = useTarjetasCatalogo(torneoid || undefined);
+  /** Catálogo del torneo ACTIVO del sitio (sin selector de torneo). */
+  const { data, isLoading } = useTarjetasCatalogo();
+
   const days = data?.days ?? [];
   const { data: siteConfig } = useSiteConfig();
   const saveSiteConfig = useSaveSiteConfig();
@@ -115,12 +113,7 @@ const AdminTarjetasPrint = () => {
   };
 
 
-  /** Al cambiar de torneo se limpian fecha/campo para recargar el catálogo. */
-  useEffect(() => {
-    setFecha('');
-    setFechaFin('');
-    setCampoid('');
-  }, [torneoid]);
+
 
   /** Precarga el primer día disponible. */
   useEffect(() => {
@@ -211,7 +204,7 @@ const AdminTarjetasPrint = () => {
     `/admin/tarjetas-impresion?${new URLSearchParams({
       fecha: fechasRango.join(',') || fecha,
       campoid,
-      ...(torneoid ? { torneoid } : {}),
+      // El reporte siempre usa el torneo activo del sitio.
       catid: catIds.join(','),
       sistema,
       header: String(headerMm),
@@ -248,27 +241,7 @@ const AdminTarjetasPrint = () => {
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-4">
-              {/* Torneo: activo del dominio o cualquier otro con calendario */}
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Torneo</Label>
-                <Select
-                  value={torneoid || 'activo'}
-                  onValueChange={(v) => setTorneoid(v === 'activo' ? '' : v)}
-                >
-                  <SelectTrigger className="w-[260px]">
-                    <SelectValue placeholder="Torneo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="activo">Torneo activo del sitio</SelectItem>
-                    {torneos.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.year ? `${t.year} · ` : ''}
-                        {t.name || `Torneo ${t.id}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
 
               {/* Fecha */}
               <div className="space-y-1">
