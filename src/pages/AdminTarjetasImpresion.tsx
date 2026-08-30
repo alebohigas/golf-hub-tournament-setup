@@ -277,6 +277,15 @@ const AdminTarjetasImpresion = () => {
   const autoPreview = params.get('preview') === '1';
 
   /**
+   * Alto de renglón pedido (`rowh`, mm) acotado al máximo que cabe en la media
+   * hoja: así se pueden hacer más altos los renglones sin desplazar la tarjeta.
+   */
+  const rowMm = Math.min(
+    numParam(params.get('rowh'), 5.5, 3, 12),
+    maxRowMm(headerMm, scale),
+  );
+
+  /**
    * Filtros de datos. `fecha` puede traer varios días separados por coma
    * (rango). El torneo NO se manda: el backend usa siempre el torneo ACTIVO
    * del sitio (`site_config.torneoid`) para evitar inconsistencias.
