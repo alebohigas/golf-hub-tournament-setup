@@ -52,8 +52,9 @@ export const isStartHole = (
 };
 
 /**
- * Estilo inline del recuadro del hoyo de inicio: fondo negro, número blanco,
- * negritas y conservación exacta del color al imprimir o exportar a PDF.
+ * Estilo inline del recuadro del hoyo de inicio: fondo gris (#666666),
+ * número blanco, negritas y conservación exacta del color al imprimir o
+ * exportar a PDF.
  *
  * Devuelve `undefined` cuando la celda NO es el hoyo de inicio, para no
  * alterar el estilo normal de la tabla.
