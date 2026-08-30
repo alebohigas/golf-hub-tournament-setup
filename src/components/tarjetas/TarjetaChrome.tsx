@@ -225,7 +225,10 @@ const headerBlocks = (
     categoria: {
       align: 'right',
       top: (
-        <span className="truncate text-[18pt] font-bold uppercase">
+        <span
+          className="truncate font-bold uppercase"
+          style={{ fontSize: `${fonts.catPt}pt` }}
+        >
           {tarjetaText(card.categoryName || card.shortName, 'SIN CATEGORÍA')}
         </span>
       ),
