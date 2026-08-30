@@ -263,13 +263,13 @@ export const TarjetaHeaderGrid = ({
 };
 
 /**
- * TarjetaAnotadorRow — renglón "SCORE ANOTADOR" que va pegado abajo de la
- * tabla de hoyos (antes del pie de firmas).
+ * TarjetaAnotadorRow — bloque "SCORE ANOTADOR" en 2 renglones que va al
+ * final de la tarjeta, después de un brinco de renglón bajo el pie (firmas).
  *
- * Misma estructura que el renglón HOYO: 18 celdas con el número de hoyo y
- * las columnas acumuladas V1 / V2 / TOTAL, pero con la etiqueta
- * "SCORE ANOTADOR" a la izquierda para que el anotador escriba ahí sus
- * golpes. Lleva un padding-bottom de 3 mm antes de las firmas.
+ * Renglón 1: igual que el renglón HOYO — 18 celdas con el número de hoyo y
+ * las columnas acumuladas V1 / V2 / TOTAL, con la etiqueta "SCORE ANOTADOR"
+ * a la izquierda. Renglón 2: celdas vacías para que el anotador escriba ahí
+ * sus golpes. Lleva un padding-bottom de 3 mm al final de la tarjeta.
  *
  * Usa los mismos anchos de columna (%) que la tabla principal para que las
  * celdas queden perfectamente alineadas con los renglones de arriba.
@@ -311,6 +311,7 @@ export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
           <col style={{ width: `${COL_TOTAL_PCT}%` }} />
         </colgroup>
         <tbody>
+          {/* Renglón 1: números de hoyo, igual que el renglón HOYO */}
           <tr style={{ height: `${rowMm}mm` }}>
             {/* Etiqueta a la izquierda (puede partirse en 2 líneas) */}
             <ACell className="px-1 text-left text-[6pt] font-semibold uppercase leading-tight">
@@ -328,6 +329,12 @@ export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
             <ACell className="bg-muted/60 font-bold">V2</ACell>
             <ACell className="bg-muted/60 font-bold">TOTAL</ACell>
           </tr>
+          {/* Renglón 2: celdas vacías para escribir los golpes del anotador */}
+          <tr style={{ height: `${rowMm}mm` }}>
+            {Array.from({ length: 22 }, (_, i) => (
+              <ACell key={`an-w-${i}`} />
+            ))}
+          </tr>
         </tbody>
       </table>
     </div>
@@ -343,10 +350,9 @@ export const TarjetaFooter = ({ card }: { card: TarjetaChromeData }) => {
   const sistemaLabel = tarjetaSistemaLabel(card.system);
   return (
     <div className="flex items-end justify-between gap-2 border-t border-foreground/70 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
-      {/* Renglón 1 "SISTEMA"; renglones 2 y 3 el sistema en negritas. */}
+      {/* Renglón 1 "SISTEMA"; renglón 2 el sistema en negritas (una sola vez). */}
       <div className="min-w-0 leading-tight">
         <div className="text-[5.5pt] uppercase text-foreground/70">Sistema</div>
-        <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
         <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
       </div>
       <div className="flex-1 border-b border-foreground/60 text-center">Anotador</div>

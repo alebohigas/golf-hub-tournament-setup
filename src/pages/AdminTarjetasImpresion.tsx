@@ -75,7 +75,7 @@ const CARD_CHROME_MM = 12;
  *   3 → margen entre el último renglón de la tabla y las firmas
  *   1 → renglón SCORE ANOTADOR (abajo de la tabla, antes de las firmas)
  */
-const EXTRA_ROWS = 8;
+const EXTRA_ROWS = 10;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
@@ -351,19 +351,22 @@ const Scorecard = ({
         <tbody>{rows.map((key) => rowDefs[key])}</tbody>
       </table>
 
-      {/* Margen de 3 renglones entre el último renglón y las firmas */}
+      {/* Margen de 3 renglones entre el último renglón y el pie */}
       <div style={{ height: `${rowMm * 3}mm` }} />
-
-      {/*
-        ---------- Renglón SCORE ANOTADOR (compartido con la vista previa) ----------
-        Igual que el renglón HOYO (hoyos 1-18 + V1/V2/TOTAL) con la etiqueta a
-        la izquierda y 3 mm de padding-bottom antes de las firmas. Su alto ya
-        está contemplado en EXTRA_ROWS para no perder el formato de 1/2 carta.
-      */}
-      <TarjetaAnotadorRow rowMm={rowMm} />
 
       {/* ---------- Pie: sistema de juego, firmas y folio (compartido) ---------- */}
       <TarjetaFooter card={card} />
+
+      {/* Brinco de renglón entre el pie y el score del anotador */}
+      <div style={{ height: `${rowMm}mm` }} />
+
+      {/*
+        ---------- SCORE ANOTADOR en 2 renglones (compartido con la vista previa) ----------
+        Renglón 1 igual que el renglón HOYO (hoyos 1-18 + V1/V2/TOTAL) y renglón 2
+        vacío para escribir los golpes. Lleva 3 mm de padding-bottom al final.
+        Su alto ya está contemplado en EXTRA_ROWS para no perder el formato de 1/2 carta.
+      */}
+      <TarjetaAnotadorRow rowMm={rowMm} />
     </div>
   );
 };
