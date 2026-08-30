@@ -211,7 +211,7 @@ const AdminTarjetasPrint = () => {
     `/admin/tarjetas-impresion?${new URLSearchParams({
       fecha: fechasRango.join(',') || fecha,
       campoid,
-      ...(torneoid ? { torneoid } : {}),
+      // El reporte siempre usa el torneo activo del sitio.
       catid: catIds.join(','),
       sistema,
       header: String(headerMm),
