@@ -40,6 +40,12 @@ import {
   normalizeTarjetaRows,
   type TarjetaRowKey,
 } from '@/lib/tarjetasRows';
+import {
+  TARJETA_HEADER_WIDTHS,
+  normalizeTarjetaHeader,
+  resolveTeeMark,
+  type TarjetaHeaderKey,
+} from '@/lib/tarjetasHeader';
 
 // ============= Constantes de hoja =============
 
