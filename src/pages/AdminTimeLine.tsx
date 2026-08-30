@@ -52,6 +52,9 @@ import {
   type TimeLineGroup,
   type TimeLineHole,
 } from '@/hooks/useTimeLine';
+// Resaltado del hoyo de inicio (misma fuente de verdad que las tarjetas).
+import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+
 
 /**
  * Tamaños de papel soportados (formato jsPDF y valor para @page).
@@ -193,6 +196,7 @@ const HoleCell = ({
   divider = false,
   pad = true,
   variant = 'num',
+  style,
 }: {
   children?: React.ReactNode;
   bold?: boolean;
@@ -205,11 +209,14 @@ const HoleCell = ({
    * - `time`: hora estimada → tamaño reducido para que quepa completa.
    */
   variant?: 'num' | 'time';
+  /** Estilo inline adicional (p. ej. resaltado del hoyo de inicio). */
+  style?: React.CSSProperties;
 }) => (
   <td
     style={{
       fontSize: variant === 'time' ? 'var(--tl-hole-size)' : 'var(--tl-holenum-size)',
       lineHeight: 'var(--tl-hole-line)',
+      ...style,
     }}
     className={`whitespace-nowrap border border-border px-1 text-center align-middle tabular-nums ${
       pad ? 'py-[3px]' : 'py-0'
@@ -221,6 +228,7 @@ const HoleCell = ({
     {children}
   </td>
 );
+
 
 
 
@@ -275,10 +283,17 @@ const TimeLineBlock = ({
               {dateLabel}
             </td>
             {holes.map((h, i) => (
-              <HoleCell key={`n-${h.numero}`} bold divider={isDivider(i)}>
+              /* El hoyo donde arranca el grupo se resalta (#666666 / #FFFFFF). */
+              <HoleCell
+                key={`n-${h.numero}`}
+                bold
+                divider={isDivider(i)}
+                style={startHoleStyleFor(h.numero, group.hole)}
+              >
                 {String(h.numero).padStart(2, '0')}
               </HoleCell>
             ))}
+
           </tr>
 
           {/* Nombre del campo + par de cada hoyo */}
