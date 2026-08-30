@@ -69,7 +69,7 @@ const TarjetaHeaderFooterPreview = ({
   marginMm,
   sistema,
 }: TarjetaHeaderFooterPreviewProps) => {
-  const sistemaLabel = sistema === 'stableford' ? 'STABLEFORD' : 'STROKE PLAY';
+  const sistemaLabel = sistema === 'stableford' ? 'STABLEFORD' : 'STROKEPLAY';
 
   /** Bloques superior (renglones 1-2) e inferior (renglón 3) por campo. */
   const blocks: Record<
