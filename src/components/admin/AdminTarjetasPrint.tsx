@@ -248,27 +248,7 @@ const AdminTarjetasPrint = () => {
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-4">
-              {/* Torneo: activo del dominio o cualquier otro con calendario */}
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Torneo</Label>
-                <Select
-                  value={torneoid || 'activo'}
-                  onValueChange={(v) => setTorneoid(v === 'activo' ? '' : v)}
-                >
-                  <SelectTrigger className="w-[260px]">
-                    <SelectValue placeholder="Torneo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="activo">Torneo activo del sitio</SelectItem>
-                    {torneos.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.year ? `${t.year} · ` : ''}
-                        {t.name || `Torneo ${t.id}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
 
               {/* Fecha */}
               <div className="space-y-1">
