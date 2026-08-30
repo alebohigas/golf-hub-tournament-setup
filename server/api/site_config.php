@@ -274,6 +274,34 @@ function site_config_has_historial_config($conn) {
 $hasHistorialConfig = site_config_has_historial_config($conn);
 
 /**
+ * Detect whether the tarjetas_config column exists. Stores the Admin >
+ * Tarjetas print layout: margen de cabecera (mm), margen lateral (mm),
+ * escala (%) y tipo de juego (auto/stroke/stableford), de modo que la
+ * maquetación no dependa del localStorage del navegador.
+ *
+ *   { "sistema": "auto", "headerMm": 30, "marginMm": 8, "scale": 100 }
+ *
+ * Self-healing: crea la columna en el primer uso (no-op si el usuario de
+ * hosting no tiene privilegios de ALTER).
+ */
+function site_config_has_tarjetas_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'tarjetas_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    if (!$hasColumn) {
+        if (@$conn->query("ALTER TABLE site_config ADD COLUMN tarjetas_config TEXT DEFAULT NULL COMMENT 'JSON object with Admin > Tarjetas print layout config'")) {
+            $hasColumn = true;
+        } else {
+            error_log('site_config: could not add tarjetas_config column: ' . $conn->error);
+        }
+    }
+    return $hasColumn;
+}
+
+$hasTarjetasConfig = site_config_has_tarjetas_config($conn);
+
+/**
  * Detect whether the hero_config column exists. Stores the per-tournament
  * hero (page background) overrides configured in Admin > Heros:
  *
@@ -373,6 +401,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasHistorialConfig) {
         $selectFields .= ', historial_config';
     }
+    if ($hasTarjetasConfig) {
+        $selectFields .= ', tarjetas_config';
+    }
     if ($hasHeroConfig) {
         $selectFields .= ', hero_config';
     }
@@ -405,6 +436,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'     => $hasStatsPageConfig && !empty($row['stats_page_config']) ? json_decode($row['stats_page_config'], true) : null,
             'home_config'           => $hasHomeConfig && !empty($row['home_config']) ? json_decode($row['home_config'], true) : null,
             'historial_config'      => $hasHistorialConfig && !empty($row['historial_config']) ? json_decode($row['historial_config'], true) : null,
+            'tarjetas_config'       => $hasTarjetasConfig && !empty($row['tarjetas_config']) ? json_decode($row['tarjetas_config'], true) : null,
             'hero_config'           => $hasHeroConfig && !empty($row['hero_config']) ? json_decode($row['hero_config'], true) : null,
             'modules_config'        => $hasModulesConfig && !empty($row['modules_config']) ? json_decode($row['modules_config'], true) : null,
         ]);
@@ -430,6 +462,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'     => null,
             'home_config'           => null,
             'historial_config'      => null,
+            'tarjetas_config'       => null,
             'hero_config'           => null,
             'modules_config'        => null,
         ]);
@@ -458,6 +491,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_page_config'      => 'stats',
             'home_config'            => 'pagina',
             'historial_config'       => 'pagina',
+            'tarjetas_config'        => 'tarjetas',
             'hero_config'            => 'pagina',
         ];
         $staffAllowed = false;
@@ -653,6 +687,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['historial_config'] !== null ? "'" . esc($conn, json_encode($body['historial_config'])) . "'" : 'NULL';
         $fields[] = "historial_config = $val";
         $insertFields[] = 'historial_config';
+        $insertValues[] = $val;
+    }
+
+    /** Maquetación de impresión de tarjetas (Admin > Tarjetas). */
+    if (array_key_exists('tarjetas_config', $body)) {
+        if (!$hasTarjetasConfig) {
+            json_error("Missing DB column tarjetas_config in site_config. Run: ALTER TABLE site_config ADD COLUMN tarjetas_config TEXT DEFAULT NULL COMMENT 'JSON object with Admin > Tarjetas print layout config';", 500);
+        }
+        $val = $body['tarjetas_config'] !== null ? "'" . esc($conn, json_encode($body['tarjetas_config'])) . "'" : 'NULL';
+        $fields[] = "tarjetas_config = $val";
+        $insertFields[] = 'tarjetas_config';
         $insertValues[] = $val;
     }
 

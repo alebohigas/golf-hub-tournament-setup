@@ -431,6 +431,24 @@ export interface AnuncioConfig {
   sticky?: boolean;
 }
 
+/**
+ * TarjetasPrintConfig
+ * -----------------------------------------------------------------------
+ * Maquetación del reporte imprimible de tarjetas (Admin > Tarjetas).
+ * Se guarda en la base (`site_config.tarjetas_config`) para que los
+ * márgenes, la escala y el tipo de juego no dependan del navegador.
+ *   - sistema:  'auto' detecta Stroke Play/Stableford por categoría.
+ *   - headerMm: alto de la cabecera superior en mm (3 cm por defecto).
+ *   - marginMm: margen lateral en mm.
+ *   - scale:    escala del contenido en porcentaje (60–130).
+ */
+export interface TarjetasPrintConfig {
+  sistema: 'auto' | 'stroke' | 'stableford';
+  headerMm: number;
+  marginMm: number;
+  scale: number;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -464,6 +482,8 @@ export interface SiteConfig {
   home_config: HomeConfig | null;
   /** /historial page config (past editions). Null = not configured. */
   historial_config: HistorialConfig | null;
+  /** Maquetación de impresión de tarjetas (Admin > Tarjetas). Null = default. */
+  tarjetas_config: TarjetasPrintConfig | null;
   /** Per-tournament hero image overrides (Admin > Heros). Null = none. */
   hero_config: HeroConfig | null;
   /**
@@ -499,6 +519,7 @@ export interface SaveConfigPayload {
   stats_page_config?: StatsPageConfig | null;
   home_config?: HomeConfig | null;
   historial_config?: HistorialConfig | null;
+  tarjetas_config?: TarjetasPrintConfig | null;
   hero_config?: HeroConfig | null;
   /** Solo el superadmin puede enviar este campo (ver /setup). */
   modules_config?: ModulesConfig | null;
