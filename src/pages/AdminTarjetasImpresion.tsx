@@ -75,6 +75,8 @@ const numParam = (v: string | null, def: number, min: number, max: number) => {
 /**
  * Cabecera superior de cada tarjeta (3 cm por defecto): logo del torneo a la
  * izquierda y, alineados a la derecha, el nombre del torneo y el campo + fecha.
+ * Usa EXACTAMENTE los mismos márgenes laterales que la tabla de la tarjeta
+ * (`marginMm`) para que logo y título nunca se salgan del área imprimible.
  */
 const CardHeader = ({
   logo,
@@ -82,17 +84,25 @@ const CardHeader = ({
   course,
   fecha,
   heightMm,
+  marginMm,
 }: {
   logo: string;
   tournament: string;
   course: string;
   fecha: string;
   heightMm: number;
+  /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
+  marginMm: number;
 }) => (
   <div
-    className="flex items-center justify-between gap-3 px-2"
-    style={{ height: `${heightMm}mm` }}
+    className="flex items-center justify-between gap-3"
+    style={{
+      height: `${heightMm}mm`,
+      paddingLeft: `${marginMm}mm`,
+      paddingRight: `${marginMm}mm`,
+    }}
   >
+
     {/* Logo del torneo (list1_logo_header) */}
     <div className="flex h-full items-center">
       {logo ? (
