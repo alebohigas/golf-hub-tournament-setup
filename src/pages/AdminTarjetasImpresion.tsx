@@ -188,20 +188,46 @@ const ColGroup = () => (
 );
 
 /**
+ * TeeMarkChip
+ * Leyenda del color de marcas de salida: cuadro con el color real del tee
+ * (según el tipo de salida guardado en la BD) + el nombre del tee.
+ */
+const TeeMarkChip = ({ tee, teeSal }: { tee?: string; teeSal?: string }) => {
+  const mark = resolveTeeMark(tee, teeSal);
+  if (!mark.label) return null;
+  return (
+    <span className="flex min-w-0 items-center justify-end gap-1">
+      {mark.color ? (
+        <span
+          className="inline-block shrink-0 rounded-[0.5mm] border border-foreground/70"
+          style={{ width: '3mm', height: '3mm', backgroundColor: mark.color }}
+          aria-hidden
+        />
+      ) : null}
+      <span className="truncate uppercase">{mark.label}</span>
+    </span>
+  );
+};
+
+/**
  * Tarjeta de un jugador: encabezado de datos + tabla de 18 hoyos con las
  * columnas acumuladas V1 (ida), V2 (vuelta) y TOTAL.
  *
- * @param rows Orden de renglones configurado en Admin → Tarjetas.
+ * @param rows         Orden de renglones configurado en Admin → Tarjetas.
+ * @param headerFields Campos y orden del encabezado (3 renglones), Admin.
  */
 const Scorecard = ({
   card,
   rowMm,
   rows,
+  headerFields,
 }: {
   card: TarjetaCard;
   rowMm: number;
   rows: TarjetaRowKey[];
+  headerFields: TarjetaHeaderKey[];
 }) => {
+
   const out = card.holes.slice(0, 9);
   const inn = card.holes.slice(9, 18);
   const t = card.totals;
