@@ -289,11 +289,11 @@ const Scorecard = ({
         {label}
       </Cell>
       {out.map((h) => (
-        <Cell key={`o-${h.numero}`}>{value(h)}</Cell>
+        <Cell key={`o-${h.numero}`} className={holeCellClass?.(h)}>{value(h)}</Cell>
       ))}
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{outTotal}</Cell>
       {inn.map((h) => (
-        <Cell key={`i-${h.numero}`}>{value(h)}</Cell>
+        <Cell key={`i-${h.numero}`} className={holeCellClass?.(h)}>{value(h)}</Cell>
       ))}
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{inTotal}</Cell>
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{total}</Cell>
