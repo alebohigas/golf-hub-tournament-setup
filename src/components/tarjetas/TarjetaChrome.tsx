@@ -111,7 +111,7 @@ export const TeeMarkChip = ({
       }`}
     >
       <span
-        className="inline-block shrink-0 rounded-[0.5mm] border border-foreground/70"
+        className="inline-block shrink-0 rounded-[0.5mm] border border-foreground/30"
         style={{
           width: '3mm',
           height: '3mm',
@@ -285,7 +285,7 @@ export const TarjetaHeaderGrid = ({
   const blocks = headerBlocks(card, fonts);
   return (
     <div
-      className="grid border-b border-foreground/70 text-[8pt]"
+      className="grid border-b border-foreground/30 text-[8pt]"
       style={{
         gridTemplateColumns: fields.map((k) => TARJETA_HEADER_WIDTHS[k]).join(' '),
         height: `${rowMm * 3}mm`,
@@ -300,7 +300,7 @@ export const TarjetaHeaderGrid = ({
           <div
             key={key}
             className={`flex min-w-0 flex-col leading-tight ${
-              i > 0 ? 'border-l border-foreground/70' : ''
+              i > 0 ? 'border-l border-foreground/30' : ''
             }`}
           >
             {/* Bloque superior */}
@@ -369,7 +369,7 @@ export const TarjetaAnotadorRow = ({
     style?: CSSProperties;
   }) => (
     <td
-      className={`border border-foreground/60 px-0 text-center align-middle ${className}`}
+      className={`border border-foreground/30 px-0 text-center align-middle ${className}`}
       style={style}
     >
       {children}
@@ -441,9 +441,9 @@ export const TarjetaFooter = ({ card }: { card: TarjetaChromeData }) => {
         <div className="text-[5.5pt] uppercase text-foreground/70">Sistema</div>
         <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
       </div>
-      <div className="flex-1 border-b border-foreground/60 text-center">Anotador</div>
+      <div className="flex-1 border-b border-foreground/30 text-center">Anotador</div>
       {/* En lugar de "Firma jugador" se imprime el nombre del jugador. */}
-      <div className="flex-1 truncate border-b border-foreground/60 text-center">
+      <div className="flex-1 truncate border-b border-foreground/30 text-center">
         {tarjetaText(card.name, 'JUGADOR POR ASIGNAR')}
       </div>
       <div className="whitespace-nowrap font-semibold">
