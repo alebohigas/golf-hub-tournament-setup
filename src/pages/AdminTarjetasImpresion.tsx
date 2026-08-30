@@ -539,7 +539,7 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard card={card} />
+                    <Scorecard card={card} rowMm={rowMm} />
                   </div>
                 </div>
               ))}
