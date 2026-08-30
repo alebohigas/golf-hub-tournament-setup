@@ -465,6 +465,11 @@ export interface TarjetasPrintConfig {
    * Ver `@/lib/tarjetasHcp`.
    */
   hcpField?: string;
+  /**
+   * Imprimir (o no) el logo del torneo en la cabecera de cada tarjeta.
+   * Viaja al reporte como `logo=1|0`. Por defecto true.
+   */
+  showLogo?: boolean;
 }
 
 /** Full server response for site config */
