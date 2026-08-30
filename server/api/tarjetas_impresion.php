@@ -213,13 +213,25 @@ $head = tj_one($conn, "SELECT a.nombre, a.logo_header, b.nombre AS club
 $fechaFmt = tj_one($conn, "SELECT DATE_FORMAT('$fEsc', '%W, %e de %M %Y') AS f");
 
 // ============= Categorías solicitadas =============
+/**
+ * `categorias` NO tiene columna `campoid` en todas las instalaciones, por eso
+ * las columnas opcionales se resuelven con tj_columns antes de armar el SELECT:
+ * si se pide una columna inexistente MySQL falla y el reporte quedaba vacío
+ * ("No se encontraron las categorías solicitadas").
+ */
+$catCols = tj_columns($conn, 'categorias');
+$catSelect = ['categoria_id', 'categoria', 'abreviatura', 'sistema', 'salida'];
+foreach (['campoid', 'campo_id', 'campo'] as $optCol) {
+    if (in_array($optCol, $catCols, true)) { $catSelect[] = "`$optCol` AS campoid"; break; }
+}
 $cats = [];
-foreach (tj_all($conn, "SELECT categoria_id, categoria, abreviatura, sistema, salida, campoid
+foreach (tj_all($conn, "SELECT " . implode(', ', $catSelect) . "
                           FROM categorias
                          WHERE categoria_id IN ($catList) AND torneo_id = $tid") as $c) {
     $cats[(int)$c['categoria_id']] = $c;
 }
 if (!$cats) json_error('No se encontraron las categorías solicitadas.', 404);
+
 
 /**
  * Filtro por tipo de juego: si Admin fuerza Stroke Play o Stableford se
@@ -237,10 +249,18 @@ if ($sistemaFilter === 'stroke' || $sistemaFilter === 'stableford') {
     $catList = implode(',', $catIds);
 }
 
-// Campo del reporte: el recibido o el de la primera categoría.
+// Campo del reporte: el recibido, el de la categoría (si existe la columna) o
+// el primer campo válido del calendario de juego de esa fecha.
 if (!$cEsc) {
-    foreach ($cats as $c) { if ((int)$c['campoid'] > 0) { $cEsc = (int)$c['campoid']; break; } }
+    foreach ($cats as $c) { if ((int)($c['campoid'] ?? 0) > 0) { $cEsc = (int)$c['campoid']; break; } }
 }
+if (!$cEsc) {
+    $cjRow = tj_one($conn, "SELECT campo FROM caljuego
+                             WHERE torneoid = $tid AND fecha = '$fEsc' AND campo > 0
+                             ORDER BY campo ASC LIMIT 1");
+    $cEsc = $cjRow ? (int)$cjRow['campo'] : 0;
+}
+
 $courseRow = $cEsc ? tj_one($conn, "SELECT campo FROM campos WHERE id = $cEsc LIMIT 1") : null;
 
 // ============= Hoyos del campo por tee de salida =============
