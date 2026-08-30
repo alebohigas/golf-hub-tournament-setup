@@ -326,7 +326,18 @@ const TimeLineBlock = ({
               >
                 {group.categoryName || group.shortName}
               </span>
+              {/* Etiqueta discreta del hoyo donde arranca el bloque (coincide
+                  con la celda resaltada en la fila de números). */}
+              {startHole != null ? (
+                <span
+                  style={{ fontSize: 'var(--tl-id-size)' }}
+                  className="ml-2 rounded-sm border border-border px-1 font-semibold uppercase tabular-nums text-muted-foreground"
+                >
+                  {`INICIA H${String(startHole).padStart(2, '0')}`}
+                </span>
+              ) : null}
             </td>
+
             {holes.map((h, i) => (
               <HoleCell key={`t-${h.numero}`} divider={isDivider(i)} variant="time">
                 {formatHoleTime(group.times?.[String(h.numero)] ?? '', timeMode)}
