@@ -258,16 +258,6 @@ const Scorecard = ({ card }: { card: TarjetaCard }) => {
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
 
-  /** Filtros de datos. */
-  const filters = useMemo(
-    () => ({
-      fecha: params.get('fecha') ?? '',
-      catid: params.get('catid') ?? '',
-      campoid: params.get('campoid') ?? undefined,
-    }),
-    [params],
-  );
-
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
   const headerMm = numParam(params.get('header'), 30, 10, 60);
   const marginMm = numParam(params.get('margin'), 8, 0, 25);
@@ -275,7 +265,23 @@ const AdminTarjetasImpresion = () => {
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
   const autoPreview = params.get('preview') === '1';
 
+  /**
+   * Filtros de datos. `fecha` puede traer varios días separados por coma
+   * (rango) y `torneoid` permite imprimir un torneo distinto al activo.
+   */
+  const filters = useMemo(
+    () => ({
+      fecha: params.get('fecha') ?? '',
+      catid: params.get('catid') ?? '',
+      campoid: params.get('campoid') ?? undefined,
+      sistema,
+      torneoid: params.get('torneoid') ?? undefined,
+    }),
+    [params, sistema],
+  );
+
   const { data, isLoading, error } = useTarjetasReport(filters);
+
 
   /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
   const cards = useMemo(() => {
