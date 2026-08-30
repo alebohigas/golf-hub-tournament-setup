@@ -47,6 +47,8 @@ import {
   type TarjetaHeaderFonts,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
+/* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
+import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
 import {
   TARJETA_HCP_FIELD_LABELS,
   normalizeTarjetaHcpField,
