@@ -41,7 +41,10 @@ import {
   type TarjetaRowKey,
 } from '@/lib/tarjetasRows';
 import {
+  TARJETA_HEADER_FONTS_DEFAULT,
+  clampTarjetaFont,
   normalizeTarjetaHeader,
+  type TarjetaHeaderFonts,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
 /* Maqueta compartida (encabezado 3 renglones + pie de firmas) con la vista previa. */
@@ -228,6 +231,7 @@ const Scorecard = ({
 
   rows,
   headerFields,
+  headerFonts,
 }: {
   card: TarjetaCard;
   rowMm: number;
@@ -235,6 +239,8 @@ const Scorecard = ({
   padMm: number;
   rows: TarjetaRowKey[];
   headerFields: TarjetaHeaderKey[];
+  /** Tamaños de letra (pt) de hoyo/hora y categoría (Admin → Tarjetas). */
+  headerFonts: TarjetaHeaderFonts;
 }) => {
 
   const out = card.holes.slice(0, 9);
@@ -364,7 +370,12 @@ const Scorecard = ({
         Tarjetas (`hfields` en la URL del reporte): así impresión, PDF y vista
         previa son idénticos e incluyen los mismos fallbacks de datos faltantes.
       */}
-      <TarjetaHeaderGrid card={card} fields={headerFields} rowMm={rowMm} />
+      <TarjetaHeaderGrid
+        card={card}
+        fields={headerFields}
+        rowMm={rowMm}
+        fonts={headerFonts}
+      />
 
       {/* Brinco de renglón entre el encabezado y la tabla de hoyos */}
       <div style={{ height: `${rowMm}mm` }} />
@@ -429,6 +440,18 @@ const AdminTarjetasImpresion = () => {
    */
   const headerFields = useMemo(
     () => normalizeTarjetaHeader(params.get('hfields')),
+    [params],
+  );
+
+  /**
+   * Tamaños de letra del encabezado configurados en Admin → Tarjetas y
+   * enviados en la URL (`fsh` = hoyo/hora, `fsc` = categoría).
+   */
+  const headerFonts: TarjetaHeaderFonts = useMemo(
+    () => ({
+      hoyoPt: clampTarjetaFont(params.get('fsh'), TARJETA_HEADER_FONTS_DEFAULT.hoyoPt),
+      catPt: clampTarjetaFont(params.get('fsc'), TARJETA_HEADER_FONTS_DEFAULT.catPt),
+    }),
     [params],
   );
 
@@ -711,6 +734,7 @@ const AdminTarjetasImpresion = () => {
                       padMm={padMm}
                       rows={rowOrder}
                       headerFields={headerFields}
+                      headerFonts={headerFonts}
                     />
                   </div>
                 </div>

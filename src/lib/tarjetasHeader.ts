@@ -45,7 +45,12 @@ export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
     ya que el encabezado se mide en milímetros y no en porcentajes.
   */
   vtja: '20mm',
-  categoria: '46mm',
+  /*
+    Categoría: se le cede ~1 columna de ancho al bloque del jugador
+    (que es `1fr` y por lo tanto se encoge solo) para que el nombre de la
+    categoría quepa completo sin recortes.
+  */
+  categoria: '58mm',
   tee: '30mm',
   sistema: '26mm',
   folio: '24mm',
@@ -124,4 +129,35 @@ export const resolveTeeMark = (tee?: string, teeSal?: string): TeeMark => {
   if (!raw) return { label: '', color: null };
   const hit = TEE_SWATCHES.find((s) => s.match.test(raw));
   return { label: raw.toUpperCase(), color: hit ? hit.color : null };
+};
+
+// ============= Tamaños de letra configurables (Admin → Tarjetas) =============
+
+/**
+ * Tamaños de letra (en puntos) de los bloques grandes del encabezado.
+ * Se configuran en Admin → Tarjetas y viajan en la URL del reporte
+ * (`fsh=` hoyo/hora, `fsc=` categoría) para que la previsualización,
+ * la impresión y el PDF sean idénticos.
+ */
+export interface TarjetaHeaderFonts {
+  /** Hoyo (H01) y hora de salida. */
+  hoyoPt: number;
+  /** Nombre de la categoría. */
+  catPt: number;
+}
+
+/** Valores por defecto: hoyo/hora 13 pt y categoría 14 pt (un nivel menor). */
+export const TARJETA_HEADER_FONTS_DEFAULT: TarjetaHeaderFonts = {
+  hoyoPt: 13,
+  catPt: 14,
+};
+
+/** Acota un tamaño de letra a un rango imprimible (6–24 pt). */
+export const clampTarjetaFont = (
+  value: unknown,
+  fallback: number,
+): number => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(24, Math.max(6, n));
 };

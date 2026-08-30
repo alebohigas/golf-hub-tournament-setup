@@ -455,6 +455,10 @@ export interface TarjetasPrintConfig {
   rowOrder?: string[];
   /** Campos y orden del encabezado de 3 renglones (ver `@/lib/tarjetasHeader`). */
   headerOrder?: string[];
+  /** Tamaño de letra (pt) del hoyo y la hora de salida en el encabezado. */
+  fsHoyoPt?: number;
+  /** Tamaño de letra (pt) del nombre de la categoría en el encabezado. */
+  fsCatPt?: number;
 }
 
 /** Full server response for site config */

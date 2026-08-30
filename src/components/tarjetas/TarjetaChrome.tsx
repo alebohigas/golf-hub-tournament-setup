@@ -21,7 +21,9 @@
 import type { ReactNode } from 'react';
 import {
   TARJETA_HEADER_WIDTHS,
+  TARJETA_HEADER_FONTS_DEFAULT,
   resolveTeeMark,
+  type TarjetaHeaderFonts,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
 
@@ -141,6 +143,8 @@ const alignCls = {
  */
 const headerBlocks = (
   card: TarjetaChromeData,
+  /** Tamaños de letra configurables en Admin → Tarjetas (hoyo/hora y categoría). */
+  fonts: TarjetaHeaderFonts = TARJETA_HEADER_FONTS_DEFAULT,
 ): Record<
   TarjetaHeaderKey,
   {
@@ -161,12 +165,18 @@ const headerBlocks = (
       align: 'left',
       topRows: 1,
       top: (
-        <span className="text-[13pt] font-bold leading-none">
+        <span
+          className="font-bold leading-none"
+          style={{ fontSize: `${fonts.hoyoPt}pt` }}
+        >
           {tarjetaHoleLabel(card.hole)}
         </span>
       ),
       bottom: (
-        <span className="text-[13pt] font-bold leading-none">
+        <span
+          className="font-bold leading-none"
+          style={{ fontSize: `${fonts.hoyoPt}pt` }}
+        >
           {tarjetaText(card.time, '--:--')}
         </span>
       ),
@@ -215,7 +225,10 @@ const headerBlocks = (
     categoria: {
       align: 'right',
       top: (
-        <span className="truncate text-[18pt] font-bold uppercase">
+        <span
+          className="truncate font-bold uppercase"
+          style={{ fontSize: `${fonts.catPt}pt` }}
+        >
           {tarjetaText(card.categoryName || card.shortName, 'SIN CATEGORÍA')}
         </span>
       ),
@@ -259,12 +272,15 @@ export const TarjetaHeaderGrid = ({
   card,
   fields,
   rowMm,
+  fonts = TARJETA_HEADER_FONTS_DEFAULT,
 }: {
   card: TarjetaChromeData;
   fields: TarjetaHeaderKey[];
   rowMm: number;
+  /** Tamaños de letra (pt) de hoyo/hora y categoría, configurables en Admin. */
+  fonts?: TarjetaHeaderFonts;
 }) => {
-  const blocks = headerBlocks(card);
+  const blocks = headerBlocks(card, fonts);
   return (
     <div
       className="grid border-b border-foreground/70 text-[8pt]"

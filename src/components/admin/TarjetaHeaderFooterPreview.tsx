@@ -19,7 +19,8 @@ import {
   TarjetaHeaderGrid,
   type TarjetaChromeData,
 } from '@/components/tarjetas/TarjetaChrome';
-import type { TarjetaHeaderKey } from '@/lib/tarjetasHeader';
+import type { TarjetaHeaderFonts, TarjetaHeaderKey } from '@/lib/tarjetasHeader';
+import { TARJETA_HEADER_FONTS_DEFAULT } from '@/lib/tarjetasHeader';
 
 /** Datos de muestra: una tarjeta típica y completa. */
 const SAMPLE: TarjetaChromeData = {
@@ -62,6 +63,8 @@ export interface TarjetaHeaderFooterPreviewProps {
   marginMm: number;
   /** Tipo de juego elegido en Admin (auto usa STROKEPLAY de muestra). */
   sistema: 'auto' | 'stroke' | 'stableford';
+  /** Tamaños de letra (pt) de hoyo/hora y categoría configurados en Admin. */
+  headerFonts?: TarjetaHeaderFonts;
 }
 
 /** Vista previa en vivo del encabezado + pie de la tarjeta. */
@@ -71,6 +74,7 @@ const TarjetaHeaderFooterPreview = ({
   padMm,
   marginMm,
   sistema,
+  headerFonts = TARJETA_HEADER_FONTS_DEFAULT,
 }: TarjetaHeaderFooterPreviewProps) => {
   /** Simulación de datos faltantes para revisar los textos de respaldo. */
   const [simularFaltantes, setSimularFaltantes] = useState(false);
@@ -102,7 +106,12 @@ const TarjetaHeaderFooterPreview = ({
       <div className="overflow-x-auto rounded-md border bg-white p-3">
         <div className="mx-auto w-[196mm] min-w-[196mm] border border-foreground/70 text-foreground">
           {/* ---------- Encabezado de 3 renglones (compartido) ---------- */}
-          <TarjetaHeaderGrid card={card} fields={headerOrder} rowMm={rowMm} />
+          <TarjetaHeaderGrid
+            card={card}
+            fields={headerOrder}
+            rowMm={rowMm}
+            fonts={headerFonts}
+          />
 
           {/* Brinco de renglón + representación compacta de la tabla de hoyos */}
           <div style={{ height: `${rowMm}mm` }} />
