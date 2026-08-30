@@ -299,7 +299,7 @@ const TimeLineBlock = ({
                 key={`n-${h.numero}`}
                 bold
                 divider={isDivider(i)}
-                style={startHoleStyleFor(h.numero, group.hole)}
+                style={timeLineStartHoleStyle(h.numero, startHole)}
               >
                 {String(h.numero).padStart(2, '0')}
               </HoleCell>
