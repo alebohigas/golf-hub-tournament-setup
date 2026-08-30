@@ -23,14 +23,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, ClipboardList, Eye, Loader2, Printer } from 'lucide-react';
+import { AlertCircle, ClipboardList, Eye, Loader2, Printer, Save } from 'lucide-react';
 import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import {
+  useSiteConfig,
+  useSaveSiteConfig,
+  type TarjetasPrintConfig,
+} from '@/hooks/useSiteConfig';
+import { getSuperAdminPassword } from '@/lib/superAdminAuth';
+import { useToast } from '@/hooks/use-toast';
 
 
 /** Panel de impresión de tarjetas. */
 const AdminTarjetasPrint = () => {
   const { data, isLoading } = useTarjetasCatalogo();
   const days = data?.days ?? [];
+  const { data: siteConfig } = useSiteConfig();
+  const saveSiteConfig = useSaveSiteConfig();
+  const { toast } = useToast();
 
   // ============= Estado del formulario =============
   const [fecha, setFecha] = useState('');
@@ -273,6 +283,13 @@ const AdminTarjetasPrint = () => {
               </Button>
               <Button onClick={() => generar(false)} disabled={!isValid}>
                 <Printer className="mr-2 h-4 w-4" /> Generar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={guardarConfig}
+                disabled={!isValid || saveSiteConfig.isPending}
+              >
+                <Save className="mr-2 h-4 w-4" /> Guardar maquetación
               </Button>
             </div>
 
