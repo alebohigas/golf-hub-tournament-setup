@@ -600,9 +600,12 @@ const AdminTarjetasPrint = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Nunca se usa el índice (indexjgo). La vista previa avisa si el
-                  valor no coincide con la suma de ventajas por hoyo.
+                  Nunca se usa el índice (indexjgo). Con “Mejor coincidencia” se
+                  validan hcpneto, handicapneto y vtjajug contra el neto de
+                  ventajas por hoyo y se imprime el más cercano. La vista previa
+                  avisa si el valor no coincide.
                 </p>
+
               </div>
 
               {/*
