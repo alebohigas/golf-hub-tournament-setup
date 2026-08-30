@@ -413,8 +413,8 @@ foreach ($fechas as $f) {
                                 sg.teesal
                            FROM salidagrupo sg
                            JOIN caljuego cj ON (sg.caljuegoid = cj.id)
-                          WHERE " . implode(' AND ', $where) . "
-                          ORDER BY sg.horainicio1a ASC, sg.id ASC");
+                           WHERE " . implode(' AND ', $where) . "
+                           ORDER BY sg.horainicio1a ASC, $holeOrderExpr ASC, sg.id ASC");
     $row = tj_one($conn, "SELECT DATE_FORMAT('$fe', '%W, %e de %M %Y') AS f");
     $fechaFormatos[$f] = $row['f'] ?? $f;
 }
