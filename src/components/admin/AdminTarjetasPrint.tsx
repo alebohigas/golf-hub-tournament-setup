@@ -69,6 +69,13 @@ import {
   normalizeTarjetaHeader,
   type TarjetaHeaderKey,
 } from '@/lib/tarjetasHeader';
+import {
+  TARJETA_HCP_FIELDS,
+  TARJETA_HCP_FIELD_DEFAULT,
+  TARJETA_HCP_FIELD_LABELS,
+  normalizeTarjetaHcpField,
+  type TarjetaHcpField,
+} from '@/lib/tarjetasHcp';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -121,6 +128,16 @@ const AdminTarjetasPrint = () => {
    */
   const [fsHoyoPt, setFsHoyoPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.hoyoPt);
   const [fsCatPt, setFsCatPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.catPt);
+
+  /**
+   * Campo de la BD del que se toma el **HCP. NETO** del encabezado. Viaja al
+   * reporte como `hcpfield=` para garantizar que el valor impreso siempre sea
+   * el neto (nunca el índice) y que la validación en pantalla lo compare
+   * contra la suma de ventajas por hoyo.
+   */
+  const [hcpField, setHcpField] = useState<TarjetaHcpField>(
+    TARJETA_HCP_FIELD_DEFAULT,
+  );
 
   /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
@@ -193,6 +210,7 @@ const AdminTarjetasPrint = () => {
       setFsHoyoPt(clampTarjetaFont(cfg.fsHoyoPt, TARJETA_HEADER_FONTS_DEFAULT.hoyoPt));
     if (typeof cfg.fsCatPt === 'number')
       setFsCatPt(clampTarjetaFont(cfg.fsCatPt, TARJETA_HEADER_FONTS_DEFAULT.catPt));
+    if (cfg.hcpField) setHcpField(normalizeTarjetaHcpField(cfg.hcpField));
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
     if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
@@ -210,6 +228,7 @@ const AdminTarjetasPrint = () => {
       headerOrder,
       fsHoyoPt,
       fsCatPt,
+      hcpField,
     };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
@@ -332,6 +351,7 @@ const AdminTarjetasPrint = () => {
       pad: String(padMm),
       fsh: String(fsHoyoPt),
       fsc: String(fsCatPt),
+      hcpfield: hcpField,
       rows: rowOrder.join(','),
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
@@ -553,6 +573,36 @@ const AdminTarjetasPrint = () => {
                   value={fsCatPt}
                   onChange={(e) => setFsCatPt(Number(e.target.value))}
                 />
+              </div>
+
+              {/*
+                Campo de la BD para el HCP. NETO. Viaja como `hcpfield=` y el
+                reporte marca en pantalla cualquier discrepancia contra el
+                neto calculado por ventajas por hoyo.
+              */}
+              <div className="basis-full space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Campo de HCP. NETO (BD)
+                </Label>
+                <Select
+                  value={hcpField}
+                  onValueChange={(v) => setHcpField(normalizeTarjetaHcpField(v))}
+                >
+                  <SelectTrigger className="w-full max-w-[420px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TARJETA_HCP_FIELDS.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {TARJETA_HCP_FIELD_LABELS[k]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Nunca se usa el índice (indexjgo). La vista previa avisa si el
+                  valor no coincide con la suma de ventajas por hoyo.
+                </p>
               </div>
 
               {/*
