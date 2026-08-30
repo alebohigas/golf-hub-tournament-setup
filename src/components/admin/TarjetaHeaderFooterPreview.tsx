@@ -113,8 +113,8 @@ const TarjetaHeaderFooterPreview = ({
             Tabla de hoyos (renglones configurados)
           </div>
 
-          {/* Margen de 3 renglones antes del pie */}
-          <div style={{ height: `${rowMm * 3}mm` }} />
+          {/* Margen de 2 renglones antes del pie */}
+          <div style={{ height: `${rowMm * 2}mm` }} />
 
           {/* ---------- Pie: sistema, firmas y folio (compartido) ---------- */}
           <TarjetaFooter card={card} />

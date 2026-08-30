@@ -375,8 +375,8 @@ const Scorecard = ({
         <tbody>{rows.map((key) => rowDefs[key])}</tbody>
       </table>
 
-      {/* Margen de 3 renglones entre el último renglón y el pie */}
-      <div style={{ height: `${rowMm * 3}mm` }} />
+      {/* Margen de 2 renglones entre el último renglón y el pie */}
+      <div style={{ height: `${rowMm * 2}mm` }} />
 
       {/* ---------- Pie: sistema de juego, firmas y folio (compartido) ---------- */}
       <TarjetaFooter card={card} />
