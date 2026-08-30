@@ -10,7 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
-import { getTimeLineUrl, POLL_STATIC } from '@/config/api';
+import { getTimeLineUrl } from '@/config/api';
 import type { SalidasImpresionFilters } from '@/hooks/useSalidasImpresion';
 
 // ============= Tipos =============
@@ -78,5 +78,11 @@ export const useTimeLineReport = (filters: TimeLineFilters | null, enabled = tru
       };
     },
     enabled: enabled && !!filters?.fecha,
-    staleTime: POLL_STATIC,
+    // Los tiempos por hoyo se editan en la tabla `hoyos`: el reporte siempre
+    // pide datos frescos para que impresión y PDF usen los tiempos vigentes.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
+
