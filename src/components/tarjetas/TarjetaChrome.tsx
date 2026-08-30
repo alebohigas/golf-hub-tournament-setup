@@ -263,6 +263,78 @@ export const TarjetaHeaderGrid = ({
 };
 
 /**
+ * TarjetaAnotadorRow — renglón "SCORE ANOTADOR" que va pegado abajo de la
+ * tabla de hoyos (antes del pie de firmas).
+ *
+ * Misma estructura que el renglón HOYO: 18 celdas con el número de hoyo y
+ * las columnas acumuladas V1 / V2 / TOTAL, pero con la etiqueta
+ * "SCORE ANOTADOR" a la izquierda para que el anotador escriba ahí sus
+ * golpes. Lleva un padding-bottom de 3 mm antes de las firmas.
+ *
+ * Usa los mismos anchos de columna (%) que la tabla principal para que las
+ * celdas queden perfectamente alineadas con los renglones de arriba.
+ *
+ * @param rowMm Alto del renglón (el mismo configurable de Admin → Tarjetas).
+ */
+export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
+  /** Ancho de la etiqueta y de las columnas de totales (idénticos a la tabla). */
+  const COL_LABEL_PCT = 10.6;
+  const COL_TOTAL_PCT = 5.6;
+  const COL_HOLE_PCT = (100 - COL_LABEL_PCT - COL_TOTAL_PCT * 3) / 18;
+
+  /** Celda del renglón con borde fino, igual que las de la tabla principal. */
+  const ACell = ({
+    children,
+    className = '',
+  }: {
+    children?: ReactNode;
+    className?: string;
+  }) => (
+    <td className={`border border-foreground/60 px-0 text-center align-middle ${className}`}>
+      {children}
+    </td>
+  );
+
+  return (
+    <div style={{ paddingBottom: '3mm' }}>
+      <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
+        <colgroup>
+          <col style={{ width: `${COL_LABEL_PCT}%` }} />
+          {Array.from({ length: 9 }, (_, i) => (
+            <col key={`ao-${i}`} style={{ width: `${COL_HOLE_PCT}%` }} />
+          ))}
+          <col style={{ width: `${COL_TOTAL_PCT}%` }} />
+          {Array.from({ length: 9 }, (_, i) => (
+            <col key={`ai-${i}`} style={{ width: `${COL_HOLE_PCT}%` }} />
+          ))}
+          <col style={{ width: `${COL_TOTAL_PCT}%` }} />
+          <col style={{ width: `${COL_TOTAL_PCT}%` }} />
+        </colgroup>
+        <tbody>
+          <tr style={{ height: `${rowMm}mm` }}>
+            {/* Etiqueta a la izquierda (puede partirse en 2 líneas) */}
+            <ACell className="px-1 text-left text-[6pt] font-semibold uppercase leading-tight">
+              Score Anotador
+            </ACell>
+            {/* Hoyos 1-9 */}
+            {Array.from({ length: 9 }, (_, i) => (
+              <ACell key={`an-o-${i}`}>{i + 1}</ACell>
+            ))}
+            <ACell className="bg-muted/60 font-bold">V1</ACell>
+            {/* Hoyos 10-18 */}
+            {Array.from({ length: 9 }, (_, i) => (
+              <ACell key={`an-i-${i}`}>{i + 10}</ACell>
+            ))}
+            <ACell className="bg-muted/60 font-bold">V2</ACell>
+            <ACell className="bg-muted/60 font-bold">TOTAL</ACell>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+/**
  * TarjetaFooter — pie de la tarjeta: bloque SISTEMA (3 renglones) a la
  * izquierda, firma del anotador, nombre del jugador (en lugar de "firma
  * jugador") y el folio a la derecha.
