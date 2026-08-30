@@ -340,10 +340,10 @@ const Scorecard = ({
     puntos: <Row key="puntos" label={TARJETA_ROW_LABELS.puntos} value={() => ''} />,
   };
 
-  /** Sistema de juego impreso en el pie ("STROKE PLAY" / "STABLEFORD"). */
+  /** Sistema de juego impreso en el pie ("STROKEPLAY" / "STABLEFORD"). */
   const sistemaLabel = (card.system || '').toUpperCase().includes('STABLE')
     ? 'STABLEFORD'
-    : 'STROKE PLAY';
+    : 'STROKEPLAY';
 
   /**
    * Bloques del encabezado de 3 renglones. Cada campo es una columna con un
