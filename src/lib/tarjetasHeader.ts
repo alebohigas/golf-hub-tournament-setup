@@ -25,7 +25,7 @@ export type TarjetaHeaderKey =
 export const TARJETA_HEADER_LABELS: Record<TarjetaHeaderKey, string> = {
   hoyohora: 'Hoyo + hora',
   jugador: 'Jugador (ID, nombre y club)',
-  vtja: 'HCP. NETO',
+  vtja: 'HANDICAP NETO',
   categoria: 'Categoría + marcas de salida',
   tee: 'Marcas de salida (solo)',
   sistema: 'Sistema de juego',
