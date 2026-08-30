@@ -23,7 +23,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, ClipboardList, Eye, Loader2, Printer, Save } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  AlertCircle,
+  ChevronsUpDown,
+  ClipboardList,
+  Eye,
+  Loader2,
+  Printer,
+  Save,
+  X,
+} from 'lucide-react';
 import { useTarjetasCatalogo, useTarjetasTorneos } from '@/hooks/useTarjetasImpresion';
 import {
   useSiteConfig,
@@ -53,6 +72,8 @@ const AdminTarjetasPrint = () => {
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
+  /** Estado abierto/cerrado del multiselector de categorías. */
+  const [catsOpen, setCatsOpen] = useState(false);
   /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
   const [sistema, setSistema] = useState<'auto' | 'stroke' | 'stableford'>('auto');
   /** Alto de la cabecera superior en mm (3 cm por defecto). */
@@ -133,10 +154,28 @@ const AdminTarjetasPrint = () => {
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [days, fecha, campoid, camposDeFecha, sistema]);
 
-  /** Al cambiar día/campo/tipo se seleccionan todas las categorías por defecto. */
+  /**
+   * Al cambiar día/campo/tipo se conserva la selección que siga siendo válida;
+   * si no queda ninguna (o es la primera carga) se marcan todas.
+   */
   useEffect(() => {
-    setCatIds(categorias.map((c) => c.id));
+    setCatIds((prev) => {
+      const validos = categorias.map((c) => c.id);
+      const conservados = prev.filter((id) => validos.includes(id));
+      return conservados.length ? conservados : validos;
+    });
   }, [categorias]);
+
+  /** Texto del botón multiselector: "Todas", "N de M" o el nombre único. */
+  const catsLabel = useMemo(() => {
+    if (!categorias.length) return 'Sin categorías';
+    if (catIds.length === categorias.length) return `Todas las categorías (${categorias.length})`;
+    if (!catIds.length) return 'Ninguna categoría';
+    if (catIds.length === 1) {
+      return categorias.find((c) => c.id === catIds[0])?.name ?? '1 categoría';
+    }
+    return `${catIds.length} de ${categorias.length} categorías`;
+  }, [categorias, catIds]);
 
   /** Alterna una categoría de la selección. */
   const toggleCat = (id: string) =>
@@ -364,10 +403,51 @@ const AdminTarjetasPrint = () => {
             </div>
 
 
-            {/* Selección de categorías */}
+            {/*
+              Multiselector de categorías: lista con búsqueda dentro de un
+              Popover. Solo aparecen las categorías compatibles con el tipo de
+              juego elegido (todas cuando el tipo es "Automático").
+            */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
                 <Label className="text-xs text-muted-foreground">Categorías</Label>
+                <Popover open={catsOpen} onOpenChange={setCatsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-[320px] justify-between"
+                      disabled={!categorias.length}
+                    >
+                      <span className="truncate">{catsLabel}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar categoría…" />
+                      <CommandList className="max-h-72">
+                        <CommandEmpty>Sin coincidencias.</CommandEmpty>
+                        <CommandGroup>
+                          {categorias.map((c) => (
+                            <CommandItem
+                              key={c.id}
+                              value={`${c.name} ${c.system}`}
+                              onSelect={() => toggleCat(c.id)}
+                              className="gap-2"
+                            >
+                              <Checkbox
+                                checked={catIds.includes(c.id)}
+                                className="pointer-events-none"
+                              />
+                              <span className="flex-1 truncate">{c.name}</span>
+                              <span className="text-xs text-muted-foreground">{c.system}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="outline"
                   size="sm"
@@ -379,22 +459,22 @@ const AdminTarjetasPrint = () => {
                   Ninguna
                 </Button>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {categorias.map((c) => (
-                  <label
-                    key={c.id}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={catIds.includes(c.id)}
-                      onCheckedChange={() => toggleCat(c.id)}
-                    />
-                    <span className="flex-1">
+
+              {/* Resumen de lo seleccionado (clic en la X para quitar) */}
+              <div className="flex flex-wrap gap-2">
+                {categorias
+                  .filter((c) => catIds.includes(c.id))
+                  .map((c) => (
+                    <Badge
+                      key={`sel-${c.id}`}
+                      variant="secondary"
+                      className="cursor-pointer gap-1"
+                      onClick={() => toggleCat(c.id)}
+                    >
                       {c.name}
-                      <span className="ml-1 text-xs text-muted-foreground">({c.system})</span>
-                    </span>
-                  </label>
-                ))}
+                      <X className="h-3 w-3" />
+                    </Badge>
+                  ))}
                 {!categorias.length && (
                   <p className="text-sm text-muted-foreground">
                     No hay categorías con salidas capturadas para este día.
@@ -402,6 +482,7 @@ const AdminTarjetasPrint = () => {
                 )}
               </div>
             </div>
+
 
             {/* Errores de validación */}
             {!isValid && (
