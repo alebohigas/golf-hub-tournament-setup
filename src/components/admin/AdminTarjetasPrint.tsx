@@ -209,6 +209,28 @@ const AdminTarjetasPrint = () => {
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-4">
+              {/* Torneo: activo del dominio o cualquier otro con calendario */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Torneo</Label>
+                <Select
+                  value={torneoid || 'activo'}
+                  onValueChange={(v) => setTorneoid(v === 'activo' ? '' : v)}
+                >
+                  <SelectTrigger className="w-[260px]">
+                    <SelectValue placeholder="Torneo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activo">Torneo activo del sitio</SelectItem>
+                    {torneos.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.year ? `${t.year} · ` : ''}
+                        {t.name || `Torneo ${t.id}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Fecha */}
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Fecha</Label>
@@ -229,6 +251,29 @@ const AdminTarjetasPrint = () => {
                         {days.find((d) => d.fecha === f)?.fechaFormato || f}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Fecha final del rango (opcional) */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Hasta (opcional)</Label>
+                <Select
+                  value={fechaFin || 'uno'}
+                  onValueChange={(v) => setFechaFin(v === 'uno' ? '' : v)}
+                >
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue placeholder="Un solo día" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="uno">Solo ese día</SelectItem>
+                    {fechas
+                      .filter((f) => f >= fecha)
+                      .map((f) => (
+                        <SelectItem key={`fin-${f}`} value={f}>
+                          {days.find((d) => d.fecha === f)?.fechaFormato || f}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
