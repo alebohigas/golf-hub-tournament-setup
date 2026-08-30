@@ -43,7 +43,7 @@ import {
   Save,
   X,
 } from 'lucide-react';
-import { useTarjetasCatalogo, useTarjetasTorneos } from '@/hooks/useTarjetasImpresion';
+import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
 import {
   useSiteConfig,
   useSaveSiteConfig,
