@@ -169,11 +169,20 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
     if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
+    if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
 
   /** Guarda la maquetación en la base de datos. */
   const guardarConfig = () => {
-    const payload: TarjetasPrintConfig = { sistema, headerMm, marginMm, scale, rowMm, rowOrder };
+    const payload: TarjetasPrintConfig = {
+      sistema,
+      headerMm,
+      marginMm,
+      scale,
+      rowMm,
+      rowOrder,
+      headerOrder,
+    };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
       {
