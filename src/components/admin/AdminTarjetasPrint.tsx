@@ -108,6 +108,33 @@ const AdminTarjetasPrint = () => {
    */
   const [rowOrder, setRowOrder] = useState<TarjetaRowKey[]>([...TARJETA_ROWS_DEFAULT]);
 
+  /**
+   * Campos (y orden) del ENCABEZADO de 3 renglones de la tarjeta. Se manda al
+   * reporte como `hfields=hoyohora,jugador,...`.
+   */
+  const [headerOrder, setHeaderOrder] = useState<TarjetaHeaderKey[]>([
+    ...TARJETA_HEADER_DEFAULT,
+  ]);
+
+  /** Activa/desactiva un campo del encabezado conservando el orden base. */
+  const toggleHeaderField = (key: TarjetaHeaderKey) =>
+    setHeaderOrder((prev) =>
+      prev.includes(key)
+        ? prev.filter((k) => k !== key)
+        : TARJETA_HEADER_ALL.filter((k) => k === key || prev.includes(k)),
+    );
+
+  /** Mueve un campo del encabezado una posición a la izquierda/derecha. */
+  const moveHeaderField = (key: TarjetaHeaderKey, delta: -1 | 1) =>
+    setHeaderOrder((prev) => {
+      const i = prev.indexOf(key);
+      const j = i + delta;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+
   /** Activa/desactiva un renglón conservando su posición relativa por defecto. */
   const toggleRow = (key: TarjetaRowKey) =>
     setRowOrder((prev) =>
@@ -133,6 +160,7 @@ const AdminTarjetasPrint = () => {
    * navegador o dispositivo.
    */
   useEffect(() => {
+
     const cfg = siteConfig?.tarjetas_config;
     if (!cfg) return;
     if (cfg.sistema) setSistema(cfg.sistema);
