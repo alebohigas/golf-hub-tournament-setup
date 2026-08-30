@@ -393,7 +393,7 @@ const AdminTarjetasImpresion = () => {
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
               {data
-                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
@@ -463,7 +463,8 @@ const AdminTarjetasImpresion = () => {
                     logo={data?.logoHeader ?? ''}
                     tournament={data?.tournament ?? ''}
                     course={data?.course ?? ''}
-                    fecha={data?.fechaFormato ?? ''}
+                    /* Cada tarjeta muestra SU día de juego (soporta rangos). */
+                    fecha={card.fechaFormato || data?.fechaFormato || ''}
                     heightMm={headerMm}
                   />
                   {/* La escala mantiene el acomodo idéntico en cualquier impresora */}
