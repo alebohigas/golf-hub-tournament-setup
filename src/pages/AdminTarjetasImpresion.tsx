@@ -35,6 +35,11 @@ import {
 } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, Download, Eye, Loader2, Printer } from 'lucide-react';
 import { useTarjetasReport, type TarjetaCard } from '@/hooks/useTarjetasImpresion';
+import {
+  TARJETA_ROW_LABELS,
+  normalizeTarjetaRows,
+  type TarjetaRowKey,
+} from '@/lib/tarjetasRows';
 
 // ============= Constantes de hoja =============
 
@@ -45,18 +50,17 @@ const SHEET_W_MM = 215.9;
 /** Alto de hoja carta. */
 const SHEET_H_MM = 279.4;
 
-/** Renglones de la tabla de hoyos (Hoyo, Par, Yardas, Par Time, Ventaja, Handicap, Score, Puntos). */
-const TABLE_ROWS = 8;
 /** Alto aproximado del bloque de datos del jugador + pie de firmas, en mm. */
 const CARD_CHROME_MM = 22;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
- * la media hoja carta (incluye cabecera configurable y escala aplicada).
+ * la media hoja carta (incluye cabecera configurable, escala aplicada y el
+ * número real de renglones que se van a imprimir).
  */
-const maxRowMm = (headerMm: number, scale: number) => {
+const maxRowMm = (headerMm: number, scale: number, tableRows: number) => {
   const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
-  return Math.max(3, disponible / TABLE_ROWS);
+  return Math.max(3, disponible / Math.max(1, tableRows));
 };
 
 /** Lee un número de la URL acotado a un rango. */
@@ -324,9 +328,18 @@ const AdminTarjetasImpresion = () => {
    * Alto de renglón pedido (`rowh`, mm) acotado al máximo que cabe en la media
    * hoja: así se pueden hacer más altos los renglones sin desplazar la tarjeta.
    */
+  /**
+   * Orden de renglones configurado en Admin → Tarjetas (`rows=hoyo,yardas,...`).
+   * Si no llega o es inválido se usa el orden por defecto del club.
+   */
+  const rowOrder = useMemo(
+    () => normalizeTarjetaRows(params.get('rows')),
+    [params],
+  );
+
   const rowMm = Math.min(
     numParam(params.get('rowh'), 5.5, 3, 12),
-    maxRowMm(headerMm, scale),
+    maxRowMm(headerMm, scale, rowOrder.length),
   );
 
   /**
@@ -583,7 +596,7 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard card={card} rowMm={rowMm} />
+                    <Scorecard card={card} rowMm={rowMm} rows={rowOrder} />
                   </div>
                 </div>
               ))}
