@@ -261,6 +261,7 @@ const Scorecard = ({
     head = false,
     bold = false,
     heightMm,
+    holeCellClass,
   }: {
     label: string;
     value: (h: TarjetaCard['holes'][number]) => React.ReactNode;
@@ -272,6 +273,8 @@ const Scorecard = ({
     bold?: boolean;
     /** Alto del renglón en mm (por defecto `rowMm`; SCORE GROSS usa 1.5×). */
     heightMm?: number;
+    /** Clase extra por celda de hoyo (p. ej. resaltar el hoyo de salida). */
+    holeCellClass?: (h: TarjetaCard['holes'][number]) => string;
   }) => (
     /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
     <tr
@@ -286,11 +289,11 @@ const Scorecard = ({
         {label}
       </Cell>
       {out.map((h) => (
-        <Cell key={`o-${h.numero}`}>{value(h)}</Cell>
+        <Cell key={`o-${h.numero}`} className={holeCellClass?.(h)}>{value(h)}</Cell>
       ))}
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{outTotal}</Cell>
       {inn.map((h) => (
-        <Cell key={`i-${h.numero}`}>{value(h)}</Cell>
+        <Cell key={`i-${h.numero}`} className={holeCellClass?.(h)}>{value(h)}</Cell>
       ))}
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{inTotal}</Cell>
       <Cell className={head ? '' : 'bg-muted/60 font-bold'}>{total}</Cell>
@@ -308,6 +311,13 @@ const Scorecard = ({
         outTotal="V1"
         inTotal="V2"
         total="TOTAL"
+        /* Hoyo de salida (H01, H10, …): recuadro negro con número blanco.
+           Se imprime con estilo inline para garantizar negro/blanco en PDF. */
+        holeCellClass={(h) =>
+          card.hole != null && h.numero === card.hole
+            ? 'font-bold [background:#000] [color:#fff] print:[background:#000] print:[color:#fff]'
+            : ''
+        }
       />
     ),
     /* PAR CAMPO: todo el renglón (etiqueta, hoyos y totales) va en NEGRITAS. */
