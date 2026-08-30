@@ -805,6 +805,12 @@ const AdminDashboard = () => {
           <AdminTimeLinePrint />
         </TabsContent>
 
+        {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
+        <TabsContent value="tarjetas">
+          <AdminTarjetasPrint />
+        </TabsContent>
+
+
         {/* Página /stats — controla visibilidad, orden y overrides
             manuales de las 3 secciones (Clubes, Categoría, Jugador). */}
         <TabsContent value="stats-page">
