@@ -209,10 +209,67 @@ const AdminTarjetasPrint = () => {
                 </Select>
               </div>
 
-              <Button onClick={generar} disabled={!isValid}>
+              {/* Tipo de juego: auto por categoría, o forzado */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Tipo de juego</Label>
+                <Select
+                  value={sistema}
+                  onValueChange={(v) => setSistema(v as 'auto' | 'stroke' | 'stableford')}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automático (por categoría)</SelectItem>
+                    <SelectItem value="stroke">Stroke Play</SelectItem>
+                    <SelectItem value="stableford">Stableford</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Maquetación: cabecera, margen lateral y escala */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Cabecera (mm)</Label>
+                <Input
+                  type="number"
+                  min={10}
+                  max={60}
+                  className="w-[110px]"
+                  value={headerMm}
+                  onChange={(e) => setHeaderMm(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Margen lateral (mm)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={25}
+                  className="w-[130px]"
+                  value={marginMm}
+                  onChange={(e) => setMarginMm(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Escala (%)</Label>
+                <Input
+                  type="number"
+                  min={60}
+                  max={130}
+                  className="w-[110px]"
+                  value={scale}
+                  onChange={(e) => setScale(Number(e.target.value))}
+                />
+              </div>
+
+              <Button variant="outline" onClick={() => generar(true)} disabled={!isValid}>
+                <Eye className="mr-2 h-4 w-4" /> Vista previa
+              </Button>
+              <Button onClick={() => generar(false)} disabled={!isValid}>
                 <Printer className="mr-2 h-4 w-4" /> Generar
               </Button>
             </div>
+
 
             {/* Selección de categorías */}
             <div className="space-y-2">
