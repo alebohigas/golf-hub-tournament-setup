@@ -63,16 +63,20 @@ export const tarjetaNum = (value: unknown, fallback = '—'): string => {
   return Number.isFinite(n) ? String(n) : fallback;
 };
 
-/** Hoyo + hora de salida, tolerante a datos faltantes ("H-- --:--"). */
-export const tarjetaHoleTime = (
-  hole?: number | null,
-  time?: string | null,
-): string => {
+/** Etiqueta del hoyo de salida, tolerante a datos faltantes ("H--"). */
+export const tarjetaHoleLabel = (hole?: number | null): string => {
   const h = hole == null || !Number.isFinite(Number(hole))
     ? '--'
     : String(Number(hole)).padStart(2, '0');
-  return `H${h} ${tarjetaText(time, '--:--')}`;
+  return `H${h}`;
 };
+
+/** Hoyo + hora de salida en una sola línea, tolerante a datos faltantes. */
+export const tarjetaHoleTime = (
+  hole?: number | null,
+  time?: string | null,
+): string => `${tarjetaHoleLabel(hole)} ${tarjetaText(time, '--:--')}`;
+
 
 /** Sistema de juego normalizado a la leyenda impresa. */
 export const tarjetaSistemaLabel = (system?: string | null): string =>
