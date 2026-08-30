@@ -16,7 +16,7 @@
 import type { CSSProperties } from 'react';
 
 /** Colores fijos del resaltado (independientes del tema activo). */
-export const START_HOLE_BG = '#000000';
+export const START_HOLE_BG = '#666666';
 export const START_HOLE_FG = '#FFFFFF';
 
 /**
