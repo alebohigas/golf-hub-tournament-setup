@@ -516,8 +516,23 @@ foreach ($groups as $g) {
             'categoryName' => $cat['categoria'] ?? '',
             'shortName'    => $cat['abreviatura'] ?? '',
             'system'       => strtoupper($cat['sistema'] ?? ''),
-            /** Ventaja total del jugador = suma de golpes por hoyo. */
-            'hcp'          => array_sum($ventajas),
+            /**
+             * HCP. NETO del jugador (handicap de juego que se imprime arriba).
+             * Prioridad:
+             *   1) Columna con el neto ya calculado en la BD (hcpneto /
+             *      handicapneto / vtjajug), cuando la vista la expone.
+             *   2) Suma de los golpes de ventaja por hoyo (ventajasjug), que es
+             *      exactamente el mismo neto repartido hoyo por hoyo.
+             * Nunca se usa el índice (indexjgo), que es HCP índice y no neto.
+             */
+            'hcp'          => (function () use ($p, $ventajas) {
+                foreach (['hcpneto', 'handicapneto', 'vtjajug'] as $col) {
+                    if (isset($p[$col]) && $p[$col] !== '' && $p[$col] !== null) {
+                        return (int)round((float)$p[$col]);
+                    }
+                }
+                return array_sum($ventajas);
+            })(),
             'holes'        => $holeRows,
             'totals'       => [
                 'parOut'      => $sum(1, 9, 'par'),
