@@ -381,7 +381,9 @@ foreach ($groups as $g) {
             'hole'         => $hole,
             'time'         => $g['hora'] ?? '',
             'teeSal'       => $g['teesal'] ?? '',
-            'tee'          => $p['tee'] ?? '',
+            /** Color del tee: el de la vista y, si viene vacío, el de campo_tee. */
+            'tee'          => !empty($p['tee']) ? $p['tee'] : $teeName($salidaid),
+
             'playerId'     => (string)($p['jugadorid'] ?? ''),
             'playerNumber' => (string)($p['numjugador'] ?? ($p['jugadorid'] ?? '')),
             'name'         => trim(($p['nombre'] ?? '') . ' ' . ($p['apellido'] ?? '')),
