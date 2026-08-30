@@ -56,6 +56,8 @@ export interface TarjetaHeaderFooterPreviewProps {
   headerOrder: TarjetaHeaderKey[];
   /** Alto de renglón (mm) configurado en Admin. */
   rowMm: number;
+  /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR. */
+  padMm: number;
   /** Margen lateral (mm) de la tarjeta. */
   marginMm: number;
   /** Tipo de juego elegido en Admin (auto usa STROKEPLAY de muestra). */
@@ -66,6 +68,7 @@ export interface TarjetaHeaderFooterPreviewProps {
 const TarjetaHeaderFooterPreview = ({
   headerOrder,
   rowMm,
+  padMm,
   marginMm,
   sistema,
 }: TarjetaHeaderFooterPreviewProps) => {
@@ -82,7 +85,7 @@ const TarjetaHeaderFooterPreview = ({
       <p className="text-xs text-muted-foreground">
         Vista previa en vivo (encabezado y firmas). Usa los mismos componentes que impresión y
         PDF, con el orden de campos, el alto de renglón ({rowMm} mm) y el margen lateral (
-        {marginMm} mm) configurados aquí.
+        {marginMm} mm) y el padding inferior ({padMm} mm) configurados aquí.
       </p>
 
       <div className="flex items-center gap-2">
@@ -119,8 +122,8 @@ const TarjetaHeaderFooterPreview = ({
           {/* Brinco de renglón entre el pie y el score del anotador */}
           <div style={{ height: `${rowMm}mm` }} />
 
-          {/* ---------- SCORE ANOTADOR en 2 renglones (compartido, con 3 mm de padding-bottom) ---------- */}
-          <TarjetaAnotadorRow rowMm={rowMm} />
+          {/* ---------- SCORE ANOTADOR en 2 renglones (compartido, padding-bottom configurable) ---------- */}
+          <TarjetaAnotadorRow rowMm={rowMm} padMm={padMm} />
         </div>
       </div>
     </div>

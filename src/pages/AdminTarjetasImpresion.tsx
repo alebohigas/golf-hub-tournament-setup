@@ -64,9 +64,10 @@ const SHEET_H_MM = 279.4;
 /**
  * Alto aproximado del pie de firmas de la tarjeta, en mm (el encabezado y los
  * brincos de renglón se calculan aparte porque miden `rowMm`).
- * Incluye los 3 mm de padding-bottom del renglón SCORE ANOTADOR.
+ * NO incluye el padding-bottom del renglón SCORE ANOTADOR: ése es
+ * configurable (`pad`) y se suma aparte en `maxRowMm`.
  */
-const CARD_CHROME_MM = 12;
+const CARD_CHROME_MM = 9;
 
 /**
  * Renglones "extra" que también miden `rowMm`:
@@ -83,8 +84,14 @@ const EXTRA_ROWS = 10;
  * número real de renglones a imprimir y los renglones extra de encabezado,
  * brinco y margen de firmas).
  */
-const maxRowMm = (headerMm: number, scale: number, tableRows: number) => {
-  const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
+const maxRowMm = (
+  headerMm: number,
+  scale: number,
+  tableRows: number,
+  padMm: number,
+) => {
+  const disponible =
+    (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM - padMm;
   return Math.max(3, disponible / Math.max(1, tableRows + EXTRA_ROWS));
 };
 
@@ -217,11 +224,15 @@ const ColGroup = () => (
 const Scorecard = ({
   card,
   rowMm,
+  padMm,
+
   rows,
   headerFields,
 }: {
   card: TarjetaCard;
   rowMm: number;
+  /** Padding-bottom (mm) configurable al final de la tarjeta. */
+  padMm: number;
   rows: TarjetaRowKey[];
   headerFields: TarjetaHeaderKey[];
 }) => {
@@ -363,10 +374,10 @@ const Scorecard = ({
       {/*
         ---------- SCORE ANOTADOR en 2 renglones (compartido con la vista previa) ----------
         Renglón 1 igual que el renglón HOYO (hoyos 1-18 + V1/V2/TOTAL) y renglón 2
-        vacío para escribir los golpes. Lleva 3 mm de padding-bottom al final.
+        vacío para escribir los golpes. El padding-bottom final es configurable (`pad`).
         Su alto ya está contemplado en EXTRA_ROWS para no perder el formato de 1/2 carta.
       */}
-      <TarjetaAnotadorRow rowMm={rowMm} />
+      <TarjetaAnotadorRow rowMm={rowMm} padMm={padMm} />
     </div>
   );
 };
@@ -408,9 +419,12 @@ const AdminTarjetasImpresion = () => {
     [params],
   );
 
+  /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
+  const padMm = numParam(params.get('pad'), 3, 0, 15);
+
   const rowMm = Math.min(
     numParam(params.get('rowh'), 5.5, 3, 12),
-    maxRowMm(headerMm, scale, rowOrder.length),
+    maxRowMm(headerMm, scale, rowOrder.length, padMm),
   );
 
 
@@ -674,6 +688,7 @@ const AdminTarjetasImpresion = () => {
                     <Scorecard
                       card={card}
                       rowMm={rowMm}
+                      padMm={padMm}
                       rows={rowOrder}
                       headerFields={headerFields}
                     />

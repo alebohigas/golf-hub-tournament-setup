@@ -63,16 +63,20 @@ export const tarjetaNum = (value: unknown, fallback = '—'): string => {
   return Number.isFinite(n) ? String(n) : fallback;
 };
 
-/** Hoyo + hora de salida, tolerante a datos faltantes ("H-- --:--"). */
-export const tarjetaHoleTime = (
-  hole?: number | null,
-  time?: string | null,
-): string => {
+/** Etiqueta del hoyo de salida, tolerante a datos faltantes ("H--"). */
+export const tarjetaHoleLabel = (hole?: number | null): string => {
   const h = hole == null || !Number.isFinite(Number(hole))
     ? '--'
     : String(Number(hole)).padStart(2, '0');
-  return `H${h} ${tarjetaText(time, '--:--')}`;
+  return `H${h}`;
 };
+
+/** Hoyo + hora de salida en una sola línea, tolerante a datos faltantes. */
+export const tarjetaHoleTime = (
+  hole?: number | null,
+  time?: string | null,
+): string => `${tarjetaHoleLabel(hole)} ${tarjetaText(time, '--:--')}`;
+
 
 /** Sistema de juego normalizado a la leyenda impresa. */
 export const tarjetaSistemaLabel = (system?: string | null): string =>
@@ -128,27 +132,46 @@ const alignCls = {
 } as const;
 
 /**
- * Bloques (renglones 1-2 arriba y renglón 3 abajo) de cada campo del encabezado.
+ * Bloques del encabezado de cada campo.
+ *   · `top`      → contenido del bloque superior.
+ *   · `bottom`   → contenido del bloque inferior.
+ *   · `topRows`  → cuántos de los 3 renglones ocupa el bloque superior
+ *                  (2 por omisión; el inferior toma los restantes).
  * Se calcula a partir de los datos de la tarjeta aplicando los fallbacks.
  */
 const headerBlocks = (
   card: TarjetaChromeData,
 ): Record<
   TarjetaHeaderKey,
-  { top: ReactNode; bottom: ReactNode; align: 'left' | 'center' | 'right' }
+  {
+    top: ReactNode;
+    bottom: ReactNode;
+    align: 'left' | 'center' | 'right';
+    topRows?: number;
+  }
 > => {
   const sistemaLabel = tarjetaSistemaLabel(card.system);
   return {
-    /* Hoyo + hora de salida con letra grande. */
+    /*
+      Hoyo + hora de salida:
+        · Renglón 1        → número de hoyo (H01).
+        · Renglones 2 y 3  → merge con la hora de salida en letra grande.
+    */
     hoyohora: {
       align: 'left',
+      topRows: 1,
       top: (
-        <span className="text-[13pt] font-bold">
-          {tarjetaHoleTime(card.hole, card.time)}
+        <span className="text-[9pt] font-bold leading-none">
+          {tarjetaHoleLabel(card.hole)}
         </span>
       ),
-      bottom: null,
+      bottom: (
+        <span className="text-[13pt] font-bold leading-none">
+          {tarjetaText(card.time, '--:--')}
+        </span>
+      ),
     },
+
     /* ID + nombre (renglones 1-2) y club (renglón 3). */
     jugador: {
       align: 'left',
@@ -240,6 +263,9 @@ export const TarjetaHeaderGrid = ({
     >
       {fields.map((key, i) => {
         const block = blocks[key];
+        /* Cuántos renglones toma cada bloque (por omisión 2 arriba y 1 abajo). */
+        const topRows = block.topRows ?? 2;
+        const bottomRows = Math.max(1, 3 - topRows);
         return (
           <div
             key={key}
@@ -247,17 +273,24 @@ export const TarjetaHeaderGrid = ({
               i > 0 ? 'border-l border-foreground/70' : ''
             }`}
           >
-            {/* Bloque superior: renglones 1 y 2 */}
-            <div className={`flex min-w-0 flex-[2] items-center px-1 ${alignCls[block.align]}`}>
+            {/* Bloque superior */}
+            <div
+              className={`flex min-w-0 items-center px-1 ${alignCls[block.align]}`}
+              style={{ flex: `${topRows} 1 0%` }}
+            >
               {block.top}
             </div>
-            {/* Bloque inferior: renglón 3 */}
-            <div className={`flex min-w-0 flex-1 items-center px-1 ${alignCls[block.align]}`}>
+            {/* Bloque inferior (merge de los renglones restantes) */}
+            <div
+              className={`flex min-w-0 items-center px-1 ${alignCls[block.align]}`}
+              style={{ flex: `${bottomRows} 1 0%` }}
+            >
               {block.bottom}
             </div>
           </div>
         );
       })}
+
     </div>
   );
 };
@@ -269,14 +302,23 @@ export const TarjetaHeaderGrid = ({
  * Renglón 1: igual que el renglón HOYO — 18 celdas con el número de hoyo y
  * las columnas acumuladas V1 / V2 / TOTAL, con la etiqueta "SCORE ANOTADOR"
  * a la izquierda. Renglón 2: celdas vacías para que el anotador escriba ahí
- * sus golpes. Lleva un padding-bottom de 3 mm al final de la tarjeta.
+ * sus golpes. El padding-bottom final es CONFIGURABLE desde Admin → Tarjetas
+ * (`padMm`, 3 mm por omisión) y viaja en la URL del reporte como `pad=`.
  *
  * Usa los mismos anchos de columna (%) que la tabla principal para que las
  * celdas queden perfectamente alineadas con los renglones de arriba.
  *
  * @param rowMm Alto del renglón (el mismo configurable de Admin → Tarjetas).
+ * @param padMm Padding-bottom en mm al final de la tarjeta (default 3).
  */
-export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
+export const TarjetaAnotadorRow = ({
+  rowMm,
+  padMm = 3,
+}: {
+  rowMm: number;
+  padMm?: number;
+}) => {
+
   /** Ancho de la etiqueta y de las columnas de totales (idénticos a la tabla). */
   const COL_LABEL_PCT = 10.6;
   const COL_TOTAL_PCT = 5.6;
@@ -296,7 +338,8 @@ export const TarjetaAnotadorRow = ({ rowMm }: { rowMm: number }) => {
   );
 
   return (
-    <div style={{ paddingBottom: '3mm' }}>
+    <div style={{ paddingBottom: `${padMm}mm` }}>
+
       <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
         <colgroup>
           <col style={{ width: `${COL_LABEL_PCT}%` }} />

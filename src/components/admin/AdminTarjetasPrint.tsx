@@ -104,6 +104,13 @@ const AdminTarjetasPrint = () => {
    */
   const [rowMm, setRowMm] = useState(5.5);
   /**
+   * Padding-bottom (mm) al final de la tarjeta, debajo del renglón SCORE
+   * ANOTADOR. Configurable aquí y enviado al reporte como `pad=` para que
+   * la previsualización, la impresión y el PDF sean idénticos.
+   */
+  const [padMm, setPadMm] = useState(3);
+
+  /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
    * como `rows=hoyo,yardas,...` para no depender de un orden fijo en el código.
    */
@@ -169,6 +176,7 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
     if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
+    if (typeof cfg.padMm === 'number') setPadMm(cfg.padMm);
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
     if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
@@ -181,6 +189,7 @@ const AdminTarjetasPrint = () => {
       marginMm,
       scale,
       rowMm,
+      padMm,
       rowOrder,
       headerOrder,
     };
@@ -190,7 +199,7 @@ const AdminTarjetasPrint = () => {
         onSuccess: () =>
           toast({
             title: 'Maquetación guardada',
-            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm.`,
+            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm · padding inferior ${padMm} mm.`,
           }),
         onError: (err) =>
           toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
@@ -281,10 +290,12 @@ const AdminTarjetasPrint = () => {
     if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
     if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
     if (rowMm < 3 || rowMm > 12) errs.push('El alto de renglón debe estar entre 3 y 12 mm.');
+    if (padMm < 0 || padMm > 15)
+      errs.push('El padding inferior debe estar entre 0 y 15 mm.');
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, rowOrder, headerOrder]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder]);
 
   const isValid = errors.length === 0;
 
@@ -300,6 +311,7 @@ const AdminTarjetasPrint = () => {
       margin: String(marginMm),
       scale: String(scale),
       rowh: String(rowMm),
+      pad: String(padMm),
       rows: rowOrder.join(','),
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
@@ -463,6 +475,26 @@ const AdminTarjetasPrint = () => {
                   className="w-[130px]"
                   value={rowMm}
                   onChange={(e) => setRowMm(Number(e.target.value))}
+                />
+              </div>
+
+              {/*
+                Padding inferior (mm) debajo del renglón SCORE ANOTADOR.
+                Viaja en la URL como `pad=` y el reporte lo descuenta del
+                espacio disponible para no salirse de la media hoja carta.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Padding inferior (mm)
+                </Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={0}
+                  max={15}
+                  className="w-[130px]"
+                  value={padMm}
+                  onChange={(e) => setPadMm(Number(e.target.value))}
                 />
               </div>
 
@@ -635,6 +667,7 @@ const AdminTarjetasPrint = () => {
                 <TarjetaHeaderFooterPreview
                   headerOrder={headerOrder}
                   rowMm={rowMm}
+                  padMm={padMm}
                   marginMm={marginMm}
                   sistema={sistema}
                 />
