@@ -610,6 +610,17 @@ foreach ($groups as $g) {
             'hcp'          => $hcpPick['value'],
             'hcpVentajas'  => array_sum($ventajas),
             'hcpSource'    => $hcpPick['source'],
+            /** Regla legible con la que se eligió el valor impreso. */
+            'hcpRule'      => $hcpRule,
+            /** Valores crudos de las columnas netas de la BD (auditoría). */
+            'hcpDb'        => $hcpDb,
+            /**
+             * Golpes de ventaja por hoyo del jugador (18 valores). El reparto
+             * depende de la MESA DE SALIDA (tee) registrada al jugador, no del
+             * handicap de la categoría: por eso es la referencia de auditoría.
+             */
+            'hcpPorHoyo'   => $ventajas,
+
             'holes'        => $holeRows,
             'totals'       => [
                 'parOut'      => $sum(1, 9, 'par'),
