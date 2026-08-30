@@ -595,6 +595,9 @@ const AdminTarjetasImpresion = () => {
                     /* Cada tarjeta muestra SU día de juego (soporta rangos). */
                     fecha={card.fechaFormato || data?.fechaFormato || ''}
                     heightMm={headerMm}
+                    /* Mismos márgenes laterales que la tabla de la tarjeta. */
+                    marginMm={marginMm}
+
                   />
                   {/*
                     Escala con transform (no `zoom`): es la única forma que
