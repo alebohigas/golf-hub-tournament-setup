@@ -451,7 +451,16 @@ foreach ($groups as $g) {
 
     // Jugadores del grupo, en el orden de la salida.
     $sel = ["jugadorid", "nombre", "apellido"];
-    foreach (['numjugador', 'club', 'tee', 'ventajasjug', 'tarjetaid', 'indexjgo', 'orden'] as $opt) {
+    /*
+      Además de los datos del jugador se piden las columnas que la BD pueda
+      exponer con el HANDICAP NETO ya calculado (`hcpneto` / `vtjajug` /
+      `handicapneto`). Si existen se usan como fuente de verdad; si no, el
+      neto se deriva sumando los golpes de ventaja por hoyo (ventajasjug).
+    */
+    foreach ([
+        'numjugador', 'club', 'tee', 'ventajasjug', 'tarjetaid', 'indexjgo', 'orden',
+        'hcpneto', 'handicapneto', 'vtjajug',
+    ] as $opt) {
         if ($hasCol($opt)) $sel[] = $opt;
     }
     $players = tj_all($conn, "SELECT " . implode(', ', $sel) . "
