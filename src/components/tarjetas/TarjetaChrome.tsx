@@ -128,27 +128,46 @@ const alignCls = {
 } as const;
 
 /**
- * Bloques (renglones 1-2 arriba y renglón 3 abajo) de cada campo del encabezado.
+ * Bloques del encabezado de cada campo.
+ *   · `top`      → contenido del bloque superior.
+ *   · `bottom`   → contenido del bloque inferior.
+ *   · `topRows`  → cuántos de los 3 renglones ocupa el bloque superior
+ *                  (2 por omisión; el inferior toma los restantes).
  * Se calcula a partir de los datos de la tarjeta aplicando los fallbacks.
  */
 const headerBlocks = (
   card: TarjetaChromeData,
 ): Record<
   TarjetaHeaderKey,
-  { top: ReactNode; bottom: ReactNode; align: 'left' | 'center' | 'right' }
+  {
+    top: ReactNode;
+    bottom: ReactNode;
+    align: 'left' | 'center' | 'right';
+    topRows?: number;
+  }
 > => {
   const sistemaLabel = tarjetaSistemaLabel(card.system);
   return {
-    /* Hoyo + hora de salida con letra grande. */
+    /*
+      Hoyo + hora de salida:
+        · Renglón 1        → número de hoyo (H01).
+        · Renglones 2 y 3  → merge con la hora de salida en letra grande.
+    */
     hoyohora: {
       align: 'left',
+      topRows: 1,
       top: (
-        <span className="text-[13pt] font-bold">
-          {tarjetaHoleTime(card.hole, card.time)}
+        <span className="text-[9pt] font-bold leading-none">
+          {tarjetaHoleLabel(card.hole)}
         </span>
       ),
-      bottom: null,
+      bottom: (
+        <span className="text-[13pt] font-bold leading-none">
+          {tarjetaText(card.time, '--:--')}
+        </span>
+      ),
     },
+
     /* ID + nombre (renglones 1-2) y club (renglón 3). */
     jugador: {
       align: 'left',
