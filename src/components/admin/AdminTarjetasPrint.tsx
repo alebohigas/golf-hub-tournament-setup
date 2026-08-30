@@ -80,6 +80,12 @@ const AdminTarjetasPrint = () => {
   const [marginMm, setMarginMm] = useState(8);
   /** Escala del contenido de la tarjeta en % (mantiene el acomodo estable). */
   const [scale, setScale] = useState(100);
+  /**
+   * Alto de cada renglón de la tabla de hoyos en mm (Hoyo, Par, Yardas, Par
+   * Time, Ventaja, Handicap, Score, Puntos). Se acota automáticamente en el
+   * reporte para no perder las 2 tarjetas por hoja carta.
+   */
+  const [rowMm, setRowMm] = useState(5.5);
 
   /**
    * Hidrata la maquetación desde la base (`site_config.tarjetas_config`).
@@ -93,18 +99,19 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.headerMm === 'number') setHeaderMm(cfg.headerMm);
     if (typeof cfg.marginMm === 'number') setMarginMm(cfg.marginMm);
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
+    if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
   }, [siteConfig?.tarjetas_config]);
 
   /** Guarda la maquetación en la base de datos. */
   const guardarConfig = () => {
-    const payload: TarjetasPrintConfig = { sistema, headerMm, marginMm, scale };
+    const payload: TarjetasPrintConfig = { sistema, headerMm, marginMm, scale, rowMm };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
       {
         onSuccess: () =>
           toast({
             title: 'Maquetación guardada',
-            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}%.`,
+            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm.`,
           }),
         onError: (err) =>
           toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
@@ -194,8 +201,9 @@ const AdminTarjetasPrint = () => {
     if (headerMm < 10 || headerMm > 60) errs.push('La cabecera debe estar entre 10 y 60 mm.');
     if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
     if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
+    if (rowMm < 3 || rowMm > 12) errs.push('El alto de renglón debe estar entre 3 y 12 mm.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm]);
 
   const isValid = errors.length === 0;
 
@@ -210,6 +218,7 @@ const AdminTarjetasPrint = () => {
       header: String(headerMm),
       margin: String(marginMm),
       scale: String(scale),
+      rowh: String(rowMm),
       ...(preview ? { preview: '1' } : {}),
     }).toString()}`;
 
@@ -357,6 +366,20 @@ const AdminTarjetasPrint = () => {
                   className="w-[110px]"
                   value={scale}
                   onChange={(e) => setScale(Number(e.target.value))}
+                />
+              </div>
+
+              {/* Alto de renglón: el reporte lo acota para no desbordar 1/2 carta */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Alto de renglón (mm)</Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={3}
+                  max={12}
+                  className="w-[130px]"
+                  value={rowMm}
+                  onChange={(e) => setRowMm(Number(e.target.value))}
                 />
               </div>
 

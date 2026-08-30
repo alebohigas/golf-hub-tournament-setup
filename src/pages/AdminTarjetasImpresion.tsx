@@ -45,6 +45,20 @@ const SHEET_W_MM = 215.9;
 /** Alto de hoja carta. */
 const SHEET_H_MM = 279.4;
 
+/** Renglones de la tabla de hoyos (Hoyo, Par, Yardas, Par Time, Ventaja, Handicap, Score, Puntos). */
+const TABLE_ROWS = 8;
+/** Alto aproximado del bloque de datos del jugador + pie de firmas, en mm. */
+const CARD_CHROME_MM = 22;
+
+/**
+ * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
+ * la media hoja carta (incluye cabecera configurable y escala aplicada).
+ */
+const maxRowMm = (headerMm: number, scale: number) => {
+  const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
+  return Math.max(3, disponible / TABLE_ROWS);
+};
+
 /** Lee un número de la URL acotado a un rango. */
 const numParam = (v: string | null, def: number, min: number, max: number) => {
   const n = Number(v);
@@ -118,7 +132,7 @@ const Cell = ({
  * Tarjeta de un jugador: encabezado de datos + tabla de 18 hoyos con las
  * columnas acumuladas V1 (ida), V2 (vuelta) y TOTAL.
  */
-const Scorecard = ({ card }: { card: TarjetaCard }) => {
+const Scorecard = ({ card, rowMm }: { card: TarjetaCard; rowMm: number }) => {
   const out = card.holes.slice(0, 9);
   const inn = card.holes.slice(9, 18);
   const t = card.totals;
@@ -139,7 +153,8 @@ const Scorecard = ({ card }: { card: TarjetaCard }) => {
     total?: React.ReactNode;
     bold?: boolean;
   }) => (
-    <tr className={bold ? 'font-bold' : ''}>
+    /* El alto de cada renglón es configurable (rowMm) sin salir de 1/2 carta. */
+    <tr className={bold ? 'font-bold' : ''} style={{ height: `${rowMm}mm` }}>
       <Cell className="w-[16mm] whitespace-nowrap px-1 text-left text-[6pt] font-semibold uppercase">
         {label}
       </Cell>
@@ -190,21 +205,17 @@ const Scorecard = ({ card }: { card: TarjetaCard }) => {
       <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
         <tbody>
           {/* Números de hoyo */}
-          <tr className="bg-muted/60 font-bold">
+          <tr className="bg-muted/60 font-bold" style={{ height: `${rowMm}mm` }}>
             <Cell className="w-[16mm] px-1 text-left text-[6pt] uppercase">Hoyo</Cell>
             {out.map((h) => (
-              <Cell key={`h-${h.numero}`} className="py-[1mm]">
-                {h.numero}
-              </Cell>
+              <Cell key={`h-${h.numero}`}>{h.numero}</Cell>
             ))}
-            <Cell className="py-[1mm]">V1</Cell>
+            <Cell>V1</Cell>
             {inn.map((h) => (
-              <Cell key={`h-${h.numero}`} className="py-[1mm]">
-                {h.numero}
-              </Cell>
+              <Cell key={`h-${h.numero}`}>{h.numero}</Cell>
             ))}
-            <Cell className="py-[1mm]">V2</Cell>
-            <Cell className="py-[1mm]">TOTAL</Cell>
+            <Cell>V2</Cell>
+            <Cell>TOTAL</Cell>
           </tr>
 
           <Row
@@ -264,6 +275,15 @@ const AdminTarjetasImpresion = () => {
   const scale = numParam(params.get('scale'), 100, 60, 130) / 100;
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
   const autoPreview = params.get('preview') === '1';
+
+  /**
+   * Alto de renglón pedido (`rowh`, mm) acotado al máximo que cabe en la media
+   * hoja: así se pueden hacer más altos los renglones sin desplazar la tarjeta.
+   */
+  const rowMm = Math.min(
+    numParam(params.get('rowh'), 5.5, 3, 12),
+    maxRowMm(headerMm, scale),
+  );
 
   /**
    * Filtros de datos. `fecha` puede traer varios días separados por coma
@@ -519,7 +539,7 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard card={card} />
+                    <Scorecard card={card} rowMm={rowMm} />
                   </div>
                 </div>
               ))}
