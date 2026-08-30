@@ -544,6 +544,87 @@ const AdminTarjetasPrint = () => {
                 )}
               </div>
 
+              {/*
+                Encabezado de la tarjeta (3 renglones): qué campos se muestran
+                y en qué orden (izquierda → derecha). Se guarda en la base y
+                viaja en la URL como `hfields=…`.
+              */}
+              <div className="basis-full space-y-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Encabezado de la tarjeta (3 renglones)
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setHeaderOrder([...TARJETA_HEADER_DEFAULT])}
+                  >
+                    Restablecer encabezado
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {headerOrder.map((key, idx) => (
+                    <div
+                      key={key}
+                      className="flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-xs"
+                    >
+                      <span className="font-semibold">{idx + 1}.</span>
+                      <span>{TARJETA_HEADER_LABELS[key]}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={idx === 0}
+                        onClick={() => moveHeaderField(key, -1)}
+                        aria-label={`Mover a la izquierda ${TARJETA_HEADER_LABELS[key]}`}
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={idx === headerOrder.length - 1}
+                        onClick={() => moveHeaderField(key, 1)}
+                        aria-label={`Mover a la derecha ${TARJETA_HEADER_LABELS[key]}`}
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => toggleHeaderField(key)}
+                        aria-label={`Quitar ${TARJETA_HEADER_LABELS[key]}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Campos de encabezado disponibles que no se están usando */}
+                {TARJETA_HEADER_ALL.some((k) => !headerOrder.includes(k)) && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-xs text-muted-foreground">Agregar:</span>
+                    {TARJETA_HEADER_ALL.filter((k) => !headerOrder.includes(k)).map((key) => (
+                      <Button
+                        key={key}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => toggleHeaderField(key)}
+                      >
+                        + {TARJETA_HEADER_LABELS[key]}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
+
               <Button variant="outline" onClick={() => generar(true)} disabled={!isValid}>
                 <Eye className="mr-2 h-4 w-4" /> Vista previa
               </Button>
