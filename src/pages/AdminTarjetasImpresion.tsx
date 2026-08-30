@@ -267,7 +267,8 @@ const AdminTarjetasImpresion = () => {
 
   /**
    * Filtros de datos. `fecha` puede traer varios días separados por coma
-   * (rango) y `torneoid` permite imprimir un torneo distinto al activo.
+   * (rango). El torneo NO se manda: el backend usa siempre el torneo ACTIVO
+   * del sitio (`site_config.torneoid`) para evitar inconsistencias.
    */
   const filters = useMemo(
     () => ({
@@ -275,12 +276,12 @@ const AdminTarjetasImpresion = () => {
       catid: params.get('catid') ?? '',
       campoid: params.get('campoid') ?? undefined,
       sistema,
-      torneoid: params.get('torneoid') ?? undefined,
     }),
     [params, sistema],
   );
 
   const { data, isLoading, error } = useTarjetasReport(filters);
+
 
 
   /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
