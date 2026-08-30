@@ -50,18 +50,24 @@ const SHEET_W_MM = 215.9;
 /** Alto de hoja carta. */
 const SHEET_H_MM = 279.4;
 
-/** Alto aproximado del bloque de datos del jugador + pie de firmas, en mm. */
-const CARD_CHROME_MM = 22;
+/**
+ * Alto aproximado del bloque de datos del jugador (encabezado de 3 renglones)
+ * + pie de firmas, en mm.
+ */
+const CARD_CHROME_MM = 26;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
- * la media hoja carta (incluye cabecera configurable, escala aplicada y el
- * número real de renglones que se van a imprimir).
+ * la media hoja carta (incluye cabecera configurable, escala aplicada, el
+ * número real de renglones a imprimir y el brinco de renglón que va después
+ * del encabezado de la tarjeta).
  */
 const maxRowMm = (headerMm: number, scale: number, tableRows: number) => {
   const disponible = (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM;
-  return Math.max(3, disponible / Math.max(1, tableRows));
+  // +1 renglón: el espacio en blanco tras el encabezado también mide rowMm.
+  return Math.max(3, disponible / Math.max(1, tableRows + 1));
 };
+
 
 /** Lee un número de la URL acotado a un rango. */
 const numParam = (v: string | null, def: number, min: number, max: number) => {
@@ -278,42 +284,72 @@ const Scorecard = ({
 
   return (
     <div className="border border-foreground/70">
-      {/* ---------- Encabezado de datos del jugador ---------- */}
-      <div className="flex items-stretch justify-between border-b border-foreground/70 text-[8pt]">
-        {/* Hoyo + hora de salida y color del tee */}
-        <div className="flex w-[30mm] flex-col justify-center border-r border-foreground/70 px-1 py-1 leading-tight">
-          <div className="font-bold">
+      {/*
+        ---------- Encabezado de datos del jugador (3 renglones) ----------
+        Rejilla de 3 renglones iguales y 4 columnas:
+          col 1: hoyo + hora (ocupa los 3 renglones, letra grande)
+          col 2: id + nombre (renglones 1-2) y club del jugador (renglón 3)
+          col 3: "VTJA" (renglón 1) y handicap (renglones 2-3)
+          col 4: nombre completo de categoría (renglones 1-2) y color de
+                 marcas de salida (renglón 3)
+      */}
+      <div
+        className="grid border-b border-foreground/70 text-[8pt]"
+        style={{
+          gridTemplateColumns: '30mm minmax(0,1fr) 14mm 46mm',
+          gridTemplateRows: 'repeat(3, 1fr)',
+        }}
+      >
+        {/* Hoyo + hora de salida (3 renglones, letra grande) */}
+        <div className="row-span-3 flex flex-col items-start justify-center border-r border-foreground/70 px-1 leading-tight">
+          <span className="text-[13pt] font-bold">
             H{String(card.hole ?? 1).padStart(2, '0')} {card.time}
-          </div>
-          <div className="uppercase text-foreground/80">{card.tee}</div>
+          </span>
         </div>
 
-        {/* Número y nombre del jugador */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1">
-          <span className="font-bold">{card.playerNumber}</span>
-          <span className="truncate font-bold uppercase">{card.name}</span>
+        {/* Número y nombre del jugador (renglones 1-2) */}
+        <div className="row-span-2 flex min-w-0 items-center gap-2 px-2 leading-tight">
+          <span className="text-[9.5pt] font-bold">{card.playerNumber}</span>
+          <span className="truncate text-[9.5pt] font-bold uppercase">{card.name}</span>
         </div>
 
-        {/* Ventaja total */}
-        <div className="flex w-[14mm] flex-col items-center justify-center border-l border-foreground/70 py-1 leading-none">
-          <span className="text-[5.5pt] uppercase text-foreground/70">Vtja</span>
-          <span className="text-[10pt] font-bold">{card.hcp}</span>
+        {/* Etiqueta VTJA (renglón 1) */}
+        <div className="flex items-center justify-center border-l border-foreground/70 text-[5.5pt] uppercase leading-none text-foreground/70">
+          Vtja
         </div>
 
-        {/* Categoría + club */}
-        <div className="flex w-[46mm] min-w-0 flex-col justify-center border-l border-foreground/70 px-1 py-1 text-right leading-tight">
-          <div className="truncate font-bold uppercase">
-            {card.shortName || card.categoryName}
-          </div>
-          <div className="truncate uppercase text-foreground/80">{card.club}</div>
+        {/* Categoría completa (renglones 1-2) */}
+        <div className="row-span-2 flex min-w-0 items-center justify-end border-l border-foreground/70 px-1 text-right leading-tight">
+          <span className="truncate text-[9pt] font-bold uppercase">
+            {card.categoryName || card.shortName}
+          </span>
+        </div>
+
+        {/* Club del jugador (renglón 3) */}
+        <div className="flex min-w-0 items-center px-2 leading-tight">
+          <span className="truncate uppercase text-foreground/80">{card.club}</span>
+        </div>
+
+        {/* Handicap total (renglones 2-3) */}
+        <div className="row-span-2 flex items-center justify-center border-l border-foreground/70 leading-none">
+          <span className="text-[11pt] font-bold">{card.hcp}</span>
+        </div>
+
+        {/* Color de marcas de salida (renglón 3) */}
+        <div className="flex min-w-0 items-center justify-end border-l border-foreground/70 px-1 text-right leading-tight">
+          <span className="truncate uppercase text-foreground/80">{card.tee}</span>
         </div>
       </div>
+
+      {/* Brinco de renglón entre el encabezado y la tabla de hoyos */}
+      <div style={{ height: `${rowMm}mm` }} />
 
       {/* ---------- Tabla de hoyos (orden configurable desde Admin) ---------- */}
       <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
         <ColGroup />
         <tbody>{rows.map((key) => rowDefs[key])}</tbody>
       </table>
+
 
       {/* ---------- Pie: club sede, folio y firmas ---------- */}
       <div className="flex items-end justify-between gap-2 border-t border-foreground/70 px-2 pb-1 pt-2 text-[6.5pt] uppercase">
