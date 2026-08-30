@@ -53,7 +53,11 @@ import {
   type TimeLineHole,
 } from '@/hooks/useTimeLine';
 // Resaltado del hoyo de inicio (misma fuente de verdad que las tarjetas).
-import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+import {
+  resolveTimeLineStartHole,
+  timeLineStartHoleStyle,
+} from '@/lib/timelineStartHole';
+
 
 
 /**
@@ -267,7 +271,14 @@ const TimeLineBlock = ({
   timeMode?: 'full' | 'compact';
 }) => {
 
+  /**
+   * Hoyo donde arranca el bloque: se deduce de la BD (columna de hoyo, hora de
+   * salida o marca de salida) y tolera hoyos intermedios faltantes.
+   */
+  const startHole = resolveTimeLineStartHole(group, holes);
+
   /** ¿Esta columna cierra un tramo de 3 hoyos? */
+
   const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
   return (
@@ -288,7 +299,7 @@ const TimeLineBlock = ({
                 key={`n-${h.numero}`}
                 bold
                 divider={isDivider(i)}
-                style={startHoleStyleFor(h.numero, group.hole)}
+                style={timeLineStartHoleStyle(h.numero, startHole)}
               >
                 {String(h.numero).padStart(2, '0')}
               </HoleCell>
@@ -326,7 +337,18 @@ const TimeLineBlock = ({
               >
                 {group.categoryName || group.shortName}
               </span>
+              {/* Etiqueta discreta del hoyo donde arranca el bloque (coincide
+                  con la celda resaltada en la fila de números). */}
+              {startHole != null ? (
+                <span
+                  style={{ fontSize: 'var(--tl-id-size)' }}
+                  className="ml-2 rounded-sm border border-border px-1 font-semibold uppercase tabular-nums text-muted-foreground"
+                >
+                  {`INICIA H${String(startHole).padStart(2, '0')}`}
+                </span>
+              ) : null}
             </td>
+
             {holes.map((h, i) => (
               <HoleCell key={`t-${h.numero}`} divider={isDivider(i)} variant="time">
                 {formatHoleTime(group.times?.[String(h.numero)] ?? '', timeMode)}
