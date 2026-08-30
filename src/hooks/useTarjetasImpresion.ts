@@ -87,6 +87,15 @@ export interface TarjetaCard {
   hcpVentajas?: number;
   /** Columna de la BD de la que salió `hcp` ('hcpneto', 'ventajas', …). */
   hcpSource?: string;
+  /** Regla legible aplicada para elegir el valor impreso (modo auditoría). */
+  hcpRule?: string;
+  /** Valores crudos de las columnas netas de la BD (modo auditoría). */
+  hcpDb?: Record<string, number>;
+  /**
+   * Golpes de ventaja por hoyo del jugador (18 valores). Dependen de la MESA
+   * DE SALIDA registrada al jugador, no del handicap de la categoría.
+   */
+  hcpPorHoyo?: number[];
   holes: TarjetaHole[];
   totals: TarjetaTotals;
 }

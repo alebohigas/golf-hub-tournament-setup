@@ -46,6 +46,7 @@ import {
   X,
 } from 'lucide-react';
 import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import { Switch } from '@/components/ui/switch';
 import TarjetaHeaderFooterPreview from '@/components/admin/TarjetaHeaderFooterPreview';
 import {
   useSiteConfig,
@@ -140,6 +141,12 @@ const AdminTarjetasPrint = () => {
   );
 
   /**
+   * Imprimir el logo del torneo en la cabecera de la tarjeta. Viaja al reporte
+   * como `logo=1|0` para que vista previa, impresión y PDF coincidan.
+   */
+  const [showLogo, setShowLogo] = useState(true);
+
+  /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
    * como `rows=hoyo,yardas,...` para no depender de un orden fijo en el código.
    */
@@ -211,6 +218,7 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.fsCatPt === 'number')
       setFsCatPt(clampTarjetaFont(cfg.fsCatPt, TARJETA_HEADER_FONTS_DEFAULT.catPt));
     if (cfg.hcpField) setHcpField(normalizeTarjetaHcpField(cfg.hcpField));
+    if (typeof cfg.showLogo === 'boolean') setShowLogo(cfg.showLogo);
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
     if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
@@ -229,6 +237,7 @@ const AdminTarjetasPrint = () => {
       fsHoyoPt,
       fsCatPt,
       hcpField,
+      showLogo,
     };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
@@ -352,6 +361,7 @@ const AdminTarjetasPrint = () => {
       fsh: String(fsHoyoPt),
       fsc: String(fsCatPt),
       hcpfield: hcpField,
+      logo: showLogo ? '1' : '0',
       rows: rowOrder.join(','),
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
@@ -576,6 +586,23 @@ const AdminTarjetasPrint = () => {
               </div>
 
               {/*
+                Logo del torneo en la cabecera de la tarjeta: se puede imprimir
+                o no. Viaja en la URL como `logo=1|0`.
+              */}
+              <div className="basis-full">
+                <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div>
+                    <Label className="text-sm">Imprimir logo del torneo</Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Si se desactiva, la cabecera imprime sólo el nombre del
+                      torneo, campo y fecha (sin imagen).
+                    </p>
+                  </div>
+                  <Switch checked={showLogo} onCheckedChange={setShowLogo} />
+                </div>
+              </div>
+
+              {/*
                 Campo de la BD para el HCP. NETO. Viaja como `hcpfield=` y el
                 reporte marca en pantalla cualquier discrepancia contra el
                 neto calculado por ventajas por hoyo.
@@ -605,6 +632,37 @@ const AdminTarjetasPrint = () => {
                   ventajas por hoyo y se imprime el más cercano. La vista previa
                   avisa si el valor no coincide.
                 </p>
+                {/*
+                  Resumen de la regla activa: qué campo se seleccionó y cómo se
+                  resuelve, para no depender de abrir el reporte.
+                */}
+                <div className="rounded-md border bg-muted/40 p-2 text-[11px] leading-relaxed">
+                  <p>
+                    <strong>Campo seleccionado:</strong>{' '}
+                    {hcpField === 'auto'
+                      ? 'Automático (primera columna neta disponible: hcpneto → handicapneto → vtjajug → ventajas)'
+                      : hcpField === 'match'
+                        ? 'Mejor coincidencia entre hcpneto, handicapneto y vtjajug'
+                        : hcpField === 'ventajas'
+                          ? 'Suma de ventajas por hoyo'
+                          : `Columna ${hcpField}`}
+                  </p>
+                  <p>
+                    <strong>Regla aplicada:</strong>{' '}
+                    {hcpField === 'match'
+                      ? 'Se compara cada columna neta contra el neto calculado con los golpes de ventaja por hoyo (según la mesa de salida del jugador) y se imprime la de menor diferencia; en empate gana el orden hcpneto → handicapneto → vtjajug; si ninguna existe se usa la suma de ventajas.'
+                      : hcpField === 'auto'
+                        ? 'Se toma la primera columna neta con valor; si ninguna tiene valor se usa la suma de ventajas por hoyo.'
+                        : hcpField === 'ventajas'
+                          ? 'Siempre se usa la suma de los golpes de ventaja por hoyo del jugador (mesa de salida registrada).'
+                          : 'Siempre se usa la columna elegida; si viene vacía se usa la suma de ventajas por hoyo.'}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    El reporte imprimible muestra, por tarjeta, el campo
+                    finalmente usado y su detalle en el <strong>modo
+                    auditoría</strong>.
+                  </p>
+                </div>
 
               </div>
 
