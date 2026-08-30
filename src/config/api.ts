@@ -202,6 +202,8 @@ export const getTarjetasImpresionUrl = (p: {
   sistema?: string;
   /** Torneo a imprimir; por omisión el torneo activo del dominio. */
   torneoid?: string;
+  /** Campo de la BD para el HCP. NETO (ver `@/lib/tarjetasHcp`). */
+  hcpfield?: string;
 }): string =>
   `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({
     fecha: p.fecha,
@@ -209,6 +211,7 @@ export const getTarjetasImpresionUrl = (p: {
     ...(p.campoid ? { campoid: p.campoid } : {}),
     ...(p.sistema ? { sistema: p.sistema } : {}),
     ...(p.torneoid ? { torneoid: p.torneoid } : {}),
+    ...(p.hcpfield ? { hcpfield: p.hcpfield } : {}),
   })}`;
 
 
