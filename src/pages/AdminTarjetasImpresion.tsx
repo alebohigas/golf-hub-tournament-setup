@@ -5,52 +5,75 @@
  *
  * FILTROS (por query string, los manda Admin → pestaña "Tarjetas"):
  *   ?fecha=2026-04-30&catid=6337[,6338][&campoid=27]
+ *   &header=30        → alto de la cabecera superior en mm (3 cm por defecto)
+ *   &margin=8         → margen lateral/inferior en mm
+ *   &scale=100        → escala del contenido de la tarjeta en %
+ *   &sistema=auto     → auto | stroke | stableford (filtra por tipo de juego)
+ *   &preview=1        → abre automáticamente la vista previa paginada
  *
  * DISEÑO DE IMPRESIÓN (tamaño carta, 2 tarjetas por hoja)
  *   - Cada hoja se divide en dos mitades iguales (139.7 mm).
- *   - Cada mitad abre con una cabecera de 3 cm (`HEADER_MM`) que contiene:
+ *   - Cada mitad abre con una cabecera configurable (3 cm por defecto) con:
  *       · izquierda: logo del torneo (`torneo.logo_header`)
  *       · derecha:   nombre del torneo (renglón 1) y campo + fecha (renglón 2)
  *   - Debajo de la cabecera va la tarjeta completa del jugador.
- *   - La fecha "universal" del reporte legacy NO se repite dentro de la
- *     tarjeta: vive únicamente en esa cabecera de 3 cm.
+ *   - La fecha "universal" del reporte legacy NO se repite dentro de la tarjeta.
  *
- * Las clases `print:` ocultan la barra de acciones y quitan sombras/fondos.
+ * La vista previa rasteriza cada hoja con html2canvas (misma geometría que la
+ * impresión) y el PDF se arma con jsPDF a tamaño carta, una hoja por página.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Loader2, Printer } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ChevronLeft, ChevronRight, Download, Eye, Loader2, Printer } from 'lucide-react';
 import { useTarjetasReport, type TarjetaCard } from '@/hooks/useTarjetasImpresion';
 
 // ============= Constantes de hoja =============
 
-/** Alto de la cabecera obligatoria arriba de cada tarjeta (3 cm). */
-const HEADER_MM = 30;
 /** Alto de media hoja carta (279.4 mm / 2). */
 const HALF_SHEET_MM = 139.7;
+/** Ancho de hoja carta. */
+const SHEET_W_MM = 215.9;
+/** Alto de hoja carta. */
+const SHEET_H_MM = 279.4;
+
+/** Lee un número de la URL acotado a un rango. */
+const numParam = (v: string | null, def: number, min: number, max: number) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return def;
+  return Math.min(max, Math.max(min, n));
+};
 
 // ============= Subcomponentes =============
 
 /**
- * Cabecera de 3 cm: logo del torneo a la izquierda y, alineados a la derecha,
- * el nombre del torneo y (segundo renglón) el campo con la fecha de juego.
+ * Cabecera superior de cada tarjeta (3 cm por defecto): logo del torneo a la
+ * izquierda y, alineados a la derecha, el nombre del torneo y el campo + fecha.
  */
 const CardHeader = ({
   logo,
   tournament,
   course,
   fecha,
+  heightMm,
 }: {
   logo: string;
   tournament: string;
   course: string;
   fecha: string;
+  heightMm: number;
 }) => (
   <div
     className="flex items-center justify-between gap-3 px-2"
-    style={{ height: `${HEADER_MM}mm` }}
+    style={{ height: `${heightMm}mm` }}
   >
     {/* Logo del torneo (list1_logo_header) */}
     <div className="flex h-full items-center">
@@ -58,8 +81,10 @@ const CardHeader = ({
         <img
           src={logo}
           alt={tournament}
-          className="max-h-[24mm] w-auto object-contain"
+          className="w-auto object-contain"
+          style={{ maxHeight: `${Math.max(10, heightMm - 6)}mm` }}
           loading="eager"
+          crossOrigin="anonymous"
         />
       ) : null}
     </div>
@@ -229,9 +254,11 @@ const Scorecard = ({ card }: { card: TarjetaCard }) => {
 
 // ============= Página =============
 
-/** Página imprimible con 2 tarjetas por hoja carta. */
+/** Página imprimible con 2 tarjetas por hoja carta + vista previa y PDF. */
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
+
+  /** Filtros de datos. */
   const filters = useMemo(
     () => ({
       fecha: params.get('fecha') ?? '',
@@ -241,8 +268,22 @@ const AdminTarjetasImpresion = () => {
     [params],
   );
 
+  /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
+  const headerMm = numParam(params.get('header'), 30, 10, 60);
+  const marginMm = numParam(params.get('margin'), 8, 0, 25);
+  const scale = numParam(params.get('scale'), 100, 60, 130) / 100;
+  const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
+  const autoPreview = params.get('preview') === '1';
+
   const { data, isLoading, error } = useTarjetasReport(filters);
-  const cards = data?.cards ?? [];
+
+  /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
+  const cards = useMemo(() => {
+    const all = data?.cards ?? [];
+    if (sistema === 'stroke') return all.filter((c) => !c.system.includes('STABLE'));
+    if (sistema === 'stableford') return all.filter((c) => c.system.includes('STABLE'));
+    return all;
+  }, [data, sistema]);
 
   /** Tarjetas agrupadas en pares: cada par es una hoja carta. */
   const sheets = useMemo(() => {
@@ -251,23 +292,116 @@ const AdminTarjetasImpresion = () => {
     return out;
   }, [cards]);
 
+  // ============= Vista previa + PDF =============
+
+  /** Contenedor de las hojas (fuente de verdad para rasterizar). */
+  const sheetsRef = useRef<HTMLDivElement>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
+  const [previewIdx, setPreviewIdx] = useState(0);
+  const [busy, setBusy] = useState<'preview' | 'pdf' | null>(null);
+  const autoRan = useRef(false);
+
+  /** Rasteriza cada hoja a PNG con html2canvas (una imagen por página). */
+  const renderPages = useCallback(
+    async (pixelScale: number) => {
+      const root = sheetsRef.current;
+      if (!root) return [] as string[];
+      const { default: html2canvas } = await import('html2canvas');
+      const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-sheet]'));
+      const pages: string[] = [];
+      for (const node of nodes) {
+        const canvas = await html2canvas(node, {
+          scale: pixelScale,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false,
+        });
+        pages.push(canvas.toDataURL('image/png'));
+      }
+      return pages;
+    },
+    [],
+  );
+
+  /** Abre la vista previa paginada (misma geometría que la impresión). */
+  const openPreview = useCallback(async () => {
+    if (!sheets.length) return;
+    setBusy('preview');
+    try {
+      const pages = await renderPages(1.4);
+      setPreviewPages(pages);
+      setPreviewIdx(0);
+      setPreviewOpen(true);
+    } finally {
+      setBusy(null);
+    }
+  }, [renderPages, sheets.length]);
+
+  /** Descarga el reporte como PDF tamaño carta (1 hoja = 1 página). */
+  const downloadPdf = useCallback(async () => {
+    if (!sheets.length) return;
+    setBusy('pdf');
+    try {
+      const { jsPDF } = await import('jspdf');
+      const pages = await renderPages(2.5);
+      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+      pages.forEach((img, i) => {
+        if (i > 0) pdf.addPage('letter', 'portrait');
+        pdf.addImage(img, 'PNG', 0, 0, SHEET_W_MM, SHEET_H_MM, undefined, 'FAST');
+      });
+      pdf.save(`tarjetas-${filters.fecha || 'reporte'}.pdf`);
+    } finally {
+      setBusy(null);
+    }
+  }, [renderPages, sheets.length, filters.fecha]);
+
+  /** `?preview=1` abre la vista previa en cuanto hay datos. */
+  useEffect(() => {
+    if (!autoPreview || autoRan.current || !sheets.length) return;
+    autoRan.current = true;
+    void openPreview();
+  }, [autoPreview, sheets.length, openPreview]);
+
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
-      {/* @page: hoja carta sin márgenes; el margen real es la cabecera de 3 cm */}
+      {/* @page: hoja carta sin márgenes; el margen real lo aplica el layout */}
       <style>{`@media print { @page { size: letter portrait; margin: 0; } }`}</style>
 
       <div className="mx-auto max-w-[216mm] px-4 py-6 print:max-w-none print:px-0 print:py-0">
         {/* Barra de acciones (no se imprime) */}
-        <div className="mb-6 flex items-center justify-between gap-2 print:hidden">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 print:hidden">
           <div>
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
-              {data ? `${cards.length} tarjetas · ${data.fechaFormato}` : 'Cargando…'}
+              {data
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
+                    scale * 100,
+                  )}%`
+                : 'Cargando…'}
             </p>
           </div>
-          <Button onClick={() => window.print()} disabled={!cards.length}>
-            <Printer className="mr-2 h-4 w-4" /> Imprimir
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={openPreview} disabled={!sheets.length || !!busy}>
+              {busy === 'preview' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="mr-2 h-4 w-4" />
+              )}
+              Vista previa
+            </Button>
+            <Button variant="outline" onClick={downloadPdf} disabled={!sheets.length || !!busy}>
+              {busy === 'pdf' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Descargar PDF
+            </Button>
+            <Button onClick={() => window.print()} disabled={!sheets.length}>
+              <Printer className="mr-2 h-4 w-4" /> Imprimir
+            </Button>
+          </div>
         </div>
 
         {isLoading && (
@@ -284,37 +418,106 @@ const AdminTarjetasImpresion = () => {
 
         {!isLoading && !error && !cards.length && (
           <div className="rounded-md border p-4 text-sm text-muted-foreground print:hidden">
-            No hay tarjetas para la fecha y categorías seleccionadas.
+            No hay tarjetas para la fecha, categorías y tipo de juego seleccionados.
           </div>
         )}
 
-        {/* Hojas: 2 tarjetas por hoja, cada una con su cabecera de 3 cm */}
-        {sheets.map((pair, idx) => (
-          <div
-            key={`sheet-${idx}`}
-            className="mb-6 bg-white print:mb-0"
-            style={{ breakAfter: idx < sheets.length - 1 ? 'page' : 'auto' }}
-          >
-            {pair.map((card) => (
-              <div
-                key={`${card.groupId}-${card.playerId}`}
-                className="overflow-hidden"
-                style={{ height: `${HALF_SHEET_MM}mm`, breakInside: 'avoid' }}
-              >
-                <CardHeader
-                  logo={data?.logoHeader ?? ''}
-                  tournament={data?.tournament ?? ''}
-                  course={data?.course ?? ''}
-                  fecha={data?.fechaFormato ?? ''}
-                />
-                <div className="px-2">
-                  <Scorecard card={card} />
+        {/* Hojas: 2 tarjetas por hoja, cada una con su cabecera configurable */}
+        <div ref={sheetsRef}>
+          {sheets.map((pair, idx) => (
+            <div
+              key={`sheet-${idx}`}
+              data-sheet
+              className="mb-6 bg-white print:mb-0"
+              style={{
+                width: `${SHEET_W_MM}mm`,
+                height: `${SHEET_H_MM}mm`,
+                breakAfter: idx < sheets.length - 1 ? 'page' : 'auto',
+              }}
+            >
+              {pair.map((card) => (
+                <div
+                  key={`${card.groupId}-${card.playerId}`}
+                  className="overflow-hidden"
+                  style={{ height: `${HALF_SHEET_MM}mm`, breakInside: 'avoid' }}
+                >
+                  <CardHeader
+                    logo={data?.logoHeader ?? ''}
+                    tournament={data?.tournament ?? ''}
+                    course={data?.course ?? ''}
+                    fecha={data?.fechaFormato ?? ''}
+                    heightMm={headerMm}
+                  />
+                  {/* La escala mantiene el acomodo idéntico en cualquier impresora */}
+                  <div
+                    style={{
+                      paddingLeft: `${marginMm}mm`,
+                      paddingRight: `${marginMm}mm`,
+                      zoom: scale,
+                    }}
+                  >
+                    <Scorecard card={card} />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ))}
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* ---------- Vista previa paginada ---------- */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Vista previa de impresión</DialogTitle>
+            <DialogDescription>
+              Hoja {previewIdx + 1} de {previewPages.length} · 2 tarjetas por hoja carta ·
+              cabecera {headerMm}mm · escala {Math.round(scale * 100)}%
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[65vh] overflow-auto rounded-md border bg-white p-2">
+            {previewPages[previewIdx] ? (
+              <img
+                src={previewPages[previewIdx]}
+                alt={`Hoja ${previewIdx + 1}`}
+                className="mx-auto w-full"
+              />
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewIdx((i) => Math.max(0, i - 1))}
+                disabled={previewIdx === 0}
+              >
+                <ChevronLeft className="h-4 w-4" /> Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPreviewIdx((i) => Math.min(previewPages.length - 1, i + 1))
+                }
+                disabled={previewIdx >= previewPages.length - 1}
+              >
+                Siguiente <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={downloadPdf} disabled={!!busy}>
+                <Download className="mr-2 h-4 w-4" /> Descargar PDF
+              </Button>
+              <Button size="sm" onClick={() => window.print()}>
+                <Printer className="mr-2 h-4 w-4" /> Imprimir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
