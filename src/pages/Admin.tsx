@@ -254,6 +254,8 @@ const AdminDashboard = () => {
     reglas: 'reglas',
     // Heros (fondos por página/torneo) queda restringido a superadmin.
     heros: undefined,
+    // ALIEN SYSTEM (Tarjetas / Time Line / Salidas): solo superadmin.
+    alien: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
   /** Estado de módulos del proyecto (ver /setup y src/modules/registry.ts). */
