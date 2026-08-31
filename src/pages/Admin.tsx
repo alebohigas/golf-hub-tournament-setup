@@ -87,6 +87,7 @@ import {
   History,
   Printer,
   Clock,
+  Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
