@@ -1,12 +1,16 @@
 /**
- * AdminJugadores
+ * AdminCategorias
  * ---------------------------------------------------------------
- * Pestaña /admin → "Jugadores". Permite CREAR, EDITAR y ELIMINAR
+ * Pestaña /admin → "Categorías". Permite CREAR, EDITAR y ELIMINAR
  * las categorías del torneo activo, incluyendo sus datos de
  * Tee de Salida, Rating, Slope y Par (que viven en `campo_tee`).
  *
  * Estos son exactamente los datos que se muestran en la ficha de
  * categoría de la página pública /jugadores.
+ *
+ * Además incluye la vista "Todas las columnas (torneos.categorias)":
+ * lee la lista real de columnas de la tabla vía SHOW COLUMNS y muestra
+ * / permite editar CUALQUIERA de ellas (payload `fields`).
  */
 
 import { useMemo, useState } from 'react';
@@ -28,14 +32,28 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, Pencil, Plus, Save, Trash2, Users } from 'lucide-react';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 import {
   useCategoriasAdmin, useSaveCategoriaAdmin,
-  type AdminCategoria,
+  type AdminCategoria, type CategoriaColumn,
 } from '@/hooks/useCategoriasAdmin';
+
+/**
+ * Columnas de `categorias` que ya tienen control dedicado en el formulario
+ * principal, o que son llaves y no deben editarse a mano.
+ */
+const CURATED_COLUMNS = new Set([
+  'categoria_id', 'torneo_id', 'categoria', 'abreviatura', 'sistema',
+  'formato', 'estilo', 'sexo', 'hcpIdxMin', 'hcpIdxMax', 'porcentaje',
+  'hoyosajugar', 'maxjugadores', 'gross', 'salida',
+]);
 
 /** Forma del formulario de edición/creación. */
 interface FormState {
@@ -57,6 +75,8 @@ interface FormState {
   rating: string;
   slope: string;
   parcampo: string;
+  /** Resto de columnas reales de `categorias` (nombre → valor de texto). */
+  extra: Record<string, string>;
 }
 
 /** Estado inicial vacío para "Nueva categoría". */
@@ -64,7 +84,7 @@ const EMPTY_FORM: FormState = {
   categoria: '', abreviatura: '', sistema: '', formato: '', estilo: '',
   sexo: '', hcpIdxMin: '', hcpIdxMax: '', porcentaje: '', hoyosajugar: '',
   maxjugadores: '', gross: false, salida: '0', campoid: '0',
-  rating: '', slope: '', parcampo: '',
+  rating: '', slope: '', parcampo: '', extra: {},
 };
 
 /** Convierte una categoría de la API al formulario. */
@@ -87,11 +107,17 @@ const toForm = (c: AdminCategoria): FormState => ({
   rating: c.rating ?? '',
   slope: c.slope ?? '',
   parcampo: c.parcampo ?? '',
+  /** Copia editable de las columnas no curadas tal como están en la BD. */
+  extra: Object.fromEntries(
+    Object.entries(c.raw ?? {})
+      .filter(([k]) => !CURATED_COLUMNS.has(k))
+      .map(([k, v]) => [k, v == null ? '' : String(v)]),
+  ),
 });
 
 const DASH = '—';
 
-const AdminJugadores = () => {
+const AdminCategorias = () => {
   const { torneoId } = useTorneoId();
   const { data, isLoading, error } = useCategoriasAdmin();
   const save = useSaveCategoriaAdmin();
@@ -154,6 +180,8 @@ const AdminJugadores = () => {
         rating: form.rating,
         slope: form.slope,
         parcampo: form.parcampo,
+        /** Columnas extra de la tabla editadas en "Todas las columnas". */
+        fields: form.extra,
       },
       {
         onSuccess: () => {
@@ -192,7 +220,7 @@ const AdminJugadores = () => {
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" /> Jugadores — Categorías
+            <Users className="w-5 h-5" /> Categorías
           </CardTitle>
           <CardDescription>
             Crea, edita y elimina las categorías del torneo con su Tee de Salida,
@@ -410,4 +438,4 @@ const AdminJugadores = () => {
   );
 };
 
-export default AdminJugadores;
+export default AdminCategorias;
