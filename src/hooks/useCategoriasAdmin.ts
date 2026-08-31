@@ -2,7 +2,7 @@
  * useCategoriasAdmin
  * ---------------------------------------------------------------
  * Hooks de lectura/escritura para el CRUD de CATEGORÍAS usado por
- * /admin → pestaña "Jugadores". Backed by /api/categorias_admin.php.
+ * /admin → pestaña "Categorías". Backed by /api/categorias_admin.php.
  *
  * Rating / Slope / Par se guardan en `campo_tee` por (campo, tee de
  * salida); el endpoint hace el UPSERT automáticamente.
@@ -37,6 +37,15 @@ export interface AdminCategoria {
   parcampo: string | null;
   estatus: number;
   playerCount: number;
+  /** Valores crudos de TODAS las columnas de torneos.categorias. */
+  raw?: Record<string, string | number | null>;
+}
+
+/** Metadato de una columna real de la tabla `categorias`. */
+export interface CategoriaColumn {
+  name: string;
+  type: string;
+  numeric: boolean;
 }
 
 /** Catálogo de tees de salida. */
@@ -48,6 +57,8 @@ interface CategoriasAdminResponse {
   categories: AdminCategoria[];
   tees: TeeOption[];
   campos: CampoOption[];
+  /** Columnas reales de la tabla (para la vista/edición completa). */
+  columns?: CategoriaColumn[];
 }
 
 /** Lee categorías + catálogos del torneo activo. */
@@ -86,6 +97,8 @@ export interface CategoriaMutation {
   rating?: string | number | null;
   slope?: string | number | null;
   parcampo?: string | number | null;
+  /** Edición genérica: cualquier columna real de `categorias`. */
+  fields?: Record<string, string | number | null>;
 }
 
 /** Crea / edita / elimina una categoría. */
