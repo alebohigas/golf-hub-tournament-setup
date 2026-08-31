@@ -497,9 +497,11 @@ const AdminDashboard = () => {
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
-            { value: 'salidas',      icon: Printer,         label: 'Salidas' },
-            { value: 'timeline',     icon: Clock,           label: 'Time Line' },
-            { value: 'tarjetas',     icon: ClipboardList,   label: 'Tarjetas' },
+            /**
+             * ALIEN SYSTEM — sección que agrupa las herramientas operativas
+             * de impresión (Tarjetas, Time Line, Salidas) en sub-pestañas.
+             */
+            { value: 'alien',        icon: Rocket,          label: 'ALIEN SYSTEM' },
 
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
