@@ -801,9 +801,9 @@ const AdminDashboard = () => {
         </TabsContent>
 
         {/*
-          ALIEN SYSTEM — sección contenedora de las herramientas de impresión.
-          Sub-pestañas: Tarjetas, Time Line y Salidas. Aquí se irán agregando
-          los siguientes módulos operativos que se indiquen.
+          ALIEN SYSTEM — sección contenedora de las herramientas operativas.
+          Sub-pestañas: Tarjetas, Time Line, Salidas, Jugadores y Campos.
+          Aquí se irán agregando los siguientes módulos que se indiquen.
         */}
         <TabsContent value="alien">
           <Tabs defaultValue="tarjetas" className="space-y-4">
@@ -816,6 +816,12 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
                 <Printer className="h-4 w-4" /> Salidas
+              </TabsTrigger>
+              <TabsTrigger value="alien-jugadores" className="gap-2 flex-1 min-w-[120px]">
+                <Users className="h-4 w-4" /> Jugadores
+              </TabsTrigger>
+              <TabsTrigger value="alien-campos" className="gap-2 flex-1 min-w-[120px]">
+                <MapPin className="h-4 w-4" /> Campos
               </TabsTrigger>
             </TabsList>
 
@@ -833,8 +839,19 @@ const AdminDashboard = () => {
             <TabsContent value="salidas">
               <AdminSalidasPrint />
             </TabsContent>
+
+            {/* Jugadores — listado, edición y vista rápida (par, hcp, categoría). */}
+            <TabsContent value="alien-jugadores">
+              <AdminAlienJugadores />
+            </TabsContent>
+
+            {/* Campos — horarios, categorías y hoyos que alimentan la tarjeta. */}
+            <TabsContent value="alien-campos">
+              <AdminAlienCampos />
+            </TabsContent>
           </Tabs>
         </TabsContent>
+
 
 
         {/* Página /stats — controla visibilidad, orden y overrides
