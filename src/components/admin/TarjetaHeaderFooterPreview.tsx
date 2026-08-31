@@ -52,6 +52,12 @@ const SAMPLE_INCOMPLETO: TarjetaChromeData = {
   folio: '',
 };
 
+/** Renglón mínimo de hoyo para la tira de referencia HOYO / PAR. */
+export interface TarjetaPreviewHole {
+  numero: number;
+  par: number | null;
+}
+
 export interface TarjetaHeaderFooterPreviewProps {
   /** Campos del encabezado en el orden configurado. */
   headerOrder: TarjetaHeaderKey[];
@@ -65,6 +71,20 @@ export interface TarjetaHeaderFooterPreviewProps {
   sistema: 'auto' | 'stroke' | 'stableford';
   /** Tamaños de letra (pt) de hoyo/hora y categoría configurados en Admin. */
   headerFonts?: TarjetaHeaderFonts;
+  /**
+   * Tarjeta REAL de la categoría de referencia elegida en Admin. Cuando se
+   * recibe, la vista previa deja de usar los datos de muestra y refleja el
+   * jugador, el club, el handicap neto y las marcas de salida reales.
+   */
+  realCard?: TarjetaChromeData | null;
+  /**
+   * Hoyos de la categoría de referencia (orden de juego y par). Al recibirlos
+   * la vista previa cambia el bloque punteado por la tira real HOYO / PAR, de
+   * modo que cada categoría muestra SU propio orden de hoyos y par.
+   */
+  realHoles?: TarjetaPreviewHole[] | null;
+  /** Nombre de la categoría de referencia (sólo informativo). */
+  refCategoryName?: string;
 }
 
 /** Vista previa en vivo del encabezado + pie de la tarjeta. */
@@ -75,14 +95,28 @@ const TarjetaHeaderFooterPreview = ({
   marginMm,
   sistema,
   headerFonts = TARJETA_HEADER_FONTS_DEFAULT,
+  realCard = null,
+  realHoles = null,
+  refCategoryName = '',
 }: TarjetaHeaderFooterPreviewProps) => {
   /** Simulación de datos faltantes para revisar los textos de respaldo. */
   const [simularFaltantes, setSimularFaltantes] = useState(false);
 
+  /*
+    Base de la vista previa:
+      · Con "simular datos faltantes" → muestra incompleta (prueba de fallbacks).
+      · Con categoría de referencia    → tarjeta REAL de esa categoría.
+      · Sin ninguna de las dos         → muestra completa de ejemplo.
+  */
   const card: TarjetaChromeData = {
-    ...(simularFaltantes ? SAMPLE_INCOMPLETO : SAMPLE),
-    system: sistema === 'stableford' ? 'STABLEFORD' : 'STROKE PLAY',
+    ...(simularFaltantes ? SAMPLE_INCOMPLETO : (realCard ?? SAMPLE)),
+    system: simularFaltantes || !realCard
+      ? sistema === 'stableford' ? 'STABLEFORD' : 'STROKE PLAY'
+      : realCard.system ?? '',
   };
+
+  /** Hoyos de referencia (sólo cuando hay categoría elegida y datos). */
+  const holes = !simularFaltantes && realHoles?.length ? realHoles : null;
 
   return (
     <div className="space-y-2">
@@ -90,6 +124,9 @@ const TarjetaHeaderFooterPreview = ({
         Vista previa en vivo (encabezado y firmas). Usa los mismos componentes que impresión y
         PDF, con el orden de campos, el alto de renglón ({rowMm} mm) y el margen lateral (
         {marginMm} mm) y el padding inferior ({padMm} mm) configurados aquí.
+        {refCategoryName
+          ? ` Datos y par de referencia de la categoría: ${refCategoryName}.`
+          : ''}
       </p>
 
       <div className="flex items-center gap-2">
@@ -115,12 +152,56 @@ const TarjetaHeaderFooterPreview = ({
 
           {/* Brinco de renglón + representación compacta de la tabla de hoyos */}
           <div style={{ height: `${rowMm}mm` }} />
-          <div
-            className="flex items-center justify-center border-y border-dashed border-foreground/40 text-[6.5pt] uppercase text-foreground/60"
-            style={{ height: `${rowMm * 4}mm` }}
-          >
-            Tabla de hoyos (renglones configurados)
-          </div>
+          {holes ? (
+            /*
+              Tira de referencia HOYO / PAR con el orden de hoyos y el par REALES
+              de la categoría seleccionada (cada categoría puede salir por otro
+              hoyo y jugar otra mesa de salida, con pares distintos).
+            */
+            <table className="w-full border-collapse text-[6.5pt]">
+              <tbody>
+                <tr>
+                  <td
+                    className="border border-foreground/30 px-1 text-left font-bold uppercase"
+                    style={{ height: `${rowMm}mm` }}
+                  >
+                    Hoyo
+                  </td>
+                  {holes.map((h) => (
+                    <td
+                      key={`h-${h.numero}`}
+                      className="border border-foreground/30 text-center font-bold tabular-nums"
+                    >
+                      {h.numero}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td
+                    className="border border-foreground/30 px-1 text-left font-bold uppercase"
+                    style={{ height: `${rowMm}mm` }}
+                  >
+                    Par
+                  </td>
+                  {holes.map((h) => (
+                    <td
+                      key={`p-${h.numero}`}
+                      className="border border-foreground/30 text-center tabular-nums"
+                    >
+                      {h.par ?? '—'}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <div
+              className="flex items-center justify-center border-y border-dashed border-foreground/40 text-[6.5pt] uppercase text-foreground/60"
+              style={{ height: `${rowMm * 4}mm` }}
+            >
+              Tabla de hoyos (renglones configurados)
+            </div>
+          )}
 
           {/* Margen de 2 renglones antes del pie */}
           <div style={{ height: `${rowMm * 2}mm` }} />
