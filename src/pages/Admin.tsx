@@ -260,7 +260,8 @@ const AdminDashboard = () => {
     reglas: 'reglas',
     // Heros (fondos por página/torneo) queda restringido a superadmin.
     heros: undefined,
-    // ALIEN SYSTEM (Tarjetas / Time Line / Salidas): solo superadmin.
+    // ALIEN SYSTEM: la pestaña contenedora se resuelve aparte (cualquiera de
+    // sus 3 sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
     alien: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
@@ -283,7 +284,14 @@ const AdminDashboard = () => {
     reglas: 'convocatoria',
     uploads: 'archivos',
     stats: 'stats',
+    alien_tarjetas: 'alien',
+    alien_timeline: 'alien',
+    alien_salidas: 'alien',
   };
+  /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
+  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas'];
+  /** true si el usuario activo puede ver una sub-pestaña de ALIEN SYSTEM. */
+  const canAlien = (a: StaffArea) => !isStaffOnly || !!staffSession?.areas.includes(a);
   /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
   const staffFirstTab = isStaffOnly && staffSession && staffSession.areas.length
     ? (AREA_TO_TAB[staffSession.areas[0]] || 'config')
@@ -297,6 +305,9 @@ const AdminDashboard = () => {
     const byModule = tabs.filter(t => isAdminTabEnabled(t.value));
     if (!isStaffOnly) return byModule;
     return byModule.filter(t => {
+      if (t.value === 'alien') {
+        return ALIEN_AREAS.some(a => staffSession!.areas.includes(a));
+      }
       const area = TAB_AREA[t.value];
       return !!area && staffSession!.areas.includes(area);
     });
@@ -812,33 +823,48 @@ const AdminDashboard = () => {
           Sub-pestañas: Tarjetas, Time Line y Salidas.
         */}
         <TabsContent value="alien">
-          <Tabs defaultValue="tarjetas" className="space-y-4">
+          <Tabs
+            defaultValue={canAlien('alien_tarjetas') ? 'tarjetas' : canAlien('alien_timeline') ? 'timeline' : 'salidas'}
+            className="space-y-4"
+          >
             <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
-              <TabsTrigger value="tarjetas" className="gap-2 flex-1 min-w-[120px]">
-                <ClipboardList className="h-4 w-4" /> Tarjetas
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-2 flex-1 min-w-[120px]">
-                <Clock className="h-4 w-4" /> Time Line
-              </TabsTrigger>
-              <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
-                <Printer className="h-4 w-4" /> Salidas
-              </TabsTrigger>
+              {canAlien('alien_tarjetas') && (
+                <TabsTrigger value="tarjetas" className="gap-2 flex-1 min-w-[120px]">
+                  <ClipboardList className="h-4 w-4" /> Tarjetas
+                </TabsTrigger>
+              )}
+              {canAlien('alien_timeline') && (
+                <TabsTrigger value="timeline" className="gap-2 flex-1 min-w-[120px]">
+                  <Clock className="h-4 w-4" /> Time Line
+                </TabsTrigger>
+              )}
+              {canAlien('alien_salidas') && (
+                <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
+                  <Printer className="h-4 w-4" /> Salidas
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
-            <TabsContent value="tarjetas">
-              <AdminTarjetasPrint />
-            </TabsContent>
+            {canAlien('alien_tarjetas') && (
+              <TabsContent value="tarjetas">
+                <AdminTarjetasPrint />
+              </TabsContent>
+            )}
 
             {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
-            <TabsContent value="timeline">
-              <AdminTimeLinePrint />
-            </TabsContent>
+            {canAlien('alien_timeline') && (
+              <TabsContent value="timeline">
+                <AdminTimeLinePrint />
+              </TabsContent>
+            )}
 
             {/* Salidas — impresión del reporte de salidas por día. */}
-            <TabsContent value="salidas">
-              <AdminSalidasPrint />
-            </TabsContent>
+            {canAlien('alien_salidas') && (
+              <TabsContent value="salidas">
+                <AdminSalidasPrint />
+              </TabsContent>
+            )}
           </Tabs>
         </TabsContent>
 
