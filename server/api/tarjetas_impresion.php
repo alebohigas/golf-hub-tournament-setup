@@ -588,7 +588,12 @@ foreach ($groups as $g) {
             'tee'          => !empty($p['tee']) ? $p['tee'] : $teeName($salidaid),
 
             'playerId'     => (string)($p['jugadorid'] ?? ''),
-            'playerNumber' => (string)($p['numjugador'] ?? ($p['jugadorid'] ?? '')),
+            /*
+              ID impreso en la tarjeta: SIEMPRE el ID DE JUGADOR de la base
+              (`jugadorid`), no el ID SPEi (`numjugador`), que sólo queda como
+              respaldo cuando el registro no trae jugadorid.
+            */
+            'playerNumber' => (string)($p['jugadorid'] ?? ($p['numjugador'] ?? '')),
             'name'         => trim(($p['nombre'] ?? '') . ' ' . ($p['apellido'] ?? '')),
             'club'         => $p['club'] ?? '',
             'folio'        => (string)($p['tarjetaid'] ?? ''),

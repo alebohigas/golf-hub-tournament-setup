@@ -144,12 +144,18 @@ export interface TarjetaHeaderFonts {
   hoyoPt: number;
   /** Nombre de la categoría. */
   catPt: number;
+  /** ID + nombre del jugador (viaja en la URL como `fsj=`). */
+  jugadorPt: number;
 }
 
-/** Valores por defecto: hoyo/hora 13 pt y categoría 14 pt (un nivel menor). */
+/**
+ * Valores por defecto: hoyo/hora 13 pt, categoría 14 pt (un nivel menor) y
+ * el bloque del jugador (ID + nombre) 9.5 pt.
+ */
 export const TARJETA_HEADER_FONTS_DEFAULT: TarjetaHeaderFonts = {
   hoyoPt: 13,
   catPt: 14,
+  jugadorPt: 9.5,
 };
 
 /** Acota un tamaño de letra a un rango imprimible (6–24 pt). */

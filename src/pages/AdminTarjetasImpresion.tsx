@@ -498,6 +498,10 @@ const AdminTarjetasImpresion = () => {
     () => ({
       hoyoPt: clampTarjetaFont(params.get('fsh'), TARJETA_HEADER_FONTS_DEFAULT.hoyoPt),
       catPt: clampTarjetaFont(params.get('fsc'), TARJETA_HEADER_FONTS_DEFAULT.catPt),
+      jugadorPt: clampTarjetaFont(
+        params.get('fsj'),
+        TARJETA_HEADER_FONTS_DEFAULT.jugadorPt,
+      ),
     }),
     [params],
   );

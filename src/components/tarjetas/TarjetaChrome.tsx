@@ -21,6 +21,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 /* Resaltado del hoyo de inicio compartido con el reporte imprimible. */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+/* Normalización a NOMBRE PROPIO del nombre del jugador. */
+import { toProperName } from '@/lib/properName';
 import {
   TARJETA_HEADER_WIDTHS,
   TARJETA_HEADER_FONTS_DEFAULT,
@@ -38,7 +40,10 @@ import {
 export interface TarjetaChromeData {
   hole?: number | null;
   time?: string | null;
+  /** ID SPEi (respaldo histórico). */
   playerNumber?: string | null;
+  /** ID DE JUGADOR de la base: es el que se imprime en la tarjeta. */
+  playerId?: string | null;
   name?: string | null;
   club?: string | null;
   hcp?: number | string | null;
@@ -184,16 +189,27 @@ const headerBlocks = (
       ),
     },
 
-    /* ID + nombre (renglones 1-2) y club (renglón 3). */
+    /*
+      ID del jugador + nombre (renglones 1-2) y club (renglón 3).
+      · El ID impreso es el ID DE JUGADOR de la base (no el ID SPEi).
+      · El nombre se imprime en NOMBRE PROPIO (`toProperName`).
+      · El tamaño de letra es configurable en Admin → Tarjetas (`fsj=`).
+    */
     jugador: {
       align: 'left',
       top: (
         <span className="flex min-w-0 items-center gap-2">
-          <span className="text-[9.5pt] font-bold">
-            {tarjetaText(card.playerNumber, '----')}
+          <span
+            className="font-bold tabular-nums"
+            style={{ fontSize: `${fonts.jugadorPt}pt` }}
+          >
+            {tarjetaText(card.playerId ?? card.playerNumber, '----')}
           </span>
-          <span className="truncate text-[9.5pt] font-bold uppercase">
-            {tarjetaText(card.name, 'JUGADOR POR ASIGNAR')}
+          <span
+            className="truncate font-bold"
+            style={{ fontSize: `${fonts.jugadorPt}pt` }}
+          >
+            {toProperName(tarjetaText(card.name, 'Jugador por asignar'))}
           </span>
         </span>
       ),
@@ -444,7 +460,7 @@ export const TarjetaFooter = ({ card }: { card: TarjetaChromeData }) => {
       <div className="flex-1 border-b border-foreground/30 text-center">Anotador</div>
       {/* En lugar de "Firma jugador" se imprime el nombre del jugador. */}
       <div className="flex-1 truncate border-b border-foreground/30 text-center">
-        {tarjetaText(card.name, 'JUGADOR POR ASIGNAR')}
+        {toProperName(tarjetaText(card.name, 'Jugador por asignar'))}
       </div>
       <div className="whitespace-nowrap font-semibold">
         Folio {tarjetaText(card.folio)}

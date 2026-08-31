@@ -129,6 +129,8 @@ const AdminTarjetasPrint = () => {
    */
   const [fsHoyoPt, setFsHoyoPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.hoyoPt);
   const [fsCatPt, setFsCatPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.catPt);
+  /** Tamaño de letra (pt) del ID + nombre del jugador. Viaja como `fsj=`. */
+  const [fsJugPt, setFsJugPt] = useState(TARJETA_HEADER_FONTS_DEFAULT.jugadorPt);
 
   /**
    * Campo de la BD del que se toma el **HCP. NETO** del encabezado. Viaja al
@@ -217,6 +219,8 @@ const AdminTarjetasPrint = () => {
       setFsHoyoPt(clampTarjetaFont(cfg.fsHoyoPt, TARJETA_HEADER_FONTS_DEFAULT.hoyoPt));
     if (typeof cfg.fsCatPt === 'number')
       setFsCatPt(clampTarjetaFont(cfg.fsCatPt, TARJETA_HEADER_FONTS_DEFAULT.catPt));
+    if (typeof cfg.fsJugPt === 'number')
+      setFsJugPt(clampTarjetaFont(cfg.fsJugPt, TARJETA_HEADER_FONTS_DEFAULT.jugadorPt));
     if (cfg.hcpField) setHcpField(normalizeTarjetaHcpField(cfg.hcpField));
     if (typeof cfg.showLogo === 'boolean') setShowLogo(cfg.showLogo);
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
@@ -236,6 +240,7 @@ const AdminTarjetasPrint = () => {
       headerOrder,
       fsHoyoPt,
       fsCatPt,
+      fsJugPt,
       hcpField,
       showLogo,
     };
@@ -360,6 +365,7 @@ const AdminTarjetasPrint = () => {
       pad: String(padMm),
       fsh: String(fsHoyoPt),
       fsc: String(fsCatPt),
+      fsj: String(fsJugPt),
       hcpfield: hcpField,
       logo: showLogo ? '1' : '0',
       rows: rowOrder.join(','),
@@ -582,6 +588,24 @@ const AdminTarjetasPrint = () => {
                   className="w-[140px]"
                   value={fsCatPt}
                   onChange={(e) => setFsCatPt(Number(e.target.value))}
+                />
+              </div>
+
+              {/*
+                Tamaño de letra (pt) del ID + nombre del jugador. Viaja como `fsj=`.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Letra jugador (pt)
+                </Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={6}
+                  max={24}
+                  className="w-[140px]"
+                  value={fsJugPt}
+                  onChange={(e) => setFsJugPt(Number(e.target.value))}
                 />
               </div>
 
@@ -838,7 +862,7 @@ const AdminTarjetasPrint = () => {
                   padMm={padMm}
                   marginMm={marginMm}
                   sistema={sistema}
-                  headerFonts={{ hoyoPt: fsHoyoPt, catPt: fsCatPt }}
+                  headerFonts={{ hoyoPt: fsHoyoPt, catPt: fsCatPt, jugadorPt: fsJugPt }}
                 />
               </div>
 
