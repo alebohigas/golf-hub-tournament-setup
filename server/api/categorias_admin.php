@@ -52,16 +52,45 @@ function cadm_str($conn, $v) {
     return "'" . esc($conn, (string)($v ?? '')) . "'";
 }
 
+/**
+ * Metadatos de TODAS las columnas de `categorias` (cacheado).
+ * Permite exponer y editar cualquier columna real de la tabla sin
+ * hardcodear la lista, que varía entre instalaciones.
+ *
+ * @return array [ ['name' => string, 'type' => string, 'numeric' => bool] ]
+ */
+function cadm_columns($conn) {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $cols = [];
+    $r = @$conn->query("SHOW COLUMNS FROM categorias");
+    if ($r) {
+        while ($row = $r->fetch_assoc()) {
+            $type = strtolower((string)$row['Type']);
+            $cols[] = [
+                'name'    => $row['Field'],
+                'type'    => $row['Type'],
+                'numeric' => (bool)preg_match('/int|decimal|float|double|numeric|bit/', $type),
+            ];
+        }
+        $r->free();
+    }
+    return $cache = $cols;
+}
+
+/** Nombres de columnas de `categorias`. */
+function cadm_column_names($conn) {
+    return array_map(function ($c) { return $c['name']; }, cadm_columns($conn));
+}
+
 // ===========================================================================
 // GET — lista de categorías + catálogos (tees y campos)
 // ===========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $torneoid = (int) require_param('torneoid');
 
-    $sql = "SELECT a.categoria_id, a.categoria, a.abreviatura, a.sistema,
-                   a.formato, a.estilo, a.hcpIdxMin, a.hcpIdxMax,
-                   a.porcentaje, a.hoyosajugar, a.sexo, a.gross,
-                   a.maxjugadores, a.salida, a.estatus,
+    /** `a.*` para poder devolver TODAS las columnas reales de la tabla. */
+    $sql = "SELECT a.*,
                    s.tee AS teeName, s.color AS teeColor,
                    (SELECT COUNT(*) FROM jugadores j
                      WHERE j.categoriaid = a.categoria_id) AS playerCount,
@@ -74,10 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
              ORDER BY a.categoria_id ASC";
     $rows = query_all($conn, $sql);
 
+    $colNames = cadm_column_names($conn);
+
     /** Rating / Slope / Par desde campo_tee por (campoid, salidaid). */
-    $categories = array_map(function ($r) use ($conn) {
-        $salida = (int)$r['salida'];
-        $campoid = $r['campoid'] !== null ? (int)$r['campoid'] : 0;
+    $categories = array_map(function ($r) use ($conn, $colNames) {
+        $salida = (int)($r['salida'] ?? 0);
+        $campoid = isset($r['campoid']) && $r['campoid'] !== null ? (int)$r['campoid'] : 0;
         $rating = null; $slope = null; $par = null;
         if ($salida > 0) {
             $where = $campoid > 0
@@ -95,31 +126,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             }
             if ($q) $q->free();
         }
+        /** Valores crudos de TODAS las columnas de `categorias` (tal cual BD). */
+        $raw = [];
+        foreach ($colNames as $cn) {
+            $raw[$cn] = array_key_exists($cn, $r) ? $r[$cn] : null;
+        }
         return [
             'id'           => (int)$r['categoria_id'],
-            'categoria'    => $r['categoria'],
-            'abreviatura'  => $r['abreviatura'],
-            'sistema'      => $r['sistema'],
-            'formato'      => $r['formato'],
-            'estilo'       => $r['estilo'],
-            'hcpIdxMin'    => $r['hcpIdxMin'],
-            'hcpIdxMax'    => $r['hcpIdxMax'],
-            'porcentaje'   => $r['porcentaje'],
-            'hoyosajugar'  => $r['hoyosajugar'] !== null ? (int)$r['hoyosajugar'] : null,
-            'sexo'         => $r['sexo'],
-            'gross'        => (int)$r['gross'],
-            'maxjugadores' => $r['maxjugadores'] !== null ? (int)$r['maxjugadores'] : null,
+            'categoria'    => $r['categoria'] ?? '',
+            'abreviatura'  => $r['abreviatura'] ?? null,
+            'sistema'      => $r['sistema'] ?? null,
+            'formato'      => $r['formato'] ?? null,
+            'estilo'       => $r['estilo'] ?? null,
+            'hcpIdxMin'    => $r['hcpIdxMin'] ?? null,
+            'hcpIdxMax'    => $r['hcpIdxMax'] ?? null,
+            'porcentaje'   => $r['porcentaje'] ?? null,
+            'hoyosajugar'  => isset($r['hoyosajugar']) && $r['hoyosajugar'] !== null ? (int)$r['hoyosajugar'] : null,
+            'sexo'         => $r['sexo'] ?? null,
+            'gross'        => (int)($r['gross'] ?? 0),
+            'maxjugadores' => isset($r['maxjugadores']) && $r['maxjugadores'] !== null ? (int)$r['maxjugadores'] : null,
             'salida'       => $salida,
-            'teeName'      => $r['teeName'],
-            'teeColor'     => $r['teeColor'],
+            'teeName'      => $r['teeName'] ?? null,
+            'teeColor'     => $r['teeColor'] ?? null,
             'campoid'      => $campoid,
             'rating'       => $rating,
             'slope'        => $slope,
             'parcampo'     => $par,
-            'estatus'      => (int)$r['estatus'],
+            'estatus'      => (int)($r['estatus'] ?? 0),
             'playerCount'  => (int)$r['playerCount'],
+            'raw'          => $raw,
         ];
     }, $rows);
+
 
     /** Catálogo de tees de salida. */
     $tees = [];
