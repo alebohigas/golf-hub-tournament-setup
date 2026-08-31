@@ -174,7 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
     }
 
-    json_response(['categories' => $categories, 'tees' => $tees, 'campos' => $campos]);
+    json_response([
+        'categories' => $categories,
+        'tees'       => $tees,
+        'campos'     => $campos,
+        /** Metadatos de todas las columnas reales de torneos.categorias. */
+        'columns'    => cadm_columns($conn),
+    ]);
+
 }
 
 // ===========================================================================
