@@ -154,6 +154,8 @@ export const useTarjetasReport = (filters: {
   campoid?: string;
   sistema?: string;
   torneoid?: string;
+  /** Columna de la BD del HANDICAP NETO (Admin → Tarjetas). */
+  hcpfield?: string;
 }) =>
   useQuery<TarjetasReport>({
     queryKey: ['tarjetas-impresion', filters],

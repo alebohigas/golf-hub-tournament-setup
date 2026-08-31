@@ -39,13 +39,14 @@ import {
   ArrowUp,
   ChevronsUpDown,
   ClipboardList,
+  Clock,
   Eye,
   Loader2,
   Printer,
   Save,
   X,
 } from 'lucide-react';
-import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import { useTarjetasCatalogo, useTarjetasReport } from '@/hooks/useTarjetasImpresion';
 import { Switch } from '@/components/ui/switch';
 import TarjetaHeaderFooterPreview from '@/components/admin/TarjetaHeaderFooterPreview';
 import {
@@ -97,6 +98,13 @@ const AdminTarjetasPrint = () => {
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
+  /**
+   * CATEGORÍA DE REFERENCIA de la vista previa. Cada categoría puede salir por
+   * otro hoyo y jugar otra mesa de salida, por lo que su ORDEN DE HOYOS y su
+   * PAR son distintos: al elegirla aquí, la previsualización muestra una
+   * tarjeta real de esa categoría con su propia tira HOYO / PAR.
+   */
+  const [refCatId, setRefCatId] = useState('');
   /** Estado abierto/cerrado del multiselector de categorías. */
   const [catsOpen, setCatsOpen] = useState(false);
   /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
@@ -305,6 +313,14 @@ const AdminTarjetasPrint = () => {
     });
   }, [categorias]);
 
+  /**
+   * La categoría de referencia siempre debe ser una de las seleccionadas: si
+   * deja de existir (cambio de día, campo o tipo de juego) se toma la primera.
+   */
+  useEffect(() => {
+    setRefCatId((prev) => (prev && catIds.includes(prev) ? prev : catIds[0] ?? ''));
+  }, [catIds]);
+
   /** Texto del botón multiselector: "Todas", "N de M" o el nombre único. */
   const catsLabel = useMemo(() => {
     if (!categorias.length) return 'Sin categorías';
@@ -372,6 +388,32 @@ const AdminTarjetasPrint = () => {
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
     }).toString()}`;
+
+  /**
+   * Datos REALES de la categoría de referencia (un solo día y una sola
+   * categoría) para la vista previa: jugador, handicap neto, marcas de salida y
+   * los hoyos con su par en el orden de juego de ESA categoría.
+   */
+  const { data: refReport } = useTarjetasReport({
+    fecha,
+    catid: refCatId,
+    campoid: campoid || undefined,
+    sistema,
+    hcpfield: hcpField,
+  });
+
+  /** Primera tarjeta de la categoría de referencia (o `null` si no hay datos). */
+  const refCard = refReport?.cards?.[0] ?? null;
+
+  /** Nombre de la categoría de referencia (informativo en la vista previa). */
+  const refCatName = useMemo(
+    () => categorias.find((c) => c.id === refCatId)?.name ?? '',
+    [categorias, refCatId],
+  );
+
+  /** URL de la VISTA POR HORA DE SALIDA (mismos filtros y maquetación). */
+  const buildHorasUrl = () =>
+    buildUrl(false).replace('/admin/tarjetas-impresion?', '/admin/tarjetas-horas?');
 
   /** Abre el reporte imprimible en una pestaña nueva. */
   const generar = (preview = false) => {
@@ -853,9 +895,39 @@ const AdminTarjetasPrint = () => {
                 la configuración actual (misma maqueta que impresión y PDF).
               */}
               <div className="basis-full space-y-2 rounded-md border p-3">
-                <Label className="text-xs text-muted-foreground">
-                  Previsualización del encabezado y firmas
-                </Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Label className="text-xs text-muted-foreground">
+                    Previsualización del encabezado y firmas
+                  </Label>
+                  {/*
+                    Categoría de referencia: define de qué categoría se toman
+                    los datos reales, el ORDEN DE HOYOS y el PAR de la vista
+                    previa (cada categoría juega su propia mesa de salida).
+                  */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Categoría de referencia
+                    </Label>
+                    <Select
+                      value={refCatId}
+                      onValueChange={setRefCatId}
+                      disabled={!catIds.length}
+                    >
+                      <SelectTrigger className="h-8 w-[260px] text-xs">
+                        <SelectValue placeholder="Elige una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categorias
+                          .filter((c) => catIds.includes(c.id))
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="text-xs">
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <TarjetaHeaderFooterPreview
                   headerOrder={headerOrder}
                   rowMm={rowMm}
@@ -863,6 +935,9 @@ const AdminTarjetasPrint = () => {
                   marginMm={marginMm}
                   sistema={sistema}
                   headerFonts={{ hoyoPt: fsHoyoPt, catPt: fsCatPt, jugadorPt: fsJugPt }}
+                  realCard={refCard}
+                  realHoles={refCard?.holes ?? null}
+                  refCategoryName={refCatName}
                 />
               </div>
 
@@ -872,6 +947,18 @@ const AdminTarjetasPrint = () => {
               </Button>
               <Button onClick={() => generar(false)} disabled={!isValid}>
                 <Printer className="mr-2 h-4 w-4" /> Generar
+              </Button>
+              {/*
+                Vista por HORA DE SALIDA: lista quiénes juegan en cada hora con
+                el mismo diseño del encabezado de la tarjeta, sin abrir la
+                tarjeta completa de cada jugador.
+              */}
+              <Button
+                variant="outline"
+                onClick={() => window.open(buildHorasUrl(), '_blank')}
+                disabled={!isValid}
+              >
+                <Clock className="mr-2 h-4 w-4" /> Por hora de salida
               </Button>
               <Button
                 variant="secondary"
