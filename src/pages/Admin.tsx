@@ -798,19 +798,40 @@ const AdminDashboard = () => {
           <AdminStats />
         </TabsContent>
 
-        {/* Salidas — impresión del reporte de salidas por día. */}
-        <TabsContent value="salidas">
-          <AdminSalidasPrint />
-        </TabsContent>
+        {/*
+          ALIEN SYSTEM — sección contenedora de las herramientas de impresión.
+          Sub-pestañas: Tarjetas, Time Line y Salidas. Aquí se irán agregando
+          los siguientes módulos operativos que se indiquen.
+        */}
+        <TabsContent value="alien">
+          <Tabs defaultValue="tarjetas" className="space-y-4">
+            <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
+              <TabsTrigger value="tarjetas" className="gap-2 flex-1 min-w-[120px]">
+                <ClipboardList className="h-4 w-4" /> Tarjetas
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="gap-2 flex-1 min-w-[120px]">
+                <Clock className="h-4 w-4" /> Time Line
+              </TabsTrigger>
+              <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
+                <Printer className="h-4 w-4" /> Salidas
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
-        <TabsContent value="timeline">
-          <AdminTimeLinePrint />
-        </TabsContent>
+            {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
+            <TabsContent value="tarjetas">
+              <AdminTarjetasPrint />
+            </TabsContent>
 
-        {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
-        <TabsContent value="tarjetas">
-          <AdminTarjetasPrint />
+            {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
+            <TabsContent value="timeline">
+              <AdminTimeLinePrint />
+            </TabsContent>
+
+            {/* Salidas — impresión del reporte de salidas por día. */}
+            <TabsContent value="salidas">
+              <AdminSalidasPrint />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
 
