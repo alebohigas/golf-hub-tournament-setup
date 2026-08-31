@@ -47,6 +47,11 @@ import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
 /** Impresión de tarjetas de juego por día y categoría. */
 import AdminTarjetasPrint from '@/components/admin/AdminTarjetasPrint';
+/** ALIEN SYSTEM → Jugadores: listado, edición y vista rápida. */
+import AdminAlienJugadores from '@/components/admin/AdminAlienJugadores';
+/** ALIEN SYSTEM → Campos: horarios, categorías y hoyos de cada campo. */
+import AdminAlienCampos from '@/components/admin/AdminAlienCampos';
+
 
 /** Reporte TIME LINE: hora estimada de cada grupo en los 18 hoyos. */
 import AdminTimeLinePrint from '@/components/admin/AdminTimeLinePrint';
