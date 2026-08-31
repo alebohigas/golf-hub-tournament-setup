@@ -196,7 +196,7 @@ const PlayerRow = ({ name, clubLogo }: { name: string; clubLogo: string }) => (
 const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
   <div
     data-group-block
-    className="break-inside-avoid rounded-sm border border-border bg-card"
+    className="break-inside-avoid rounded-sm border border-border bg-white"
   >
     {/* Encabezado del grupo: nombre completo de la categoría + hora/tee.
         Línea inferior para distinguir el encabezado en impresiones en blanco y negro. */}
@@ -223,7 +223,7 @@ const GroupBlock = ({ group }: { group: SalidasImpresionGroup }) => (
     </div>
 
 
-    <div>
+    <div className="bg-white">
       {group.players.map((p, i) => (
         <PlayerRow key={`${group.id}-${i}`} {...p} />
       ))}
