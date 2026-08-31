@@ -51,6 +51,8 @@ import AdminSalidasImpresion from "./pages/AdminSalidasImpresion";
 import AdminTimeLine from "./pages/AdminTimeLine";
 /** Reporte imprimible de TARJETAS de juego (2 por hoja carta). */
 import AdminTarjetasImpresion from "./pages/AdminTarjetasImpresion";
+// Vista de tarjeta por hora de salida (mismo diseño del encabezado).
+import AdminTarjetasHoras from "./pages/AdminTarjetasHoras";
 
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
@@ -143,6 +145,8 @@ const App = () => (
               <Route path="/admin/time-line" element={<AdminTimeLine />} />
               {/* Tarjetas de juego imprimibles (Stroke Play / Stableford). */}
               <Route path="/admin/tarjetas-impresion" element={<AdminTarjetasImpresion />} />
+              {/* Vista por hora de salida: quiénes juegan en cada hora. */}
+              <Route path="/admin/tarjetas-horas" element={<AdminTarjetasHoras />} />
 
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
