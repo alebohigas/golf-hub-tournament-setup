@@ -40,11 +40,11 @@ export const TARJETA_HEADER_WIDTHS: Record<TarjetaHeaderKey, string> = {
   hoyohora: '30mm',
   jugador: 'minmax(0,1fr)',
   /*
-    HANDICAP NETO: ancho fijo de 22 mm — suficiente para la etiqueta completa
-    ("HANDICAP NETO" en una sola línea, sin cortes) en cualquier tamaño de hoja,
-    ya que el encabezado se mide en milímetros y no en porcentajes.
+    HANDICAP NETO: ancho fijo de 15 mm. La etiqueta se apila en dos renglones
+    (HANDICAP / NETO) y el valor va en el renglón inferior. Al ser más angosta,
+    la columna del jugador (1fr) gana ese espacio para el ID y el nombre.
   */
-  vtja: '22mm',
+  vtja: '15mm',
   /*
     Categoría: se le cede ~1 columna de ancho al bloque del jugador
     (que es `1fr` y por lo tanto se encoge solo) para que el nombre de la
