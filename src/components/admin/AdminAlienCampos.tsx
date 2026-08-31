@@ -69,7 +69,7 @@ const HolesTable = ({ campo }: { campo: AdminCampo }) => {
         </div>
         {tee && (
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">Par {tee.par ?? tee.totalPar || DASH}</Badge>
+            <Badge variant="secondary">Par {tee.par ?? (tee.totalPar || DASH)}</Badge>
             <Badge variant="secondary">Rating {tee.rating ?? DASH}</Badge>
             <Badge variant="secondary">Slope {tee.slope ?? DASH}</Badge>
             <Badge variant="secondary">{tee.totalYardas || DASH} yardas</Badge>
