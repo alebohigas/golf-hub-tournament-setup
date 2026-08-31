@@ -87,6 +87,7 @@ import {
   History,
   Printer,
   Clock,
+  Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
@@ -253,6 +254,8 @@ const AdminDashboard = () => {
     reglas: 'reglas',
     // Heros (fondos por página/torneo) queda restringido a superadmin.
     heros: undefined,
+    // ALIEN SYSTEM (Tarjetas / Time Line / Salidas): solo superadmin.
+    alien: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
   /** Estado de módulos del proyecto (ver /setup y src/modules/registry.ts). */
@@ -496,9 +499,11 @@ const AdminDashboard = () => {
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
             { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
-            { value: 'salidas',      icon: Printer,         label: 'Salidas' },
-            { value: 'timeline',     icon: Clock,           label: 'Time Line' },
-            { value: 'tarjetas',     icon: ClipboardList,   label: 'Tarjetas' },
+            /**
+             * ALIEN SYSTEM — sección que agrupa las herramientas operativas
+             * de impresión (Tarjetas, Time Line, Salidas) en sub-pestañas.
+             */
+            { value: 'alien',        icon: Rocket,          label: 'ALIEN SYSTEM' },
 
             { value: 'brackets',     icon: Trophy,          label: 'Brackets Putt' },
             { value: 'matchplay',    icon: Swords,          label: 'Match Play' },
@@ -795,19 +800,40 @@ const AdminDashboard = () => {
           <AdminStats />
         </TabsContent>
 
-        {/* Salidas — impresión del reporte de salidas por día. */}
-        <TabsContent value="salidas">
-          <AdminSalidasPrint />
-        </TabsContent>
+        {/*
+          ALIEN SYSTEM — sección contenedora de las herramientas de impresión.
+          Sub-pestañas: Tarjetas, Time Line y Salidas. Aquí se irán agregando
+          los siguientes módulos operativos que se indiquen.
+        */}
+        <TabsContent value="alien">
+          <Tabs defaultValue="tarjetas" className="space-y-4">
+            <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
+              <TabsTrigger value="tarjetas" className="gap-2 flex-1 min-w-[120px]">
+                <ClipboardList className="h-4 w-4" /> Tarjetas
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="gap-2 flex-1 min-w-[120px]">
+                <Clock className="h-4 w-4" /> Time Line
+              </TabsTrigger>
+              <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
+                <Printer className="h-4 w-4" /> Salidas
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
-        <TabsContent value="timeline">
-          <AdminTimeLinePrint />
-        </TabsContent>
+            {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
+            <TabsContent value="tarjetas">
+              <AdminTarjetasPrint />
+            </TabsContent>
 
-        {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
-        <TabsContent value="tarjetas">
-          <AdminTarjetasPrint />
+            {/* Time Line — horarios estimados por hoyo de cada grupo de salida. */}
+            <TabsContent value="timeline">
+              <AdminTimeLinePrint />
+            </TabsContent>
+
+            {/* Salidas — impresión del reporte de salidas por día. */}
+            <TabsContent value="salidas">
+              <AdminSalidasPrint />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
 
