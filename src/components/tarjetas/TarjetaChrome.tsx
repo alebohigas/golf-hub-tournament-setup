@@ -220,17 +220,22 @@ const headerBlocks = (
       ),
     },
     /*
-      "HANDICAP NETO" + handicap de juego (neto) en grande.
-      · La etiqueta va con `whitespace-nowrap` y SIN `truncate` para que nunca
-        se corte; la columna mide 22 mm fijos (ver TARJETA_HEADER_WIDTHS).
+      HANDICAP NETO: etiqueta apilada en dos renglones (HANDICAP / NETO) y
+      el valor en el renglón inferior. La columna se redujo a 15 mm para
+      cederle más espacio al bloque del jugador (ID + nombre).
       · El valor usa `tabular-nums` para que 1, 2 o 3 dígitos queden siempre
         centrados igual en cualquier tamaño de hoja.
     */
     vtja: {
       align: 'center',
       top: (
-        <span className="block w-full whitespace-nowrap text-center text-[5.5pt] uppercase leading-none tracking-tight text-foreground/70">
-          HANDICAP NETO
+        <span className="flex w-full flex-col items-center justify-center text-center leading-none">
+          <span className="block whitespace-nowrap text-[5.5pt] uppercase tracking-tight text-foreground/70">
+            HANDICAP
+          </span>
+          <span className="block whitespace-nowrap text-[5.5pt] uppercase tracking-tight text-foreground/70">
+            NETO
+          </span>
         </span>
       ),
       bottom: (
