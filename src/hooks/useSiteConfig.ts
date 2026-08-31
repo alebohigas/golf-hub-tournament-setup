@@ -459,6 +459,8 @@ export interface TarjetasPrintConfig {
   fsHoyoPt?: number;
   /** Tamaño de letra (pt) del nombre de la categoría en el encabezado. */
   fsCatPt?: number;
+  /** Tamaño de letra (pt) del ID + nombre del jugador (`fsj=`). */
+  fsJugPt?: number;
   /**
    * Campo de la BD usado para el HCP. NETO del encabezado
    * ('auto' | 'hcpneto' | 'handicapneto' | 'vtjajug' | 'ventajas').

@@ -21,6 +21,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 /* Resaltado del hoyo de inicio compartido con el reporte imprimible. */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+/* Normalización a NOMBRE PROPIO del nombre del jugador. */
+import { toProperName } from '@/lib/properName';
 import {
   TARJETA_HEADER_WIDTHS,
   TARJETA_HEADER_FONTS_DEFAULT,
@@ -38,7 +40,10 @@ import {
 export interface TarjetaChromeData {
   hole?: number | null;
   time?: string | null;
+  /** ID SPEi (respaldo histórico). */
   playerNumber?: string | null;
+  /** ID DE JUGADOR de la base: es el que se imprime en la tarjeta. */
+  playerId?: string | null;
   name?: string | null;
   club?: string | null;
   hcp?: number | string | null;
@@ -455,7 +460,7 @@ export const TarjetaFooter = ({ card }: { card: TarjetaChromeData }) => {
       <div className="flex-1 border-b border-foreground/30 text-center">Anotador</div>
       {/* En lugar de "Firma jugador" se imprime el nombre del jugador. */}
       <div className="flex-1 truncate border-b border-foreground/30 text-center">
-        {tarjetaText(card.name, 'JUGADOR POR ASIGNAR')}
+        {toProperName(tarjetaText(card.name, 'Jugador por asignar'))}
       </div>
       <div className="whitespace-nowrap font-semibold">
         Folio {tarjetaText(card.folio)}
