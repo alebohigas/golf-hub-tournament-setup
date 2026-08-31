@@ -44,8 +44,13 @@ const hhmm = (t: string | null): string => {
 const HolesTable = ({ campo }: { campo: AdminCampo }) => {
   const [teeId, setTeeId] = useState<string>(String(campo.tees[0]?.id ?? 0));
   const tee = campo.tees.find((t) => String(t.id) === teeId) ?? campo.tees[0];
-  /** Minutos por hoyo desde la tabla `hoyos` (PAR TIME de la tarjeta). */
-  const minutosPorHoyo = new Map(campo.hoyos.map((h) => [h.numero, h.minutos]));
+  /**
+   * PAR TIME por hoyo tal como lo resuelve el Time Line
+   * (`hoyos` → `hoyosxsalida` → estimación por par), con su fuente.
+   */
+  const parTimePorHoyo = new Map((campo.parTime ?? []).map((h) => [h.numero, h]));
+  /** Hoyos cuyo PAR TIME no está capturado en la base de datos. */
+  const estimados = (campo.parTime ?? []).filter((h) => h.fuente === 'estimado').length;
 
   if (!campo.tees.length) {
     return <p className="text-sm text-muted-foreground">Este campo no tiene tees configurados en campo_tee.</p>;
@@ -76,6 +81,17 @@ const HolesTable = ({ campo }: { campo: AdminCampo }) => {
           </div>
         )}
       </div>
+
+      {/* Aviso: el Time Line y las tarjetas usan estos mismos minutos. Si
+          algún hoyo no está capturado en `hoyos`/`hoyosxsalida`, se estima. */}
+      {estimados > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {estimados} hoyo(s) sin PAR TIME capturado en la base de datos: se
+          muestran en cursiva y el Time Line los estima por par (3=15, 4=14, 5=19).
+          Captúralos en la tabla <span className="font-mono">hoyos</span> para
+          usar tiempos reales.
+        </p>
+      )}
 
       <div className="overflow-x-auto">
         <Table>
@@ -112,12 +128,21 @@ const HolesTable = ({ campo }: { campo: AdminCampo }) => {
             </TableRow>
             <TableRow>
               <TableCell className="font-medium whitespace-nowrap">Par time (min)</TableCell>
-              {(tee?.holes ?? []).map((h) => (
-                <TableCell key={h.numero} className="text-center">
-                  {minutosPorHoyo.get(h.numero) ?? DASH}
-                </TableCell>
-              ))}
-              <TableCell className="text-center">{DASH}</TableCell>
+              {(tee?.holes ?? []).map((h) => {
+                const pt = parTimePorHoyo.get(h.numero);
+                return (
+                  <TableCell
+                    key={h.numero}
+                    className={`text-center ${pt?.fuente === 'estimado' ? 'text-muted-foreground italic' : ''}`}
+                    title={pt ? `Fuente: ${pt.fuente}` : undefined}
+                  >
+                    {pt ? pt.minutos : DASH}
+                  </TableCell>
+                );
+              })}
+              <TableCell className="text-center font-medium">
+                {(campo.parTime ?? []).reduce((a, h) => a + h.minutos, 0) || DASH}
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>

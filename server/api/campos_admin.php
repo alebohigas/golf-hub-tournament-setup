@@ -174,6 +174,68 @@ foreach ($campoRows as $cr) {
         }
     }
 
+    // ---- PAR TIME resuelto igual que timeline.php (para auditar la fuente) ----
+    /**
+     * Minutos por hoyo con la MISMA cadena de resolución que el Time Line:
+     *   1) tabla `hoyos` (capturado por staff)  → fuente 'hoyos'
+     *   2) columna de minutos de `hoyosxsalida` → fuente 'hoyosxsalida'
+     *   3) estimación por par (3=15, 4=14, 5=19) → fuente 'estimado'
+     * Se expone `fuente` para que en ALIEN SYSTEM se vea qué números son
+     * reales de la base de datos y cuáles se están estimando.
+     */
+    $PAR_MINUTES = [3 => 15, 4 => 14, 5 => 19];
+
+    /** Convierte "14", "00:14" o "00:14:00" a minutos enteros. */
+    $toMinutes = function ($v) {
+        if ($v === null || $v === '') return 0;
+        if (is_numeric($v)) return (int)round((float)$v);
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', trim((string)$v), $m)) {
+            return (int)$m[1] * 60 + (int)$m[2];
+        }
+        return 0;
+    };
+
+    $hoyosMin = [];
+    foreach ($hoyos as $h) $hoyosMin[$h['numero']] = $toMinutes($h['minutos']);
+
+    /** Minutos de `hoyosxsalida` (nombre de columna variable). */
+    $hxsMinCol = cpa_pick($conn, 'hoyosxsalida', [
+        'tiempo', 'minutos', 'tiempojuego', 'tiempo_juego', 'partime', 'par_time',
+        'timepar', 'tpo', 'mins', 'minutosjuego',
+    ]);
+    $hxsMin = [];
+    if ($hxsMinCol) {
+        foreach (query_all($conn, "SELECT numero, `$hxsMinCol` AS minutos
+                                     FROM hoyosxsalida
+                                    WHERE campoid = $campoid
+                                    GROUP BY numero") as $r) {
+            $hxsMin[(int)$r['numero']] = $toMinutes($r['minutos']);
+        }
+    }
+
+    /** Par de referencia por hoyo (primer tee configurado del campo). */
+    $parRef = [];
+    if (!empty($tees[0]['holes'])) {
+        foreach ($tees[0]['holes'] as $h) $parRef[$h['numero']] = (int)$h['par'];
+    }
+    foreach ($hoyos as $h) {
+        if (empty($parRef[$h['numero']]) && $h['par']) $parRef[$h['numero']] = (int)$h['par'];
+    }
+
+    $parTime = [];
+    foreach (range(1, 18) as $n) {
+        if (!isset($parRef[$n]) && !isset($hoyosMin[$n]) && !isset($hxsMin[$n])) continue;
+        $par = (int)($parRef[$n] ?? 0);
+        if (!empty($hoyosMin[$n])) {
+            $min = $hoyosMin[$n]; $fuente = 'hoyos';
+        } elseif (!empty($hxsMin[$n])) {
+            $min = $hxsMin[$n];  $fuente = 'hoyosxsalida';
+        } else {
+            $min = $PAR_MINUTES[$par] ?? 15; $fuente = 'estimado';
+        }
+        $parTime[] = ['numero' => $n, 'par' => $par ?: null, 'minutos' => $min, 'fuente' => $fuente];
+    }
+
     $campos[] = [
         'id'         => $campoid,
         'campo'      => (string)($cr['campo'] ?? ''),
@@ -181,7 +243,9 @@ foreach ($campoRows as $cr) {
         'categorias' => $categorias,
         'tees'       => $tees,
         'hoyos'      => $hoyos,
+        'parTime'    => $parTime,
     ];
+
 }
 
 json_response(['campos' => $campos]);

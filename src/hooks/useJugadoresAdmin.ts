@@ -172,6 +172,17 @@ export interface AdminCampo {
   tees: AdminCampoTee[];
   /** Tiempos por hoyo editables por el staff (tabla `hoyos`). */
   hoyos: { numero: number; par: number | null; minutos: string | null }[];
+  /**
+   * PAR TIME resuelto con la misma cadena que el Time Line:
+   * `hoyos` → `hoyosxsalida` → estimación por par. `fuente` indica de
+   * dónde salió el número, para detectar valores estimados.
+   */
+  parTime: {
+    numero: number;
+    par: number | null;
+    minutos: number;
+    fuente: 'hoyos' | 'hoyosxsalida' | 'estimado';
+  }[];
 }
 
 /** Lee los campos del torneo activo con horarios, categorías, tees y hoyos. */

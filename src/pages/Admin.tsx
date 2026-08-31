@@ -29,8 +29,8 @@ import AdminRegistroPrecios from '@/components/admin/AdminRegistroPrecios';
 import AdminRegistroPreferente from '@/components/admin/AdminRegistroPreferente';
 import AdminSocioTipos from '@/components/admin/AdminSocioTipos';
 import AdminCategoriasReglas from '@/components/admin/AdminCategoriasReglas';
-/** CRUD de categorías (Tee Salida, Rating, Slope, Par) → pestaña "Jugadores". */
-import AdminJugadores from '@/components/admin/AdminJugadores';
+/** CRUD de categorías (Tee Salida, Rating, Slope, Par) → pestaña "Categorías". */
+import AdminCategorias from '@/components/admin/AdminCategorias';
 import AdminBrackets from '@/components/admin/AdminBrackets';
 import AdminMatchPlay from '@/components/admin/AdminMatchPlay';
 import AdminThemePalette from '@/components/admin/AdminThemePalette';
@@ -95,7 +95,10 @@ import {
   Printer,
   Clock,
   Rocket,
+  /** Icono de la pestaña "Categorías" (antes "Jugadores"). */
+  Layers,
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
@@ -505,7 +508,7 @@ const AdminDashboard = () => {
             { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
-            { value: 'jugadores',    icon: Users,           label: 'Jugadores' },
+            { value: 'jugadores',    icon: Layers,          label: 'Categorías' },
             /**
              * ALIEN SYSTEM — sección que agrupa las herramientas operativas
              * de impresión (Tarjetas, Time Line, Salidas) en sub-pestañas.
@@ -789,10 +792,11 @@ const AdminDashboard = () => {
           <AdminHistorial />
         </TabsContent>
 
-        {/* Jugadores Tab — CRUD de categorías del torneo con Tee de Salida,
-            Rating, Slope y Par (campo_tee). Alimenta /jugadores. */}
+        {/* Categorías Tab — CRUD de categorías del torneo con Tee de Salida,
+            Rating, Slope y Par (campo_tee) + todas las columnas reales de
+            torneos.categorias. Alimenta /jugadores. */}
         <TabsContent value="jugadores">
-          <AdminJugadores />
+          <AdminCategorias />
         </TabsContent>
 
         {/* Heros Tab — sube/genera con IA, selecciona y activa la imagen de
