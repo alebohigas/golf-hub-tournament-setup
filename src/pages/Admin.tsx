@@ -95,7 +95,10 @@ import {
   Printer,
   Clock,
   Rocket,
+  /** Icono de la pestaña "Categorías" (antes "Jugadores"). */
+  Layers,
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
