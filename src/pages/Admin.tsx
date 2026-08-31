@@ -83,7 +83,7 @@ import {
   Flag,
   Hotel,
   Users,
-  MapPin,
+  
 
   Swords,
   Megaphone,
