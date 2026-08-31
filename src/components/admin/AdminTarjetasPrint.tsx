@@ -45,7 +45,7 @@ import {
   Save,
   X,
 } from 'lucide-react';
-import { useTarjetasCatalogo } from '@/hooks/useTarjetasImpresion';
+import { useTarjetasCatalogo, useTarjetasReport } from '@/hooks/useTarjetasImpresion';
 import { Switch } from '@/components/ui/switch';
 import TarjetaHeaderFooterPreview from '@/components/admin/TarjetaHeaderFooterPreview';
 import {
@@ -97,6 +97,13 @@ const AdminTarjetasPrint = () => {
   const [campoid, setCampoid] = useState('');
   /** IDs de categorías seleccionadas. */
   const [catIds, setCatIds] = useState<string[]>([]);
+  /**
+   * CATEGORÍA DE REFERENCIA de la vista previa. Cada categoría puede salir por
+   * otro hoyo y jugar otra mesa de salida, por lo que su ORDEN DE HOYOS y su
+   * PAR son distintos: al elegirla aquí, la previsualización muestra una
+   * tarjeta real de esa categoría con su propia tira HOYO / PAR.
+   */
+  const [refCatId, setRefCatId] = useState('');
   /** Estado abierto/cerrado del multiselector de categorías. */
   const [catsOpen, setCatsOpen] = useState(false);
   /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
@@ -304,6 +311,14 @@ const AdminTarjetasPrint = () => {
       return conservados.length ? conservados : validos;
     });
   }, [categorias]);
+
+  /**
+   * La categoría de referencia siempre debe ser una de las seleccionadas: si
+   * deja de existir (cambio de día, campo o tipo de juego) se toma la primera.
+   */
+  useEffect(() => {
+    setRefCatId((prev) => (prev && catIds.includes(prev) ? prev : catIds[0] ?? ''));
+  }, [catIds]);
 
   /** Texto del botón multiselector: "Todas", "N de M" o el nombre único. */
   const catsLabel = useMemo(() => {
