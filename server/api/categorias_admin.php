@@ -243,6 +243,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'salida = '       . (int)($body['salida'] ?? 0),
         ];
 
+        /**
+         * `fields` — edición genérica de CUALQUIER columna real de
+         * `categorias` (Admin → Categorías muestra todas las columnas).
+         * Se valida contra SHOW COLUMNS: sólo se aceptan columnas
+         * existentes y se excluyen las llaves (categoria_id, torneo_id).
+         * Sobreescribe a los `sets` fijos de arriba cuando coinciden.
+         */
+        if (isset($body['fields']) && is_array($body['fields'])) {
+            $meta = [];
+            foreach (cadm_columns($conn) as $c) $meta[$c['name']] = $c;
+            $blocked = ['categoria_id', 'torneo_id'];
+            $extra = [];
+            foreach ($body['fields'] as $col => $val) {
+                if (!isset($meta[$col]) || in_array($col, $blocked, true)) continue;
+                if ($val === null || $val === '') {
+                    $extra[$col] = $meta[$col]['numeric'] ? 'NULL' : "''";
+                } elseif ($meta[$col]['numeric']) {
+                    $extra[$col] = (string)(0 + $val);
+                } else {
+                    $extra[$col] = cadm_str($conn, $val);
+                }
+            }
+            /** Quita de $sets las columnas que vienen en `fields`. */
+            $sets = array_values(array_filter($sets, function ($s) use ($extra) {
+                return !isset($extra[trim(explode('=', $s, 2)[0])]);
+            }));
+            foreach ($extra as $col => $sqlVal) $sets[] = "`$col` = $sqlVal";
+        }
+
+
         if ($action === 'create') {
             $cols = 'torneo_id, estatus, ' . implode(', ', array_map(function ($s) {
                 return trim(explode('=', $s, 2)[0]);
