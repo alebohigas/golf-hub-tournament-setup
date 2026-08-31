@@ -614,3 +614,26 @@ export const getPlayerLookupByIdUrl = (spei: string, ghin: string): string => {
  */
 export const getCategoriasAdminUrl = (): string =>
   `${API_BASE_URL}/categorias_admin.php${buildQuery()}`;
+
+/**
+ * ALIEN SYSTEM → Jugadores. Listado/edición de jugadores del torneo con
+ * par del campo, handicaps (HI/HJ/HN) y categoría.
+ * @param opts.catid  Filtra por categoría.
+ * @param opts.q      Búsqueda por nombre, ID o club.
+ */
+export const getJugadoresAdminUrl = (
+  opts: { catid?: string; q?: string } = {},
+): string => {
+  const params: Record<string, string> = {};
+  if (opts.catid) params.catid = opts.catid;
+  if (opts.q) params.q = opts.q;
+  return `${API_BASE_URL}/jugadores_admin.php${buildQuery(params)}`;
+};
+
+/**
+ * ALIEN SYSTEM → Campos. Campos del torneo con horarios, categorías,
+ * tees (rating/slope/par) y hoyos — misma fuente que las tarjetas.
+ */
+export const getCamposAdminUrl = (): string =>
+  `${API_BASE_URL}/campos_admin.php${buildQuery()}`;
+
