@@ -49,12 +49,11 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
-/* Geometría de hoja carta (vertical/horizontal) y defaults por orientación. */
+/* Geometría de hoja carta vertical y predeterminados de maquetación. */
 import {
   LETTER_SHORT_MM,
-  TARJETA_ORIENT_DEFAULTS,
-  normalizeTarjetaOrient,
-  tarjetaHeaderMaxMm,
+  TARJETA_HEADER_MAX_MM,
+  TARJETA_LAYOUT_DEFAULTS,
   tarjetaSheetGeometry,
 } from '@/lib/tarjetasSheet';
 import {
@@ -476,27 +475,17 @@ const Scorecard = ({
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
 
-  /**
-   * ORIENTACIÓN de la hoja (`orient=portrait|landscape`).
-   * En horizontal la hoja carta se imprime acostada (279.4 × 215.9 mm) y cada
-   * tarjeta ocupa exactamente 1/2 hoja (107.95 mm): 2 tarjetas por hoja sin
-   * desfases en los brincos de página.
-   */
-  const landscape = normalizeTarjetaOrient(params.get('orient')) === 'landscape';
-  /** Geometría real de la hoja y de la mitad que ocupa cada tarjeta. */
-  const sheet = useMemo(() => tarjetaSheetGeometry(landscape), [landscape]);
-  /** Predeterminados de maquetación de la orientación activa. */
-  const orientDefaults = landscape
-    ? TARJETA_ORIENT_DEFAULTS.landscape
-    : TARJETA_ORIENT_DEFAULTS.portrait;
+  /** Geometría de la hoja carta vertical y de la mitad que ocupa cada tarjeta. */
+  const sheet = tarjetaSheetGeometry();
+  /** Predeterminados de maquetación. */
+  const orientDefaults = TARJETA_LAYOUT_DEFAULTS;
 
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
-  /* En horizontal la cabecera se limita a 34 mm para que la tarjeta siempre quepa. */
   const headerMm = numParam(
     params.get('header'),
     orientDefaults.headerMm,
     10,
-    tarjetaHeaderMaxMm(landscape),
+    TARJETA_HEADER_MAX_MM,
   );
   const marginMm = numParam(params.get('margin'), orientDefaults.marginMm, 0, 25);
   const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
@@ -712,21 +701,16 @@ const AdminTarjetasImpresion = () => {
     }
   }, [renderPages, sheets.length]);
 
-  /**
-   * Descarga el reporte como PDF tamaño carta (1 hoja = 1 página).
-   * La orientación del PDF sigue la de la maquetación (`orient=`) para que las
-   * hojas horizontales salgan acostadas y sin recortes.
-   */
+  /** Descarga el reporte como PDF tamaño carta vertical (1 hoja = 1 página). */
   const downloadPdf = useCallback(async () => {
     if (!sheets.length) return;
     setBusy('pdf');
     try {
       const { jsPDF } = await import('jspdf');
       const pages = await renderPages(2.5);
-      const orientation = landscape ? 'landscape' : 'portrait';
-      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation });
+      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
       pages.forEach((img, i) => {
-        if (i > 0) pdf.addPage('letter', orientation);
+        if (i > 0) pdf.addPage('letter', 'portrait');
         pdf.addImage(img, 'PNG', 0, 0, sheet.width, sheet.height, undefined, 'FAST');
       });
       pdf.save(`tarjetas-${filters.fecha || 'reporte'}.pdf`);
@@ -734,7 +718,7 @@ const AdminTarjetasImpresion = () => {
     } finally {
       setBusy(null);
     }
-  }, [renderPages, sheets.length, filters.fecha, landscape, sheet.width, sheet.height]);
+  }, [renderPages, sheets.length, filters.fecha, sheet.width, sheet.height]);
 
   /**
    * Prepara la vista previa en cuanto hay tarjetas del torneo activo.
