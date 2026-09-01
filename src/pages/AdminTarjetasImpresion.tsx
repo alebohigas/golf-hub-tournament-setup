@@ -49,6 +49,14 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+/* Geometría de hoja carta (vertical/horizontal) y defaults por orientación. */
+import {
+  LETTER_SHORT_MM,
+  TARJETA_ORIENT_DEFAULTS,
+  normalizeTarjetaOrient,
+  tarjetaHeaderMaxMm,
+  tarjetaSheetGeometry,
+} from '@/lib/tarjetasSheet';
 import {
   TARJETA_HCP_FIELD_LABELS,
   normalizeTarjetaHcpField,
@@ -62,13 +70,12 @@ import {
 
 
 // ============= Constantes de hoja =============
+/* La geometría de hoja y los defaults por orientación viven en
+   `src/lib/tarjetasSheet.ts` (fuente única compartida con Admin → Tarjetas). */
 
-/** Alto de media hoja carta (279.4 mm / 2). */
-const HALF_SHEET_MM = 139.7;
-/** Ancho de hoja carta. */
-const SHEET_W_MM = 215.9;
-/** Alto de hoja carta. */
-const SHEET_H_MM = 279.4;
+/** Ancho de hoja carta vertical (respaldo del logo de la cabecera). */
+const SHEET_W_MM = LETTER_SHORT_MM;
+
 
 /**
  * Alto aproximado del pie de firmas de la tarjeta, en mm (el encabezado y los
@@ -89,20 +96,20 @@ const EXTRA_ROWS = 10;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
- * la media hoja carta (incluye cabecera configurable, escala aplicada, el
- * número real de renglones a imprimir y los renglones extra de encabezado,
- * brinco y margen de firmas).
+ * la mitad de hoja disponible (vertical 139.7 mm u horizontal 107.95 mm),
+ * incluyendo cabecera configurable, escala y renglones extra.
  */
 const maxRowMm = (
+  halfMm: number,
   headerMm: number,
   scale: number,
   tableRows: number,
   padMm: number,
 ) => {
-  const disponible =
-    (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM - padMm;
-  return Math.max(3, disponible / Math.max(1, tableRows + EXTRA_ROWS));
+  const disponible = (halfMm - headerMm) / scale - CARD_CHROME_MM - padMm;
+  return Math.max(2.6, disponible / Math.max(1, tableRows + EXTRA_ROWS));
 };
+
 
 
 
@@ -128,6 +135,7 @@ const CardHeader = ({
   fecha,
   heightMm,
   marginMm,
+  sheetWmm = SHEET_W_MM,
 }: {
   logo: string;
   tournament: string;
@@ -136,6 +144,8 @@ const CardHeader = ({
   heightMm: number;
   /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
   marginMm: number;
+  /** Ancho real de la hoja en mm (cambia en orientación horizontal). */
+  sheetWmm?: number;
 }) => (
   <div
     className="flex items-center justify-between gap-3"
@@ -156,13 +166,14 @@ const CardHeader = ({
           style={{
             maxHeight: `${Math.max(10, heightMm - 6)}mm`,
             /* Nunca más de un tercio del ancho útil de la hoja. */
-            maxWidth: `${Math.max(30, (SHEET_W_MM - marginMm * 2) / 3)}mm`,
+            maxWidth: `${Math.max(30, (sheetWmm - marginMm * 2) / 3)}mm`,
           }}
           loading="eager"
           crossOrigin="anonymous"
         />
       ) : null}
     </div>
+
 
     {/* Torneo / campo + fecha, ajustados a la derecha dentro del margen */}
     <div className="min-w-0 flex-1 text-right leading-tight">
@@ -459,10 +470,31 @@ const Scorecard = ({
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
 
+  /**
+   * ORIENTACIÓN de la hoja (`orient=portrait|landscape`).
+   * En horizontal la hoja carta se imprime acostada (279.4 × 215.9 mm) y cada
+   * tarjeta ocupa exactamente 1/2 hoja (107.95 mm): 2 tarjetas por hoja sin
+   * desfases en los brincos de página.
+   */
+  const landscape = normalizeTarjetaOrient(params.get('orient')) === 'landscape';
+  /** Geometría real de la hoja y de la mitad que ocupa cada tarjeta. */
+  const sheet = useMemo(() => tarjetaSheetGeometry(landscape), [landscape]);
+  /** Predeterminados de maquetación de la orientación activa. */
+  const orientDefaults = landscape
+    ? TARJETA_ORIENT_DEFAULTS.landscape
+    : TARJETA_ORIENT_DEFAULTS.portrait;
+
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
-  const headerMm = numParam(params.get('header'), 30, 10, 60);
-  const marginMm = numParam(params.get('margin'), 8, 0, 25);
-  const scale = numParam(params.get('scale'), 100, 60, 130) / 100;
+  /* En horizontal la cabecera se limita a 34 mm para que la tarjeta siempre quepa. */
+  const headerMm = numParam(
+    params.get('header'),
+    orientDefaults.headerMm,
+    10,
+    tarjetaHeaderMaxMm(landscape),
+  );
+  const marginMm = numParam(params.get('margin'), orientDefaults.marginMm, 0, 25);
+  const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
+
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
   const autoPreview = params.get('preview') === '1';
   /** Imprimir el logo del torneo en la cabecera (Admin → Tarjetas, `logo=`). */
@@ -516,7 +548,7 @@ const AdminTarjetasImpresion = () => {
   );
 
   /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
-  const padMm = numParam(params.get('pad'), 3, 0, 15);
+  const padMm = numParam(params.get('pad'), orientDefaults.padMm, 0, 15);
 
   /**
    * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
@@ -526,9 +558,10 @@ const AdminTarjetasImpresion = () => {
     rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
 
   const rowMm = Math.min(
-    numParam(params.get('rowh'), 5.5, 3, 12),
-    maxRowMm(headerMm, scale, effectiveRows, padMm),
+    numParam(params.get('rowh'), orientDefaults.rowMm, 2.6, 12),
+    maxRowMm(sheet.half, headerMm, scale, effectiveRows, padMm),
   );
+
 
 
   /**
@@ -669,23 +702,29 @@ const AdminTarjetasImpresion = () => {
     }
   }, [renderPages, sheets.length]);
 
-  /** Descarga el reporte como PDF tamaño carta (1 hoja = 1 página). */
+  /**
+   * Descarga el reporte como PDF tamaño carta (1 hoja = 1 página).
+   * La orientación del PDF sigue la de la maquetación (`orient=`) para que las
+   * hojas horizontales salgan acostadas y sin recortes.
+   */
   const downloadPdf = useCallback(async () => {
     if (!sheets.length) return;
     setBusy('pdf');
     try {
       const { jsPDF } = await import('jspdf');
       const pages = await renderPages(2.5);
-      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+      const orientation = landscape ? 'landscape' : 'portrait';
+      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation });
       pages.forEach((img, i) => {
-        if (i > 0) pdf.addPage('letter', 'portrait');
-        pdf.addImage(img, 'PNG', 0, 0, SHEET_W_MM, SHEET_H_MM, undefined, 'FAST');
+        if (i > 0) pdf.addPage('letter', orientation);
+        pdf.addImage(img, 'PNG', 0, 0, sheet.width, sheet.height, undefined, 'FAST');
       });
       pdf.save(`tarjetas-${filters.fecha || 'reporte'}.pdf`);
+
     } finally {
       setBusy(null);
     }
-  }, [renderPages, sheets.length, filters.fecha]);
+  }, [renderPages, sheets.length, filters.fecha, landscape, sheet.width, sheet.height]);
 
   /**
    * Prepara la vista previa en cuanto hay tarjetas del torneo activo.
@@ -727,17 +766,29 @@ const AdminTarjetasImpresion = () => {
 
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
-      {/* @page: hoja carta sin márgenes; el margen real lo aplica el layout */}
-      <style>{`@media print { @page { size: letter portrait; margin: 0; } }`}</style>
+      {/*
+        @page: hoja carta sin márgenes en la orientación elegida (`orient=`);
+        el margen real lo aplica el layout de cada tarjeta.
+      */}
+      <style>{`@media print { @page { size: letter ${
+        landscape ? 'landscape' : 'portrait'
+      }; margin: 0; } }`}</style>
 
-      <div className="mx-auto max-w-[216mm] px-4 py-6 print:max-w-none print:px-0 print:py-0">
+      <div
+        className="mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0"
+        /* El contenedor mide lo mismo que la hoja para no recortar en pantalla. */
+        style={{ maxWidth: `${sheet.width + 0.1}mm` }}
+      >
+
         {/* Barra de acciones (no se imprime) */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2 print:hidden">
           <div>
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
               {data
-                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta ${
+                    landscape ? 'horizontal' : 'vertical'
+                  } (1/2 hoja por tarjeta) · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
@@ -920,8 +971,8 @@ const AdminTarjetasImpresion = () => {
               data-sheet
               className="mb-6 bg-white print:mb-0"
               style={{
-                width: `${SHEET_W_MM}mm`,
-                height: `${SHEET_H_MM}mm`,
+                width: `${sheet.width}mm`,
+                height: `${sheet.height}mm`,
                 breakAfter: idx < sheets.length - 1 ? 'page' : 'auto',
               }}
             >
@@ -929,7 +980,7 @@ const AdminTarjetasImpresion = () => {
                 <div
                   key={`${card.groupId}-${card.playerId}`}
                   className="overflow-hidden"
-                  style={{ height: `${HALF_SHEET_MM}mm`, breakInside: 'avoid' }}
+                  style={{ height: `${sheet.half}mm`, breakInside: 'avoid' }}
                 >
                   <CardHeader
                     logo={showLogo ? (data?.logoHeader ?? '') : ''}
@@ -940,6 +991,8 @@ const AdminTarjetasImpresion = () => {
                     heightMm={headerMm}
                     /* Mismos márgenes laterales que la tabla de la tarjeta. */
                     marginMm={marginMm}
+                    sheetWmm={sheet.width}
+
 
                   />
                   {/*
@@ -979,7 +1032,8 @@ const AdminTarjetasImpresion = () => {
           <DialogHeader>
             <DialogTitle>Vista previa de impresión</DialogTitle>
             <DialogDescription>
-              Hoja {previewIdx + 1} de {previewPages.length} · 2 tarjetas por hoja carta ·
+              Hoja {previewIdx + 1} de {previewPages.length} · 2 tarjetas por hoja carta{' '}
+              {landscape ? 'horizontal' : 'vertical'} ·
               cabecera {headerMm}mm · escala {Math.round(scale * 100)}%
             </DialogDescription>
           </DialogHeader>

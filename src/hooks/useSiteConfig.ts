@@ -472,6 +472,12 @@ export interface TarjetasPrintConfig {
    * Viaja al reporte como `logo=1|0`. Por defecto true.
    */
   showLogo?: boolean;
+  /**
+   * ORIENTACIÓN de la hoja carta: 'portrait' (vertical) u 'landscape'
+   * (horizontal). En ambas se imprimen 2 tarjetas por hoja (1/2 hoja cada
+   * una). Viaja al reporte como `orient=`. Ver `@/lib/tarjetasSheet`.
+   */
+  orient?: 'portrait' | 'landscape';
 }
 
 /** Full server response for site config */

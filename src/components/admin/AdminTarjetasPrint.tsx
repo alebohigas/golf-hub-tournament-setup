@@ -79,6 +79,14 @@ import {
   type TarjetaHcpField,
 } from '@/lib/tarjetasHcp';
 import { useToast } from '@/hooks/use-toast';
+/* Orientación de la hoja carta (vertical/horizontal) y sus predeterminados. */
+import {
+  TARJETA_ORIENT_DEFAULTS,
+  TARJETA_ORIENT_LABELS,
+  normalizeTarjetaOrient,
+  tarjetaHeaderMaxMm,
+  type TarjetaOrient,
+} from '@/lib/tarjetasSheet';
 
 
 /** Panel de impresión de tarjetas. */
@@ -157,6 +165,29 @@ const AdminTarjetasPrint = () => {
   const [showLogo, setShowLogo] = useState(true);
 
   /**
+   * ORIENTACIÓN de la hoja carta: 'portrait' (vertical) u 'landscape'
+   * (horizontal). En las dos se imprimen 2 tarjetas por hoja (1/2 hoja cada
+   * una) con márgenes y escala predeterminados por orientación, para que los
+   * brincos de página nunca se desfasen. Viaja al reporte como `orient=`.
+   */
+  const [orient, setOrient] = useState<TarjetaOrient>('portrait');
+
+  /**
+   * Cambia la orientación y aplica de golpe su maquetación PREDETERMINADA
+   * (cabecera, margen, escala, alto de renglón y padding inferior), que es la
+   * que garantiza 2 tarjetas por hoja sin desfases.
+   */
+  const cambiarOrientacion = (value: TarjetaOrient) => {
+    setOrient(value);
+    const d = TARJETA_ORIENT_DEFAULTS[value];
+    setHeaderMm(d.headerMm);
+    setMarginMm(d.marginMm);
+    setScale(d.scale);
+    setRowMm(d.rowMm);
+    setPadMm(d.padMm);
+  };
+
+  /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
    * como `rows=hoyo,yardas,...` para no depender de un orden fijo en el código.
    */
@@ -231,6 +262,7 @@ const AdminTarjetasPrint = () => {
       setFsJugPt(clampTarjetaFont(cfg.fsJugPt, TARJETA_HEADER_FONTS_DEFAULT.jugadorPt));
     if (cfg.hcpField) setHcpField(normalizeTarjetaHcpField(cfg.hcpField));
     if (typeof cfg.showLogo === 'boolean') setShowLogo(cfg.showLogo);
+    if (cfg.orient) setOrient(normalizeTarjetaOrient(cfg.orient));
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
     if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
@@ -251,6 +283,7 @@ const AdminTarjetasPrint = () => {
       fsJugPt,
       hcpField,
       showLogo,
+      orient,
     };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
@@ -353,16 +386,19 @@ const AdminTarjetasPrint = () => {
     if (!fecha) errs.push('Selecciona el día de juego.');
     if (!campoid) errs.push('Selecciona el campo.');
     if (!catIds.length) errs.push('Selecciona al menos una categoría.');
-    if (headerMm < 10 || headerMm > 60) errs.push('La cabecera debe estar entre 10 y 60 mm.');
+    /* En horizontal cada tarjeta sólo tiene 107.95 mm: la cabecera se topa a 34 mm. */
+    const headerMax = tarjetaHeaderMaxMm(orient === 'landscape');
+    if (headerMm < 10 || headerMm > headerMax)
+      errs.push(`La cabecera debe estar entre 10 y ${headerMax} mm.`);
     if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
     if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
-    if (rowMm < 3 || rowMm > 12) errs.push('El alto de renglón debe estar entre 3 y 12 mm.');
+    if (rowMm < 2.6 || rowMm > 12) errs.push('El alto de renglón debe estar entre 2.6 y 12 mm.');
     if (padMm < 0 || padMm > 15)
       errs.push('El padding inferior debe estar entre 0 y 15 mm.');
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder, orient]);
 
   const isValid = errors.length === 0;
 
@@ -384,6 +420,8 @@ const AdminTarjetasPrint = () => {
       fsj: String(fsJugPt),
       hcpfield: hcpField,
       logo: showLogo ? '1' : '0',
+      /* Orientación de la hoja: 'portrait' (vertical) o 'landscape'. */
+      orient,
       rows: rowOrder.join(','),
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
@@ -527,13 +565,41 @@ const AdminTarjetasPrint = () => {
                 </Select>
               </div>
 
+              {/*
+                ORIENTACIÓN de la hoja carta. Al cambiarla se aplican los
+                márgenes, escala, cabecera y alto de renglón PREDETERMINADOS de
+                esa orientación, que son los que garantizan 2 tarjetas por hoja
+                sin desfases en los brincos de página. Viaja como `orient=`.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Orientación de la hoja</Label>
+                <Select
+                  value={orient}
+                  onValueChange={(v) => cambiarOrientacion(normalizeTarjetaOrient(v))}
+                >
+                  <SelectTrigger className="w-[290px]">
+                    <SelectValue placeholder="Orientación" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="portrait">{TARJETA_ORIENT_LABELS.portrait}</SelectItem>
+                    <SelectItem value="landscape">{TARJETA_ORIENT_LABELS.landscape}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  {orient === 'landscape'
+                    ? 'Carta acostada 279.4 × 215.9 mm · cada tarjeta 1/2 hoja (107.95 mm).'
+                    : 'Carta vertical 215.9 × 279.4 mm · cada tarjeta 1/2 hoja (139.7 mm).'}
+                </p>
+              </div>
+
               {/* Maquetación: cabecera, margen lateral y escala */}
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Cabecera (mm)</Label>
                 <Input
                   type="number"
                   min={10}
-                  max={60}
+                  /* En horizontal la cabecera no puede pasar de 34 mm. */
+                  max={tarjetaHeaderMaxMm(orient === 'landscape')}
                   className="w-[110px]"
                   value={headerMm}
                   onChange={(e) => setHeaderMm(Number(e.target.value))}
@@ -568,13 +634,14 @@ const AdminTarjetasPrint = () => {
                 <Input
                   type="number"
                   step={0.5}
-                  min={3}
+                  min={2.6}
                   max={12}
                   className="w-[130px]"
                   value={rowMm}
                   onChange={(e) => setRowMm(Number(e.target.value))}
                 />
               </div>
+
 
               {/*
                 Padding inferior (mm) debajo del renglón SCORE ANOTADOR.
