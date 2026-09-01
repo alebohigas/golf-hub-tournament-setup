@@ -157,6 +157,29 @@ const AdminTarjetasPrint = () => {
   const [showLogo, setShowLogo] = useState(true);
 
   /**
+   * ORIENTACIÓN de la hoja carta: 'portrait' (vertical) u 'landscape'
+   * (horizontal). En las dos se imprimen 2 tarjetas por hoja (1/2 hoja cada
+   * una) con márgenes y escala predeterminados por orientación, para que los
+   * brincos de página nunca se desfasen. Viaja al reporte como `orient=`.
+   */
+  const [orient, setOrient] = useState<TarjetaOrient>('portrait');
+
+  /**
+   * Cambia la orientación y aplica de golpe su maquetación PREDETERMINADA
+   * (cabecera, margen, escala, alto de renglón y padding inferior), que es la
+   * que garantiza 2 tarjetas por hoja sin desfases.
+   */
+  const cambiarOrientacion = (value: TarjetaOrient) => {
+    setOrient(value);
+    const d = TARJETA_ORIENT_DEFAULTS[value];
+    setHeaderMm(d.headerMm);
+    setMarginMm(d.marginMm);
+    setScale(d.scale);
+    setRowMm(d.rowMm);
+    setPadMm(d.padMm);
+  };
+
+  /**
    * Orden (y visibilidad) de los renglones de la tarjeta. Se manda al reporte
    * como `rows=hoyo,yardas,...` para no depender de un orden fijo en el código.
    */
