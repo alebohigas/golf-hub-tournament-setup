@@ -386,16 +386,19 @@ const AdminTarjetasPrint = () => {
     if (!fecha) errs.push('Selecciona el día de juego.');
     if (!campoid) errs.push('Selecciona el campo.');
     if (!catIds.length) errs.push('Selecciona al menos una categoría.');
-    if (headerMm < 10 || headerMm > 60) errs.push('La cabecera debe estar entre 10 y 60 mm.');
+    /* En horizontal cada tarjeta sólo tiene 107.95 mm: la cabecera se topa a 34 mm. */
+    const headerMax = tarjetaHeaderMaxMm(orient === 'landscape');
+    if (headerMm < 10 || headerMm > headerMax)
+      errs.push(`La cabecera debe estar entre 10 y ${headerMax} mm.`);
     if (marginMm < 0 || marginMm > 25) errs.push('El margen lateral debe estar entre 0 y 25 mm.');
     if (scale < 60 || scale > 130) errs.push('La escala debe estar entre 60% y 130%.');
-    if (rowMm < 3 || rowMm > 12) errs.push('El alto de renglón debe estar entre 3 y 12 mm.');
+    if (rowMm < 2.6 || rowMm > 12) errs.push('El alto de renglón debe estar entre 2.6 y 12 mm.');
     if (padMm < 0 || padMm > 15)
       errs.push('El padding inferior debe estar entre 0 y 15 mm.');
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder, orient]);
 
   const isValid = errors.length === 0;
 
