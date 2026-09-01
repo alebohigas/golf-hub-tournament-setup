@@ -502,7 +502,13 @@ const AdminTarjetasImpresion = () => {
     : TARJETA_ORIENT_DEFAULTS.portrait;
 
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
-  const headerMm = numParam(params.get('header'), orientDefaults.headerMm, 10, 60);
+  /* En horizontal la cabecera se limita a 34 mm para que la tarjeta siempre quepa. */
+  const headerMm = numParam(
+    params.get('header'),
+    orientDefaults.headerMm,
+    10,
+    landscape ? 34 : 60,
+  );
   const marginMm = numParam(params.get('margin'), orientDefaults.marginMm, 0, 25);
   const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
 
