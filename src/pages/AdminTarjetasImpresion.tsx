@@ -575,9 +575,10 @@ const AdminTarjetasImpresion = () => {
     rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
 
   const rowMm = Math.min(
-    numParam(params.get('rowh'), 5.5, 3, 12),
-    maxRowMm(headerMm, scale, effectiveRows, padMm),
+    numParam(params.get('rowh'), orientDefaults.rowMm, 2.6, 12),
+    maxRowMm(sheet.half, headerMm, scale, effectiveRows, padMm),
   );
+
 
 
   /**
