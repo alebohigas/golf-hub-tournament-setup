@@ -63,12 +63,36 @@ import {
 
 // ============= Constantes de hoja =============
 
-/** Alto de media hoja carta (279.4 mm / 2). */
-const HALF_SHEET_MM = 139.7;
-/** Ancho de hoja carta. */
-const SHEET_W_MM = 215.9;
-/** Alto de hoja carta. */
-const SHEET_H_MM = 279.4;
+/** Lado corto de la hoja carta (mm). */
+const LETTER_SHORT_MM = 215.9;
+/** Lado largo de la hoja carta (mm). */
+const LETTER_LONG_MM = 279.4;
+
+/** Alto de media hoja carta VERTICAL (279.4 mm / 2). */
+const HALF_SHEET_MM = LETTER_LONG_MM / 2;
+/** Ancho de hoja carta vertical. */
+const SHEET_W_MM = LETTER_SHORT_MM;
+/** Alto de hoja carta vertical. */
+const SHEET_H_MM = LETTER_LONG_MM;
+
+/**
+ * Geometría de la hoja según la ORIENTACIÓN (`orient=portrait|landscape`).
+ * En horizontal la hoja mide 279.4 × 215.9 mm y cada tarjeta ocupa la mitad
+ * del alto (107.95 mm): así siempre entran 2 tarjetas por hoja y los brincos
+ * de página nunca se desfasan.
+ */
+export const tarjetaSheetGeometry = (landscape: boolean) => {
+  const width = landscape ? LETTER_LONG_MM : LETTER_SHORT_MM;
+  const height = landscape ? LETTER_SHORT_MM : LETTER_LONG_MM;
+  return { width, height, half: height / 2 };
+};
+
+/** Valores predeterminados de maquetación por orientación. */
+export const TARJETA_ORIENT_DEFAULTS = {
+  portrait: { headerMm: 30, marginMm: 8, scale: 100, rowMm: 5.5 },
+  /* En horizontal hay menos alto por tarjeta: cabecera y renglón más chicos. */
+  landscape: { headerMm: 20, marginMm: 10, scale: 100, rowMm: 4.2 },
+} as const;
 
 /**
  * Alto aproximado del pie de firmas de la tarjeta, en mm (el encabezado y los
@@ -89,20 +113,20 @@ const EXTRA_ROWS = 10;
 
 /**
  * Alto máximo permitido por renglón para que la tarjeta NUNCA se desborde de
- * la media hoja carta (incluye cabecera configurable, escala aplicada, el
- * número real de renglones a imprimir y los renglones extra de encabezado,
- * brinco y margen de firmas).
+ * la mitad de hoja disponible (vertical 139.7 mm u horizontal 107.95 mm),
+ * incluyendo cabecera configurable, escala y renglones extra.
  */
 const maxRowMm = (
+  halfMm: number,
   headerMm: number,
   scale: number,
   tableRows: number,
   padMm: number,
 ) => {
-  const disponible =
-    (HALF_SHEET_MM - headerMm) / scale - CARD_CHROME_MM - padMm;
-  return Math.max(3, disponible / Math.max(1, tableRows + EXTRA_ROWS));
+  const disponible = (halfMm - headerMm) / scale - CARD_CHROME_MM - padMm;
+  return Math.max(2.6, disponible / Math.max(1, tableRows + EXTRA_ROWS));
 };
+
 
 
 
