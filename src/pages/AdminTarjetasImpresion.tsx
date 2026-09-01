@@ -146,7 +146,7 @@ const CardHeader = ({
   marginMm: number;
   /**
    * Separación (mm) entre el bloque logo/encabezado y el inicio de la
-   * información de la tarjeta: equivale a UN renglón de la tabla (`rowMm`).
+   * información de la tarjeta: equivale a MEDIO renglón de la tabla (`rowMm/2`).
    */
   gapMm?: number;
   /** Ancho real de la hoja en mm (carta vertical). */
@@ -157,7 +157,7 @@ const CardHeader = ({
       · El logo del torneo y el bloque torneo/campo/fecha quedan ALINEADOS al
         centro vertical del área útil de la cabecera (`items-center`).
       · Entre el logo/encabezado y el inicio de la tarjeta se reserva una
-        separación fija de UN renglón (`gapMm` = `rowMm`) vía padding-bottom,
+        separación fija de MEDIO renglón (`gapMm` = `rowMm/2`) vía padding-bottom,
         de modo que el respiro es idéntico en pantalla, impresión y PDF.
   */
   <div
@@ -991,8 +991,8 @@ const AdminTarjetasImpresion = () => {
                     heightMm={headerMm}
                     /* Mismos márgenes laterales que la tabla de la tarjeta. */
                     marginMm={marginMm}
-                    /* Separación de UN renglón entre cabecera y tarjeta. */
-                    gapMm={rowMm}
+                    /* Separación de MEDIO renglón entre cabecera y tarjeta. */
+                    gapMm={rowMm / 2}
                     sheetWmm={sheet.width}
 
 
