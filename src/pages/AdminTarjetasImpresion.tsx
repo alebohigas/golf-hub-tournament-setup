@@ -147,24 +147,30 @@ const CardHeader = ({
   /** Ancho real de la hoja en mm (cambia en orientación horizontal). */
   sheetWmm?: number;
 }) => (
+  /*
+    La cabecera SIEMPRE mide `heightMm`: el logo del torneo se ancla ARRIBA A LA
+    IZQUIERDA y el nombre del torneo + campo/fecha ARRIBA A LA DERECHA, igual en
+    vertical y en horizontal (carta acostada).
+  */
   <div
-    className="flex items-center justify-between gap-3"
+    className="flex items-start justify-between gap-3"
     style={{
       height: `${heightMm}mm`,
+      paddingTop: '2mm',
       paddingLeft: `${marginMm}mm`,
       paddingRight: `${marginMm}mm`,
     }}
   >
 
     {/* Logo del torneo (list1_logo_header) — no se encoge ni se desborda */}
-    <div className="flex h-full shrink-0 items-center">
+    <div className="flex shrink-0 items-start">
       {logo ? (
         <img
           src={logo}
           alt={tournament}
           className="w-auto object-contain"
           style={{
-            maxHeight: `${Math.max(10, heightMm - 6)}mm`,
+            maxHeight: `${Math.max(8, heightMm - 4)}mm`,
             /* Nunca más de un tercio del ancho útil de la hoja. */
             maxWidth: `${Math.max(30, (sheetWmm - marginMm * 2) / 3)}mm`,
           }}
