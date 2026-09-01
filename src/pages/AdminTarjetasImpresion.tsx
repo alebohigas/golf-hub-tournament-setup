@@ -152,6 +152,7 @@ const CardHeader = ({
   fecha,
   heightMm,
   marginMm,
+  sheetWmm = SHEET_W_MM,
 }: {
   logo: string;
   tournament: string;
@@ -160,6 +161,8 @@ const CardHeader = ({
   heightMm: number;
   /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
   marginMm: number;
+  /** Ancho real de la hoja en mm (cambia en orientación horizontal). */
+  sheetWmm?: number;
 }) => (
   <div
     className="flex items-center justify-between gap-3"
@@ -180,13 +183,14 @@ const CardHeader = ({
           style={{
             maxHeight: `${Math.max(10, heightMm - 6)}mm`,
             /* Nunca más de un tercio del ancho útil de la hoja. */
-            maxWidth: `${Math.max(30, (SHEET_W_MM - marginMm * 2) / 3)}mm`,
+            maxWidth: `${Math.max(30, (sheetWmm - marginMm * 2) / 3)}mm`,
           }}
           loading="eager"
           crossOrigin="anonymous"
         />
       ) : null}
     </div>
+
 
     {/* Torneo / campo + fecha, ajustados a la derecha dentro del margen */}
     <div className="min-w-0 flex-1 text-right leading-tight">
