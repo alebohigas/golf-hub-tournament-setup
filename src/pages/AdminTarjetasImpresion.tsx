@@ -1023,8 +1023,7 @@ const AdminTarjetasImpresion = () => {
             <DialogTitle>Vista previa de impresión</DialogTitle>
             <DialogDescription>
               Hoja {previewIdx + 1} de {previewPages.length} ·{' '}
-              {sheet.cardsPerSheet === 1 ? '1 tarjeta' : '2 tarjetas'} por hoja carta{' '}
-              {landscape ? 'horizontal' : 'vertical'} ·
+              2 tarjetas por hoja carta vertical ·
               cabecera {headerMm}mm · escala {Math.round(scale * 100)}%
             </DialogDescription>
           </DialogHeader>
