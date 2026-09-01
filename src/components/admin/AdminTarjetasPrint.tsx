@@ -262,6 +262,7 @@ const AdminTarjetasPrint = () => {
       setFsJugPt(clampTarjetaFont(cfg.fsJugPt, TARJETA_HEADER_FONTS_DEFAULT.jugadorPt));
     if (cfg.hcpField) setHcpField(normalizeTarjetaHcpField(cfg.hcpField));
     if (typeof cfg.showLogo === 'boolean') setShowLogo(cfg.showLogo);
+    if (cfg.orient) setOrient(normalizeTarjetaOrient(cfg.orient));
     if (cfg.rowOrder) setRowOrder(normalizeTarjetaRows(cfg.rowOrder));
     if (cfg.headerOrder) setHeaderOrder(normalizeTarjetaHeader(cfg.headerOrder));
   }, [siteConfig?.tarjetas_config]);
