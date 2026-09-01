@@ -143,7 +143,7 @@ const CardHeader = ({
   heightMm: number;
   /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
   marginMm: number;
-  /** Ancho real de la hoja en mm (cambia en orientación horizontal). */
+  /** Ancho real de la hoja en mm (carta vertical). */
   sheetWmm?: number;
 }) => (
   /*
@@ -761,12 +761,10 @@ const AdminTarjetasImpresion = () => {
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
       {/*
-        @page: hoja carta sin márgenes en la orientación elegida (`orient=`);
+        @page: hoja carta vertical sin márgenes;
         el margen real lo aplica el layout de cada tarjeta.
       */}
-      <style>{`@media print { @page { size: letter ${
-        landscape ? 'landscape' : 'portrait'
-      }; margin: 0; } }`}</style>
+      <style>{`@media print { @page { size: letter portrait; margin: 0; } }`}</style>
 
       <div
         className="mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0"
@@ -780,9 +778,7 @@ const AdminTarjetasImpresion = () => {
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
               {data
-                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta ${
-                    landscape ? 'horizontal' : 'vertical'
-                  } (${sheet.cardsPerSheet === 1 ? '1 tarjeta por hoja' : '1/2 hoja por tarjeta'}) · cabecera ${headerMm}mm · escala ${Math.round(
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta vertical (1/2 hoja por tarjeta) · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
