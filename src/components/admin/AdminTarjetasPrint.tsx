@@ -283,6 +283,7 @@ const AdminTarjetasPrint = () => {
       fsJugPt,
       hcpField,
       showLogo,
+      orient,
     };
     saveSiteConfig.mutate(
       { password: getSuperAdminPassword(), tarjetas_config: payload },
