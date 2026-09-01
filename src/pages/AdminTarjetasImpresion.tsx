@@ -548,7 +548,7 @@ const AdminTarjetasImpresion = () => {
   );
 
   /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
-  const padMm = numParam(params.get('pad'), 3, 0, 15);
+  const padMm = numParam(params.get('pad'), orientDefaults.padMm, 0, 15);
 
   /**
    * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
