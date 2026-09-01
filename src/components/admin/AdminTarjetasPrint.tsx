@@ -420,6 +420,8 @@ const AdminTarjetasPrint = () => {
       fsj: String(fsJugPt),
       hcpfield: hcpField,
       logo: showLogo ? '1' : '0',
+      /* Orientación de la hoja: 'portrait' (vertical) o 'landscape'. */
+      orient,
       rows: rowOrder.join(','),
       hfields: headerOrder.join(','),
       ...(preview ? { preview: '1' } : {}),
