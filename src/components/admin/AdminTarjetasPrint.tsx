@@ -565,13 +565,41 @@ const AdminTarjetasPrint = () => {
                 </Select>
               </div>
 
+              {/*
+                ORIENTACIÓN de la hoja carta. Al cambiarla se aplican los
+                márgenes, escala, cabecera y alto de renglón PREDETERMINADOS de
+                esa orientación, que son los que garantizan 2 tarjetas por hoja
+                sin desfases en los brincos de página. Viaja como `orient=`.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Orientación de la hoja</Label>
+                <Select
+                  value={orient}
+                  onValueChange={(v) => cambiarOrientacion(normalizeTarjetaOrient(v))}
+                >
+                  <SelectTrigger className="w-[290px]">
+                    <SelectValue placeholder="Orientación" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="portrait">{TARJETA_ORIENT_LABELS.portrait}</SelectItem>
+                    <SelectItem value="landscape">{TARJETA_ORIENT_LABELS.landscape}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  {orient === 'landscape'
+                    ? 'Carta acostada 279.4 × 215.9 mm · cada tarjeta 1/2 hoja (107.95 mm).'
+                    : 'Carta vertical 215.9 × 279.4 mm · cada tarjeta 1/2 hoja (139.7 mm).'}
+                </p>
+              </div>
+
               {/* Maquetación: cabecera, margen lateral y escala */}
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Cabecera (mm)</Label>
                 <Input
                   type="number"
                   min={10}
-                  max={60}
+                  /* En horizontal la cabecera no puede pasar de 34 mm. */
+                  max={tarjetaHeaderMaxMm(orient === 'landscape')}
                   className="w-[110px]"
                   value={headerMm}
                   onChange={(e) => setHeaderMm(Number(e.target.value))}
@@ -606,13 +634,14 @@ const AdminTarjetasPrint = () => {
                 <Input
                   type="number"
                   step={0.5}
-                  min={3}
+                  min={2.6}
                   max={12}
                   className="w-[130px]"
                   value={rowMm}
                   onChange={(e) => setRowMm(Number(e.target.value))}
                 />
               </div>
+
 
               {/*
                 Padding inferior (mm) debajo del renglón SCORE ANOTADOR.
