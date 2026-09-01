@@ -68,12 +68,8 @@ const LETTER_SHORT_MM = 215.9;
 /** Lado largo de la hoja carta (mm). */
 const LETTER_LONG_MM = 279.4;
 
-/** Alto de media hoja carta VERTICAL (279.4 mm / 2). */
-const HALF_SHEET_MM = LETTER_LONG_MM / 2;
-/** Ancho de hoja carta vertical. */
+/** Ancho de hoja carta vertical (respaldo del logo de la cabecera). */
 const SHEET_W_MM = LETTER_SHORT_MM;
-/** Alto de hoja carta vertical. */
-const SHEET_H_MM = LETTER_LONG_MM;
 
 /**
  * Geometría de la hoja según la ORIENTACIÓN (`orient=portrait|landscape`).
