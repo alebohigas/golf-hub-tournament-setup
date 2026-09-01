@@ -783,10 +783,20 @@ const AdminTarjetasImpresion = () => {
 
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
-      {/* @page: hoja carta sin márgenes; el margen real lo aplica el layout */}
-      <style>{`@media print { @page { size: letter portrait; margin: 0; } }`}</style>
+      {/*
+        @page: hoja carta sin márgenes en la orientación elegida (`orient=`);
+        el margen real lo aplica el layout de cada tarjeta.
+      */}
+      <style>{`@media print { @page { size: letter ${
+        landscape ? 'landscape' : 'portrait'
+      }; margin: 0; } }`}</style>
 
-      <div className="mx-auto max-w-[216mm] px-4 py-6 print:max-w-none print:px-0 print:py-0">
+      <div
+        className="mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0"
+        /* El contenedor mide lo mismo que la hoja para no recortar en pantalla. */
+        style={{ maxWidth: `${sheet.width + 0.1}mm` }}
+      >
+
         {/* Barra de acciones (no se imprime) */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2 print:hidden">
           <div>
