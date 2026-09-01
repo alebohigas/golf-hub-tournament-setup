@@ -476,7 +476,7 @@ const AdminTarjetasImpresion = () => {
    * tarjeta ocupa exactamente 1/2 hoja (107.95 mm): 2 tarjetas por hoja sin
    * desfases en los brincos de página.
    */
-  const landscape = (params.get('orient') ?? 'portrait').toLowerCase() === 'landscape';
+  const landscape = normalizeTarjetaOrient(params.get('orient')) === 'landscape';
   /** Geometría real de la hoja y de la mitad que ocupa cada tarjeta. */
   const sheet = useMemo(() => tarjetaSheetGeometry(landscape), [landscape]);
   /** Predeterminados de maquetación de la orientación activa. */
@@ -490,7 +490,7 @@ const AdminTarjetasImpresion = () => {
     params.get('header'),
     orientDefaults.headerMm,
     10,
-    landscape ? 34 : 60,
+    tarjetaHeaderMaxMm(landscape),
   );
   const marginMm = numParam(params.get('margin'), orientDefaults.marginMm, 0, 25);
   const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
