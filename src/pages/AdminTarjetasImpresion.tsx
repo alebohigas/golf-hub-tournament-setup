@@ -741,7 +741,7 @@ const AdminTarjetasImpresion = () => {
     } finally {
       setBusy(null);
     }
-  }, [renderPages, sheets.length, filters.fecha]);
+  }, [renderPages, sheets.length, filters.fecha, landscape, sheet.width, sheet.height]);
 
   /**
    * Prepara la vista previa en cuanto hay tarjetas del torneo activo.
