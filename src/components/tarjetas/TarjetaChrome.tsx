@@ -194,19 +194,22 @@ const headerBlocks = (
       · El ID impreso es el ID DE JUGADOR de la base (no el ID SPEi).
       · El nombre se imprime en NOMBRE PROPIO (`toProperName`).
       · El tamaño de letra es configurable en Admin → Tarjetas (`fsj=`).
+      · Si el ID + nombre no caben en una sola línea, el nombre baja a la
+        segunda línea dentro de la misma casilla (2 renglones) sin alterar
+        la altura del encabezado.
     */
     jugador: {
       align: 'left',
       top: (
-        <span className="flex min-w-0 items-center gap-2">
+        <span className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
-            className="font-bold tabular-nums"
+            className="shrink-0 font-bold tabular-nums"
             style={{ fontSize: `${fonts.jugadorPt}pt` }}
           >
             {tarjetaText(card.playerId ?? card.playerNumber, '----')}
           </span>
           <span
-            className="truncate font-bold"
+            className="block flex-1 font-bold leading-tight whitespace-normal break-words"
             style={{ fontSize: `${fonts.jugadorPt}pt` }}
           >
             {toProperName(tarjetaText(card.name, 'Jugador por asignar'))}
