@@ -559,7 +559,7 @@ const AdminTarjetasImpresion = () => {
 
   const rowMm = Math.min(
     numParam(params.get('rowh'), orientDefaults.rowMm, 2.6, 12),
-    maxRowMm(sheet.half, headerMm, scale, effectiveRows, padMm),
+    maxRowMm(sheet.slot, headerMm, scale, effectiveRows, padMm),
   );
 
 
@@ -593,12 +593,16 @@ const AdminTarjetasImpresion = () => {
     return all;
   }, [data, sistema]);
 
-  /** Tarjetas agrupadas en pares: cada par es una hoja carta. */
+  /**
+   * Tarjetas agrupadas por hoja: 2 por hoja en VERTICAL y 1 por hoja en
+   * HORIZONTAL (carta acostada), según `sheet.cardsPerSheet`.
+   */
   const sheets = useMemo(() => {
+    const per = sheet.cardsPerSheet;
     const out: TarjetaCard[][] = [];
-    for (let i = 0; i < cards.length; i += 2) out.push(cards.slice(i, i + 2));
+    for (let i = 0; i < cards.length; i += per) out.push(cards.slice(i, i + per));
     return out;
-  }, [cards]);
+  }, [cards, sheet.cardsPerSheet]);
 
   /**
    * VALIDACIÓN DE HCP. NETO (sólo en pantalla, no se imprime)
@@ -788,7 +792,7 @@ const AdminTarjetasImpresion = () => {
               {data
                 ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta ${
                     landscape ? 'horizontal' : 'vertical'
-                  } (1/2 hoja por tarjeta) · cabecera ${headerMm}mm · escala ${Math.round(
+                  } (${sheet.cardsPerSheet === 1 ? '1 tarjeta por hoja' : '1/2 hoja por tarjeta'}) · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
@@ -963,7 +967,7 @@ const AdminTarjetasImpresion = () => {
           </div>
         )}
 
-        {/* Hojas: 2 tarjetas por hoja, cada una con su cabecera configurable */}
+        {/* Hojas: 2 tarjetas por hoja en vertical, 1 en horizontal (cabecera configurable) */}
         <div ref={sheetsRef}>
           {sheets.map((pair, idx) => (
             <div
@@ -980,7 +984,7 @@ const AdminTarjetasImpresion = () => {
                 <div
                   key={`${card.groupId}-${card.playerId}`}
                   className="overflow-hidden"
-                  style={{ height: `${sheet.half}mm`, breakInside: 'avoid' }}
+                  style={{ height: `${sheet.slot}mm`, breakInside: 'avoid' }}
                 >
                   <CardHeader
                     logo={showLogo ? (data?.logoHeader ?? '') : ''}
@@ -999,7 +1003,7 @@ const AdminTarjetasImpresion = () => {
                     Escala con transform (no `zoom`): es la única forma que
                     html2canvas replica igual que la impresión, así que el PDF
                     y la vista previa comparten exactamente el mismo layout,
-                    márgenes laterales y 2 tarjetas por hoja.
+                    márgenes laterales y tarjetas por hoja.
                   */}
                   <div
                     style={{
@@ -1032,7 +1036,8 @@ const AdminTarjetasImpresion = () => {
           <DialogHeader>
             <DialogTitle>Vista previa de impresión</DialogTitle>
             <DialogDescription>
-              Hoja {previewIdx + 1} de {previewPages.length} · 2 tarjetas por hoja carta{' '}
+              Hoja {previewIdx + 1} de {previewPages.length} ·{' '}
+              {sheet.cardsPerSheet === 1 ? '1 tarjeta' : '2 tarjetas'} por hoja carta{' '}
               {landscape ? 'horizontal' : 'vertical'} ·
               cabecera {headerMm}mm · escala {Math.round(scale * 100)}%
             </DialogDescription>

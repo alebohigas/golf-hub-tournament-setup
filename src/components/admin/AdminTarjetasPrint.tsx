@@ -7,7 +7,8 @@
  *   - Categorías (una, varias o todas; Stroke Play y Stableford)
  *
  * El botón GENERAR abre `/admin/tarjetas-impresion` con los filtros en la URL,
- * donde el reporte se imprime a tamaño carta con 2 tarjetas por hoja.
+ * donde el reporte se imprime a tamaño carta: 2 tarjetas por hoja en vertical
+ * y 1 tarjeta por hoja en horizontal (carta acostada).
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -126,7 +127,7 @@ const AdminTarjetasPrint = () => {
   /**
    * Alto de cada renglón de la tabla de hoyos en mm (Hoyo, Par, Yardas, Par
    * Time, Ventaja, Handicap, Score, Puntos). Se acota automáticamente en el
-   * reporte para no perder las 2 tarjetas por hoja carta.
+   * reporte para no perder el número de tarjetas por hoja carta.
    */
   const [rowMm, setRowMm] = useState(5.5);
   /**
@@ -166,7 +167,7 @@ const AdminTarjetasPrint = () => {
 
   /**
    * ORIENTACIÓN de la hoja carta: 'portrait' (vertical) u 'landscape'
-   * (horizontal). En las dos se imprimen 2 tarjetas por hoja (1/2 hoja cada
+   * (horizontal). Vertical imprime 2 tarjetas por hoja (1/2 hoja cada
    * una) con márgenes y escala predeterminados por orientación, para que los
    * brincos de página nunca se desfasen. Viaja al reporte como `orient=`.
    */
@@ -175,7 +176,7 @@ const AdminTarjetasPrint = () => {
   /**
    * Cambia la orientación y aplica de golpe su maquetación PREDETERMINADA
    * (cabecera, margen, escala, alto de renglón y padding inferior), que es la
-   * que garantiza 2 tarjetas por hoja sin desfases.
+   * que garantiza el número exacto de tarjetas por hoja sin desfases.
    */
   const cambiarOrientacion = (value: TarjetaOrient) => {
     setOrient(value);
@@ -469,7 +470,7 @@ const AdminTarjetasPrint = () => {
         </CardTitle>
         <CardDescription>
           Genera las tarjetas de juego (Stroke Play o Stableford) por día y categoría. Se imprimen
-          a tamaño carta, 2 tarjetas por hoja, con 3 cm de cabecera para el nombre del torneo,
+          a tamaño carta (2 tarjetas por hoja en vertical, 1 en horizontal), con 3 cm de cabecera para el nombre del torneo,
           el campo y la fecha.
         </CardDescription>
       </CardHeader>
@@ -568,7 +569,7 @@ const AdminTarjetasPrint = () => {
               {/*
                 ORIENTACIÓN de la hoja carta. Al cambiarla se aplican los
                 márgenes, escala, cabecera y alto de renglón PREDETERMINADOS de
-                esa orientación, que son los que garantizan 2 tarjetas por hoja
+                esa orientación, que son los que garantizan las tarjetas por hoja
                 sin desfases en los brincos de página. Viaja como `orient=`.
               */}
               <div className="space-y-1">
@@ -587,7 +588,7 @@ const AdminTarjetasPrint = () => {
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
                   {orient === 'landscape'
-                    ? 'Carta acostada 279.4 × 215.9 mm · cada tarjeta 1/2 hoja (107.95 mm).'
+                    ? 'Carta acostada 279.4 × 215.9 mm · 1 tarjeta por hoja completa (215.9 mm).'
                     : 'Carta vertical 215.9 × 279.4 mm · cada tarjeta 1/2 hoja (139.7 mm).'}
                 </p>
               </div>
@@ -628,7 +629,7 @@ const AdminTarjetasPrint = () => {
                 />
               </div>
 
-              {/* Alto de renglón: el reporte lo acota para no desbordar 1/2 carta */}
+              {/* Alto de renglón: el reporte lo acota para no desbordar el alto de la tarjeta */}
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Alto de renglón (mm)</Label>
                 <Input
