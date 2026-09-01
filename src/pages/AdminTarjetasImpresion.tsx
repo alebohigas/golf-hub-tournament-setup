@@ -49,12 +49,11 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
-/* Geometría de hoja carta (vertical/horizontal) y defaults por orientación. */
+/* Geometría de hoja carta vertical y predeterminados de maquetación. */
 import {
   LETTER_SHORT_MM,
-  TARJETA_ORIENT_DEFAULTS,
-  normalizeTarjetaOrient,
-  tarjetaHeaderMaxMm,
+  TARJETA_HEADER_MAX_MM,
+  TARJETA_LAYOUT_DEFAULTS,
   tarjetaSheetGeometry,
 } from '@/lib/tarjetasSheet';
 import {
@@ -70,7 +69,7 @@ import {
 
 
 // ============= Constantes de hoja =============
-/* La geometría de hoja y los defaults por orientación viven en
+/* La geometría de hoja y los defaults de maquetación viven en
    `src/lib/tarjetasSheet.ts` (fuente única compartida con Admin → Tarjetas). */
 
 /** Ancho de hoja carta vertical (respaldo del logo de la cabecera). */
@@ -144,7 +143,7 @@ const CardHeader = ({
   heightMm: number;
   /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
   marginMm: number;
-  /** Ancho real de la hoja en mm (cambia en orientación horizontal). */
+  /** Ancho real de la hoja en mm (carta vertical). */
   sheetWmm?: number;
 }) => (
   /*
@@ -476,27 +475,17 @@ const Scorecard = ({
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
 
-  /**
-   * ORIENTACIÓN de la hoja (`orient=portrait|landscape`).
-   * En horizontal la hoja carta se imprime acostada (279.4 × 215.9 mm) y cada
-   * tarjeta ocupa exactamente 1/2 hoja (107.95 mm): 2 tarjetas por hoja sin
-   * desfases en los brincos de página.
-   */
-  const landscape = normalizeTarjetaOrient(params.get('orient')) === 'landscape';
-  /** Geometría real de la hoja y de la mitad que ocupa cada tarjeta. */
-  const sheet = useMemo(() => tarjetaSheetGeometry(landscape), [landscape]);
-  /** Predeterminados de maquetación de la orientación activa. */
-  const orientDefaults = landscape
-    ? TARJETA_ORIENT_DEFAULTS.landscape
-    : TARJETA_ORIENT_DEFAULTS.portrait;
+  /** Geometría de la hoja carta vertical y de la mitad que ocupa cada tarjeta. */
+  const sheet = tarjetaSheetGeometry();
+  /** Predeterminados de maquetación. */
+  const orientDefaults = TARJETA_LAYOUT_DEFAULTS;
 
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
-  /* En horizontal la cabecera se limita a 34 mm para que la tarjeta siempre quepa. */
   const headerMm = numParam(
     params.get('header'),
     orientDefaults.headerMm,
     10,
-    tarjetaHeaderMaxMm(landscape),
+    TARJETA_HEADER_MAX_MM,
   );
   const marginMm = numParam(params.get('margin'), orientDefaults.marginMm, 0, 25);
   const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
@@ -712,21 +701,16 @@ const AdminTarjetasImpresion = () => {
     }
   }, [renderPages, sheets.length]);
 
-  /**
-   * Descarga el reporte como PDF tamaño carta (1 hoja = 1 página).
-   * La orientación del PDF sigue la de la maquetación (`orient=`) para que las
-   * hojas horizontales salgan acostadas y sin recortes.
-   */
+  /** Descarga el reporte como PDF tamaño carta vertical (1 hoja = 1 página). */
   const downloadPdf = useCallback(async () => {
     if (!sheets.length) return;
     setBusy('pdf');
     try {
       const { jsPDF } = await import('jspdf');
       const pages = await renderPages(2.5);
-      const orientation = landscape ? 'landscape' : 'portrait';
-      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation });
+      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
       pages.forEach((img, i) => {
-        if (i > 0) pdf.addPage('letter', orientation);
+        if (i > 0) pdf.addPage('letter', 'portrait');
         pdf.addImage(img, 'PNG', 0, 0, sheet.width, sheet.height, undefined, 'FAST');
       });
       pdf.save(`tarjetas-${filters.fecha || 'reporte'}.pdf`);
@@ -734,7 +718,7 @@ const AdminTarjetasImpresion = () => {
     } finally {
       setBusy(null);
     }
-  }, [renderPages, sheets.length, filters.fecha, landscape, sheet.width, sheet.height]);
+  }, [renderPages, sheets.length, filters.fecha, sheet.width, sheet.height]);
 
   /**
    * Prepara la vista previa en cuanto hay tarjetas del torneo activo.
@@ -777,12 +761,10 @@ const AdminTarjetasImpresion = () => {
   return (
     <div className="min-h-screen bg-background print:bg-transparent">
       {/*
-        @page: hoja carta sin márgenes en la orientación elegida (`orient=`);
+        @page: hoja carta vertical sin márgenes;
         el margen real lo aplica el layout de cada tarjeta.
       */}
-      <style>{`@media print { @page { size: letter ${
-        landscape ? 'landscape' : 'portrait'
-      }; margin: 0; } }`}</style>
+      <style>{`@media print { @page { size: letter portrait; margin: 0; } }`}</style>
 
       <div
         className="mx-auto px-4 py-6 print:max-w-none print:px-0 print:py-0"
@@ -796,9 +778,7 @@ const AdminTarjetasImpresion = () => {
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
               {data
-                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta ${
-                    landscape ? 'horizontal' : 'vertical'
-                  } (${sheet.cardsPerSheet === 1 ? '1 tarjeta por hoja' : '1/2 hoja por tarjeta'}) · cabecera ${headerMm}mm · escala ${Math.round(
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta vertical (1/2 hoja por tarjeta) · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
@@ -1043,8 +1023,7 @@ const AdminTarjetasImpresion = () => {
             <DialogTitle>Vista previa de impresión</DialogTitle>
             <DialogDescription>
               Hoja {previewIdx + 1} de {previewPages.length} ·{' '}
-              {sheet.cardsPerSheet === 1 ? '1 tarjeta' : '2 tarjetas'} por hoja carta{' '}
-              {landscape ? 'horizontal' : 'vertical'} ·
+              2 tarjetas por hoja carta vertical ·
               cabecera {headerMm}mm · escala {Math.round(scale * 100)}%
             </DialogDescription>
           </DialogHeader>
