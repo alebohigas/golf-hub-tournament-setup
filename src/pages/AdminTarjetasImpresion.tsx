@@ -134,6 +134,7 @@ const CardHeader = ({
   fecha,
   heightMm,
   marginMm,
+  gapMm = 0,
   sheetWmm = SHEET_W_MM,
 }: {
   logo: string;
@@ -143,33 +144,42 @@ const CardHeader = ({
   heightMm: number;
   /** Margen lateral en mm, igual al de la tabla de la tarjeta. */
   marginMm: number;
+  /**
+   * Separación (mm) entre el bloque logo/encabezado y el inicio de la
+   * información de la tarjeta: equivale a UN renglón de la tabla (`rowMm`).
+   */
+  gapMm?: number;
   /** Ancho real de la hoja en mm (carta vertical). */
   sheetWmm?: number;
 }) => (
   /*
-    La cabecera SIEMPRE mide `heightMm`: el logo del torneo se ancla ARRIBA A LA
-    IZQUIERDA y el nombre del torneo + campo/fecha ARRIBA A LA DERECHA, igual en
-    vertical y en horizontal (carta acostada).
+    La cabecera SIEMPRE mide `heightMm`:
+      · El logo del torneo y el bloque torneo/campo/fecha quedan ALINEADOS al
+        centro vertical del área útil de la cabecera (`items-center`).
+      · Entre el logo/encabezado y el inicio de la tarjeta se reserva una
+        separación fija de UN renglón (`gapMm` = `rowMm`) vía padding-bottom,
+        de modo que el respiro es idéntico en pantalla, impresión y PDF.
   */
   <div
-    className="flex items-start justify-between gap-3"
+    className="flex items-center justify-between gap-3"
     style={{
       height: `${heightMm}mm`,
-      paddingTop: '2mm',
+      paddingBottom: `${gapMm}mm`,
       paddingLeft: `${marginMm}mm`,
       paddingRight: `${marginMm}mm`,
     }}
   >
 
     {/* Logo del torneo (list1_logo_header) — no se encoge ni se desborda */}
-    <div className="flex shrink-0 items-start">
+    <div className="flex shrink-0 items-center">
       {logo ? (
         <img
           src={logo}
           alt={tournament}
           className="w-auto object-contain"
           style={{
-            maxHeight: `${Math.max(8, heightMm - 4)}mm`,
+            /* Alto útil = cabecera menos la separación de un renglón. */
+            maxHeight: `${Math.max(8, heightMm - gapMm - 2)}mm`,
             /* Nunca más de un tercio del ancho útil de la hoja. */
             maxWidth: `${Math.max(30, (sheetWmm - marginMm * 2) / 3)}mm`,
           }}
@@ -180,7 +190,7 @@ const CardHeader = ({
     </div>
 
 
-    {/* Torneo / campo + fecha, ajustados a la derecha dentro del margen */}
+    {/* Torneo / campo + fecha, alineados con el logo dentro del margen */}
     <div className="min-w-0 flex-1 text-right leading-tight">
       <div className="truncate text-[12pt] font-bold uppercase">{tournament}</div>
       <div className="truncate text-[10pt] font-semibold uppercase text-foreground/80">
@@ -981,6 +991,8 @@ const AdminTarjetasImpresion = () => {
                     heightMm={headerMm}
                     /* Mismos márgenes laterales que la tabla de la tarjeta. */
                     marginMm={marginMm}
+                    /* Separación de UN renglón entre cabecera y tarjeta. */
+                    gapMm={rowMm}
                     sheetWmm={sheet.width}
 
 
