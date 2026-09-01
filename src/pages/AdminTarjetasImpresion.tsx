@@ -986,8 +986,8 @@ const AdminTarjetasImpresion = () => {
               data-sheet
               className="mb-6 bg-white print:mb-0"
               style={{
-                width: `${SHEET_W_MM}mm`,
-                height: `${SHEET_H_MM}mm`,
+                width: `${sheet.width}mm`,
+                height: `${sheet.height}mm`,
                 breakAfter: idx < sheets.length - 1 ? 'page' : 'auto',
               }}
             >
@@ -995,7 +995,7 @@ const AdminTarjetasImpresion = () => {
                 <div
                   key={`${card.groupId}-${card.playerId}`}
                   className="overflow-hidden"
-                  style={{ height: `${HALF_SHEET_MM}mm`, breakInside: 'avoid' }}
+                  style={{ height: `${sheet.half}mm`, breakInside: 'avoid' }}
                 >
                   <CardHeader
                     logo={showLogo ? (data?.logoHeader ?? '') : ''}
@@ -1006,6 +1006,8 @@ const AdminTarjetasImpresion = () => {
                     heightMm={headerMm}
                     /* Mismos márgenes laterales que la tabla de la tarjeta. */
                     marginMm={marginMm}
+                    sheetWmm={sheet.width}
+
 
                   />
                   {/*
