@@ -719,19 +719,25 @@ const AdminTarjetasImpresion = () => {
     }
   }, [renderPages, sheets.length]);
 
-  /** Descarga el reporte como PDF tamaño carta (1 hoja = 1 página). */
+  /**
+   * Descarga el reporte como PDF tamaño carta (1 hoja = 1 página).
+   * La orientación del PDF sigue la de la maquetación (`orient=`) para que las
+   * hojas horizontales salgan acostadas y sin recortes.
+   */
   const downloadPdf = useCallback(async () => {
     if (!sheets.length) return;
     setBusy('pdf');
     try {
       const { jsPDF } = await import('jspdf');
       const pages = await renderPages(2.5);
-      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+      const orientation = landscape ? 'landscape' : 'portrait';
+      const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation });
       pages.forEach((img, i) => {
-        if (i > 0) pdf.addPage('letter', 'portrait');
-        pdf.addImage(img, 'PNG', 0, 0, SHEET_W_MM, SHEET_H_MM, undefined, 'FAST');
+        if (i > 0) pdf.addPage('letter', orientation);
+        pdf.addImage(img, 'PNG', 0, 0, sheet.width, sheet.height, undefined, 'FAST');
       });
       pdf.save(`tarjetas-${filters.fecha || 'reporte'}.pdf`);
+
     } finally {
       setBusy(null);
     }
