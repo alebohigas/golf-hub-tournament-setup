@@ -79,6 +79,14 @@ import {
   type TarjetaHcpField,
 } from '@/lib/tarjetasHcp';
 import { useToast } from '@/hooks/use-toast';
+/* Orientación de la hoja carta (vertical/horizontal) y sus predeterminados. */
+import {
+  TARJETA_ORIENT_DEFAULTS,
+  TARJETA_ORIENT_LABELS,
+  normalizeTarjetaOrient,
+  tarjetaHeaderMaxMm,
+  type TarjetaOrient,
+} from '@/lib/tarjetasSheet';
 
 
 /** Panel de impresión de tarjetas. */
