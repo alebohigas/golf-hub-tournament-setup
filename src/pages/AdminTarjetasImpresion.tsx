@@ -49,6 +49,14 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+/* Geometría de hoja carta (vertical/horizontal) y defaults por orientación. */
+import {
+  LETTER_SHORT_MM,
+  TARJETA_ORIENT_DEFAULTS,
+  normalizeTarjetaOrient,
+  tarjetaHeaderMaxMm,
+  tarjetaSheetGeometry,
+} from '@/lib/tarjetasSheet';
 import {
   TARJETA_HCP_FIELD_LABELS,
   normalizeTarjetaHcpField,
