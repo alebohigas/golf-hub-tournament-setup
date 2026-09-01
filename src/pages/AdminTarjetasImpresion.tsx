@@ -991,8 +991,8 @@ const AdminTarjetasImpresion = () => {
                     heightMm={headerMm}
                     /* Mismos márgenes laterales que la tabla de la tarjeta. */
                     marginMm={marginMm}
-                    /* Separación de UN renglón entre cabecera y tarjeta. */
-                    gapMm={rowMm}
+                    /* Separación de MEDIO renglón entre cabecera y tarjeta. */
+                    gapMm={rowMm / 2}
                     sheetWmm={sheet.width}
 
 
