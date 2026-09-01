@@ -69,7 +69,7 @@ import {
 
 
 // ============= Constantes de hoja =============
-/* La geometría de hoja y los defaults por orientación viven en
+/* La geometría de hoja y los defaults de maquetación viven en
    `src/lib/tarjetasSheet.ts` (fuente única compartida con Admin → Tarjetas). */
 
 /** Ancho de hoja carta vertical (respaldo del logo de la cabecera). */
