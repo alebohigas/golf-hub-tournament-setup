@@ -147,10 +147,16 @@ const CardHeader = ({
   /** Ancho real de la hoja en mm (cambia en orientación horizontal). */
   sheetWmm?: number;
 }) => (
+  /*
+    La cabecera SIEMPRE mide `heightMm`: el logo del torneo se ancla ARRIBA A LA
+    IZQUIERDA y el nombre del torneo + campo/fecha ARRIBA A LA DERECHA, igual en
+    vertical y en horizontal (carta acostada).
+  */
   <div
-    className="flex items-center justify-between gap-3"
+    className="flex items-start justify-between gap-3"
     style={{
       height: `${heightMm}mm`,
+      paddingTop: '2mm',
       paddingLeft: `${marginMm}mm`,
       paddingRight: `${marginMm}mm`,
     }}
