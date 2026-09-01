@@ -487,10 +487,25 @@ const Scorecard = ({
 const AdminTarjetasImpresion = () => {
   const [params] = useSearchParams();
 
+  /**
+   * ORIENTACIÓN de la hoja (`orient=portrait|landscape`).
+   * En horizontal la hoja carta se imprime acostada (279.4 × 215.9 mm) y cada
+   * tarjeta ocupa exactamente 1/2 hoja (107.95 mm): 2 tarjetas por hoja sin
+   * desfases en los brincos de página.
+   */
+  const landscape = (params.get('orient') ?? 'portrait').toLowerCase() === 'landscape';
+  /** Geometría real de la hoja y de la mitad que ocupa cada tarjeta. */
+  const sheet = useMemo(() => tarjetaSheetGeometry(landscape), [landscape]);
+  /** Predeterminados de maquetación de la orientación activa. */
+  const orientDefaults = landscape
+    ? TARJETA_ORIENT_DEFAULTS.landscape
+    : TARJETA_ORIENT_DEFAULTS.portrait;
+
   /** Configuración de maquetación (viene de Admin y se puede fijar en la URL). */
-  const headerMm = numParam(params.get('header'), 30, 10, 60);
-  const marginMm = numParam(params.get('margin'), 8, 0, 25);
-  const scale = numParam(params.get('scale'), 100, 60, 130) / 100;
+  const headerMm = numParam(params.get('header'), orientDefaults.headerMm, 10, 60);
+  const marginMm = numParam(params.get('margin'), orientDefaults.marginMm, 0, 25);
+  const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
+
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
   const autoPreview = params.get('preview') === '1';
   /** Imprimir el logo del torneo en la cabecera (Admin → Tarjetas, `logo=`). */
