@@ -57,8 +57,12 @@ export const TARJETA_ORIENT_DEFAULTS: Record<
   { headerMm: number; marginMm: number; scale: number; rowMm: number; padMm: number }
 > = {
   portrait: { headerMm: 30, marginMm: 8, scale: 100, rowMm: 5.5, padMm: 3 },
-  landscape: { headerMm: 30, marginMm: 12, scale: 100, rowMm: 9, padMm: 2 },
+  /* HORIZONTAL: tamaño validado en impresión real (1 tarjeta por carta
+     acostada) con una cabecera compacta de 18 mm: logo del torneo arriba a la
+     izquierda y nombre + campo/fecha arriba a la derecha. */
+  landscape: { headerMm: 18, marginMm: 12, scale: 100, rowMm: 9, padMm: 2 },
 };
+
 
 /** Alto máximo de cabecera permitido según la orientación (mm). */
 export const tarjetaHeaderMaxMm = (landscape: boolean) => (landscape ? 60 : 60);
