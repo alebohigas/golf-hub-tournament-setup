@@ -799,7 +799,9 @@ const AdminTarjetasImpresion = () => {
             <h1 className="text-xl font-bold">Tarjetas de juego</h1>
             <p className="text-sm text-muted-foreground">
               {data
-                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · cabecera ${headerMm}mm · escala ${Math.round(
+                ? `${cards.length} tarjetas · ${sheets.length} hojas · ${data.fechas && data.fechas.length > 1 ? `${data.fechas.length} días` : data.fechaFormato} · carta ${
+                    landscape ? 'horizontal' : 'vertical'
+                  } (1/2 hoja por tarjeta) · cabecera ${headerMm}mm · escala ${Math.round(
                     scale * 100,
                   )}%`
                 : 'Cargando…'}
