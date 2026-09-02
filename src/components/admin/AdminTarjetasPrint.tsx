@@ -377,7 +377,7 @@ const AdminTarjetasPrint = () => {
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder, padTopMm]);
 
   const isValid = errors.length === 0;
 
