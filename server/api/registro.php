@@ -446,7 +446,8 @@ function registro_pk_col($conn) {
 }
 
 // ============= POST submission (public) =============
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'verify')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && !in_array(optional_param('action'), ['verify', 'upload_archivo', 'unregister', 'baja'], true)) {
     $torneoid = (int) require_param('torneoid');
     $torneoCol = registro_torneo_col($conn);
     $pkCol = registro_pk_col($conn);
