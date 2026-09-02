@@ -984,11 +984,21 @@ const AdminTarjetasImpresion = () => {
                   key={`${card.groupId}-${card.playerId}`}
                   className="overflow-hidden"
                   style={{
-                    height: `${sheet.slot - padTopMm}mm`,
+                    /*
+                      Cada tarjeta ocupa EXACTAMENTE 1/2 hoja carta: con
+                      `box-sizing: border-box` el padding superior se descuenta
+                      del alto del slot, así que las 2 tarjetas de la hoja
+                      reciben el mismo padding-top sin desfasar el brinco de
+                      página (antes la 2ª quedaba sin espacio al restar el
+                      padding del alto además del border-box).
+                    */
+                    boxSizing: 'border-box',
+                    height: `${sheet.slot}mm`,
                     paddingTop: `${padTopMm}mm`,
                     breakInside: 'avoid',
                   }}
                 >
+
                   <CardHeader
                     logo={showLogo ? (data?.logoHeader ?? '') : ''}
                     tournament={data?.tournament ?? ''}
