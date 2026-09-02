@@ -594,6 +594,26 @@ const AdminTarjetasPrint = () => {
 
 
               {/*
+                Padding superior (mm) al inicio de cada tarjeta, antes de la
+                cabecera del torneo. Viaja en la URL como `padtop=` y aplica a
+                las 2 tarjetas de la hoja carta, igual que el padding inferior.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Padding superior (mm)
+                </Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={0}
+                  max={15}
+                  className="w-[130px]"
+                  value={padTopMm}
+                  onChange={(e) => setPadTopMm(Number(e.target.value))}
+                />
+              </div>
+
+              {/*
                 Padding inferior (mm) debajo del renglón SCORE ANOTADOR.
                 Viaja en la URL como `pad=` y el reporte lo descuenta del
                 espacio disponible para no salirse de la media hoja carta.
