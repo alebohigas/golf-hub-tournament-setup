@@ -80,8 +80,8 @@ import {
   type TarjetaHcpField,
 } from '@/lib/tarjetasHcp';
 import { useToast } from '@/hooks/use-toast';
-/* Geometría de hoja carta vertical (alto máximo de cabecera). */
-import { TARJETA_HEADER_MAX_MM } from '@/lib/tarjetasSheet';
+/* Geometría de hoja carta vertical (alto máximo de cabecera y defaults). */
+import { TARJETA_HEADER_MAX_MM, TARJETA_LAYOUT_DEFAULTS } from '@/lib/tarjetasSheet';
 
 
 /** Panel de impresión de tarjetas. */
@@ -129,7 +129,13 @@ const AdminTarjetasPrint = () => {
    * ANOTADOR. Configurable aquí y enviado al reporte como `pad=` para que
    * la previsualización, la impresión y el PDF sean idénticos.
    */
-  const [padMm, setPadMm] = useState(3);
+  const [padMm, setPadMm] = useState(TARJETA_LAYOUT_DEFAULTS.padMm);
+  /**
+   * Padding-top (mm) al inicio de cada tarjeta, antes de la cabecera del
+   * torneo. Viaja al reporte como `padtop=` para aplicarse a las 2 tarjetas
+   * de la hoja carta.
+   */
+  const [padTopMm, setPadTopMm] = useState(TARJETA_LAYOUT_DEFAULTS.padTopMm);
 
   /**
    * Tamaños de letra (pt) del encabezado de la tarjeta:
@@ -226,6 +232,7 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
     if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
     if (typeof cfg.padMm === 'number') setPadMm(cfg.padMm);
+    if (typeof cfg.padTopMm === 'number') setPadTopMm(cfg.padTopMm);
     if (typeof cfg.fsHoyoPt === 'number')
       setFsHoyoPt(clampTarjetaFont(cfg.fsHoyoPt, TARJETA_HEADER_FONTS_DEFAULT.hoyoPt));
     if (typeof cfg.fsCatPt === 'number')
@@ -247,6 +254,7 @@ const AdminTarjetasPrint = () => {
       scale,
       rowMm,
       padMm,
+      padTopMm,
       rowOrder,
       headerOrder,
       fsHoyoPt,
@@ -261,7 +269,7 @@ const AdminTarjetasPrint = () => {
         onSuccess: () =>
           toast({
             title: 'Maquetación guardada',
-            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm · padding inferior ${padMm} mm.`,
+            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm · padding superior ${padTopMm} mm · padding inferior ${padMm} mm.`,
           }),
         onError: (err) =>
           toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
@@ -364,10 +372,12 @@ const AdminTarjetasPrint = () => {
     if (rowMm < 2.6 || rowMm > 12) errs.push('El alto de renglón debe estar entre 2.6 y 12 mm.');
     if (padMm < 0 || padMm > 15)
       errs.push('El padding inferior debe estar entre 0 y 15 mm.');
+    if (padTopMm < 0 || padTopMm > 15)
+      errs.push('El padding superior debe estar entre 0 y 15 mm.');
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
-  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder]);
+  }, [fecha, campoid, catIds, headerMm, marginMm, scale, rowMm, padMm, rowOrder, headerOrder, padTopMm]);
 
   const isValid = errors.length === 0;
 
@@ -384,6 +394,7 @@ const AdminTarjetasPrint = () => {
       scale: String(scale),
       rowh: String(rowMm),
       pad: String(padMm),
+      padtop: String(padTopMm),
       fsh: String(fsHoyoPt),
       fsc: String(fsCatPt),
       fsj: String(fsJugPt),
@@ -581,6 +592,26 @@ const AdminTarjetasPrint = () => {
                 />
               </div>
 
+
+              {/*
+                Padding superior (mm) al inicio de cada tarjeta, antes de la
+                cabecera del torneo. Viaja en la URL como `padtop=` y aplica a
+                las 2 tarjetas de la hoja carta, igual que el padding inferior.
+              */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Padding superior (mm)
+                </Label>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={0}
+                  max={15}
+                  className="w-[130px]"
+                  value={padTopMm}
+                  onChange={(e) => setPadTopMm(Number(e.target.value))}
+                />
+              </div>
 
               {/*
                 Padding inferior (mm) debajo del renglón SCORE ANOTADOR.

@@ -16,8 +16,8 @@ export const LETTER_SHORT_MM = 215.9;
 export const LETTER_LONG_MM = 279.4;
 
 /**
- * Maquetación PREDETERMINADA (cabecera, margen, escala, alto de renglón y
- * padding inferior en mm).
+ * Maquetación PREDETERMINADA (cabecera, margen, escala, alto de renglón,
+ * padding superior e inferior en mm).
  */
 export const TARJETA_LAYOUT_DEFAULTS = {
   headerMm: 30,
@@ -25,6 +25,7 @@ export const TARJETA_LAYOUT_DEFAULTS = {
   scale: 100,
   rowMm: 5.5,
   padMm: 3,
+  padTopMm: 3,
 };
 
 /** Alto máximo de cabecera permitido (mm). */

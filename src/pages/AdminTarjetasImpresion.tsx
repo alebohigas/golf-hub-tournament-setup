@@ -104,8 +104,9 @@ const maxRowMm = (
   scale: number,
   tableRows: number,
   padMm: number,
+  padTopMm: number,
 ) => {
-  const disponible = (halfMm - headerMm) / scale - CARD_CHROME_MM - padMm;
+  const disponible = (halfMm - headerMm - padTopMm) / scale - CARD_CHROME_MM - padMm;
   return Math.max(2.6, disponible / Math.max(1, tableRows + EXTRA_ROWS));
 };
 
@@ -554,6 +555,8 @@ const AdminTarjetasImpresion = () => {
 
   /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
   const padMm = numParam(params.get('pad'), orientDefaults.padMm, 0, 15);
+  /** Padding-top (mm) al inicio de cada tarjeta, antes de la cabecera del torneo. */
+  const padTopMm = numParam(params.get('padtop'), orientDefaults.padTopMm ?? 3, 0, 15);
 
   /**
    * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
@@ -564,7 +567,7 @@ const AdminTarjetasImpresion = () => {
 
   const rowMm = Math.min(
     numParam(params.get('rowh'), orientDefaults.rowMm, 2.6, 12),
-    maxRowMm(sheet.slot, headerMm, scale, effectiveRows, padMm),
+    maxRowMm(sheet.slot, headerMm, scale, effectiveRows, padMm, padTopMm),
   );
 
 
@@ -980,7 +983,11 @@ const AdminTarjetasImpresion = () => {
                 <div
                   key={`${card.groupId}-${card.playerId}`}
                   className="overflow-hidden"
-                  style={{ height: `${sheet.slot}mm`, breakInside: 'avoid' }}
+                  style={{
+                    height: `${sheet.slot - padTopMm}mm`,
+                    paddingTop: `${padTopMm}mm`,
+                    breakInside: 'avoid',
+                  }}
                 >
                   <CardHeader
                     logo={showLogo ? (data?.logoHeader ?? '') : ''}
