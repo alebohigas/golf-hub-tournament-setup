@@ -451,6 +451,8 @@ export interface TarjetasPrintConfig {
   rowMm?: number;
   /** Padding-bottom (mm) al final de la tarjeta, bajo el renglón SCORE ANOTADOR. */
   padMm?: number;
+  /** Padding-top (mm) al inicio de cada tarjeta, antes de la cabecera del torneo. */
+  padTopMm?: number;
   /** Orden y visibilidad de los renglones de la tarjeta (ver `@/lib/tarjetasRows`). */
   rowOrder?: string[];
   /** Campos y orden del encabezado de 3 renglones (ver `@/lib/tarjetasHeader`). */
