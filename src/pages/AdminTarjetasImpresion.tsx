@@ -983,7 +983,11 @@ const AdminTarjetasImpresion = () => {
                 <div
                   key={`${card.groupId}-${card.playerId}`}
                   className="overflow-hidden"
-                  style={{ height: `${sheet.slot}mm`, breakInside: 'avoid' }}
+                  style={{
+                    height: `${sheet.slot - padTopMm}mm`,
+                    paddingTop: `${padTopMm}mm`,
+                    breakInside: 'avoid',
+                  }}
                 >
                   <CardHeader
                     logo={showLogo ? (data?.logoHeader ?? '') : ''}
