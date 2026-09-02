@@ -1088,7 +1088,9 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 Cargo a cuenta
                               </Badge>
                             )}
-                            {(hasFile || section === 'sec4') && (
+                            {/* Verificar registro (sec3) y Completados (sec4)
+                                permiten adjuntar/ver comprobante. */}
+                            {(hasFile || section === 'sec3' || section === 'sec4') && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1325,7 +1327,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                               * detalle expandido de Registros completados. Cada fila
                               * usa un id propio para evitar colisiones entre inputs.
                               */}
-                             {section === 'sec4' && (
+                             {(section === 'sec3' || section === 'sec4') && (
                                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
                                  <div>
                                    <Label htmlFor={`registro-archivo-adjunto-${r.id}`} className="text-sm font-semibold">
@@ -1408,7 +1410,7 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
               </a>
             </Button>
           )}
-          {previewRow && section === 'sec4' && (
+          {previewRow && (section === 'sec3' || section === 'sec4') && (
             <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
               <div className="min-w-0">
                 <Label htmlFor="registro-archivo-adjunto" className="text-sm font-semibold">
