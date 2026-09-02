@@ -555,6 +555,8 @@ const AdminTarjetasImpresion = () => {
 
   /** Padding-bottom (mm) bajo el renglón SCORE ANOTADOR (Admin → Tarjetas). */
   const padMm = numParam(params.get('pad'), orientDefaults.padMm, 0, 15);
+  /** Padding-top (mm) al inicio de cada tarjeta, antes de la cabecera del torneo. */
+  const padTopMm = numParam(params.get('padtop'), orientDefaults.padTopMm ?? 3, 0, 15);
 
   /**
    * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
