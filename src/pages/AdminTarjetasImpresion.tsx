@@ -104,8 +104,9 @@ const maxRowMm = (
   scale: number,
   tableRows: number,
   padMm: number,
+  padTopMm: number,
 ) => {
-  const disponible = (halfMm - headerMm) / scale - CARD_CHROME_MM - padMm;
+  const disponible = (halfMm - headerMm - padTopMm) / scale - CARD_CHROME_MM - padMm;
   return Math.max(2.6, disponible / Math.max(1, tableRows + EXTRA_ROWS));
 };
 
