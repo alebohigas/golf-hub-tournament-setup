@@ -23,6 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+/** Diálogo compartido: previsualización del PDF antes de descargar. */
+import PdfPreviewDialog from '@/components/shared/PdfPreviewDialog';
 import {
   AlertDialog,
   AlertDialogAction,
