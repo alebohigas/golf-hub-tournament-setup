@@ -269,7 +269,7 @@ const AdminTarjetasPrint = () => {
         onSuccess: () =>
           toast({
             title: 'Maquetación guardada',
-            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm · padding inferior ${padMm} mm.`,
+            description: `Cabecera ${headerMm} mm · margen ${marginMm} mm · escala ${scale}% · renglón ${rowMm} mm · padding superior ${padTopMm} mm · padding inferior ${padMm} mm.`,
           }),
         onError: (err) =>
           toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
