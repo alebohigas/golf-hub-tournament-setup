@@ -394,6 +394,7 @@ const AdminTarjetasPrint = () => {
       scale: String(scale),
       rowh: String(rowMm),
       pad: String(padMm),
+      padtop: String(padTopMm),
       fsh: String(fsHoyoPt),
       fsc: String(fsCatPt),
       fsj: String(fsJugPt),
