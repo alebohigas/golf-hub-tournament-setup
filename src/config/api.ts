@@ -431,6 +431,16 @@ export const getRegistroPublicoSubmitUrl = (): string =>
 export const getRegistroArchivoUrl = (id: number, password: string): string =>
   `${API_BASE_URL}/registro_archivo.php?id=${id}&password=${encodeURIComponent(password)}`;
 
+/**
+ * Admin: sube (o reemplaza) el archivo adjunto de un registro.
+ * POST multipart/form-data con campos: id, password, reg_archivo (File).
+ * El backend guarda el binario en `reg_archivo` y el nombre original en
+ * `reg_archivo_nombre` (más el mime en `reg_archivo_mime` si existe).
+ */
+export const getRegistroUploadArchivoUrl = (): string =>
+  `${API_BASE_URL}/registro.php?action=upload_archivo`;
+
+
 // ============= Pre-Registro · Precios =============
 
 /** Admin / lectura pública: lista completa de reglas de precio del torneo. */

@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Lock, Shield, FileDown, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye, Mail, UserMinus, UserCheck, UserX, X } from 'lucide-react';
+import { Loader2, Lock, Shield, FileDown, FileUp, RefreshCw, Search, CheckCircle2, XCircle, ChevronRight, ChevronDown, Eye, Mail, UserMinus, UserCheck, UserX, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ import {
   getRegistroListUrl,
   getRegistroVerifyUrl,
   getRegistroArchivoUrl,
+  getRegistroUploadArchivoUrl,
   getRegistroEmailUrl,
   getRegistroUnregisterUrl,
   getRegistroBajaUrl,
@@ -318,6 +319,51 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const markBusy = (key: string, v: boolean) =>
     setBusy(prev => ({ ...prev, [key]: v }));
+
+  /**
+   * Sube un comprobante desde el popup de Registros completados.
+   * La validación del navegador evita archivos no permitidos o mayores de
+   * 15 MB; el endpoint vuelve a validar tipo, tamaño y autorización antes
+   * de insertar el binario y el nombre original en la base de datos.
+   */
+  const uploadArchivo = async (row: RegistroRow, file: File) => {
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowedExtensions = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'pdf']);
+    const allowedMimes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'application/pdf']);
+    if (!allowedExtensions.has(extension) || (file.type && !allowedMimes.has(file.type))) {
+      toast({ title: 'Archivo no válido', description: 'Solo se permiten imágenes o archivos PDF.', variant: 'destructive' });
+      return;
+    }
+    if (file.size <= 0 || file.size > 15 * 1024 * 1024) {
+      toast({ title: 'Archivo no válido', description: 'El archivo debe pesar entre 1 byte y 15 MB.', variant: 'destructive' });
+      return;
+    }
+
+    const key = `upload-${row.id}`;
+    markBusy(key, true);
+    try {
+      const formData = new FormData();
+      formData.append('id', String(row.id));
+      formData.append('password', password);
+      formData.append('reg_archivo', file, file.name);
+      const res = await fetch(getRegistroUploadArchivoUrl(), { method: 'POST', body: formData });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'No se pudo subir el archivo');
+
+      const savedName = String(json.reg_archivo_nombre || file.name);
+      setRows(prev => prev.map(r => r.id === row.id
+        ? { ...r, has_archivo: 1, reg_archivo_nombre: savedName }
+        : r));
+      setPreviewRow(prev => prev?.id === row.id
+        ? { ...prev, has_archivo: 1, reg_archivo_nombre: savedName }
+        : prev);
+      toast({ title: 'Archivo adjunto guardado', description: savedName });
+    } catch (err: any) {
+      toast({ title: 'Error al subir archivo', description: err.message, variant: 'destructive' });
+    } finally {
+      markBusy(key, false);
+    }
+  };
 
   /** Fetch the latest list (always scoped to current torneoid). */
   const refresh = async () => {
@@ -1042,14 +1088,14 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                 Cargo a cuenta
                               </Badge>
                             )}
-                            {hasFile && (
+                            {(hasFile || section === 'sec4') && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1 h-auto min-h-10 whitespace-normal w-28"
+                                className="gap-1 h-auto min-h-10 whitespace-normal w-32"
                                 onClick={(e) => { e.stopPropagation(); setPreviewRow(r); }}
                               >
-                                <Eye className="h-4 w-4" /> Ver comprobante
+                                <Eye className="h-4 w-4" /> {hasFile ? 'Ver comprobante' : 'Adjuntar archivo'}
                               </Button>
                             )}
                             {!cargoCuenta && !hasFile && (
@@ -1273,8 +1319,42 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   </div>
                                 );
                               })}
-                            </div>
-                          </td>
+                             </div>
+                             {/*
+                              * Control administrativo de archivo adjunto dentro del
+                              * detalle expandido de Registros completados. Cada fila
+                              * usa un id propio para evitar colisiones entre inputs.
+                              */}
+                             {section === 'sec4' && (
+                               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
+                                 <div>
+                                   <Label htmlFor={`registro-archivo-adjunto-${r.id}`} className="text-sm font-semibold">
+                                     SUBIR ARCHIVO ADJUNTO
+                                   </Label>
+                                   <p className="text-xs text-muted-foreground">
+                                     {Number(r.has_archivo) === 1
+                                       ? `Actual: ${r.reg_archivo_nombre || 'archivo cargado'} · puedes reemplazarlo`
+                                       : 'Imagen o PDF · máximo 15 MB'}
+                                   </p>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                   <Input
+                                     id={`registro-archivo-adjunto-${r.id}`}
+                                     type="file"
+                                     accept="image/*,.pdf"
+                                     className="max-w-[230px] text-xs"
+                                     disabled={!!busy[`upload-${r.id}`]}
+                                     onChange={(e) => {
+                                       const file = e.currentTarget.files?.[0];
+                                       e.currentTarget.value = '';
+                                       if (file) void uploadArchivo(r, file);
+                                     }}
+                                   />
+                                   {busy[`upload-${r.id}`] && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                 </div>
+                               </div>
+                             )}
+                           </td>
                         </tr>
                       )}
                       </Fragment>
@@ -1309,10 +1389,48 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
               )}
             </DialogTitle>
           </DialogHeader>
+          {previewRow && section === 'sec4' && (
+            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
+              <div className="min-w-0">
+                <Label htmlFor="registro-archivo-adjunto" className="text-sm font-semibold">
+                  SUBIR ARCHIVO ADJUNTO
+                </Label>
+                <p className="text-xs text-muted-foreground">Imagen o PDF · máximo 15 MB · reemplaza el archivo actual</p>
+              </div>
+              <div className="shrink-0">
+                <Input
+                  id="registro-archivo-adjunto"
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="sr-only"
+                  disabled={!!busy[`upload-${previewRow.id}`]}
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    e.currentTarget.value = '';
+                    if (file) void uploadArchivo(previewRow, file);
+                  }}
+                />
+                <Button asChild variant="outline" className="gap-2" disabled={!!busy[`upload-${previewRow.id}`]}>
+                  <label htmlFor="registro-archivo-adjunto" className="cursor-pointer">
+                    {busy[`upload-${previewRow.id}`]
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <FileUp className="h-4 w-4" />}
+                    Seleccionar archivo
+                  </label>
+                </Button>
+              </div>
+            </div>
+          )}
           {previewRow && (() => {
             const url = getRegistroArchivoUrl(previewRow.id, password);
             const name = (previewRow.reg_archivo_nombre || '').toLowerCase();
             const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name);
+            const hasPreviewFile = Number(previewRow.has_archivo) === 1;
+            if (!hasPreviewFile) {
+              return <div className="flex-1 rounded bg-muted/20 items-center justify-center text-sm text-muted-foreground flex p-8 text-center">
+                Este registro todavía no tiene un archivo adjunto.
+              </div>;
+            }
             return isImage ? (
               <div className="flex-1 overflow-auto bg-muted/30 rounded flex items-center justify-center">
                 <img src={url} alt="Comprobante" className="max-w-full max-h-full object-contain" />

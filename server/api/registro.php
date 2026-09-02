@@ -446,7 +446,8 @@ function registro_pk_col($conn) {
 }
 
 // ============= POST submission (public) =============
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (optional_param('action') !== 'verify')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && !in_array(optional_param('action'), ['verify', 'upload_archivo', 'unregister', 'baja'], true)) {
     $torneoid = (int) require_param('torneoid');
     $torneoCol = registro_torneo_col($conn);
     $pkCol = registro_pk_col($conn);
@@ -802,6 +803,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && optional_param('action') === 'verif
  *                        `jugadores` con estatus='BAJA'. Match por
  *                        correo (case-insensitive). No toca el registro.
  */
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && optional_param('action') === 'upload_archivo') {
+    /**
+     * Upload administrativo de comprobantes desde Registros completados.
+     * Acepta imágenes y PDF, valida tamaño/tipo y conserva el nombre original.
+     */
+    $body = $_POST;
+    if (!registro_admin_authorized($conn, $body)) json_error('Unauthorized', 401);
+
+    $pkCol = registro_pk_col($conn);
+    if (!$pkCol) json_error('registro PK not found', 500);
+    if (!registro_has($conn, 'reg_archivo')) json_error('reg_archivo column missing', 500);
+    if (!isset($_FILES['reg_archivo']) || !is_uploaded_file($_FILES['reg_archivo']['tmp_name'])) {
+        json_error('Falta el archivo adjunto', 400);
+    }
+
+    $id = (int)($_POST['id'] ?? 0);
+    if ($id <= 0) json_error('Missing id', 400);
+    $file = $_FILES['reg_archivo'];
+    if ((int)$file['error'] !== UPLOAD_ERR_OK) json_error('No se pudo recibir el archivo', 400);
+    if ((int)$file['size'] <= 0 || (int)$file['size'] > MAX_REG_FILE_BYTES) {
+        json_error('Archivo demasiado grande o vacío (máx 15 MB).', 400);
+    }
+
+    $originalName = basename((string)$file['name']);
+    $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'pdf'];
+    if (!in_array($extension, $allowedExtensions, true)) {
+        json_error('Solo se permiten imágenes o archivos PDF.', 400);
+    }
+
+    $mime = function_exists('finfo_open')
+        ? (($f = finfo_open(FILEINFO_MIME_TYPE)) ? (finfo_file($f, $file['tmp_name']) ?: '') : '')
+        : '';
+    if (isset($f) && $f) finfo_close($f);
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'application/pdf'];
+    if (!in_array($mime, $allowedMimes, true)) json_error('El tipo de archivo no es válido.', 400);
+
+    $bin = file_get_contents($file['tmp_name']);
+    if ($bin === false) json_error('No se pudo leer el archivo adjunto', 500);
+    $sets = [
+        "reg_archivo = '" . $conn->real_escape_string($bin) . "'",
+    ];
+    if (registro_has($conn, 'reg_archivo_nombre')) {
+        $sets[] = "reg_archivo_nombre = '" . esc($conn, $originalName) . "'";
+    }
+    if (registro_has($conn, 'reg_archivo_mime')) {
+        $sets[] = "reg_archivo_mime = '" . esc($conn, $mime) . "'";
+    }
+    $check = $conn->query("SELECT $pkCol FROM registro WHERE $pkCol = $id LIMIT 1");
+    if (!$check || !$check->fetch_assoc()) json_error('Registro no encontrado', 404);
+    if (!$conn->query("UPDATE registro SET " . implode(', ', $sets) . " WHERE $pkCol = $id LIMIT 1")) {
+        json_error('No se pudo guardar el archivo: ' . $conn->error, 500);
+    }
+    json_response(['saved' => true, 'reg_archivo_nombre' => $originalName, 'mime' => $mime]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && in_array(optional_param('action'), ['unregister', 'baja'], true)) {
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
