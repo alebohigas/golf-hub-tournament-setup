@@ -232,6 +232,7 @@ const AdminTarjetasPrint = () => {
     if (typeof cfg.scale === 'number') setScale(cfg.scale);
     if (typeof cfg.rowMm === 'number') setRowMm(cfg.rowMm);
     if (typeof cfg.padMm === 'number') setPadMm(cfg.padMm);
+    if (typeof cfg.padTopMm === 'number') setPadTopMm(cfg.padTopMm);
     if (typeof cfg.fsHoyoPt === 'number')
       setFsHoyoPt(clampTarjetaFont(cfg.fsHoyoPt, TARJETA_HEADER_FONTS_DEFAULT.hoyoPt));
     if (typeof cfg.fsCatPt === 'number')
