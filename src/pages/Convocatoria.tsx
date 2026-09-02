@@ -17,6 +17,8 @@ import { useUploadsList } from '@/hooks/useUploads';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+/** Diálogo compartido: previsualización del PDF antes de descargar. */
+import PdfPreviewDialog from '@/components/shared/PdfPreviewDialog';
 
 // Section components
 import DescripcionSection from '@/components/convocatoria/DescripcionSection';
@@ -296,21 +298,13 @@ const Convocatoria = () => {
               a new tab. Hidden when no PDF has been uploaded via /admin. */}
           {convocatoriaPdfUrl && (
             <div className="flex justify-center mb-8">
-              <Button
-                asChild
-                size="lg"
+              {/* Previsualización en línea del PDF antes de descargarlo. */}
+              <PdfPreviewDialog
+                url={convocatoriaPdfUrl}
+                label="Ver en PDF"
+                title="Convocatoria"
                 className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <a
-                  href={convocatoriaPdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Ver convocatoria en PDF"
-                >
-                  <FileText className="h-5 w-5" />
-                  Ver en PDF
-                </a>
-              </Button>
+              />
             </div>
           )}
 

@@ -14,6 +14,8 @@ import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
 import { useValorStable } from '@/hooks/useValorStable';
 import StablefordTable from '@/components/shared/StablefordTable';
+/** Diálogo compartido: previsualización del PDF antes de descargar. */
+import PdfPreviewDialog from '@/components/shared/PdfPreviewDialog';
 
 // ============= Helpers =============
 
@@ -117,22 +119,14 @@ const Reglas = () => {
       />
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
-          {/* CTA: Download/View full Reglas y CC PDF document */}
+          {/* CTA: previsualiza el PDF de Reglas y CC antes de descargarlo */}
           <div className="mb-10 flex justify-center">
-            <Button
-              asChild
-              size="lg"
+            <PdfPreviewDialog
+              url={reglasPdfUrl}
+              label={pdfLabel}
+              title="Reglas y Condiciones de Competencia"
               className="gap-2"
-            >
-              <a
-                href={reglasPdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <FileText className="h-5 w-5" />
-                {pdfLabel}
-              </a>
-            </Button>
+            />
           </div>
 
           {/* General rules cards (DB-backed `reglas_intro_cards`) */}
