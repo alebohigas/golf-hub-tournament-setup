@@ -15,6 +15,8 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+/** Diálogo compartido: previsualización del PDF antes de descargar. */
+import PdfPreviewDialog from '@/components/shared/PdfPreviewDialog';
 import { BookOpen, Scale, Gavel, ShieldCheck, Trophy, FileText, Clock, AlertTriangle, ScrollText } from 'lucide-react';
 // Hero HD propio de Skin Rules
 import skinHero from '@/assets/skin-rules-hero.jpg';

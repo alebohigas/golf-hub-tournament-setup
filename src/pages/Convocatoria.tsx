@@ -17,6 +17,8 @@ import { useUploadsList } from '@/hooks/useUploads';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+/** Diálogo compartido: previsualización del PDF antes de descargar. */
+import PdfPreviewDialog from '@/components/shared/PdfPreviewDialog';
 
 // Section components
 import DescripcionSection from '@/components/convocatoria/DescripcionSection';
