@@ -129,7 +129,13 @@ const AdminTarjetasPrint = () => {
    * ANOTADOR. Configurable aquí y enviado al reporte como `pad=` para que
    * la previsualización, la impresión y el PDF sean idénticos.
    */
-  const [padMm, setPadMm] = useState(3);
+  const [padMm, setPadMm] = useState(TARJETA_LAYOUT_DEFAULTS.padMm);
+  /**
+   * Padding-top (mm) al inicio de cada tarjeta, antes de la cabecera del
+   * torneo. Viaja al reporte como `padtop=` para aplicarse a las 2 tarjetas
+   * de la hoja carta.
+   */
+  const [padTopMm, setPadTopMm] = useState(TARJETA_LAYOUT_DEFAULTS.padTopMm);
 
   /**
    * Tamaños de letra (pt) del encabezado de la tarjeta:
