@@ -80,8 +80,8 @@ import {
   type TarjetaHcpField,
 } from '@/lib/tarjetasHcp';
 import { useToast } from '@/hooks/use-toast';
-/* Geometría de hoja carta vertical (alto máximo de cabecera). */
-import { TARJETA_HEADER_MAX_MM } from '@/lib/tarjetasSheet';
+/* Geometría de hoja carta vertical (alto máximo de cabecera y defaults). */
+import { TARJETA_HEADER_MAX_MM, TARJETA_LAYOUT_DEFAULTS } from '@/lib/tarjetasSheet';
 
 
 /** Panel de impresión de tarjetas. */
