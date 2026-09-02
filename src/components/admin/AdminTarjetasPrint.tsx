@@ -254,6 +254,7 @@ const AdminTarjetasPrint = () => {
       scale,
       rowMm,
       padMm,
+      padTopMm,
       rowOrder,
       headerOrder,
       fsHoyoPt,
