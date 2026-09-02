@@ -372,6 +372,8 @@ const AdminTarjetasPrint = () => {
     if (rowMm < 2.6 || rowMm > 12) errs.push('El alto de renglón debe estar entre 2.6 y 12 mm.');
     if (padMm < 0 || padMm > 15)
       errs.push('El padding inferior debe estar entre 0 y 15 mm.');
+    if (padTopMm < 0 || padTopMm > 15)
+      errs.push('El padding superior debe estar entre 0 y 15 mm.');
     if (!rowOrder.length) errs.push('Selecciona al menos un renglón de la tarjeta.');
     if (!headerOrder.length) errs.push('Selecciona al menos un campo del encabezado.');
     return errs;
