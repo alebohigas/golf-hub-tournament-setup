@@ -80,12 +80,13 @@ const SkinRules = () => {
           {/* CTA: only shown when a PDF has been uploaded */}
           {pdfUrl && (
             <div className="mb-10 flex justify-center">
-              <Button asChild size="lg" className="gap-2">
-                <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
-                  <FileText className="h-5 w-5" />
-                  {pdfLabel}
-                </a>
-              </Button>
+              {/* Previsualización en línea antes de descargar. */}
+              <PdfPreviewDialog
+                url={pdfUrl}
+                label={pdfLabel}
+                title="Reglas del Skin Game"
+                className="gap-2"
+              />
             </div>
           )}
 
