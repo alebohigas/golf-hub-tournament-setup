@@ -1319,8 +1319,42 @@ export const RegistrosDashboard = ({ password }: { password: string }) => {
                                   </div>
                                 );
                               })}
-                            </div>
-                          </td>
+                             </div>
+                             {/*
+                              * Control administrativo de archivo adjunto dentro del
+                              * detalle expandido de Registros completados. Cada fila
+                              * usa un id propio para evitar colisiones entre inputs.
+                              */}
+                             {section === 'sec4' && (
+                               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
+                                 <div>
+                                   <Label htmlFor={`registro-archivo-adjunto-${r.id}`} className="text-sm font-semibold">
+                                     SUBIR ARCHIVO ADJUNTO
+                                   </Label>
+                                   <p className="text-xs text-muted-foreground">
+                                     {Number(r.has_archivo) === 1
+                                       ? `Actual: ${r.reg_archivo_nombre || 'archivo cargado'} · puedes reemplazarlo`
+                                       : 'Imagen o PDF · máximo 15 MB'}
+                                   </p>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                   <Input
+                                     id={`registro-archivo-adjunto-${r.id}`}
+                                     type="file"
+                                     accept="image/*,.pdf"
+                                     className="max-w-[230px] text-xs"
+                                     disabled={!!busy[`upload-${r.id}`]}
+                                     onChange={(e) => {
+                                       const file = e.currentTarget.files?.[0];
+                                       e.currentTarget.value = '';
+                                       if (file) void uploadArchivo(r, file);
+                                     }}
+                                   />
+                                   {busy[`upload-${r.id}`] && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                 </div>
+                               </div>
+                             )}
+                           </td>
                         </tr>
                       )}
                       </Fragment>
