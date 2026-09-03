@@ -959,7 +959,7 @@ if ($tipo === '' || $tipo === 'oyes300') {
                 // Pass the internal prize id ($prizeId) — that's what the
                 // results table uses for filtering.
                 $group['players']     = get_oyes300_players($conn, $tid, $prizeId, $lugares);
-                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $descripcion);
+                $group['lastUpdated'] = get_oyes300_last_updated($conn, $tid, $descripcion, $prizeIdEsc);
             }
 
             $groups[] = $group;
