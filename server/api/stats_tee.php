@@ -138,10 +138,35 @@ $updatedAt = null;
 $scoresByHole = []; // hole => array of raw scores
 for ($h = 1; $h <= 18; $h++) { $scoresByHole[$h] = []; }
 
+/**
+ * has_column — true when `$table` exposes `$col`.
+ * Permite degradar sin error si `caljuego.estatus` no existe.
+ */
+function has_column($conn, $table, $col) {
+    $r = @$conn->query("SHOW COLUMNS FROM `$table` LIKE '" . esc($conn, $col) . "'");
+    if (!$r) { return false; }
+    $ok = $r->num_rows > 0;
+    $r->free();
+    return $ok;
+}
+
+/**
+ * Sólo RONDAS TERMINADAS: cada tarjeta debe corresponder a un día del
+ * calendario de juego (`caljuego`) de su categoría con estatus = 3.
+ */
+$finishedJoin = '';
+if (has_column($conn, 'caljuego', 'estatus')) {
+    $finishedJoin = "JOIN caljuego cj
+                       ON (cj.categoriaid = v.categoriaid
+                       AND cj.fecha = DATE(t.fecha_juego)
+                       AND cj.estatus = 3)";
+}
+
 $sql = "SELECT $scoreColsSql, t.fecha_cap
           FROM v_sal_jug v
           JOIN tarjetas t   ON (v.tarjetaid = t.id)
           JOIN categorias c ON (v.categoriaid = c.categoria_id)
+          $finishedJoin
          WHERE c.torneo_id = $tid
            AND c.salida IN ($idsSql)";
 $rows = safe_all($conn, $sql);
