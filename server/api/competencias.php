@@ -1445,17 +1445,58 @@ function get_oyes300_players($conn, $tid, $holeNum, $limit = 3) {
 
 
 /**
- * Get O'Yes 300 last updated timestamp.
- * Tries the legacy MySQL function f_ultfechaoyesx(descripcion, torneoid)
- * (same one used by /api/oyesx.php). Returns null if the function or
- * description is unavailable.
+ * Get O'Yes 300 (O'Yes X) last updated timestamp.
+ *
+ * Estrategia en cascada (algunos torneos —p.ej. 361— no tienen datos
+ * en la función legacy, por lo que el sello no se mostraba):
+ *   1) Función legacy f_ultfechaoyesx(descripcion, torneoid).
+ *   2) MAX() de la primera columna de fecha existente en `oyesxjug`
+ *      filtrando por torneo + premio (id interno del premio).
+ *   3) Igual que (2) pero solo por torneo.
+ * Devuelve 'YYYY-MM-DD HH:MM' o null si no hay ninguna fecha.
+ *
+ * @param mysqli $conn
+ * @param string $tid       torneoid ya escapado
+ * @param string $descripcion  descripción del premio (clave de la función legacy)
+ * @param string|int $prizeId  oyesx.premio (id interno) para el fallback
  */
-function get_oyes300_last_updated($conn, $tid, $descripcion) {
-    if (empty($descripcion)) return null;
-    $desc = esc($conn, $descripcion);
-    $sql = "SELECT LEFT(f_ultfechaoyesx('$desc', $tid), 16) as lastUpdated";
-    $row = safe_query_one($conn, $sql);
-    return $row['lastUpdated'] ?? null;
+function get_oyes300_last_updated($conn, $tid, $descripcion, $prizeId = null) {
+    // --- 1) Función legacy -------------------------------------------------
+    if (!empty($descripcion)) {
+        $desc = esc($conn, $descripcion);
+        $row = safe_query_one($conn, "SELECT LEFT(f_ultfechaoyesx('$desc', $tid), 16) as lastUpdated");
+        if (!empty($row['lastUpdated'])) return $row['lastUpdated'];
+    }
+
+    // --- 2/3) Fallback directo sobre oyesxjug ------------------------------
+    // Detecta qué columna de fecha existe en la tabla (varía por instalación).
+    static $dateCol = false;
+    if ($dateCol === false) {
+        $dateCol = null;
+        $res = @$conn->query("SHOW COLUMNS FROM oyesxjug");
+        if ($res) {
+            $cols = [];
+            while ($c = $res->fetch_assoc()) { $cols[strtolower($c['Field'])] = true; }
+            $res->free();
+            foreach (['ultact', 'fechahora', 'fecha_hora', 'fecha', 'ultimaactualizacion', 'updated_at'] as $cand) {
+                if (isset($cols[$cand])) { $dateCol = $cand; break; }
+            }
+        }
+    }
+    if (!$dateCol) return null;
+
+    if ($prizeId !== null && $prizeId !== '') {
+        $pid = esc($conn, $prizeId);
+        $row = safe_query_one($conn, "SELECT LEFT(MAX(`$dateCol`), 16) as lastUpdated
+                                        FROM oyesxjug
+                                       WHERE torneoid = $tid AND premio = $pid");
+        if (!empty($row['lastUpdated'])) return $row['lastUpdated'];
+    }
+
+    $row = safe_query_one($conn, "SELECT LEFT(MAX(`$dateCol`), 16) as lastUpdated
+                                    FROM oyesxjug WHERE torneoid = $tid");
+    return !empty($row['lastUpdated']) ? $row['lastUpdated'] : null;
 }
+
 
 // End of competencias.php - Driver Precisión + Distancia added 2026-04-28
