@@ -1374,6 +1374,27 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Escala de contenido: reduce proporcionalmente el layout para que
+                quepan más bloques por hoja SIN partirlos en el brinco de
+                página. 'Automática' elige la escala más grande que logra el
+                menor número de hojas. Aplica igual en vertical y horizontal. */}
+            <Select
+              value={String(scaleMode)}
+              onValueChange={(v) => setScaleMode(v === 'auto' ? 'auto' : Number(v))}
+            >
+              <SelectTrigger className="h-9 w-[220px]">
+                <SelectValue placeholder="Escala" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Escala: automática ({autoScale}%)</SelectItem>
+                {SCALE_STEPS.map((s) => (
+                  <SelectItem key={s} value={String(s)}>
+                    Escala: {s}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Autoajustar: baja densidad / alto de renglón hasta que no
                 queden empalmes detectados en la vista previa. */}
             <Button
