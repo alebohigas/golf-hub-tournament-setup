@@ -705,7 +705,7 @@ const AdminTimeLine = () => {
     window.addEventListener('resize', run);
     void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(run);
     return () => window.removeEventListener('resize', run);
-  }, [measureDensity, data, activeDensity]);
+  }, [measureDensity, data, activeDensity, activeScale]);
 
   /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
   useEffect(() => {
@@ -789,7 +789,7 @@ const AdminTimeLine = () => {
   useEffect(() => {
     const id = window.setTimeout(computePrintPages, 150);
     return () => window.clearTimeout(id);
-  }, [computePrintPages, data, activeDensity]);
+  }, [computePrintPages, data, activeDensity, activeScale]);
 
   /** Remide las guías al redimensionar la ventana (la vista previa es en vivo). */
   useEffect(() => {
@@ -1142,7 +1142,7 @@ const AdminTimeLine = () => {
     const id = window.setTimeout(() => void openPreview(), 250);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paper, orientation, marginMm, activeDensity, rowPad]);
+  }, [paper, orientation, marginMm, activeDensity, rowPad, activeScale]);
 
 
   /**
