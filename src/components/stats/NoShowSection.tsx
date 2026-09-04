@@ -56,15 +56,18 @@ const NoShowRow = ({
     <CollapsibleContent>
       {players.length > 0 ? (
         <ul className="divide-y divide-border border-t border-border">
-          {players.map((p, i) => (
-            <li
-              key={`${p.name}-${i}`}
-              className="px-4 py-1.5 pl-10 flex items-center justify-between gap-3 text-xs"
-            >
-              <span className="truncate">{p.name}</span>
-              <span className="text-muted-foreground shrink-0">{p.categoria}</span>
-            </li>
-          ))}
+          {players
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+            .map((p, i) => (
+              <li
+                key={`${p.name}-${i}`}
+                className="px-4 py-1.5 pl-10 flex items-center justify-between gap-3 text-xs"
+              >
+                <span className="truncate">{p.name}</span>
+                <span className="text-muted-foreground shrink-0">{p.categoria}</span>
+              </li>
+            ))}
         </ul>
       ) : (
         <p className="px-4 py-1.5 pl-10 text-xs text-muted-foreground border-t border-border">
@@ -98,13 +101,13 @@ const NoShowSection = () => {
           <UserX className="h-4 w-4 text-muted-foreground" />
           <div className="flex items-baseline gap-2 flex-wrap">
             <h3 className="text-lg md:text-xl font-display font-bold uppercase tracking-wide text-muted-foreground">
-              NO SHOW
+              No show
             </h3>
             <span className="text-2xl md:text-3xl font-mono font-black text-muted-foreground leading-none">
               {noShow.total}
             </span>
             <span className="text-xs text-muted-foreground">
-              jugadores no jugaron
+              jugadores que no completaron
             </span>
           </div>
         </div>
