@@ -51,6 +51,7 @@ import type {
 import { useCalendarioData } from '@/hooks/useCalendarioData';
 import { useHorariosData } from '@/hooks/useHorariosData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import { formatDbDateTimeCdMx } from '@/lib/dbDateTime';
 
 // ============= Helpers =============
 
