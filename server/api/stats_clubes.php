@@ -146,22 +146,38 @@ $tees = array_values($teeMap);
 usort($tees, fn($a, $b) => $a['id'] - $b['id']);
 
 // ============= NO SHOW summary =============
-$nsRows = safe_rows($conn, "SELECT UPPER(TRIM(j.estatus)) AS est, COUNT(*) AS n
-                              FROM jugadores j
-                             WHERE j.torneoid = $tid
-                               AND (j.numjugador IS NULL OR j.numjugador NOT LIKE '%-1')
-                               AND j.estatus IS NOT NULL AND j.estatus <> ''
-                               AND UPPER(TRIM(j.estatus)) NOT IN ('NORMAL','BAJA')
-                             GROUP BY UPPER(TRIM(j.estatus))");
-$retiro = 0; $noshow = 0; $desc = 0; $nocont = 0;
-foreach ($nsRows as $r) {
-    $e = $r['est']; $n = (int)$r['n'];
-    if ($e === 'RETIRO' || $e === 'ABANDONO') $retiro += $n;
-    else if ($e === 'NO SHOW' || $e === 'NO-SHOW' || $e === 'SHOW-NO') $noshow += $n;
-    else if ($e === 'DESCALIFICADO' || $e === 'DQ') $desc += $n;
+/**
+ * Lista de jugadores con estatus distinto a NORMAL/BAJA. Se agrupa en
+ * memoria por estatus normalizado para devolver conteos + detalle
+ * (nombre y categoría) que la UI muestra en un desplegable.
+ */
+$nsPlayers = safe_rows($conn, "SELECT UPPER(TRIM(j.estatus)) AS est,
+                                      CONCAT(j.nombre, ' ', j.apellido) AS name,
+                                      cat.categoria AS categoria
+                                 FROM jugadores j
+                                 LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
+                                WHERE j.torneoid = $tid
+                                  AND (j.numjugador IS NULL OR j.numjugador NOT LIKE '%-1')
+                                  AND j.estatus IS NOT NULL AND j.estatus <> ''
+                                  AND UPPER(TRIM(j.estatus)) NOT IN ('NORMAL','BAJA')
+                                ORDER BY j.apellido, j.nombre ASC");
+
+/** Buckets de detalle por estatus canónico. */
+$buckets = ['retiro' => [], 'noShow' => [], 'descalificado' => [], 'noContiende' => []];
+foreach ($nsPlayers as $p) {
+    $e = $p['est'];
+    $item = ['name' => trim($p['name'] ?? ''), 'categoria' => $p['categoria'] ?? ''];
+    if ($e === 'RETIRO' || $e === 'ABANDONO') $buckets['retiro'][] = $item;
+    else if ($e === 'NO SHOW' || $e === 'NO-SHOW' || $e === 'SHOW-NO') $buckets['noShow'][] = $item;
+    else if ($e === 'DESCALIFICADO' || $e === 'DQ') $buckets['descalificado'][] = $item;
     // "No contiende" (N): jugador inscrito que no compite por premios.
-    else if ($e === 'NO CONTIENDE' || $e === 'NO-CONTIENDE' || $e === 'N') $nocont += $n;
+    else if ($e === 'NO CONTIENDE' || $e === 'NO-CONTIENDE' || $e === 'N') $buckets['noContiende'][] = $item;
 }
+
+$retiro = count($buckets['retiro']);
+$noshow = count($buckets['noShow']);
+$desc   = count($buckets['descalificado']);
+$nocont = count($buckets['noContiende']);
 
 json_response([
     'total'  => $grandTotal,
@@ -173,5 +189,8 @@ json_response([
         'descalificado' => $desc,
         'noContiende'   => $nocont,
         'total'         => $retiro + $noshow + $desc + $nocont,
+        /** Detalle de jugadores por estatus para el desplegable. */
+        'players'       => $buckets,
     ],
 ]);
+
