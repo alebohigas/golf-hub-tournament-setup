@@ -30,11 +30,16 @@ export interface ConvocatoriaContentRow {
   content: unknown;
   sort_order: number;
   enabled: boolean;
+  /** Last modification of this row (DB timestamp) when available. */
+  updated_at?: string | null;
 }
 
 interface ApiResponse {
   sections: ConvocatoriaContentRow[];
+  /** Most recent modification across all sections of the tournament. */
+  updatedAt?: string | null;
 }
+
 
 /** Cross-tab channel name used to announce convocatoria config changes. */
 const CONVOCATORIA_CHANNEL = 'convocatoria_content_changed';
