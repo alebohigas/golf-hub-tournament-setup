@@ -38,3 +38,43 @@ export function formatDbDateTime(value?: string | null): string {
   if (y === '0000' || m === '00' || d === '00') return '';
   return `${y}-${m}-${d} ${hh}:${mm ?? '00'}`;
 }
+
+/**
+ * Convierte un DATETIME de MySQL asumido en UTC a la hora de la Ciudad de México.
+ * Formato de salida: "4 de septiembre de 2026 a las 11:13 a.m."
+ * Útil cuando el servidor guarda timestamps en UTC y el usuario espera ver
+ * la hora local del club (huso horario America/Mexico_City).
+ *
+ * @param value - Fecha/hora en formato "YYYY-MM-DD HH:MM:SS" (o variantes ISO).
+ * @returns Cadena localizada en español (México) o vacía si el valor no es válido.
+ */
+export function formatDbDateTimeCdMx(value?: string | null): string {
+  if (!value) return '';
+
+  const m = String(value)
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return '';
+
+  const [, y, mo, d, h, mi] = m;
+  if (y === '0000' || mo === '00' || d === '00') return '';
+
+  // Se asume que el valor de la BD es UTC para poder trasladarlo a CDMX.
+  const date = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi)));
+  if (Number.isNaN(date.getTime())) return '';
+
+  const datePart = date.toLocaleDateString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const timePart = date.toLocaleTimeString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  return `${datePart} a las ${timePart}`;
+}

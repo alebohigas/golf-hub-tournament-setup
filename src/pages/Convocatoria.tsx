@@ -51,6 +51,7 @@ import type {
 import { useCalendarioData } from '@/hooks/useCalendarioData';
 import { useHorariosData } from '@/hooks/useHorariosData';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
+import { formatDbDateTimeCdMx } from '@/lib/dbDateTime';
 
 // ============= Helpers =============
 
@@ -81,22 +82,13 @@ const formatDate = (start: string, end: string) => {
 
 /**
  * Format the DB timestamp ('YYYY-MM-DD HH:MM:SS') of the last convocatoria
- * change into a readable local string, mirroring the "Actualizado" label of
- * Estadísticas por categoría. Parses components manually to stay timezone-safe.
+ * change into the tournament's local time (Ciudad de México). This mirrors
+ * the "Actualizado" label of Estadísticas por categoría but converts from
+ * the UTC value stored in the database so members see the correct hour.
  */
 const formatUpdatedAt = (raw: string): string | null => {
-  const m = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
-  if (!m) return null;
-  const [, y, mo, d, h, mi] = m;
-  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleString('es-MX', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formatted = formatDbDateTimeCdMx(raw);
+  return formatted || null;
 };
 
 // ============= Section Renderer =============
