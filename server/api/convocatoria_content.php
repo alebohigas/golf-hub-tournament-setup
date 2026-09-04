@@ -37,14 +37,39 @@ function convocatoria_content_table_exists($conn) {
     return $exists;
 }
 
+/**
+ * Returns the name of the timestamp column available in convocatoria_content
+ * ('updated_at', else 'created_at'), or null when the table has neither.
+ * Used to report the real "last modified" date of a tournament's convocatoria,
+ * mirroring the "Actualizado" label of Estadísticas por categoría.
+ */
+function convocatoria_content_stamp_column($conn) {
+    static $col = false;
+    if ($col !== false) return $col;
+    $col = null;
+    $r = $conn->query("SHOW COLUMNS FROM convocatoria_content");
+    if ($r) {
+        $names = [];
+        while ($row = $r->fetch_assoc()) $names[] = $row['Field'];
+        foreach (['updated_at', 'fec_ult_act', 'created_at'] as $cand) {
+            if (in_array($cand, $names, true)) { $col = $cand; break; }
+        }
+    }
+    return $col;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $torneoid = (int) require_param('torneoid');
 
     if (!convocatoria_content_table_exists($conn)) {
-        json_response(['sections' => []]);
+        json_response(['sections' => [], 'updatedAt' => null]);
     }
 
-    $sql = "SELECT section_id, section_type, title, content, sort_order, enabled
+    /** Timestamp column (when present) so we can expose the real last change. */
+    $stampCol = convocatoria_content_stamp_column($conn);
+    $stampSel = $stampCol ? ", `$stampCol` AS updated_at" : "";
+
+    $sql = "SELECT section_id, section_type, title, content, sort_order, enabled$stampSel
             FROM convocatoria_content
             WHERE torneoid = $torneoid
             ORDER BY sort_order ASC, id ASC";
@@ -68,10 +93,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'content'      => $decoded,
             'sort_order'   => (int) $r['sort_order'],
             'enabled'      => (int) $r['enabled'] === 1,
+            'updated_at'   => isset($r['updated_at']) ? $r['updated_at'] : null,
         ];
     }
 
-    json_response(['sections' => $sections]);
+    /**
+     * updatedAt = most recent modification across this tournament's sections.
+     * Empty / zero dates are ignored so the UI hides the label instead of
+     * printing 0000-00-00.
+     */
+    $updatedAt = null;
+    foreach ($sections as $s) {
+        $v = $s['updated_at'];
+        if (!$v || strpos((string) $v, '0000') === 0) continue;
+        if ($updatedAt === null || strcmp((string) $v, (string) $updatedAt) > 0) $updatedAt = $v;
+    }
+
+    json_response(['sections' => $sections, 'updatedAt' => $updatedAt]);
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $body = json_decode(file_get_contents('php://input'), true);
@@ -103,16 +141,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $enabled     = !empty($body['enabled']) ? 1 : 0;
     $sectionIdEsc = esc($conn, $sectionId);
 
+    /**
+     * Always refresh the timestamp column on write (when it exists) so the
+     * public page can show the real last modification date, even if the
+     * column was created without ON UPDATE CURRENT_TIMESTAMP.
+     */
+    $stampCol   = convocatoria_content_stamp_column($conn);
+    $stampCols  = $stampCol ? ", `$stampCol`" : "";
+    $stampVals  = $stampCol ? ", NOW()" : "";
+    $stampUpd   = $stampCol ? ",\n              `$stampCol` = NOW()" : "";
+
     $sql = "INSERT INTO convocatoria_content
-            (torneoid, section_id, section_type, title, content, sort_order, enabled)
+            (torneoid, section_id, section_type, title, content, sort_order, enabled$stampCols)
             VALUES
-            ($torneoid, '$sectionIdEsc', '$sectionType', $title, '$content', $sortOrder, $enabled)
+            ($torneoid, '$sectionIdEsc', '$sectionType', $title, '$content', $sortOrder, $enabled$stampVals)
             ON DUPLICATE KEY UPDATE
               section_type = VALUES(section_type),
               title        = VALUES(title),
               content      = VALUES(content),
               sort_order   = VALUES(sort_order),
-              enabled      = VALUES(enabled)";
+              enabled      = VALUES(enabled)$stampUpd";
 
     if (!$conn->query($sql)) {
         json_error('Failed to save convocatoria section: ' . $conn->error, 500);
