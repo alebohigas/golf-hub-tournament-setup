@@ -79,6 +79,26 @@ const formatDate = (start: string, end: string) => {
   return `Del ${startDate.toLocaleDateString('es-MX', options)} al ${endDate.toLocaleDateString('es-MX', { ...options, year: 'numeric' })}`;
 };
 
+/**
+ * Format the DB timestamp ('YYYY-MM-DD HH:MM:SS') of the last convocatoria
+ * change into a readable local string, mirroring the "Actualizado" label of
+ * Estadísticas por categoría. Parses components manually to stay timezone-safe.
+ */
+const formatUpdatedAt = (raw: string): string | null => {
+  const m = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m;
+  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 // ============= Section Renderer =============
 
 /**
@@ -167,7 +187,7 @@ const Convocatoria = () => {
   // page falls back to the static mockData values below.
   // Auto-recarga desde la BD: poll cada 30s + refetch al enfocar la pestaña +
   // sincronización inmediata cuando /admin habilita/deshabilita una sección.
-  const { bySectionId: dbContent } = useConvocatoriaContent({
+  const { bySectionId: dbContent, updatedAt: contentUpdatedAt } = useConvocatoriaContent({
     pollMs: 30_000,
     refreshOnFocus: true,
   });
@@ -338,6 +358,16 @@ const Convocatoria = () => {
                   {formatDate(tournamentData.startDate, tournamentData.endDate)}
                 </span>
               </div>
+            )}
+
+            {/* Última modificación real del contenido de este torneo (BD) */}
+            {contentUpdatedAt && formatUpdatedAt(contentUpdatedAt) && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Última actualización:{' '}
+                <span className="font-medium text-foreground">
+                  {formatUpdatedAt(contentUpdatedAt)}
+                </span>
+              </p>
             )}
           </div>
 
