@@ -190,6 +190,42 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
 /** Orden de tanteo en modo automático: de la más holgada a la más compacta. */
 const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
 
+/* ===========================================================================
+ * ESCALA DE CONTENIDO
+ * ---------------------------------------------------------------------------
+ * La escala reduce PROPORCIONALMENTE las medidas reales del layout (tamaños de
+ * letra, alto de renglón y separación entre bloques) multiplicando las
+ * variables CSS de la densidad activa. Al ser una reducción de LAYOUT (no un
+ * `transform`), la paginación del navegador, la impresión directa y el PDF
+ * siguen viendo bloques completos: caben más bloques por hoja y `break-inside:
+ * avoid` + el corte al inicio de bloque siguen impidiendo que un bloque se
+ * parta en el brinco de página.
+ * =========================================================================== */
+
+/** Escalas ofrecidas en el selector (porcentaje del tamaño original). */
+const SCALE_STEPS = [100, 95, 90, 85, 80, 75, 70, 65, 60] as const;
+
+/**
+ * Devuelve las variables CSS de una densidad multiplicadas por la escala.
+ * Se respetan las unidades originales (`px` / `rem`) y se redondea a 2
+ * decimales para que pantalla, impresión y PDF midan exactamente igual.
+ * @param vars Variables de la densidad activa
+ * @param scale Factor de escala (1 = 100 %)
+ */
+const scaleDensityVars = (
+  vars: Record<string, string>,
+  scale: number
+): Record<string, string> => {
+  if (scale === 1) return vars;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(vars)) {
+    const m = /^(-?\d*\.?\d+)(px|rem)$/.exec(v.trim());
+    out[k] = m ? `${Number((parseFloat(m[1]) * scale).toFixed(2))}${m[2]}` : v;
+  }
+  return out;
+};
+
+
 /**
  * Celda de la rejilla de hoyos (números, pares y horas).
  * `divider` dibuja la línea vertical más marcada cada 3 hoyos.
@@ -524,6 +560,23 @@ const AdminTimeLine = () => {
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
 
   /**
+   * Escala de contenido elegida: 'auto' o un porcentaje fijo (`?escala=85`).
+   * En 'auto' se busca la escala MÁS GRANDE que logre el mínimo número de
+   * hojas, es decir la que aprovecha el espacio sobrante sin partir bloques.
+   */
+  const [scaleMode, setScaleMode] = useState<'auto' | number>(() => {
+    const raw = Number(params.get('escala') ?? params.get('scale'));
+    return SCALE_STEPS.includes(raw as (typeof SCALE_STEPS)[number]) ? raw : 'auto';
+  });
+
+  /** Escala calculada en modo automático (porcentaje). */
+  const [autoScale, setAutoScale] = useState(100);
+  /** Escala realmente aplicada (porcentaje) y su factor. */
+  const activeScale = scaleMode === 'auto' ? autoScale : scaleMode;
+  const scaleFactor = activeScale / 100;
+
+
+  /**
    * Tamaño de letra (px) de las celdas de hoyo/hora ajustado al ancho REAL de
    * la columna, junto con el modo de formato de la hora.
    *
@@ -580,10 +633,14 @@ const AdminTimeLine = () => {
     };
   }, [activeDensity, pageW]);
 
-  /** Tamaño de letra aplicado a las celdas de la HORA de cada hoyo. */
-  const holeFontPx = holeFont.size;
-  /** Tamaño de letra del NÚMERO de hoyo y del PAR. */
-  const holeNumFontPx = holeFont.numSize;
+  /**
+   * Tamaño de letra aplicado a las celdas de la HORA de cada hoyo, ya reducido
+   * por la escala de contenido (con piso legible de 6 px).
+   */
+  const holeFontPx = Math.max(6, Number((holeFont.size * scaleFactor).toFixed(2)));
+  /** Tamaño de letra del NÚMERO de hoyo y del PAR (también escalado). */
+  const holeNumFontPx = Math.max(6, Number((holeFont.numSize * scaleFactor).toFixed(2)));
+
   /** Modo de formato de la hora en la rejilla de hoyos. */
   const holeTimeMode = holeFont.mode;
 
@@ -648,7 +705,7 @@ const AdminTimeLine = () => {
     window.addEventListener('resize', run);
     void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(run);
     return () => window.removeEventListener('resize', run);
-  }, [measureDensity, data, activeDensity]);
+  }, [measureDensity, data, activeDensity, activeScale]);
 
   /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
   useEffect(() => {
@@ -732,7 +789,7 @@ const AdminTimeLine = () => {
   useEffect(() => {
     const id = window.setTimeout(computePrintPages, 150);
     return () => window.clearTimeout(id);
-  }, [computePrintPages, data, activeDensity]);
+  }, [computePrintPages, data, activeDensity, activeScale]);
 
   /** Remide las guías al redimensionar la ventana (la vista previa es en vivo). */
   useEffect(() => {
@@ -955,6 +1012,76 @@ const AdminTimeLine = () => {
     });
   }, [printPages, blockZones]);
 
+  /* ============== ESCALA AUTOMÁTICA (aprovechar el espacio sobrante) =========
+   * Con la geometría YA medida de los bloques se simula el empaquetado hoja por
+   * hoja para cada escala candidata y se elige la MÁS GRANDE que consiga el
+   * menor número de hojas. La simulación nunca permite que un bloque cruce el
+   * pie de la hoja: si no cabe, arranca la siguiente (idéntico criterio al de
+   * `computeCuts`), así el ahorro de hojas jamás parte un bloque.
+   * ======================================================================== */
+
+  /**
+   * Número de hojas que ocuparía el reporte con una escala candidata.
+   * @param cand Factor de escala candidato (1 = 100 %)
+   * @param items Alto y avance (alto + separación) de cada bloque, sin escalar
+   * @param headerH Alto del encabezado (no se escala)
+   * @param avail Alto útil de la hoja
+   * @returns Hojas necesarias, o `null` si algún bloque no cabe en una hoja
+   */
+  const simulatePages = useCallback(
+    (
+      cand: number,
+      items: { h: number; adv: number }[],
+      headerH: number,
+      avail: number
+    ): number | null => {
+      let pos = headerH;
+      let pages = 1;
+      for (const it of items) {
+        const h = it.h * cand;
+        if (h > avail) return null;
+        if (pos > 0 && pos + h > avail) {
+          pages += 1;
+          pos = 0;
+        }
+        pos += it.adv * cand;
+      }
+      return pages;
+    },
+    []
+  );
+
+  /** Recalcula la escala automática cada vez que cambia la maqueta medida. */
+  useEffect(() => {
+    if (scaleMode !== 'auto') return;
+    if (blockZones.length === 0) return;
+    const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
+    const avail = pageH - FOOTER_RESERVE_PX;
+    /* Se normaliza a escala 1 dividiendo entre la escala aplicada al medir. */
+    const items = blockZones.map((z, i) => {
+      const next = blockZones[i + 1];
+      const adv = (next ? next.top : z.bottom) - z.top;
+      return { h: (z.bottom - z.top) / scaleFactor, adv: adv / scaleFactor };
+    });
+    let best = { scale: 100, pages: Number.POSITIVE_INFINITY };
+    for (const step of SCALE_STEPS) {
+      const pages = simulatePages(step / 100, items, headerH, avail);
+      if (pages === null) continue;
+      /* Empate de hojas → se conserva la escala MÁS GRANDE (mejor legibilidad). */
+      if (pages < best.pages) best = { scale: step, pages };
+    }
+    if (Number.isFinite(best.pages) && best.scale !== autoScale) setAutoScale(best.scale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scaleMode, blockZones, pageH, scaleFactor, simulatePages]);
+
+  /** Al cambiar papel, orientación, densidad o datos se reinicia la escala auto. */
+  useEffect(() => {
+    if (scaleMode === 'auto') setAutoScale(100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scaleMode, paper, orientation, marginMm, activeDensity, rowPad, data]);
+
+
+
   /* ===================== Autoajustar ===================== */
 
   /** Ciclos de autoajuste pendientes (cada uno reduce un poco el layout). */
@@ -1085,7 +1212,7 @@ const AdminTimeLine = () => {
     const id = window.setTimeout(() => void openPreview(), 250);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paper, orientation, marginMm, activeDensity, rowPad]);
+  }, [paper, orientation, marginMm, activeDensity, rowPad, activeScale]);
 
 
   /**
@@ -1247,6 +1374,27 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
+            {/* Escala de contenido: reduce proporcionalmente el layout para que
+                quepan más bloques por hoja SIN partirlos en el brinco de
+                página. 'Automática' elige la escala más grande que logra el
+                menor número de hojas. Aplica igual en vertical y horizontal. */}
+            <Select
+              value={String(scaleMode)}
+              onValueChange={(v) => setScaleMode(v === 'auto' ? 'auto' : Number(v))}
+            >
+              <SelectTrigger className="h-9 w-[220px]">
+                <SelectValue placeholder="Escala" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Escala: automática ({autoScale}%)</SelectItem>
+                {SCALE_STEPS.map((s) => (
+                  <SelectItem key={s} value={String(s)}>
+                    Escala: {s}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Autoajustar: baja densidad / alto de renglón hasta que no
                 queden empalmes detectados en la vista previa. */}
             <Button
@@ -1339,7 +1487,11 @@ const AdminTimeLine = () => {
                 {DENSITY_LEVELS[activeDensity].label}
                 {density === 'auto' ? ' (automática)' : ''}
               </strong>{' '}
+              · escala <strong className="text-foreground">
+                {activeScale}%{scaleMode === 'auto' ? ' (automática)' : ''}
+              </strong>{' '}
               · {totals.groups} grupos / {totals.players} jugadores
+
             </p>
             <p>
               Jugadores por página:{' '}
@@ -1405,18 +1557,28 @@ const AdminTimeLine = () => {
             ref={reportRef}
             style={{
               width: pageW,
-              ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+              /* Variables de la densidad activa YA multiplicadas por la escala
+                 de contenido: la reducción es de layout real, así que caben más
+                 bloques por hoja sin que ninguno se parta en el brinco. */
+              ...(scaleDensityVars(
+                DENSITY_LEVELS[activeDensity].vars,
+                scaleFactor
+              ) as React.CSSProperties),
               /* En vertical la hoja es más angosta: la hora de cada hoyo se
                  reduce lo necesario para que quepa completa en su recuadro. */
               ...({
                 '--tl-hole-size': `${holeFontPx}px`,
                 '--tl-holenum-size': `${holeNumFontPx}px`,
               } as React.CSSProperties),
-              /* El control manual de alto de renglón pisa el de la densidad. */
+              /* El control manual de alto de renglón pisa el de la densidad
+                 (también se escala para no romper la proporción). */
               ...(rowPad !== null
-                ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
+                ? ({
+                    '--tl-row-pad': `${Number((rowPad * scaleFactor).toFixed(2))}px`,
+                  } as React.CSSProperties)
                 : {}),
             }}
+
             className="timeline-report relative mx-auto bg-background p-1 print:p-0"
 
           >
