@@ -190,6 +190,42 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
 /** Orden de tanteo en modo automático: de la más holgada a la más compacta. */
 const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
 
+/* ===========================================================================
+ * ESCALA DE CONTENIDO
+ * ---------------------------------------------------------------------------
+ * La escala reduce PROPORCIONALMENTE las medidas reales del layout (tamaños de
+ * letra, alto de renglón y separación entre bloques) multiplicando las
+ * variables CSS de la densidad activa. Al ser una reducción de LAYOUT (no un
+ * `transform`), la paginación del navegador, la impresión directa y el PDF
+ * siguen viendo bloques completos: caben más bloques por hoja y `break-inside:
+ * avoid` + el corte al inicio de bloque siguen impidiendo que un bloque se
+ * parta en el brinco de página.
+ * =========================================================================== */
+
+/** Escalas ofrecidas en el selector (porcentaje del tamaño original). */
+const SCALE_STEPS = [100, 95, 90, 85, 80, 75, 70, 65, 60] as const;
+
+/**
+ * Devuelve las variables CSS de una densidad multiplicadas por la escala.
+ * Se respetan las unidades originales (`px` / `rem`) y se redondea a 2
+ * decimales para que pantalla, impresión y PDF midan exactamente igual.
+ * @param vars Variables de la densidad activa
+ * @param scale Factor de escala (1 = 100 %)
+ */
+const scaleDensityVars = (
+  vars: Record<string, string>,
+  scale: number
+): Record<string, string> => {
+  if (scale === 1) return vars;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(vars)) {
+    const m = /^(-?\d*\.?\d+)(px|rem)$/.exec(v.trim());
+    out[k] = m ? `${Number((parseFloat(m[1]) * scale).toFixed(2))}${m[2]}` : v;
+  }
+  return out;
+};
+
+
 /**
  * Celda de la rejilla de hoyos (números, pares y horas).
  * `divider` dibuja la línea vertical más marcada cada 3 hoyos.
