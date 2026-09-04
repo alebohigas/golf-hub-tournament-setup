@@ -43,6 +43,12 @@ export interface StatsTee {
   bgcolor?: string;
 }
 
+/** Jugador listado en el detalle de un estatus NO SHOW. */
+export interface StatsNoShowPlayer {
+  name: string;
+  categoria: string;
+}
+
 export interface StatsNoShow {
   retiro: number;
   noShow: number;
@@ -50,7 +56,15 @@ export interface StatsNoShow {
   /** Jugadores con estatus "NO CONTIENDE" (N). */
   noContiende?: number;
   total: number;
+  /** Detalle de jugadores por estatus (desplegable en /stats). */
+  players?: {
+    retiro?: StatsNoShowPlayer[];
+    noShow?: StatsNoShowPlayer[];
+    descalificado?: StatsNoShowPlayer[];
+    noContiende?: StatsNoShowPlayer[];
+  };
 }
+
 
 export interface StatsClubesResponse {
   total: number;
