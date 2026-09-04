@@ -162,7 +162,15 @@ if (has_column($conn, 'caljuego', 'estatus')) {
                        AND cj.estatus = 3)";
 }
 
-$sql = "SELECT $scoreColsSql, t.fecha_cap
+/**
+ * `updatedAt` = última modificación real de las tarjetas contabilizadas
+ * (`tarjetas.fec_ult_act`). Si la columna no existe en la BD se usa
+ * `fecha_cap` como respaldo para no romper el endpoint.
+ */
+$hasUltAct = has_column($conn, 'tarjetas', 'fec_ult_act');
+$updCol    = $hasUltAct ? 'fec_ult_act' : 'fecha_cap';
+
+$sql = "SELECT $scoreColsSql, t.$updCol AS upd_at
           FROM v_sal_jug v
           JOIN tarjetas t   ON (v.tarjetaid = t.id)
           JOIN categorias c ON (v.categoriaid = c.categoria_id)
@@ -172,9 +180,11 @@ $sql = "SELECT $scoreColsSql, t.fecha_cap
 $rows = safe_all($conn, $sql);
 foreach ($rows as $row) {
     $rounds++;
-    if (!empty($row['fecha_cap']) && (!$updatedAt || $row['fecha_cap'] > $updatedAt)) {
-        $updatedAt = $row['fecha_cap'];
+    $upd = $row['upd_at'] ?? null;
+    if (!empty($upd) && substr($upd, 0, 4) !== '0000' && (!$updatedAt || $upd > $updatedAt)) {
+        $updatedAt = $upd;
     }
+
     for ($h = 1; $h <= 18; $h++) {
         $v = $row["h{$h}"] ?? null;
         if ($v !== null && $v !== '' && (int)$v > 0) {
