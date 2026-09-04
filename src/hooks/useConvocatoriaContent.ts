@@ -76,6 +76,8 @@ export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = 
   const { pollMs = 0, refreshOnFocus = true } = options;
   const { torneoId } = useTorneoId();
   const [rows, setRows] = useState<ConvocatoriaContentRow[]>([]);
+  /** Última modificación real (BD) del contenido de convocatoria del torneo. */
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   /** Bump to force a refetch after admin save/delete. */
@@ -84,6 +86,7 @@ export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = 
   useEffect(() => {
     if (!torneoId) {
       setRows([]);
+      setUpdatedAt(null);
       setLoading(false);
       return;
     }
@@ -107,6 +110,7 @@ export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = 
       .then((data) => {
         if (cancelled) return;
         setRows(Array.isArray(data?.sections) ? data.sections : []);
+        setUpdatedAt(data?.updatedAt ?? null);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -114,6 +118,7 @@ export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = 
         // data — sections without DB content are simply hidden.
         setError(err?.message ?? 'fetch failed');
         setRows([]);
+        setUpdatedAt(null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -263,6 +268,8 @@ export const useConvocatoriaContent = (options: UseConvocatoriaContentOptions = 
 
   return {
     rows,
+    /** Fecha/hora de la última modificación guardada para este torneo. */
+    updatedAt,
     bySectionId,
     loading,
     error,
