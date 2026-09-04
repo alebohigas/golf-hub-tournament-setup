@@ -633,10 +633,14 @@ const AdminTimeLine = () => {
     };
   }, [activeDensity, pageW]);
 
-  /** Tamaño de letra aplicado a las celdas de la HORA de cada hoyo. */
-  const holeFontPx = holeFont.size;
-  /** Tamaño de letra del NÚMERO de hoyo y del PAR. */
-  const holeNumFontPx = holeFont.numSize;
+  /**
+   * Tamaño de letra aplicado a las celdas de la HORA de cada hoyo, ya reducido
+   * por la escala de contenido (con piso legible de 6 px).
+   */
+  const holeFontPx = Math.max(6, Number((holeFont.size * scaleFactor).toFixed(2)));
+  /** Tamaño de letra del NÚMERO de hoyo y del PAR (también escalado). */
+  const holeNumFontPx = Math.max(6, Number((holeFont.numSize * scaleFactor).toFixed(2)));
+
   /** Modo de formato de la hora en la rejilla de hoyos. */
   const holeTimeMode = holeFont.mode;
 
