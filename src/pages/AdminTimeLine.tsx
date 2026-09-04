@@ -1462,18 +1462,28 @@ const AdminTimeLine = () => {
             ref={reportRef}
             style={{
               width: pageW,
-              ...(DENSITY_LEVELS[activeDensity].vars as React.CSSProperties),
+              /* Variables de la densidad activa YA multiplicadas por la escala
+                 de contenido: la reducción es de layout real, así que caben más
+                 bloques por hoja sin que ninguno se parta en el brinco. */
+              ...(scaleDensityVars(
+                DENSITY_LEVELS[activeDensity].vars,
+                scaleFactor
+              ) as React.CSSProperties),
               /* En vertical la hoja es más angosta: la hora de cada hoyo se
                  reduce lo necesario para que quepa completa en su recuadro. */
               ...({
                 '--tl-hole-size': `${holeFontPx}px`,
                 '--tl-holenum-size': `${holeNumFontPx}px`,
               } as React.CSSProperties),
-              /* El control manual de alto de renglón pisa el de la densidad. */
+              /* El control manual de alto de renglón pisa el de la densidad
+                 (también se escala para no romper la proporción). */
               ...(rowPad !== null
-                ? ({ '--tl-row-pad': `${rowPad}px` } as React.CSSProperties)
+                ? ({
+                    '--tl-row-pad': `${Number((rowPad * scaleFactor).toFixed(2))}px`,
+                  } as React.CSSProperties)
                 : {}),
             }}
+
             className="timeline-report relative mx-auto bg-background p-1 print:p-0"
 
           >
