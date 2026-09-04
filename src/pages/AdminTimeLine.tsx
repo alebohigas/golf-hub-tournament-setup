@@ -560,6 +560,23 @@ const AdminTimeLine = () => {
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
 
   /**
+   * Escala de contenido elegida: 'auto' o un porcentaje fijo (`?escala=85`).
+   * En 'auto' se busca la escala MÁS GRANDE que logre el mínimo número de
+   * hojas, es decir la que aprovecha el espacio sobrante sin partir bloques.
+   */
+  const [scaleMode, setScaleMode] = useState<'auto' | number>(() => {
+    const raw = Number(params.get('escala') ?? params.get('scale'));
+    return SCALE_STEPS.includes(raw as (typeof SCALE_STEPS)[number]) ? raw : 'auto';
+  });
+
+  /** Escala calculada en modo automático (porcentaje). */
+  const [autoScale, setAutoScale] = useState(100);
+  /** Escala realmente aplicada (porcentaje) y su factor. */
+  const activeScale = scaleMode === 'auto' ? autoScale : scaleMode;
+  const scaleFactor = activeScale / 100;
+
+
+  /**
    * Tamaño de letra (px) de las celdas de hoyo/hora ajustado al ancho REAL de
    * la columna, junto con el modo de formato de la hora.
    *
