@@ -1012,6 +1012,76 @@ const AdminTimeLine = () => {
     });
   }, [printPages, blockZones]);
 
+  /* ============== ESCALA AUTOMÁTICA (aprovechar el espacio sobrante) =========
+   * Con la geometría YA medida de los bloques se simula el empaquetado hoja por
+   * hoja para cada escala candidata y se elige la MÁS GRANDE que consiga el
+   * menor número de hojas. La simulación nunca permite que un bloque cruce el
+   * pie de la hoja: si no cabe, arranca la siguiente (idéntico criterio al de
+   * `computeCuts`), así el ahorro de hojas jamás parte un bloque.
+   * ======================================================================== */
+
+  /**
+   * Número de hojas que ocuparía el reporte con una escala candidata.
+   * @param cand Factor de escala candidato (1 = 100 %)
+   * @param items Alto y avance (alto + separación) de cada bloque, sin escalar
+   * @param headerH Alto del encabezado (no se escala)
+   * @param avail Alto útil de la hoja
+   * @returns Hojas necesarias, o `null` si algún bloque no cabe en una hoja
+   */
+  const simulatePages = useCallback(
+    (
+      cand: number,
+      items: { h: number; adv: number }[],
+      headerH: number,
+      avail: number
+    ): number | null => {
+      let pos = headerH;
+      let pages = 1;
+      for (const it of items) {
+        const h = it.h * cand;
+        if (h > avail) return null;
+        if (pos > 0 && pos + h > avail) {
+          pages += 1;
+          pos = 0;
+        }
+        pos += it.adv * cand;
+      }
+      return pages;
+    },
+    []
+  );
+
+  /** Recalcula la escala automática cada vez que cambia la maqueta medida. */
+  useEffect(() => {
+    if (scaleMode !== 'auto') return;
+    if (blockZones.length === 0) return;
+    const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
+    const avail = pageH - FOOTER_RESERVE_PX;
+    /* Se normaliza a escala 1 dividiendo entre la escala aplicada al medir. */
+    const items = blockZones.map((z, i) => {
+      const next = blockZones[i + 1];
+      const adv = (next ? next.top : z.bottom) - z.top;
+      return { h: (z.bottom - z.top) / scaleFactor, adv: adv / scaleFactor };
+    });
+    let best = { scale: 100, pages: Number.POSITIVE_INFINITY };
+    for (const step of SCALE_STEPS) {
+      const pages = simulatePages(step / 100, items, headerH, avail);
+      if (pages === null) continue;
+      /* Empate de hojas → se conserva la escala MÁS GRANDE (mejor legibilidad). */
+      if (pages < best.pages) best = { scale: step, pages };
+    }
+    if (Number.isFinite(best.pages) && best.scale !== autoScale) setAutoScale(best.scale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scaleMode, blockZones, pageH, scaleFactor, simulatePages]);
+
+  /** Al cambiar papel, orientación, densidad o datos se reinicia la escala auto. */
+  useEffect(() => {
+    if (scaleMode === 'auto') setAutoScale(100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scaleMode, paper, orientation, marginMm, activeDensity, rowPad, data]);
+
+
+
   /* ===================== Autoajustar ===================== */
 
   /** Ciclos de autoajuste pendientes (cada uno reduce un poco el layout). */
