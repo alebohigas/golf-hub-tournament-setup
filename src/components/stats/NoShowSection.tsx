@@ -101,13 +101,13 @@ const NoShowSection = () => {
           <UserX className="h-4 w-4 text-muted-foreground" />
           <div className="flex items-baseline gap-2 flex-wrap">
             <h3 className="text-lg md:text-xl font-display font-bold uppercase tracking-wide text-muted-foreground">
-              NO SHOW
+              No show
             </h3>
             <span className="text-2xl md:text-3xl font-mono font-black text-muted-foreground leading-none">
               {noShow.total}
             </span>
             <span className="text-xs text-muted-foreground">
-              jugadores no jugaron
+              jugadores que no completaron
             </span>
           </div>
         </div>
