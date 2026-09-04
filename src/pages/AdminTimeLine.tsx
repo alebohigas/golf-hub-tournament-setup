@@ -1487,7 +1487,11 @@ const AdminTimeLine = () => {
                 {DENSITY_LEVELS[activeDensity].label}
                 {density === 'auto' ? ' (automática)' : ''}
               </strong>{' '}
+              · escala <strong className="text-foreground">
+                {activeScale}%{scaleMode === 'auto' ? ' (automática)' : ''}
+              </strong>{' '}
               · {totals.groups} grupos / {totals.players} jugadores
+
             </p>
             <p>
               Jugadores por página:{' '}
