@@ -773,6 +773,12 @@ const Competencias = () => {
                       />
                       {/* Última actualización — hexcolor fijo #900000 */}
                       <LastUpdatedStamp value={group.lastUpdated} className="text-center text-xs mt-3" />
+                      {/* Lugares (cupos premiados) del grupo/premio */}
+                      {!!group.maxPlayers && (
+                        <p className="text-center text-xs mt-1 text-muted-foreground">
+                          Lugares: <span className="font-bold text-foreground">{group.maxPlayers}</span>
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
