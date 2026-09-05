@@ -120,8 +120,20 @@ const AdminPopup = () => {
   ]);
   const [activeIdx, setActiveIdx] = useState(0);
   const config = configs[activeIdx];
+  /**
+   * dirtyRef — true as soon as the admin touches the form.
+   * Guards against background refetches of site_config (react-query
+   * refetch on focus/reconnect returns a NEW object identity) overwriting
+   * unsaved edits. Without this, selecting an image and then saving could
+   * persist an empty `imageUrl` because the form had been re-hydrated.
+   */
+  const dirtyRef = useRef(false);
+  /** hydratedRef — ensures the server payload seeds the form only once. */
+  const hydratedRef = useRef(false);
+
   /** Wrapper mirroring React's setState signature but scoped to the active slot. */
   const setConfig: React.Dispatch<React.SetStateAction<PopupConfig>> = (updater) => {
+    dirtyRef.current = true;
     setConfigs((cs) =>
       cs.map((c, i) => {
         if (i !== activeIdx) return c;
@@ -132,14 +144,17 @@ const AdminPopup = () => {
     );
   };
 
-  // Hydrate the local form whenever server config changes. Accepts both
-  // legacy single-object payloads and the new array shape.
+  // Hydrate the local form from the server ONCE (or after an explicit save).
+  // Accepts both legacy single-object payloads and the new array shape.
   useEffect(() => {
     const raw = siteConfig?.popup_config;
     if (!raw) return;
+    if (hydratedRef.current && dirtyRef.current) return;
     const arr: PopupConfig[] = Array.isArray(raw) ? raw : [raw as PopupConfig];
     setConfigs([0, 1, 2].map((i) => ({ ...DEFAULT_POPUP, ...(arr[i] || {}) })));
+    hydratedRef.current = true;
   }, [siteConfig?.popup_config]);
+
 
   const files: UploadedFile[] = uploadsData?.files ?? [];
 
