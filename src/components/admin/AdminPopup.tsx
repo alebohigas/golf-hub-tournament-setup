@@ -244,11 +244,15 @@ const AdminPopup = () => {
       // Send the full array so all 3 slots persist in a single request.
       { password: ADMIN_PASSWORD, popup_config: configs as unknown as PopupConfig },
       {
-        onSuccess: () =>
+        onSuccess: () => {
+          // Saved state matches the server again, so allow re-hydration.
+          dirtyRef.current = false;
           toast({
             title: 'POP UP guardado',
             description: 'La configuración se aplicó a todos los visitantes.',
-          }),
+          });
+        },
+
         onError: (err) =>
           toast({ title: 'Error al guardar', description: err.message, variant: 'destructive' }),
       }
