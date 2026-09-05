@@ -206,7 +206,9 @@ const AdminPopup = () => {
         onSuccess: () => {
           toast({ title: 'Imagen eliminada', description: file.name });
           // Clear the deleted image from every slot that referenced it.
+          dirtyRef.current = true;
           setConfigs((cs) =>
+
             cs.map((c) =>
               c.imageUrl === file.url ? { ...c, imageUrl: '', enabled: false } : c,
             ),
