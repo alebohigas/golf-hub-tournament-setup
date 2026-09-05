@@ -841,6 +841,12 @@ const Competencias = () => {
               
               {/* Última actualización — hexcolor fijo #900000 (incluye brackets de Putt Finales) */}
               <LastUpdatedStamp value={selectedGroup.lastUpdated} className="text-center text-sm mt-4" />
+              {/* Lugares (cupos premiados) del premio seleccionado */}
+              {!!selectedGroup.maxPlayers && (
+                <p className="text-center text-sm mt-1 text-muted-foreground">
+                  Lugares: <span className="font-bold text-foreground">{selectedGroup.maxPlayers}</span>
+                </p>
+              )}
             </>
           )}
         </div>
