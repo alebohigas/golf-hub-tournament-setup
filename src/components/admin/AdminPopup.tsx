@@ -372,8 +372,40 @@ const AdminPopup = () => {
               })}
             </div>
           )}
+
+          {/* ---- Selected-image summary -------------------------------------
+              Makes the current selection of the ACTIVE slot explicit. Without
+              this, an admin could enable a slot, forget to click an image and
+              save a popup that renders text only (the reported bug). */}
+          {config.imageUrl ? (
+            <div className="flex items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <img
+                src={config.imageUrl}
+                alt={config.altText || 'Imagen seleccionada'}
+                className="h-16 w-16 object-contain bg-white rounded border border-border"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Imagen del POP {activeIdx + 1}</p>
+                <p className="text-xs text-muted-foreground truncate">{config.imageUrl}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setConfig((c) => ({ ...c, imageUrl: '' }))}
+              >
+                Quitar
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+              El POP {activeIdx + 1} no tiene imagen seleccionada. Haz clic en una
+              imagen de arriba y después presiona <strong>Guardar</strong>.
+            </div>
+          )}
         </CardContent>
       </Card>
+
 
       {/* ===== 2. Behavior + page targeting ===== */}
       <Card>
