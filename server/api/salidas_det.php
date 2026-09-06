@@ -209,7 +209,27 @@ foreach ($groupRows as $group) {
         if (isset($pr['grupoid'])) {
             $player['groupId'] = $pr['grupoid'];
         }
+        /* MATCH PLAY: adjunta número de match y lado (1|2) para que el
+         * frontend agrupe a los jugadores por enfrentamiento e inserte "VS". */
+        if ($isMatchPlay) {
+            $jid = (int)($pr['jugadorid'] ?? 0);
+            if ($jid > 0 && isset($matchByPlayer[$jid])) {
+                $player['matchNo']   = $matchByPlayer[$jid]['match'];
+                $player['matchSide'] = $matchByPlayer[$jid]['side'];
+            }
+        }
         $players[] = $player;
+    }
+
+    /* Ordena por match y lado dentro del grupo de salida, para que los dos
+     * jugadores de un mismo match queden siempre juntos y en orden 1 → 2. */
+    if ($isMatchPlay) {
+        usort($players, function ($a, $b) {
+            $ma = $a['matchNo']   ?? PHP_INT_MAX;
+            $mb = $b['matchNo']   ?? PHP_INT_MAX;
+            if ($ma !== $mb) return $ma <=> $mb;
+            return (($a['matchSide'] ?? 9) <=> ($b['matchSide'] ?? 9));
+        });
     }
 
     $groups[] = [
@@ -218,6 +238,7 @@ foreach ($groupRows as $group) {
         'time'    => $group['hora'] ?? '',
         'players' => $players
     ];
+
 }
 
 json_response([
