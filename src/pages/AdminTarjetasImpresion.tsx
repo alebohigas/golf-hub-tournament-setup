@@ -760,6 +760,11 @@ const AdminTarjetasImpresion = () => {
   const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
 
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
+  /**
+   * MATCH PLAY (`matchplay=1`): el backend regresa UNA tarjeta por
+   * enfrentamiento (jugador A + `opponent`) y aquí se pinta `MatchScorecard`.
+   */
+  const matchPlay = params.get('matchplay') === '1';
   const autoPreview = params.get('preview') === '1';
   /** Imprimir el logo del torneo en la cabecera (Admin → Tarjetas, `logo=`). */
   const showLogo = params.get('logo') !== '0';
@@ -820,8 +825,14 @@ const AdminTarjetasImpresion = () => {
    * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
    * total de renglones para que el alto calculado nunca desborde 1/2 carta.
    */
-  const effectiveRows =
-    rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
+  /*
+    MATCH PLAY: la maqueta es fija (HOYO, PAR, YARDAS, VENTAJA + 4 renglones por
+    contendiente con SCORE GROSS a 1.5 + DIF), así que se cuentan sus renglones
+    reales para que la tarjeta siga cabiendo exacta en 1/2 hoja carta.
+  */
+  const effectiveRows = matchPlay
+    ? 4 + 2 * (1 + 1.5 + 1 + 1) + 1
+    : rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
 
   const rowMm = Math.min(
     numParam(params.get('rowh'), orientDefaults.rowMm, 2.6, 12),
@@ -843,8 +854,10 @@ const AdminTarjetasImpresion = () => {
       sistema,
       // Campo de la BD para el HCP. NETO (Admin → Tarjetas).
       hcpfield: hcpField,
+      // Tarjetas por enfrentamiento (MATCH PLAY).
+      ...(matchPlay ? { matchplay: '1' } : {}),
     }),
-    [params, sistema, hcpField],
+    [params, sistema, hcpField, matchPlay],
   );
 
   const { data, isLoading, error } = useTarjetasReport(filters);
@@ -855,6 +868,7 @@ const AdminTarjetasImpresion = () => {
   const cards = useMemo(() => {
     const all = data?.cards ?? [];
     if (sistema === 'stroke') return all.filter((c) => !c.system.includes('STABLE'));
+    if (matchPlay) return all;
     if (sistema === 'stableford') return all.filter((c) => c.system.includes('STABLE'));
     return all;
   }, [data, sistema]);
@@ -1239,7 +1253,7 @@ const AdminTarjetasImpresion = () => {
             >
               {pair.map((card) => (
                 <div
-                  key={`${card.groupId}-${card.playerId}`}
+                  key={`${card.fecha}-${card.groupId}-${card.playerId}-${card.matchNo ?? ''}`}
                   className="overflow-hidden"
                   style={{
                     /*
@@ -1287,14 +1301,25 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard
-                      card={card}
-                      rowMm={rowMm}
-                      padMm={padMm}
-                      rows={rowOrder}
-                      headerFields={headerFields}
-                      headerFonts={headerFonts}
-                    />
+                    {matchPlay ? (
+                      /* Tarjeta por enfrentamiento (dos contendientes). */
+                      <MatchScorecard
+                        card={card}
+                        rowMm={rowMm}
+                        padMm={padMm}
+                        headerFields={headerFields}
+                        headerFonts={headerFonts}
+                      />
+                    ) : (
+                      <Scorecard
+                        card={card}
+                        rowMm={rowMm}
+                        padMm={padMm}
+                        rows={rowOrder}
+                        headerFields={headerFields}
+                        headerFonts={headerFonts}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
