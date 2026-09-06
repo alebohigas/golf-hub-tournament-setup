@@ -758,15 +758,12 @@ const Salidas = () => {
                                       </TableRow>
                                     );
                                   }
-                                  // ----- Separador "VS" entre los dos lados del match -----
+                                  // ----- Línea divisoria delgada entre matches dentro del mismo horario -----
                                   if (vsIdx.has(pIdx)) {
                                     rows.push(
-                                      <TableRow key={`${group.id}-${pIdx}-vs`} className="bg-white hover:bg-white border-b-0">
-                                        <TableCell
-                                          colSpan={bodyCols}
-                                          className="py-0.5 text-center text-xs font-black tracking-widest text-primary/70"
-                                        >
-                                          VS
+                                      <TableRow key={`${group.id}-${pIdx}-vs`} className="bg-white hover:bg-white border-none">
+                                        <TableCell colSpan={lineCols} className="p-0">
+                                          <div className="border-b border-primary/20" />
                                         </TableCell>
                                       </TableRow>
                                     );
