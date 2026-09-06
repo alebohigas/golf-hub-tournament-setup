@@ -75,7 +75,10 @@ export interface SalidasDetailResponse {
   shortName: string;
   system: string;
   tee: string;
+  /** true cuando la categoría es MATCH PLAY (jugadores agrupados por match). */
+  isMatchPlay?: boolean;
   groups: SalidasGroup[];
+
 }
 
 // ============= Master: Days + Categories =============
