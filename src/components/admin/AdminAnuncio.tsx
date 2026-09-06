@@ -324,51 +324,64 @@ const AdminAnuncio = () => {
           </div>
 
           {/* ===== Temporizador de publicación (por anuncio) =====
-              Define un día y un rango de horas (hora CDMX). Fuera de esa
-              ventana el anuncio no se muestra en ninguna página. */}
+              Define una ventana de inicio y fin (fecha + hora CDMX). Fuera de
+              esa ventana el anuncio no se muestra en ninguna página. */}
           <div className="rounded-lg border border-border p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-base">Temporizador</Label>
                 <p className="text-xs text-muted-foreground">
-                  El anuncio se publica al llegar la hora de inicio y se
-                  detiene al llegar la hora final (hora de Ciudad de México).
+                  El anuncio se publica al llegar la fecha/hora de inicio y se
+                  detiene al llegar la fecha/hora final (hora de Ciudad de México).
                 </p>
               </div>
               <Switch
                 checked={Boolean(config.schedule?.enabled)}
                 onCheckedChange={(v) =>
-                  setConfig((c) => ({
-                    ...c,
-                    schedule: {
-                      date: c.schedule?.date ?? '',
-                      startTime: c.schedule?.startTime || '08:00',
-                      endTime: c.schedule?.endTime || '20:00',
-                      enabled: v,
-                    },
-                  }))
+                  setConfig((c) => {
+                    const startDate = c.schedule?.startDate || c.schedule?.date || '';
+                    const endDate = c.schedule?.endDate || startDate;
+                    return {
+                      ...c,
+                      schedule: {
+                        startDate,
+                        endDate,
+                        startTime: c.schedule?.startTime || '08:00',
+                        endTime: c.schedule?.endTime || '20:00',
+                        enabled: v,
+                      },
+                    };
+                  })
                 }
               />
             </div>
 
             {config.schedule?.enabled && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="anuncio-date">Fecha</Label>
+                  <Label htmlFor="anuncio-start-date">Fecha inicio</Label>
                   <Input
-                    id="anuncio-date"
+                    id="anuncio-start-date"
                     type="date"
-                    value={config.schedule?.date ?? ''}
+                    value={config.schedule?.startDate || config.schedule?.date || ''}
                     onChange={(e) =>
-                      setConfig((c) => ({
-                        ...c,
-                        schedule: { ...c.schedule!, date: e.target.value },
-                      }))
+                      setConfig((c) => {
+                        const nextStart = e.target.value;
+                        const prevEnd = c.schedule?.endDate || c.schedule?.startDate || c.schedule?.date || '';
+                        return {
+                          ...c,
+                          schedule: {
+                            ...c.schedule!,
+                            startDate: nextStart,
+                            endDate: prevEnd || nextStart,
+                          },
+                        };
+                      })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="anuncio-start">Hora inicial</Label>
+                  <Label htmlFor="anuncio-start">Hora inicio</Label>
                   <Input
                     id="anuncio-start"
                     type="time"
@@ -377,6 +390,20 @@ const AdminAnuncio = () => {
                       setConfig((c) => ({
                         ...c,
                         schedule: { ...c.schedule!, startTime: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="anuncio-end-date">Fecha final</Label>
+                  <Input
+                    id="anuncio-end-date"
+                    type="date"
+                    value={config.schedule?.endDate || config.schedule?.startDate || config.schedule?.date || ''}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        schedule: { ...c.schedule!, endDate: e.target.value },
                       }))
                     }
                   />
