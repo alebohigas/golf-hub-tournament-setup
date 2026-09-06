@@ -696,9 +696,12 @@ const MatchScorecard = ({
           {players.map((p) => (
             <Fragment key={p.key}>
               <tr style={{ height: `${rowMm}mm` }}>
+                {/* Celda de etiqueta vacía para que el nombre inicie EXACTAMENTE
+                    en la columna del hoyo 1 (no en la columna de etiqueta). */}
+                <Cell className="bg-muted/40 px-1" />
                 <Cell
                   className="truncate px-1 text-left text-[7pt] font-bold uppercase"
-                  /* colSpan: el nombre del jugador ocupa todo el renglón. */
+                  /* colSpan: hoyos 1–18 + V1, dejando V2/TOTAL para HANDICAP NETO. */
                   colSpan={19}
                 >
                   {p.label}
@@ -706,7 +709,7 @@ const MatchScorecard = ({
                 <Cell className="bg-muted/60 px-1 text-[5.5pt] font-semibold uppercase">
                   Handicap neto
                 </Cell>
-                <Cell className="bg-muted/60 text-[9pt] font-bold tabular-nums" colSpan={2}>
+                <Cell className="bg-muted/60 text-[9pt] font-bold tabular-nums">
                   {p.hcp}
                 </Cell>
               </tr>
