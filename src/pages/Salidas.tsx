@@ -692,14 +692,10 @@ const Salidas = () => {
                                   const isLastPlayer = pIdx === players.length - 1;
                                   const renderHoleHora = !firstRowEmitted;
                                   firstRowEmitted = true;
-                                  // Separador entre grupos: aplica sólo al ÚLTIMO renglón del último jugador.
-                                  // MATCH PLAY: además se separa visualmente el fin de cada match.
-                                  const matchEnd =
-                                    matchPlay && !vsIdx.has(pIdx) && !isLastPlayer
-                                      ? 'border-b-2 border-primary/20'
-                                      : '';
-                                  const separatorRow2 = (isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || matchEnd;
-                                  const separatorRow1 = (!isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || (!isPair ? matchEnd : '');
+                                  // Separador entre grupos (diferentes horarios de salida): sólo
+                                  // al final del último jugador del grupo, excepto en el último grupo.
+                                  const separatorRow2 = isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
+                                  const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
 
                                   // ----- Renglón principal -----
                                   rows.push(
