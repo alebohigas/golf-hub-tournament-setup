@@ -429,7 +429,7 @@ const Salidas = () => {
                                     const vsIdx = vsAfterIndexes(players, matchPlay);
                                     const totalRows = countGroupRowsWithVs(players, matchPlay);
                                     const showTeam = hasAnyPair(players);
-                                    const bodyCols = showTeam ? 4 : 3;
+                                    const lineCols = showTeam ? 5 : 4;
                                     let firstRowEmitted = false;
                                     const rows: JSX.Element[] = [];
 
@@ -443,9 +443,8 @@ const Salidas = () => {
                                         <TableRow
                                           key={`${pIdx}-a`}
                                           /* `border-b-0` en el primer renglón de una pareja para que no aparezca
-                                           * una línea entre los dos integrantes del mismo equipo.
-                                           * MATCH PLAY: fondo gris muy ligero para agrupar visualmente el match. */
-                                          className={`${matchPlay ? 'bg-muted/40 hover:bg-muted/40' : 'bg-white hover:bg-white'} ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
+                                           * una línea entre los dos integrantes del mismo equipo. */
+                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
                                         >
                                           {renderHoleHora ? (
                                             <>
@@ -505,15 +504,12 @@ const Salidas = () => {
                                           </TableRow>
                                         );
                                       }
-                                      // ----- Separador "VS" entre los dos lados del match -----
+                                      // ----- Línea divisoria delgada entre matches dentro del mismo horario -----
                                       if (vsIdx.has(pIdx)) {
                                         rows.push(
-                                          <TableRow key={`${pIdx}-vs`} className="bg-white hover:bg-white border-b-0">
-                                            <TableCell
-                                              colSpan={bodyCols}
-                                              className="py-0.5 text-center text-xs font-black tracking-widest text-primary/70"
-                                            >
-                                              VS
+                                          <TableRow key={`${pIdx}-vs`} className="bg-white hover:bg-white border-none">
+                                            <TableCell colSpan={lineCols} className="p-0">
+                                              <div className="border-b border-primary/20" />
                                             </TableCell>
                                           </TableRow>
                                         );
@@ -682,7 +678,7 @@ const Salidas = () => {
                                 const vsIdx = vsAfterIndexes(players, matchPlay);
                                 const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
-                                const bodyCols = showTeam ? 4 : 3;
+                                const lineCols = showTeam ? 5 : 4;
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
                                 let firstRowEmitted = false;
                                 const rows: JSX.Element[] = [];
@@ -692,23 +688,18 @@ const Salidas = () => {
                                   const isLastPlayer = pIdx === players.length - 1;
                                   const renderHoleHora = !firstRowEmitted;
                                   firstRowEmitted = true;
-                                  // Separador entre grupos: aplica sólo al ÚLTIMO renglón del último jugador.
-                                  // MATCH PLAY: además se separa visualmente el fin de cada match.
-                                  const matchEnd =
-                                    matchPlay && !vsIdx.has(pIdx) && !isLastPlayer
-                                      ? 'border-b-2 border-primary/20'
-                                      : '';
-                                  const separatorRow2 = (isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || matchEnd;
-                                  const separatorRow1 = (!isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || (!isPair ? matchEnd : '');
+                                  // Separador entre grupos (diferentes horarios de salida): sólo
+                                  // al final del último jugador del grupo, excepto en el último grupo.
+                                  const separatorRow2 = isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
+                                  const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
 
                                   // ----- Renglón principal -----
                                   rows.push(
                                     <TableRow
                                       key={`${group.id}-${pIdx}-a`}
                                        /* `border-b-0` cuando es pareja: oculta la línea divisoria por defecto
-                                        * entre los dos integrantes del mismo equipo.
-                                        * MATCH PLAY: fondo gris muy ligero para agrupar el match. */
-                                       className={`${matchPlay ? 'bg-muted/40 hover:bg-muted/40' : 'bg-white hover:bg-white'} ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
+                                        * entre los dos integrantes del mismo equipo. */
+                                       className={`bg-white hover:bg-white ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
                                     >
                                       {renderHoleHora ? (
                                         <>
@@ -763,15 +754,12 @@ const Salidas = () => {
                                       </TableRow>
                                     );
                                   }
-                                  // ----- Separador "VS" entre los dos lados del match -----
+                                  // ----- Línea divisoria delgada entre matches dentro del mismo horario -----
                                   if (vsIdx.has(pIdx)) {
                                     rows.push(
-                                      <TableRow key={`${group.id}-${pIdx}-vs`} className="bg-white hover:bg-white border-b-0">
-                                        <TableCell
-                                          colSpan={bodyCols}
-                                          className="py-0.5 text-center text-xs font-black tracking-widest text-primary/70"
-                                        >
-                                          VS
+                                      <TableRow key={`${group.id}-${pIdx}-vs`} className="bg-white hover:bg-white border-none">
+                                        <TableCell colSpan={lineCols} className="p-0">
+                                          <div className="border-b border-primary/20" />
                                         </TableCell>
                                       </TableRow>
                                     );
