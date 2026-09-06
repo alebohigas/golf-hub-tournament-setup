@@ -413,7 +413,10 @@ const Salidas = () => {
                                     )}
                                     <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
                                     <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                                    <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                    {/* MATCH PLAY: la columna Score no aplica en enfrentamientos. */}
+                                    {!(!!result.matchPlay || isMatchPlaySystem(result.system)) && (
+                                      <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                    )}
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -469,10 +472,13 @@ const Salidas = () => {
                                             {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
                                             <span className="player-name-clamp">{player.name}</span>
                                           </TableCell>
-                                          {/* Score: en parejas se centra entre los dos renglones (rowSpan=2). */}
-                                          <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
-                                            {player.score || '—'}
-                                          </TableCell>
+                                          {/* Score: en parejas se centra entre los dos renglones (rowSpan=2).
+                                            * En MATCH PLAY la columna se omite por completo. */}
+                                          {!matchPlay && (
+                                            <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
+                                              {player.score || '—'}
+                                            </TableCell>
+                                          )}
                                         </TableRow>
                                       );
                                       // ----- Renglón secundario (jugador 2) si es pareja -----
@@ -515,7 +521,7 @@ const Salidas = () => {
                                 <tfoot>
                                   <tr className="bg-primary">
                                     <td
-                                      colSpan={hasAnyPair(result.group.players ?? []) ? 6 : 5}
+                                      colSpan={(hasAnyPair(result.group.players ?? []) ? 6 : 5) - ((!!result.matchPlay || isMatchPlaySystem(result.system)) ? 1 : 0)}
                                       className="text-primary-foreground font-bold text-center py-2 text-sm"
                                     >
                                       CATEGORÍA: {result.categoryName}
@@ -653,7 +659,10 @@ const Salidas = () => {
                                 )}
                                 <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
                                 <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                                <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                {/* MATCH PLAY: sin columna Score (no aplica en enfrentamientos). */}
+                                {!(!!detail.isMatchPlay || isMatchPlaySystem(detail.system)) && (
+                                  <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                )}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -720,9 +729,12 @@ const Salidas = () => {
                                         {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
                                         <span className="player-name-clamp">{player.name}</span>
                                       </TableCell>
-                                      <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
-                                        {player.score || '—'}
-                                      </TableCell>
+                                      {/* En MATCH PLAY se omite la celda de Score. */}
+                                      {!matchPlay && (
+                                        <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
+                                          {player.score || '—'}
+                                        </TableCell>
+                                      )}
                                     </TableRow>
                                   );
                                   // ----- Renglón secundario (segundo integrante de la pareja) -----
@@ -762,7 +774,7 @@ const Salidas = () => {
                             <tfoot>
                               <tr className="bg-primary">
                                 <td
-                                  colSpan={groupsHaveAnyPair(detail.groups) ? 6 : 5}
+                                  colSpan={(groupsHaveAnyPair(detail.groups) ? 6 : 5) - ((!!detail.isMatchPlay || isMatchPlaySystem(detail.system)) ? 1 : 0)}
                                   className="text-primary-foreground font-bold text-center py-2 text-sm"
                                 >
                                   CATEGORÍA: {detail.categoryName}
