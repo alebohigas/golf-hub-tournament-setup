@@ -443,8 +443,9 @@ const Salidas = () => {
                                         <TableRow
                                           key={`${pIdx}-a`}
                                           /* `border-b-0` en el primer renglón de una pareja para que no aparezca
-                                           * una línea entre los dos integrantes del mismo equipo. */
-                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
+                                           * una línea entre los dos integrantes del mismo equipo.
+                                           * MATCH PLAY: fondo gris muy ligero para agrupar visualmente el match. */
+                                          className={`${matchPlay ? 'bg-muted/40 hover:bg-muted/40' : 'bg-white hover:bg-white'} ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
                                         >
                                           {renderHoleHora ? (
                                             <>
@@ -469,8 +470,13 @@ const Salidas = () => {
                                             ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                           </TableCell>
                                           <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                            {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
-                                            <span className="player-name-clamp">{player.name}</span>
+                                            {/* Recorte a 4 renglones en móvil (.player-name-clamp).
+                                              * MATCH PLAY: prefijo con la posición del jugador en su grupo. */}
+                                            <span className="player-name-clamp">
+                                              {matchPlay && player.position != null && player.position !== ''
+                                                ? `${player.position} ${player.name}`
+                                                : player.name}
+                                            </span>
                                           </TableCell>
                                           {/* Score: en parejas se centra entre los dos renglones (rowSpan=2).
                                             * En MATCH PLAY la columna se omite por completo. */}
@@ -699,9 +705,10 @@ const Salidas = () => {
                                   rows.push(
                                     <TableRow
                                       key={`${group.id}-${pIdx}-a`}
-                                      /* `border-b-0` cuando es pareja: oculta la línea divisoria por defecto
-                                       * entre los dos integrantes del mismo equipo. */
-                                      className={`bg-white hover:bg-white ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
+                                       /* `border-b-0` cuando es pareja: oculta la línea divisoria por defecto
+                                        * entre los dos integrantes del mismo equipo.
+                                        * MATCH PLAY: fondo gris muy ligero para agrupar el match. */
+                                       className={`${matchPlay ? 'bg-muted/40 hover:bg-muted/40' : 'bg-white hover:bg-white'} ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
                                     >
                                       {renderHoleHora ? (
                                         <>
@@ -725,10 +732,14 @@ const Salidas = () => {
                                           <img src={player.clubLogo} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                         ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                       </TableCell>
-                                      <TableCell className="font-medium text-foreground player-name-cell">
-                                        {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
-                                        <span className="player-name-clamp">{player.name}</span>
-                                      </TableCell>
+                                       <TableCell className="font-medium text-foreground player-name-cell">
+                                         {/* MATCH PLAY: se antepone la posición del jugador en su grupo. */}
+                                         <span className="player-name-clamp">
+                                           {matchPlay && player.position != null && player.position !== ''
+                                             ? `${player.position} ${player.name}`
+                                             : player.name}
+                                         </span>
+                                       </TableCell>
                                       {/* En MATCH PLAY se omite la celda de Score. */}
                                       {!matchPlay && (
                                         <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>

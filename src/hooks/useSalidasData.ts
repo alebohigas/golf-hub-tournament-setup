@@ -54,6 +54,8 @@ export interface SalidasPlayer {
   matchNo?: number;
   /** MATCH PLAY: lado del match (1 = jugida, 2 = jugidb). */
   matchSide?: number;
+  /** MATCH PLAY: posición/siembra del jugador dentro de su grupo (`jugadores.grupo`). */
+  position?: string | number;
 }
 
 
