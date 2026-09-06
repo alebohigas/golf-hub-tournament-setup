@@ -83,8 +83,14 @@ foreach ($groupRows as $group) {
         ? "CONCAT(j.nombre, ' ', j.apellido) as jugador,
            CONCAT(j2.nombre, ' ', j2.apellido) as jugador2"
         : "CONCAT(nombre, ' ', apellido) as jugador";
+    // Prefijo para resolver ambigüedad de columnas en la rama de parejas.
+    $P = $isParejas ? 'v.' : '';
     // v_sal_jug_par no expone `logo2`; el segundo logo se trae desde la pareja j2->club.
-    $logoCols = $isParejas ? "v.logo, c2.logo as logo2" : "logo";
+    // `jugadorid` se incluye SIEMPRE: es la llave usada para cruzar contra
+    // `elimin_salidas_cat` y agrupar por MATCH en categorías MATCH PLAY.
+    $logoCols = ($isParejas ? "v.logo, c2.logo as logo2" : "logo")
+              . ", {$P}jugadorid as jugadorid";
+
 
     /*
      * En parejas hacemos JOIN extra a v_jugadores_parejas + jugadores para
