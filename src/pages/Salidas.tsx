@@ -511,9 +511,9 @@ const Salidas = () => {
                                       rows.push(
                                         <TableRow
                                           key={`${pIdx}-a`}
-                                          /* `border-b-0` en el primer renglón de una pareja para que no aparezca
-                                           * una línea entre los dos integrantes del mismo equipo. */
-                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
+                                          /* `border-b-0` en MATCH PLAY y en el primer renglón de una pareja
+                                           * para que no aparezca una línea entre contendientes del mismo match/equipo. */
+                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${(matchPlay || isPair) ? 'border-b-0' : ''}`}
                                         >
                                           {renderHoleHora ? (
                                             <>
@@ -560,7 +560,7 @@ const Salidas = () => {
                                         rows.push(
                                           <TableRow
                                             key={`${pIdx}-b`}
-                                            className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''}`}
+                                            className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${matchPlay ? 'border-b-0' : ''}`}
                                           >
                                             <TableCell className="p-1 text-center align-middle">
                                               {player.clubLogo2 ? (
@@ -763,14 +763,14 @@ const Salidas = () => {
                                   const separatorRow2 = isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
                                   const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
 
-                                  // ----- Renglón principal -----
-                                  rows.push(
-                                    <TableRow
-                                      key={`${group.id}-${pIdx}-a`}
-                                       /* `border-b-0` cuando es pareja: oculta la línea divisoria por defecto
-                                        * entre los dos integrantes del mismo equipo. */
-                                       className={`bg-white hover:bg-white ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
-                                    >
+                                    // ----- Renglón principal -----
+                                    rows.push(
+                                      <TableRow
+                                        key={`${group.id}-${pIdx}-a`}
+                                         /* `border-b-0` en MATCH PLAY y cuando es pareja: oculta la línea
+                                          * divisoria por defecto entre contendientes del mismo match/equipo. */
+                                         className={`bg-white hover:bg-white ${separatorRow1} ${(matchPlay || isPair) ? 'border-b-0' : ''}`}
+                                      >
                                       {renderHoleHora ? (
                                         <>
                                           <TableCell className="text-center font-bold text-base text-foreground" rowSpan={totalRows}>
@@ -812,7 +812,7 @@ const Salidas = () => {
                                   // ----- Renglón secundario (segundo integrante de la pareja) -----
                                   if (isPair) {
                                     rows.push(
-                                      <TableRow key={`${group.id}-${pIdx}-b`} className={`bg-white hover:bg-white ${separatorRow2}`}>
+                                      <TableRow key={`${group.id}-${pIdx}-b`} className={`bg-white hover:bg-white ${separatorRow2} ${matchPlay ? 'border-b-0' : ''}`}>
                                         <TableCell className="p-1 text-center align-middle">
                                           {player.clubLogo2 ? (
                                             <img src={player.clubLogo2} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
