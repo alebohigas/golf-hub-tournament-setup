@@ -8,9 +8,11 @@
  * Reuses the existing `scroll-sponsors` keyframes (translateX 0 → -50%)
  * with a duplicated content string, so the loop is seamless.
  */
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import type { AnuncioConfig } from '@/hooks/useSiteConfig';
+import { isAnuncioWithinSchedule } from '@/lib/anuncioSchedule';
 
 /**
  * Maps the admin-selected font family preset to a CSS font-family stack.
