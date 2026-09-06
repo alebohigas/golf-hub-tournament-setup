@@ -53,6 +53,12 @@ export interface TarjetaChromeData {
   teeSal?: string | null;
   folio?: string | null;
   system?: string | null;
+  /**
+   * MATCH PLAY: renglones del bloque del jugador (nombre 1 / "VS" / nombre 2).
+   * Cuando viene, el bloque del jugador ocupa los 3 renglones del encabezado y
+   * se ignoran `name` y `club` para ese bloque.
+   */
+  nameLines?: string[] | null;
 }
 
 // ============= Fallbacks =============
