@@ -235,10 +235,10 @@ const MenusPostersSection = () => {
   }, [openIndex, orderedPosters]);
 
   return (
-    <section className="py-16 bg-muted/30">
-      <div className="container mx-auto px-4">
+    <section className="py-8 md:py-16 bg-muted/30">
+      <div className="container mx-auto px-2 md:px-4">
         {/* ---------- Section header ---------- */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 md:mb-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
             Menús
           </h2>
@@ -263,18 +263,18 @@ const MenusPostersSection = () => {
               aria-label={`Ver ${card.alt} en grande`}
             >
               {/*
-                Use `object-contain` (not cover) so posters with slightly
-                different aspect ratios than 9/16 — e.g. the climatological
-                notice at 683x1024 vs the 576x1024 pricing tables — render
-                completely without cropping or zoom-in artifacts. The card
-                background fills any letterbox gap.
+                Mobile: drop the fixed 9/16 box so landscape/menu posters fill
+                the full card width with their natural height — no letterbox
+                padding above/below. Desktop keeps a 3/4 ratio so the multi-
+                column grid stays uniform; `object-cover` trims edges but fills
+                the frame.
               */}
-              <div className="relative aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
+              <div className="relative w-full min-h-[200px] overflow-hidden bg-card md:aspect-[3/4]">
                 {/*
                   Skeleton placeholder: a shimmering muted block that occupies
-                  the exact card box until the thumbnail decodes. It removes the
-                  empty-white flash on slow connections without causing layout
-                  shift (the 9/16 box is reserved by CSS, not by the image).
+                  the card box until the thumbnail decodes. On mobile it is
+                  pinned while the natural-height image loads; on desktop it
+                  fills the fixed 3/4 box.
                 */}
                 {!loadedCards.has(card.src) && (
                   <div
@@ -295,7 +295,7 @@ const MenusPostersSection = () => {
                       ? `${card.thumbSmall} 480w, ${card.thumbMedium} 1000w`
                       : undefined
                   }
-                  sizes="(max-width: 768px) 50vw, 33vw"
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   alt={card.alt}
                   /* First two cards are above the fold on every layout →
                      load them eagerly with high priority; the rest wait for
@@ -306,7 +306,8 @@ const MenusPostersSection = () => {
                   onLoad={() => markLoaded(card.src)}
                   onError={() => markLoaded(card.src)}
                   className={cn(
-                    'relative max-h-full max-w-full object-contain',
+                    'relative w-full h-auto object-contain',
+                    'md:absolute md:inset-0 md:h-full md:w-full md:object-cover',
                     'transition-[opacity,transform] duration-500 group-hover:scale-105',
                     loadedCards.has(card.src) ? 'opacity-100' : 'opacity-0'
                   )}
