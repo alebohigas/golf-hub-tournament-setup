@@ -63,9 +63,28 @@ export interface TarjetaChromeData {
    * Cuando viene, el bloque del jugador ocupa los 3 renglones del encabezado y
    * se ignoran `name` y `club` para ese bloque. Si también viene `matchNo`,
    * éste ocupa el renglón superior y los nombres los 2 inferiores.
+   *
+   * Cada línea puede incluir el número de lugar/posición para mostrarlo como
+   * prefijo (p. ej. "1. Nombre").
    */
-  nameLines?: string[] | null;
+  nameLines?: (string | { name: string; place?: string | number | null })[] | null;
 }
+
+/** Normaliza una línea de `nameLines` a objeto {name, place}. */
+const normalizeNameLine = (
+  line: string | { name: string; place?: string | number | null },
+): { name: string; place?: string | number | null } => {
+  if (typeof line === 'string') return { name: line };
+  return line;
+};
+
+/** Formatea una línea de nombre incluyendo su lugar cuando existe. */
+const formatNameLine = (line: string | { name: string; place?: string | number | null }): string => {
+  const { name, place } = normalizeNameLine(line);
+  const n = toProperName(tarjetaText(name, 'Jugador por asignar'));
+  if (place == null || place === '') return n;
+  return `${place}. ${n}`;
+};
 
 // ============= Fallbacks =============
 
