@@ -430,6 +430,21 @@ export interface AnuncioConfig {
    * dispositivos (desktop, tablet y móvil). Missing/false = en flujo normal.
    */
   sticky?: boolean;
+  /**
+   * Temporizador de publicación (opcional). Cuando `enabled` es true, la tira
+   * solo se muestra dentro de la ventana indicada, evaluada con la hora de
+   * Ciudad de México:
+   *   - date:      día de publicación en formato YYYY-MM-DD.
+   *   - startTime: hora de inicio en formato HH:MM (24 h).
+   *   - endTime:   hora de fin en formato HH:MM (24 h).
+   * Missing/enabled=false = sin temporizador (se publica siempre).
+   */
+  schedule?: {
+    enabled: boolean;
+    date: string;
+    startTime: string;
+    endTime: string;
+  };
 }
 
 /**
