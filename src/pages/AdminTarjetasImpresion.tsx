@@ -867,11 +867,12 @@ const AdminTarjetasImpresion = () => {
   /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
   const cards = useMemo(() => {
     const all = data?.cards ?? [];
-    if (sistema === 'stroke') return all.filter((c) => !c.system.includes('STABLE'));
+    /* MATCH PLAY: el sistema de la categoría no es Stroke/Stableford, no se filtra. */
     if (matchPlay) return all;
+    if (sistema === 'stroke') return all.filter((c) => !c.system.includes('STABLE'));
     if (sistema === 'stableford') return all.filter((c) => c.system.includes('STABLE'));
     return all;
-  }, [data, sistema]);
+  }, [data, sistema, matchPlay]);
 
   /**
    * Tarjetas agrupadas por hoja: 2 por hoja en VERTICAL y 1 por hoja en
