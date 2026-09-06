@@ -197,8 +197,8 @@ const AdminSalidasMatchPlay = () => {
                   const players = group.players ?? [];
                   const order = groupOrder(String(group.id), players);
                   /** Vista previa con matchNo/matchSide para etiquetar cada match. */
-                  const preview = applyMatchPlayOrder(
-                    order.map((n) => players.find((p) => p.name === n) ?? { name: n }),
+                  const preview = applyMatchPlayOrder<{ name: string; matchNo?: number; matchSide?: number }>(
+                    order.map((n) => ({ name: players.find((p) => p.name === n)?.name ?? n })),
                     order
                   );
 
