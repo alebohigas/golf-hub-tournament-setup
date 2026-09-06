@@ -782,6 +782,8 @@ const Salidas = () => {
                                 const players = sortByMatch(group.players ?? [], matchPlay);
                                 /* MATCH PLAY: línea divisoria entre un match y el siguiente. */
                                 const vsIdx = vsAfterIndexes(players, matchPlay);
+                                /* MATCH PLAY: renglón "VS" entre los dos contendientes del match. */
+                                const vsLabelIdx = vsLabelAfterIndexes(players, matchPlay);
                                 const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
                                 const lineCols = showTeam ? 5 : 4;
