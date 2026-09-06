@@ -682,7 +682,7 @@ const Salidas = () => {
                                 const vsIdx = vsAfterIndexes(players, matchPlay);
                                 const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
-                                const bodyCols = showTeam ? 4 : 3;
+                                const lineCols = showTeam ? 5 : 4;
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
                                 let firstRowEmitted = false;
                                 const rows: JSX.Element[] = [];
