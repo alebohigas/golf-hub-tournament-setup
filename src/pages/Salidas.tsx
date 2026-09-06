@@ -270,21 +270,9 @@ const Salidas = () => {
     error: detailError,
   } = useSalidasDetail(selectedCaljgoid, selectedFormato);
 
-  /**
-   * Detalle efectivo: si el panel definió enfrentamientos MATCH PLAY para esta
-   * categoría, se reordenan los jugadores por match (2 por match) y se fuerza
-   * el render con "VS" + separadores.
-   */
-  const detail: SalidasDetailResponse | undefined = useMemo(() => {
-    if (!rawDetail) return rawDetail;
-    const entry = getMatchPlayEntry(matchPlayConfig, rawDetail.caljgoid ?? selectedCaljgoid);
-    if (!entry?.enabled) return rawDetail;
-    return {
-      ...rawDetail,
-      isMatchPlay: true,
-      groups: applyMatchPlayConfigToGroups(rawDetail.groups ?? [], entry),
-    };
-  }, [rawDetail, matchPlayConfig, selectedCaljgoid]);
+  /** Detalle mostrado tal como lo entrega el endpoint. */
+  const detail: SalidasDetailResponse | undefined = rawDetail;
+
 
   /** Currently selected day object */
   const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;
