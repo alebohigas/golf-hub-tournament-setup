@@ -652,8 +652,9 @@ const Salidas = () => {
                                  * Score abarca los 2 renglones de cada pareja. */
                                 const players = group.players ?? [];
                                 /* MATCH PLAY: separadores "VS" entre los dos lados de cada match. */
-                                const vsIdx = vsAfterIndexes(players);
-                                const totalRows = countGroupRowsWithVs(players);
+                                const matchPlay = !!detail.isMatchPlay || isMatchPlaySystem(detail.system);
+                                const vsIdx = vsAfterIndexes(players, matchPlay);
+                                const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
                                 const bodyCols = showTeam ? 4 : 3;
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
