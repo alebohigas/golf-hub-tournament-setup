@@ -193,11 +193,7 @@ const Salidas = () => {
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
       const { dayLabel, course, detail } = query.data;
-      /* Aplica el orden manual de matches (si existe) antes de buscar, para que
-       * el grupo mostrado ya venga agrupado por enfrentamiento. */
-      const mpEntry = getMatchPlayEntry(matchPlayConfig, detail.caljgoid ?? query.data.caljgoid);
-      const groupsToScan = applyMatchPlayConfigToGroups(detail.groups ?? [], mpEntry);
-      for (const group of groupsToScan) {
+      for (const group of (detail.groups ?? [])) {
         const players = group.players ?? [];
         const matchIdx = players.findIndex((p) =>
           normalizeSearchText(p.name).includes(normalizedQuery)
@@ -211,13 +207,14 @@ const Salidas = () => {
             tee: detail.tee,
             group,
             matchedPlayerIdx: matchIdx,
-            matchPlay: !!mpEntry?.enabled,
+            matchPlay: !!detail.isMatchPlay,
           });
         }
       }
     }
     return results;
-  }, [normalizedQuery, searchQueries, matchPlayConfig]);
+  }, [normalizedQuery, searchQueries]);
+
 
   /**
    * Build unique player-name suggestions from already-loaded data.
