@@ -211,7 +211,21 @@ const headerBlocks = (
     */
     jugador: {
       align: 'left',
-      top: (
+      /* MATCH PLAY: el bloque ocupa los 3 renglones (jugador 1 / VS / jugador 2). */
+      topRows: card.nameLines?.length ? 3 : undefined,
+      top: card.nameLines?.length ? (
+        <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
+          {card.nameLines.map((line, i) => (
+            <span
+              key={`${line}-${i}`}
+              className="block font-bold leading-tight break-words"
+              style={{ fontSize: `${fonts.jugadorPt}pt` }}
+            >
+              {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
+            </span>
+          ))}
+        </span>
+      ) : (
         <span className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
             className="shrink-0 font-bold tabular-nums"
