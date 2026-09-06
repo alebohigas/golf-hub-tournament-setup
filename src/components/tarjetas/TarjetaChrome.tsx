@@ -53,6 +53,12 @@ export interface TarjetaChromeData {
   teeSal?: string | null;
   folio?: string | null;
   system?: string | null;
+  /**
+   * MATCH PLAY: renglones del bloque del jugador (nombre 1 / "VS" / nombre 2).
+   * Cuando viene, el bloque del jugador ocupa los 3 renglones del encabezado y
+   * se ignoran `name` y `club` para ese bloque.
+   */
+  nameLines?: string[] | null;
 }
 
 // ============= Fallbacks =============
@@ -205,7 +211,21 @@ const headerBlocks = (
     */
     jugador: {
       align: 'left',
-      top: (
+      /* MATCH PLAY: el bloque ocupa los 3 renglones (jugador 1 / VS / jugador 2). */
+      topRows: card.nameLines?.length ? 3 : undefined,
+      top: card.nameLines?.length ? (
+        <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
+          {card.nameLines.map((line, i) => (
+            <span
+              key={`${line}-${i}`}
+              className="block font-bold leading-tight break-words"
+              style={{ fontSize: `${fonts.jugadorPt}pt` }}
+            >
+              {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
+            </span>
+          ))}
+        </span>
+      ) : (
         <span className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
             className="shrink-0 font-bold tabular-nums"
@@ -221,7 +241,7 @@ const headerBlocks = (
           </span>
         </span>
       ),
-      bottom: (
+      bottom: card.nameLines?.length ? null : (
         <span className="truncate uppercase text-foreground/80">
           {tarjetaText(card.club, 'SIN CLUB')}
         </span>
@@ -324,7 +344,8 @@ export const TarjetaHeaderGrid = ({
         const block = blocks[key];
         /* Cuántos renglones toma cada bloque (por omisión 2 arriba y 1 abajo). */
         const topRows = block.topRows ?? 2;
-        const bottomRows = Math.max(1, 3 - topRows);
+        /* Sin bloque inferior (MATCH PLAY) el superior toma los 3 renglones. */
+        const bottomRows = block.bottom == null ? 0 : Math.max(1, 3 - topRows);
         return (
           <div
             key={key}
@@ -340,12 +361,14 @@ export const TarjetaHeaderGrid = ({
               {block.top}
             </div>
             {/* Bloque inferior (merge de los renglones restantes) */}
+            {bottomRows > 0 && (
             <div
               className={`flex min-w-0 items-center px-1 ${alignCls[block.align]}`}
               style={{ flex: `${bottomRows} 1 0%` }}
             >
               {block.bottom}
             </div>
+            )}
           </div>
         );
       })}
