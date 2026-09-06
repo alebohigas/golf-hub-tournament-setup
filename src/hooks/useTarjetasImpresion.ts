@@ -61,6 +61,22 @@ export interface TarjetaTotals {
   handicap: number;
 }
 
+/**
+ * Segundo contendiente de una tarjeta de MATCH PLAY (`matchplay=1`).
+ * Sus renglones Gross / Handicap / NETO se imprimen dentro de la MISMA tarjeta
+ * que el jugador principal.
+ */
+export interface TarjetaOpponent {
+  playerId: string;
+  name: string;
+  club: string;
+  folio: string;
+  hcp: number;
+  hcpPorHoyo?: number[];
+  /** Siembra/posición del jugador en la llave (columna de `jugadores`). */
+  position?: string;
+}
+
 /** Una tarjeta de juego completa (un jugador). */
 export interface TarjetaCard {
   groupId: string;
@@ -98,6 +114,12 @@ export interface TarjetaCard {
   hcpPorHoyo?: number[];
   holes: TarjetaHole[];
   totals: TarjetaTotals;
+  /** MATCH PLAY: número de match de `elimin_salidas_cat` ('' si no existe). */
+  matchNo?: string;
+  /** MATCH PLAY: siembra/posición del jugador principal en la llave. */
+  position?: string;
+  /** MATCH PLAY: segundo contendiente del match (null si el match está incompleto). */
+  opponent?: TarjetaOpponent | null;
 }
 
 /** Respuesta del reporte de tarjetas. */
@@ -156,6 +178,8 @@ export const useTarjetasReport = (filters: {
   torneoid?: string;
   /** Columna de la BD del HANDICAP NETO (Admin → Tarjetas). */
   hcpfield?: string;
+  /** '1' → tarjetas de MATCH PLAY (una tarjeta por enfrentamiento). */
+  matchplay?: string;
 }) =>
   useQuery<TarjetasReport>({
     queryKey: ['tarjetas-impresion', filters],

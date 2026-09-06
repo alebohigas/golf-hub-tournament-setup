@@ -68,7 +68,8 @@ export interface TarjetaHeaderFooterPreviewProps {
   /** Margen lateral (mm) de la tarjeta. */
   marginMm: number;
   /** Tipo de juego elegido en Admin (auto usa STROKEPLAY de muestra). */
-  sistema: 'auto' | 'stroke' | 'stableford';
+  /** 'matchplay' = tarjeta por enfrentamiento (dos contendientes). */
+  sistema: 'auto' | 'stroke' | 'stableford' | 'matchplay';
   /** Tamaños de letra (pt) de hoyo/hora y categoría configurados en Admin. */
   headerFonts?: TarjetaHeaderFonts;
   /**
@@ -111,7 +112,11 @@ const TarjetaHeaderFooterPreview = ({
   const card: TarjetaChromeData = {
     ...(simularFaltantes ? SAMPLE_INCOMPLETO : (realCard ?? SAMPLE)),
     system: simularFaltantes || !realCard
-      ? sistema === 'stableford' ? 'STABLEFORD' : 'STROKE PLAY'
+      ? sistema === 'stableford'
+        ? 'STABLEFORD'
+        : sistema === 'matchplay'
+          ? 'MATCH PLAY'
+          : 'STROKE PLAY'
       : realCard.system ?? '',
   };
 

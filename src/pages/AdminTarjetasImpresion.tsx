@@ -23,7 +23,7 @@
  * impresión) y el PDF se arma con jsPDF a tamaño carta, una hoja por página.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +49,8 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+/* Nombre del jugador normalizado a NOMBRE PROPIO (igual que en el encabezado). */
+import { toProperName } from '@/lib/properName';
 /* Geometría de hoja carta vertical y predeterminados de maquetación. */
 import {
   LETTER_SHORT_MM,
@@ -210,6 +212,7 @@ const Cell = ({
   className = '',
   style,
   darkBorder = false,
+  colSpan,
 }: {
   children?: React.ReactNode;
   className?: string;
@@ -217,8 +220,11 @@ const Cell = ({
   style?: React.CSSProperties;
   /** Borde oscuro (usado en la línea de SCORE GROSS); el resto usa borde claro. */
   darkBorder?: boolean;
+  /** Celdas combinadas (tarjeta de MATCH PLAY: nombre del contendiente). */
+  colSpan?: number;
 }) => (
   <td
+    colSpan={colSpan}
     className={`border px-0 text-center align-middle ${darkBorder ? 'border-foreground/60' : 'border-foreground/30'} ${className}`}
     style={style}
   >
@@ -478,6 +484,258 @@ const Scorecard = ({
   );
 };
 
+/**
+ * MatchScorecard — TARJETA DE MATCH PLAY (una por enfrentamiento)
+ * -----------------------------------------------------------------------------
+ * Réplica del reporte legacy `Print_score_stk_matchplay_ed.php` con el MISMO
+ * encabezado de las tarjetas de Stroke Play / Stableford:
+ *   · Encabezado de 3 renglones (hoyo + hora, match + los dos jugadores,
+ *     categoría y marcas de salida). El bloque HANDICAP NETO no aplica aquí:
+ *     cada jugador imprime su propio neto en su renglón.
+ *   · Tabla: HOYO (1-9 · V1 · 10-18 · V2 · TOTAL), PAR, YARDAS y VENTAJA del
+ *     campo; después, por cada contendiente, su nombre + neto y los renglones
+ *     SCORE GROSS (para anotar), HANDICAP (golpes por hoyo) y SCORE NETO.
+ *   · Cierre: renglón DIF, renglón RESULTADO y firmas de ambos jugadores.
+ *
+ * @param card         Tarjeta del jugador A con el jugador B en `card.opponent`.
+ * @param rowMm        Alto de renglón en mm (Admin → Tarjetas).
+ * @param headerFields Campos y orden del encabezado (Admin → Tarjetas).
+ * @param headerFonts  Tamaños de letra del encabezado (Admin → Tarjetas).
+ */
+const MatchScorecard = ({
+  card,
+  rowMm,
+  padMm,
+  headerFields,
+  headerFonts,
+}: {
+  card: TarjetaCard;
+  rowMm: number;
+  /** Padding-bottom (mm) configurable al final de la tarjeta. */
+  padMm: number;
+  headerFields: TarjetaHeaderKey[];
+  headerFonts: TarjetaHeaderFonts;
+}) => {
+  const out = card.holes.slice(0, 9);
+  const inn = card.holes.slice(9, 18);
+  const t = card.totals;
+
+  /** Etiqueta "posición + Nombre Propio" de un contendiente. */
+  const labelOf = (position: string | undefined, name: string | undefined) =>
+    `${position ? `${position} · ` : ''}${toProperName(name || 'Jugador por asignar')}`;
+
+  /** Los dos contendientes del match (B puede faltar si la llave está impar). */
+  const players = [
+    {
+      key: 'a',
+      label: labelOf(card.position, card.name),
+      hcp: card.hcp,
+      porHoyo: card.hcpPorHoyo ?? card.holes.map((h) => h.handicap),
+      total: t.handicap,
+    },
+    ...(card.opponent
+      ? [
+          {
+            key: 'b',
+            label: labelOf(card.opponent.position, card.opponent.name),
+            hcp: card.opponent.hcp,
+            porHoyo:
+              card.opponent.hcpPorHoyo ?? card.holes.map((h) => h.handicap),
+            total: (card.opponent.hcpPorHoyo ?? []).reduce((a, b) => a + b, 0),
+          },
+        ]
+      : []),
+  ];
+
+  /** Renglón genérico: etiqueta + 9 hoyos + V1 + 9 hoyos + V2 + TOTAL. */
+  const Row = ({
+    label,
+    value,
+    outTotal,
+    inTotal,
+    total,
+    head = false,
+    bold = false,
+    darkBorder = false,
+    heightMm,
+    holeCellStyle,
+  }: {
+    label: string;
+    value: (h: TarjetaCard['holes'][number], idx: number) => React.ReactNode;
+    outTotal?: React.ReactNode;
+    inTotal?: React.ReactNode;
+    total?: React.ReactNode;
+    head?: boolean;
+    bold?: boolean;
+    darkBorder?: boolean;
+    heightMm?: number;
+    holeCellStyle?: (h: TarjetaCard['holes'][number]) => React.CSSProperties | undefined;
+  }) => (
+    <tr
+      className={`${head ? 'bg-muted/60 font-bold' : ''} ${bold ? 'font-bold' : ''}`}
+      style={{ height: `${heightMm ?? rowMm}mm` }}
+    >
+      <Cell
+        darkBorder={darkBorder}
+        className={`truncate px-1 text-left text-[6pt] uppercase ${
+          bold ? 'font-bold' : 'font-semibold'
+        }`}
+      >
+        {label}
+      </Cell>
+      {out.map((h, i) => (
+        <Cell key={`o-${h.numero}`} darkBorder={darkBorder} style={holeCellStyle?.(h)}>
+          {value(h, i)}
+        </Cell>
+      ))}
+      <Cell darkBorder={darkBorder} className={head ? '' : 'bg-muted/60 font-bold'}>
+        {outTotal}
+      </Cell>
+      {inn.map((h, i) => (
+        <Cell key={`i-${h.numero}`} darkBorder={darkBorder} style={holeCellStyle?.(h)}>
+          {value(h, i + 9)}
+        </Cell>
+      ))}
+      <Cell darkBorder={darkBorder} className={head ? '' : 'bg-muted/60 font-bold'}>
+        {inTotal}
+      </Cell>
+      <Cell darkBorder={darkBorder} className={head ? '' : 'bg-muted/60 font-bold'}>
+        {total}
+      </Cell>
+    </tr>
+  );
+
+  /**
+   * Encabezado: se reutiliza el de Stroke Play / Stableford. En el bloque del
+   * jugador se imprimen los DOS contendientes y, en lugar del ID, el número de
+   * match de la base; el bloque HANDICAP NETO se omite (cada jugador tiene el
+   * suyo dentro de la tabla).
+   */
+  const headerCard = {
+    ...card,
+    playerId: card.matchNo ? `MATCH ${card.matchNo}` : '',
+    name: card.opponent
+      ? `${card.name} vs ${card.opponent.name}`
+      : card.name,
+  };
+  const matchHeaderFields = headerFields.filter((k) => k !== 'vtja');
+
+  return (
+    <div className="border border-foreground/70">
+      <TarjetaHeaderGrid
+        card={headerCard}
+        fields={matchHeaderFields}
+        rowMm={rowMm}
+        fonts={headerFonts}
+      />
+
+      {/* Brinco de renglón entre el encabezado y la tabla de hoyos */}
+      <div style={{ height: `${rowMm}mm` }} />
+
+      <table className="w-full table-fixed border-collapse text-[7pt] leading-none">
+        <ColGroup />
+        <tbody>
+          <Row
+            head
+            label={TARJETA_ROW_LABELS.hoyo}
+            value={(h) => h.numero}
+            outTotal="V1"
+            inTotal="V2"
+            total="TOTAL"
+            holeCellStyle={(h) => startHoleStyleFor(h.numero, card.hole)}
+          />
+          <Row
+            bold
+            label={TARJETA_ROW_LABELS.par}
+            value={(h) => h.par ?? ''}
+            outTotal={t.parOut}
+            inTotal={t.parIn}
+            total={t.par}
+          />
+          <Row
+            label={TARJETA_ROW_LABELS.yardas}
+            value={(h) => h.yardas ?? ''}
+            outTotal={t.yardasOut}
+            inTotal={t.yardasIn}
+            total={t.yardas}
+          />
+          <Row
+            label={TARJETA_ROW_LABELS.ventaja}
+            value={(h) => h.ventaja ?? ''}
+          />
+
+          {/* Bloque de cada contendiente: nombre + neto, GROSS, HANDICAP y NETO */}
+          {players.map((p) => (
+            <Fragment key={p.key}>
+              <tr style={{ height: `${rowMm}mm` }}>
+                <Cell
+                  className="truncate px-1 text-left text-[7pt] font-bold uppercase"
+                  /* colSpan: el nombre del jugador ocupa todo el renglón. */
+                  colSpan={19}
+                >
+                  {p.label}
+                </Cell>
+                <Cell className="bg-muted/60 px-1 text-[5.5pt] font-semibold uppercase">
+                  Handicap neto
+                </Cell>
+                <Cell className="bg-muted/60 text-[9pt] font-bold tabular-nums" colSpan={2}>
+                  {p.hcp}
+                </Cell>
+              </tr>
+              <Row
+                key={`${p.key}-gross`}
+                bold
+                darkBorder
+                label={TARJETA_ROW_LABELS.gross}
+                value={() => ''}
+                heightMm={rowMm * 1.5}
+              />
+              <Row
+                key={`${p.key}-hcp`}
+                label={TARJETA_ROW_LABELS.handicap}
+                value={(_h, i) => (p.porHoyo[i] > 0 ? p.porHoyo[i] : '')}
+                total={p.total || ''}
+              />
+              <Row key={`${p.key}-neto`} label={TARJETA_ROW_LABELS.neto} value={() => ''} />
+            </Fragment>
+          ))}
+
+          {/* DIF: diferencia hoyo por hoyo entre los dos contendientes */}
+          <Row label="Dif" value={() => ''} />
+        </tbody>
+      </table>
+
+      {/* RESULTADO del match (se escribe a mano al cerrar la tarjeta) */}
+      <div
+        className="mt-1 flex items-end gap-2 px-2 text-[6.5pt] uppercase"
+        style={{ height: `${rowMm * 1.5}mm` }}
+      >
+        <span className="whitespace-nowrap font-bold">Resultado</span>
+        <span className="flex-1 border-b border-foreground/50" />
+      </div>
+
+      {/* Firmas de ambos contendientes + anotador */}
+      <div
+        className="flex items-end justify-between gap-2 px-2 pb-1 pt-2 text-[6.5pt] uppercase"
+        style={{ paddingBottom: `${padMm}mm` }}
+      >
+        <div className="min-w-0 leading-tight">
+          <div className="text-[5.5pt] uppercase text-foreground/70">Sistema</div>
+          <div className="truncate text-[7.5pt] font-bold">Match Play</div>
+        </div>
+        <div className="flex-1 truncate border-b border-foreground/30 text-center">
+          {toProperName(card.name || 'Jugador por asignar')}
+        </div>
+        <div className="flex-1 truncate border-b border-foreground/30 text-center">
+          {toProperName(card.opponent?.name || 'Jugador por asignar')}
+        </div>
+        <div className="whitespace-nowrap font-semibold">
+          Folio {card.folio || '—'}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 // ============= Página =============
@@ -502,6 +760,11 @@ const AdminTarjetasImpresion = () => {
   const scale = numParam(params.get('scale'), orientDefaults.scale, 60, 130) / 100;
 
   const sistema = (params.get('sistema') ?? 'auto').toLowerCase();
+  /**
+   * MATCH PLAY (`matchplay=1`): el backend regresa UNA tarjeta por
+   * enfrentamiento (jugador A + `opponent`) y aquí se pinta `MatchScorecard`.
+   */
+  const matchPlay = params.get('matchplay') === '1';
   const autoPreview = params.get('preview') === '1';
   /** Imprimir el logo del torneo en la cabecera (Admin → Tarjetas, `logo=`). */
   const showLogo = params.get('logo') !== '0';
@@ -562,8 +825,14 @@ const AdminTarjetasImpresion = () => {
    * SCORE GROSS mide 1.5 renglones (más espacio para anotar): se suma 0.5 al
    * total de renglones para que el alto calculado nunca desborde 1/2 carta.
    */
-  const effectiveRows =
-    rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
+  /*
+    MATCH PLAY: la maqueta es fija (HOYO, PAR, YARDAS, VENTAJA + 4 renglones por
+    contendiente con SCORE GROSS a 1.5 + DIF), así que se cuentan sus renglones
+    reales para que la tarjeta siga cabiendo exacta en 1/2 hoja carta.
+  */
+  const effectiveRows = matchPlay
+    ? 4 + 2 * (1 + 1.5 + 1 + 1) + 1
+    : rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
 
   const rowMm = Math.min(
     numParam(params.get('rowh'), orientDefaults.rowMm, 2.6, 12),
@@ -585,8 +854,10 @@ const AdminTarjetasImpresion = () => {
       sistema,
       // Campo de la BD para el HCP. NETO (Admin → Tarjetas).
       hcpfield: hcpField,
+      // Tarjetas por enfrentamiento (MATCH PLAY).
+      ...(matchPlay ? { matchplay: '1' } : {}),
     }),
-    [params, sistema, hcpField],
+    [params, sistema, hcpField, matchPlay],
   );
 
   const { data, isLoading, error } = useTarjetasReport(filters);
@@ -596,10 +867,12 @@ const AdminTarjetasImpresion = () => {
   /** Tarjetas del reporte, filtradas por tipo de juego si se pidió uno. */
   const cards = useMemo(() => {
     const all = data?.cards ?? [];
+    /* MATCH PLAY: el sistema de la categoría no es Stroke/Stableford, no se filtra. */
+    if (matchPlay) return all;
     if (sistema === 'stroke') return all.filter((c) => !c.system.includes('STABLE'));
     if (sistema === 'stableford') return all.filter((c) => c.system.includes('STABLE'));
     return all;
-  }, [data, sistema]);
+  }, [data, sistema, matchPlay]);
 
   /**
    * Tarjetas agrupadas por hoja: 2 por hoja en VERTICAL y 1 por hoja en
@@ -981,7 +1254,7 @@ const AdminTarjetasImpresion = () => {
             >
               {pair.map((card) => (
                 <div
-                  key={`${card.groupId}-${card.playerId}`}
+                  key={`${card.fecha}-${card.groupId}-${card.playerId}-${card.matchNo ?? ''}`}
                   className="overflow-hidden"
                   style={{
                     /*
@@ -1029,14 +1302,25 @@ const AdminTarjetasImpresion = () => {
                       transformOrigin: 'top left',
                     }}
                   >
-                    <Scorecard
-                      card={card}
-                      rowMm={rowMm}
-                      padMm={padMm}
-                      rows={rowOrder}
-                      headerFields={headerFields}
-                      headerFonts={headerFonts}
-                    />
+                    {matchPlay ? (
+                      /* Tarjeta por enfrentamiento (dos contendientes). */
+                      <MatchScorecard
+                        card={card}
+                        rowMm={rowMm}
+                        padMm={padMm}
+                        headerFields={headerFields}
+                        headerFonts={headerFonts}
+                      />
+                    ) : (
+                      <Scorecard
+                        card={card}
+                        rowMm={rowMm}
+                        padMm={padMm}
+                        rows={rowOrder}
+                        headerFields={headerFields}
+                        headerFonts={headerFonts}
+                      />
+                    )}
                   </div>
                 </div>
               ))}

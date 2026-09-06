@@ -88,8 +88,13 @@ export const tarjetaHoleTime = (
 
 
 /** Sistema de juego normalizado a la leyenda impresa. */
-export const tarjetaSistemaLabel = (system?: string | null): string =>
-  (system || '').toUpperCase().includes('STABLE') ? 'STABLEFORD' : 'STROKEPLAY';
+export const tarjetaSistemaLabel = (system?: string | null): string => {
+  const s = (system || '').toUpperCase();
+  if (s.includes('STABLE')) return 'STABLEFORD';
+  /* MATCH PLAY: se imprime tal cual para que la tarjeta del match lo declare. */
+  if (s.includes('MATCH')) return 'MATCH PLAY';
+  return 'STROKEPLAY';
+};
 
 // ============= Piezas visuales =============
 

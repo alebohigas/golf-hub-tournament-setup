@@ -205,6 +205,17 @@ if (!in_array($hcpField, $HCP_FIELDS_OK, true)) $hcpField = 'auto';
 $sistemaFilter = strtolower(trim((string)optional_param('sistema', 'auto')));
 
 /**
+ * MATCH PLAY (`matchplay=1`)
+ * -----------------------------------------------------------------------------
+ * Réplica del reporte legacy `tarjetas/Print_score_stk_matchplay_ed.php`: en vez
+ * de una tarjeta por jugador se emite UNA TARJETA POR ENFRENTAMIENTO, con los
+ * dos contendientes del match (`torneos.elimin_salidas_cat`) dentro de la misma
+ * tarjeta: renglones Gross / Handicap / NETO por jugador y un renglón DIF.
+ * El encabezado es el MISMO de Stroke Play / Stableford.
+ */
+$matchPlay = optional_param('matchplay') === '1';
+
+/**
  * `fecha` acepta un día (2026-04-30) o varios separados por coma
  * (2026-04-30,2026-05-01) para imprimir un rango en un solo reporte.
  */
@@ -648,6 +659,108 @@ foreach ($groups as $g) {
     }
 }
 }
+
+// ============= MATCH PLAY: una tarjeta por enfrentamiento =============
+/**
+ * Agrupa las tarjetas individuales en tarjetas de MATCH: cada tarjeta queda con
+ * el jugador A en su nivel principal (para reutilizar el encabezado de Stroke
+ * Play / Stableford) y el jugador B en `opponent`.
+ *
+ * Fuente de los enfrentamientos: `torneos.elimin_salidas_cat`
+ * (catid, matchx, jugida, jugidb, fecha). Un jugador puede aparecer en varias
+ * rondas, por eso se prioriza la fila cuya fecha coincide con el día impreso y
+ * se exige que AMBOS contendientes estén en el mismo grupo de salida.
+ * Si la base no tiene el enfrentamiento, se emparejan de dos en dos en el orden
+ * de la salida (mismo criterio que la vista pública de Salidas).
+ */
+if ($matchPlay) {
+    /** Filas canónicas de enfrentamientos de las categorías impresas. */
+    $matchRows = tj_all($conn, "SELECT catid, matchx, jugida, jugidb, fecha
+                                  FROM elimin_salidas_cat
+                                 WHERE catid IN ($catList)");
+
+    /** Siembra/posición del jugador (columna variable entre instalaciones). */
+    $posByPlayer = [];
+    $posCol = tj_pick_column($conn, 'jugadores', ['grupo', 'posgrupo', 'posicion']);
+    if ($posCol) {
+        $ids = [];
+        foreach ($cards as $c) { if ((int)$c['playerId'] > 0) $ids[(int)$c['playerId']] = true; }
+        if ($ids) {
+            $idList = implode(',', array_map('intval', array_keys($ids)));
+            foreach (tj_all($conn, "SELECT id, `$posCol` AS pos FROM jugadores WHERE id IN ($idList)") as $r) {
+                if ($r['pos'] !== null && $r['pos'] !== '') $posByPlayer[(int)$r['id']] = (string)$r['pos'];
+            }
+        }
+    }
+
+    /**
+     * Busca el enfrentamiento de dos jugadores de una categoría.
+     * @return array|null ['matchNo' => string, 'exact' => bool]
+     */
+    $findMatch = function ($catId, $a, $b) use ($matchRows) {
+        $hit = null;
+        foreach ($matchRows as $r) {
+            if ((int)$r['catid'] !== (int)$catId) continue;
+            $ja = (int)$r['jugida'];
+            $jb = (int)$r['jugidb'];
+            if (($ja === (int)$a && $jb === (int)$b) || ($ja === (int)$b && $jb === (int)$a)) {
+                $hit = ['matchNo' => (string)$r['matchx'], 'fecha' => (string)($r['fecha'] ?? '')];
+                break;
+            }
+        }
+        return $hit;
+    };
+
+    /** Datos del segundo contendiente que se imprimen dentro de la tarjeta. */
+    $opponentOf = function ($c) use ($posByPlayer) {
+        return [
+            'playerId'   => $c['playerId'],
+            'name'       => $c['name'],
+            'club'       => $c['club'],
+            'folio'      => $c['folio'],
+            'hcp'        => $c['hcp'],
+            'hcpPorHoyo' => $c['hcpPorHoyo'],
+            'position'   => $posByPlayer[(int)$c['playerId']] ?? '',
+        ];
+    };
+
+    /** Tarjetas agrupadas por (día, grupo de salida) conservando el orden. */
+    $byGroup = [];
+    foreach ($cards as $c) {
+        $byGroup[$c['fecha'] . '|' . $c['groupId']][] = $c;
+    }
+
+    $matchCards = [];
+    foreach ($byGroup as $groupCards) {
+        $pending = $groupCards;
+        while ($pending) {
+            $a = array_shift($pending);
+            $partnerIdx = null;
+            $matchNo = '';
+            // 1) Enfrentamiento real de la base, dentro del mismo grupo de salida.
+            foreach ($pending as $i => $b) {
+                $hit = $findMatch($a['categoryId'], $a['playerId'], $b['playerId']);
+                if ($hit) { $partnerIdx = $i; $matchNo = $hit['matchNo']; break; }
+            }
+            // 2) Respaldo: de dos en dos en el orden de la salida.
+            if ($partnerIdx === null && $pending) $partnerIdx = array_key_first($pending);
+            $b = null;
+            if ($partnerIdx !== null) {
+                $b = $pending[$partnerIdx];
+                unset($pending[$partnerIdx]);
+                $pending = array_values($pending);
+            }
+            $card = $a;
+            $card['matchNo']  = $matchNo;
+            $card['position'] = $posByPlayer[(int)$a['playerId']] ?? '';
+            $card['opponent'] = $b ? $opponentOf($b) : null;
+            $matchCards[] = $card;
+        }
+    }
+    $cards = $matchCards;
+}
+
+
 
 $payload = [
     'tournament'   => $head['nombre'] ?? '',
