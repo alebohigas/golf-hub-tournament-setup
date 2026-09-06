@@ -204,6 +204,11 @@ export const getTarjetasImpresionUrl = (p: {
   torneoid?: string;
   /** Campo de la BD para el HCP. NETO (ver `@/lib/tarjetasHcp`). */
   hcpfield?: string;
+  /**
+   * '1' → tarjetas de MATCH PLAY: una tarjeta por enfrentamiento con los dos
+   * contendientes de `elimin_salidas_cat` dentro de la misma tarjeta.
+   */
+  matchplay?: string;
 }): string =>
   `${API_BASE_URL}/tarjetas_impresion.php${buildQuery({
     fecha: p.fecha,
@@ -212,6 +217,7 @@ export const getTarjetasImpresionUrl = (p: {
     ...(p.sistema ? { sistema: p.sistema } : {}),
     ...(p.torneoid ? { torneoid: p.torneoid } : {}),
     ...(p.hcpfield ? { hcpfield: p.hcpfield } : {}),
+    ...(p.matchplay ? { matchplay: p.matchplay } : {}),
   })}`;
 
 
