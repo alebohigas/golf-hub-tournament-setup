@@ -250,5 +250,8 @@ json_response([
     'shortName'    => $calInfo['abreviatura'],
     'system'       => $calInfo['sistema'],
     'tee'          => $calInfo['tee'],
+    /* Bandera para que el frontend active el render agrupado por match + "VS". */
+    'isMatchPlay'  => $isMatchPlay,
     'groups'       => $groups
+
 ]);
