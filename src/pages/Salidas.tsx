@@ -690,9 +690,10 @@ const Salidas = () => {
                                 /* Igual que el bloque de búsqueda: parejas → 2 renglones por jugador.
                                  * Hoyo/Hora abarcan TODOS los renglones del grupo;
                                  * Score abarca los 2 renglones de cada pareja. */
-                                const players = group.players ?? [];
-                                /* MATCH PLAY: separadores "VS" entre los dos lados de cada match. */
                                 const matchPlay = !!detail.isMatchPlay || isMatchPlaySystem(detail.system);
+                                /* MATCH PLAY: ordenar por número de match y lado dentro del horario. */
+                                const players = sortByMatch(group.players ?? [], matchPlay);
+                                /* MATCH PLAY: línea divisoria entre un match y el siguiente. */
                                 const vsIdx = vsAfterIndexes(players, matchPlay);
                                 const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
