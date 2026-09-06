@@ -702,9 +702,8 @@ const Salidas = () => {
                                     <TableRow
                                       key={`${group.id}-${pIdx}-a`}
                                        /* `border-b-0` cuando es pareja: oculta la línea divisoria por defecto
-                                        * entre los dos integrantes del mismo equipo.
-                                        * MATCH PLAY: fondo gris muy ligero para agrupar el match. */
-                                       className={`${matchPlay ? 'bg-muted/40 hover:bg-muted/40' : 'bg-white hover:bg-white'} ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
+                                        * entre los dos integrantes del mismo equipo. */
+                                       className={`bg-white hover:bg-white ${separatorRow1} ${isPair ? 'border-b-0' : ''}`}
                                     >
                                       {renderHoleHora ? (
                                         <>
