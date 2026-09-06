@@ -66,6 +66,11 @@ export const isAnuncioWithinSchedule = (cfg: AnuncioConfig, now: Date = new Date
 /** Texto legible del temporizador para el panel de administración. */
 export const describeAnuncioSchedule = (cfg: AnuncioConfig): string => {
   const s = cfg.schedule;
-  if (!s?.enabled || !s.date || !s.startTime || !s.endTime) return 'Sin temporizador';
-  return `Se publica el ${s.date} de ${s.startTime} a ${s.endTime} (hora CDMX)`;
+  const startDate = s?.startDate || s?.date;
+  const endDate = s?.endDate || startDate;
+  if (!s?.enabled || !startDate || !endDate || !s.startTime || !s.endTime) return 'Sin temporizador';
+  if (startDate === endDate) {
+    return `Se publica el ${startDate} de ${s.startTime} a ${s.endTime} (hora CDMX)`;
+  }
+  return `Se publica del ${startDate} ${s.startTime} al ${endDate} ${s.endTime} (hora CDMX)`;
 };
