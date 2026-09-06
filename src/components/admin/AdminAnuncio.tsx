@@ -181,17 +181,17 @@ const AdminAnuncio = () => {
         variant: 'destructive' });
       return;
     }
-    // El temporizador activo necesita fecha, hora inicial y hora final.
-    const missingSchedule = configs.find(
-      (c) =>
-        c.enabled &&
-        c.schedule?.enabled &&
-        (!c.schedule.date || !c.schedule.startTime || !c.schedule.endTime),
-    );
+    // El temporizador activo necesita fecha/hora de inicio y fecha/hora de fin.
+    const missingSchedule = configs.find((c) => {
+      if (!c.enabled || !c.schedule?.enabled) return false;
+      const startDate = c.schedule.startDate || c.schedule.date;
+      const endDate = c.schedule.endDate || startDate;
+      return !startDate || !endDate || !c.schedule.startTime || !c.schedule.endTime;
+    });
     if (missingSchedule) {
       toast({
         title: 'Temporizador incompleto',
-        description: 'Indica fecha, hora inicial y hora final en cada anuncio con temporizador.',
+        description: 'Indica fecha/hora de inicio y fecha/hora de fin en cada anuncio con temporizador.',
         variant: 'destructive',
       });
       return;
