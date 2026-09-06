@@ -2,18 +2,18 @@
  * AvisosPostersSection
  * -------------------------------------------------------------
  * Renders a responsive grid of aviso poster cards (climatological notice,
- * pricing tables, etc.). Mirrors `AtraccionesSection` (Eventos page) in
- * structure and behavior so the Avisos page shares the same visual
+ * pricing tables, etc.). Mirrors `MenusPostersSection` / `AtraccionesSection`
+ * in structure and behavior so the Avisos page shares the same visual
  * language and lightbox UX.
  *
- * Each card displays a vertical poster (.webp) imported from
- * `src/assets/avisos`. Clicking a card opens a lightbox dialog showing
- * the full image, with keyboard (← →) and on-screen navigation between
- * images.
+ * Each card displays a poster imported from `src/assets/avisos` or uploaded
+ * through /admin. Clicking a card opens a lightbox dialog showing the full
+ * image, with keyboard (← →) and on-screen navigation between images.
  *
  * Design notes:
  *  - Uses semantic tokens only (bg-card, border-border, text-foreground...).
- *  - Aspect ratio is locked to 9/16 to match the source posters.
+ *  - Mobile: image fills the card width at its natural height (no letterbox).
+ *  - Desktop: image fills a 3/4 box with `object-cover` for uniform grids.
  *  - Lazy-loaded images for performance.
  *  - Layout (columns + gap per breakpoint) is controlled by the admin via
  *    `site_config.avisos_config` and read through `useSiteConfig`.
@@ -38,8 +38,14 @@ import { AVISOS_POSTERS as DISCOVERED_AVISOS_POSTERS } from '@/lib/posterAssets'
  * `alt` : accessibility label.
  */
 interface AvisoCard {
+  /** Full-resolution image URL (used by the lightbox). */
   src: string;
+  /** Accessibility label. */
   alt: string;
+  /** ~480px WebP thumbnail for the grid card (optional). */
+  thumbSmall?: string;
+  /** ~1000px WebP thumbnail — lightbox placeholder while `src` loads. */
+  thumbMedium?: string;
 }
 
 /**
@@ -122,9 +128,13 @@ const AvisosPostersSection = () => {
   // Server-side uploaded posters. Take precedence over build-time assets so
   // editors can replace/extend the grid via /admin without a re-deploy.
   const { data: uploadsData } = useUploadsList('avisos');
+  // Server-generated thumbnails (see server/api/_thumbs.php) keep the grid
+  // light: cards load the ~480px variant instead of the multi-MB poster.
   const serverPosters: AvisoCard[] = (uploadsData?.files ?? []).map((f) => ({
     src: f.url,
     alt: f.alt,
+    thumbSmall: f.thumbs?.small ?? f.thumbUrl ?? undefined,
+    thumbMedium: f.thumbs?.medium ?? undefined,
   }));
   const sourcePosters: AvisoCard[] = serverPosters.length > 0
     ? serverPosters
@@ -171,13 +181,64 @@ const AvisosPostersSection = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [openIndex, goPrev, goNext]);
 
+  /**
+   * Set of poster URLs whose grid thumbnail has finished decoding. Used to
+   * cross-fade each card in and hide its skeleton placeholder.
+   */
+  const [loadedCards, setLoadedCards] = useState<Set<string>>(() => new Set());
+
+  /** Mark one card as loaded (idempotent — never re-renders twice per image). */
+  const markLoaded = useCallback((src: string) => {
+    setLoadedCards((prev) => (prev.has(src) ? prev : new Set(prev).add(src)));
+  }, []);
+
   const current = openIndex !== null ? orderedPosters[openIndex] : null;
 
+  /**
+   * True once the full-resolution image of the currently open poster has
+   * finished downloading. Until then the lightbox shows the medium
+   * thumbnail, so opening a poster feels instant.
+   */
+  const [fullLoaded, setFullLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!current) return;
+    setFullLoaded(false);
+    const img = new Image();
+    img.onload = () => setFullLoaded(true);
+    img.src = current.src;
+    // Already in the HTTP cache → resolve synchronously.
+    if (img.complete) setFullLoaded(true);
+    return () => {
+      img.onload = null;
+    };
+  }, [current?.src]);
+
+  /**
+   * Prefetch the medium thumbnails of the previous/next posters while the
+   * lightbox is open, so ← → navigation paints without a blank frame.
+   */
+  useEffect(() => {
+    if (openIndex === null || orderedPosters.length < 2) return;
+    const neighbours = [
+      orderedPosters[(openIndex + 1) % orderedPosters.length],
+      orderedPosters[(openIndex - 1 + orderedPosters.length) % orderedPosters.length],
+    ];
+    const imgs = neighbours.map((n) => {
+      const img = new Image();
+      img.src = n.thumbMedium ?? n.src;
+      return img;
+    });
+    return () => {
+      imgs.forEach((img) => { img.src = ''; });
+    };
+  }, [openIndex, orderedPosters]);
+
   return (
-    <section className="py-16 bg-muted/30">
-      <div className="container mx-auto px-4">
+    <section className="py-8 md:py-16 bg-muted/30">
+      <div className="container mx-auto px-2 md:px-4">
         {/* ---------- Section header ---------- */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 md:mb-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2">
             Comunicados Importantes del Torneo
           </h2>
@@ -202,18 +263,54 @@ const AvisosPostersSection = () => {
               aria-label={`Ver ${card.alt} en grande`}
             >
               {/*
-                Use `object-contain` (not cover) so posters with slightly
-                different aspect ratios than 9/16 — e.g. the climatological
-                notice at 683x1024 vs the 576x1024 pricing tables — render
-                completely without cropping or zoom-in artifacts. The card
-                background fills any letterbox gap.
+                Mobile: drop the fixed 9/16 box so the poster fills the full
+                card width with its natural height — no letterbox padding
+                above/below. Desktop keeps a 3/4 ratio so the multi-column
+                grid stays uniform; `object-cover` trims edges but fills the
+                frame.
               */}
-              <div className="aspect-[9/16] w-full overflow-hidden bg-card flex items-center justify-center">
+              <div className="relative w-full min-h-[200px] overflow-hidden bg-card md:aspect-[3/4]">
+                {/*
+                  Skeleton placeholder: a shimmering muted block that occupies
+                  the card box until the thumbnail decodes. On mobile it is
+                  pinned while the natural-height image loads; on desktop it
+                  fills the fixed 3/4 box.
+                */}
+                {!loadedCards.has(card.src) && (
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/60 to-muted"
+                  />
+                )}
+                {/*
+                  Prefer the generated thumbnails. `srcSet` lets the browser
+                  pick the 480px variant on phones/cards and the 1000px one on
+                  wide, few-column layouts; `src` stays as a safe fallback for
+                  build-time assets or servers without GD.
+                */}
                 <img
-                  src={card.src}
+                  src={card.thumbSmall ?? card.src}
+                  srcSet={
+                    card.thumbSmall && card.thumbMedium
+                      ? `${card.thumbSmall} 480w, ${card.thumbMedium} 1000w`
+                      : undefined
+                  }
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   alt={card.alt}
-                  loading="lazy"
-                  className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  /* First two cards are above the fold on every layout →
+                     load them eagerly with high priority; the rest wait for
+                     the viewport (native lazy loading). */
+                  loading={idx < 2 ? 'eager' : 'lazy'}
+                  fetchPriority={idx < 2 ? 'high' : 'low'}
+                  decoding="async"
+                  onLoad={() => markLoaded(card.src)}
+                  onError={() => markLoaded(card.src)}
+                  className={cn(
+                    'relative w-full h-auto object-contain',
+                    'md:absolute md:inset-0 md:h-full md:w-full md:object-cover',
+                    'transition-[opacity,transform] duration-500 group-hover:scale-105',
+                    loadedCards.has(card.src) ? 'opacity-100' : 'opacity-0'
+                  )}
                 />
               </div>
             </button>
@@ -271,11 +368,25 @@ const AvisosPostersSection = () => {
                 <ChevronRight className="h-6 w-6" />
               </Button>
 
-              {/* Full-size image */}
+              {/*
+                Progressive lightbox image: the already-cached medium
+                thumbnail paints immediately, then the full-resolution file
+                swaps in once decoded (see `fullLoaded`).
+              */}
+              {/* Placeholder behind the image: keeps the dialog from showing
+                  a transparent hole before the first byte paints. */}
+              {!fullLoaded && !current.thumbMedium && (
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 animate-pulse rounded-lg bg-muted/70"
+                />
+              )}
               <img
-                src={current.src}
+                src={fullLoaded || !current.thumbMedium ? current.src : current.thumbMedium}
                 alt={current.alt}
-                className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+                decoding="async"
+                fetchPriority="high"
+                className="relative w-full h-auto max-h-[90vh] object-contain rounded-lg"
               />
 
               {/* Counter label */}
