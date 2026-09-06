@@ -630,11 +630,15 @@ const Salidas = () => {
                                  * Hoyo/Hora abarcan TODOS los renglones del grupo;
                                  * Score abarca los 2 renglones de cada pareja. */
                                 const players = group.players ?? [];
-                                const totalRows = countGroupRows(players);
+                                /* MATCH PLAY: separadores "VS" entre los dos lados de cada match. */
+                                const vsIdx = vsAfterIndexes(players);
+                                const totalRows = countGroupRowsWithVs(players);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
+                                const bodyCols = showTeam ? 4 : 3;
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
                                 let firstRowEmitted = false;
                                 const rows: JSX.Element[] = [];
+
                                 players.forEach((player, pIdx) => {
                                   const isPair = !!player.partner;
                                   const isLastPlayer = pIdx === players.length - 1;
