@@ -44,17 +44,34 @@ const hasAnyPair = (players: SalidasGroup['players']): boolean =>
 const groupsHaveAnyPair = (groups: SalidasGroup[] | undefined): boolean =>
   (groups ?? []).some((g) => hasAnyPair(g.players ?? []));
 
+/** Detecta MATCH PLAY a partir del nombre del sistema de juego. */
+const isMatchPlaySystem = (system?: string): boolean =>
+  !!system && /match\s*play/i.test(system);
+
 /**
  * MATCH PLAY — índices de jugador después de los cuales se inserta el renglón
- * separador "VS". Se agrega cuando el jugador siguiente pertenece al MISMO
- * match (`matchNo`), es decir entre los dos contendientes del enfrentamiento.
+ * separador "VS".
+ *  - Si el API entrega `matchNo` (cruce con `elimin_salidas_cat`), se agrupa por
+ *    ese número de match.
+ *  - Si NO hay `matchNo` (endpoint viejo en producción) pero la categoría es
+ *    MATCH PLAY, se usa el orden tal como fue generado: los jugadores se
+ *    emparejan de 2 en 2 (1º vs 2º, 3º vs 4º).
  */
-const vsAfterIndexes = (players: SalidasGroup['players']): Set<number> => {
+const vsAfterIndexes = (
+  players: SalidasGroup['players'],
+  matchPlay = false
+): Set<number> => {
   const set = new Set<number>();
   const list = players ?? [];
+  const hasMatchNo = list.some((p) => p.matchNo != null);
   list.forEach((p, i) => {
     const next = list[i + 1];
-    if (p.matchNo != null && next && next.matchNo === p.matchNo) set.add(i);
+    if (!next) return;
+    if (hasMatchNo) {
+      if (p.matchNo != null && next.matchNo === p.matchNo) set.add(i);
+    } else if (matchPlay && i % 2 === 0) {
+      set.add(i);
+    }
   });
   return set;
 };
@@ -63,8 +80,11 @@ const vsAfterIndexes = (players: SalidasGroup['players']): Set<number> => {
  * Total de renglones de un grupo incluyendo los separadores "VS" de MATCH PLAY.
  * Se usa para el `rowSpan` de las columnas Hoyo / Hora.
  */
-const countGroupRowsWithVs = (players: SalidasGroup['players']): number =>
-  countGroupRows(players) + vsAfterIndexes(players).size;
+const countGroupRowsWithVs = (
+  players: SalidasGroup['players'],
+  matchPlay = false
+): number => countGroupRows(players) + vsAfterIndexes(players, matchPlay).size;
+
 
 
 // ============= Search Result Type =============
@@ -391,8 +411,9 @@ const Salidas = () => {
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
                                     const players = result.group.players ?? [];
                                     /* MATCH PLAY: renglones "VS" entre los dos jugadores de cada match. */
-                                    const vsIdx = vsAfterIndexes(players);
-                                    const totalRows = countGroupRowsWithVs(players);
+                                    const matchPlay = isMatchPlaySystem(result.system);
+                                    const vsIdx = vsAfterIndexes(players, matchPlay);
+                                    const totalRows = countGroupRowsWithVs(players, matchPlay);
                                     const showTeam = hasAnyPair(players);
                                     const bodyCols = showTeam ? 4 : 3;
                                     let firstRowEmitted = false;
@@ -631,8 +652,9 @@ const Salidas = () => {
                                  * Score abarca los 2 renglones de cada pareja. */
                                 const players = group.players ?? [];
                                 /* MATCH PLAY: separadores "VS" entre los dos lados de cada match. */
-                                const vsIdx = vsAfterIndexes(players);
-                                const totalRows = countGroupRowsWithVs(players);
+                                const matchPlay = !!detail.isMatchPlay || isMatchPlaySystem(detail.system);
+                                const vsIdx = vsAfterIndexes(players, matchPlay);
+                                const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
                                 const bodyCols = showTeam ? 4 : 3;
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
@@ -647,7 +669,7 @@ const Salidas = () => {
                                   // Separador entre grupos: aplica sólo al ÚLTIMO renglón del último jugador.
                                   // MATCH PLAY: además se separa visualmente el fin de cada match.
                                   const matchEnd =
-                                    player.matchNo != null && !vsIdx.has(pIdx) && !isLastPlayer
+                                    matchPlay && !vsIdx.has(pIdx) && !isLastPlayer
                                       ? 'border-b-2 border-primary/20'
                                       : '';
                                   const separatorRow2 = (isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || matchEnd;
