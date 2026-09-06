@@ -443,9 +443,8 @@ const Salidas = () => {
                                         <TableRow
                                           key={`${pIdx}-a`}
                                           /* `border-b-0` en el primer renglón de una pareja para que no aparezca
-                                           * una línea entre los dos integrantes del mismo equipo.
-                                           * MATCH PLAY: fondo gris muy ligero para agrupar visualmente el match. */
-                                          className={`${matchPlay ? 'bg-muted/40 hover:bg-muted/40' : 'bg-white hover:bg-white'} ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
+                                           * una línea entre los dos integrantes del mismo equipo. */
+                                          className={`bg-white hover:bg-white ${isMatched ? 'bg-primary/5 hover:bg-primary/5' : ''} ${isPair ? 'border-b-0' : ''}`}
                                         >
                                           {renderHoleHora ? (
                                             <>
