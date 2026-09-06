@@ -49,6 +49,30 @@ const groupsHaveAnyPair = (groups: SalidasGroup[] | undefined): boolean =>
 const isMatchPlaySystem = (system?: string): boolean =>
   !!system && /match\s*play/i.test(system);
 
+/** Convierte la posición/siembra enviada por la BD a un entero utilizable. */
+const numericMatchPosition = (position: SalidasGroup['players'][number]['position']): number | null => {
+  const parsed = Number.parseInt(String(position ?? ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+/**
+ * Obtiene la llave del enfrentamiento a partir de la siembra.
+ * Ejemplo en cuadro de 32: 1–32 comparten llave 1 y 16–17 comparten llave 16.
+ * Sirve como respaldo mientras un endpoint anterior todavía no envía matchNo.
+ */
+const inferredMatchKeys = (players: SalidasGroup['players']): Map<number, number> | null => {
+  const positions = players.map((player) => numericMatchPosition(player.position));
+  if (positions.some((position) => position === null)) return null;
+  const highestPosition = Math.max(...positions.map((position) => position ?? 0));
+  if (highestPosition <= 0) return null;
+  const bracketSize = 2 ** Math.ceil(Math.log2(highestPosition));
+  const keys = new Map<number, number>();
+  positions.forEach((position, index) => {
+    if (position !== null) keys.set(index, Math.min(position, bracketSize + 1 - position));
+  });
+  return keys;
+};
+
 /**
  * MATCH PLAY — ordena los jugadores de un grupo (hora de salida) por número de
  * match y, dentro del match, por lado (jugida = 1, jugidb = 2). Si el API aún
@@ -59,13 +83,29 @@ const sortByMatch = (
   matchPlay = false
 ): SalidasGroup['players'] => {
   const list = players ?? [];
-  if (!matchPlay || !list.some((p) => p.matchNo != null)) return list;
-  return [...list].sort((a, b) => {
-    const ma = a.matchNo ?? Number.MAX_SAFE_INTEGER;
-    const mb = b.matchNo ?? Number.MAX_SAFE_INTEGER;
-    if (ma !== mb) return ma - mb;
-    return (a.matchSide ?? 0) - (b.matchSide ?? 0);
-  });
+  if (!matchPlay) return list;
+  const hasCompleteMatchNumbers = list.length > 0 && list.every((player) => player.matchNo != null);
+  if (hasCompleteMatchNumbers) {
+    return [...list].sort((a, b) => {
+      const ma = a.matchNo ?? Number.MAX_SAFE_INTEGER;
+      const mb = b.matchNo ?? Number.MAX_SAFE_INTEGER;
+      if (ma !== mb) return ma - mb;
+      return (a.matchSide ?? 0) - (b.matchSide ?? 0);
+    });
+  }
+
+  const inferredKeys = inferredMatchKeys(list);
+  if (!inferredKeys) return list;
+  return list
+    .map((player, originalIndex) => ({ player, originalIndex }))
+    .sort((a, b) => {
+      const keyDifference = (inferredKeys.get(a.originalIndex) ?? Number.MAX_SAFE_INTEGER)
+        - (inferredKeys.get(b.originalIndex) ?? Number.MAX_SAFE_INTEGER);
+      if (keyDifference !== 0) return keyDifference;
+      return (numericMatchPosition(a.player.position) ?? Number.MAX_SAFE_INTEGER)
+        - (numericMatchPosition(b.player.position) ?? Number.MAX_SAFE_INTEGER);
+    })
+    .map(({ player }) => player);
 };
 
 /**
@@ -80,12 +120,23 @@ const vsAfterIndexes = (
 ): Set<number> => {
   const set = new Set<number>();
   const list = players ?? [];
-  const hasMatchNo = list.some((p) => p.matchNo != null);
+  const hasCompleteMatchNumbers = list.length > 0 && list.every((player) => player.matchNo != null);
+  const inferredKeys = hasCompleteMatchNumbers ? null : inferredMatchKeys(list);
   list.forEach((p, i) => {
     const next = list[i + 1];
     if (!next) return;
-    if (hasMatchNo) {
+    if (hasCompleteMatchNumbers) {
       if (next.matchNo !== p.matchNo) set.add(i);
+    } else if (inferredKeys) {
+      const currentPosition = numericMatchPosition(p.position);
+      const nextPosition = numericMatchPosition(next.position);
+      const highestPosition = Math.max(
+        ...list.map((player) => numericMatchPosition(player.position) ?? 0),
+      );
+      const bracketSize = 2 ** Math.ceil(Math.log2(highestPosition));
+      const currentKey = currentPosition === null ? null : Math.min(currentPosition, bracketSize + 1 - currentPosition);
+      const nextKey = nextPosition === null ? null : Math.min(nextPosition, bracketSize + 1 - nextPosition);
+      if (currentKey !== nextKey) set.add(i);
     } else if (matchPlay && i % 2 === 1) {
       set.add(i);
     }
