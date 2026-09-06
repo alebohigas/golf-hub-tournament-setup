@@ -253,15 +253,18 @@ const headerBlocks = (
           </span>
         ) : (
           <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
-            {card.nameLines.map((line, i) => (
-              <span
-                key={`${line}-${i}`}
-                className="block w-full text-left font-bold leading-tight break-words"
-                style={{ fontSize: `${fonts.jugadorPt}pt` }}
-              >
-                {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
-              </span>
-            ))}
+            {card.nameLines.map((line, i) => {
+              const { name } = normalizeNameLine(line);
+              return (
+                <span
+                  key={`${name}-${i}`}
+                  className="block w-full text-left font-bold leading-tight break-words"
+                  style={{ fontSize: `${fonts.jugadorPt}pt` }}
+                >
+                  {name === 'VS' ? 'VS' : formatNameLine(line)}
+                </span>
+              );
+            })}
           </span>
         )
       ) : (
@@ -283,15 +286,18 @@ const headerBlocks = (
       bottom: card.nameLines?.length
         ? (card.matchNo ? (
             <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
-              {card.nameLines.map((line, i) => (
-                <span
-                  key={`${line}-${i}`}
-                  className="block w-full text-left font-bold leading-tight break-words"
-                  style={{ fontSize: `${fonts.jugadorPt}pt` }}
-                >
-                  {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
-                </span>
-              ))}
+              {card.nameLines.map((line, i) => {
+                const { name } = normalizeNameLine(line);
+                return (
+                  <span
+                    key={`${name}-${i}`}
+                    className="block w-full text-left font-bold leading-tight break-words"
+                    style={{ fontSize: `${fonts.jugadorPt}pt` }}
+                  >
+                    {name === 'VS' ? 'VS' : formatNameLine(line)}
+                  </span>
+                );
+              })}
             </span>
           ) : null)
         : (
