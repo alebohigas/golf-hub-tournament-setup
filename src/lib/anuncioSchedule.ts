@@ -39,16 +39,28 @@ export const getCdMxNowParts = (now: Date = new Date()): { date: string; time: s
 /**
  * ¿El anuncio está dentro de su ventana de publicación?
  * Sin temporizador (o incompleto) devuelve true: se publica siempre.
+ * La ventana ahora puede abarcar varios días (startDate → endDate).
  */
 export const isAnuncioWithinSchedule = (cfg: AnuncioConfig, now: Date = new Date()): boolean => {
   const s = cfg.schedule;
   if (!s?.enabled) return true;
-  if (!s.date || !s.startTime || !s.endTime) return true;
-  const { date, time } = getCdMxNowParts(now);
-  if (date !== s.date) return false;
-  // Ventana que cruza la medianoche: se trata como "desde el inicio hasta las 23:59".
-  if (s.endTime <= s.startTime) return time >= s.startTime;
-  return time >= s.startTime && time <= s.endTime;
+  const startDate = s.startDate || s.date;
+  const endDate = s.endDate || startDate;
+  if (!startDate || !endDate || !s.startTime || !s.endTime) return true;
+  const { date: today, time } = getCdMxNowParts(now);
+
+  if (today < startDate) return false;
+  if (today > endDate) return false;
+
+  if (startDate === endDate) {
+    // Ventana que cruza la medianoche: se trata como "desde el inicio hasta las 23:59".
+    if (s.endTime <= s.startTime) return time >= s.startTime;
+    return time >= s.startTime && time <= s.endTime;
+  }
+
+  if (today === startDate) return time >= s.startTime;
+  if (today === endDate) return time <= s.endTime;
+  return true; // días intermedios del rango
 };
 
 /** Texto legible del temporizador para el panel de administración. */
