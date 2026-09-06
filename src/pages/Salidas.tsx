@@ -20,15 +20,7 @@ import { apiFetch } from '@/lib/apiClient';
 import { getSalidasDayUrl, POLL_ACTIVE } from '@/config/api';
 import { ApiError } from '@/lib/apiClient';
 import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
-import { useSiteConfig } from '@/hooks/useSiteConfig';
-/* Enfrentamientos MATCH PLAY definidos en Admin > ALIEN SYSTEM > Match Play.
- * Permiten mostrar "VS" y el separador por match sin depender de que el
- * endpoint salidas_det.php cruce `elimin_salidas_cat`. */
-import {
-  applyMatchPlayConfigToGroups,
-  getMatchPlayEntry,
-  type SalidasMatchPlayConfig,
-} from '@/lib/salidasMatchPlay';
+
 import salidasHero from '@/assets/salidas-hero.jpg';
 
 // ============= Render helpers =============
@@ -139,10 +131,8 @@ const Salidas = () => {
   // Fetch master data: days + categories
   const { data: master, isLoading: loadingMaster } = useSalidasMaster();
 
-  /** Configuración de enfrentamientos MATCH PLAY administrada en el panel. */
-  const { data: siteConfig } = useSiteConfig();
-  const matchPlayConfig = (siteConfig?.salidas_matchplay_config ?? null) as SalidasMatchPlayConfig | null;
   const days = master?.days ?? [];
+
 
   /** Collect all caljgoids across all days for search queries */
   const allCategories = useMemo(() => {
@@ -202,11 +192,7 @@ const Salidas = () => {
     for (const query of searchQueries) {
       if (!query.data?.detail) continue;
       const { dayLabel, course, detail } = query.data;
-      /* Aplica el orden manual de matches (si existe) antes de buscar, para que
-       * el grupo mostrado ya venga agrupado por enfrentamiento. */
-      const mpEntry = getMatchPlayEntry(matchPlayConfig, detail.caljgoid ?? query.data.caljgoid);
-      const groupsToScan = applyMatchPlayConfigToGroups(detail.groups ?? [], mpEntry);
-      for (const group of groupsToScan) {
+      for (const group of (detail.groups ?? [])) {
         const players = group.players ?? [];
         const matchIdx = players.findIndex((p) =>
           normalizeSearchText(p.name).includes(normalizedQuery)
@@ -220,13 +206,14 @@ const Salidas = () => {
             tee: detail.tee,
             group,
             matchedPlayerIdx: matchIdx,
-            matchPlay: !!mpEntry?.enabled,
+            matchPlay: !!detail.isMatchPlay,
           });
         }
       }
     }
     return results;
-  }, [normalizedQuery, searchQueries, matchPlayConfig]);
+  }, [normalizedQuery, searchQueries]);
+
 
   /**
    * Build unique player-name suggestions from already-loaded data.
@@ -279,21 +266,9 @@ const Salidas = () => {
     error: detailError,
   } = useSalidasDetail(selectedCaljgoid, selectedFormato);
 
-  /**
-   * Detalle efectivo: si el panel definió enfrentamientos MATCH PLAY para esta
-   * categoría, se reordenan los jugadores por match (2 por match) y se fuerza
-   * el render con "VS" + separadores.
-   */
-  const detail: SalidasDetailResponse | undefined = useMemo(() => {
-    if (!rawDetail) return rawDetail;
-    const entry = getMatchPlayEntry(matchPlayConfig, rawDetail.caljgoid ?? selectedCaljgoid);
-    if (!entry?.enabled) return rawDetail;
-    return {
-      ...rawDetail,
-      isMatchPlay: true,
-      groups: applyMatchPlayConfigToGroups(rawDetail.groups ?? [], entry),
-    };
-  }, [rawDetail, matchPlayConfig, selectedCaljgoid]);
+  /** Detalle mostrado tal como lo entrega el endpoint. */
+  const detail: SalidasDetailResponse | undefined = rawDetail;
+
 
   /** Currently selected day object */
   const selectedDay: SalidasDay | null = selectedDayIdx !== null ? days[selectedDayIdx] : null;

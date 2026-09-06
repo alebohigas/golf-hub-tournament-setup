@@ -46,7 +46,6 @@ import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 /** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
 /** Enfrentamientos manuales de MATCH PLAY para las salidas públicas. */
-import AdminSalidasMatchPlay from '@/components/admin/AdminSalidasMatchPlay';
 /** Impresión de tarjetas de juego por día y categoría. */
 import AdminTarjetasPrint from '@/components/admin/AdminTarjetasPrint';
 
@@ -845,12 +844,6 @@ const AdminDashboard = () => {
                   <Printer className="h-4 w-4" /> Salidas
                 </TabsTrigger>
               )}
-              {/* Match Play — armado manual de enfrentamientos de salidas. */}
-              {canAlien('alien_salidas') && (
-                <TabsTrigger value="matchplay-salidas" className="gap-2 flex-1 min-w-[120px]">
-                  <Swords className="h-4 w-4" /> Match Play
-                </TabsTrigger>
-              )}
             </TabsList>
 
             {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
@@ -874,12 +867,6 @@ const AdminDashboard = () => {
               </TabsContent>
             )}
 
-            {/* Match Play — define los matches (VS) de cada grupo de salida. */}
-            {canAlien('alien_salidas') && (
-              <TabsContent value="matchplay-salidas">
-                <AdminSalidasMatchPlay />
-              </TabsContent>
-            )}
           </Tabs>
         </TabsContent>
 

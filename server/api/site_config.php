@@ -302,36 +302,6 @@ function site_config_has_tarjetas_config($conn) {
 $hasTarjetasConfig = site_config_has_tarjetas_config($conn);
 
 /**
- * Detect whether the salidas_matchplay_config column exists. Guarda los
- * enfrentamientos manuales de MATCH PLAY definidos en
- * Admin > ALIEN SYSTEM > Match Play:
- *
- *   { "byCaljgoid": { "1234": { "enabled": true,
- *                               "groups": { "987": ["JUG A","JUG B"] } } } }
- *
- * Con esto la página de Salidas puede mostrar "VS" y el separador por match
- * sin depender de que `salidas_det.php` cruce `elimin_salidas_cat`.
- *
- * Self-healing: crea la columna en el primer uso (no-op sin privilegios ALTER).
- */
-function site_config_has_salidas_matchplay_config($conn) {
-    static $hasColumn = null;
-    if ($hasColumn !== null) return $hasColumn;
-    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'salidas_matchplay_config'");
-    $hasColumn = $result && $result->num_rows > 0;
-    if (!$hasColumn) {
-        if (@$conn->query("ALTER TABLE site_config ADD COLUMN salidas_matchplay_config TEXT DEFAULT NULL COMMENT 'JSON object with manual MATCH PLAY pairings per caljuego'")) {
-            $hasColumn = true;
-        } else {
-            error_log('site_config: could not add salidas_matchplay_config column: ' . $conn->error);
-        }
-    }
-    return $hasColumn;
-}
-
-$hasSalidasMatchPlayConfig = site_config_has_salidas_matchplay_config($conn);
-
-/**
  * Detect whether the hero_config column exists. Stores the per-tournament
  * hero (page background) overrides configured in Admin > Heros:
  *
@@ -434,9 +404,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasTarjetasConfig) {
         $selectFields .= ', tarjetas_config';
     }
-    if ($hasSalidasMatchPlayConfig) {
-        $selectFields .= ', salidas_matchplay_config';
-    }
     if ($hasHeroConfig) {
         $selectFields .= ', hero_config';
     }
@@ -470,7 +437,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'home_config'           => $hasHomeConfig && !empty($row['home_config']) ? json_decode($row['home_config'], true) : null,
             'historial_config'      => $hasHistorialConfig && !empty($row['historial_config']) ? json_decode($row['historial_config'], true) : null,
             'tarjetas_config'       => $hasTarjetasConfig && !empty($row['tarjetas_config']) ? json_decode($row['tarjetas_config'], true) : null,
-            'salidas_matchplay_config' => $hasSalidasMatchPlayConfig && !empty($row['salidas_matchplay_config']) ? json_decode($row['salidas_matchplay_config'], true) : null,
             'hero_config'           => $hasHeroConfig && !empty($row['hero_config']) ? json_decode($row['hero_config'], true) : null,
             'modules_config'        => $hasModulesConfig && !empty($row['modules_config']) ? json_decode($row['modules_config'], true) : null,
         ]);
@@ -497,7 +463,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'home_config'           => null,
             'historial_config'      => null,
             'tarjetas_config'       => null,
-            'salidas_matchplay_config' => null,
             'hero_config'           => null,
             'modules_config'        => null,
         ]);
@@ -527,7 +492,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'home_config'            => 'pagina',
             'historial_config'       => 'pagina',
             'tarjetas_config'        => 'tarjetas',
-            'salidas_matchplay_config' => 'alien_salidas',
             'hero_config'            => 'pagina',
         ];
         $staffAllowed = false;
@@ -734,17 +698,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['tarjetas_config'] !== null ? "'" . esc($conn, json_encode($body['tarjetas_config'])) . "'" : 'NULL';
         $fields[] = "tarjetas_config = $val";
         $insertFields[] = 'tarjetas_config';
-        $insertValues[] = $val;
-    }
-
-    /** Enfrentamientos manuales de MATCH PLAY (Admin > ALIEN SYSTEM > Match Play). */
-    if (array_key_exists('salidas_matchplay_config', $body)) {
-        if (!$hasSalidasMatchPlayConfig) {
-            json_error("Missing DB column salidas_matchplay_config in site_config. Run: ALTER TABLE site_config ADD COLUMN salidas_matchplay_config TEXT DEFAULT NULL COMMENT 'JSON object with manual MATCH PLAY pairings per caljuego';", 500);
-        }
-        $val = $body['salidas_matchplay_config'] !== null ? "'" . esc($conn, json_encode($body['salidas_matchplay_config'])) . "'" : 'NULL';
-        $fields[] = "salidas_matchplay_config = $val";
-        $insertFields[] = 'salidas_matchplay_config';
         $insertValues[] = $val;
     }
 
