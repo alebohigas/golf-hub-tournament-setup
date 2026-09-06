@@ -434,14 +434,19 @@ export interface AnuncioConfig {
    * Temporizador de publicación (opcional). Cuando `enabled` es true, la tira
    * solo se muestra dentro de la ventana indicada, evaluada con la hora de
    * Ciudad de México:
-   *   - date:      día de publicación en formato YYYY-MM-DD.
+   *   - startDate: día de inicio en formato YYYY-MM-DD.
+   *   - endDate:   día de fin en formato YYYY-MM-DD (puede ser igual a startDate).
    *   - startTime: hora de inicio en formato HH:MM (24 h).
    *   - endTime:   hora de fin en formato HH:MM (24 h).
+   * `date` se mantiene como alias legacy de startDate.
    * Missing/enabled=false = sin temporizador (se publica siempre).
    */
   schedule?: {
     enabled: boolean;
-    date: string;
+    startDate?: string;
+    endDate?: string;
+    /** @deprecated Legacy field, treated as startDate. */
+    date?: string;
     startTime: string;
     endTime: string;
   };
