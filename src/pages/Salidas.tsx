@@ -146,13 +146,38 @@ const vsAfterIndexes = (
 
 
 /**
- * Total de renglones de un grupo incluyendo los separadores "VS" de MATCH PLAY.
+ * MATCH PLAY — índices de jugador después de los cuales se inserta el renglón
+ * con la etiqueta "VS" que separa a los DOS CONTENDIENTES DEL MISMO MATCH.
+ * Es el complemento de `vsAfterIndexes` (líneas entre matches distintos).
+ */
+const vsLabelAfterIndexes = (
+  players: SalidasGroup['players'],
+  matchPlay = false
+): Set<number> => {
+  const set = new Set<number>();
+  if (!matchPlay) return set;
+  const list = players ?? [];
+  const dividers = vsAfterIndexes(list, matchPlay);
+  list.forEach((_p, i) => {
+    if (!list[i + 1]) return;
+    if (!dividers.has(i)) set.add(i);
+  });
+  return set;
+};
+
+/**
+ * Total de renglones de un grupo incluyendo los separadores de MATCH PLAY
+ * (líneas entre matches y renglones "VS" dentro de cada match).
  * Se usa para el `rowSpan` de las columnas Hoyo / Hora.
  */
 const countGroupRowsWithVs = (
   players: SalidasGroup['players'],
   matchPlay = false
-): number => countGroupRows(players) + vsAfterIndexes(players, matchPlay).size;
+): number =>
+  countGroupRows(players)
+  + vsAfterIndexes(players, matchPlay).size
+  + vsLabelAfterIndexes(players, matchPlay).size;
+
 
 
 
@@ -496,6 +521,8 @@ const Salidas = () => {
                                     const players = sortByMatch(result.group.players ?? [], matchPlay);
                                     /* MATCH PLAY: línea divisoria entre un match y el siguiente. */
                                     const vsIdx = vsAfterIndexes(players, matchPlay);
+                                    /* MATCH PLAY: renglón "VS" entre los dos contendientes del match. */
+                                    const vsLabelIdx = vsLabelAfterIndexes(players, matchPlay);
                                     const totalRows = countGroupRowsWithVs(players, matchPlay);
                                     const showTeam = hasAnyPair(players);
                                     const lineCols = showTeam ? 5 : 4;
@@ -570,6 +597,15 @@ const Salidas = () => {
                                             <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
                                               <span className="player-name-clamp">{player.partner}</span>
                                             </TableCell>
+                                          </TableRow>
+                                        );
+                                      }
+                                      // ----- Renglón "VS" entre los dos contendientes del mismo match -----
+                                      if (vsLabelIdx.has(pIdx)) {
+                                        rows.push(
+                                          <TableRow key={`${pIdx}-vslabel`} className="bg-white hover:bg-white border-b-0">
+                                            <TableCell colSpan={showTeam ? 2 : 1} className="p-0" />
+                                            <TableCell className="py-0 font-semibold text-muted-foreground">VS</TableCell>
                                           </TableRow>
                                         );
                                       }
@@ -746,6 +782,8 @@ const Salidas = () => {
                                 const players = sortByMatch(group.players ?? [], matchPlay);
                                 /* MATCH PLAY: línea divisoria entre un match y el siguiente. */
                                 const vsIdx = vsAfterIndexes(players, matchPlay);
+                                /* MATCH PLAY: renglón "VS" entre los dos contendientes del match. */
+                                const vsLabelIdx = vsLabelAfterIndexes(players, matchPlay);
                                 const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
                                 const lineCols = showTeam ? 5 : 4;
@@ -817,6 +855,15 @@ const Salidas = () => {
                                         <TableCell className="font-medium text-foreground player-name-cell">
                                           <span className="player-name-clamp">{player.partner}</span>
                                         </TableCell>
+                                      </TableRow>
+                                    );
+                                  }
+                                  // ----- Renglón "VS" entre los dos contendientes del mismo match -----
+                                  if (vsLabelIdx.has(pIdx)) {
+                                    rows.push(
+                                      <TableRow key={`${group.id}-${pIdx}-vslabel`} className="bg-white hover:bg-white border-b-0">
+                                        <TableCell colSpan={showTeam ? 2 : 1} className="p-0" />
+                                        <TableCell className="py-0 font-semibold text-muted-foreground">VS</TableCell>
                                       </TableRow>
                                     );
                                   }
