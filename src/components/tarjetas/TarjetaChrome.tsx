@@ -241,7 +241,7 @@ const headerBlocks = (
           </span>
         </span>
       ),
-      bottom: (
+      bottom: card.nameLines?.length ? null : (
         <span className="truncate uppercase text-foreground/80">
           {tarjetaText(card.club, 'SIN CLUB')}
         </span>
@@ -344,7 +344,8 @@ export const TarjetaHeaderGrid = ({
         const block = blocks[key];
         /* Cuántos renglones toma cada bloque (por omisión 2 arriba y 1 abajo). */
         const topRows = block.topRows ?? 2;
-        const bottomRows = Math.max(1, 3 - topRows);
+        /* Sin bloque inferior (MATCH PLAY) el superior toma los 3 renglones. */
+        const bottomRows = block.bottom == null ? 0 : Math.max(1, 3 - topRows);
         return (
           <div
             key={key}
@@ -360,12 +361,14 @@ export const TarjetaHeaderGrid = ({
               {block.top}
             </div>
             {/* Bloque inferior (merge de los renglones restantes) */}
+            {bottomRows > 0 && (
             <div
               className={`flex min-w-0 items-center px-1 ${alignCls[block.align]}`}
               style={{ flex: `${bottomRows} 1 0%` }}
             >
               {block.bottom}
             </div>
+            )}
           </div>
         );
       })}
