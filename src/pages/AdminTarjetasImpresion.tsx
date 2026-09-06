@@ -640,11 +640,14 @@ const MatchScorecard = ({
   const headerCard = {
     ...card,
     /* MATCH PLAY: el número de match se imprime en el renglón superior del
-       bloque del jugador; los nombres de ambos contendientes van debajo. */
+       bloque del jugador; los nombres de ambos contendientes van debajo.
+       Si no hay número de match, se conserva el formato anterior con VS. */
     matchNo: card.matchNo,
     name: card.name,
     nameLines: card.opponent
-      ? [card.name, card.opponent.name]
+      ? card.matchNo
+        ? [card.name, card.opponent.name]
+        : [card.name, 'VS', card.opponent.name]
       : [card.name],
   };
   const matchHeaderFields = headerFields.filter((k) => k !== 'vtja');
