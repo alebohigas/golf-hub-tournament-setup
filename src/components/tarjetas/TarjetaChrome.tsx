@@ -63,9 +63,28 @@ export interface TarjetaChromeData {
    * Cuando viene, el bloque del jugador ocupa los 3 renglones del encabezado y
    * se ignoran `name` y `club` para ese bloque. Si también viene `matchNo`,
    * éste ocupa el renglón superior y los nombres los 2 inferiores.
+   *
+   * Cada línea puede incluir el número de lugar/posición para mostrarlo como
+   * prefijo (p. ej. "1. Nombre").
    */
-  nameLines?: string[] | null;
+  nameLines?: (string | { name: string; place?: string | number | null })[] | null;
 }
+
+/** Normaliza una línea de `nameLines` a objeto {name, place}. */
+const normalizeNameLine = (
+  line: string | { name: string; place?: string | number | null },
+): { name: string; place?: string | number | null } => {
+  if (typeof line === 'string') return { name: line };
+  return line;
+};
+
+/** Formatea una línea de nombre incluyendo su lugar cuando existe. */
+const formatNameLine = (line: string | { name: string; place?: string | number | null }): string => {
+  const { name, place } = normalizeNameLine(line);
+  const n = toProperName(tarjetaText(name, 'Jugador por asignar'));
+  if (place == null || place === '') return n;
+  return `${place}. ${n}`;
+};
 
 // ============= Fallbacks =============
 
@@ -234,15 +253,18 @@ const headerBlocks = (
           </span>
         ) : (
           <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
-            {card.nameLines.map((line, i) => (
-              <span
-                key={`${line}-${i}`}
-                className="block w-full text-left font-bold leading-tight break-words"
-                style={{ fontSize: `${fonts.jugadorPt}pt` }}
-              >
-                {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
-              </span>
-            ))}
+            {card.nameLines.map((line, i) => {
+              const { name } = normalizeNameLine(line);
+              return (
+                <span
+                  key={`${name}-${i}`}
+                  className="block w-full text-left font-bold leading-tight break-words"
+                  style={{ fontSize: `${fonts.jugadorPt}pt` }}
+                >
+                  {name === 'VS' ? 'VS' : formatNameLine(line)}
+                </span>
+              );
+            })}
           </span>
         )
       ) : (
@@ -264,15 +286,18 @@ const headerBlocks = (
       bottom: card.nameLines?.length
         ? (card.matchNo ? (
             <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
-              {card.nameLines.map((line, i) => (
-                <span
-                  key={`${line}-${i}`}
-                  className="block w-full text-left font-bold leading-tight break-words"
-                  style={{ fontSize: `${fonts.jugadorPt}pt` }}
-                >
-                  {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
-                </span>
-              ))}
+              {card.nameLines.map((line, i) => {
+                const { name } = normalizeNameLine(line);
+                return (
+                  <span
+                    key={`${name}-${i}`}
+                    className="block w-full text-left font-bold leading-tight break-words"
+                    style={{ fontSize: `${fonts.jugadorPt}pt` }}
+                  >
+                    {name === 'VS' ? 'VS' : formatNameLine(line)}
+                  </span>
+                );
+              })}
             </span>
           ) : null)
         : (
