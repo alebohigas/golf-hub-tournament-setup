@@ -62,8 +62,38 @@ $groupRows = query_all($conn, $sql);
 $groups = [];
 $isParejas = ($formato === 'parejas');
 
+/**
+ * MATCH PLAY: mapa jugadorid → { match, side }.
+ * Los enfrentamientos viven en la tabla legacy `elimin_salidas_cat`
+ * (`matchx` = número de match, `jugida` = lado 1, `jugidb` = lado 2).
+ * Con este mapa las salidas se agrupan por match (2 matches = 4 jugadores)
+ * y el frontend puede intercalar el separador "VS" entre ambos lados.
+ */
+$isMatchPlay = ($sistema === 'MATCH PLAY');
+$matchByPlayer = [];
+if ($isMatchPlay) {
+    $catid = esc($conn, $calInfo['categoriaid']);
+    $mrows = query_all(
+        $conn,
+        "SELECT matchx, jugida, jugidb, hoyo
+           FROM elimin_salidas_cat
+          WHERE catid = $catid
+          ORDER BY matchx ASC"
+    );
+    foreach (($mrows ?: []) as $m) {
+        $mx = (int)$m['matchx'];
+        if ((int)$m['jugida'] > 0) {
+            $matchByPlayer[(int)$m['jugida']] = ['match' => $mx, 'side' => 1, 'hoyo' => $m['hoyo'] ?? null];
+        }
+        if ((int)$m['jugidb'] > 0) {
+            $matchByPlayer[(int)$m['jugidb']] = ['match' => $mx, 'side' => 2, 'hoyo' => $m['hoyo'] ?? null];
+        }
+    }
+}
+
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
+
 
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
