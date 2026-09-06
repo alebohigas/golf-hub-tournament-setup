@@ -205,6 +205,17 @@ if (!in_array($hcpField, $HCP_FIELDS_OK, true)) $hcpField = 'auto';
 $sistemaFilter = strtolower(trim((string)optional_param('sistema', 'auto')));
 
 /**
+ * MATCH PLAY (`matchplay=1`)
+ * -----------------------------------------------------------------------------
+ * Réplica del reporte legacy `tarjetas/Print_score_stk_matchplay_ed.php`: en vez
+ * de una tarjeta por jugador se emite UNA TARJETA POR ENFRENTAMIENTO, con los
+ * dos contendientes del match (`torneos.elimin_salidas_cat`) dentro de la misma
+ * tarjeta: renglones Gross / Handicap / NETO por jugador y un renglón DIF.
+ * El encabezado es el MISMO de Stroke Play / Stableford.
+ */
+$matchPlay = optional_param('matchplay') === '1';
+
+/**
  * `fecha` acepta un día (2026-04-30) o varios separados por coma
  * (2026-04-30,2026-05-01) para imprimir un rango en un solo reporte.
  */
