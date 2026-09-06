@@ -46,6 +46,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { menuConfig } from '@/data/mockData';
+import { describeAnuncioSchedule } from '@/lib/anuncioSchedule';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Sensible defaults when no config has been saved yet. */
@@ -61,6 +62,8 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   speedSeconds: 30,
   paths: ['*'],
   sticky: false,
+  // Temporizador apagado por defecto: el anuncio se publica sin límite de hora.
+  schedule: { enabled: false, date: '', startTime: '08:00', endTime: '20:00' },
 };
 
 /**
@@ -151,6 +154,21 @@ const AdminAnuncio = () => {
       toast({ title: 'Falta seleccionar páginas',
         description: 'Cada anuncio activo debe tener al menos una página o "Mostrar en todas".',
         variant: 'destructive' });
+      return;
+    }
+    // El temporizador activo necesita fecha, hora inicial y hora final.
+    const missingSchedule = configs.find(
+      (c) =>
+        c.enabled &&
+        c.schedule?.enabled &&
+        (!c.schedule.date || !c.schedule.startTime || !c.schedule.endTime),
+    );
+    if (missingSchedule) {
+      toast({
+        title: 'Temporizador incompleto',
+        description: 'Indica fecha, hora inicial y hora final en cada anuncio con temporizador.',
+        variant: 'destructive',
+      });
       return;
     }
     saveSiteConfig.mutate(
@@ -278,6 +296,85 @@ const AdminAnuncio = () => {
               checked={Boolean(config.sticky)}
               onCheckedChange={(v) => setConfig((c) => ({ ...c, sticky: v }))}
             />
+          </div>
+
+          {/* ===== Temporizador de publicación (por anuncio) =====
+              Define un día y un rango de horas (hora CDMX). Fuera de esa
+              ventana el anuncio no se muestra en ninguna página. */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-base">Temporizador</Label>
+                <p className="text-xs text-muted-foreground">
+                  El anuncio se publica al llegar la hora de inicio y se
+                  detiene al llegar la hora final (hora de Ciudad de México).
+                </p>
+              </div>
+              <Switch
+                checked={Boolean(config.schedule?.enabled)}
+                onCheckedChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    schedule: {
+                      date: c.schedule?.date ?? '',
+                      startTime: c.schedule?.startTime || '08:00',
+                      endTime: c.schedule?.endTime || '20:00',
+                      enabled: v,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            {config.schedule?.enabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="anuncio-date">Fecha</Label>
+                  <Input
+                    id="anuncio-date"
+                    type="date"
+                    value={config.schedule?.date ?? ''}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        schedule: { ...c.schedule!, date: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="anuncio-start">Hora inicial</Label>
+                  <Input
+                    id="anuncio-start"
+                    type="time"
+                    value={config.schedule?.startTime ?? ''}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        schedule: { ...c.schedule!, startTime: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="anuncio-end">Hora final</Label>
+                  <Input
+                    id="anuncio-end"
+                    type="time"
+                    value={config.schedule?.endTime ?? ''}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        schedule: { ...c.schedule!, endTime: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {describeAnuncioSchedule(config)}
+            </p>
           </div>
 
           <div className="space-y-2">

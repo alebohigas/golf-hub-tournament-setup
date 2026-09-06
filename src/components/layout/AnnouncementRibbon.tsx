@@ -8,9 +8,11 @@
  * Reuses the existing `scroll-sponsors` keyframes (translateX 0 → -50%)
  * with a duplicated content string, so the loop is seamless.
  */
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import type { AnuncioConfig } from '@/hooks/useSiteConfig';
+import { isAnuncioWithinSchedule } from '@/lib/anuncioSchedule';
 
 /**
  * Maps the admin-selected font family preset to a CSS font-family stack.
@@ -72,9 +74,18 @@ const AnnouncementRibbon = () => {
   // Normalize legacy single-object payloads to an array.
   const slots: AnuncioConfig[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
 
+  // Reloj interno: se refresca cada 15 s para que la tira aparezca/desaparezca
+  // exactamente al llegar la hora de inicio o de fin del temporizador.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 15000);
+    return () => clearInterval(id);
+  }, []);
+
   const active = slots.filter((cfg) => {
     if (!cfg?.enabled) return false;
     if (!cfg.text || !cfg.text.trim()) return false;
+    if (!isAnuncioWithinSchedule(cfg, now)) return false;
     const paths = cfg.paths;
     return (
       !paths ||
