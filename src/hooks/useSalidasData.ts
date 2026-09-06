@@ -126,7 +126,9 @@ export const useSalidasDetail = (
         shortName: data?.shortName ?? '',
         system: data?.system ?? '',
         tee: data?.tee ?? '',
+        isMatchPlay: !!data?.isMatchPlay,
         groups: Array.isArray(data?.groups) ? data.groups : [],
+
       };
     },
     enabled: enabled && !!caljgoid,
