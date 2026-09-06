@@ -9,6 +9,10 @@ import { API_BASE_URL } from '@/config/api';
 import { DEFAULT_SUPERADMIN_PASSWORD, getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { setStoredTorneoId } from '@/hooks/useTorneoId';
 import type { ModulesConfig } from '@/modules/moduleState';
+/** Enfrentamientos manuales de MATCH PLAY (Admin > ALIEN SYSTEM > Match Play). */
+import type { SalidasMatchPlayConfig } from '@/lib/salidasMatchPlay';
+export type { SalidasMatchPlayConfig };
+
 
 // ============= Types =============
 
