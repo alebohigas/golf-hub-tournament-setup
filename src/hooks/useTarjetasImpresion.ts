@@ -178,6 +178,8 @@ export const useTarjetasReport = (filters: {
   torneoid?: string;
   /** Columna de la BD del HANDICAP NETO (Admin → Tarjetas). */
   hcpfield?: string;
+  /** '1' → tarjetas de MATCH PLAY (una tarjeta por enfrentamiento). */
+  matchplay?: string;
 }) =>
   useQuery<TarjetasReport>({
     queryKey: ['tarjetas-impresion', filters],
