@@ -521,7 +521,7 @@ const Salidas = () => {
                                 <tfoot>
                                   <tr className="bg-primary">
                                     <td
-                                      colSpan={hasAnyPair(result.group.players ?? []) ? 6 : 5}
+                                      colSpan={(hasAnyPair(result.group.players ?? []) ? 6 : 5) - ((!!result.matchPlay || isMatchPlaySystem(result.system)) ? 1 : 0)}
                                       className="text-primary-foreground font-bold text-center py-2 text-sm"
                                     >
                                       CATEGORÍA: {result.categoryName}
