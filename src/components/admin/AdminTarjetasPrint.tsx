@@ -111,7 +111,15 @@ const AdminTarjetasPrint = () => {
   /** Estado abierto/cerrado del multiselector de categorías. */
   const [catsOpen, setCatsOpen] = useState(false);
   /** Tipo de juego a imprimir: auto (por categoría), stroke o stableford. */
-  const [sistema, setSistema] = useState<'auto' | 'stroke' | 'stableford'>('auto');
+  /**
+   * Tipo de juego a imprimir. `matchplay` imprime UNA tarjeta por
+   * enfrentamiento (dos contendientes por tarjeta) con los matches de la base.
+   */
+  const [sistema, setSistema] = useState<'auto' | 'stroke' | 'stableford' | 'matchplay'>(
+    'auto',
+  );
+  /** true cuando el tipo de juego elegido es MATCH PLAY. */
+  const esMatchPlay = sistema === 'matchplay';
   /** Alto de la cabecera superior en mm (3 cm por defecto). */
   const [headerMm, setHeaderMm] = useState(30);
   /** Margen lateral de la tarjeta en mm. */
@@ -305,12 +313,15 @@ const AdminTarjetasPrint = () => {
     list.forEach((c) => seen.set(c.id, c));
     return Array.from(seen.values())
       .filter((c) => {
-        if (sistema === 'stroke') return !c.system.toUpperCase().includes('STABLE');
-        if (sistema === 'stableford') return c.system.toUpperCase().includes('STABLE');
-        return true;
+        const sys = c.system.toUpperCase();
+        /* MATCH PLAY: sólo las categorías de match play de la base. */
+        if (esMatchPlay) return sys.includes('MATCH');
+        if (sistema === 'stroke') return !sys.includes('STABLE') && !sys.includes('MATCH');
+        if (sistema === 'stableford') return sys.includes('STABLE');
+        return !sys.includes('MATCH');
       })
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  }, [days, fecha, campoid, camposDeFecha, sistema]);
+  }, [days, fecha, campoid, camposDeFecha, sistema, esMatchPlay]);
 
   /**
    * Al cambiar día/campo/tipo se conserva la selección que siga siendo válida;
@@ -388,7 +399,9 @@ const AdminTarjetasPrint = () => {
       campoid,
       // El reporte siempre usa el torneo activo del sitio.
       catid: catIds.join(','),
-      sistema,
+      /* En MATCH PLAY el sistema no filtra; manda `matchplay=1`. */
+      sistema: esMatchPlay ? 'auto' : sistema,
+      ...(esMatchPlay ? { matchplay: '1' } : {}),
       header: String(headerMm),
       margin: String(marginMm),
       scale: String(scale),
@@ -414,8 +427,9 @@ const AdminTarjetasPrint = () => {
     fecha,
     catid: refCatId,
     campoid: campoid || undefined,
-    sistema,
+    sistema: esMatchPlay ? 'auto' : sistema,
     hcpfield: hcpField,
+    ...(esMatchPlay ? { matchplay: '1' } : {}),
   });
 
   /** Primera tarjeta de la categoría de referencia (o `null` si no hay datos). */
@@ -530,7 +544,9 @@ const AdminTarjetasPrint = () => {
                 <Label className="text-xs text-muted-foreground">Tipo de juego</Label>
                 <Select
                   value={sistema}
-                  onValueChange={(v) => setSistema(v as 'auto' | 'stroke' | 'stableford')}
+                  onValueChange={(v) =>
+                    setSistema(v as 'auto' | 'stroke' | 'stableford' | 'matchplay')
+                  }
                 >
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Tipo" />
@@ -539,6 +555,8 @@ const AdminTarjetasPrint = () => {
                     <SelectItem value="auto">Automático (por categoría)</SelectItem>
                     <SelectItem value="stroke">Stroke Play</SelectItem>
                     <SelectItem value="stableford">Stableford</SelectItem>
+                    {/* Una tarjeta por enfrentamiento (dos jugadores por tarjeta). */}
+                    <SelectItem value="matchplay">Match Play</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
