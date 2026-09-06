@@ -411,8 +411,9 @@ const Salidas = () => {
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
                                     const players = result.group.players ?? [];
                                     /* MATCH PLAY: renglones "VS" entre los dos jugadores de cada match. */
-                                    const vsIdx = vsAfterIndexes(players);
-                                    const totalRows = countGroupRowsWithVs(players);
+                                    const matchPlay = isMatchPlaySystem(result.system);
+                                    const vsIdx = vsAfterIndexes(players, matchPlay);
+                                    const totalRows = countGroupRowsWithVs(players, matchPlay);
                                     const showTeam = hasAnyPair(players);
                                     const bodyCols = showTeam ? 4 : 3;
                                     let firstRowEmitted = false;
