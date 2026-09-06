@@ -472,10 +472,13 @@ const Salidas = () => {
                                             {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
                                             <span className="player-name-clamp">{player.name}</span>
                                           </TableCell>
-                                          {/* Score: en parejas se centra entre los dos renglones (rowSpan=2). */}
-                                          <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
-                                            {player.score || '—'}
-                                          </TableCell>
+                                          {/* Score: en parejas se centra entre los dos renglones (rowSpan=2).
+                                            * En MATCH PLAY la columna se omite por completo. */}
+                                          {!matchPlay && (
+                                            <TableCell className="text-center font-bold text-primary align-middle" rowSpan={isPair ? 2 : 1}>
+                                              {player.score || '—'}
+                                            </TableCell>
+                                          )}
                                         </TableRow>
                                       );
                                       // ----- Renglón secundario (jugador 2) si es pareja -----
