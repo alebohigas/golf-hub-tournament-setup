@@ -63,32 +63,23 @@ $groups = [];
 $isParejas = ($formato === 'parejas');
 
 /**
- * MATCH PLAY: mapa jugadorid → { match, side }.
- * Los enfrentamientos viven en la tabla legacy `elimin_salidas_cat`
- * (`matchx` = número de match, `jugida` = lado 1, `jugidb` = lado 2).
- * Con este mapa las salidas se agrupan por match (2 matches = 4 jugadores)
- * y el frontend puede intercalar el separador "VS" entre ambos lados.
+ * MATCH PLAY: filas canónicas de los enfrentamientos de la fecha jugada.
+ * Un jugador puede aparecer en varias rondas de `elimin_salidas_cat`; por eso
+ * no se crea aquí un mapa global jugador → match, ya que la última ronda
+ * sobrescribiría a la que realmente corresponde a esta salida.
  */
 $isMatchPlay = ($sistema === 'MATCH PLAY');
-$matchByPlayer = [];
+$matchRows = [];
 if ($isMatchPlay) {
     $catid = esc($conn, $calInfo['categoriaid']);
-    $mrows = query_all(
+    $matchDate = esc($conn, $calInfo['fecha']);
+    $matchRows = query_all(
         $conn,
-        "SELECT matchx, jugida, jugidb, hoyo
+        "SELECT matchx, jugida, jugidb, hoyo, fecha
            FROM elimin_salidas_cat
           WHERE catid = $catid
-          ORDER BY matchx ASC"
+          ORDER BY (DATE(fecha) = DATE($matchDate)) DESC, matchx ASC"
     );
-    foreach (($mrows ?: []) as $m) {
-        $mx = (int)$m['matchx'];
-        if ((int)$m['jugida'] > 0) {
-            $matchByPlayer[(int)$m['jugida']] = ['match' => $mx, 'side' => 1, 'hoyo' => $m['hoyo'] ?? null];
-        }
-        if ((int)$m['jugidb'] > 0) {
-            $matchByPlayer[(int)$m['jugidb']] = ['match' => $mx, 'side' => 2, 'hoyo' => $m['hoyo'] ?? null];
-        }
-    }
 }
 
 /**
@@ -105,8 +96,13 @@ if ($isMatchPlay) {
         if ($res && $res->num_rows > 0) { $posCol = $cand; $res->free(); break; }
         if ($res) $res->free();
     }
-    if ($posCol && count($matchByPlayer) > 0) {
-        $ids = implode(',', array_map('intval', array_keys($matchByPlayer)));
+    $matchPlayerIds = [];
+    foreach (($matchRows ?: []) as $matchRow) {
+        if ((int)$matchRow['jugida'] > 0) $matchPlayerIds[(int)$matchRow['jugida']] = true;
+        if ((int)$matchRow['jugidb'] > 0) $matchPlayerIds[(int)$matchRow['jugidb']] = true;
+    }
+    if ($posCol && count($matchPlayerIds) > 0) {
+        $ids = implode(',', array_map('intval', array_keys($matchPlayerIds)));
         $res = @$conn->query("SELECT id, `$posCol` AS pos FROM jugadores WHERE id IN ($ids)");
         if ($res) {
             while ($r = $res->fetch_assoc()) {
@@ -216,6 +212,42 @@ foreach ($groupRows as $group) {
     }
 
     $playerRows = query_all($conn, $sql);
+
+    /**
+     * MATCH PLAY: mapa exclusivo de este horario de salida.
+     * Sólo acepta una fila cuando sus dos contendientes están dentro del
+     * grupo; así una ronda anterior o posterior nunca mezcla jugadores.
+     * Se prioriza la fecha exacta del calendario y después `matchx`.
+     */
+    $matchByPlayer = [];
+    if ($isMatchPlay) {
+        $groupPlayerIds = [];
+        foreach (($playerRows ?: []) as $groupPlayerRow) {
+            $groupPlayerId = (int)($groupPlayerRow['jugadorid'] ?? 0);
+            if ($groupPlayerId > 0) $groupPlayerIds[$groupPlayerId] = true;
+        }
+        $calendarDate = substr((string)$calInfo['fecha'], 0, 10);
+        foreach (($matchRows ?: []) as $matchRow) {
+            $jugida = (int)($matchRow['jugida'] ?? 0);
+            $jugidb = (int)($matchRow['jugidb'] ?? 0);
+            if ($jugida <= 0 || $jugidb <= 0) continue;
+            if (!isset($groupPlayerIds[$jugida]) || !isset($groupPlayerIds[$jugidb])) continue;
+
+            $rowDate = substr((string)($matchRow['fecha'] ?? ''), 0, 10);
+            $isExactDate = $calendarDate !== '' && $rowDate === $calendarDate;
+            $matchNo = (int)$matchRow['matchx'];
+            foreach ([[$jugida, 1], [$jugidb, 2]] as [$playerId, $side]) {
+                $current = $matchByPlayer[$playerId] ?? null;
+                if ($current === null || ($isExactDate && empty($current['exactDate']))) {
+                    $matchByPlayer[$playerId] = [
+                        'match' => $matchNo,
+                        'side' => $side,
+                        'exactDate' => $isExactDate,
+                    ];
+                }
+            }
+        }
+    }
 
     $players = [];
     foreach ($playerRows as $pr) {
