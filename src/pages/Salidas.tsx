@@ -20,7 +20,6 @@ import { apiFetch } from '@/lib/apiClient';
 import { getSalidasDayUrl, POLL_ACTIVE } from '@/config/api';
 import { ApiError } from '@/lib/apiClient';
 import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
-import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 import salidasHero from '@/assets/salidas-hero.jpg';
 
