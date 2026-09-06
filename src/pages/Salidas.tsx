@@ -701,7 +701,21 @@ const Salidas = () => {
                                       </TableRow>
                                     );
                                   }
+                                  // ----- Separador "VS" entre los dos lados del match -----
+                                  if (vsIdx.has(pIdx)) {
+                                    rows.push(
+                                      <TableRow key={`${group.id}-${pIdx}-vs`} className="bg-white hover:bg-white border-b-0">
+                                        <TableCell
+                                          colSpan={bodyCols}
+                                          className="py-0.5 text-center text-xs font-black tracking-widest text-primary/70"
+                                        >
+                                          VS
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  }
                                 });
+
                                 return rows;
                               })}
                             </TableBody>
