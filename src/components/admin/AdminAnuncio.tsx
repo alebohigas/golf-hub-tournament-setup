@@ -120,8 +120,8 @@ const AdminAnuncio = () => {
     const arr: AnuncioConfig[] = Array.isArray(raw) ? raw : [raw as AnuncioConfig];
     setConfigs(
       [0, 1, 2].map((i) => {
-        const incoming = arr[i] || {};
-        const migrated = { ...incoming };
+        const incoming: Partial<AnuncioConfig> = arr[i] || {};
+        const migrated: Partial<AnuncioConfig> = { ...incoming };
         if (migrated.schedule?.date && !migrated.schedule.startDate) {
           migrated.schedule = {
             ...migrated.schedule,
