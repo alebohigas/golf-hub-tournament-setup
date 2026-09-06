@@ -112,12 +112,31 @@ const AdminAnuncio = () => {
   };
 
   // Hydrate from server whenever the fetched config changes. Accepts both
-  // legacy single-object payloads and the new array shape.
+  // legacy single-object payloads and the new array shape. Also normalizes
+  // legacy `schedule.date` into `schedule.startDate`.
   useEffect(() => {
     const raw = siteConfig?.anuncio_config;
     if (!raw) return;
     const arr: AnuncioConfig[] = Array.isArray(raw) ? raw : [raw as AnuncioConfig];
-    setConfigs([0, 1, 2].map((i) => ({ ...DEFAULT_ANUNCIO, ...(arr[i] || {}) })));
+    setConfigs(
+      [0, 1, 2].map((i) => {
+        const incoming = arr[i] || {};
+        const migrated = { ...incoming };
+        if (migrated.schedule?.date && !migrated.schedule.startDate) {
+          migrated.schedule = {
+            ...migrated.schedule,
+            startDate: migrated.schedule.date,
+          };
+        }
+        if (migrated.schedule && !migrated.schedule.endDate) {
+          migrated.schedule = {
+            ...migrated.schedule,
+            endDate: migrated.schedule.startDate || migrated.schedule.date || '',
+          };
+        }
+        return { ...DEFAULT_ANUNCIO, ...migrated };
+      })
+    );
   }, [siteConfig?.anuncio_config]);
 
   /** Routes the admin can pick from (mirrors public menu). */
