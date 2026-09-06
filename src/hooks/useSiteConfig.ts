@@ -444,7 +444,8 @@ export interface AnuncioConfig {
  *   - scale:    escala del contenido en porcentaje (60–130).
  */
 export interface TarjetasPrintConfig {
-  sistema: 'auto' | 'stroke' | 'stableford';
+  /** 'matchplay' imprime una tarjeta por enfrentamiento (dos jugadores). */
+  sistema: 'auto' | 'stroke' | 'stableford' | 'matchplay';
   headerMm: number;
   marginMm: number;
   scale: number;
