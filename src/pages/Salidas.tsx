@@ -659,7 +659,10 @@ const Salidas = () => {
                                 )}
                                 <TableHead className="text-primary-foreground font-bold text-center w-16">Club</TableHead>
                                 <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                                <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                {/* MATCH PLAY: sin columna Score (no aplica en enfrentamientos). */}
+                                {!(!!detail.isMatchPlay || isMatchPlaySystem(detail.system)) && (
+                                  <TableHead className="text-primary-foreground font-bold text-center w-20">Score</TableHead>
+                                )}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
