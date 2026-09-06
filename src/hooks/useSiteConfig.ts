@@ -9,6 +9,10 @@ import { API_BASE_URL } from '@/config/api';
 import { DEFAULT_SUPERADMIN_PASSWORD, getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { setStoredTorneoId } from '@/hooks/useTorneoId';
 import type { ModulesConfig } from '@/modules/moduleState';
+/** Enfrentamientos manuales de MATCH PLAY (Admin > ALIEN SYSTEM > Match Play). */
+import type { SalidasMatchPlayConfig } from '@/lib/salidasMatchPlay';
+export type { SalidasMatchPlayConfig };
+
 
 // ============= Types =============
 
@@ -511,6 +515,13 @@ export interface SiteConfig {
   historial_config: HistorialConfig | null;
   /** Maquetación de impresión de tarjetas (Admin > Tarjetas). Null = default. */
   tarjetas_config: TarjetasPrintConfig | null;
+  /**
+   * Enfrentamientos manuales de MATCH PLAY por caljuego
+   * (Admin > ALIEN SYSTEM > Match Play). Null = usar sólo lo que entregue
+   * `salidas_det.php`.
+   */
+  salidas_matchplay_config: SalidasMatchPlayConfig | null;
+
   /** Per-tournament hero image overrides (Admin > Heros). Null = none. */
   hero_config: HeroConfig | null;
   /**
@@ -547,6 +558,9 @@ export interface SaveConfigPayload {
   home_config?: HomeConfig | null;
   historial_config?: HistorialConfig | null;
   tarjetas_config?: TarjetasPrintConfig | null;
+  /** Enfrentamientos manuales de MATCH PLAY por caljuego. */
+  salidas_matchplay_config?: SalidasMatchPlayConfig | null;
+
   hero_config?: HeroConfig | null;
   /** Solo el superadmin puede enviar este campo (ver /setup). */
   modules_config?: ModulesConfig | null;
