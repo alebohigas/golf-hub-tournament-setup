@@ -558,6 +558,9 @@ export interface SaveConfigPayload {
   home_config?: HomeConfig | null;
   historial_config?: HistorialConfig | null;
   tarjetas_config?: TarjetasPrintConfig | null;
+  /** Enfrentamientos manuales de MATCH PLAY por caljuego. */
+  salidas_matchplay_config?: SalidasMatchPlayConfig | null;
+
   hero_config?: HeroConfig | null;
   /** Solo el superadmin puede enviar este campo (ver /setup). */
   modules_config?: ModulesConfig | null;
