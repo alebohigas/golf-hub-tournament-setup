@@ -749,19 +749,15 @@ const Salidas = () => {
                                 const totalRows = countGroupRowsWithVs(players, matchPlay);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
                                 const lineCols = showTeam ? 5 : 4;
+                                const totalCols = lineCols + (!matchPlay ? 1 : 0);
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
                                 let firstRowEmitted = false;
                                 const rows: JSX.Element[] = [];
 
                                 players.forEach((player, pIdx) => {
                                   const isPair = !!player.partner;
-                                  const isLastPlayer = pIdx === players.length - 1;
                                   const renderHoleHora = !firstRowEmitted;
                                   firstRowEmitted = true;
-                                  // Separador entre grupos (diferentes horarios de salida): sólo
-                                  // al final del último jugador del grupo, excepto en el último grupo.
-                                  const separatorRow2 = isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
-                                  const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
 
                                     // ----- Renglón principal -----
                                     rows.push(
@@ -769,7 +765,7 @@ const Salidas = () => {
                                         key={`${group.id}-${pIdx}-a`}
                                          /* `border-b-0` en MATCH PLAY y cuando es pareja: oculta la línea
                                           * divisoria por defecto entre contendientes del mismo match/equipo. */
-                                         className={`bg-white hover:bg-white ${separatorRow1} ${(matchPlay || isPair) ? 'border-b-0' : ''}`}
+                                         className={`bg-white hover:bg-white ${(matchPlay || isPair) ? 'border-b-0' : ''}`}
                                       >
                                       {renderHoleHora ? (
                                         <>
@@ -812,7 +808,7 @@ const Salidas = () => {
                                   // ----- Renglón secundario (segundo integrante de la pareja) -----
                                   if (isPair) {
                                     rows.push(
-                                      <TableRow key={`${group.id}-${pIdx}-b`} className={`bg-white hover:bg-white ${separatorRow2} ${matchPlay ? 'border-b-0' : ''}`}>
+                                      <TableRow key={`${group.id}-${pIdx}-b`} className={`bg-white hover:bg-white ${matchPlay ? 'border-b-0' : ''}`}>
                                         <TableCell className="p-1 text-center align-middle">
                                           {player.clubLogo2 ? (
                                             <img src={player.clubLogo2} alt="Club" className="w-auto object-contain rounded inline-block" style={{ height: '2.1375rem' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -835,6 +831,17 @@ const Salidas = () => {
                                     );
                                   }
                                 });
+
+                                // ----- Línea divisoria entre grupos de salida (diferente hora) -----
+                                if (!isLastGroup) {
+                                  rows.push(
+                                    <TableRow key={`${group.id}-sep`} className="bg-white hover:bg-white border-none">
+                                      <TableCell colSpan={totalCols} className="p-0">
+                                        <div className="border-b-2 border-primary/30" />
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                }
 
                                 return rows;
                               })}
