@@ -669,7 +669,7 @@ const Salidas = () => {
                                   // Separador entre grupos: aplica sólo al ÚLTIMO renglón del último jugador.
                                   // MATCH PLAY: además se separa visualmente el fin de cada match.
                                   const matchEnd =
-                                    player.matchNo != null && !vsIdx.has(pIdx) && !isLastPlayer
+                                    matchPlay && !vsIdx.has(pIdx) && !isLastPlayer
                                       ? 'border-b-2 border-primary/20'
                                       : '';
                                   const separatorRow2 = (isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || matchEnd;
