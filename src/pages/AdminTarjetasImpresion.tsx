@@ -23,7 +23,7 @@
  * impresión) y el PDF se arma con jsPDF a tamaño carta, una hoja por página.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +49,8 @@ import {
 } from '@/lib/tarjetasHeader';
 /* Resaltado del hoyo de inicio (fuente única para pantalla, impresión y PDF). */
 import { startHoleStyleFor } from '@/lib/tarjetasStartHole';
+/* Nombre del jugador normalizado a NOMBRE PROPIO (igual que en el encabezado). */
+import { toProperName } from '@/lib/properName';
 /* Geometría de hoja carta vertical y predeterminados de maquetación. */
 import {
   LETTER_SHORT_MM,
@@ -210,6 +212,7 @@ const Cell = ({
   className = '',
   style,
   darkBorder = false,
+  colSpan,
 }: {
   children?: React.ReactNode;
   className?: string;
@@ -217,8 +220,11 @@ const Cell = ({
   style?: React.CSSProperties;
   /** Borde oscuro (usado en la línea de SCORE GROSS); el resto usa borde claro. */
   darkBorder?: boolean;
+  /** Celdas combinadas (tarjeta de MATCH PLAY: nombre del contendiente). */
+  colSpan?: number;
 }) => (
   <td
+    colSpan={colSpan}
     className={`border px-0 text-center align-middle ${darkBorder ? 'border-foreground/60' : 'border-foreground/30'} ${className}`}
     style={style}
   >
@@ -660,19 +666,19 @@ const MatchScorecard = ({
 
           {/* Bloque de cada contendiente: nombre + neto, GROSS, HANDICAP y NETO */}
           {players.map((p) => (
-            <>
-              <tr key={`${p.key}-name`} style={{ height: `${rowMm}mm` }}>
+            <Fragment key={p.key}>
+              <tr style={{ height: `${rowMm}mm` }}>
                 <Cell
                   className="truncate px-1 text-left text-[7pt] font-bold uppercase"
                   /* colSpan: el nombre del jugador ocupa todo el renglón. */
-                  {...{ colSpan: 19 } as { colSpan: number }}
+                  colSpan={19}
                 >
                   {p.label}
                 </Cell>
                 <Cell className="bg-muted/60 px-1 text-[5.5pt] font-semibold uppercase">
                   Handicap neto
                 </Cell>
-                <Cell className="bg-muted/60 text-[9pt] font-bold tabular-nums" {...{ colSpan: 2 } as { colSpan: number }}>
+                <Cell className="bg-muted/60 text-[9pt] font-bold tabular-nums" colSpan={2}>
                   {p.hcp}
                 </Cell>
               </tr>
@@ -691,7 +697,7 @@ const MatchScorecard = ({
                 total={p.total || ''}
               />
               <Row key={`${p.key}-neto`} label={TARJETA_ROW_LABELS.neto} value={() => ''} />
-            </>
+            </Fragment>
           ))}
 
           {/* DIF: diferencia hoyo por hoyo entre los dos contendientes */}
