@@ -511,6 +511,13 @@ export interface SiteConfig {
   historial_config: HistorialConfig | null;
   /** Maquetación de impresión de tarjetas (Admin > Tarjetas). Null = default. */
   tarjetas_config: TarjetasPrintConfig | null;
+  /**
+   * Enfrentamientos manuales de MATCH PLAY por caljuego
+   * (Admin > ALIEN SYSTEM > Match Play). Null = usar sólo lo que entregue
+   * `salidas_det.php`.
+   */
+  salidas_matchplay_config: SalidasMatchPlayConfig | null;
+
   /** Per-tournament hero image overrides (Admin > Heros). Null = none. */
   hero_config: HeroConfig | null;
   /**
