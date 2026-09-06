@@ -44,6 +44,29 @@ const hasAnyPair = (players: SalidasGroup['players']): boolean =>
 const groupsHaveAnyPair = (groups: SalidasGroup[] | undefined): boolean =>
   (groups ?? []).some((g) => hasAnyPair(g.players ?? []));
 
+/**
+ * MATCH PLAY — índices de jugador después de los cuales se inserta el renglón
+ * separador "VS". Se agrega cuando el jugador siguiente pertenece al MISMO
+ * match (`matchNo`), es decir entre los dos contendientes del enfrentamiento.
+ */
+const vsAfterIndexes = (players: SalidasGroup['players']): Set<number> => {
+  const set = new Set<number>();
+  const list = players ?? [];
+  list.forEach((p, i) => {
+    const next = list[i + 1];
+    if (p.matchNo != null && next && next.matchNo === p.matchNo) set.add(i);
+  });
+  return set;
+};
+
+/**
+ * Total de renglones de un grupo incluyendo los separadores "VS" de MATCH PLAY.
+ * Se usa para el `rowSpan` de las columnas Hoyo / Hora.
+ */
+const countGroupRowsWithVs = (players: SalidasGroup['players']): number =>
+  countGroupRows(players) + vsAfterIndexes(players).size;
+
+
 // ============= Search Result Type =============
 
 /** Represents a player search match with full group context */
