@@ -54,9 +54,15 @@ export interface TarjetaChromeData {
   folio?: string | null;
   system?: string | null;
   /**
+   * MATCH PLAY: número de match que se imprime ARRIBA del bloque del jugador,
+   * seguido de los nombres de los contendientes.
+   */
+  matchNo?: string | number | null;
+  /**
    * MATCH PLAY: renglones del bloque del jugador (nombre 1 / "VS" / nombre 2).
    * Cuando viene, el bloque del jugador ocupa los 3 renglones del encabezado y
-   * se ignoran `name` y `club` para ese bloque.
+   * se ignoran `name` y `club` para ese bloque. Si también viene `matchNo`,
+   * éste ocupa el renglón superior y los nombres los 2 inferiores.
    */
   nameLines?: string[] | null;
 }
