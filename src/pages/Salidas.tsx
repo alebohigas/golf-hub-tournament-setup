@@ -440,9 +440,10 @@ const Salidas = () => {
                                   {(() => {
                                     /* En PAREJAS cada jugador se renderiza como 2 renglones (uno por integrante)
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
-                                    const players = result.group.players ?? [];
-                                    /* MATCH PLAY: renglones "VS" entre los dos jugadores de cada match. */
                                     const matchPlay = !!result.matchPlay || isMatchPlaySystem(result.system);
+                                    /* MATCH PLAY: ordenar por número de match y lado. */
+                                    const players = sortByMatch(result.group.players ?? [], matchPlay);
+                                    /* MATCH PLAY: línea divisoria entre un match y el siguiente. */
                                     const vsIdx = vsAfterIndexes(players, matchPlay);
                                     const totalRows = countGroupRowsWithVs(players, matchPlay);
                                     const showTeam = hasAnyPair(players);
