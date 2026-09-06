@@ -61,6 +61,22 @@ export interface TarjetaTotals {
   handicap: number;
 }
 
+/**
+ * Segundo contendiente de una tarjeta de MATCH PLAY (`matchplay=1`).
+ * Sus renglones Gross / Handicap / NETO se imprimen dentro de la MISMA tarjeta
+ * que el jugador principal.
+ */
+export interface TarjetaOpponent {
+  playerId: string;
+  name: string;
+  club: string;
+  folio: string;
+  hcp: number;
+  hcpPorHoyo?: number[];
+  /** Siembra/posición del jugador en la llave (columna de `jugadores`). */
+  position?: string;
+}
+
 /** Una tarjeta de juego completa (un jugador). */
 export interface TarjetaCard {
   groupId: string;
