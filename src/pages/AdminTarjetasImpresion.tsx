@@ -524,14 +524,41 @@ const MatchScorecard = ({
   const labelOf = (position: string | undefined, name: string | undefined) =>
     `${position ? `${position} · ` : ''}${toProperName(name || 'Jugador por asignar')}`;
 
+  /*
+    VENTAJAS NETAS DEL MATCH
+    -----------------------------------------------------------------------
+    En MATCH PLAY no se imprimen las ventajas completas de cada jugador: sólo
+    la DIFERENCIA entre ambos. Si el jugador 1 tiene 8 ventajas y el 2 tiene
+    6, el jugador 1 recibe 2 golpes y el jugador 2 ninguno.
+    Los golpes se reparten por dificultad del hoyo (columna VENTAJA del campo):
+    los `diff` hoyos más difíciles reciben un golpe (y una vuelta extra si la
+    diferencia supera 18).
+  */
+  const hcpA = Number(card.hcp) || 0;
+  const hcpB = Number(card.opponent?.hcp ?? 0) || 0;
+  /** Diferencia de ventajas netas entre los dos contendientes. */
+  const diff = card.opponent ? Math.abs(hcpA - hcpB) : hcpA;
+  /** Reparte `diff` golpes por hoyo según la dificultad (VENTAJA del campo). */
+  const repartir = (): number[] =>
+    card.holes.map((h) => {
+      const v = Number(h.ventaja) || 0;
+      if (!diff || !v) return 0;
+      const vueltas = Math.floor(diff / 18);
+      const resto = diff % 18;
+      return vueltas + (v <= resto ? 1 : 0);
+    });
+  const ventajasMatch = repartir();
+  /** El jugador con más ventajas netas es quien recibe la diferencia. */
+  const recibeA = !card.opponent || hcpA >= hcpB;
+
   /** Los dos contendientes del match (B puede faltar si la llave está impar). */
   const players = [
     {
       key: 'a',
       label: labelOf(card.position, card.name),
       hcp: card.hcp,
-      porHoyo: card.hcpPorHoyo ?? card.holes.map((h) => h.handicap),
-      total: t.handicap,
+      porHoyo: recibeA ? ventajasMatch : card.holes.map(() => 0),
+      total: recibeA ? diff : 0,
     },
     ...(card.opponent
       ? [
@@ -539,9 +566,8 @@ const MatchScorecard = ({
             key: 'b',
             label: labelOf(card.opponent.position, card.opponent.name),
             hcp: card.opponent.hcp,
-            porHoyo:
-              card.opponent.hcpPorHoyo ?? card.holes.map((h) => h.handicap),
-            total: (card.opponent.hcpPorHoyo ?? []).reduce((a, b) => a + b, 0),
+            porHoyo: recibeA ? card.holes.map(() => 0) : ventajasMatch,
+            total: recibeA ? 0 : diff,
           },
         ]
       : []),
