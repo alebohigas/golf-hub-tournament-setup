@@ -245,6 +245,10 @@ foreach ($groupRows as $group) {
                 $player['matchNo']   = $matchByPlayer[$jid]['match'];
                 $player['matchSide'] = $matchByPlayer[$jid]['side'];
             }
+            /* Posición (siembra) del jugador dentro de su grupo. */
+            if ($jid > 0 && isset($positionByPlayer[$jid])) {
+                $player['position'] = $positionByPlayer[$jid];
+            }
         }
         $players[] = $player;
     }
