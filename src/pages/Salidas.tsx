@@ -146,13 +146,38 @@ const vsAfterIndexes = (
 
 
 /**
- * Total de renglones de un grupo incluyendo los separadores "VS" de MATCH PLAY.
+ * MATCH PLAY — índices de jugador después de los cuales se inserta el renglón
+ * con la etiqueta "VS" que separa a los DOS CONTENDIENTES DEL MISMO MATCH.
+ * Es el complemento de `vsAfterIndexes` (líneas entre matches distintos).
+ */
+const vsLabelAfterIndexes = (
+  players: SalidasGroup['players'],
+  matchPlay = false
+): Set<number> => {
+  const set = new Set<number>();
+  if (!matchPlay) return set;
+  const list = players ?? [];
+  const dividers = vsAfterIndexes(list, matchPlay);
+  list.forEach((_p, i) => {
+    if (!list[i + 1]) return;
+    if (!dividers.has(i)) set.add(i);
+  });
+  return set;
+};
+
+/**
+ * Total de renglones de un grupo incluyendo los separadores de MATCH PLAY
+ * (líneas entre matches y renglones "VS" dentro de cada match).
  * Se usa para el `rowSpan` de las columnas Hoyo / Hora.
  */
 const countGroupRowsWithVs = (
   players: SalidasGroup['players'],
   matchPlay = false
-): number => countGroupRows(players) + vsAfterIndexes(players, matchPlay).size;
+): number =>
+  countGroupRows(players)
+  + vsAfterIndexes(players, matchPlay).size
+  + vsLabelAfterIndexes(players, matchPlay).size;
+
 
 
 
