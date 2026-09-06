@@ -91,6 +91,34 @@ if ($isMatchPlay) {
     }
 }
 
+/**
+ * MATCH PLAY: posición (siembra) del jugador dentro de su grupo.
+ * Se toma de la tabla `jugadores`; el nombre real de la columna puede variar
+ * entre instalaciones, por eso se detecta dinámicamente y, si no existe,
+ * simplemente no se envía el campo (el frontend lo omite).
+ */
+$positionByPlayer = [];
+if ($isMatchPlay) {
+    $posCol = null;
+    foreach (['grupo', 'posgrupo', 'posicion'] as $cand) {
+        $res = @$conn->query("SHOW COLUMNS FROM jugadores LIKE '$cand'");
+        if ($res && $res->num_rows > 0) { $posCol = $cand; $res->free(); break; }
+        if ($res) $res->free();
+    }
+    if ($posCol && count($matchByPlayer) > 0) {
+        $ids = implode(',', array_map('intval', array_keys($matchByPlayer)));
+        $res = @$conn->query("SELECT id, `$posCol` AS pos FROM jugadores WHERE id IN ($ids)");
+        if ($res) {
+            while ($r = $res->fetch_assoc()) {
+                if ($r['pos'] !== null && $r['pos'] !== '') {
+                    $positionByPlayer[(int)$r['id']] = $r['pos'];
+                }
+            }
+            $res->free();
+        }
+    }
+}
+
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
 
