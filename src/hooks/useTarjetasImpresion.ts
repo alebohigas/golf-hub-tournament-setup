@@ -114,6 +114,12 @@ export interface TarjetaCard {
   hcpPorHoyo?: number[];
   holes: TarjetaHole[];
   totals: TarjetaTotals;
+  /** MATCH PLAY: número de match de `elimin_salidas_cat` ('' si no existe). */
+  matchNo?: string;
+  /** MATCH PLAY: siembra/posición del jugador principal en la llave. */
+  position?: string;
+  /** MATCH PLAY: segundo contendiente del match (null si el match está incompleto). */
+  opponent?: TarjetaOpponent | null;
 }
 
 /** Respuesta del reporte de tarjetas. */
