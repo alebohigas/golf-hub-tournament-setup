@@ -46,6 +46,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getSuperAdminPassword } from '@/lib/superAdminAuth';
 import { menuConfig } from '@/data/mockData';
+import { describeAnuncioSchedule } from '@/lib/anuncioSchedule';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Sensible defaults when no config has been saved yet. */
@@ -153,6 +154,21 @@ const AdminAnuncio = () => {
       toast({ title: 'Falta seleccionar páginas',
         description: 'Cada anuncio activo debe tener al menos una página o "Mostrar en todas".',
         variant: 'destructive' });
+      return;
+    }
+    // El temporizador activo necesita fecha, hora inicial y hora final.
+    const missingSchedule = configs.find(
+      (c) =>
+        c.enabled &&
+        c.schedule?.enabled &&
+        (!c.schedule.date || !c.schedule.startTime || !c.schedule.endTime),
+    );
+    if (missingSchedule) {
+      toast({
+        title: 'Temporizador incompleto',
+        description: 'Indica fecha, hora inicial y hora final en cada anuncio con temporizador.',
+        variant: 'destructive',
+      });
       return;
     }
     saveSiteConfig.mutate(
