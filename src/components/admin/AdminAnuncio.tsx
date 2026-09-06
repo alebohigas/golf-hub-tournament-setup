@@ -63,7 +63,13 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   paths: ['*'],
   sticky: false,
   // Temporizador apagado por defecto: el anuncio se publica sin límite de hora.
-  schedule: { enabled: false, date: '', startTime: '08:00', endTime: '20:00' },
+  schedule: {
+    enabled: false,
+    startDate: '',
+    endDate: '',
+    startTime: '08:00',
+    endTime: '20:00',
+  },
 };
 
 /**
