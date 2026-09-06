@@ -217,20 +217,34 @@ const headerBlocks = (
     */
     jugador: {
       align: 'left',
-      /* MATCH PLAY: el bloque ocupa los 3 renglones (jugador 1 / VS / jugador 2). */
-      topRows: card.nameLines?.length ? 3 : undefined,
+      /* MATCH PLAY: el bloque ocupa los 3 renglones. Si hay número de match,
+         éste va en el renglón superior y los nombres de los contendientes en
+         los 2 renglones inferiores; si no, los 3 renglones son nombre 1 / VS /
+         nombre 2. */
+      topRows: card.nameLines?.length
+        ? (card.matchNo ? 1 : 3)
+        : undefined,
       top: card.nameLines?.length ? (
-        <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
-          {card.nameLines.map((line, i) => (
-            <span
-              key={`${line}-${i}`}
-              className="block font-bold leading-tight break-words"
-              style={{ fontSize: `${fonts.jugadorPt}pt` }}
-            >
-              {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
-            </span>
-          ))}
-        </span>
+        card.matchNo ? (
+          <span
+            className="block truncate font-bold leading-none"
+            style={{ fontSize: `${fonts.jugadorPt}pt` }}
+          >
+            MATCH {card.matchNo}
+          </span>
+        ) : (
+          <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
+            {card.nameLines.map((line, i) => (
+              <span
+                key={`${line}-${i}`}
+                className="block w-full text-left font-bold leading-tight break-words"
+                style={{ fontSize: `${fonts.jugadorPt}pt` }}
+              >
+                {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
+              </span>
+            ))}
+          </span>
+        )
       ) : (
         <span className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
@@ -247,11 +261,25 @@ const headerBlocks = (
           </span>
         </span>
       ),
-      bottom: card.nameLines?.length ? null : (
-        <span className="truncate uppercase text-foreground/80">
-          {tarjetaText(card.club, 'SIN CLUB')}
-        </span>
-      ),
+      bottom: card.nameLines?.length
+        ? (card.matchNo ? (
+            <span className="flex min-w-0 flex-col justify-center gap-[0.4mm] overflow-hidden">
+              {card.nameLines.map((line, i) => (
+                <span
+                  key={`${line}-${i}`}
+                  className="block w-full text-left font-bold leading-tight break-words"
+                  style={{ fontSize: `${fonts.jugadorPt}pt` }}
+                >
+                  {line === 'VS' ? 'VS' : toProperName(tarjetaText(line, 'Jugador por asignar'))}
+                </span>
+              ))}
+            </span>
+          ) : null)
+        : (
+          <span className="truncate uppercase text-foreground/80">
+            {tarjetaText(card.club, 'SIN CLUB')}
+          </span>
+        ),
     },
     /*
       HANDICAP NETO: etiqueta apilada en dos renglones (HANDICAP / NETO) y
