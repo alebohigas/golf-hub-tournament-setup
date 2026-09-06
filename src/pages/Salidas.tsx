@@ -50,13 +50,29 @@ const isMatchPlaySystem = (system?: string): boolean =>
   !!system && /match\s*play/i.test(system);
 
 /**
- * MATCH PLAY — índices de jugador después de los cuales se inserta el renglón
- * separador "VS".
- *  - Si el API entrega `matchNo` (cruce con `elimin_salidas_cat`), se agrupa por
- *    ese número de match.
- *  - Si NO hay `matchNo` (endpoint viejo en producción) pero la categoría es
- *    MATCH PLAY, se usa el orden tal como fue generado: los jugadores se
- *    emparejan de 2 en 2 (1º vs 2º, 3º vs 4º).
+ * MATCH PLAY — ordena los jugadores de un grupo (hora de salida) por número de
+ * match y, dentro del match, por lado (jugida = 1, jugidb = 2). Si el API aún
+ * no entrega `matchNo`, se conserva el orden generado tal cual.
+ */
+const sortByMatch = (
+  players: SalidasGroup['players'],
+  matchPlay = false
+): SalidasGroup['players'] => {
+  const list = players ?? [];
+  if (!matchPlay || !list.some((p) => p.matchNo != null)) return list;
+  return [...list].sort((a, b) => {
+    const ma = a.matchNo ?? Number.MAX_SAFE_INTEGER;
+    const mb = b.matchNo ?? Number.MAX_SAFE_INTEGER;
+    if (ma !== mb) return ma - mb;
+    return (a.matchSide ?? 0) - (b.matchSide ?? 0);
+  });
+};
+
+/**
+ * MATCH PLAY — índices de jugador después de los cuales se inserta la línea
+ * divisoria clara y delgada que separa UN MATCH DEL SIGUIENTE.
+ *  - Con `matchNo`: se divide cuando cambia el número de match.
+ *  - Sin `matchNo` (endpoint viejo): se divide cada 2 jugadores.
  */
 const vsAfterIndexes = (
   players: SalidasGroup['players'],
@@ -69,13 +85,14 @@ const vsAfterIndexes = (
     const next = list[i + 1];
     if (!next) return;
     if (hasMatchNo) {
-      if (p.matchNo != null && next.matchNo === p.matchNo) set.add(i);
-    } else if (matchPlay && i % 2 === 0) {
+      if (next.matchNo !== p.matchNo) set.add(i);
+    } else if (matchPlay && i % 2 === 1) {
       set.add(i);
     }
   });
   return set;
 };
+
 
 /**
  * Total de renglones de un grupo incluyendo los separadores "VS" de MATCH PLAY.
