@@ -470,8 +470,13 @@ const Salidas = () => {
                                             ) : (<span className="text-xs text-muted-foreground">—</span>)}
                                           </TableCell>
                                           <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                            {/* Recorte a 4 renglones en móvil (.player-name-clamp) */}
-                                            <span className="player-name-clamp">{player.name}</span>
+                                            {/* Recorte a 4 renglones en móvil (.player-name-clamp).
+                                              * MATCH PLAY: prefijo con la posición del jugador en su grupo. */}
+                                            <span className="player-name-clamp">
+                                              {matchPlay && player.position != null && player.position !== ''
+                                                ? `${player.position} ${player.name}`
+                                                : player.name}
+                                            </span>
                                           </TableCell>
                                           {/* Score: en parejas se centra entre los dos renglones (rowSpan=2).
                                             * En MATCH PLAY la columna se omite por completo. */}
