@@ -44,6 +44,29 @@ const hasAnyPair = (players: SalidasGroup['players']): boolean =>
 const groupsHaveAnyPair = (groups: SalidasGroup[] | undefined): boolean =>
   (groups ?? []).some((g) => hasAnyPair(g.players ?? []));
 
+/**
+ * MATCH PLAY — índices de jugador después de los cuales se inserta el renglón
+ * separador "VS". Se agrega cuando el jugador siguiente pertenece al MISMO
+ * match (`matchNo`), es decir entre los dos contendientes del enfrentamiento.
+ */
+const vsAfterIndexes = (players: SalidasGroup['players']): Set<number> => {
+  const set = new Set<number>();
+  const list = players ?? [];
+  list.forEach((p, i) => {
+    const next = list[i + 1];
+    if (p.matchNo != null && next && next.matchNo === p.matchNo) set.add(i);
+  });
+  return set;
+};
+
+/**
+ * Total de renglones de un grupo incluyendo los separadores "VS" de MATCH PLAY.
+ * Se usa para el `rowSpan` de las columnas Hoyo / Hora.
+ */
+const countGroupRowsWithVs = (players: SalidasGroup['players']): number =>
+  countGroupRows(players) + vsAfterIndexes(players).size;
+
+
 // ============= Search Result Type =============
 
 /** Represents a player search match with full group context */
@@ -367,10 +390,14 @@ const Salidas = () => {
                                     /* En PAREJAS cada jugador se renderiza como 2 renglones (uno por integrante)
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
                                     const players = result.group.players ?? [];
-                                    const totalRows = countGroupRows(players);
+                                    /* MATCH PLAY: renglones "VS" entre los dos jugadores de cada match. */
+                                    const vsIdx = vsAfterIndexes(players);
+                                    const totalRows = countGroupRowsWithVs(players);
                                     const showTeam = hasAnyPair(players);
+                                    const bodyCols = showTeam ? 4 : 3;
                                     let firstRowEmitted = false;
                                     const rows: JSX.Element[] = [];
+
                                     players.forEach((player, pIdx) => {
                                       const isPair = !!player.partner;
                                       const isMatched = pIdx === result.matchedPlayerIdx;
@@ -434,7 +461,21 @@ const Salidas = () => {
                                           </TableRow>
                                         );
                                       }
+                                      // ----- Separador "VS" entre los dos lados del match -----
+                                      if (vsIdx.has(pIdx)) {
+                                        rows.push(
+                                          <TableRow key={`${pIdx}-vs`} className="bg-white hover:bg-white border-b-0">
+                                            <TableCell
+                                              colSpan={bodyCols}
+                                              className="py-0.5 text-center text-xs font-black tracking-widest text-primary/70"
+                                            >
+                                              VS
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      }
                                     });
+
                                     return rows;
                                   })()}
                                 </TableBody>
@@ -589,19 +630,29 @@ const Salidas = () => {
                                  * Hoyo/Hora abarcan TODOS los renglones del grupo;
                                  * Score abarca los 2 renglones de cada pareja. */
                                 const players = group.players ?? [];
-                                const totalRows = countGroupRows(players);
+                                /* MATCH PLAY: separadores "VS" entre los dos lados de cada match. */
+                                const vsIdx = vsAfterIndexes(players);
+                                const totalRows = countGroupRowsWithVs(players);
                                 const showTeam = groupsHaveAnyPair(detail.groups);
+                                const bodyCols = showTeam ? 4 : 3;
                                 const isLastGroup = gIdx >= (detail.groups ?? []).length - 1;
                                 let firstRowEmitted = false;
                                 const rows: JSX.Element[] = [];
+
                                 players.forEach((player, pIdx) => {
                                   const isPair = !!player.partner;
                                   const isLastPlayer = pIdx === players.length - 1;
                                   const renderHoleHora = !firstRowEmitted;
                                   firstRowEmitted = true;
                                   // Separador entre grupos: aplica sólo al ÚLTIMO renglón del último jugador.
-                                  const separatorRow2 = isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
-                                  const separatorRow1 = !isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '';
+                                  // MATCH PLAY: además se separa visualmente el fin de cada match.
+                                  const matchEnd =
+                                    player.matchNo != null && !vsIdx.has(pIdx) && !isLastPlayer
+                                      ? 'border-b-2 border-primary/20'
+                                      : '';
+                                  const separatorRow2 = (isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || matchEnd;
+                                  const separatorRow1 = (!isPair && isLastPlayer && !isLastGroup ? 'border-b-2 border-primary/20' : '') || (!isPair ? matchEnd : '');
+
                                   // ----- Renglón principal -----
                                   rows.push(
                                     <TableRow
@@ -656,7 +707,21 @@ const Salidas = () => {
                                       </TableRow>
                                     );
                                   }
+                                  // ----- Separador "VS" entre los dos lados del match -----
+                                  if (vsIdx.has(pIdx)) {
+                                    rows.push(
+                                      <TableRow key={`${group.id}-${pIdx}-vs`} className="bg-white hover:bg-white border-b-0">
+                                        <TableCell
+                                          colSpan={bodyCols}
+                                          className="py-0.5 text-center text-xs font-black tracking-widest text-primary/70"
+                                        >
+                                          VS
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  }
                                 });
+
                                 return rows;
                               })}
                             </TableBody>

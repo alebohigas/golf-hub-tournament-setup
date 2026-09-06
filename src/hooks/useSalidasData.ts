@@ -50,7 +50,12 @@ export interface SalidasPlayer {
   score: number;
   system: string;
   groupId?: string;
+  /** MATCH PLAY: número de match (`elimin_salidas_cat.matchx`) al que pertenece. */
+  matchNo?: number;
+  /** MATCH PLAY: lado del match (1 = jugida, 2 = jugidb). */
+  matchSide?: number;
 }
+
 
 /** Tee time group from salidas_det.php */
 export interface SalidasGroup {
@@ -70,7 +75,10 @@ export interface SalidasDetailResponse {
   shortName: string;
   system: string;
   tee: string;
+  /** true cuando la categoría es MATCH PLAY (jugadores agrupados por match). */
+  isMatchPlay?: boolean;
   groups: SalidasGroup[];
+
 }
 
 // ============= Master: Days + Categories =============
@@ -118,7 +126,9 @@ export const useSalidasDetail = (
         shortName: data?.shortName ?? '',
         system: data?.system ?? '',
         tee: data?.tee ?? '',
+        isMatchPlay: !!data?.isMatchPlay,
         groups: Array.isArray(data?.groups) ? data.groups : [],
+
       };
     },
     enabled: enabled && !!caljgoid,

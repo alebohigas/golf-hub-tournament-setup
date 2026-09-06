@@ -62,8 +62,38 @@ $groupRows = query_all($conn, $sql);
 $groups = [];
 $isParejas = ($formato === 'parejas');
 
+/**
+ * MATCH PLAY: mapa jugadorid → { match, side }.
+ * Los enfrentamientos viven en la tabla legacy `elimin_salidas_cat`
+ * (`matchx` = número de match, `jugida` = lado 1, `jugidb` = lado 2).
+ * Con este mapa las salidas se agrupan por match (2 matches = 4 jugadores)
+ * y el frontend puede intercalar el separador "VS" entre ambos lados.
+ */
+$isMatchPlay = ($sistema === 'MATCH PLAY');
+$matchByPlayer = [];
+if ($isMatchPlay) {
+    $catid = esc($conn, $calInfo['categoriaid']);
+    $mrows = query_all(
+        $conn,
+        "SELECT matchx, jugida, jugidb, hoyo
+           FROM elimin_salidas_cat
+          WHERE catid = $catid
+          ORDER BY matchx ASC"
+    );
+    foreach (($mrows ?: []) as $m) {
+        $mx = (int)$m['matchx'];
+        if ((int)$m['jugida'] > 0) {
+            $matchByPlayer[(int)$m['jugida']] = ['match' => $mx, 'side' => 1, 'hoyo' => $m['hoyo'] ?? null];
+        }
+        if ((int)$m['jugidb'] > 0) {
+            $matchByPlayer[(int)$m['jugidb']] = ['match' => $mx, 'side' => 2, 'hoyo' => $m['hoyo'] ?? null];
+        }
+    }
+}
+
 // Determine view name based on format
 $viewName = $isParejas ? 'v_sal_jug_par' : 'v_sal_jug';
+
 
 foreach ($groupRows as $group) {
     $salid = esc($conn, $group['id']);
@@ -83,8 +113,14 @@ foreach ($groupRows as $group) {
         ? "CONCAT(j.nombre, ' ', j.apellido) as jugador,
            CONCAT(j2.nombre, ' ', j2.apellido) as jugador2"
         : "CONCAT(nombre, ' ', apellido) as jugador";
+    // Prefijo para resolver ambigüedad de columnas en la rama de parejas.
+    $P = $isParejas ? 'v.' : '';
     // v_sal_jug_par no expone `logo2`; el segundo logo se trae desde la pareja j2->club.
-    $logoCols = $isParejas ? "v.logo, c2.logo as logo2" : "logo";
+    // `jugadorid` se incluye SIEMPRE: es la llave usada para cruzar contra
+    // `elimin_salidas_cat` y agrupar por MATCH en categorías MATCH PLAY.
+    $logoCols = ($isParejas ? "v.logo, c2.logo as logo2" : "logo")
+              . ", {$P}jugadorid as jugadorid";
+
 
     /*
      * En parejas hacemos JOIN extra a v_jugadores_parejas + jugadores para
@@ -173,7 +209,27 @@ foreach ($groupRows as $group) {
         if (isset($pr['grupoid'])) {
             $player['groupId'] = $pr['grupoid'];
         }
+        /* MATCH PLAY: adjunta número de match y lado (1|2) para que el
+         * frontend agrupe a los jugadores por enfrentamiento e inserte "VS". */
+        if ($isMatchPlay) {
+            $jid = (int)($pr['jugadorid'] ?? 0);
+            if ($jid > 0 && isset($matchByPlayer[$jid])) {
+                $player['matchNo']   = $matchByPlayer[$jid]['match'];
+                $player['matchSide'] = $matchByPlayer[$jid]['side'];
+            }
+        }
         $players[] = $player;
+    }
+
+    /* Ordena por match y lado dentro del grupo de salida, para que los dos
+     * jugadores de un mismo match queden siempre juntos y en orden 1 → 2. */
+    if ($isMatchPlay) {
+        usort($players, function ($a, $b) {
+            $ma = $a['matchNo']   ?? PHP_INT_MAX;
+            $mb = $b['matchNo']   ?? PHP_INT_MAX;
+            if ($ma !== $mb) return $ma <=> $mb;
+            return (($a['matchSide'] ?? 9) <=> ($b['matchSide'] ?? 9));
+        });
     }
 
     $groups[] = [
@@ -182,6 +238,7 @@ foreach ($groupRows as $group) {
         'time'    => $group['hora'] ?? '',
         'players' => $players
     ];
+
 }
 
 json_response([
@@ -193,5 +250,8 @@ json_response([
     'shortName'    => $calInfo['abreviatura'],
     'system'       => $calInfo['sistema'],
     'tee'          => $calInfo['tee'],
+    /* Bandera para que el frontend active el render agrupado por match + "VS". */
+    'isMatchPlay'  => $isMatchPlay,
     'groups'       => $groups
+
 ]);
