@@ -21,14 +21,7 @@ import { getSalidasDayUrl, POLL_ACTIVE } from '@/config/api';
 import { ApiError } from '@/lib/apiClient';
 import { normalizeSearchText, buildUniqueNameSuggestions } from '@/lib/searchUtils';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-/* Enfrentamientos MATCH PLAY definidos en Admin > ALIEN SYSTEM > Match Play.
- * Permiten mostrar "VS" y el separador por match sin depender de que el
- * endpoint salidas_det.php cruce `elimin_salidas_cat`. */
-import {
-  applyMatchPlayConfigToGroups,
-  getMatchPlayEntry,
-  type SalidasMatchPlayConfig,
-} from '@/lib/salidasMatchPlay';
+
 import salidasHero from '@/assets/salidas-hero.jpg';
 
 // ============= Render helpers =============
