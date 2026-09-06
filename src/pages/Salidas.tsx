@@ -390,10 +390,14 @@ const Salidas = () => {
                                     /* En PAREJAS cada jugador se renderiza como 2 renglones (uno por integrante)
                                      * y la celda de Score abarca ambos con rowSpan=2 para quedar centrada. */
                                     const players = result.group.players ?? [];
-                                    const totalRows = countGroupRows(players);
+                                    /* MATCH PLAY: renglones "VS" entre los dos jugadores de cada match. */
+                                    const vsIdx = vsAfterIndexes(players);
+                                    const totalRows = countGroupRowsWithVs(players);
                                     const showTeam = hasAnyPair(players);
+                                    const bodyCols = showTeam ? 4 : 3;
                                     let firstRowEmitted = false;
                                     const rows: JSX.Element[] = [];
+
                                     players.forEach((player, pIdx) => {
                                       const isPair = !!player.partner;
                                       const isMatched = pIdx === result.matchedPlayerIdx;
