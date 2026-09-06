@@ -50,7 +50,12 @@ export interface SalidasPlayer {
   score: number;
   system: string;
   groupId?: string;
+  /** MATCH PLAY: número de match (`elimin_salidas_cat.matchx`) al que pertenece. */
+  matchNo?: number;
+  /** MATCH PLAY: lado del match (1 = jugida, 2 = jugidb). */
+  matchSide?: number;
 }
+
 
 /** Tee time group from salidas_det.php */
 export interface SalidasGroup {
