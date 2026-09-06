@@ -132,10 +132,8 @@ const Salidas = () => {
   // Fetch master data: days + categories
   const { data: master, isLoading: loadingMaster } = useSalidasMaster();
 
-  /** Configuración de enfrentamientos MATCH PLAY administrada en el panel. */
-  const { data: siteConfig } = useSiteConfig();
-  const matchPlayConfig = (siteConfig?.salidas_matchplay_config ?? null) as SalidasMatchPlayConfig | null;
   const days = master?.days ?? [];
+
 
   /** Collect all caljgoids across all days for search queries */
   const allCategories = useMemo(() => {
