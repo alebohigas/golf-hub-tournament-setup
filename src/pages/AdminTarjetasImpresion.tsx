@@ -640,9 +640,11 @@ const MatchScorecard = ({
   const headerCard = {
     ...card,
     playerId: card.matchNo ? `MATCH ${card.matchNo}` : '',
-    name: card.opponent
-      ? `${card.name} vs ${card.opponent.name}`
-      : card.name,
+    name: card.name,
+    /* Encabezado en 3 renglones: jugador 1 / VS / jugador 2. */
+    nameLines: card.opponent
+      ? [card.name, 'VS', card.opponent.name]
+      : [card.name],
   };
   const matchHeaderFields = headerFields.filter((k) => k !== 'vtja');
 
