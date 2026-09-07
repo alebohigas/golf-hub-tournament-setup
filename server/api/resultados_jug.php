@@ -121,11 +121,11 @@ $sistema = strtoupper($catInfo['sistema']);
  * Solución: cuando el sistema vigente es MATCH PLAY se calcula el leaderboard
  * con el sistema de la FASE PREVIA. Ese sistema se DETECTA automáticamente:
  *   1. `?sistemaprev=STABLEFORD|STROKE PLAY` lo fuerza (override manual).
- *   2. Si las tarjetas cerradas de la categoría tienen puntos Stableford
- *      (`totstbgross > 0` o `totstb > 0`), la fase previa fue STABLEFORD.
- *   3. Si otra categoría del mismo torneo (no MATCH PLAY) usa STABLEFORD,
- *      se asume STABLEFORD para la fase de clasificación.
- *   4. En cualquier otro caso, STROKE PLAY.
+ *   2. Se identifica por la escala real de `tarjetas.SA`: en Stroke Play SA
+ *      guarda golpes (aprox. par del recorrido), mientras en Stableford guarda
+ *      puntos (aprox. dos por hoyo). No se usan `totstb*` porque el sistema
+ *      legacy puede llenarlos también durante una ronda Stroke Play.
+ *   3. En cualquier otro caso, STROKE PLAY.
  * El sistema que domina al final sigue siendo MATCH PLAY: la respuesta conserva
  * `system = 'MATCH PLAY'` y agrega `matchPlayFinal = true` + `previousSystem`.
  */
@@ -134,41 +134,38 @@ $previousSystem = null;
 
 /**
  * Detecta el sistema de la fase de clasificación de una categoría MATCH PLAY.
+ * Se compara el promedio SA con el promedio SO de las mismas tarjetas: en
+ * Stroke Play ambos representan golpes y permanecen cercanos; en Stableford
+ * SA representa puntos y queda claramente por debajo de los golpes SO. Esto
+ * funciona igual para recorridos de 9 o 18 hoyos y evita columnas auxiliares
+ * que pueden permanecer pobladas después de cambiar el sistema.
+ *
+ * @param mysqli $conn Conexión activa a la base de datos.
+ * @param int|string $cid Identificador de categoría escapado.
+ * @param int|string $tid Identificador de torneo escapado.
  * @return string 'STABLEFORD' | 'STROKE PLAY'
  */
 function detect_previous_system($conn, $cid, $tid) {
-    // (2) Rastro de puntos stableford en tarjetas cerradas de la categoría
-    foreach (['totstbgross', 'totstb'] as $col) {
-        $res = @$conn->query(
-            "SELECT 1
-               FROM tarjetas t
-               JOIN jugadores j ON (j.id = t.jugadorid)
-              WHERE j.categoriaid = $cid
-                AND t.statlsc = 1
-                AND IFNULL(t.$col, 0) > 0
-              LIMIT 1"
-        );
-        if ($res) {
-            $found = $res->num_rows > 0;
-            $res->free();
-            if ($found) return 'STABLEFORD';
-        }
-    }
-
-    // (3) Categorías hermanas del mismo torneo que aún no cambiaron a MATCH PLAY
-    $res = @$conn->query(
-        "SELECT 1 FROM categorias
-          WHERE torneo_id = $tid
-            AND UPPER(TRIM(sistema)) = 'STABLEFORD'
-          LIMIT 1"
+    /** Promedios neto y gross de las tarjetas históricas cerradas. */
+    $scoreShape = query_one(
+        $conn,
+        "SELECT AVG(NULLIF(t.SA, 0)) AS avg_sa,
+                AVG(NULLIF(t.SO, 0)) AS avg_so
+           FROM tarjetas t
+           JOIN jugadores j ON (j.id = t.jugadorid)
+          WHERE j.categoriaid = $cid
+            AND j.torneoid = $tid
+            AND t.torneoid = $tid
+            AND t.statlsc = 1"
     );
-    if ($res) {
-        $found = $res->num_rows > 0;
-        $res->free();
-        if ($found) return 'STABLEFORD';
+    $averageSa = isset($scoreShape['avg_sa']) ? (float)$scoreShape['avg_sa'] : 0.0;
+    $averageSo = isset($scoreShape['avg_so']) ? (float)$scoreShape['avg_so'] : 0.0;
+
+    if ($averageSa > 0.0 && $averageSo > 0.0) {
+        return $averageSa >= ($averageSo * 0.65) ? 'STROKE PLAY' : 'STABLEFORD';
     }
 
-    return 'STROKE PLAY'; // (4) por omisión
+    return 'STROKE PLAY';
 }
 
 if ($matchPlayFinal) {
