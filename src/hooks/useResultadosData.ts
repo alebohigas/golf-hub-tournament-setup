@@ -79,7 +79,11 @@ export const useAllResults = (torneoIdOverride?: string) => {
       let categories: Array<{ categoryId: string; name: string; shortName?: string; gross?: number; [key: string]: any }> = [];
       if (Array.isArray(catListResp)) {
         categories = catListResp.filter(
-          (c) => String((c as any).system || '').toUpperCase().trim() !== 'MATCH PLAY'
+          (c) =>
+            String((c as any).system || '').toUpperCase().trim() !== 'MATCH PLAY' ||
+            // Categoría que cambió a MATCH PLAY pero tiene rondas de
+            // clasificación ya jugadas: se conserva para mostrar ese histórico.
+            !!(c as any).hasStrokeHistory
         );
       } else {
         categories = catListResp.strokePlay ?? [];
@@ -103,6 +107,9 @@ export const useAllResults = (torneoIdOverride?: string) => {
           categoryName: cat.name || '',
           shortName: cat.shortName || '',
           system: (cat as any).system || '',
+          /* MATCH PLAY vigente con fase previa de clasificación visible. */
+          matchPlayFinal: !!(cat as any).matchPlayFinal,
+          hasStrokeHistory: !!(cat as any).hasStrokeHistory,
           isParejas: !!(cat as any).isParejas || (cat as any).format === 'PAREJAS',
           format: (cat as any).format,
           scoringTypes,
@@ -193,6 +200,10 @@ export const useCategoryResults = (
         categoryName: raw.categoryName || '',
         shortName: raw.shortName || '',
         system: raw.system || '',
+        /* Fase previa: el leaderboard corresponde a `previousSystem`, pero el
+         * sistema que domina al final sigue siendo MATCH PLAY. */
+        matchPlayFinal: !!raw.matchPlayFinal,
+        previousSystem: raw.previousSystem || undefined,
         isParejas: !!raw.isParejas || (raw.format === 'PAREJAS'),
         format: raw.format,
         days: raw.days || [],

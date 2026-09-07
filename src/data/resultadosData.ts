@@ -114,6 +114,16 @@ export interface ResultCategory {
   defaultScorecardType?: ScorecardType;
   /** Scoring system from the API: STROKE PLAY, STABLEFORD, etc. */
   system?: string;
+  /**
+   * True cuando `system` es MATCH PLAY (sistema que domina al final) pero la
+   * categoría jugó una fase previa de clasificación cuyos resultados se siguen
+   * publicando en /resultados.
+   */
+  matchPlayFinal?: boolean;
+  /** True cuando existen tarjetas cerradas de la fase previa (histórico). */
+  hasStrokeHistory?: boolean;
+  /** Sistema usado para calcular el leaderboard de la fase previa. */
+  previousSystem?: string;
   /** Round dates from the API, e.g. ["2026-02-18", "2026-02-19"] */
   days?: string[];
   /**
