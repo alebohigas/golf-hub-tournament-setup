@@ -119,22 +119,70 @@ $sistema = strtoupper($catInfo['sistema']);
  * ya jugadas desaparecían de /resultados.
  *
  * Solución: cuando el sistema vigente es MATCH PLAY se calcula el leaderboard
- * con el sistema de la FASE PREVIA (por omisión 'STROKE PLAY'; se puede forzar
- * con `?sistemaprev=STABLEFORD`). El sistema que domina al final sigue siendo
- * MATCH PLAY: la respuesta conserva `system = 'MATCH PLAY'` y agrega
- * `matchPlayFinal = true` + `previousSystem`, para que el frontend muestre las
- * rondas previas como histórico y siga enviando la llave a /matchplay.
+ * con el sistema de la FASE PREVIA. Ese sistema se DETECTA automáticamente:
+ *   1. `?sistemaprev=STABLEFORD|STROKE PLAY` lo fuerza (override manual).
+ *   2. Si las tarjetas cerradas de la categoría tienen puntos Stableford
+ *      (`totstbgross > 0` o `totstb > 0`), la fase previa fue STABLEFORD.
+ *   3. Si otra categoría del mismo torneo (no MATCH PLAY) usa STABLEFORD,
+ *      se asume STABLEFORD para la fase de clasificación.
+ *   4. En cualquier otro caso, STROKE PLAY.
+ * El sistema que domina al final sigue siendo MATCH PLAY: la respuesta conserva
+ * `system = 'MATCH PLAY'` y agrega `matchPlayFinal = true` + `previousSystem`.
  */
 $matchPlayFinal = ($sistema === 'MATCH PLAY');
 $previousSystem = null;
+
+/**
+ * Detecta el sistema de la fase de clasificación de una categoría MATCH PLAY.
+ * @return string 'STABLEFORD' | 'STROKE PLAY'
+ */
+function detect_previous_system($conn, $cid, $tid) {
+    // (2) Rastro de puntos stableford en tarjetas cerradas de la categoría
+    foreach (['totstbgross', 'totstb'] as $col) {
+        $res = @$conn->query(
+            "SELECT 1
+               FROM tarjetas t
+               JOIN jugadores j ON (j.id = t.jugadorid)
+              WHERE j.categoriaid = $cid
+                AND t.statlsc = 1
+                AND IFNULL(t.$col, 0) > 0
+              LIMIT 1"
+        );
+        if ($res) {
+            $found = $res->num_rows > 0;
+            $res->free();
+            if ($found) return 'STABLEFORD';
+        }
+    }
+
+    // (3) Categorías hermanas del mismo torneo que aún no cambiaron a MATCH PLAY
+    $res = @$conn->query(
+        "SELECT 1 FROM categorias
+          WHERE torneo_id = $tid
+            AND UPPER(TRIM(sistema)) = 'STABLEFORD'
+          LIMIT 1"
+    );
+    if ($res) {
+        $found = $res->num_rows > 0;
+        $res->free();
+        if ($found) return 'STABLEFORD';
+    }
+
+    return 'STROKE PLAY'; // (4) por omisión
+}
+
 if ($matchPlayFinal) {
-    $prev = strtoupper(trim((string)optional_param('sistemaprev', 'STROKE PLAY')));
-    if (!in_array($prev, ['STROKE PLAY', 'STROKE', 'STABLEFORD'], true)) {
-        $prev = 'STROKE PLAY';
+    $override = strtoupper(trim((string)optional_param('sistemaprev', '')));
+    if ($override === 'STROKE') $override = 'STROKE PLAY';
+    if (in_array($override, ['STROKE PLAY', 'STABLEFORD'], true)) {
+        $prev = $override;
+    } else {
+        $prev = detect_previous_system($conn, $cid, $tid);
     }
     $previousSystem = $prev;
     $sistema = $prev; // el cálculo usa el sistema de la fase de clasificación
 }
+
 $formato = strtoupper($catInfo['formato']);
 $medalCountNeto  = (int)$catInfo['numganadorneto'];
 $medalCountGross = (int)$catInfo['numganadorgross'];
