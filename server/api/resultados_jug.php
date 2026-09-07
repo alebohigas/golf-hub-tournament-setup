@@ -246,6 +246,47 @@ foreach ($dateRows as $dr) {
     $diasPartial[$idx] = false;
 }
 
+/**
+ * FASE PREVIA (categorías que ya cambiaron a MATCH PLAY)
+ * -----------------------------------------------------------------------------
+ * Al pasar a MATCH PLAY el calendario (`caljuego`) suele reescribirse con las
+ * fechas de los enfrentamientos, o los jugadores de la clasificación quedan
+ * con estatus != NORMAL (CORTE / RETIRO / DESCALIFICADO). En ambos casos el
+ * bloque anterior descartaba las rondas de clasificación y el leaderboard
+ * histórico salía vacío.
+ *
+ * Aquí las fechas se reconstruyen directamente desde las tarjetas CERRADAS
+ * (`statlsc = 1`) de CUALQUIER jugador de la categoría — sin importar su
+ * estatus — para que se publiquen los scores de:
+ *   - jugadores NORMAL que pasaron el corte, y
+ *   - jugadores debajo de la línea de corte (CORTE, RETIRO, DESCALIFICADO,
+ *     NO CONTIENDE, SHOW-NO).
+ * Aplica igual para STROKE PLAY y para STABLEFORD.
+ */
+if ($matchPlayFinal) {
+    $prevRows = query_all($conn, "SELECT DISTINCT DATE(t.fecha_juego) AS fecha
+                                    FROM tarjetas t
+                                    JOIN jugadores j ON (j.id = t.jugadorid)
+                                   WHERE j.categoriaid = $cid
+                                     AND j.torneoid = $tid
+                                     AND t.torneoid = $tid
+                                     AND t.statlsc = 1
+                                   ORDER BY fecha ASC");
+    $prevDias = [];
+    foreach ($prevRows as $pr) {
+        if (empty($pr['fecha'])) { continue; }
+        $prevDias[count($prevDias) + 1] = $pr['fecha'];
+    }
+    // Sólo se sustituye cuando aporta rondas (evita perder el comportamiento
+    // normal si no hay tarjetas cerradas todavía).
+    if (count($prevDias) > 0) {
+        $dias = $prevDias;
+        $diasPartial = [];
+        foreach ($dias as $i => $f) { $diasPartial[$i] = false; }
+    }
+}
+
+
 // ============= Get course info =============
 $sql = "SELECT b.campoid, b.salidaid, rating, slope, tee, parcampo
         FROM caljuego a
