@@ -644,7 +644,23 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
+                          {/*
+                           * Encabezado de grupo para la sección de jugadores con
+                           * estatus NORMAL. Se muestra sólo cuando también hay
+                           * jugadores debajo del corte, para que ambas secciones
+                           * queden rotuladas (— Clasificación — / — Corte —).
+                           */}
+                          {cutPlayers.length > 0 && (
+                            <TableRow className="bg-muted/60 hover:bg-muted/60 border-b-2 border-border">
+                              <TableCell colSpan={totalCols} className="text-center py-3">
+                                <span className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
+                                  — {selectedCategory?.categoryName} · {categoryDetail?.matchPlayFinal ? 'Clasificación' : 'Resultados'} —
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          )}
                           {players.length > 0 ? (
+
                             players.map((player) => {
                               /* En categorías de PAREJAS: render = 2 renglones (uno por integrante)
                                * y las columnas compartidas (Pos / Club logo / R1..Rn / Total) se
