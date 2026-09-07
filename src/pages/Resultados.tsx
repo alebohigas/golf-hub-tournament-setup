@@ -532,6 +532,14 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                             </span>
                           ))}
                         </div>
+                        {/* Categoría que ya pasó a MATCH PLAY: se conserva el
+                            leaderboard de la fase de clasificación como histórico. */}
+                        {category.matchPlayFinal && (
+                          <p className="mt-2 text-[10px] leading-tight text-muted-foreground">
+                            Clasificación previa · continúa en MATCH PLAY
+                          </p>
+                        )}
+
                       </CardContent>
                     </Card>
                   ))}
