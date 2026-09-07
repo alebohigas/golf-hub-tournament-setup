@@ -121,11 +121,11 @@ $sistema = strtoupper($catInfo['sistema']);
  * Solución: cuando el sistema vigente es MATCH PLAY se calcula el leaderboard
  * con el sistema de la FASE PREVIA. Ese sistema se DETECTA automáticamente:
  *   1. `?sistemaprev=STABLEFORD|STROKE PLAY` lo fuerza (override manual).
- *   2. Si las tarjetas cerradas de la categoría tienen puntos Stableford
- *      (`totstbgross > 0` o `totstb > 0`), la fase previa fue STABLEFORD.
- *   3. Si otra categoría del mismo torneo (no MATCH PLAY) usa STABLEFORD,
- *      se asume STABLEFORD para la fase de clasificación.
- *   4. En cualquier otro caso, STROKE PLAY.
+ *   2. Se identifica por la escala real de `tarjetas.SA`: en Stroke Play SA
+ *      guarda golpes (aprox. par del recorrido), mientras en Stableford guarda
+ *      puntos (aprox. dos por hoyo). No se usan `totstb*` porque el sistema
+ *      legacy puede llenarlos también durante una ronda Stroke Play.
+ *   3. En cualquier otro caso, STROKE PLAY.
  * El sistema que domina al final sigue siendo MATCH PLAY: la respuesta conserva
  * `system = 'MATCH PLAY'` y agrega `matchPlayFinal = true` + `previousSystem`.
  */
@@ -134,41 +134,38 @@ $previousSystem = null;
 
 /**
  * Detecta el sistema de la fase de clasificación de una categoría MATCH PLAY.
+ * La frontera se adapta a los hoyos programados: más de tres unidades por hoyo
+ * corresponde a golpes Stroke Play; tres o menos corresponde a puntos
+ * Stableford. Se usa el promedio de tarjetas cerradas con SA positivo para no
+ * depender de columnas auxiliares que permanecen pobladas al cambiar sistema.
+ *
+ * @param mysqli $conn Conexión activa a la base de datos.
+ * @param int|string $cid Identificador de categoría escapado.
+ * @param int|string $tid Identificador de torneo escapado.
+ * @param int $scheduledHoles Hoyos de la fase de clasificación.
  * @return string 'STABLEFORD' | 'STROKE PLAY'
  */
-function detect_previous_system($conn, $cid, $tid) {
-    // (2) Rastro de puntos stableford en tarjetas cerradas de la categoría
-    foreach (['totstbgross', 'totstb'] as $col) {
-        $res = @$conn->query(
-            "SELECT 1
-               FROM tarjetas t
-               JOIN jugadores j ON (j.id = t.jugadorid)
-              WHERE j.categoriaid = $cid
-                AND t.statlsc = 1
-                AND IFNULL(t.$col, 0) > 0
-              LIMIT 1"
-        );
-        if ($res) {
-            $found = $res->num_rows > 0;
-            $res->free();
-            if ($found) return 'STABLEFORD';
-        }
-    }
-
-    // (3) Categorías hermanas del mismo torneo que aún no cambiaron a MATCH PLAY
-    $res = @$conn->query(
-        "SELECT 1 FROM categorias
-          WHERE torneo_id = $tid
-            AND UPPER(TRIM(sistema)) = 'STABLEFORD'
-          LIMIT 1"
+function detect_previous_system($conn, $cid, $tid, $scheduledHoles) {
+    /** Normaliza categorías sin cantidad de hoyos válida al formato estándar. */
+    $holes = $scheduledHoles > 0 ? $scheduledHoles : 18;
+    /** Promedio SA de las tarjetas históricas cerradas de esta categoría. */
+    $scoreShape = query_one(
+        $conn,
+        "SELECT AVG(NULLIF(t.SA, 0)) AS avg_sa
+           FROM tarjetas t
+           JOIN jugadores j ON (j.id = t.jugadorid)
+          WHERE j.categoriaid = $cid
+            AND j.torneoid = $tid
+            AND t.torneoid = $tid
+            AND t.statlsc = 1"
     );
-    if ($res) {
-        $found = $res->num_rows > 0;
-        $res->free();
-        if ($found) return 'STABLEFORD';
+    $averageSa = isset($scoreShape['avg_sa']) ? (float)$scoreShape['avg_sa'] : 0.0;
+
+    if ($averageSa > 0.0) {
+        return $averageSa > ($holes * 3) ? 'STROKE PLAY' : 'STABLEFORD';
     }
 
-    return 'STROKE PLAY'; // (4) por omisión
+    return 'STROKE PLAY';
 }
 
 if ($matchPlayFinal) {
@@ -177,7 +174,7 @@ if ($matchPlayFinal) {
     if (in_array($override, ['STROKE PLAY', 'STABLEFORD'], true)) {
         $prev = $override;
     } else {
-        $prev = detect_previous_system($conn, $cid, $tid);
+        $prev = detect_previous_system($conn, $cid, $tid, (int)($catInfo['hoyosajugar'] ?? 18));
     }
     $previousSystem = $prev;
     $sistema = $prev; // el cálculo usa el sistema de la fase de clasificación
