@@ -734,6 +734,99 @@ foreach ($rows as $row) {
     $players[] = $player;
 }
 
+/**
+ * ============= FALLBACK LEADERBOARD PARA FASE PREVIA (MATCH PLAY) =============
+ * En categorías que ya cambiaron a MATCH PLAY las consultas legacy del bloque
+ * anterior suelen devolver 0 jugadores NORMAL porque dependen de vistas
+ * (`v_cd_ulttar_*`, `f_score_dia_*`) y de filtros (`campgross`, JOIN estricto a
+ * `clubs`) que la fase de clasificación ya no satisface. Resultado visible: la
+ * tabla mostraba SÓLO a los jugadores debajo del corte.
+ *
+ * Aquí se reconstruye la lista de jugadores con estatus NORMAL leyendo las
+ * tarjetas CERRADAS (`statlsc = 1`) directamente — misma técnica que ya
+ * funciona para los jugadores cortados — con:
+ *   - LEFT JOIN a `clubs` (no se pierde un jugador sin club válido),
+ *   - sin filtro `campgross` (la clasificación mezcla neto/gross),
+ *   - orden por Total: STROKE PLAY ASC, STABLEFORD DESC.
+ */
+if ($matchPlayFinal) {
+    /** Columna de score por ronda según el sistema de la fase previa. */
+    $mpScoreCol = ($sistema === 'STABLEFORD' && $gross == '1') ? 't.totstbgross'
+                 : (($sistema === 'STABLEFORD') ? 't.SA'
+                 : (($gross == '1') ? 't.SO' : 't.SA'));
+
+    $mpDayCols = '';
+    foreach ($dias as $i => $fecha) {
+        $fecEsc = esc($conn, $fecha);
+        $mpDayCols .= ", (SELECT IFNULL(SUM($mpScoreCol), 0)
+                            FROM tarjetas t
+                           WHERE t.jugadorid = j.id
+                             AND t.torneoid  = j.torneoid
+                             AND DATE(t.fecha_juego) = '$fecEsc'
+                             AND t.statlsc = 1) as d{$i}";
+    }
+
+    if ($sistema === 'STABLEFORD' && $gross == '1') {
+        $mpTotalExpr = $closedSTBGross;
+    } elseif ($gross == '1') {
+        $mpTotalExpr = $closedSO;
+    } else {
+        $mpTotalExpr = $closedSA;
+    }
+
+    $mpSql = "SELECT j.id AS jugadorid, j.numjugador,
+                     CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
+                     $mpTotalExpr as total_score,
+                     $closedRoundCount as closed_rounds
+                     $mpDayCols,
+                     c.abr, c.logo
+                FROM jugadores j
+                LEFT JOIN clubs c ON (j.clubid = c.id)
+               WHERE j.categoriaid = $cid
+                 AND j.torneoid = $tid
+                 AND j.estatus = 'NORMAL'
+               ORDER BY total_score " . ($sistema === 'STABLEFORD' ? 'DESC' : 'ASC') . ",
+                        j.apellido ASC";
+
+    debug_log_query('Match Play previous-phase NORMAL leaderboard', $mpSql);
+    $mpRows = query_all($conn, $mpSql);
+
+    /* Jugadores sin ninguna tarjeta cerrada (total 0) se acomodan al final. */
+    usort($mpRows, function ($a, $b) use ($sistema) {
+        $ta = (int)($a['total_score'] ?? 0);
+        $tb = (int)($b['total_score'] ?? 0);
+        $ea = ($ta === 0) ? 1 : 0;
+        $eb = ($tb === 0) ? 1 : 0;
+        if ($ea !== $eb) return $ea - $eb;
+        if ($ta === $tb) return strcmp($a['jugador'], $b['jugador']);
+        return ($sistema === 'STABLEFORD') ? ($tb - $ta) : ($ta - $tb);
+    });
+
+    $players = [];
+    $position = 0;
+    foreach ($mpRows as $row) {
+        $position++;
+        $player = [
+            'position'  => $position,
+            'playerId'  => $row['jugadorid'],
+            'number'    => $row['numjugador'],
+            'name'      => $row['jugador'],
+            'club'      => $row['abr'] ?? '',
+            'clubLogo'  => !empty($row['logo']) ? $LOGOS_BASE_URL . $row['logo'] : '',
+            'total'     => (int)($row['total_score'] ?? 0),
+            'totalSO'   => (int)($row['total_score'] ?? 0),
+            'totalSA'   => (int)($row['total_score'] ?? 0),
+            'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+        ];
+        foreach ($dias as $i => $fecha) {
+            $val = $row["d{$i}"] ?? null;
+            $player["r{$i}"] = ($val !== null && $val != 0) ? (int)$val : null;
+        }
+        $players[] = $player;
+    }
+}
+
+
 // ============= Fetch non-NORMAL players (cut players: NO SHOW, RETIRO, DQ, etc.) =============
 $cutPlayers = [];
 
