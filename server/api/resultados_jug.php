@@ -108,6 +108,33 @@ if (strtoupper($catInfo['formato'] ?? '') === 'PAREJAS') {
 }
 
 $sistema = strtoupper($catInfo['sistema']);
+
+/**
+ * FASE PREVIA STROKE PLAY / STABLEFORD EN CATEGORÍAS QUE CAMBIARON A MATCH PLAY
+ * -----------------------------------------------------------------------------
+ * Algunas categorías arrancan con rondas de clasificación (STROKE PLAY o
+ * STABLEFORD) y, tras el corte, su `categorias.sistema` se cambia a
+ * 'MATCH PLAY'. A partir de ese momento el leaderboard quedaba vacío porque
+ * ninguna rama de cálculo aplica a MATCH PLAY, y los resultados de las rondas
+ * ya jugadas desaparecían de /resultados.
+ *
+ * Solución: cuando el sistema vigente es MATCH PLAY se calcula el leaderboard
+ * con el sistema de la FASE PREVIA (por omisión 'STROKE PLAY'; se puede forzar
+ * con `?sistemaprev=STABLEFORD`). El sistema que domina al final sigue siendo
+ * MATCH PLAY: la respuesta conserva `system = 'MATCH PLAY'` y agrega
+ * `matchPlayFinal = true` + `previousSystem`, para que el frontend muestre las
+ * rondas previas como histórico y siga enviando la llave a /matchplay.
+ */
+$matchPlayFinal = ($sistema === 'MATCH PLAY');
+$previousSystem = null;
+if ($matchPlayFinal) {
+    $prev = strtoupper(trim((string)optional_param('sistemaprev', 'STROKE PLAY')));
+    if (!in_array($prev, ['STROKE PLAY', 'STROKE', 'STABLEFORD'], true)) {
+        $prev = 'STROKE PLAY';
+    }
+    $previousSystem = $prev;
+    $sistema = $prev; // el cálculo usa el sistema de la fase de clasificación
+}
 $formato = strtoupper($catInfo['formato']);
 $medalCountNeto  = (int)$catInfo['numganadorneto'];
 $medalCountGross = (int)$catInfo['numganadorgross'];
@@ -755,6 +782,11 @@ json_response([
     'categoryName' => $catInfo['categoria'],
     'shortName'    => $catInfo['abreviatura'],
     'system'       => $catInfo['sistema'],
+    /* MATCH PLAY que viene de una fase previa de clasificación: el leaderboard
+     * mostrado corresponde a `previousSystem`, pero el sistema vigente (el que
+     * domina al final) sigue siendo MATCH PLAY. */
+    'matchPlayFinal' => $matchPlayFinal,
+    'previousSystem' => $previousSystem,
     'format'       => $catInfo['formato'],
     'gross'        => (int)$gross,
     'medalCount'   => $medalCount,
