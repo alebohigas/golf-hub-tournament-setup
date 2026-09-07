@@ -134,24 +134,23 @@ $previousSystem = null;
 
 /**
  * Detecta el sistema de la fase de clasificación de una categoría MATCH PLAY.
- * La frontera se adapta a los hoyos programados: más de tres unidades por hoyo
- * corresponde a golpes Stroke Play; tres o menos corresponde a puntos
- * Stableford. Se usa el promedio de tarjetas cerradas con SA positivo para no
- * depender de columnas auxiliares que permanecen pobladas al cambiar sistema.
+ * Se compara el promedio SA con el promedio SO de las mismas tarjetas: en
+ * Stroke Play ambos representan golpes y permanecen cercanos; en Stableford
+ * SA representa puntos y queda claramente por debajo de los golpes SO. Esto
+ * funciona igual para recorridos de 9 o 18 hoyos y evita columnas auxiliares
+ * que pueden permanecer pobladas después de cambiar el sistema.
  *
  * @param mysqli $conn Conexión activa a la base de datos.
  * @param int|string $cid Identificador de categoría escapado.
  * @param int|string $tid Identificador de torneo escapado.
- * @param int $scheduledHoles Hoyos de la fase de clasificación.
  * @return string 'STABLEFORD' | 'STROKE PLAY'
  */
-function detect_previous_system($conn, $cid, $tid, $scheduledHoles) {
-    /** Normaliza categorías sin cantidad de hoyos válida al formato estándar. */
-    $holes = $scheduledHoles > 0 ? $scheduledHoles : 18;
-    /** Promedio SA de las tarjetas históricas cerradas de esta categoría. */
+function detect_previous_system($conn, $cid, $tid) {
+    /** Promedios neto y gross de las tarjetas históricas cerradas. */
     $scoreShape = query_one(
         $conn,
-        "SELECT AVG(NULLIF(t.SA, 0)) AS avg_sa
+        "SELECT AVG(NULLIF(t.SA, 0)) AS avg_sa,
+                AVG(NULLIF(t.SO, 0)) AS avg_so
            FROM tarjetas t
            JOIN jugadores j ON (j.id = t.jugadorid)
           WHERE j.categoriaid = $cid
@@ -160,9 +159,10 @@ function detect_previous_system($conn, $cid, $tid, $scheduledHoles) {
             AND t.statlsc = 1"
     );
     $averageSa = isset($scoreShape['avg_sa']) ? (float)$scoreShape['avg_sa'] : 0.0;
+    $averageSo = isset($scoreShape['avg_so']) ? (float)$scoreShape['avg_so'] : 0.0;
 
-    if ($averageSa > 0.0) {
-        return $averageSa > ($holes * 3) ? 'STROKE PLAY' : 'STABLEFORD';
+    if ($averageSa > 0.0 && $averageSo > 0.0) {
+        return $averageSa >= ($averageSo * 0.65) ? 'STROKE PLAY' : 'STABLEFORD';
     }
 
     return 'STROKE PLAY';
@@ -174,7 +174,7 @@ if ($matchPlayFinal) {
     if (in_array($override, ['STROKE PLAY', 'STABLEFORD'], true)) {
         $prev = $override;
     } else {
-        $prev = detect_previous_system($conn, $cid, $tid, (int)($catInfo['hoyosajugar'] ?? 18));
+        $prev = detect_previous_system($conn, $cid, $tid);
     }
     $previousSystem = $prev;
     $sistema = $prev; // el cálculo usa el sistema de la fase de clasificación
