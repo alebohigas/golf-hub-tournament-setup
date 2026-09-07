@@ -774,33 +774,48 @@ if ($matchPlayFinal) {
         $mpTotalExpr = $closedSA;
     }
 
+    /* Vista de desempate por countback (c1..c5): SO para gross, SA para neto. */
+    $mpView = ($gross == '1') ? 'v_cd_ulttar_so' : 'v_cd_ulttar_sa';
+    /* Dirección del sistema previo: Stroke Play menos es mejor, Stableford más. */
+    $mpDir  = ($sistema === 'STABLEFORD') ? 'DESC' : 'ASC';
+
     $mpSql = "SELECT j.id AS jugadorid, j.numjugador,
                      CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                      $mpTotalExpr as total_score,
-                     $closedRoundCount as closed_rounds
+                     $closedRoundCount as closed_rounds,
+                     IFNULL(j.muertesubita, 0) as muertesubita
                      $mpDayCols,
                      c.abr, c.logo
                 FROM jugadores j
+                LEFT JOIN $mpView u ON (j.id = u.jugadorid)
                 LEFT JOIN clubs c ON (j.clubid = c.id)
                WHERE j.categoriaid = $cid
                  AND j.torneoid = $tid
                  AND j.estatus = 'NORMAL'
-               ORDER BY total_score " . ($sistema === 'STABLEFORD' ? 'DESC' : 'ASC') . ",
-                        j.apellido ASC";
+               ORDER BY total_score $mpDir";
+
+    /* ===== Mismo desempate legacy que antes del cambio a MATCH PLAY =====
+     * muerte súbita DESC → score de la última ronda → countback c1..c5.
+     * Así el acomodo de los jugadores NORMAL es idéntico al que tenía la
+     * categoría cuando su sistema aún era STROKE PLAY / STABLEFORD. */
+    $mpSql .= ", IFNULL(j.muertesubita, 0) DESC";
+    $mpSql .= ", " . last_round_alias($dias) . " $mpDir";
+    $mpSql .= countback_order($mpDir);
+    $mpSql .= ", j.apellido ASC";
 
     debug_log_query('Match Play previous-phase NORMAL leaderboard', $mpSql);
     $mpRows = query_all($conn, $mpSql);
 
-    /* Jugadores sin ninguna tarjeta cerrada (total 0) se acomodan al final. */
-    usort($mpRows, function ($a, $b) use ($sistema) {
-        $ta = (int)($a['total_score'] ?? 0);
-        $tb = (int)($b['total_score'] ?? 0);
-        $ea = ($ta === 0) ? 1 : 0;
-        $eb = ($tb === 0) ? 1 : 0;
-        if ($ea !== $eb) return $ea - $eb;
-        if ($ta === $tb) return strcmp($a['jugador'], $b['jugador']);
-        return ($sistema === 'STABLEFORD') ? ($tb - $ta) : ($ta - $tb);
-    });
+    /* Jugadores sin ninguna tarjeta cerrada (total 0) se mueven al final
+     * conservando el orden legacy del resto (ordenamiento estable). */
+    $withScore = [];
+    $withoutScore = [];
+    foreach ($mpRows as $r) {
+        if ((int)($r['total_score'] ?? 0) === 0) $withoutScore[] = $r;
+        else $withScore[] = $r;
+    }
+    $mpRows = array_merge($withScore, $withoutScore);
+
 
     $players = [];
     $position = 0;
