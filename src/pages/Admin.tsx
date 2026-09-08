@@ -286,9 +286,10 @@ const AdminDashboard = () => {
     alien_tarjetas: 'alien',
     alien_timeline: 'alien',
     alien_salidas: 'alien',
+    alien_categorias: 'alien',
   };
   /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
-  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas'];
+  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias'];
   /** true si el usuario activo puede ver una sub-pestaña de ALIEN SYSTEM. */
   const canAlien = (a: StaffArea) => !isStaffOnly || !!staffSession?.areas.includes(a);
   /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
