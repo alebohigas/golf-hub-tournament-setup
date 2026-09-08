@@ -798,13 +798,6 @@ const AdminDashboard = () => {
           <AdminHistorial />
         </TabsContent>
 
-        {/* Categorías Tab — CRUD de categorías del torneo con Tee de Salida,
-            Rating, Slope y Par (campo_tee) + todas las columnas reales de
-            torneos.categorias. Alimenta /jugadores. */}
-        <TabsContent value="jugadores">
-          <AdminCategorias />
-        </TabsContent>
-
         {/* Heros Tab — sube/genera con IA, selecciona y activa la imagen de
             fondo (hero) de cada página pública por torneo. */}
         <TabsContent value="heros">
