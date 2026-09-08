@@ -646,15 +646,17 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                         <TableBody>
                           {/*
                            * Encabezado de grupo para la sección de jugadores con
-                           * estatus NORMAL. Se muestra sólo cuando también hay
-                           * jugadores debajo del corte, para que ambas secciones
-                           * queden rotuladas (— Clasificación — / — Corte —).
+                           * estatus NORMAL. Sólo se muestra cuando la categoría
+                           * cambió de formato a Match Play, porque entonces los
+                           * resultados previos son una "Clasificación" previa.
+                           * En categorías que permanecen Stroke Play / Stableford
+                           * (aunque tengan línea de corte) este letrero se suprime.
                            */}
-                          {cutPlayers.length > 0 && (
+                          {cutPlayers.length > 0 && categoryDetail?.matchPlayFinal && (
                             <TableRow className="bg-muted/60 hover:bg-muted/60 border-b-2 border-border">
                               <TableCell colSpan={totalCols} className="text-center py-3">
                                 <span className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
-                                  — {selectedCategory?.categoryName} · {categoryDetail?.matchPlayFinal ? 'Clasificación' : 'Resultados'} —
+                                  — {selectedCategory?.categoryName} · Clasificación —
                                 </span>
                               </TableCell>
                             </TableRow>
