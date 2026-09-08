@@ -51,6 +51,19 @@ function format_dia_es($iso) {
     );
 }
 
+/**
+ * ¿Existe la columna `categorias.sistemaprev`?
+ * Se creó en la migración 2026_09_08; en instalaciones que aún no la tienen
+ * el reporte debe seguir funcionando sin ella.
+ */
+function has_sistemaprev($conn) {
+    $res = @mysqli_query($conn, "SHOW COLUMNS FROM `categorias` LIKE 'sistemaprev'");
+    return $res && mysqli_num_rows($res) > 0;
+}
+$sistemaPrevExpr = has_sistemaprev($conn)
+    ? "COALESCE(c.sistemaprev, '')"
+    : "''";
+
 // 1) Distinct premio+fecha combinations from mejorscorep
 $sql = "SELECT DISTINCT premio, fecha
         FROM mejorscorep
@@ -77,6 +90,8 @@ foreach ($sections as $sec) {
                    v.categoriaid,
                    COALESCE(c.sistema, '')  AS sistema,
                    COALESCE(c.formato, '')  AS formato,
+                   -- Sistema previo al Match Play, fijado en /admin > Categorías
+                   $sistemaPrevExpr AS sistemaprev,
                    -- Stroke (gross) back-nine partial sums
                    (COALESCE(t.h10,0)+COALESCE(t.h11,0)+COALESCE(t.h12,0)+COALESCE(t.h13,0)+COALESCE(t.h14,0)+COALESCE(t.h15,0)+COALESCE(t.h16,0)+COALESCE(t.h17,0)+COALESCE(t.h18,0)) AS back9_so,
                    (COALESCE(t.h13,0)+COALESCE(t.h14,0)+COALESCE(t.h15,0)+COALESCE(t.h16,0)+COALESCE(t.h17,0)+COALESCE(t.h18,0)) AS back6_so,
@@ -102,7 +117,17 @@ foreach ($sections as $sec) {
         // Categoria scoring system lives in `sistema` ('STABLEFORD' / 'STROKE PLAY' /
         // 'MATCH PLAY'). `formato` is the play format (Individual / Parejas / etc.)
         // and is checked as a safe fallback only.
-        $sysStr = strtoupper(($r['sistema'] ?? '') . ' ' . ($r['formato'] ?? ''));
+        //
+        // Si la categoría YA está en MATCH PLAY, el mejor score del día se
+        // capturó durante la fase de clasificación, así que manda el sistema
+        // previo fijado en /admin > Categorías (`categorias.sistemaprev`).
+        $sistema = strtoupper(trim((string)($r['sistema'] ?? '')));
+        $sistemaPrev = strtoupper(trim((string)($r['sistemaprev'] ?? '')));
+        if (strpos($sistema, 'MATCH PLAY') !== false && $sistemaPrev !== '') {
+            $sysStr = $sistemaPrev;
+        } else {
+            $sysStr = strtoupper(($r['sistema'] ?? '') . ' ' . ($r['formato'] ?? ''));
+        }
         $isStableford = strpos($sysStr, 'STABLEFORD') !== false;
         $player = [
             'jugador'  => $r['jugador'],
