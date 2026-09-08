@@ -91,7 +91,7 @@ foreach ($sections as $sec) {
                    COALESCE(c.sistema, '')  AS sistema,
                    COALESCE(c.formato, '')  AS formato,
                    -- Sistema previo al Match Play, fijado en /admin > Categorías
-                   COALESCE(c.sistemaprev, '') AS sistemaprev,
+                   $sistemaPrevExpr AS sistemaprev,
                    -- Stroke (gross) back-nine partial sums
                    (COALESCE(t.h10,0)+COALESCE(t.h11,0)+COALESCE(t.h12,0)+COALESCE(t.h13,0)+COALESCE(t.h14,0)+COALESCE(t.h15,0)+COALESCE(t.h16,0)+COALESCE(t.h17,0)+COALESCE(t.h18,0)) AS back9_so,
                    (COALESCE(t.h13,0)+COALESCE(t.h14,0)+COALESCE(t.h15,0)+COALESCE(t.h16,0)+COALESCE(t.h17,0)+COALESCE(t.h18,0)) AS back6_so,
