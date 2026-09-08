@@ -93,7 +93,13 @@ $holeRows = query_all($conn, $sql);
 
 // ============= Stableford values table =============
 $stablefordValues = [];
-if (strtoupper($catInfo['sistema']) === 'STABLEFORD') {
+/**
+ * Se cargan los valores Stableford cuando el sistema de la categoría es
+ * STABLEFORD **o** cuando el frontend pide explícitamente `tipo=stableford`.
+ * Este segundo caso cubre categorías que ya cambiaron a MATCH PLAY pero cuya
+ * fase de clasificación (categorias.sistemaprev) fue Stableford.
+ */
+if (strtoupper($catInfo['sistema']) === 'STABLEFORD' || strtoupper($tipo) === 'STABLEFORD') {
     $sql = "SELECT * FROM valorstable WHERE torneoid = " . esc($conn, $torneoid);
     $stablefordValues = query_all($conn, $sql);
 }

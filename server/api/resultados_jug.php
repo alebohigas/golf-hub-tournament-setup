@@ -168,11 +168,35 @@ function detect_previous_system($conn, $cid, $tid) {
     return 'STROKE PLAY';
 }
 
+/**
+ * Sistema previo configurado en /admin → ALIEN SYSTEM → Categorías
+ * (`categorias.sistemaprev`). Cuando está definido MANDA sobre la detección
+ * automática: si dice STABLEFORD el reporte y la tarjeta salen en Stableford,
+ * y si dice STROKE PLAY salen en Stroke Play. Vacío = auto-detectar.
+ *
+ * @param mysqli $conn Conexión activa.
+ * @param int|string $cid Identificador de categoría escapado.
+ * @return string '' | 'STROKE PLAY' | 'STABLEFORD'
+ */
+function configured_previous_system($conn, $cid) {
+    $col = @$conn->query("SHOW COLUMNS FROM categorias LIKE 'sistemaprev'");
+    $hasCol = $col && $col->num_rows > 0;
+    if ($col) $col->free();
+    if (!$hasCol) return '';
+    $row = query_one($conn, "SELECT sistemaprev FROM categorias WHERE categoria_id = $cid");
+    $val = strtoupper(trim((string)($row['sistemaprev'] ?? '')));
+    if ($val === 'STROKE') $val = 'STROKE PLAY';
+    return in_array($val, ['STROKE PLAY', 'STABLEFORD'], true) ? $val : '';
+}
+
 if ($matchPlayFinal) {
     $override = strtoupper(trim((string)optional_param('sistemaprev', '')));
     if ($override === 'STROKE') $override = 'STROKE PLAY';
+    $configured = configured_previous_system($conn, $cid);
     if (in_array($override, ['STROKE PLAY', 'STABLEFORD'], true)) {
         $prev = $override;
+    } elseif ($configured !== '') {
+        $prev = $configured;
     } else {
         $prev = detect_previous_system($conn, $cid, $tid);
     }
