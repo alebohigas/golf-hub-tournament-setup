@@ -104,7 +104,17 @@ foreach ($sections as $sec) {
         // Categoria scoring system lives in `sistema` ('STABLEFORD' / 'STROKE PLAY' /
         // 'MATCH PLAY'). `formato` is the play format (Individual / Parejas / etc.)
         // and is checked as a safe fallback only.
-        $sysStr = strtoupper(($r['sistema'] ?? '') . ' ' . ($r['formato'] ?? ''));
+        //
+        // Si la categoría YA está en MATCH PLAY, el mejor score del día se
+        // capturó durante la fase de clasificación, así que manda el sistema
+        // previo fijado en /admin > Categorías (`categorias.sistemaprev`).
+        $sistema = strtoupper(trim((string)($r['sistema'] ?? '')));
+        $sistemaPrev = strtoupper(trim((string)($r['sistemaprev'] ?? '')));
+        if (strpos($sistema, 'MATCH PLAY') !== false && $sistemaPrev !== '') {
+            $sysStr = $sistemaPrev;
+        } else {
+            $sysStr = strtoupper(($r['sistema'] ?? '') . ' ' . ($r['formato'] ?? ''));
+        }
         $isStableford = strpos($sysStr, 'STABLEFORD') !== false;
         $player = [
             'jugador'  => $r['jugador'],
