@@ -93,7 +93,8 @@ interface FormState {
 
 /** Estado inicial vacío para "Nueva categoría". */
 const EMPTY_FORM: FormState = {
-  categoria: '', abreviatura: '', sistema: '', formato: '', estilo: '',
+  categoria: '', abreviatura: '', sistema: '', sistemaprev: 'auto',
+  formato: '', estilo: '',
   sexo: '', hcpIdxMin: '', hcpIdxMax: '', porcentaje: '', hoyosajugar: '',
   maxjugadores: '', gross: false, salida: '0', campoid: '0',
   rating: '', slope: '', parcampo: '', extra: {},
@@ -105,6 +106,8 @@ const toForm = (c: AdminCategoria): FormState => ({
   categoria: c.categoria ?? '',
   abreviatura: c.abreviatura ?? '',
   sistema: c.sistema ?? '',
+  /** 'auto' cuando la BD no tiene un sistema previo fijado. */
+  sistemaprev: (c.sistemaprev ?? '').trim() || 'auto',
   formato: c.formato ?? '',
   estilo: c.estilo ?? '',
   sexo: c.sexo ?? '',
