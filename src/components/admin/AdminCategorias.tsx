@@ -52,8 +52,18 @@ import {
 const CURATED_COLUMNS = new Set([
   'categoria_id', 'torneo_id', 'categoria', 'abreviatura', 'sistema',
   'formato', 'estilo', 'sexo', 'hcpIdxMin', 'hcpIdxMax', 'porcentaje',
-  'hoyosajugar', 'maxjugadores', 'gross', 'salida',
+  'hoyosajugar', 'maxjugadores', 'gross', 'salida', 'sistemaprev',
 ]);
+
+/**
+ * Opciones del selector "Sistema previo al match play".
+ * Vacío = automático (se deduce de las tarjetas de la fase de clasificación).
+ */
+const SISTEMA_PREV_OPTIONS = [
+  { value: 'auto', label: 'Automático (detectar)' },
+  { value: 'STROKE PLAY', label: 'Stroke Play' },
+  { value: 'STABLEFORD', label: 'Stableford' },
+];
 
 /** Forma del formulario de edición/creación. */
 interface FormState {
@@ -61,6 +71,8 @@ interface FormState {
   categoria: string;
   abreviatura: string;
   sistema: string;
+  /** Sistema previo al Match Play: 'auto' | 'STROKE PLAY' | 'STABLEFORD'. */
+  sistemaprev: string;
   formato: string;
   estilo: string;
   sexo: string;
@@ -81,7 +93,8 @@ interface FormState {
 
 /** Estado inicial vacío para "Nueva categoría". */
 const EMPTY_FORM: FormState = {
-  categoria: '', abreviatura: '', sistema: '', formato: '', estilo: '',
+  categoria: '', abreviatura: '', sistema: '', sistemaprev: 'auto',
+  formato: '', estilo: '',
   sexo: '', hcpIdxMin: '', hcpIdxMax: '', porcentaje: '', hoyosajugar: '',
   maxjugadores: '', gross: false, salida: '0', campoid: '0',
   rating: '', slope: '', parcampo: '', extra: {},
@@ -93,6 +106,8 @@ const toForm = (c: AdminCategoria): FormState => ({
   categoria: c.categoria ?? '',
   abreviatura: c.abreviatura ?? '',
   sistema: c.sistema ?? '',
+  /** 'auto' cuando la BD no tiene un sistema previo fijado. */
+  sistemaprev: (c.sistemaprev ?? '').trim() || 'auto',
   formato: c.formato ?? '',
   estilo: c.estilo ?? '',
   sexo: c.sexo ?? '',
@@ -173,6 +188,8 @@ const AdminCategorias = () => {
         categoria: form.categoria.trim(),
         abreviatura: form.abreviatura.trim(),
         sistema: form.sistema.trim(),
+        /** '' cuando se deja en Automático (el backend vuelve a detectarlo). */
+        sistemaprev: form.sistemaprev === 'auto' ? '' : form.sistemaprev,
         formato: form.formato.trim(),
         estilo: form.estilo.trim(),
         sexo: form.sexo.trim(),
@@ -425,6 +442,25 @@ const AdminCategorias = () => {
               <div>
                 <Label>Sistema</Label>
                 <Input value={form.sistema} onChange={(e) => set({ sistema: e.target.value })} />
+              </div>
+              {/* Sistema previo al Match Play: fija con qué sistema se calcula y
+                  se etiqueta la fase de clasificación cuando la categoría ya
+                  cambió a MATCH PLAY. */}
+              <div>
+                <Label>Sistema previo al match play</Label>
+                <Select value={form.sistemaprev} onValueChange={(v) => set({ sistemaprev: v })}>
+                  <SelectTrigger><SelectValue placeholder="Automático (detectar)" /></SelectTrigger>
+                  <SelectContent>
+                    {SISTEMA_PREV_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Aplica solo si la categoría cambió a Match Play: define si los
+                  resultados y las tarjetas previas se muestran como Stroke Play
+                  o Stableford.
+                </p>
               </div>
               <div>
                 <Label>Formato</Label>

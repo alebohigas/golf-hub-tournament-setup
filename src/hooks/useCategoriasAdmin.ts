@@ -17,6 +17,8 @@ export interface AdminCategoria {
   categoria: string;
   abreviatura: string | null;
   sistema: string | null;
+  /** Sistema previo al Match Play ('' o null = auto-detectar). */
+  sistemaprev?: string | null;
   formato: string | null;
   estilo: string | null;
   hcpIdxMin: string | null;
@@ -83,6 +85,8 @@ export interface CategoriaMutation {
   categoria?: string;
   abreviatura?: string;
   sistema?: string;
+  /** Sistema previo al Match Play: 'STROKE PLAY' | 'STABLEFORD' | ''. */
+  sistemaprev?: string;
   formato?: string;
   estilo?: string;
   sexo?: string;
