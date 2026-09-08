@@ -253,8 +253,6 @@ const AdminDashboard = () => {
     live: 'live',
     stats: 'stats',
     'stats-page': 'stats',
-    // Categorías de jugadores: restringido a superadmin.
-    jugadores: undefined,
     usuarios: undefined,
     config: undefined,
     pagina: undefined,
@@ -262,7 +260,7 @@ const AdminDashboard = () => {
     // Heros (fondos por página/torneo) queda restringido a superadmin.
     heros: undefined,
     // ALIEN SYSTEM: la pestaña contenedora se resuelve aparte (cualquiera de
-    // sus 3 sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
+    // sus sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
     alien: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
