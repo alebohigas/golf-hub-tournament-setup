@@ -52,8 +52,18 @@ import {
 const CURATED_COLUMNS = new Set([
   'categoria_id', 'torneo_id', 'categoria', 'abreviatura', 'sistema',
   'formato', 'estilo', 'sexo', 'hcpIdxMin', 'hcpIdxMax', 'porcentaje',
-  'hoyosajugar', 'maxjugadores', 'gross', 'salida',
+  'hoyosajugar', 'maxjugadores', 'gross', 'salida', 'sistemaprev',
 ]);
+
+/**
+ * Opciones del selector "Sistema previo al match play".
+ * Vacío = automático (se deduce de las tarjetas de la fase de clasificación).
+ */
+const SISTEMA_PREV_OPTIONS = [
+  { value: 'auto', label: 'Automático (detectar)' },
+  { value: 'STROKE PLAY', label: 'Stroke Play' },
+  { value: 'STABLEFORD', label: 'Stableford' },
+];
 
 /** Forma del formulario de edición/creación. */
 interface FormState {
@@ -61,6 +71,8 @@ interface FormState {
   categoria: string;
   abreviatura: string;
   sistema: string;
+  /** Sistema previo al Match Play: 'auto' | 'STROKE PLAY' | 'STABLEFORD'. */
+  sistemaprev: string;
   formato: string;
   estilo: string;
   sexo: string;
