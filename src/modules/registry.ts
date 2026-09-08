@@ -228,7 +228,7 @@ const OPTIONAL_MODULES: ModuleDef[] = [
     group: 'competencia',
     pageIds: ['jugadores'],
     routes: ['/jugadores'],
-    adminTabs: ['jugadores'],
+    adminTabs: [],
     staffAreas: [],
     siteConfigKeys: [],
     apiFiles: ['server/api/players.php', 'server/api/categorias_admin.php'],
