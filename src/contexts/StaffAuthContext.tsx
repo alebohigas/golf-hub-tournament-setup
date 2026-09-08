@@ -19,8 +19,8 @@ export type StaffArea =
   | 'preregistros' | 'brackets' | 'banderas' | 'pop'
   | 'eventos' | 'avisos' | 'menus' | 'premios' | 'convocatoria'
   | 'reglas' | 'uploads' | 'stats' | 'hoteles' | 'matchplay' | 'live'
-  // ALIEN SYSTEM (reportes operativos de impresión)
-  | 'alien_tarjetas' | 'alien_timeline' | 'alien_salidas';
+  // ALIEN SYSTEM (reportes operativos de impresión + categorías)
+  | 'alien_tarjetas' | 'alien_timeline' | 'alien_salidas' | 'alien_categorias';
 
 export interface StaffSession {
   token: string;
