@@ -83,6 +83,27 @@ function cadm_column_names($conn) {
     return array_map(function ($c) { return $c['name']; }, cadm_columns($conn));
 }
 
+/**
+ * Garantiza la existencia de `categorias.sistemaprev` (Sistema previo al
+ * Match Play). Es la columna que fija si la fase de clasificación de una
+ * categoría que ya cambió a MATCH PLAY era STROKE PLAY o STABLEFORD, para que
+ * /resultados y las tarjetas muestren el sistema correcto en vez de deducirlo.
+ * Si la BD ya la tiene, no hace nada.
+ *
+ * @param mysqli $conn Conexión activa.
+ * @return void
+ */
+function cadm_ensure_sistemaprev($conn) {
+    $r = @$conn->query("SHOW COLUMNS FROM categorias LIKE 'sistemaprev'");
+    $exists = $r && $r->num_rows > 0;
+    if ($r) $r->free();
+    if (!$exists) {
+        @$conn->query("ALTER TABLE categorias ADD COLUMN `sistemaprev` VARCHAR(20) NULL");
+    }
+}
+
+cadm_ensure_sistemaprev($conn);
+
 // ===========================================================================
 // GET — lista de categorías + catálogos (tees y campos)
 // ===========================================================================
