@@ -51,6 +51,19 @@ function format_dia_es($iso) {
     );
 }
 
+/**
+ * ¿Existe la columna `categorias.sistemaprev`?
+ * Se creó en la migración 2026_09_08; en instalaciones que aún no la tienen
+ * el reporte debe seguir funcionando sin ella.
+ */
+function has_sistemaprev($conn) {
+    $res = @mysqli_query($conn, "SHOW COLUMNS FROM `categorias` LIKE 'sistemaprev'");
+    return $res && mysqli_num_rows($res) > 0;
+}
+$sistemaPrevExpr = has_sistemaprev($conn)
+    ? "COALESCE(c.sistemaprev, '')"
+    : "''";
+
 // 1) Distinct premio+fecha combinations from mejorscorep
 $sql = "SELECT DISTINCT premio, fecha
         FROM mejorscorep
