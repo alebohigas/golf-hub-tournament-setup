@@ -10,7 +10,7 @@
  * Áreas reconocidas (whitelist server + UI):
  *   preregistros, brackets, matchplay, live, banderas, pop, eventos, avisos,
  *   premios, convocatoria, reglas, uploads, stats, hoteles,
- *   alien_tarjetas, alien_timeline, alien_salidas
+ *   alien_tarjetas, alien_timeline, alien_salidas, alien_categorias
  */
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { API_BASE_URL } from '@/config/api';
