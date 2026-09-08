@@ -40,10 +40,11 @@ export const STAFF_AREAS: { id: StaffArea; label: string }[] = [
   { id: 'reglas',       label: 'Reglas' },
   { id: 'uploads',      label: 'Archivos' },
   { id: 'stats',        label: 'Estadísticas' },
-  // ALIEN SYSTEM — reportes operativos de impresión
-  { id: 'alien_tarjetas', label: 'Alien: Tarjetas' },
-  { id: 'alien_timeline', label: 'Alien: Time Line' },
-  { id: 'alien_salidas',  label: 'Alien: Salidas' },
+  // ALIEN SYSTEM — reportes operativos de impresión + categorías
+  { id: 'alien_tarjetas',    label: 'Alien: Tarjetas' },
+  { id: 'alien_timeline',    label: 'Alien: Time Line' },
+  { id: 'alien_salidas',     label: 'Alien: Salidas' },
+  { id: 'alien_categorias',  label: 'Alien: Categorías' },
 ];
 
 interface StaffUser {
