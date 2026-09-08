@@ -253,8 +253,6 @@ const AdminDashboard = () => {
     live: 'live',
     stats: 'stats',
     'stats-page': 'stats',
-    // Categorías de jugadores: restringido a superadmin.
-    jugadores: undefined,
     usuarios: undefined,
     config: undefined,
     pagina: undefined,
@@ -262,7 +260,7 @@ const AdminDashboard = () => {
     // Heros (fondos por página/torneo) queda restringido a superadmin.
     heros: undefined,
     // ALIEN SYSTEM: la pestaña contenedora se resuelve aparte (cualquiera de
-    // sus 3 sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
+    // sus sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
     alien: undefined,
   };
   const isStaffOnly = !!staffSession && !isAdmin;
@@ -288,9 +286,10 @@ const AdminDashboard = () => {
     alien_tarjetas: 'alien',
     alien_timeline: 'alien',
     alien_salidas: 'alien',
+    alien_categorias: 'alien',
   };
   /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
-  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas'];
+  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias'];
   /** true si el usuario activo puede ver una sub-pestaña de ALIEN SYSTEM. */
   const canAlien = (a: StaffArea) => !isStaffOnly || !!staffSession?.areas.includes(a);
   /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
@@ -516,10 +515,9 @@ const AdminDashboard = () => {
             { value: 'sponsors',     icon: ImageIcon,       label: 'Patrocinadores' },
             { value: 'registro',     icon: ClipboardList,   label: 'Pre-Registro' },
             { value: 'registros',    icon: ListChecks,      label: 'Registros' },
-            { value: 'jugadores',    icon: Layers,          label: 'Categorías' },
             /**
              * ALIEN SYSTEM — sección que agrupa las herramientas operativas
-             * de impresión (Tarjetas, Time Line, Salidas) en sub-pestañas.
+             * (Categorías, Tarjetas, Time Line, Salidas) en sub-pestañas.
              */
             { value: 'alien',        icon: Rocket,          label: 'ALIEN SYSTEM' },
 
@@ -800,13 +798,6 @@ const AdminDashboard = () => {
           <AdminHistorial />
         </TabsContent>
 
-        {/* Categorías Tab — CRUD de categorías del torneo con Tee de Salida,
-            Rating, Slope y Par (campo_tee) + todas las columnas reales de
-            torneos.categorias. Alimenta /jugadores. */}
-        <TabsContent value="jugadores">
-          <AdminCategorias />
-        </TabsContent>
-
         {/* Heros Tab — sube/genera con IA, selecciona y activa la imagen de
             fondo (hero) de cada página pública por torneo. */}
         <TabsContent value="heros">
@@ -821,14 +812,27 @@ const AdminDashboard = () => {
 
         {/*
           ALIEN SYSTEM — sección contenedora de las herramientas operativas.
-          Sub-pestañas: Tarjetas, Time Line y Salidas.
+          Sub-pestañas: Categorías, Tarjetas, Time Line y Salidas.
         */}
         <TabsContent value="alien">
           <Tabs
-            defaultValue={canAlien('alien_tarjetas') ? 'tarjetas' : canAlien('alien_timeline') ? 'timeline' : 'salidas'}
+            defaultValue={
+              canAlien('alien_categorias')
+                ? 'categorias'
+                : canAlien('alien_tarjetas')
+                  ? 'tarjetas'
+                  : canAlien('alien_timeline')
+                    ? 'timeline'
+                    : 'salidas'
+            }
             className="space-y-4"
           >
             <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
+              {canAlien('alien_categorias') && (
+                <TabsTrigger value="categorias" className="gap-2 flex-1 min-w-[120px]">
+                  <Layers className="h-4 w-4" /> Categorías
+                </TabsTrigger>
+              )}
               {canAlien('alien_tarjetas') && (
                 <TabsTrigger value="tarjetas" className="gap-2 flex-1 min-w-[120px]">
                   <ClipboardList className="h-4 w-4" /> Tarjetas
@@ -845,6 +849,13 @@ const AdminDashboard = () => {
                 </TabsTrigger>
               )}
             </TabsList>
+
+            {/* Categorías — CRUD de categorías del torneo (tee, rating, slope, par). */}
+            {canAlien('alien_categorias') && (
+              <TabsContent value="categorias">
+                <AdminCategorias />
+              </TabsContent>
+            )}
 
             {/* Tarjetas — impresión de tarjetas de juego por día y categoría. */}
             {canAlien('alien_tarjetas') && (

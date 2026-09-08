@@ -34,8 +34,8 @@ function require_admin_pwd($body) {
 $VALID_AREAS = [
     'preregistros','brackets','banderas','pop','eventos','avisos','menus',
     'premios','convocatoria','reglas','uploads','stats','hoteles','matchplay','live',
-    // ALIEN SYSTEM — reportes operativos (tarjetas, time line, salidas)
-    'alien_tarjetas','alien_timeline','alien_salidas',
+    // ALIEN SYSTEM — reportes operativos (tarjetas, time line, salidas) + categorías
+    'alien_tarjetas','alien_timeline','alien_salidas','alien_categorias',
 ];
 
 function sync_areas($conn, $uid, $areas, $valid) {
