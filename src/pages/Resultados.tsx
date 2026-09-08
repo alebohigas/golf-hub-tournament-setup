@@ -371,11 +371,20 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
         );
         setParejaScorecardData(pareja);
       } else {
+        /**
+         * Sistema efectivo de la tarjeta: en categorías que ya cambiaron a
+         * MATCH PLAY las rondas mostradas pertenecen a la fase previa
+         * (`previousSystem`, fijado en Admin → Categorías → "Sistema previo al
+         * match play"), así la tarjeta dice Stableford cuando corresponde.
+         */
+        const cardSystem = (categoryDetail.matchPlayFinal
+          ? (categoryDetail.previousSystem || categoryDetail.system)
+          : categoryDetail.system) || '';
         const scorecard = await fetchPlayerScorecardFromApi(
           player.id,
           categoryDetail.categoryId,
           fecha,
-          categoryDetail.system || '',
+          cardSystem,
           selectedScoringType || 'NETO',
           round,
           torneoIdOverride,
