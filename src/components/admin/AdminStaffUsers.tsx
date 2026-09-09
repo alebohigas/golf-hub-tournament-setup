@@ -357,6 +357,14 @@ export default function AdminStaffUsers() {
                     <Checkbox checked={!!u.activo} onCheckedChange={(v) => update(u, { activo: v ? 1 : 0 })} />
                     Activo
                   </label>
+                  {/* Editar: fechas, áreas permitidas y password en un solo diálogo */}
+                  <Button size="sm" variant="outline" onClick={() => openEdit(u)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                  {/* Baja anticipada: desactiva y corta la vigencia hoy */}
+                  <Button size="sm" variant="outline" onClick={() => bajaAnticipada(u)}>
+                    <UserX className="h-3.5 w-3.5 mr-1" /> Dar de baja
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { setResetPwdFor(u.id); setNewPwd(''); }}>
                     <KeyRound className="h-3.5 w-3.5 mr-1" /> Reset PWD
                   </Button>
