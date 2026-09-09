@@ -6,9 +6,10 @@
  * (Admin → ALIEN SYSTEM → Resultados Finales y /admin/resultados-finales).
  *
  * Una categoría se considera CONCLUIDA cuando todas sus rondas programadas en
- * `caljuego` (para el torneo activo) tienen `estatus = 3` (ronda terminada) y
- * existe al menos una ronda programada. Si la columna `estatus` no existe en la
- * instalación, se degrada mostrando todas las categorías (compatibilidad).
+ * `caljuego` (para el torneo activo) están cerradas: `estatus = 3` (ronda
+ * terminada) o `cierre = 1` (cierre explícito), y existe al menos una ronda
+ * programada. Si ninguna de esas columnas existe en la instalación, se degrada
+ * mostrando todas las categorías (compatibilidad).
  *
  * USO
  *   GET /api/resultados_finales.php?torneoid=346
