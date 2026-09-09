@@ -249,6 +249,28 @@ export default function AdminStaffUsers() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Filtros de búsqueda: correo/usuario, todos los torneos y cuentas existentes */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <Label className="text-xs">Buscar usuario, correo o nombre</Label>
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                placeholder="cs@speitour.mx"
+              />
+            </div>
+            <Button variant="outline" onClick={handleSearch}>Buscar</Button>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={allTorneos} onCheckedChange={(v) => setAllTorneos(!!v)} />
+              Todos los torneos
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={allTipos} onCheckedChange={(v) => setAllTipos(!!v)} />
+              Incluir cuentas existentes
+            </label>
+          </div>
+
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>
           ) : users.length === 0 ? (
