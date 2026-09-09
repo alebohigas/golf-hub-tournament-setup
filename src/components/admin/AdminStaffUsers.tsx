@@ -411,6 +411,78 @@ export default function AdminStaffUsers() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Diálogo de edición completa del usuario staff */}
+      <Dialog open={!!editUser} onOpenChange={(o) => { if (!o) setEditUser(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar usuario {editUser?.usuario}</DialogTitle>
+            <DialogDescription>
+              Cambia la vigencia, activa o desactiva la cuenta y ajusta las áreas permitidas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Nombre</Label>
+                <Input value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Nueva password (opcional)</Label>
+                <Input value={editForm.password_user} onChange={e => setEditForm({ ...editForm, password_user: e.target.value })} placeholder="••••••" />
+              </div>
+              <div className="space-y-1">
+                <Label>Desde</Label>
+                <Input type="date" value={editForm.desde} onChange={e => setEditForm({ ...editForm, desde: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Hasta</Label>
+                <Input type="date" value={editForm.hasta} onChange={e => setEditForm({ ...editForm, hasta: e.target.value })} />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={!!editForm.activo} onCheckedChange={(v) => setEditForm({ ...editForm, activo: v ? 1 : 0 })} />
+              Cuenta activa
+            </label>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Áreas permitidas ({editForm.areas.length})</Label>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditForm(f => ({ ...f, areas: STAFF_AREAS.map(a => a.id) }))}>
+                    Seleccionar todas
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditForm(f => ({ ...f, areas: [] }))}>
+                    Quitar todas
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {STAFF_AREAS.map(a => (
+                  <label key={a.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-muted/50">
+                    <Checkbox checked={editForm.areas.includes(a.id)} onCheckedChange={() => toggleEditArea(a.id)} />
+                    <span className="text-xs">{a.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            {editUser && (
+              <Button variant="destructive" onClick={() => bajaAnticipada(editUser)}>
+                <UserX className="h-4 w-4 mr-1" /> Baja anticipada
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setEditUser(null)}>Cancelar</Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
