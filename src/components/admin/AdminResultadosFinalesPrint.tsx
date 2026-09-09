@@ -101,6 +101,27 @@ const AdminResultadosFinalesPrint = () => {
                 </div>
               ))}
             </div>
+            {/* Cuántos bloques (categorías) se imprimen por hoja carta. */}
+            <div className="space-y-1">
+              <Label className="text-sm">Categorías por hoja carta</Label>
+              <div className="flex flex-wrap gap-2">
+                {(['1', '2', '3'] as const).map((n) => (
+                  <Button
+                    key={n}
+                    type="button"
+                    size="sm"
+                    variant={perSheet === n ? 'default' : 'outline'}
+                    onClick={() => setPerSheet(n)}
+                  >
+                    {n}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Con 3 por hoja el reporte reduce la escala automáticamente para
+                que todo encaje en la hoja carta.
+              </p>
+            </div>
             <Button onClick={open} disabled={selected.length === 0}>
               <Trophy className="mr-2 h-4 w-4" /> Generar reporte
             </Button>
