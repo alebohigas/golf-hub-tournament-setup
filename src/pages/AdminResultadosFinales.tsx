@@ -85,7 +85,7 @@ const CategoryBlock = ({
     <div className="text-[13px] font-semibold uppercase text-destructive">
       {block.system} / {block.formatLabel}
     </div>
-    <div className="mb-2 text-[12px] text-muted-foreground">
+    <div className={`${dense ? 'mb-1' : 'mb-2'} text-[12px] text-muted-foreground`}>
       Lugares: {block.places}
     </div>
 
