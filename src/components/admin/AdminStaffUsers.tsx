@@ -283,6 +283,7 @@ export default function AdminStaffUsers() {
                     {u.usuario}
                     {isExpired(u) && <Badge variant="destructive">Expirado</Badge>}
                     {!u.activo && <Badge variant="secondary">Inactivo</Badge>}
+                    {u.tipo !== undefined && u.tipo !== 99 && <Badge variant="outline">Cuenta existente</Badge>}
                   </div>
                   <div className="text-sm text-muted-foreground">{u.nombre}</div>
                   <div className="text-xs text-muted-foreground mt-1">
