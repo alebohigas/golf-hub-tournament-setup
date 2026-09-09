@@ -47,6 +47,7 @@ import ShowcaseRotator from "./pages/ShowcaseRotator";
 import AdminShowcaseRotacionPage from "./pages/AdminShowcaseRotacionPage";
 // Reporte imprimible de salidas por día (Admin → Salidas → GENERA).
 import AdminSalidasImpresion from "./pages/AdminSalidasImpresion";
+import AdminResultadosFinales from "./pages/AdminResultadosFinales";
 /** Reporte imprimible TIME LINE (horarios estimados por hoyo). */
 import AdminTimeLine from "./pages/AdminTimeLine";
 /** Reporte imprimible de TARJETAS de juego (2 por hoja carta). */
@@ -143,6 +144,8 @@ const App = () => (
               {/* Reporte imprimible de salidas por día. */}
               <Route path="/admin/salidas-impresion" element={<AdminSalidasImpresion />} />
               <Route path="/admin/time-line" element={<AdminTimeLine />} />
+              {/* Reporte imprimible de resultados finales (premiación). */}
+              <Route path="/admin/resultados-finales" element={<AdminResultadosFinales />} />
               {/* Tarjetas de juego imprimibles (Stroke Play / Stableford). */}
               <Route path="/admin/tarjetas-impresion" element={<AdminTarjetasImpresion />} />
               {/* Vista por hora de salida: quiénes juegan en cada hora. */}
