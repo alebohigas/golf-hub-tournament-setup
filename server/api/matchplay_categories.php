@@ -37,15 +37,26 @@ $matchCountSel = $viewName
     : "0 AS matchCount";
 
 /**
- * Conteo de jugadores activos (no BAJA) y de filas de bracket por categoría.
+ * Conteo de jugadores DENTRO del bracket: las vistas legacy traen 2 filas
+ * por match (los dos contendientes), por lo que COUNT(*) = participantes
+ * reales en el cuadro (p. ej. 32), NO el total de la categoría (p. ej. 88).
+ * Si la vista no existe, cae al total de jugadores activos de la categoría.
+ */
+$bracketPlayersSel = $viewName
+    ? "(SELECT COUNT(*) FROM $viewName v
+          WHERE v.torneoid    = c.torneo_id
+            AND v.categoriaid = c.categoria_id)"
+    : "(SELECT COUNT(*) FROM jugadores j
+          WHERE j.torneoid    = c.torneo_id
+            AND j.categoriaid = c.categoria_id
+            AND (j.estatus IS NULL OR j.estatus <> 'BAJA'))";
+
+/**
  * Filtramos por sistema MATCH PLAY (case-insensitive) y estatus=1.
  */
 $sql = "SELECT c.categoria_id, c.categoria, c.abreviatura, c.sistema,
                c.formato, $tipoedSel, c.sexo,
-               (SELECT COUNT(*) FROM jugadores j
-                  WHERE j.torneoid    = c.torneo_id
-                    AND j.categoriaid = c.categoria_id
-                    AND (j.estatus IS NULL OR j.estatus <> 'BAJA')) AS playerCount,
+               $bracketPlayersSel AS playerCount,
                $matchCountSel
         FROM categorias c
         WHERE c.estatus = 1
