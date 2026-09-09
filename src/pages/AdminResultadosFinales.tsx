@@ -67,9 +67,18 @@ const SheetHeader = ({
   </div>
 );
 
-/** Bloque de resultados de una categoría en un formato (GROSS/NETO). */
-const CategoryBlock = ({ block }: { block: ResultadosFinalesBloque }) => (
-  <div data-final-block className="break-inside-avoid px-2 py-3">
+/**
+ * Bloque de resultados de una categoría en un formato (GROSS/NETO).
+ * @param dense Reduce paddings y tipografía cuando se imprimen 3 bloques por hoja.
+ */
+const CategoryBlock = ({
+  block,
+  dense = false,
+}: {
+  block: ResultadosFinalesBloque;
+  dense?: boolean;
+}) => (
+  <div data-final-block className={`break-inside-avoid px-2 ${dense ? 'py-1.5' : 'py-3'}`}>
     <div className="text-[15px] font-bold text-foreground">
       CATEGORIA: {block.categoryName || block.shortName}
     </div>
