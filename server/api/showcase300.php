@@ -340,7 +340,7 @@ if ($tipo === 'putt') {
               AND a.premio = $premioId
               AND TRIM(a.premiosjugcol) = '$decrip'
               AND a.orden = 1
-            ORDER BY a.distancia ASC
+            ORDER BY a.distancia ASC, a.ultact ASC, a.id ASC
             LIMIT $numjug
         ");
 
