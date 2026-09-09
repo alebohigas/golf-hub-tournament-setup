@@ -67,16 +67,25 @@ const SheetHeader = ({
   </div>
 );
 
-/** Bloque de resultados de una categoría en un formato (GROSS/NETO). */
-const CategoryBlock = ({ block }: { block: ResultadosFinalesBloque }) => (
-  <div data-final-block className="break-inside-avoid px-2 py-3">
+/**
+ * Bloque de resultados de una categoría en un formato (GROSS/NETO).
+ * @param dense Reduce paddings y tipografía cuando se imprimen 3 bloques por hoja.
+ */
+const CategoryBlock = ({
+  block,
+  dense = false,
+}: {
+  block: ResultadosFinalesBloque;
+  dense?: boolean;
+}) => (
+  <div data-final-block className={`break-inside-avoid px-2 ${dense ? 'py-1.5' : 'py-3'}`}>
     <div className="text-[15px] font-bold text-foreground">
       CATEGORIA: {block.categoryName || block.shortName}
     </div>
     <div className="text-[13px] font-semibold uppercase text-destructive">
       {block.system} / {block.formatLabel}
     </div>
-    <div className="mb-2 text-[12px] text-muted-foreground">
+    <div className={`${dense ? 'mb-1' : 'mb-2'} text-[12px] text-muted-foreground`}>
       Lugares: {block.places}
     </div>
 
@@ -101,15 +110,15 @@ const CategoryBlock = ({ block }: { block: ResultadosFinalesBloque }) => (
         <tbody>
           {block.rows.map((r) => (
             <tr key={`${block.categoryId}-${block.gross}-${r.position}`} className="border-b border-border">
-              <td className="px-2 py-2 text-center text-[15px] font-bold tabular-nums">
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center text-[15px] font-bold tabular-nums`}>
                 {r.position}
               </td>
-              <td className="px-2 py-2 text-center">
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center`}>
                 {r.clubLogo ? (
                   <img
                     src={r.clubLogo}
                     alt=""
-                    className="mx-auto h-6 max-w-12 object-contain"
+                    className={`mx-auto ${dense ? 'h-5' : 'h-6'} max-w-12 object-contain`}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
                     }}
@@ -118,8 +127,8 @@ const CategoryBlock = ({ block }: { block: ResultadosFinalesBloque }) => (
                   <span className="text-[11px] text-muted-foreground">{r.club}</span>
                 )}
               </td>
-              <td className="px-2 py-2 text-left text-[14px] text-foreground">{r.name}</td>
-              <td className="px-2 py-2 text-right text-[15px] font-bold tabular-nums">
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-left text-[14px] text-foreground`}>{r.name}</td>
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-right text-[15px] font-bold tabular-nums`}>
                 {r.total}
               </td>
             </tr>
@@ -154,12 +163,22 @@ const AdminResultadosFinales = () => {
   const { data: catalogo } = useResultadosFinalesCatalogo();
   const blocks = useResultadosFinalesBloques(bloques);
 
-  /** Hojas carta con DOS bloques cada una. */
+  /** Bloques (categorías) por hoja carta: 1, 2 o 3 (`?porhoja=`). */
+  const perSheet = useMemo(() => {
+    const n = Number(params.get('porhoja'));
+    return n === 1 || n === 3 ? n : 2;
+  }, [params]);
+
+  /** Con 3 bloques por hoja se compacta el layout para que todo encaje. */
+  const dense = perSheet === 3;
+
+  /** Hojas carta con `perSheet` bloques cada una. */
   const sheets = useMemo(() => {
     const out: ResultadosFinalesBloque[][] = [];
-    for (let i = 0; i < blocks.length; i += 2) out.push(blocks.slice(i, i + 2));
+    for (let i = 0; i < blocks.length; i += perSheet)
+      out.push(blocks.slice(i, i + perSheet));
     return out;
-  }, [blocks]);
+  }, [blocks, perSheet]);
 
   /** Exporta el reporte a PDF carta vertical, una imagen por hoja. */
   const exportPdf = async () => {
@@ -220,9 +239,13 @@ const AdminResultadosFinales = () => {
                 tournament={catalogo?.tournament ?? ''}
                 logo={catalogo?.logoHeader ?? ''}
               />
-              <div className="flex-1">
+              <div className="flex-1 overflow-hidden">
                 {sheet.map((b) => (
-                  <CategoryBlock key={`${b.categoryId}-${b.gross}`} block={b} />
+                  <CategoryBlock
+                    key={`${b.categoryId}-${b.gross}`}
+                    block={b}
+                    dense={dense}
+                  />
                 ))}
               </div>
               <SheetRibbon />

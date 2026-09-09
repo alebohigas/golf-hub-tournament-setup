@@ -43,6 +43,9 @@ const AdminResultadosFinalesPrint = () => {
 
   const [selected, setSelected] = useState<string[]>([]);
 
+  /** Bloques (categorías) por hoja carta: 1, 2 o 3. */
+  const [perSheet, setPerSheet] = useState<'1' | '2' | '3'>('2');
+
   /** Preselecciona todos los bloques disponibles al cargar el catálogo. */
   useEffect(() => {
     setSelected(blocks.map((b) => b.key));
@@ -55,7 +58,10 @@ const AdminResultadosFinalesPrint = () => {
   /** Abre el reporte imprimible con los bloques elegidos (en orden). */
   const open = () => {
     const ordered = blocks.map((b) => b.key).filter((k) => selected.includes(k));
-    window.open(`/admin/resultados-finales?bloques=${ordered.join(',')}`, '_blank');
+    window.open(
+      `/admin/resultados-finales?bloques=${ordered.join(',')}&porhoja=${perSheet}`,
+      '_blank'
+    );
   };
 
   return (
@@ -94,6 +100,27 @@ const AdminResultadosFinalesPrint = () => {
                   </Label>
                 </div>
               ))}
+            </div>
+            {/* Cuántos bloques (categorías) se imprimen por hoja carta. */}
+            <div className="space-y-1">
+              <Label className="text-sm">Categorías por hoja carta</Label>
+              <div className="flex flex-wrap gap-2">
+                {(['1', '2', '3'] as const).map((n) => (
+                  <Button
+                    key={n}
+                    type="button"
+                    size="sm"
+                    variant={perSheet === n ? 'default' : 'outline'}
+                    onClick={() => setPerSheet(n)}
+                  >
+                    {n}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Con 3 por hoja el reporte reduce la escala automáticamente para
+                que todo encaje en la hoja carta.
+              </p>
             </div>
             <Button onClick={open} disabled={selected.length === 0}>
               <Trophy className="mr-2 h-4 w-4" /> Generar reporte
