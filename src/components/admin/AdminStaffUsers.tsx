@@ -195,6 +195,54 @@ export default function AdminStaffUsers() {
   const today = new Date().toISOString().slice(0, 10);
   const isExpired = (u: StaffUser) => u.hasta && u.hasta < today;
 
+  /** Abre el diálogo de edición cargando los datos actuales del usuario. */
+  const openEdit = (u: StaffUser) => {
+    setEditUser(u);
+    setEditForm({
+      nombre: u.nombre || '',
+      desde: u.desde || '',
+      hasta: u.hasta || '',
+      activo: u.activo ? 1 : 0,
+      password_user: '',
+      areas: (u.areas || []) as StaffArea[],
+    });
+  };
+
+  /** Marca/desmarca un área en el borrador de edición. */
+  const toggleEditArea = (a: StaffArea) => {
+    setEditForm(f => ({
+      ...f,
+      areas: f.areas.includes(a) ? f.areas.filter(x => x !== a) : [...f.areas, a],
+    }));
+  };
+
+  /** Guarda todos los cambios del diálogo (datos, áreas y password opcional). */
+  const saveEdit = async () => {
+    if (!editUser) return;
+    setSavingEdit(true);
+    const patch: any = {
+      nombre: editForm.nombre,
+      desde: editForm.desde,
+      hasta: editForm.hasta,
+      activo: editForm.activo,
+      areas: editForm.areas,
+    };
+    if (editForm.password_user) patch.password_user = editForm.password_user;
+    await update(editUser, patch);
+    setSavingEdit(false);
+    setEditUser(null);
+    toast({ title: 'Cambios guardados', description: editUser.usuario });
+  };
+
+  /** Baja anticipada: desactiva y fija la fecha "hasta" al día de hoy. */
+  const bajaAnticipada = async (u: StaffUser) => {
+    if (!confirm(`¿Dar de baja a "${u.usuario}" hoy mismo?`)) return;
+    await update(u, { activo: 0, hasta: today } as any);
+    toast({ title: 'Usuario dado de baja', description: `${u.usuario} — hasta ${today}` });
+    setEditUser(null);
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Crear usuario */}
