@@ -106,7 +106,10 @@ export default function AdminStaffUsers() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [torneoId]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [torneoId, allTorneos, allTipos]);
+
+  /** Busca en el servidor al presionar Enter o el botón Buscar. */
+  const handleSearch = () => { load(); };
 
   const toggleFormArea = (a: StaffArea) => {
     setForm(f => ({
