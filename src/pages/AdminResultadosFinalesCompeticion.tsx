@@ -67,73 +67,84 @@ const CompeticionBlock = ({
 }: {
   block: CompeticionFinalBloque;
   dense?: boolean;
-}) => (
-  <div className={`break-inside-avoid px-2 ${dense ? 'py-1.5' : 'py-3'}`}>
-    <div className="text-[15px] font-bold uppercase text-foreground">{block.competencia}</div>
-    <div className="text-[13px] font-semibold text-foreground">Grupo: {block.groupName}</div>
-    {block.places > 0 && (
-      <div className={`${dense ? 'mb-1' : 'mb-2'} text-[12px] text-muted-foreground`}>
-        Lugares: {block.places}
-      </div>
-    )}
+}) => {
+  /** El reporte de Mejor Score del Día no incluye columna de posición. */
+  const hidePos = block.competencia === 'Mejor Score del Día';
 
-    {block.rows.length === 0 ? (
-      <div className="py-4 text-center text-[12px] text-muted-foreground">
-        Sin resultados publicados.
-      </div>
-    ) : (
-      <table className="w-full border-collapse bg-white">
-        <thead>
-          <tr className="bg-[#4b4f56] text-white">
-            <th className="w-14 px-2 py-1.5 text-center text-[11px] font-semibold">Pos</th>
-            <th className="w-16 px-2 py-1.5 text-center text-[11px] font-semibold">Club</th>
-            <th className="px-2 py-1.5 text-left text-[11px] font-semibold">Jugador</th>
-            {block.showCategory && (
-              <th className="w-16 px-2 py-1.5 text-center text-[11px] font-semibold">Cat</th>
-            )}
-            <th className="w-24 px-2 py-1.5 text-right text-[11px] font-semibold">
-              {block.valueLabel || 'Resultado'}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {block.rows.map((r, i) => (
-            <tr key={`${block.key}-${i}`} className="border-b border-border">
-              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center text-[15px] font-bold tabular-nums`}>
-                {r.position || ''}
-              </td>
-              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center`}>
-                {r.clubLogo ? (
-                  <img
-                    src={r.clubLogo}
-                    alt=""
-                    className={`mx-auto ${dense ? 'h-5' : 'h-6'} max-w-12 object-contain`}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                    }}
-                  />
-                ) : (
-                  <span className="text-[11px] text-muted-foreground">{r.club}</span>
-                )}
-              </td>
-              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-left text-[14px] text-foreground`}>
-                {r.name}
-              </td>
-              {block.showCategory && (
-                <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center text-[12px]`}>
-                  {r.category}
-                </td>
+  return (
+    <div className={`break-inside-avoid px-2 ${dense ? 'py-1.5' : 'py-3'}`}>
+      <div className="text-[15px] font-bold uppercase text-foreground">{block.competencia}</div>
+      <div className="text-[13px] font-semibold text-foreground">Grupo: {block.groupName}</div>
+      {block.places > 0 && (
+        <div className={`${dense ? 'mb-1' : 'mb-2'} text-[12px] text-muted-foreground`}>
+          Lugares: {block.places}
+        </div>
+      )}
+
+      {block.rows.length === 0 ? (
+        <div className="py-4 text-center text-[12px] text-muted-foreground">
+          Sin resultados publicados.
+        </div>
+      ) : (
+        <table className="w-full border-collapse bg-white">
+          <thead>
+            <tr className="bg-[#4b4f56] text-white">
+              {!hidePos && (
+                <th className="w-14 px-2 py-1.5 text-center text-[11px] font-semibold">Pos</th>
               )}
-              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-right text-[15px] font-bold tabular-nums`}>
-                {r.value}
-              </td>
+              <th className="w-16 px-2 py-1.5 text-center text-[11px] font-semibold">Club</th>
+              <th className="px-2 py-1.5 text-left text-[11px] font-semibold">Jugador</th>
+              {block.showCategory && (
+                <th className="w-16 px-2 py-1.5 text-center text-[11px] font-semibold">Cat</th>
+              )}
+              <th className="w-24 px-2 py-1.5 text-right text-[11px] font-semibold">
+                {block.valueLabel || 'Resultado'}
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    )}
-  </div>
-);
+          </thead>
+          <tbody>
+            {block.rows.map((r, i) => (
+              <tr key={`${block.key}-${i}`} className="border-b border-border">
+                {!hidePos && (
+                  <td
+                    className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center text-[15px] font-bold tabular-nums`}
+                  >
+                    {r.position || ''}
+                  </td>
+                )}
+                <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center`}>
+                  {r.clubLogo ? (
+                    <img
+                      src={r.clubLogo}
+                      alt=""
+                      className={`mx-auto ${dense ? 'h-5' : 'h-6'} max-w-12 object-contain`}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">{r.club}</span>
+                  )}
+                </td>
+                <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-left text-[14px] text-foreground`}>
+                  {r.name}
+                </td>
+                {block.showCategory && (
+                  <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center text-[12px]`}>
+                    {r.category}
+                  </td>
+                )}
+                <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-right text-[15px] font-bold tabular-nums`}>
+                  {r.value}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
 
 /** Página imprimible de resultados finales de competición. */
 const AdminResultadosFinalesCompeticion = () => {
