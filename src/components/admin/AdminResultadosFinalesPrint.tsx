@@ -25,8 +25,21 @@ const AdminResultadosFinalesPrint = () => {
   const { data, isLoading } = useResultadosFinalesCatalogo();
   const categories = data?.categories ?? [];
 
-  /** Sólo se ofrecen las categorías con todas sus rondas terminadas. */
-  const concluded = useMemo(() => categories.filter((c) => c.concluded), [categories]);
+  /** Orden de impresión por id de categoría: ascendente o descendente. */
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  /** Sólo se ofrecen las categorías con todas sus rondas terminadas, ordenadas por id. */
+  const concluded = useMemo(
+    () =>
+      categories
+        .filter((c) => c.concluded)
+        .slice()
+        .sort((a, b) => {
+          const diff = Number(a.categoryId) - Number(b.categoryId);
+          return sortDir === 'asc' ? diff : -diff;
+        }),
+    [categories, sortDir]
+  );
 
   /** Bloques disponibles en el orden en que se imprimirán. */
   const blocks = useMemo(
@@ -100,6 +113,28 @@ const AdminResultadosFinalesPrint = () => {
                   </Label>
                 </div>
               ))}
+            </div>
+            {/* Orden de impresión por id de categoría. */}
+            <div className="space-y-1">
+              <Label className="text-sm">Orden por id de categoría</Label>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { v: 'asc', label: 'Ascendente' },
+                    { v: 'desc', label: 'Descendente' },
+                  ] as const
+                ).map((o) => (
+                  <Button
+                    key={o.v}
+                    type="button"
+                    size="sm"
+                    variant={sortDir === o.v ? 'default' : 'outline'}
+                    onClick={() => setSortDir(o.v)}
+                  >
+                    {o.label}
+                  </Button>
+                ))}
+              </div>
             </div>
             {/* Cuántos bloques (categorías) se imprimen por hoja carta. */}
             <div className="space-y-1">
