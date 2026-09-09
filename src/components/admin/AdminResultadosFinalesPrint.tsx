@@ -20,10 +20,17 @@ import { useResultadosFinalesCatalogo } from '@/hooks/useResultadosFinales';
 /** Clave de un bloque seleccionable ("catid:gross"). */
 const keyOf = (catid: string, gross: '0' | '1') => `${catid}:${gross}`;
 
+/**
+ * Arreglo vacío ESTABLE: mientras el catálogo carga (o falla) se reutiliza la
+ * misma referencia, evitando que `blocks` cambie en cada render y que el
+ * efecto de preselección caiga en un ciclo infinito de setState.
+ */
+const EMPTY_CATEGORIES: never[] = [];
+
 /** Panel de impresión de resultados finales. */
 const AdminResultadosFinalesPrint = () => {
   const { data, isLoading } = useResultadosFinalesCatalogo();
-  const categories = data?.categories ?? [];
+  const categories = data?.categories ?? EMPTY_CATEGORIES;
 
   /** Orden de impresión por id de categoría: ascendente o descendente. */
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
