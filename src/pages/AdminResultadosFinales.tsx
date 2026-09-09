@@ -239,9 +239,13 @@ const AdminResultadosFinales = () => {
                 tournament={catalogo?.tournament ?? ''}
                 logo={catalogo?.logoHeader ?? ''}
               />
-              <div className="flex-1">
+              <div className="flex-1 overflow-hidden">
                 {sheet.map((b) => (
-                  <CategoryBlock key={`${b.categoryId}-${b.gross}`} block={b} />
+                  <CategoryBlock
+                    key={`${b.categoryId}-${b.gross}`}
+                    block={b}
+                    dense={dense}
+                  />
                 ))}
               </div>
               <SheetRibbon />
