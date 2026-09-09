@@ -114,6 +114,28 @@ const AdminResultadosFinalesPrint = () => {
                 </div>
               ))}
             </div>
+            {/* Orden de impresión por id de categoría. */}
+            <div className="space-y-1">
+              <Label className="text-sm">Orden por id de categoría</Label>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { v: 'asc', label: 'Ascendente' },
+                    { v: 'desc', label: 'Descendente' },
+                  ] as const
+                ).map((o) => (
+                  <Button
+                    key={o.v}
+                    type="button"
+                    size="sm"
+                    variant={sortDir === o.v ? 'default' : 'outline'}
+                    onClick={() => setSortDir(o.v)}
+                  >
+                    {o.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
             {/* Cuántos bloques (categorías) se imprimen por hoja carta. */}
             <div className="space-y-1">
               <Label className="text-sm">Categorías por hoja carta</Label>
