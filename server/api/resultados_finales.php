@@ -8,8 +8,10 @@
  * Una categoría se considera CONCLUIDA cuando todas sus rondas programadas en
  * `caljuego` (para el torneo activo) están cerradas: `estatus = 3` (ronda
  * terminada) o `cierre = 1` (cierre explícito), y existe al menos una ronda
- * programada. Si ninguna de esas columnas existe en la instalación, se degrada
- * mostrando todas las categorías (compatibilidad).
+ * programada. Sólo cuentan las filas con campo asignado (`campo > 0`), para no
+ * incluir los espacios vacíos que el calendario conserva para otros días. Si
+ * ninguna de esas columnas existe en la instalación, se degrada mostrando
+ * todas las categorías (compatibilidad).
  *
  * USO
  *   GET /api/resultados_finales.php?torneoid=346
@@ -81,7 +83,9 @@ $rows = rf_all($conn, "SELECT a.categoria_id, a.categoria, a.abreviatura,
                               $doneExpr AS rondas_ok
                          FROM categorias a
                          LEFT JOIN caljuego cj
-                                ON (cj.categoriaid = a.categoria_id AND cj.torneoid = $tid)
+                                ON (cj.categoriaid = a.categoria_id
+                                    AND cj.torneoid = $tid
+                                    AND cj.campo > 0)
                         WHERE a.estatus = 1 AND a.torneo_id = $tid
                         GROUP BY a.categoria_id, a.categoria, a.abreviatura,
                                  a.sistema, a.formato, a.gross"
