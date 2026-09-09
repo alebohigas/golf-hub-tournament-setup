@@ -44,7 +44,7 @@ foreach ($prizeRows as $prize) {
             JOIN jugadores j ON (a.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             WHERE a.torneoid = $tid AND a.premio = $premioId AND a.orden = 1
-            ORDER BY a.distancia ASC
+            ORDER BY a.distancia ASC, a.ultact ASC, a.id ASC
             LIMIT $numPrem";
 
     $winners = query_all($conn, $sql);

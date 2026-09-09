@@ -1285,14 +1285,16 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
     // fila por jugador con su mejor distancia. Además se excluyen categorías
     // que terminan en STK para evitar duplicados visibles B / B STK cuando el
     // origen trae registros paralelos para el mismo competidor.
-    $sql = "SELECT best.jugadorid,
+            $sql = "SELECT best.jugadorid,
                    CONCAT(j.nombre, ' ', j.apellido) as jugador,
                    best.distancia,
                    COALESCE(cat.abreviatura, cat.categoria, '') as categoria,
                    c.logo as logo,
                    c.nombre as club
             FROM (
-                SELECT pj.jugadorid, MIN(pj.distancia) as distancia
+                SELECT pj.jugadorid,
+                       MIN(pj.distancia) as distancia,
+                       MIN(pj.ultact) as ultact
                 FROM puttjug pj
                 JOIN jugadores j2 ON (pj.jugadorid = j2.id)
                 LEFT JOIN categorias cat2 ON (j2.categoriaid = cat2.categoria_id)
@@ -1300,12 +1302,13 @@ function get_putt_players($conn, $tid, $premioId, $descripcion, $limit = 3) {
                   AND pj.premio = $premioId
                   AND pj.premiosjugcol = '$descripcionEsc'
                   AND UPPER(TRIM(COALESCE(cat2.abreviatura, cat2.categoria, ''))) NOT LIKE '%STK'
+                  AND pj.orden = 1
                 GROUP BY pj.jugadorid
             ) best
             JOIN jugadores j ON (best.jugadorid = j.id)
             JOIN clubs c ON (j.clubid = c.id)
             LEFT JOIN categorias cat ON (j.categoriaid = cat.categoria_id)
-            ORDER BY best.distancia ASC, jugador ASC
+            ORDER BY best.distancia ASC, best.ultact ASC, best.jugadorid ASC
             LIMIT $limit";
 
 
