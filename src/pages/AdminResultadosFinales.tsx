@@ -163,12 +163,22 @@ const AdminResultadosFinales = () => {
   const { data: catalogo } = useResultadosFinalesCatalogo();
   const blocks = useResultadosFinalesBloques(bloques);
 
-  /** Hojas carta con DOS bloques cada una. */
+  /** Bloques (categorías) por hoja carta: 1, 2 o 3 (`?porhoja=`). */
+  const perSheet = useMemo(() => {
+    const n = Number(params.get('porhoja'));
+    return n === 1 || n === 3 ? n : 2;
+  }, [params]);
+
+  /** Con 3 bloques por hoja se compacta el layout para que todo encaje. */
+  const dense = perSheet === 3;
+
+  /** Hojas carta con `perSheet` bloques cada una. */
   const sheets = useMemo(() => {
     const out: ResultadosFinalesBloque[][] = [];
-    for (let i = 0; i < blocks.length; i += 2) out.push(blocks.slice(i, i + 2));
+    for (let i = 0; i < blocks.length; i += perSheet)
+      out.push(blocks.slice(i, i + perSheet));
     return out;
-  }, [blocks]);
+  }, [blocks, perSheet]);
 
   /** Exporta el reporte a PDF carta vertical, una imagen por hoja. */
   const exportPdf = async () => {
