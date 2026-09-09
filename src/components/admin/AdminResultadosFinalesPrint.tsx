@@ -25,8 +25,21 @@ const AdminResultadosFinalesPrint = () => {
   const { data, isLoading } = useResultadosFinalesCatalogo();
   const categories = data?.categories ?? [];
 
-  /** Sólo se ofrecen las categorías con todas sus rondas terminadas. */
-  const concluded = useMemo(() => categories.filter((c) => c.concluded), [categories]);
+  /** Orden de impresión por id de categoría: ascendente o descendente. */
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  /** Sólo se ofrecen las categorías con todas sus rondas terminadas, ordenadas por id. */
+  const concluded = useMemo(
+    () =>
+      categories
+        .filter((c) => c.concluded)
+        .slice()
+        .sort((a, b) => {
+          const diff = Number(a.categoryId) - Number(b.categoryId);
+          return sortDir === 'asc' ? diff : -diff;
+        }),
+    [categories, sortDir]
+  );
 
   /** Bloques disponibles en el orden en que se imprimirán. */
   const blocks = useMemo(
