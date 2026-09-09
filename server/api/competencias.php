@@ -1035,6 +1035,9 @@ if ($tipo === '' || $tipo === 'putt' || $tipo === 'putt_finales') {
         $label    = $sx === 'A'
             ? 'Putt Finales'
             : ($sx === 'M' ? 'Putt Finales Caballero' : 'Putt Finales Dama');
+        // El nombre de la tarjeta/grupo se cambia a una acción descriptiva;
+        // el nombre de la competencia (menú y encabezado) conserva "Putt Finales".
+        $groupLabel = str_replace('Putt Finales', 'Ver Brackets Finales de Putt', $label);
         $competencias[] = [
             'id'          => 'putt-finales-' . $idSuffix,
             'name'        => $label,
@@ -1047,8 +1050,8 @@ if ($tipo === '' || $tipo === 'putt' || $tipo === 'putt_finales') {
             'groupCount'  => 1,
             'groups'      => [[
                 'id'          => 'putt-finales-' . $idSuffix . '-bracket',
-                'name'        => $label,
-                'shortName'   => $label,
+                'name'        => $groupLabel,
+                'shortName'   => $groupLabel,
                 'maxPlayers'  => (int)$fr['size'],
                 'playerCount' => (int)$fr['size'],
                 // El frontend usa bracketSexo para renderizar BracketView en
