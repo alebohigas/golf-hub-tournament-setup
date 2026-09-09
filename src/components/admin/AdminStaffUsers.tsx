@@ -57,6 +57,8 @@ interface StaffUser {
   hasta: string;
   activo: number;
   estatus: string;
+  /** 99 = staff temporal; otro valor = cuenta existente del sistema. */
+  tipo?: number;
   areas: string[];
 }
 
@@ -77,11 +79,22 @@ export default function AdminStaffUsers() {
   const [form, setForm] = useState({ ...emptyForm });
   const [resetPwdFor, setResetPwdFor] = useState<number | null>(null);
   const [newPwd, setNewPwd] = useState('');
+  /** Búsqueda por usuario/correo o nombre. */
+  const [search, setSearch] = useState('');
+  /** Mostrar usuarios de todos los torneos, no sólo el activo. */
+  const [allTorneos, setAllTorneos] = useState(false);
+  /** Incluir cuentas que no son staff temporal (tipo != 99). */
+  const [allTipos, setAllTipos] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const url = `${API_BASE_URL}/staff_users.php?password=${ADMIN_PWD}${torneoId ? `&torneoid=${torneoId}` : ''}`;
+      const params = new URLSearchParams({ password: ADMIN_PWD });
+      if (!allTorneos && torneoId) params.set('torneoid', torneoId);
+      if (allTorneos) params.set('all', '1');
+      if (allTipos) params.set('tipo', 'all');
+      if (search.trim()) params.set('q', search.trim());
+      const url = `${API_BASE_URL}/staff_users.php?${params.toString()}`;
       const r = await fetch(url);
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Error');
@@ -93,7 +106,10 @@ export default function AdminStaffUsers() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [torneoId]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [torneoId, allTorneos, allTipos]);
+
+  /** Busca en el servidor al presionar Enter o el botón Buscar. */
+  const handleSearch = () => { load(); };
 
   const toggleFormArea = (a: StaffArea) => {
     setForm(f => ({
@@ -233,10 +249,34 @@ export default function AdminStaffUsers() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Filtros de búsqueda: correo/usuario, todos los torneos y cuentas existentes */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <Label className="text-xs">Buscar usuario, correo o nombre</Label>
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                placeholder="cs@speitour.mx"
+              />
+            </div>
+            <Button variant="outline" onClick={handleSearch}>Buscar</Button>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={allTorneos} onCheckedChange={(v) => setAllTorneos(!!v)} />
+              Todos los torneos
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={allTipos} onCheckedChange={(v) => setAllTipos(!!v)} />
+              Incluir cuentas existentes
+            </label>
+          </div>
+
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>
           ) : users.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No hay usuarios staff creados.</p>
+            <p className="text-muted-foreground text-sm">
+              No se encontraron usuarios con estos filtros. Prueba activar "Todos los torneos" e "Incluir cuentas existentes".
+            </p>
           ) : users.map(u => (
             <div key={u.id} className="border rounded-lg p-4 space-y-3">
               <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -245,6 +285,7 @@ export default function AdminStaffUsers() {
                     {u.usuario}
                     {isExpired(u) && <Badge variant="destructive">Expirado</Badge>}
                     {!u.activo && <Badge variant="secondary">Inactivo</Badge>}
+                    {u.tipo !== undefined && u.tipo !== 99 && <Badge variant="outline">Cuenta existente</Badge>}
                   </div>
                   <div className="text-sm text-muted-foreground">{u.nombre}</div>
                   <div className="text-xs text-muted-foreground mt-1">

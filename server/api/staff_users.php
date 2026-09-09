@@ -51,10 +51,23 @@ function sync_areas($conn, $uid, $areas, $valid) {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     require_admin_pwd([]);
     $torneoid = (int)($_GET['torneoid'] ?? 0);
-    $where = "tipo = 99";
-    if ($torneoid > 0) $where .= " AND torneoid = $torneoid";
-    $rows = query_all($conn, "SELECT id, usuario, nombre, torneoid, desde, hasta, activo, estatus
-                                FROM usuarios WHERE $where ORDER BY id DESC");
+    /** all=1 → ignora el filtro de torneo (usuarios de cualquier torneo). */
+    $allTorneos = !empty($_GET['all']);
+    /** tipo=all → incluye cuentas que no son staff temporal (tipo != 99). */
+    $allTipos = (($_GET['tipo'] ?? '') === 'all');
+    /** q= → búsqueda por usuario o nombre (correo incluido). */
+    $q = trim((string)($_GET['q'] ?? ''));
+
+    $conds = [];
+    if (!$allTipos) $conds[] = "tipo = 99";
+    if (!$allTorneos && $torneoid > 0) $conds[] = "torneoid = $torneoid";
+    if ($q !== '') {
+        $qe = esc($conn, $q);
+        $conds[] = "(usuario LIKE '%$qe%' OR nombre LIKE '%$qe%')";
+    }
+    $where = $conds ? implode(' AND ', $conds) : '1';
+    $rows = query_all($conn, "SELECT id, usuario, nombre, torneoid, desde, hasta, activo, estatus, tipo
+                                FROM usuarios WHERE $where ORDER BY id DESC LIMIT 500");
     foreach ($rows as &$r) {
         $uid = (int)$r['id'];
         $areas = [];
@@ -115,7 +128,8 @@ if ($action === 'update') {
         $sets[] = "pwd = '" . esc($conn, $h) . "'";
     }
     if ($sets) {
-        $sql = "UPDATE usuarios SET " . implode(', ', $sets) . " WHERE id = $id AND tipo = 99";
+        // Permite editar cualquier cuenta (staff temporal o cuenta existente).
+        $sql = "UPDATE usuarios SET " . implode(', ', $sets) . " WHERE id = $id";
         if (!$conn->query($sql)) json_error('Update failed: ' . $conn->error, 500);
     }
     if (isset($body['areas'])) sync_areas($conn, $id, $body['areas'], $VALID_AREAS);
