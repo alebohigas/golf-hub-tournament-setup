@@ -110,15 +110,15 @@ const CategoryBlock = ({
         <tbody>
           {block.rows.map((r) => (
             <tr key={`${block.categoryId}-${block.gross}-${r.position}`} className="border-b border-border">
-              <td className="px-2 py-2 text-center text-[15px] font-bold tabular-nums">
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center text-[15px] font-bold tabular-nums`}>
                 {r.position}
               </td>
-              <td className="px-2 py-2 text-center">
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-center`}>
                 {r.clubLogo ? (
                   <img
                     src={r.clubLogo}
                     alt=""
-                    className="mx-auto h-6 max-w-12 object-contain"
+                    className={`mx-auto ${dense ? 'h-5' : 'h-6'} max-w-12 object-contain`}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
                     }}
@@ -127,8 +127,8 @@ const CategoryBlock = ({
                   <span className="text-[11px] text-muted-foreground">{r.club}</span>
                 )}
               </td>
-              <td className="px-2 py-2 text-left text-[14px] text-foreground">{r.name}</td>
-              <td className="px-2 py-2 text-right text-[15px] font-bold tabular-nums">
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-left text-[14px] text-foreground`}>{r.name}</td>
+              <td className={`px-2 ${dense ? 'py-1' : 'py-2'} text-right text-[15px] font-bold tabular-nums`}>
                 {r.total}
               </td>
             </tr>
