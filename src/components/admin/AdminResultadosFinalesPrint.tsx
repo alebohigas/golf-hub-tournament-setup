@@ -66,9 +66,16 @@ const AdminResultadosFinalesPrint = () => {
   /** Bloques (categorías) por hoja carta: 1, 2 o 3. */
   const [perSheet, setPerSheet] = useState<'1' | '2' | '3'>('2');
 
-  /** Preselecciona todos los bloques disponibles al cargar el catálogo. */
+  /**
+   * Preselecciona todos los bloques disponibles al cargar el catálogo.
+   * Sólo actualiza el estado si la lista de claves cambió, para no
+   * re-renderizar en bucle cuando no hay datos.
+   */
   useEffect(() => {
-    setSelected(blocks.map((b) => b.key));
+    const keys = blocks.map((b) => b.key);
+    setSelected((prev) =>
+      prev.length === keys.length && prev.every((k, i) => k === keys[i]) ? prev : keys
+    );
   }, [blocks]);
 
   /** Alterna un bloque en la selección. */
