@@ -150,7 +150,7 @@ const formatDifPar = (difpar: number): string => {
  * Red for under par (negative), black for over par or even
  */
 const getStrokeScoreClass = (difpar: number): string => {
-  if (difpar < 0) return 'text-[#b80000] font-bold';
+  if (difpar < 0) return 'text-[#900000] font-bold';
   return 'text-foreground font-bold';
 };
 
