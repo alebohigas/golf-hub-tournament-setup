@@ -16,11 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/config/api';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import type { StaffArea } from '@/contexts/StaffAuthContext';
-import { Loader2, Trash2, Plus, UserCog, KeyRound } from 'lucide-react';
+import { Loader2, Trash2, Plus, UserCog, KeyRound, Pencil, UserX } from 'lucide-react';
 
 const ADMIN_PWD = 'admin2025';
 
