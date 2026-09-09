@@ -80,6 +80,25 @@ const AdminResultadosFinalesCompeticionPrint = () => {
           </p>
         ) : (
           <>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelected(blocks.map((b) => b.key))}
+              >
+                Seleccionar todos
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelected([])}
+              >
+                Deseleccionar todos
+              </Button>
+            </div>
+
             {grouped.map(([competencia, list]) => (
               <div key={competencia} className="space-y-2">
                 <Label className="text-sm font-semibold uppercase">{competencia}</Label>
