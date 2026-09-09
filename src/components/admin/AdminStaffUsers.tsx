@@ -88,6 +88,15 @@ export default function AdminStaffUsers() {
   const [allTorneos, setAllTorneos] = useState(false);
   /** Incluir cuentas que no son staff temporal (tipo != 99). */
   const [allTipos, setAllTipos] = useState(false);
+  /** Usuario abierto en el diálogo de edición (null = cerrado). */
+  const [editUser, setEditUser] = useState<StaffUser | null>(null);
+  /** Borrador editable del usuario en el diálogo. */
+  const [editForm, setEditForm] = useState({
+    nombre: '', desde: '', hasta: '', activo: 1,
+    password_user: '', areas: [] as StaffArea[],
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
 
   const load = async () => {
     setLoading(true);
