@@ -30,7 +30,7 @@ const scoreColor = (golpes: number, par: number): string => {
   if (golpes <= 0) return 'text-muted-foreground';
   const diff = golpes - par;
   if (diff <= -2) return 'bg-primary text-primary-foreground rounded';
-  if (diff === -1) return 'bg-red-500/20 text-red-700 rounded';
+  if (diff === -1) return 'bg-[#b80000]/20 text-[#b80000] rounded';
   if (diff === 0) return '';
   if (diff === 1) return 'bg-blue-500/20 text-blue-700 rounded';
   return 'bg-blue-700/20 text-blue-900 rounded';

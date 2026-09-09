@@ -30,7 +30,7 @@ interface ScorecardRowProps {
 const getScoreColor = (golpes: number, par: number): string => {
   const diff = golpes - par;
   if (diff <= -2) return 'bg-primary text-primary-foreground';      // Eagle or better
-  if (diff === -1) return 'bg-red-500/20 text-red-700';             // Birdie
+  if (diff === -1) return 'bg-[#b80000]/20 text-[#b80000]';             // Birdie
   if (diff === 0) return '';                                          // Par
   if (diff === 1) return 'bg-blue-500/20 text-blue-700';            // Bogey
   return 'bg-blue-700/20 text-blue-900';                             // Double+
@@ -174,7 +174,7 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
                 return (
                   <td key={h.hoyo} className={`px-2 py-1 text-center font-medium ${
                     !played ? 'text-muted-foreground' :
-                    diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : 'text-muted-foreground'
+                    diff < 0 ? 'text-[#b80000]' : diff > 0 ? 'text-blue-600' : 'text-muted-foreground'
                   }`}>
                     {played ? h.resultado : '0'}
                   </td>
@@ -281,7 +281,7 @@ const ScorecardRow = ({ scorecard, playerName, roundLabel, onClose, colSpan }: S
                     return <>+/-: <strong className="font-bold">0</strong></>;
                   }
                   const d = playedHoles.reduce((s, h) => s + (Number(h.golpes) || 0) - h.par, 0);
-                  const cls = d < 0 ? 'text-red-600' : d > 0 ? 'text-blue-600' : '';
+                  const cls = d < 0 ? 'text-[#b80000]' : d > 0 ? 'text-blue-600' : '';
                   const txt = d === 0 ? 'E' : d > 0 ? `+${d}` : `${d}`;
                   return <>+/-: <strong className={`font-bold ${cls}`}>{txt}</strong></>;
                 })()}
