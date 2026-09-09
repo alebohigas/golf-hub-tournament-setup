@@ -16,11 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/config/api';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import type { StaffArea } from '@/contexts/StaffAuthContext';
-import { Loader2, Trash2, Plus, UserCog, KeyRound } from 'lucide-react';
+import { Loader2, Trash2, Plus, UserCog, KeyRound, Pencil, UserX } from 'lucide-react';
 
 const ADMIN_PWD = 'admin2025';
 
@@ -85,6 +88,15 @@ export default function AdminStaffUsers() {
   const [allTorneos, setAllTorneos] = useState(false);
   /** Incluir cuentas que no son staff temporal (tipo != 99). */
   const [allTipos, setAllTipos] = useState(false);
+  /** Usuario abierto en el diálogo de edición (null = cerrado). */
+  const [editUser, setEditUser] = useState<StaffUser | null>(null);
+  /** Borrador editable del usuario en el diálogo. */
+  const [editForm, setEditForm] = useState({
+    nombre: '', desde: '', hasta: '', activo: 1,
+    password_user: '', areas: [] as StaffArea[],
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
 
   const load = async () => {
     setLoading(true);
@@ -182,6 +194,54 @@ export default function AdminStaffUsers() {
 
   const today = new Date().toISOString().slice(0, 10);
   const isExpired = (u: StaffUser) => u.hasta && u.hasta < today;
+
+  /** Abre el diálogo de edición cargando los datos actuales del usuario. */
+  const openEdit = (u: StaffUser) => {
+    setEditUser(u);
+    setEditForm({
+      nombre: u.nombre || '',
+      desde: u.desde || '',
+      hasta: u.hasta || '',
+      activo: u.activo ? 1 : 0,
+      password_user: '',
+      areas: (u.areas || []) as StaffArea[],
+    });
+  };
+
+  /** Marca/desmarca un área en el borrador de edición. */
+  const toggleEditArea = (a: StaffArea) => {
+    setEditForm(f => ({
+      ...f,
+      areas: f.areas.includes(a) ? f.areas.filter(x => x !== a) : [...f.areas, a],
+    }));
+  };
+
+  /** Guarda todos los cambios del diálogo (datos, áreas y password opcional). */
+  const saveEdit = async () => {
+    if (!editUser) return;
+    setSavingEdit(true);
+    const patch: any = {
+      nombre: editForm.nombre,
+      desde: editForm.desde,
+      hasta: editForm.hasta,
+      activo: editForm.activo,
+      areas: editForm.areas,
+    };
+    if (editForm.password_user) patch.password_user = editForm.password_user;
+    await update(editUser, patch);
+    setSavingEdit(false);
+    setEditUser(null);
+    toast({ title: 'Cambios guardados', description: editUser.usuario });
+  };
+
+  /** Baja anticipada: desactiva y fija la fecha "hasta" al día de hoy. */
+  const bajaAnticipada = async (u: StaffUser) => {
+    if (!confirm(`¿Dar de baja a "${u.usuario}" hoy mismo?`)) return;
+    await update(u, { activo: 0, hasta: today } as any);
+    toast({ title: 'Usuario dado de baja', description: `${u.usuario} — hasta ${today}` });
+    setEditUser(null);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -297,6 +357,14 @@ export default function AdminStaffUsers() {
                     <Checkbox checked={!!u.activo} onCheckedChange={(v) => update(u, { activo: v ? 1 : 0 })} />
                     Activo
                   </label>
+                  {/* Editar: fechas, áreas permitidas y password en un solo diálogo */}
+                  <Button size="sm" variant="outline" onClick={() => openEdit(u)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                  {/* Baja anticipada: desactiva y corta la vigencia hoy */}
+                  <Button size="sm" variant="outline" onClick={() => bajaAnticipada(u)}>
+                    <UserX className="h-3.5 w-3.5 mr-1" /> Dar de baja
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { setResetPwdFor(u.id); setNewPwd(''); }}>
                     <KeyRound className="h-3.5 w-3.5 mr-1" /> Reset PWD
                   </Button>
@@ -343,6 +411,78 @@ export default function AdminStaffUsers() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Diálogo de edición completa del usuario staff */}
+      <Dialog open={!!editUser} onOpenChange={(o) => { if (!o) setEditUser(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar usuario {editUser?.usuario}</DialogTitle>
+            <DialogDescription>
+              Cambia la vigencia, activa o desactiva la cuenta y ajusta las áreas permitidas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Nombre</Label>
+                <Input value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Nueva password (opcional)</Label>
+                <Input value={editForm.password_user} onChange={e => setEditForm({ ...editForm, password_user: e.target.value })} placeholder="••••••" />
+              </div>
+              <div className="space-y-1">
+                <Label>Desde</Label>
+                <Input type="date" value={editForm.desde} onChange={e => setEditForm({ ...editForm, desde: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Hasta</Label>
+                <Input type="date" value={editForm.hasta} onChange={e => setEditForm({ ...editForm, hasta: e.target.value })} />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={!!editForm.activo} onCheckedChange={(v) => setEditForm({ ...editForm, activo: v ? 1 : 0 })} />
+              Cuenta activa
+            </label>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Áreas permitidas ({editForm.areas.length})</Label>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditForm(f => ({ ...f, areas: STAFF_AREAS.map(a => a.id) }))}>
+                    Seleccionar todas
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditForm(f => ({ ...f, areas: [] }))}>
+                    Quitar todas
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {STAFF_AREAS.map(a => (
+                  <label key={a.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-muted/50">
+                    <Checkbox checked={editForm.areas.includes(a.id)} onCheckedChange={() => toggleEditArea(a.id)} />
+                    <span className="text-xs">{a.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            {editUser && (
+              <Button variant="destructive" onClick={() => bajaAnticipada(editUser)}>
+                <UserX className="h-4 w-4 mr-1" /> Baja anticipada
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setEditUser(null)}>Cancelar</Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
