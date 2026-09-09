@@ -46,6 +46,7 @@ import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 /** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
 import AdminResultadosFinalesPrint from '@/components/admin/AdminResultadosFinalesPrint';
+import AdminResultadosFinalesCompeticionPrint from '@/components/admin/AdminResultadosFinalesCompeticionPrint';
 /** Enfrentamientos manuales de MATCH PLAY para las salidas públicas. */
 /** Impresión de tarjetas de juego por día y categoría. */
 import AdminTarjetasPrint from '@/components/admin/AdminTarjetasPrint';
@@ -855,6 +856,11 @@ const AdminDashboard = () => {
                   <Trophy className="h-4 w-4" /> Resultados Finales
                 </TabsTrigger>
               )}
+              {canAlien('alien_resultados') && (
+                <TabsTrigger value="resultados-finales-competicion" className="gap-2 flex-1 min-w-[120px]">
+                  <Trophy className="h-4 w-4" /> Resultados Finales Competición
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Categorías — CRUD de categorías del torneo (tee, rating, slope, par). */}
@@ -889,6 +895,13 @@ const AdminDashboard = () => {
             {canAlien('alien_resultados') && (
               <TabsContent value="resultados-finales">
                 <AdminResultadosFinalesPrint />
+              </TabsContent>
+            )}
+
+            {/* Resultados Finales Competición — premiación de competencias laterales. */}
+            {canAlien('alien_resultados') && (
+              <TabsContent value="resultados-finales-competicion">
+                <AdminResultadosFinalesCompeticionPrint />
               </TabsContent>
             )}
 
