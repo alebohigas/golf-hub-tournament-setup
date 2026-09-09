@@ -100,7 +100,7 @@ const isStrokePlaySystem = (system?: string): boolean => {
 
 /**
  * Stroke Play score coloring (per tournament spec):
- *   score < par  → ROJO   #FF0000
+ *   score < par  → ROJO   #900000
  *   score = par  → AZUL   #0000FF
  *   score > par  → NEGRO  #000000
  * Returns `undefined` when the system is not Stroke Play or the reference par
@@ -114,7 +114,7 @@ const strokeScoreColor = (
   if (!isStrokePlaySystem(system)) return undefined;
   const n = Number(value);
   if (!referencePar || !Number.isFinite(n)) return undefined;
-  if (n < referencePar) return '#FF0000';
+  if (n < referencePar) return '#900000';
   if (n === referencePar) return '#0000FF';
   return '#000000';
 };
