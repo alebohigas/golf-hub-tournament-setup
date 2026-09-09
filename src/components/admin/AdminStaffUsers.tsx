@@ -57,6 +57,8 @@ interface StaffUser {
   hasta: string;
   activo: number;
   estatus: string;
+  /** 99 = staff temporal; otro valor = cuenta existente del sistema. */
+  tipo?: number;
   areas: string[];
 }
 
