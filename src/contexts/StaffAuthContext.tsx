@@ -10,7 +10,7 @@
  * Áreas reconocidas (whitelist server + UI):
  *   preregistros, brackets, matchplay, live, banderas, pop, eventos, avisos,
  *   premios, convocatoria, reglas, uploads, stats, hoteles,
- *   alien_tarjetas, alien_timeline, alien_salidas, alien_categorias
+ *   alien_tarjetas, alien_timeline, alien_salidas, alien_categorias, alien_resultados
  */
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { API_BASE_URL } from '@/config/api';
@@ -20,7 +20,8 @@ export type StaffArea =
   | 'eventos' | 'avisos' | 'menus' | 'premios' | 'convocatoria'
   | 'reglas' | 'uploads' | 'stats' | 'hoteles' | 'matchplay' | 'live'
   // ALIEN SYSTEM (reportes operativos de impresión + categorías)
-  | 'alien_tarjetas' | 'alien_timeline' | 'alien_salidas' | 'alien_categorias';
+  | 'alien_tarjetas' | 'alien_timeline' | 'alien_salidas' | 'alien_categorias'
+  | 'alien_resultados';
 
 export interface StaffSession {
   token: string;

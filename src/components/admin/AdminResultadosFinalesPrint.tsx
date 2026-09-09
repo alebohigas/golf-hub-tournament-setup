@@ -1,0 +1,119 @@
+/**
+ * AdminResultadosFinalesPrint — Admin → ALIEN SYSTEM → "Resultados Finales"
+ * -----------------------------------------------------------------------------
+ * Lista las categorías del torneo con su avance de rondas y permite elegir los
+ * BLOQUES a imprimir. Un bloque = categoría + formato (NETO o GROSS); si la
+ * categoría premia Gross, se ofrecen los dos bloques por separado, de modo que
+ * cada hoja carta del reporte agrupa dos bloques.
+ *
+ * El botón abre `/admin/resultados-finales?bloques=catid:gross,...`
+ */
+
+import { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Trophy, Loader2 } from 'lucide-react';
+import { useResultadosFinalesCatalogo } from '@/hooks/useResultadosFinales';
+
+/** Clave de un bloque seleccionable ("catid:gross"). */
+const keyOf = (catid: string, gross: '0' | '1') => `${catid}:${gross}`;
+
+/** Panel de impresión de resultados finales. */
+const AdminResultadosFinalesPrint = () => {
+  const { data, isLoading } = useResultadosFinalesCatalogo();
+  const categories = data?.categories ?? [];
+
+  /** Sólo se ofrecen las categorías con todas sus rondas terminadas. */
+  const concluded = useMemo(() => categories.filter((c) => c.concluded), [categories]);
+
+  /** Bloques disponibles en el orden en que se imprimirán. */
+  const blocks = useMemo(
+    () =>
+      concluded.flatMap((c) => {
+        const list = [{ key: keyOf(c.categoryId, '0'), label: `${c.name} · NETO` }];
+        if (Number(c.gross) === 1) {
+          list.push({ key: keyOf(c.categoryId, '1'), label: `${c.name} · GROSS` });
+        }
+        return list;
+      }),
+    [concluded]
+  );
+
+  const [selected, setSelected] = useState<string[]>([]);
+
+  /** Preselecciona todos los bloques disponibles al cargar el catálogo. */
+  useEffect(() => {
+    setSelected(blocks.map((b) => b.key));
+  }, [blocks]);
+
+  /** Alterna un bloque en la selección. */
+  const toggle = (key: string) =>
+    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+
+  /** Abre el reporte imprimible con los bloques elegidos (en orden). */
+  const open = () => {
+    const ordered = blocks.map((b) => b.key).filter((k) => selected.includes(k));
+    window.open(`/admin/resultados-finales?bloques=${ordered.join(',')}`, '_blank');
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Trophy className="h-5 w-5" /> Resultados Finales
+        </CardTitle>
+        <CardDescription>
+          Reporte de premiación con logo y nombre del torneo, sistema de juego y
+          formato. Se imprimen dos categorías (bloques) por hoja carta y las
+          posiciones van en orden ascendente: 3, 2, 1.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando categorías…
+          </div>
+        ) : blocks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Todavía no hay categorías con todas sus rondas concluidas.
+          </p>
+        ) : (
+          <>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {blocks.map((b) => (
+                <div key={b.key} className="flex items-center gap-2 rounded-md border border-border p-2">
+                  <Checkbox
+                    id={`rf-${b.key}`}
+                    checked={selected.includes(b.key)}
+                    onCheckedChange={() => toggle(b.key)}
+                  />
+                  <Label htmlFor={`rf-${b.key}`} className="cursor-pointer text-sm">
+                    {b.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <Button onClick={open} disabled={selected.length === 0}>
+              <Trophy className="mr-2 h-4 w-4" /> Generar reporte
+            </Button>
+          </>
+        )}
+
+        {/* Categorías aún en juego, para dar contexto de por qué no aparecen. */}
+        {!isLoading && categories.some((c) => !c.concluded) && (
+          <p className="text-xs text-muted-foreground">
+            Pendientes de concluir:{' '}
+            {categories
+              .filter((c) => !c.concluded)
+              .map((c) => `${c.shortName || c.name} (${c.roundsDone}/${c.rounds})`)
+              .join(' · ')}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AdminResultadosFinalesPrint;

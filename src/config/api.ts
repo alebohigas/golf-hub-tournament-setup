@@ -130,6 +130,13 @@ export const getResultadosCategoryUrl = (
     ...(torneoIdOverride ? { torneoid: torneoIdOverride } : {}),
   })}`;
 
+/**
+ * Resultados Finales (ALIEN SYSTEM) — catálogo de categorías con su avance de
+ * rondas para el reporte de premiación imprimible.
+ */
+export const getResultadosFinalesUrl = (): string =>
+  `${API_BASE_URL}/resultados_finales.php${buildQuery()}`;
+
 /** Tee times summary */
 export const getSalidasUrl = (): string => `${API_BASE_URL}/salidas.php${buildQuery()}`;
 

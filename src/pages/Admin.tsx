@@ -45,6 +45,7 @@ import AdminBanderas from '@/components/admin/AdminBanderas';
 import AdminStaffUsers from '@/components/admin/AdminStaffUsers';
 /** Impresión de salidas por día (formulario de filtros → reporte imprimible). */
 import AdminSalidasPrint from '@/components/admin/AdminSalidasPrint';
+import AdminResultadosFinalesPrint from '@/components/admin/AdminResultadosFinalesPrint';
 /** Enfrentamientos manuales de MATCH PLAY para las salidas públicas. */
 /** Impresión de tarjetas de juego por día y categoría. */
 import AdminTarjetasPrint from '@/components/admin/AdminTarjetasPrint';
@@ -287,9 +288,10 @@ const AdminDashboard = () => {
     alien_timeline: 'alien',
     alien_salidas: 'alien',
     alien_categorias: 'alien',
+    alien_resultados: 'alien',
   };
   /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
-  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias'];
+  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias', 'alien_resultados'];
   /** true si el usuario activo puede ver una sub-pestaña de ALIEN SYSTEM. */
   const canAlien = (a: StaffArea) => !isStaffOnly || !!staffSession?.areas.includes(a);
   /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
@@ -848,6 +850,11 @@ const AdminDashboard = () => {
                   <Printer className="h-4 w-4" /> Salidas
                 </TabsTrigger>
               )}
+              {canAlien('alien_resultados') && (
+                <TabsTrigger value="resultados-finales" className="gap-2 flex-1 min-w-[120px]">
+                  <Trophy className="h-4 w-4" /> Resultados Finales
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Categorías — CRUD de categorías del torneo (tee, rating, slope, par). */}
@@ -875,6 +882,13 @@ const AdminDashboard = () => {
             {canAlien('alien_salidas') && (
               <TabsContent value="salidas">
                 <AdminSalidasPrint />
+              </TabsContent>
+            )}
+
+            {/* Resultados Finales — reporte de premiación por categoría. */}
+            {canAlien('alien_resultados') && (
+              <TabsContent value="resultados-finales">
+                <AdminResultadosFinalesPrint />
               </TabsContent>
             )}
 
