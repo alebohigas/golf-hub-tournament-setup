@@ -58,11 +58,20 @@ $head = rf_one($conn, "SELECT a.nombre, a.logo_header, b.nombre AS club
 
 // ============= Categorías con su avance de rondas =============
 $hasEstatus = rf_has_column($conn, 'caljuego', 'estatus');
+$hasCierre  = rf_has_column($conn, 'caljuego', 'cierre');
 $hasPrev    = rf_has_column($conn, 'categorias', 'sistemaprev');
 
-$doneExpr = $hasEstatus
-    ? "SUM(CASE WHEN cj.estatus = 3 THEN 1 ELSE 0 END)"
-    : "COUNT(cj.id)";
+// Una ronda cuenta como terminada cuando estatus = 3 (ronda cerrada)
+// o bien cierre = 1 (cierre explícito del caljuego).
+if ($hasEstatus && $hasCierre) {
+    $doneExpr = "SUM(CASE WHEN cj.estatus = 3 OR cj.cierre = 1 THEN 1 ELSE 0 END)";
+} elseif ($hasCierre) {
+    $doneExpr = "SUM(CASE WHEN cj.cierre = 1 THEN 1 ELSE 0 END)";
+} elseif ($hasEstatus) {
+    $doneExpr = "SUM(CASE WHEN cj.estatus = 3 THEN 1 ELSE 0 END)";
+} else {
+    $doneExpr = "COUNT(cj.id)";
+}
 $prevSel = $hasPrev ? "a.sistemaprev" : "NULL AS sistemaprev";
 
 $rows = rf_all($conn, "SELECT a.categoria_id, a.categoria, a.abreviatura,
