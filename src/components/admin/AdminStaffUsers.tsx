@@ -79,11 +79,22 @@ export default function AdminStaffUsers() {
   const [form, setForm] = useState({ ...emptyForm });
   const [resetPwdFor, setResetPwdFor] = useState<number | null>(null);
   const [newPwd, setNewPwd] = useState('');
+  /** Búsqueda por usuario/correo o nombre. */
+  const [search, setSearch] = useState('');
+  /** Mostrar usuarios de todos los torneos, no sólo el activo. */
+  const [allTorneos, setAllTorneos] = useState(false);
+  /** Incluir cuentas que no son staff temporal (tipo != 99). */
+  const [allTipos, setAllTipos] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const url = `${API_BASE_URL}/staff_users.php?password=${ADMIN_PWD}${torneoId ? `&torneoid=${torneoId}` : ''}`;
+      const params = new URLSearchParams({ password: ADMIN_PWD });
+      if (!allTorneos && torneoId) params.set('torneoid', torneoId);
+      if (allTorneos) params.set('all', '1');
+      if (allTipos) params.set('tipo', 'all');
+      if (search.trim()) params.set('q', search.trim());
+      const url = `${API_BASE_URL}/staff_users.php?${params.toString()}`;
       const r = await fetch(url);
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Error');
