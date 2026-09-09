@@ -66,9 +66,9 @@ const formatDifPar = (v: number): string => {
   return v > 0 ? `+${v}` : String(v);
 };
 
-/** Color rojo para under-par, negro para el resto. */
+/** Color rojo (#b80000) para under-par, negro para el resto. */
 const strokeClass = (v: number): string =>
-  v < 0 ? 'text-red-600 font-bold' : 'text-foreground font-bold';
+  v < 0 ? 'text-[#b80000] font-bold' : 'text-foreground font-bold';
 
 /**
  * Un jugador se considera terminado (F) para el thru cuando su fecha de la
