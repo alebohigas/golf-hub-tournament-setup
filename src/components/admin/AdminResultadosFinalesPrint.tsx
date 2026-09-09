@@ -43,6 +43,9 @@ const AdminResultadosFinalesPrint = () => {
 
   const [selected, setSelected] = useState<string[]>([]);
 
+  /** Bloques (categorías) por hoja carta: 1, 2 o 3. */
+  const [perSheet, setPerSheet] = useState<'1' | '2' | '3'>('2');
+
   /** Preselecciona todos los bloques disponibles al cargar el catálogo. */
   useEffect(() => {
     setSelected(blocks.map((b) => b.key));
@@ -55,7 +58,10 @@ const AdminResultadosFinalesPrint = () => {
   /** Abre el reporte imprimible con los bloques elegidos (en orden). */
   const open = () => {
     const ordered = blocks.map((b) => b.key).filter((k) => selected.includes(k));
-    window.open(`/admin/resultados-finales?bloques=${ordered.join(',')}`, '_blank');
+    window.open(
+      `/admin/resultados-finales?bloques=${ordered.join(',')}&porhoja=${perSheet}`,
+      '_blank'
+    );
   };
 
   return (
