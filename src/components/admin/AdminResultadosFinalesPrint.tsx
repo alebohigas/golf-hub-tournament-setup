@@ -20,10 +20,17 @@ import { useResultadosFinalesCatalogo } from '@/hooks/useResultadosFinales';
 /** Clave de un bloque seleccionable ("catid:gross"). */
 const keyOf = (catid: string, gross: '0' | '1') => `${catid}:${gross}`;
 
+/**
+ * Arreglo vacío ESTABLE: mientras el catálogo carga (o falla) se reutiliza la
+ * misma referencia, evitando que `blocks` cambie en cada render y que el
+ * efecto de preselección caiga en un ciclo infinito de setState.
+ */
+const EMPTY_CATEGORIES: never[] = [];
+
 /** Panel de impresión de resultados finales. */
 const AdminResultadosFinalesPrint = () => {
   const { data, isLoading } = useResultadosFinalesCatalogo();
-  const categories = data?.categories ?? [];
+  const categories = data?.categories ?? EMPTY_CATEGORIES;
 
   /** Orden de impresión por id de categoría: ascendente o descendente. */
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -59,9 +66,16 @@ const AdminResultadosFinalesPrint = () => {
   /** Bloques (categorías) por hoja carta: 1, 2 o 3. */
   const [perSheet, setPerSheet] = useState<'1' | '2' | '3'>('2');
 
-  /** Preselecciona todos los bloques disponibles al cargar el catálogo. */
+  /**
+   * Preselecciona todos los bloques disponibles al cargar el catálogo.
+   * Sólo actualiza el estado si la lista de claves cambió, para no
+   * re-renderizar en bucle cuando no hay datos.
+   */
   useEffect(() => {
-    setSelected(blocks.map((b) => b.key));
+    const keys = blocks.map((b) => b.key);
+    setSelected((prev) =>
+      prev.length === keys.length && prev.every((k, i) => k === keys[i]) ? prev : keys
+    );
   }, [blocks]);
 
   /** Alterna un bloque en la selección. */
