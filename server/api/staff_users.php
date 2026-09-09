@@ -128,7 +128,8 @@ if ($action === 'update') {
         $sets[] = "pwd = '" . esc($conn, $h) . "'";
     }
     if ($sets) {
-        $sql = "UPDATE usuarios SET " . implode(', ', $sets) . " WHERE id = $id AND tipo = 99";
+        // Permite editar cualquier cuenta (staff temporal o cuenta existente).
+        $sql = "UPDATE usuarios SET " . implode(', ', $sets) . " WHERE id = $id";
         if (!$conn->query($sql)) json_error('Update failed: ' . $conn->error, 500);
     }
     if (isset($body['areas'])) sync_areas($conn, $id, $body['areas'], $VALID_AREAS);
