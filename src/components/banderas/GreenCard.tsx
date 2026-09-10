@@ -124,7 +124,7 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         className="w-full h-auto"
         role="img"
-        aria-label={`Posición de bandera en el hoyo ${hole}: ${pinFromFront} pasos del frente, ${pinFromSide} pasos del borde ${pinSide === 'L' ? 'izquierdo' : 'derecho'}, profundidad total ${depth}.`}
+        aria-label={`Posición de bandera en el hoyo ${hole}: ${pinFromFront} pasos del frente, ${isCenter ? 'al centro del green' : `${pinFromSide} pasos del borde ${pinSide === 'L' ? 'izquierdo' : 'derecho'}`}, profundidad total ${depth}.`}
       >
         {/* Green surface */}
         <defs>
