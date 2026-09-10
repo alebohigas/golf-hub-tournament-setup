@@ -18,7 +18,8 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Trophy, Crown, Medal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Trophy, Crown, Medal, Printer } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import type { BracketQualifier } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
