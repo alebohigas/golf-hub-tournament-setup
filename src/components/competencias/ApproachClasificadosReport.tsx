@@ -83,24 +83,23 @@ const ApproachClasificadosReport = ({
       </div>
 
       {/* Tabla de clasificados */}
-      <Card className="border-border/50 overflow-hidden">
-        <CardContent className="p-0">
+      <Card className="border-border/50 overflow-hidden bg-white">
+        <CardContent className="p-0 bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm bg-white">
               <thead className="bg-primary text-primary-foreground">
                 <tr>
                   <th className={`${TH_CLASS} text-center w-14`}>Pos</th>
                   <th className={`${TH_CLASS} text-center w-16`}>Club</th>
                   <th className={`${TH_CLASS} text-left`}>Jugador</th>
                   <th className={`${TH_CLASS} text-center`}>Cat</th>
-                  <th className={`${TH_CLASS} text-left`}>Premio</th>
                   <th className={`${TH_CLASS} text-right`}>Dist</th>
                   {showFecha && <th className={`${TH_CLASS} text-right`}>Registro</th>}
                 </tr>
               </thead>
               <tbody>
                 {players.map((p) => (
-                  <tr key={`${p.id}-${p.position}`} className="border-t border-border/50">
+                  <tr key={`${p.id}-${p.position}`} className="border-t border-border/50 bg-white">
                     <td className="px-3 py-2 text-center font-semibold">{p.position}</td>
                     <td className="px-3 py-2 text-center">
                       {p.clubLogo ? (
@@ -114,7 +113,6 @@ const ApproachClasificadosReport = ({
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">{p.name}</td>
                     <td className="px-3 py-2 text-center text-muted-foreground">{p.category}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{p.group}</td>
                     <td className="px-3 py-2 text-right font-semibold">{p.distance.toFixed(2)}</td>
                     {showFecha && (
                       <td className="px-3 py-2 text-right text-xs text-muted-foreground whitespace-nowrap">
