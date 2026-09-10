@@ -368,9 +368,15 @@ const AdminBanderas = () => {
                       />
                     </td>
                     <td className="px-2 py-1.5">
+                      {/* Lado: L / R / C. 'C' (Centro) fuerza lateral = 0
+                          porque la bandera está en el mero centro del green. */}
                       <Select
                         value={r.pinSide}
-                        onValueChange={(v) => update(idx, { pinSide: v as PinSide })}
+                        onValueChange={(v) =>
+                          update(idx, v === 'C'
+                            ? { pinSide: 'C', pinFromSide: 0 }
+                            : { pinSide: v as PinSide })
+                        }
                       >
                         <SelectTrigger className="h-8">
                           <SelectValue />
@@ -378,6 +384,7 @@ const AdminBanderas = () => {
                         <SelectContent>
                           <SelectItem value="L">Izquierdo (L)</SelectItem>
                           <SelectItem value="R">Derecho (R)</SelectItem>
+                          <SelectItem value="C">Centro (C)</SelectItem>
                         </SelectContent>
                       </Select>
                     </td>

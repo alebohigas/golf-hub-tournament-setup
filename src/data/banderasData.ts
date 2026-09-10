@@ -9,7 +9,9 @@
  * un mensaje de disculpa y el admin puede ocultarla manualmente.
  */
 
-export type PinSide = 'L' | 'R';
+/** Lado desde el que se midió la distancia lateral. 'C' = bandera en el
+ *  mero centro (lateral = 0); en la imagen sólo se dibuja la línea central. */
+export type PinSide = 'L' | 'R' | 'C';
 
 export interface PinSheetHole {
   hole: number;
