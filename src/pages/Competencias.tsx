@@ -683,12 +683,8 @@ const Competencias = () => {
                 approachActive={true}
                 onApproachClick={() => { /* already active */ }}
               />
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-foreground">
-                  {approachTitle}
-                </h2>
-              </div>
-              <ApproachClasificadosReport orden={approachOrden} />
+              {/* El reporte incorpora su propio título, como Clasificados Putt. */}
+              <ApproachClasificadosReport orden={approachOrden} title={approachTitle} />
             </>
           )}
 

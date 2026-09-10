@@ -196,7 +196,8 @@ const AdminApproach = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ApproachClasificadosReport orden={orden} />
+          {/* Vista previa fiel al reporte público, incluido su título configurable. */}
+          <ApproachClasificadosReport orden={orden} title={title.trim() || DEFAULT_TITLE} />
         </CardContent>
       </Card>
     </div>
