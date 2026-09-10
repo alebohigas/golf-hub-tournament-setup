@@ -705,15 +705,22 @@ const QualifiersTable = ({
         className="max-w-md"
       />
 
-      {/* Vista escritorio/tableta: tabla clásica de una línea por jugador. */}
-      <div className="hidden md:block overflow-x-auto bg-white rounded-lg border border-border">
-        <table className="w-full text-sm">
+      {/*
+       * Tabla única para todos los dispositivos (celular, tableta y escritorio).
+       * En pantallas angostas se desplaza horizontalmente y las columnas "#" y
+       * "Jugador" quedan fijas (sticky) para no perder la referencia del
+       * jugador. El nombre se limita a un máximo de 4 renglones.
+       */}
+      <div className="overflow-x-auto bg-white rounded-lg border border-border">
+        <table className="w-full min-w-[34rem] text-xs sm:text-sm">
           <thead>
             <tr className="bg-primary text-primary-foreground">
-              <th className="px-3 py-2 text-center font-bold w-12">#</th>
-              <th className="px-3 py-2 text-left font-bold">Jugador</th>
+              <th className="px-2 py-2 text-center font-bold w-10 sticky left-0 z-20 bg-primary">#</th>
+              <th className="px-2 py-2 text-left font-bold sticky left-10 z-20 bg-primary min-w-[9rem]">
+                Jugador
+              </th>
               <th className="px-3 py-2 text-left font-bold">Cat</th>
-              <th className="px-3 py-2 text-right font-bold w-32">Dist</th>
+              <th className="px-3 py-2 text-right font-bold w-28">Dist</th>
               <th className="px-3 py-2 text-center font-bold w-44">Fecha</th>
             </tr>
           </thead>
@@ -727,23 +734,33 @@ const QualifiersTable = ({
             ) : (
               qualifiers.map((q) => {
                 const isHit = !!search.trim() && matchesPlayerName(q.name, search);
+                /** Fondo de las celdas fijas: debe ser opaco para tapar el scroll. */
+                const stickyBg = isHit ? 'bg-accent' : 'bg-white';
                 return (
                   <tr
                     key={`${q.rank}-${q.name}`}
                     ref={(el) => rowRefs.current.set(q.rank, el)}
-                    className={`border-t border-border/60 ${
-                      isHit ? 'bg-accent ring-2 ring-accent' : ''
-                    }`}
+                    className={`border-t border-border/60 ${isHit ? 'bg-accent' : ''}`}
                   >
-                    <td className="px-3 py-2 text-center font-semibold text-primary">{q.rank}</td>
-                    <td className={`px-3 py-2 ${isHit ? 'font-bold text-accent-foreground' : ''}`}>
-                      {q.name}
+                    <td
+                      className={`px-2 py-2 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
+                    >
+                      {q.rank}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">{q.categoria ?? '—'}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td
+                      className={`px-2 py-2 sticky left-10 z-10 min-w-[9rem] max-w-[11rem] ${stickyBg} ${
+                        isHit ? 'font-bold text-accent-foreground' : ''
+                      }`}
+                    >
+                      <span className="block break-words line-clamp-4">{q.name}</span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                      {q.categoria ?? '—'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
                       {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
                     </td>
-                    <td className="px-3 py-2 text-center text-muted-foreground tabular-nums">
+                    <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap">
                       {formatFechaHora(q.fecha_full ?? q.fecha)}
                     </td>
                   </tr>
@@ -754,43 +771,6 @@ const QualifiersTable = ({
         </table>
       </div>
 
-      {/*
-       * Vista celular: lista compacta de máximo 4 renglones por cada #
-       * (renglón 1: # + nombre; 2: Cat; 3: Dist; 4: Fecha) para que todo
-       * quepa en pantalla angosta sin scroll horizontal.
-       */}
-      <div className="md:hidden bg-white rounded-lg border border-border divide-y divide-border/60">
-        {qualifiers.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-            Aún no hay clasificados.
-          </p>
-        ) : (
-          qualifiers.map((q) => {
-            const isHit = !!search.trim() && matchesPlayerName(q.name, search);
-            return (
-              <div
-                key={`${q.rank}-${q.name}`}
-                ref={(el) => rowRefs.current.set(q.rank, el as unknown as HTMLTableRowElement)}
-                className={`px-3 py-2 text-xs leading-snug ${
-                  isHit ? 'bg-accent ring-2 ring-accent' : ''
-                }`}
-              >
-                <p className={`font-semibold ${isHit ? 'text-accent-foreground' : ''}`}>
-                  <span className="text-primary font-bold mr-1">{q.rank}.</span>
-                  {q.name}
-                </p>
-                <p className="text-muted-foreground">Cat: {q.categoria ?? '—'}</p>
-                <p className="tabular-nums">
-                  Dist: {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
-                </p>
-                <p className="text-muted-foreground tabular-nums">
-                  Fecha: {formatFechaHora(q.fecha_full ?? q.fecha)}
-                </p>
-              </div>
-            );
-          })
-        )}
-      </div>
     </section>
   );
 };
