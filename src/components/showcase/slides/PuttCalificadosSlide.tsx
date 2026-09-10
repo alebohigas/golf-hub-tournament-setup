@@ -133,9 +133,15 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
                         ''
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {q.fecha ?? ''}
-                    </TableCell>
+                    {(() => {
+                      const { date, time } = splitFechaHora(q.fecha);
+                      return (
+                        <TableCell className="text-right text-sm text-muted-foreground leading-tight">
+                          <span className="block">{date}</span>
+                          {time && <span className="block text-[10px] md:text-xs opacity-80">{time}</span>}
+                        </TableCell>
+                      );
+                    })()}
                   </TableRow>
                 ))
               )}
