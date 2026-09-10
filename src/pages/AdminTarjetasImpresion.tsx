@@ -695,6 +695,8 @@ const MatchScorecard = ({
             inTotal={t.yardasIn}
             total={t.yardas}
           />
+          {/* PAR TIME: misma fila que en Stroke Play / Stableford (hora estimada por hoyo) */}
+          <Row key="partime" label={TARJETA_ROW_LABELS.partime} value={(h) => h.parTime} />
           <Row
             label={TARJETA_ROW_LABELS.ventaja}
             value={(h) => h.ventaja ?? ''}
