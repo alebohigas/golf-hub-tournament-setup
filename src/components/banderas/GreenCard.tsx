@@ -178,7 +178,8 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           FONDO
         </text>
 
-        {/* Distance guides forming an L from the edges to the pin */}
+        {/* Guía vertical (frente → bandera). Siempre visible; cuando la
+            bandera está al centro es la ÚNICA línea que se dibuja. */}
         <line
           x1={pinX} y1={ovalBottom} x2={pinX} y2={pinY}
           stroke="hsl(var(--primary))"
@@ -186,22 +187,25 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           strokeDasharray="3 2"
           opacity={0.7}
         />
-        <line
-          x1={pinSide === 'L' ? ovalLeft : ovalRight}
-          y1={pinY}
-          x2={pinX}
-          y2={pinY}
-          stroke="hsl(var(--primary))"
-          strokeWidth={1}
-          strokeDasharray="3 2"
-          opacity={0.7}
-        />
+        {/* Guía lateral: se omite cuando la bandera está al centro. */}
+        {!isCenter && (
+          <line
+            x1={pinSide === 'L' ? ovalLeft : ovalRight}
+            y1={pinY}
+            x2={pinX}
+            y2={pinY}
+            stroke="hsl(var(--primary))"
+            strokeWidth={1}
+            strokeDasharray="3 2"
+            opacity={0.7}
+          />
+        )}
 
         {/* Distance labels */}
         <text
-          x={pinX + (pinSide === 'L' ? 6 : -6)}
+          x={pinX + (isCenter || pinSide === 'L' ? 6 : -6)}
           y={(ovalBottom + pinY) / 2 + 1}
-          textAnchor={pinSide === 'L' ? 'start' : 'end'}
+          textAnchor={isCenter || pinSide === 'L' ? 'start' : 'end'}
           fontSize={14}
           fontWeight={800}
           fill="hsl(var(--foreground))"
@@ -211,19 +215,21 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
         >
           {pinFromFront}
         </text>
-        <text
-          x={(pinX + (pinSide === 'L' ? ovalLeft : ovalRight)) / 2}
-          y={pinY - 6}
-          textAnchor="middle"
-          fontSize={14}
-          fontWeight={800}
-          fill="hsl(var(--foreground))"
-          stroke="hsl(var(--card))"
-          strokeWidth={3}
-          paintOrder="stroke"
-        >
-          {pinFromSide}
-        </text>
+        {!isCenter && (
+          <text
+            x={(pinX + (pinSide === 'L' ? ovalLeft : ovalRight)) / 2}
+            y={pinY - 6}
+            textAnchor="middle"
+            fontSize={14}
+            fontWeight={800}
+            fill="hsl(var(--foreground))"
+            stroke="hsl(var(--card))"
+            strokeWidth={3}
+            paintOrder="stroke"
+          >
+            {pinFromSide}
+          </text>
+        )}
 
         {/* Pin: larger circle (hole) + flagstick + flag */}
         <circle cx={pinX} cy={pinY} r={3} fill="hsl(var(--foreground))" />
