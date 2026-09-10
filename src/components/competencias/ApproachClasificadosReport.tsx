@@ -124,15 +124,21 @@ const ApproachClasificadosReport = ({
         className="max-w-md"
       />
 
-      {/* Vista escritorio/tableta: tabla blanca idéntica a Clasificados Putt. */}
-      <div className="hidden md:block overflow-x-auto bg-white rounded-lg border border-border">
-        <table className="w-full text-sm bg-white">
+      {/*
+       * Tabla única para todos los dispositivos, idéntica a Clasificados Putt.
+       * En pantallas angostas se desplaza horizontalmente y las columnas "#" y
+       * "Jugador" permanecen fijas (sticky). El nombre se limita a 4 renglones.
+       */}
+      <div className="overflow-x-auto bg-white rounded-lg border border-border">
+        <table className="w-full min-w-[34rem] text-xs sm:text-sm bg-white">
           <thead>
             <tr className="bg-primary text-primary-foreground">
-              <th className={`${TH_CLASS} text-center w-12`}>#</th>
-              <th className={`${TH_CLASS} text-left`}>Jugador</th>
+              <th className={`${TH_CLASS} text-center w-10 sticky left-0 z-20 bg-primary`}>#</th>
+              <th className={`${TH_CLASS} text-left sticky left-10 z-20 bg-primary min-w-[9rem]`}>
+                Jugador
+              </th>
               <th className={`${TH_CLASS} text-left`}>Cat</th>
-              <th className={`${TH_CLASS} text-right w-32`}>Dist</th>
+              <th className={`${TH_CLASS} text-right w-28`}>Dist</th>
               {showFecha && <th className={`${TH_CLASS} text-center w-44`}>Fecha</th>}
             </tr>
           </thead>
@@ -148,20 +154,32 @@ const ApproachClasificadosReport = ({
               players.map((player) => {
                 const rowKey = `${player.id}-${player.position}`;
                 const isHit = !!search.trim() && matchesPlayerName(player.name, search);
+                /** Fondo opaco requerido por las celdas fijas al desplazar. */
+                const stickyBg = isHit ? 'bg-accent' : 'bg-white';
                 return (
                   <tr
                     key={rowKey}
                     ref={(element) => rowRefs.current.set(rowKey, element)}
-                    className={`border-t border-border/60 ${
-                      isHit ? 'bg-accent ring-2 ring-accent' : ''
-                    }`}
+                    className={`border-t border-border/60 ${isHit ? 'bg-accent' : ''}`}
                   >
-                    <td className="px-3 py-2 text-center font-semibold text-primary">{player.position}</td>
-                    <td className={`px-3 py-2 whitespace-nowrap ${isHit ? 'font-bold text-accent-foreground' : ''}`}>
-                      {player.name}
+                    <td
+                      className={`px-2 py-2 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
+                    >
+                      {player.position}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">{player.category || '—'}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{player.distance.toFixed(2)} mts</td>
+                    <td
+                      className={`px-2 py-2 sticky left-10 z-10 min-w-[9rem] max-w-[11rem] ${stickyBg} ${
+                        isHit ? 'font-bold text-accent-foreground' : ''
+                      }`}
+                    >
+                      <span className="block break-words line-clamp-4">{player.name}</span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                      {player.category || '—'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                      {player.distance.toFixed(2)} mts
+                    </td>
                     {showFecha && (
                       <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap">
                         {formatFechaHora(player.fecha)}
@@ -175,46 +193,6 @@ const ApproachClasificadosReport = ({
         </table>
       </div>
 
-      {/*
-       * Vista celular: lista compacta de máximo 4 renglones por cada #
-       * (renglón 1: # + nombre; 2: Cat; 3: Dist; 4: Fecha), idéntica a la
-       * vista móvil de Clasificados Putt para que todo quepa sin scroll
-       * horizontal.
-       */}
-      <div className="md:hidden bg-white rounded-lg border border-border divide-y divide-border/60">
-        {players.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-            <Crosshair className="h-8 w-8 mx-auto mb-2" />
-            Aún no hay clasificados.
-          </p>
-        ) : (
-          players.map((player) => {
-            const rowKey = `${player.id}-${player.position}`;
-            const isHit = !!search.trim() && matchesPlayerName(player.name, search);
-            return (
-              <div
-                key={rowKey}
-                ref={(element) => rowRefs.current.set(rowKey, element as unknown as HTMLTableRowElement)}
-                className={`px-3 py-2 text-xs leading-snug ${
-                  isHit ? 'bg-accent ring-2 ring-accent' : ''
-                }`}
-              >
-                <p className={`font-semibold ${isHit ? 'text-accent-foreground' : ''}`}>
-                  <span className="text-primary font-bold mr-1">{player.position}.</span>
-                  {player.name}
-                </p>
-                <p className="text-muted-foreground">Cat: {player.category || '—'}</p>
-                <p className="tabular-nums">Dist: {player.distance.toFixed(2)} mts</p>
-                {showFecha && (
-                  <p className="text-muted-foreground tabular-nums">
-                    Fecha: {formatFechaHora(player.fecha)}
-                  </p>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
     </section>
   );
 };
