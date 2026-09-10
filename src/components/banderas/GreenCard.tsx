@@ -38,6 +38,14 @@ interface GreenCardProps {
 const GreenCard = ({ data, className }: GreenCardProps) => {
   const { hole, depth, pinFromFront, pinFromSide, pinSide, slope } = data;
 
+  /**
+   * isCenter — la bandera está en el centro exacto del green.
+   * Se activa cuando el admin eligió "Centro (C)" o cuando la distancia
+   * lateral es 0. En ese caso la tarjeta dibuja SÓLO la línea central
+   * vertical (sin guía lateral) y el pie muestra "Centro".
+   */
+  const isCenter = pinSide === 'C' || pinFromSide === 0;
+
   // ----- Geometry --------------------------------------------------
   // Oval bounds inside the SVG view box.
   const ovalLeft = PAD_X;
@@ -60,8 +68,10 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
   //   y: front (bottom) - frontFrac * (oval height)
   //   x: depending on which side the measurement is taken from
   const pinY = ovalBottom - frontFrac * (ovalBottom - ovalTop);
-  const pinX =
-    pinSide === 'L'
+  // Centro: la bandera va exactamente sobre el eje vertical del green.
+  const pinX = isCenter
+    ? cx
+    : pinSide === 'L'
       ? ovalLeft + sideFrac * (ovalRight - ovalLeft)
       : ovalRight - sideFrac * (ovalRight - ovalLeft);
 
@@ -114,7 +124,7 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         className="w-full h-auto"
         role="img"
-        aria-label={`Posición de bandera en el hoyo ${hole}: ${pinFromFront} pasos del frente, ${pinFromSide} pasos del borde ${pinSide === 'L' ? 'izquierdo' : 'derecho'}, profundidad total ${depth}.`}
+        aria-label={`Posición de bandera en el hoyo ${hole}: ${pinFromFront} pasos del frente, ${isCenter ? 'al centro del green' : `${pinFromSide} pasos del borde ${pinSide === 'L' ? 'izquierdo' : 'derecho'}`}, profundidad total ${depth}.`}
       >
         {/* Green surface */}
         <defs>
@@ -168,7 +178,8 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           FONDO
         </text>
 
-        {/* Distance guides forming an L from the edges to the pin */}
+        {/* Guía vertical (frente → bandera). Siempre visible; cuando la
+            bandera está al centro es la ÚNICA línea que se dibuja. */}
         <line
           x1={pinX} y1={ovalBottom} x2={pinX} y2={pinY}
           stroke="hsl(var(--primary))"
@@ -176,22 +187,25 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           strokeDasharray="3 2"
           opacity={0.7}
         />
-        <line
-          x1={pinSide === 'L' ? ovalLeft : ovalRight}
-          y1={pinY}
-          x2={pinX}
-          y2={pinY}
-          stroke="hsl(var(--primary))"
-          strokeWidth={1}
-          strokeDasharray="3 2"
-          opacity={0.7}
-        />
+        {/* Guía lateral: se omite cuando la bandera está al centro. */}
+        {!isCenter && (
+          <line
+            x1={pinSide === 'L' ? ovalLeft : ovalRight}
+            y1={pinY}
+            x2={pinX}
+            y2={pinY}
+            stroke="hsl(var(--primary))"
+            strokeWidth={1}
+            strokeDasharray="3 2"
+            opacity={0.7}
+          />
+        )}
 
         {/* Distance labels */}
         <text
-          x={pinX + (pinSide === 'L' ? 6 : -6)}
+          x={pinX + (isCenter || pinSide === 'L' ? 6 : -6)}
           y={(ovalBottom + pinY) / 2 + 1}
-          textAnchor={pinSide === 'L' ? 'start' : 'end'}
+          textAnchor={isCenter || pinSide === 'L' ? 'start' : 'end'}
           fontSize={14}
           fontWeight={800}
           fill="hsl(var(--foreground))"
@@ -201,19 +215,21 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
         >
           {pinFromFront}
         </text>
-        <text
-          x={(pinX + (pinSide === 'L' ? ovalLeft : ovalRight)) / 2}
-          y={pinY - 6}
-          textAnchor="middle"
-          fontSize={14}
-          fontWeight={800}
-          fill="hsl(var(--foreground))"
-          stroke="hsl(var(--card))"
-          strokeWidth={3}
-          paintOrder="stroke"
-        >
-          {pinFromSide}
-        </text>
+        {!isCenter && (
+          <text
+            x={(pinX + (pinSide === 'L' ? ovalLeft : ovalRight)) / 2}
+            y={pinY - 6}
+            textAnchor="middle"
+            fontSize={14}
+            fontWeight={800}
+            fill="hsl(var(--foreground))"
+            stroke="hsl(var(--card))"
+            strokeWidth={3}
+            paintOrder="stroke"
+          >
+            {pinFromSide}
+          </text>
+        )}
 
         {/* Pin: larger circle (hole) + flagstick + flag */}
         <circle cx={pinX} cy={pinY} r={3} fill="hsl(var(--foreground))" />
@@ -235,11 +251,14 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Frente</p>
           <p className="text-sm font-bold tabular-nums">{pinFromFront}</p>
         </div>
+        {/* Celda lateral: "Centro" cuando la bandera va al eje del green. */}
         <div className="rounded-md bg-muted/50 py-1.5">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            {pinSide === 'L' ? 'Izq' : 'Der'}
+            {isCenter ? 'Lado' : pinSide === 'L' ? 'Izq' : 'Der'}
           </p>
-          <p className="text-sm font-bold tabular-nums">{pinFromSide}</p>
+          <p className="text-sm font-bold tabular-nums">
+            {isCenter ? 'Centro' : pinFromSide}
+          </p>
         </div>
         <div className="rounded-md bg-muted/50 py-1.5">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Depth</p>

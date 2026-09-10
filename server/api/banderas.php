@@ -58,6 +58,16 @@ function banderas_parse_fecha($s) {
     return $d->format('Y-m-d');
 }
 
+/**
+ * Normaliza el lado lateral guardado en BD.
+ * Valores válidos: 'L' (izquierdo), 'R' (derecho), 'C' (centro exacto).
+ * Cualquier otro valor cae a 'L' por compatibilidad con datos antiguos.
+ */
+function normalize_pin_side($v) {
+    $v = strtoupper(trim((string)$v));
+    return in_array($v, ['L', 'R', 'C'], true) ? $v : 'L';
+}
+
 /** Normaliza fila de BD a JSON consumido por el cliente. */
 function normalize_bandera($r) {
     return [
@@ -65,7 +75,7 @@ function normalize_bandera($r) {
         'depth'        => (int)$r['depth'],
         'pinFromFront' => (int)$r['frente'],
         'pinFromSide'  => (int)$r['lateral'],
-        'pinSide'      => $r['lateral_lado'] === 'R' ? 'R' : 'L',
+        'pinSide'      => normalize_pin_side($r['lateral_lado'] ?? 'L'),
         'slope'        => (int)$r['desde_centro'],
         'title'        => $r['titulo'] ?? null,
     ];
@@ -245,7 +255,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $depth        = (int)($h['depth'] ?? 0);
         $frente       = (int)($h['pinFromFront'] ?? 0);
         $lateral      = (int)($h['pinFromSide'] ?? 0);
-        $side         = (($h['pinSide'] ?? 'L') === 'R') ? 'R' : 'L';
+        /* Lado lateral: acepta 'L', 'R' o 'C' (centro exacto del green). */
+        $side         = normalize_pin_side($h['pinSide'] ?? 'L');
         $desdeCentro  = (int)($h['slope'] ?? 0);
         $titulo       = $h['title'] ?? null;
         $tituloSql    = ($titulo === null || $titulo === '')
