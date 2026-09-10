@@ -666,17 +666,20 @@ const QualifiersTable = ({
   };
 
   /**
-   * Formatea `YYYY-MM-DD HH:MM:SS` (o sólo `YYYY-MM-DD`) a "DD/MM/YYYY HH:MM:SS".
-   * Cuando la hora viene 00:00:00 (campo DATE sin time real) se omite.
+   * Formatea `YYYY-MM-DD HH:MM:SS` (o sólo `YYYY-MM-DD`) a fecha y hora
+   * separadas. Cuando la hora viene 00:00:00 (campo DATE sin time real)
+   * sólo se devuelve la fecha.
    */
-  const formatFechaHora = (f: string | null | undefined): string => {
-    if (!f) return '—';
+  const formatFechaHora = (
+    f: string | null | undefined,
+  ): { date: string; time: string | null } => {
+    if (!f) return { date: '—', time: null };
     const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/.exec(f);
-    if (!m) return f;
-    const dmy = `${m[3]}/${m[2]}/${m[1]}`;
-    if (!m[4]) return dmy;
-    if (m[4] === '00' && m[5] === '00' && m[6] === '00') return dmy;
-    return `${dmy} ${m[4]}:${m[5]}:${m[6]}`;
+    if (!m) return { date: f, time: null };
+    const date = `${m[3]}/${m[2]}/${m[1]}`;
+    if (!m[4]) return { date, time: null };
+    if (m[4] === '00' && m[5] === '00' && m[6] === '00') return { date, time: null };
+    return { date, time: `${m[4]}:${m[5]}:${m[6]}` };
   };
 
   const slots = Math.max(0, totalSlots | 0);
