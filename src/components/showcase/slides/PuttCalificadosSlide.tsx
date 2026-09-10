@@ -18,6 +18,20 @@ import { usePuttFinales } from '@/hooks/useBrackets';
 import { POLL_SHOWCASE } from '@/config/api';
 import ShowcaseStickyTitle from '@/components/showcase/ShowcaseStickyTitle';
 
+/**
+ * Separa una fecha/hora en fecha y hora. Acepta `YYYY-MM-DD HH:MM:SS` o
+ * `DD/MM/YYYY HH:MM:SS`; si no tiene hora, time es null.
+ */
+const splitFechaHora = (
+  value: string | null | undefined,
+): { date: string; time: string | null } => {
+  if (!value) return { date: '', time: null };
+  const m = /^(?:\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})(?:[ T](\d{2}:\d{2}:\d{2}))?/.exec(value);
+  if (!m) return { date: value, time: null };
+  const parts = value.split(/[ T]/);
+  return { date: parts[0], time: m[1] ?? null };
+};
+
 /** Props del slide. */
 interface Props {
   /** 'M' = Caballeros, 'F' = Damas, 'A' = bracket único ("Un solo bracket"). */
