@@ -124,8 +124,8 @@ const ApproachClasificadosReport = ({
         className="max-w-md"
       />
 
-      {/* Tabla blanca idéntica a Clasificados Putt. */}
-      <div className="overflow-x-auto bg-white rounded-lg border border-border">
+      {/* Vista escritorio/tableta: tabla blanca idéntica a Clasificados Putt. */}
+      <div className="hidden md:block overflow-x-auto bg-white rounded-lg border border-border">
         <table className="w-full text-sm bg-white">
           <thead>
             <tr className="bg-primary text-primary-foreground">
@@ -173,6 +173,47 @@ const ApproachClasificadosReport = ({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/*
+       * Vista celular: lista compacta de máximo 4 renglones por cada #
+       * (renglón 1: # + nombre; 2: Cat; 3: Dist; 4: Fecha), idéntica a la
+       * vista móvil de Clasificados Putt para que todo quepa sin scroll
+       * horizontal.
+       */}
+      <div className="md:hidden bg-white rounded-lg border border-border divide-y divide-border/60">
+        {players.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            <Crosshair className="h-8 w-8 mx-auto mb-2" />
+            Aún no hay clasificados.
+          </p>
+        ) : (
+          players.map((player) => {
+            const rowKey = `${player.id}-${player.position}`;
+            const isHit = !!search.trim() && matchesPlayerName(player.name, search);
+            return (
+              <div
+                key={rowKey}
+                ref={(element) => rowRefs.current.set(rowKey, element as unknown as HTMLTableRowElement)}
+                className={`px-3 py-2 text-xs leading-snug ${
+                  isHit ? 'bg-accent ring-2 ring-accent' : ''
+                }`}
+              >
+                <p className={`font-semibold ${isHit ? 'text-accent-foreground' : ''}`}>
+                  <span className="text-primary font-bold mr-1">{player.position}.</span>
+                  {player.name}
+                </p>
+                <p className="text-muted-foreground">Cat: {player.category || '—'}</p>
+                <p className="tabular-nums">Dist: {player.distance.toFixed(2)} mts</p>
+                {showFecha && (
+                  <p className="text-muted-foreground tabular-nums">
+                    Fecha: {formatFechaHora(player.fecha)}
+                  </p>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </section>
   );

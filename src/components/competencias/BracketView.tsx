@@ -705,7 +705,8 @@ const QualifiersTable = ({
         className="max-w-md"
       />
 
-      <div className="overflow-x-auto bg-white rounded-lg border border-border">
+      {/* Vista escritorio/tableta: tabla clásica de una línea por jugador. */}
+      <div className="hidden md:block overflow-x-auto bg-white rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-primary text-primary-foreground">
@@ -751,6 +752,44 @@ const QualifiersTable = ({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/*
+       * Vista celular: lista compacta de máximo 4 renglones por cada #
+       * (renglón 1: # + nombre; 2: Cat; 3: Dist; 4: Fecha) para que todo
+       * quepa en pantalla angosta sin scroll horizontal.
+       */}
+      <div className="md:hidden bg-white rounded-lg border border-border divide-y divide-border/60">
+        {qualifiers.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            Aún no hay clasificados.
+          </p>
+        ) : (
+          qualifiers.map((q) => {
+            const isHit = !!search.trim() && matchesPlayerName(q.name, search);
+            return (
+              <div
+                key={`${q.rank}-${q.name}`}
+                ref={(el) => rowRefs.current.set(q.rank, el as unknown as HTMLTableRowElement)}
+                className={`px-3 py-2 text-xs leading-snug ${
+                  isHit ? 'bg-accent ring-2 ring-accent' : ''
+                }`}
+              >
+                <p className={`font-semibold ${isHit ? 'text-accent-foreground' : ''}`}>
+                  <span className="text-primary font-bold mr-1">{q.rank}.</span>
+                  {q.name}
+                </p>
+                <p className="text-muted-foreground">Cat: {q.categoria ?? '—'}</p>
+                <p className="tabular-nums">
+                  Dist: {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
+                </p>
+                <p className="text-muted-foreground tabular-nums">
+                  Fecha: {formatFechaHora(q.fecha_full ?? q.fecha)}
+                </p>
+              </div>
+            );
+          })
+        )}
       </div>
     </section>
   );
