@@ -98,30 +98,43 @@ const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
   return (
     <div
       className={cn(
-        'relative rounded-2xl border border-border bg-card text-card-foreground',
-        'shadow-card hover:shadow-elegant transition-shadow p-4 flex flex-col',
+        'relative border border-border bg-card text-card-foreground flex flex-col',
+        compact
+          ? 'rounded-md p-1.5'
+          : 'rounded-2xl shadow-card hover:shadow-elegant transition-shadow p-4',
         className,
       )}
     >
       {/* ===== Card header: hole # + slope badge ===== */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className={cn('flex items-start justify-between gap-1', compact ? 'mb-0.5' : 'mb-2')}>
         <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+          <p className={cn(
+            'uppercase tracking-wider text-muted-foreground font-semibold',
+            compact ? 'text-[7px] leading-none' : 'text-xs',
+          )}>
             Hoyo
           </p>
-          <p className="text-3xl font-display font-bold text-foreground leading-none">
+          <p className={cn(
+            'font-display font-bold text-foreground leading-none',
+            compact ? 'text-base' : 'text-3xl',
+          )}>
             {hole}
           </p>
         </div>
         <div
           className={cn(
-            'flex flex-col items-center px-2.5 py-1.5 rounded-lg border text-xs font-mono',
+            'flex flex-col items-center rounded border font-mono',
+            compact ? 'px-1 py-0.5' : 'px-2.5 py-1.5 rounded-lg text-xs',
             badgeClass,
           )}
           title="Posición del pin respecto al centro del green (positivo = hacia el fondo, negativo = hacia el frente)"
         >
-          <span className="text-[10px] uppercase tracking-wide opacity-80">vs Centro</span>
-          <span className="text-base font-bold leading-none mt-0.5">{offsetLabel}</span>
+          <span className={cn('uppercase tracking-wide opacity-80', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>
+            vs Centro
+          </span>
+          <span className={cn('font-bold leading-none', compact ? 'text-[9px] mt-0.5' : 'text-base mt-0.5')}>
+            {offsetLabel}
+          </span>
         </div>
       </div>
 
