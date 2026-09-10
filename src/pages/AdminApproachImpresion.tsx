@@ -197,7 +197,15 @@ const AdminApproachImpresion = () => {
                         <span className="block">{p.distance.toFixed(2)}</span>
                         <span className="block text-[7px]">mts</span>
                       </td>
-                      <td className={`${TD} text-right whitespace-nowrap`}>{p.fecha ?? '—'}</td>
+                      {(() => {
+                        const { date, time } = splitFechaHora(p.fecha);
+                        return (
+                          <td className={`${TD} text-right whitespace-nowrap leading-tight`}>
+                            <span className="block">{date}</span>
+                            {time && <span className="block text-[7px]">{time}</span>}
+                          </td>
+                        );
+                      })()}
                     </tr>
                   ))}
                 </tbody>
