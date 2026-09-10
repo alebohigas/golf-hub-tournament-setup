@@ -498,6 +498,20 @@ export interface TarjetasPrintConfig {
   showLogo?: boolean;
 }
 
+/**
+ * ApproachConfig
+ * Configuración del reporte "Clasificados de Approach" (Admin > Approach).
+ * Se guarda por dominio en `site_config.approach_config`.
+ */
+export interface ApproachConfig {
+  /** Publicar el reporte en la página de Competiciones. */
+  enabled: boolean;
+  /** Orden por distancia: ascendente (default) o descendente. */
+  orden: 'asc' | 'desc';
+  /** Título mostrado en Competiciones. Default "Clasificados de Approach". */
+  title?: string;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;

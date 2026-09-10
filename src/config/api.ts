@@ -248,6 +248,14 @@ export const getCompetenciaDetailUrl = (id: string): string =>
 export const getCompetenciaGroupUrl = (compId: string, groupId: string): string =>
   `${API_BASE_URL}/competencias.php${buildQuery({ tipo: compId, detalle: '1' })}`;
 
+/**
+ * Clasificados de Approach (resumen de torneos.approachjug).
+ * @param orden 'asc' | 'desc' — dirección de ordenamiento por distancia.
+ */
+export const getApproachClasificadosUrl = (orden: 'asc' | 'desc' = 'asc'): string =>
+  `${API_BASE_URL}/approach_clasificados.php${buildQuery({ orden })}`;
+
+
 // ============= Brackets — Putt Finales (Caballero / Dama) =============
 
 /** Público: ambos brackets (M/F) con config + matches + visible. */
