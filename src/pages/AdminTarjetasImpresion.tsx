@@ -867,12 +867,13 @@ const AdminTarjetasImpresion = () => {
    * total de renglones para que el alto calculado nunca desborde 1/2 carta.
    */
   /*
-    MATCH PLAY: la maqueta es fija (HOYO, PAR, YARDAS, VENTAJA + 4 renglones por
-    contendiente con SCORE GROSS a 1.5 + DIF), así que se cuentan sus renglones
-    reales para que la tarjeta siga cabiendo exacta en 1/2 hoja carta.
+    MATCH PLAY: la maqueta es fija (HOYO, PAR, YARDAS, PAR TIME, VENTAJA +
+    4 renglones por contendiente con SCORE GROSS a 1.5 + DIF), así que se
+    cuentan sus renglones reales para que la tarjeta siga cabiendo exacta
+    en 1/2 hoja carta.
   */
   const effectiveRows = matchPlay
-    ? 4 + 2 * (1 + 1.5 + 1 + 1) + 1
+    ? 5 + 2 * (1 + 1.5 + 1 + 1) + 1
     : rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
 
   const rowMm = Math.min(
