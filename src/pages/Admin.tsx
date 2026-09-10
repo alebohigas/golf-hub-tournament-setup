@@ -37,6 +37,8 @@ import AdminThemePalette from '@/components/admin/AdminThemePalette';
 import AdminShowcase300 from '@/components/admin/AdminShowcase300';
 import AdminStats from '@/components/admin/AdminStats';
 import AdminStatsPage from '@/components/admin/AdminStatsPage';
+/** Pestaña Approach: administra el reporte "Clasificados de Approach". */
+import AdminApproach from '@/components/admin/AdminApproach';
 import AdminHistorial from '@/components/admin/AdminHistorial';
 import AdminHeros from '@/components/admin/AdminHeros';
 import AdminPopup from '@/components/admin/AdminPopup';
@@ -261,6 +263,8 @@ const AdminDashboard = () => {
     reglas: 'reglas',
     // Heros (fondos por página/torneo) queda restringido a superadmin.
     heros: undefined,
+    // Approach (Clasificados de Approach) queda restringido a superadmin.
+    approach: undefined,
     // ALIEN SYSTEM: la pestaña contenedora se resuelve aparte (cualquiera de
     // sus sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
     alien: undefined,
@@ -530,6 +534,8 @@ const AdminDashboard = () => {
             { value: 'heros',        icon: ImageIcon,       label: 'Heros' },
             { value: 'stats',        icon: BarChart3,       label: 'Estadísticas' },
             { value: 'stats-page',   icon: BarChart3,       label: 'Página /stats' },
+            /** Clasificados de Approach (resumen de torneos.approachjug). */
+            { value: 'approach',     icon: Crosshair,       label: 'Approach' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
           // Filtrar por área para staff temporal. Admin completo ve todo.
@@ -915,6 +921,12 @@ const AdminDashboard = () => {
             manuales de las 3 secciones (Clubes, Categoría, Jugador). */}
         <TabsContent value="stats-page">
           <AdminStatsPage />
+        </TabsContent>
+
+        {/* Approach — publica y ordena el reporte "Clasificados de Approach"
+            que se presenta en la página de Competiciones. */}
+        <TabsContent value="approach">
+          <AdminApproach />
         </TabsContent>
 
         {/* Usuarios Tab — solo admin completo. CRUD de staff temporal con
