@@ -498,6 +498,20 @@ export interface TarjetasPrintConfig {
   showLogo?: boolean;
 }
 
+/**
+ * ApproachConfig
+ * Configuración del reporte "Clasificados de Approach" (Admin > Approach).
+ * Se guarda por dominio en `site_config.approach_config`.
+ */
+export interface ApproachConfig {
+  /** Publicar el reporte en la página de Competiciones. */
+  enabled: boolean;
+  /** Orden por distancia: ascendente (default) o descendente. */
+  orden: 'asc' | 'desc';
+  /** Título mostrado en Competiciones. Default "Clasificados de Approach". */
+  title?: string;
+}
+
 /** Full server response for site config */
 export interface SiteConfig {
   domain: string;
@@ -528,6 +542,8 @@ export interface SiteConfig {
    */
   anuncio_config: AnuncioConfig | AnuncioConfig[] | null;
   stats_page_config: StatsPageConfig | null;
+  /** Config del reporte "Clasificados de Approach" (Admin > Approach). */
+  approach_config: ApproachConfig | null;
   home_config: HomeConfig | null;
   /** /historial page config (past editions). Null = not configured. */
   historial_config: HistorialConfig | null;
@@ -567,6 +583,8 @@ export interface SaveConfigPayload {
   /** Multi-slot payload for saving (up to 3 anuncios). */
   anuncio_configs?: AnuncioConfig[] | null;
   stats_page_config?: StatsPageConfig | null;
+  /** Config del reporte "Clasificados de Approach" (Admin > Approach). */
+  approach_config?: ApproachConfig | null;
   home_config?: HomeConfig | null;
   historial_config?: HistorialConfig | null;
   tarjetas_config?: TarjetasPrintConfig | null;

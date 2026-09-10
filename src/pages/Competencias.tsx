@@ -19,12 +19,14 @@ import CompetenciasTable from '@/components/competencias/CompetenciasTable';
 import BracketView from '@/components/competencias/BracketView';
 import { BracketQualifiersSection } from '@/components/competencias/BracketView';
 import MejorScoreDiarioReport from '@/components/competencias/MejorScoreDiarioReport';
+import ApproachClasificadosReport from '@/components/competencias/ApproachClasificadosReport';
 import LastUpdatedStamp from '@/components/competencias/LastUpdatedStamp';
 import { useCompetencias, useCompetenciaDetail } from '@/hooks/useCompetenciasData';
 import { useAllCompetenciasWithPlayers, collectUniquePlayerNames, searchPlayerAcrossCompetencias, type PlayerCompetitionResult } from '@/hooks/useAllCompetenciasData';
 import type { CompetenciaTipo, CompetenciaGroup } from '@/data/competencias/types';
 import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import { useMejorScoreAvailability } from '@/hooks/useMejorScoreAvailability';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 // ============= Icon Mapping =============
 
@@ -50,6 +52,8 @@ const Competencias = () => {
   /** When true, the "Mejor Score del Día" report view is rendered instead of the
    *  standard competencias drill-down. Independent from competencia selection. */
   const [showMejorScore, setShowMejorScore] = useState(false);
+  /** When true, the "Clasificados de Approach" report view is rendered. */
+  const [showApproach, setShowApproach] = useState(false);
   /** When true within a selected competencia, render ALL groups' tables
    *  stacked instead of the group selection grid. */
   const [showAllGroups, setShowAllGroups] = useState(false);
@@ -180,6 +184,27 @@ const Competencias = () => {
   const { hasData: mejorScoreHasData } = useMejorScoreAvailability(!mejorScoreHiddenByAdmin);
   const mejorScoreEnabled = !mejorScoreHiddenByAdmin && mejorScoreHasData;
 
+  /**
+   * approachConfig / approachEnabled
+   * El reporte "Clasificados de Approach" se publica desde Admin > Approach
+   * (site_config.approach_config). Si no está activado, no se muestra ni el
+   * botón del submenú ni la tarjeta.
+   */
+  const { data: siteConfig } = useSiteConfig();
+  const approachConfig = siteConfig?.approach_config ?? null;
+  const approachEnabled = approachConfig?.enabled === true;
+  const approachOrden = approachConfig?.orden === 'desc' ? 'desc' : 'asc';
+  const approachTitle = approachConfig?.title || 'Clasificados de Approach';
+
+  /** Abre la vista del reporte de clasificados de approach. */
+  const openApproach = () => {
+    setSelectedCompetenciaId(null);
+    setSelectedGroup(null);
+    setShowAllGroups(false);
+    setShowMejorScore(false);
+    setShowApproach(true);
+  };
+
   // Get the selected competition object (from detail or list)
   const selectedCompetencia = useMemo(() => {
     if (!selectedCompetenciaId) return null;
@@ -220,6 +245,7 @@ const Competencias = () => {
     setSelectedGroup(null);
     setShowAllGroups(false);
     setShowMejorScore(false);
+    setShowApproach(false);
   };
 
   // Handle group selection
@@ -229,7 +255,9 @@ const Competencias = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    if (showMejorScore) {
+    if (showApproach) {
+      setShowApproach(false);
+    } else if (showMejorScore) {
       setShowMejorScore(false);
     } else if (showAllGroups) {
       setShowAllGroups(false);
@@ -514,7 +542,7 @@ const Competencias = () => {
           )}
 
           {/* View: Competition Types (no selection, no active search) */}
-          {!isLoading && !selectedCompetenciaId && !activeResults && !showMejorScore && (
+          {!isLoading && !selectedCompetenciaId && !activeResults && !showMejorScore && !showApproach && (
             <>
               {/* Player search bar with autocomplete — jumps to /premios on pick */}
               {playerSuggestions.length > 0 && (
@@ -540,8 +568,11 @@ const Competencias = () => {
                   setSelectedCompetenciaId(null);
                   setSelectedGroup(null);
                   setShowAllGroups(false);
+                  setShowApproach(false);
                   setShowMejorScore(true);
                 } : undefined}
+                approachActive={false}
+                onApproachClick={approachEnabled ? openApproach : undefined}
               />
 
               {/* Header */}
@@ -591,6 +622,25 @@ const Competencias = () => {
                   </CardContent>
                 </Card>
                 )}
+                {/* Special card: Clasificados de Approach (Admin > Approach) */}
+                {approachEnabled && (
+                <Card
+                  className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
+                  onClick={openApproach}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Crosshair className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-bold text-foreground text-lg mb-2">
+                      {approachTitle}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Resumen de approach
+                    </p>
+                  </CardContent>
+                </Card>
+                )}
               </div>
 
               {/* Empty state */}
@@ -610,8 +660,40 @@ const Competencias = () => {
             </>
           )}
 
+          {/* View: Clasificados de Approach report */}
+          {!isLoading && showApproach && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                className="mb-6 gap-2 bg-primary/10 hover:bg-primary/20"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a competencias
+              </Button>
+              <CompetenciasSubmenu
+                competencias={competencias}
+                selectedId={null}
+                onSelect={handleCompetenciaSelect}
+                mejorScoreActive={false}
+                onMejorScoreClick={mejorScoreEnabled ? () => {
+                  setShowApproach(false);
+                  setShowMejorScore(true);
+                } : undefined}
+                approachActive={true}
+                onApproachClick={() => { /* already active */ }}
+              />
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-foreground">
+                  {approachTitle}
+                </h2>
+              </div>
+              <ApproachClasificadosReport orden={approachOrden} />
+            </>
+          )}
+
           {/* View: Mejor Score del Día report */}
-          {!isLoading && showMejorScore && (
+          {!isLoading && showMejorScore && !showApproach && (
             <>
               <Button
                 variant="ghost"
@@ -627,6 +709,8 @@ const Competencias = () => {
                 onSelect={handleCompetenciaSelect}
                 mejorScoreActive={true}
                 onMejorScoreClick={() => { /* already active */ }}
+                approachActive={false}
+                onApproachClick={approachEnabled ? openApproach : undefined}
               />
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-foreground">
@@ -660,8 +744,11 @@ const Competencias = () => {
                   setSelectedCompetenciaId(null);
                   setSelectedGroup(null);
                   setShowAllGroups(false);
+                  setShowApproach(false);
                   setShowMejorScore(true);
                 } : undefined}
+                approachActive={false}
+                onApproachClick={approachEnabled ? openApproach : undefined}
               />
 
               {/* Header */}

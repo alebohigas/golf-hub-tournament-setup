@@ -36,6 +36,10 @@ interface CompetenciasSubmenuProps {
   mejorScoreActive?: boolean;
   /** Callback when the "Mejor Score del Día" button is pressed */
   onMejorScoreClick?: () => void;
+  /** Whether the "Clasificados de Approach" view is currently active */
+  approachActive?: boolean;
+  /** Callback when the "Clasificados de Approach" button is pressed */
+  onApproachClick?: () => void;
 }
 
 // ============= Component =============
@@ -50,12 +54,14 @@ const CompetenciasSubmenu = ({
   onSelect,
   mejorScoreActive = false,
   onMejorScoreClick,
+  approachActive = false,
+  onApproachClick,
 }: CompetenciasSubmenuProps) => {
   return (
     <div className="flex flex-wrap justify-center gap-2 mb-8">
       {/* "All" button */}
       <Button
-        variant={selectedId === null && !mejorScoreActive ? 'default' : 'outline'}
+        variant={selectedId === null && !mejorScoreActive && !approachActive ? 'default' : 'outline'}
         onClick={() => onSelect(null)}
         className="gap-2"
       >
@@ -68,7 +74,7 @@ const CompetenciasSubmenu = ({
         return (
           <Button
             key={comp.id}
-            variant={selectedId === comp.id && !mejorScoreActive ? 'default' : 'outline'}
+            variant={selectedId === comp.id && !mejorScoreActive && !approachActive ? 'default' : 'outline'}
             onClick={() => onSelect(comp.id)}
             className="gap-2"
           >
@@ -87,6 +93,18 @@ const CompetenciasSubmenu = ({
         >
           <Medal className="h-4 w-4" />
           Mejor Score
+        </Button>
+      )}
+
+      {/* Synthetic entry: Clasificados de Approach (only when handler provided) */}
+      {onApproachClick && (
+        <Button
+          variant={approachActive ? 'default' : 'outline'}
+          onClick={onApproachClick}
+          className="gap-2"
+        >
+          <Crosshair className="h-4 w-4" />
+          Clasificados Approach
         </Button>
       )}
     </div>
