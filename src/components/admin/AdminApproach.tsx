@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Crosshair, Loader2, Save } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Crosshair, Loader2, Printer, Save } from 'lucide-react';
 import ApproachClasificadosReport from '@/components/competencias/ApproachClasificadosReport';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useApproachClasificados, type ApproachOrden } from '@/hooks/useApproachClasificados';
