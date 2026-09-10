@@ -33,9 +33,15 @@ const PAD_BOTTOM = 56; // leaves room for the depth label below
 interface GreenCardProps {
   data: PinSheetHole;
   className?: string;
+  /**
+   * compact — modo IMPRESIÓN. Reduce paddings, radios y tamaños de texto para
+   * que las 18 tarjetas quepan en una sola hoja tamaño carta
+   * (ver `src/pages/AdminBanderasImpresion.tsx`).
+   */
+  compact?: boolean;
 }
 
-const GreenCard = ({ data, className }: GreenCardProps) => {
+const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
   const { hole, depth, pinFromFront, pinFromSide, pinSide, slope } = data;
 
   /**
@@ -92,30 +98,43 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
   return (
     <div
       className={cn(
-        'relative rounded-2xl border border-border bg-card text-card-foreground',
-        'shadow-card hover:shadow-elegant transition-shadow p-4 flex flex-col',
+        'relative border border-border bg-card text-card-foreground flex flex-col',
+        compact
+          ? 'rounded-md p-1.5'
+          : 'rounded-2xl shadow-card hover:shadow-elegant transition-shadow p-4',
         className,
       )}
     >
       {/* ===== Card header: hole # + slope badge ===== */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className={cn('flex items-start justify-between gap-1', compact ? 'mb-0.5' : 'mb-2')}>
         <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+          <p className={cn(
+            'uppercase tracking-wider text-muted-foreground font-semibold',
+            compact ? 'text-[7px] leading-none' : 'text-xs',
+          )}>
             Hoyo
           </p>
-          <p className="text-3xl font-display font-bold text-foreground leading-none">
+          <p className={cn(
+            'font-display font-bold text-foreground leading-none',
+            compact ? 'text-base' : 'text-3xl',
+          )}>
             {hole}
           </p>
         </div>
         <div
           className={cn(
-            'flex flex-col items-center px-2.5 py-1.5 rounded-lg border text-xs font-mono',
+            'flex flex-col items-center rounded border font-mono',
+            compact ? 'px-1 py-0.5' : 'px-2.5 py-1.5 rounded-lg text-xs',
             badgeClass,
           )}
           title="Posición del pin respecto al centro del green (positivo = hacia el fondo, negativo = hacia el frente)"
         >
-          <span className="text-[10px] uppercase tracking-wide opacity-80">vs Centro</span>
-          <span className="text-base font-bold leading-none mt-0.5">{offsetLabel}</span>
+          <span className={cn('uppercase tracking-wide opacity-80', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>
+            vs Centro
+          </span>
+          <span className={cn('font-bold leading-none', compact ? 'text-[9px] mt-0.5' : 'text-base mt-0.5')}>
+            {offsetLabel}
+          </span>
         </div>
       </div>
 
@@ -246,23 +265,23 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
       </svg>
 
       {/* ===== Card footer: numeric summary ===== */}
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-md bg-muted/50 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Frente</p>
-          <p className="text-sm font-bold tabular-nums">{pinFromFront}</p>
+      <div className={cn('grid grid-cols-3 text-center', compact ? 'mt-1 gap-1' : 'mt-3 gap-2')}>
+        <div className={cn('rounded-md bg-muted/50', compact ? 'py-0.5' : 'py-1.5')}>
+          <p className={cn('uppercase tracking-wide text-muted-foreground', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>Frente</p>
+          <p className={cn('font-bold tabular-nums', compact ? 'text-[10px] leading-tight' : 'text-sm')}>{pinFromFront}</p>
         </div>
         {/* Celda lateral: "Centro" cuando la bandera va al eje del green. */}
-        <div className="rounded-md bg-muted/50 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        <div className={cn('rounded-md bg-muted/50', compact ? 'py-0.5' : 'py-1.5')}>
+          <p className={cn('uppercase tracking-wide text-muted-foreground', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>
             {isCenter ? 'Lado' : pinSide === 'L' ? 'Izq' : 'Der'}
           </p>
-          <p className="text-sm font-bold tabular-nums">
+          <p className={cn('font-bold tabular-nums', compact ? 'text-[10px] leading-tight' : 'text-sm')}>
             {isCenter ? 'Centro' : pinFromSide}
           </p>
         </div>
-        <div className="rounded-md bg-muted/50 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Depth</p>
-          <p className="text-sm font-bold tabular-nums">{depth}</p>
+        <div className={cn('rounded-md bg-muted/50', compact ? 'py-0.5' : 'py-1.5')}>
+          <p className={cn('uppercase tracking-wide text-muted-foreground', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>Depth</p>
+          <p className={cn('font-bold tabular-nums', compact ? 'text-[10px] leading-tight' : 'text-sm')}>{depth}</p>
         </div>
       </div>
     </div>

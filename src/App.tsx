@@ -55,6 +55,8 @@ import AdminTimeLine from "./pages/AdminTimeLine";
 import AdminTarjetasImpresion from "./pages/AdminTarjetasImpresion";
 // Vista de tarjeta por hora de salida (mismo diseño del encabezado).
 import AdminTarjetasHoras from "./pages/AdminTarjetasHoras";
+/** Impresión del pin sheet (banderas) en hoja carta vertical u horizontal. */
+import AdminBanderasImpresion from "./pages/AdminBanderasImpresion";
 
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
@@ -152,6 +154,8 @@ const App = () => (
               <Route path="/admin/tarjetas-impresion" element={<AdminTarjetasImpresion />} />
               {/* Vista por hora de salida: quiénes juegan en cada hora. */}
               <Route path="/admin/tarjetas-horas" element={<AdminTarjetasHoras />} />
+              {/* Pin sheet imprimible: 18 hoyos en una hoja carta (vertical/horizontal). */}
+              <Route path="/admin/banderas-impresion" element={<AdminBanderasImpresion />} />
 
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
