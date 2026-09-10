@@ -184,9 +184,15 @@ const ApproachClasificadosReport = ({
                       <span className="block text-[10px] sm:text-xs text-muted-foreground">mts</span>
                     </td>
                     {showFecha && (
-                      <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap">
-                        {formatFechaHora(player.fecha)}
-                      </td>
+                      (() => {
+                        const { date, time } = formatFechaHora(player.fecha);
+                        return (
+                          <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
+                            <span className="block">{date}</span>
+                            {time && <span className="block text-[10px] sm:text-xs text-muted-foreground/80">{time}</span>}
+                          </td>
+                        );
+                      })()
                     )}
                   </tr>
                 );
