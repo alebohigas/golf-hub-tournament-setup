@@ -157,6 +157,7 @@ const App = () => (
               <Route path="/admin/tarjetas-horas" element={<AdminTarjetasHoras />} />
               {/* Pin sheet imprimible: 18 hoyos en una hoja carta (vertical/horizontal). */}
               <Route path="/admin/banderas-impresion" element={<AdminBanderasImpresion />} />
+              <Route path="/admin/approach-impresion" element={<AdminApproachImpresion />} />
 
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
