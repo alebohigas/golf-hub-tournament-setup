@@ -58,6 +58,7 @@ import AdminTarjetasHoras from "./pages/AdminTarjetasHoras";
 /** Impresión del pin sheet (banderas) en hoja carta vertical u horizontal. */
 import AdminBanderasImpresion from "./pages/AdminBanderasImpresion";
 import AdminApproachImpresion from "./pages/AdminApproachImpresion";
+import BracketsPuttImpresion from "./pages/BracketsPuttImpresion";
 
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
@@ -158,6 +159,7 @@ const App = () => (
               {/* Pin sheet imprimible: 18 hoyos en una hoja carta (vertical/horizontal). */}
               <Route path="/admin/banderas-impresion" element={<AdminBanderasImpresion />} />
               <Route path="/admin/approach-impresion" element={<AdminApproachImpresion />} />
+              <Route path="/brackets-putt-impresion" element={<BracketsPuttImpresion />} />
 
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
