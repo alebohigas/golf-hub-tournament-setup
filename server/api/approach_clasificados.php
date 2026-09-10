@@ -112,6 +112,9 @@ $hasOrden = (int)($marked[0]['cnt'] ?? 0) > 0;
 $timeCol = column_exists($conn, 'approachjug', 'ultact') ? 'a.ultact' : 'a.fecha';
 
 // ============= Jugadores clasificados =============
+// Se consulta SIEMPRE en orden ascendente por distancia para poder recortar
+// cada grupo/premio a su límite de lugares (`approach.hoyo`). El orden final
+// (asc/desc) se aplica después del recorte.
 $sql = "SELECT a.id,
                a.jugadorid,
                $timeCol AS registrado,
@@ -132,18 +135,42 @@ $sql = "SELECT a.id,
         WHERE a.torneoid = $tid
           AND a.distancia > 0
           " . ($hasOrden ? "AND a.orden = 1" : "") . "
-        ORDER BY a.distancia $dir, $timeCol ASC, a.id ASC";
+        ORDER BY a.distancia ASC, $timeCol ASC, a.id ASC";
 
 $rows = safe_all($conn, $sql, 'clasificados');
 
-$players = [];
-$pos = 0;
-/** Conteo de jugadores por grupo/premio para el resumen. */
+/**
+ * $limits
+ * Límite de lugares por grupo/premio, tomado de `approach.hoyo`.
+ * Si un grupo no trae límite (0/NULL), se considera sin límite.
+ */
+$limits = [];
+foreach ($prizes as $p) {
+    $limits[$p['descripcion'] ?? ''] = (int)($p['lugares'] ?? 0);
+}
+
+/**
+ * Recorte por grupo: sólo los primeros N jugadores (mejores distancias) de
+ * cada premio entran al reporte final. Ej.: 3 premios × 25 lugares = 75.
+ */
+$kept = [];
 $byGroup = [];
 foreach ($rows as $r) {
-    $pos++;
     $grupo = $r['grupo'] ?? '';
-    $byGroup[$grupo] = ($byGroup[$grupo] ?? 0) + 1;
+    $limit = $limits[$grupo] ?? 0;
+    $count = $byGroup[$grupo] ?? 0;
+    if ($limit > 0 && $count >= $limit) continue;
+    $byGroup[$grupo] = $count + 1;
+    $kept[] = $r;
+}
+
+/** Orden final: descendente invierte la lista ya recortada. */
+if ($orden === 'desc') $kept = array_reverse($kept);
+
+$players = [];
+$pos = 0;
+foreach ($kept as $r) {
+    $pos++;
     $logo = $r['logo'] ?? '';
     $players[] = [
         'position'  => $pos,
@@ -152,11 +179,12 @@ foreach ($rows as $r) {
         'club'      => $r['club'] ?? '',
         'clubLogo'  => $logo ? $LOGOS_BASE_URL . $logo : '',
         'category'  => $r['categoria'] ?? '',
-        'group'     => $grupo,
+        'group'     => $r['grupo'] ?? '',
         'distance'  => (float)$r['distancia'],
         'fecha'     => $r['registrado'] ? substr((string)$r['registrado'], 0, 16) : null,
     ];
 }
+
 
 /** Resumen por grupo (parámetros de la competencia + cuántos entraron). */
 $groups = [];
