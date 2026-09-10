@@ -98,6 +98,8 @@ import {
   Rocket,
   /** Icono de la pestaña "Categorías" (antes "Jugadores"). */
   Layers,
+  /** Icono de la pestaña "Approach" (Clasificados de Approach). */
+  Crosshair,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
