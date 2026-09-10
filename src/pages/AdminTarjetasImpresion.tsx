@@ -492,8 +492,8 @@ const Scorecard = ({
  *   · Encabezado de 3 renglones (hoyo + hora, match + los dos jugadores,
  *     categoría y marcas de salida). El bloque HANDICAP NETO no aplica aquí:
  *     cada jugador imprime su propio neto en su renglón.
- *   · Tabla: HOYO (1-9 · V1 · 10-18 · V2 · TOTAL), PAR, YARDAS y VENTAJA del
- *     campo; después, por cada contendiente, su nombre + neto y los renglones
+ *   · Tabla: HOYO (1-9 · V1 · 10-18 · V2 · TOTAL), PAR, YARDAS, PAR TIME y
+ *     VENTAJA del campo; después, por cada contendiente, su nombre + neto y los renglones
  *     SCORE GROSS (para anotar), HANDICAP (golpes por hoyo) y SCORE NETO.
  *   · Cierre: renglón DIF, renglón RESULTADO y firmas de ambos jugadores.
  *
