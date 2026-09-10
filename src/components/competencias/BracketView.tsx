@@ -18,8 +18,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Loader2, Trophy, Crown, Medal, Printer } from 'lucide-react';
+import { Loader2, Trophy, Crown, Medal } from 'lucide-react';
 import { usePuttFinales, type BracketMatch } from '@/hooks/useBrackets';
 import type { BracketQualifier } from '@/hooks/useBrackets';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
@@ -180,8 +179,8 @@ const BracketView = ({ sexo }: BracketViewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Buscador + accesos de impresión (no se imprimen) */}
-      <div className="print:hidden flex flex-wrap items-center gap-2">
+      {/* Buscador público del bracket. La impresión se administra únicamente desde Admin. */}
+      <div className="print:hidden">
         <PlayerSearchInput
           value={search}
           onChange={setSearch}
@@ -190,31 +189,6 @@ const BracketView = ({ sexo }: BracketViewProps) => {
           placeholder="Buscar jugador en el bracket..."
           className="max-w-md"
         />
-        {/* Impresión de los Brackets Finales de Putt en hoja carta */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() =>
-              window.open(`/brackets-putt-impresion?sexo=${sexo}&orient=vertical`, '_blank')
-            }
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir vertical
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() =>
-              window.open(`/brackets-putt-impresion?sexo=${sexo}&orient=horizontal`, '_blank')
-            }
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir horizontal
-          </Button>
-        </div>
       </div>
 
 

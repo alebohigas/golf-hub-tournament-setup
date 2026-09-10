@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal, AlertTriangle, Wand2 } from 'lucide-react';
+import { Loader2, Trophy, Zap, RefreshCw, Crown, ExternalLink, Medal, AlertTriangle, Wand2, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   usePuttFinalesAdmin,
@@ -84,6 +84,16 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
   const [bracketMode, setBracketMode] = useState<'single' | 'dual' | null>(null);
   const effectiveMode: 'single' | 'dual' =
     bracketMode ?? (data?.A?.config ? 'single' : 'dual');
+
+  /**
+   * Abre el reporte de impresión desde el panel administrativo. En modo único
+   * usa la rama A; en modo separado inicia en Caballeros y la pantalla permite
+   * cambiar a Damas antes de imprimir.
+   */
+  const openPrintView = (orient: 'vertical' | 'horizontal') => {
+    const sexo = effectiveMode === 'single' ? 'A' : 'M';
+    window.open(`/admin/brackets-putt-impresion?sexo=${sexo}&orient=${orient}`, '_blank');
+  };
 
   /** Diálogo de confirmación antes de cambiar el modo (se borran matches/resultados). */
   const [pendingMode, setPendingMode] = useState<'single' | 'dual' | null>(null);
@@ -267,6 +277,25 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {/* Impresión administrativa en hoja carta vertical u horizontal. */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => openPrintView('vertical')}
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir vertical
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => openPrintView('horizontal')}
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir horizontal
+              </Button>
               {/* Asistente: crea el bracket único completo en un solo clic. */}
               {mode !== 'scores' && !singleReady && (
                 <Button
