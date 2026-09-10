@@ -251,11 +251,14 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Frente</p>
           <p className="text-sm font-bold tabular-nums">{pinFromFront}</p>
         </div>
+        {/* Celda lateral: "Centro" cuando la bandera va al eje del green. */}
         <div className="rounded-md bg-muted/50 py-1.5">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            {pinSide === 'L' ? 'Izq' : 'Der'}
+            {isCenter ? 'Lado' : pinSide === 'L' ? 'Izq' : 'Der'}
           </p>
-          <p className="text-sm font-bold tabular-nums">{pinFromSide}</p>
+          <p className="text-sm font-bold tabular-nums">
+            {isCenter ? 'Centro' : pinFromSide}
+          </p>
         </div>
         <div className="rounded-md bg-muted/50 py-1.5">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Depth</p>
