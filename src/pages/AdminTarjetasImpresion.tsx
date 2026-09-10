@@ -492,8 +492,8 @@ const Scorecard = ({
  *   · Encabezado de 3 renglones (hoyo + hora, match + los dos jugadores,
  *     categoría y marcas de salida). El bloque HANDICAP NETO no aplica aquí:
  *     cada jugador imprime su propio neto en su renglón.
- *   · Tabla: HOYO (1-9 · V1 · 10-18 · V2 · TOTAL), PAR, YARDAS y VENTAJA del
- *     campo; después, por cada contendiente, su nombre + neto y los renglones
+ *   · Tabla: HOYO (1-9 · V1 · 10-18 · V2 · TOTAL), PAR, YARDAS, PAR TIME y
+ *     VENTAJA del campo; después, por cada contendiente, su nombre + neto y los renglones
  *     SCORE GROSS (para anotar), HANDICAP (golpes por hoyo) y SCORE NETO.
  *   · Cierre: renglón DIF, renglón RESULTADO y firmas de ambos jugadores.
  *
@@ -695,6 +695,8 @@ const MatchScorecard = ({
             inTotal={t.yardasIn}
             total={t.yardas}
           />
+          {/* PAR TIME: misma fila que en Stroke Play / Stableford (hora estimada por hoyo) */}
+          <Row key="partime" label={TARJETA_ROW_LABELS.partime} value={(h) => h.parTime} />
           <Row
             label={TARJETA_ROW_LABELS.ventaja}
             value={(h) => h.ventaja ?? ''}
@@ -865,12 +867,13 @@ const AdminTarjetasImpresion = () => {
    * total de renglones para que el alto calculado nunca desborde 1/2 carta.
    */
   /*
-    MATCH PLAY: la maqueta es fija (HOYO, PAR, YARDAS, VENTAJA + 4 renglones por
-    contendiente con SCORE GROSS a 1.5 + DIF), así que se cuentan sus renglones
-    reales para que la tarjeta siga cabiendo exacta en 1/2 hoja carta.
+    MATCH PLAY: la maqueta es fija (HOYO, PAR, YARDAS, PAR TIME, VENTAJA +
+    4 renglones por contendiente con SCORE GROSS a 1.5 + DIF), así que se
+    cuentan sus renglones reales para que la tarjeta siga cabiendo exacta
+    en 1/2 hoja carta.
   */
   const effectiveRows = matchPlay
-    ? 4 + 2 * (1 + 1.5 + 1 + 1) + 1
+    ? 5 + 2 * (1 + 1.5 + 1 + 1) + 1
     : rowOrder.length + (rowOrder.includes('gross') ? 0.5 : 0);
 
   const rowMm = Math.min(
