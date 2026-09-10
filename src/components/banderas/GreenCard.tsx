@@ -68,8 +68,10 @@ const GreenCard = ({ data, className }: GreenCardProps) => {
   //   y: front (bottom) - frontFrac * (oval height)
   //   x: depending on which side the measurement is taken from
   const pinY = ovalBottom - frontFrac * (ovalBottom - ovalTop);
-  const pinX =
-    pinSide === 'L'
+  // Centro: la bandera va exactamente sobre el eje vertical del green.
+  const pinX = isCenter
+    ? cx
+    : pinSide === 'L'
       ? ovalLeft + sideFrac * (ovalRight - ovalLeft)
       : ovalRight - sideFrac * (ovalRight - ovalLeft);
 
