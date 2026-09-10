@@ -97,8 +97,15 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
                     <TableCell className="text-center font-bold">{q.rank}</TableCell>
                     <TableCell className="font-medium">{q.name}</TableCell>
                     <TableCell>{q.categoria ?? ''}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-primary">
-                      {q.distance != null ? q.distance : ''}
+                    <TableCell className="text-right font-mono font-bold text-primary leading-tight">
+                      {q.distance != null ? (
+                        <>
+                          <span className="block">{q.distance}</span>
+                          <span className="block text-[10px] md:text-xs opacity-80">mts</span>
+                        </>
+                      ) : (
+                        ''
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {q.fecha ?? ''}

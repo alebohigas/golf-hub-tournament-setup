@@ -757,8 +757,15 @@ const QualifiersTable = ({
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                       {q.categoria ?? '—'}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
-                      {q.distance != null ? `${q.distance.toFixed(2)} mts` : '—'}
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap leading-tight">
+                      {q.distance != null ? (
+                        <>
+                          <span className="block">{q.distance.toFixed(2)}</span>
+                          <span className="block text-[10px] sm:text-xs text-muted-foreground">mts</span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap">
                       {formatFechaHora(q.fecha_full ?? q.fecha)}

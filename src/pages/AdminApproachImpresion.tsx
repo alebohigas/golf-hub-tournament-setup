@@ -178,7 +178,10 @@ const AdminApproachImpresion = () => {
                       <td className={`${TD} whitespace-nowrap`}>{p.name}</td>
                       <td className={`${TD} truncate`}>{p.club}</td>
                       <td className={`${TD} text-center`}>{p.category}</td>
-                      <td className={`${TD} text-right font-semibold`}>{p.distance.toFixed(2)}</td>
+                      <td className={`${TD} text-right font-semibold leading-tight`}>
+                        <span className="block">{p.distance.toFixed(2)}</span>
+                        <span className="block text-[7px]">mts</span>
+                      </td>
                       <td className={`${TD} text-right whitespace-nowrap`}>{p.fecha ?? '—'}</td>
                     </tr>
                   ))}
