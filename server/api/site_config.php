@@ -233,6 +233,21 @@ function site_config_has_stats_page_config($conn) {
 $hasStatsPageConfig = site_config_has_stats_page_config($conn);
 
 /**
+ * Detect whether the approach_config column exists.
+ * Stores per-domain config for the "Clasificados de Approach" report
+ * (publish in /competicion + sort direction by distance).
+ */
+function site_config_has_approach_config($conn) {
+    static $hasColumn = null;
+    if ($hasColumn !== null) return $hasColumn;
+    $result = $conn->query("SHOW COLUMNS FROM site_config LIKE 'approach_config'");
+    $hasColumn = $result && $result->num_rows > 0;
+    return $hasColumn;
+}
+
+$hasApproachConfig = site_config_has_approach_config($conn);
+
+/**
  * Detect whether the home_config column exists. Stores home page
  * customizations (CTA buttons on the hero). Missing column => endpoint
  * silently returns null so the frontend uses the default fallback pair.
@@ -395,6 +410,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($hasStatsPageConfig) {
         $selectFields .= ', stats_page_config';
     }
+    if ($hasApproachConfig) {
+        $selectFields .= ', approach_config';
+    }
     if ($hasHomeConfig) {
         $selectFields .= ', home_config';
     }
@@ -434,6 +452,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'popup_config'          => $hasPopupConfig && !empty($row['popup_config']) ? json_decode($row['popup_config'], true) : null,
             'anuncio_config'        => $hasAnuncioConfig && !empty($row['anuncio_config']) ? json_decode($row['anuncio_config'], true) : null,
             'stats_page_config'     => $hasStatsPageConfig && !empty($row['stats_page_config']) ? json_decode($row['stats_page_config'], true) : null,
+            'approach_config'       => $hasApproachConfig && !empty($row['approach_config']) ? json_decode($row['approach_config'], true) : null,
             'home_config'           => $hasHomeConfig && !empty($row['home_config']) ? json_decode($row['home_config'], true) : null,
             'historial_config'      => $hasHistorialConfig && !empty($row['historial_config']) ? json_decode($row['historial_config'], true) : null,
             'tarjetas_config'       => $hasTarjetasConfig && !empty($row['tarjetas_config']) ? json_decode($row['tarjetas_config'], true) : null,
@@ -460,6 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'popup_config'          => null,
             'anuncio_config'        => null,
             'stats_page_config'     => null,
+            'approach_config'       => null,
             'home_config'           => null,
             'historial_config'      => null,
             'tarjetas_config'       => null,
@@ -489,6 +509,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'stats_config'           => 'stats',
             'popup_config'           => 'pop',
             'stats_page_config'      => 'stats',
+            'approach_config'        => 'approach',
             'home_config'            => 'pagina',
             'historial_config'       => 'pagina',
             'tarjetas_config'        => 'tarjetas',
@@ -667,6 +688,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $val = $body['stats_page_config'] !== null ? "'" . esc($conn, json_encode($body['stats_page_config'])) . "'" : 'NULL';
         $fields[] = "stats_page_config = $val";
         $insertFields[] = 'stats_page_config';
+        $insertValues[] = $val;
+    }
+
+    if (array_key_exists('approach_config', $body)) {
+        if (!$hasApproachConfig) {
+            json_error("Missing DB column approach_config in site_config. Run: ALTER TABLE site_config ADD COLUMN approach_config TEXT DEFAULT NULL COMMENT 'JSON object with Clasificados de Approach config';", 500);
+        }
+        $val = $body['approach_config'] !== null ? "'" . esc($conn, json_encode($body['approach_config'])) . "'" : 'NULL';
+        $fields[] = "approach_config = $val";
+        $insertFields[] = 'approach_config';
         $insertValues[] = $val;
     }
 
