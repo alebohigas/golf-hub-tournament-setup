@@ -58,6 +58,7 @@ import AdminTarjetasHoras from "./pages/AdminTarjetasHoras";
 /** Impresión del pin sheet (banderas) en hoja carta vertical u horizontal. */
 import AdminBanderasImpresion from "./pages/AdminBanderasImpresion";
 import AdminApproachImpresion from "./pages/AdminApproachImpresion";
+import BracketsPuttImpresion from "./pages/BracketsPuttImpresion";
 
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
