@@ -255,7 +255,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $depth        = (int)($h['depth'] ?? 0);
         $frente       = (int)($h['pinFromFront'] ?? 0);
         $lateral      = (int)($h['pinFromSide'] ?? 0);
-        $side         = (($h['pinSide'] ?? 'L') === 'R') ? 'R' : 'L';
+        /* Lado lateral: acepta 'L', 'R' o 'C' (centro exacto del green). */
+        $side         = normalize_pin_side($h['pinSide'] ?? 'L');
         $desdeCentro  = (int)($h['slope'] ?? 0);
         $titulo       = $h['title'] ?? null;
         $tituloSql    = ($titulo === null || $titulo === '')
