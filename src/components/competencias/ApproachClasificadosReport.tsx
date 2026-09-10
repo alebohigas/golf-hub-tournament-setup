@@ -79,7 +79,7 @@ const ApproachClasificadosReport = ({
         <p className="text-sm text-muted-foreground">
           Jugadores: <span className="font-semibold text-foreground">{data?.total ?? players.length}</span>
         </p>
-        {data?.lastUpdated && <LastUpdatedStamp timestamp={data.lastUpdated} />}
+        {data?.lastUpdated && <LastUpdatedStamp value={data.lastUpdated} className="text-sm" />}
       </div>
 
       {/* Tabla de clasificados */}

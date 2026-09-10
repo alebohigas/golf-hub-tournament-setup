@@ -36,6 +36,10 @@ interface CompetenciasSubmenuProps {
   mejorScoreActive?: boolean;
   /** Callback when the "Mejor Score del Día" button is pressed */
   onMejorScoreClick?: () => void;
+  /** Whether the "Clasificados de Approach" view is currently active */
+  approachActive?: boolean;
+  /** Callback when the "Clasificados de Approach" button is pressed */
+  onApproachClick?: () => void;
 }
 
 // ============= Component =============
