@@ -38,6 +38,14 @@ interface GreenCardProps {
 const GreenCard = ({ data, className }: GreenCardProps) => {
   const { hole, depth, pinFromFront, pinFromSide, pinSide, slope } = data;
 
+  /**
+   * isCenter — la bandera está en el centro exacto del green.
+   * Se activa cuando el admin eligió "Centro (C)" o cuando la distancia
+   * lateral es 0. En ese caso la tarjeta dibuja SÓLO la línea central
+   * vertical (sin guía lateral) y el pie muestra "Centro".
+   */
+  const isCenter = pinSide === 'C' || pinFromSide === 0;
+
   // ----- Geometry --------------------------------------------------
   // Oval bounds inside the SVG view box.
   const ovalLeft = PAD_X;
