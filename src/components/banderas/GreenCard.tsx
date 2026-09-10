@@ -265,23 +265,23 @@ const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
       </svg>
 
       {/* ===== Card footer: numeric summary ===== */}
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-md bg-muted/50 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Frente</p>
-          <p className="text-sm font-bold tabular-nums">{pinFromFront}</p>
+      <div className={cn('grid grid-cols-3 text-center', compact ? 'mt-1 gap-1' : 'mt-3 gap-2')}>
+        <div className={cn('rounded-md bg-muted/50', compact ? 'py-0.5' : 'py-1.5')}>
+          <p className={cn('uppercase tracking-wide text-muted-foreground', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>Frente</p>
+          <p className={cn('font-bold tabular-nums', compact ? 'text-[10px] leading-tight' : 'text-sm')}>{pinFromFront}</p>
         </div>
         {/* Celda lateral: "Centro" cuando la bandera va al eje del green. */}
-        <div className="rounded-md bg-muted/50 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        <div className={cn('rounded-md bg-muted/50', compact ? 'py-0.5' : 'py-1.5')}>
+          <p className={cn('uppercase tracking-wide text-muted-foreground', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>
             {isCenter ? 'Lado' : pinSide === 'L' ? 'Izq' : 'Der'}
           </p>
-          <p className="text-sm font-bold tabular-nums">
+          <p className={cn('font-bold tabular-nums', compact ? 'text-[10px] leading-tight' : 'text-sm')}>
             {isCenter ? 'Centro' : pinFromSide}
           </p>
         </div>
-        <div className="rounded-md bg-muted/50 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Depth</p>
-          <p className="text-sm font-bold tabular-nums">{depth}</p>
+        <div className={cn('rounded-md bg-muted/50', compact ? 'py-0.5' : 'py-1.5')}>
+          <p className={cn('uppercase tracking-wide text-muted-foreground', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>Depth</p>
+          <p className={cn('font-bold tabular-nums', compact ? 'text-[10px] leading-tight' : 'text-sm')}>{depth}</p>
         </div>
       </div>
     </div>
