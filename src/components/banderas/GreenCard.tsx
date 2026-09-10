@@ -33,9 +33,15 @@ const PAD_BOTTOM = 56; // leaves room for the depth label below
 interface GreenCardProps {
   data: PinSheetHole;
   className?: string;
+  /**
+   * compact — modo IMPRESIÓN. Reduce paddings, radios y tamaños de texto para
+   * que las 18 tarjetas quepan en una sola hoja tamaño carta
+   * (ver `src/pages/AdminBanderasImpresion.tsx`).
+   */
+  compact?: boolean;
 }
 
-const GreenCard = ({ data, className }: GreenCardProps) => {
+const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
   const { hole, depth, pinFromFront, pinFromSide, pinSide, slope } = data;
 
   /**
