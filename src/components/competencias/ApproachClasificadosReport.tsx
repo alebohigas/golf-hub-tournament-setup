@@ -124,8 +124,8 @@ const ApproachClasificadosReport = ({
         className="max-w-md"
       />
 
-      {/* Tabla blanca idéntica a Clasificados Putt. */}
-      <div className="overflow-x-auto bg-white rounded-lg border border-border">
+      {/* Vista escritorio/tableta: tabla blanca idéntica a Clasificados Putt. */}
+      <div className="hidden md:block overflow-x-auto bg-white rounded-lg border border-border">
         <table className="w-full text-sm bg-white">
           <thead>
             <tr className="bg-primary text-primary-foreground">
