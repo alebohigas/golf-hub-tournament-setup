@@ -177,8 +177,9 @@ const ApproachClasificadosReport = ({
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                       {player.category || '—'}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
-                      {player.distance.toFixed(2)} mts
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap leading-tight">
+                      <span className="block">{player.distance.toFixed(2)}</span>
+                      <span className="block text-[10px] sm:text-xs text-muted-foreground">mts</span>
                     </td>
                     {showFecha && (
                       <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap">
