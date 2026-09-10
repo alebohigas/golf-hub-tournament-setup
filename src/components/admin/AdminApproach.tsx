@@ -164,14 +164,26 @@ const AdminApproach = () => {
             </div>
           )}
 
-          <Button onClick={handleSave} disabled={saveSiteConfig.isPending} className="gap-2">
-            {saveSiteConfig.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Guardar
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleSave} disabled={saveSiteConfig.isPending} className="gap-2">
+              {saveSiteConfig.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Guardar
+            </Button>
+
+            {/* Impresión en hoja carta con el orden seleccionado */}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.open(`/admin/approach-impresion?orden=${orden}`, '_blank')}
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir lista
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
