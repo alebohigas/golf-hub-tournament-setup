@@ -152,7 +152,7 @@ const ApproachClasificadosReport = ({
                   <tr
                     key={rowKey}
                     ref={(element) => rowRefs.current.set(rowKey, element)}
-                    className={`border-t border-border/60 bg-white ${
+                    className={`border-t border-border/60 ${
                       isHit ? 'bg-accent ring-2 ring-accent' : ''
                     }`}
                   >
