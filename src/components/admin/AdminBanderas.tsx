@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, Flag, Plus, Trash2, RotateCcw, Calendar, Copy } from 'lucide-react';
+import { Loader2, Save, Flag, Plus, Trash2, RotateCcw, Calendar, Copy, Printer } from 'lucide-react';
 import { useTorneoId } from '@/hooks/useTorneoId';
 import { useBanderas, useSaveBanderas } from '@/hooks/useBanderasData';
 import type { PinSheetHole, PinSide } from '@/data/banderasData';
@@ -300,6 +300,18 @@ const AdminBanderas = () => {
           <Button variant="outline" size="sm" onClick={clearAll} className="gap-2 text-destructive">
             <Trash2 className="h-4 w-4" />
             Vaciar tabla
+          </Button>
+          {/* Impresión: abre el pin sheet en hoja carta (vertical u horizontal). */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() =>
+              window.open(`/admin/banderas-impresion?fecha=${fecha}&orient=vertical`, '_blank')
+            }
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir pin sheet
           </Button>
           <div className="ml-auto">
             <Button onClick={onSave} disabled={save.isPending} className="gap-2">
