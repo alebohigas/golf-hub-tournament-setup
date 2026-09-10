@@ -159,7 +159,8 @@ const App = () => (
               {/* Pin sheet imprimible: 18 hoyos en una hoja carta (vertical/horizontal). */}
               <Route path="/admin/banderas-impresion" element={<AdminBanderasImpresion />} />
               <Route path="/admin/approach-impresion" element={<AdminApproachImpresion />} />
-              <Route path="/brackets-putt-impresion" element={<BracketsPuttImpresion />} />
+              {/* Impresión de Brackets Putt disponible desde su panel administrativo. */}
+              <Route path="/admin/brackets-putt-impresion" element={<BracketsPuttImpresion />} />
 
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
