@@ -715,16 +715,16 @@ const QualifiersTable = ({
        * jugador. El nombre se limita a un máximo de 4 renglones.
        */}
       <div className="overflow-x-auto bg-white rounded-lg border border-border">
-        <table className="w-full min-w-[28rem] text-xs sm:text-sm">
+        <table className="w-full min-w-[25rem] table-fixed text-sm sm:text-base">
           <thead>
             <tr className="bg-primary text-primary-foreground">
-              <th className="px-1 py-1.5 text-center font-bold w-8 sticky left-0 z-20 bg-primary">#</th>
-              <th className="px-1 py-1.5 text-left font-bold sticky left-8 z-20 bg-primary min-w-[6.5rem] max-w-[8rem] sm:min-w-[9rem] sm:max-w-[11rem]">
+              <th className="px-0.5 py-1 text-center font-bold w-7 sticky left-0 z-20 bg-primary">#</th>
+              <th className="px-0.5 py-1 text-left font-bold sticky left-7 z-20 bg-primary w-[9.5rem] sm:w-auto">
                 Jugador
               </th>
-              <th className="px-1 py-1.5 text-left font-bold">Cat</th>
-              <th className="px-1 py-1.5 text-right font-bold w-20">Dist</th>
-              <th className="px-1 py-1.5 text-center font-bold w-32">Fecha</th>
+              <th className="px-0.5 py-1 text-left font-bold w-10 sm:w-12">Cat</th>
+              <th className="px-0.5 py-1 text-right font-bold w-12 sm:w-14">Dist</th>
+              <th className="px-0.5 py-1 text-center font-bold w-[5.75rem] sm:w-[6.5rem]">Fecha</th>
             </tr>
           </thead>
           <tbody>
@@ -746,21 +746,21 @@ const QualifiersTable = ({
                     className={`border-t border-border/60 ${isHit ? 'bg-accent' : ''}`}
                   >
                     <td
-                      className={`px-1 py-1.5 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
+                        className={`px-0.5 py-1 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
                     >
                       {q.rank}
                     </td>
                     <td
-                      className={`px-1 py-1.5 sticky left-8 z-10 min-w-[6.5rem] max-w-[8rem] sm:min-w-[9rem] sm:max-w-[11rem] ${stickyBg} ${
+                      className={`px-0.5 py-1 sticky left-7 z-10 w-[9.5rem] sm:w-auto ${stickyBg} ${
                         isHit ? 'font-bold text-accent-foreground' : ''
                       }`}
                     >
-                      <span className="block break-words line-clamp-4">{q.name}</span>
+                      <span className="block break-words leading-tight line-clamp-4">{q.name}</span>
                     </td>
-                    <td className="px-1 py-1.5 text-muted-foreground whitespace-nowrap">
+                    <td className="px-0.5 py-1 text-muted-foreground whitespace-nowrap">
                       {q.categoria ?? '—'}
                     </td>
-                    <td className="px-1 py-1.5 text-right tabular-nums whitespace-nowrap leading-tight">
+                    <td className="px-0.5 py-1 text-right tabular-nums whitespace-nowrap leading-tight">
                       {q.distance != null ? (
                         <>
                           <span className="block">{q.distance.toFixed(2)}</span>
@@ -773,7 +773,7 @@ const QualifiersTable = ({
                     {(() => {
                       const { date, time } = formatFechaHora(q.fecha_full ?? q.fecha);
                       return (
-                        <td className="px-1 py-1.5 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
+                        <td className="px-0.5 py-1 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
                           <span className="block">{date}</span>
                           {time && <span className="block text-[10px] sm:text-xs text-muted-foreground/80">{time}</span>}
                         </td>
