@@ -715,22 +715,22 @@ const QualifiersTable = ({
        * jugador. El nombre se limita a un máximo de 4 renglones.
        */}
       <div className="overflow-x-auto bg-white rounded-lg border border-border">
-        <table className="w-full min-w-[34rem] text-xs sm:text-sm">
+        <table className="w-full min-w-[28rem] text-xs sm:text-sm">
           <thead>
             <tr className="bg-primary text-primary-foreground">
-              <th className="px-2 py-2 text-center font-bold w-10 sticky left-0 z-20 bg-primary">#</th>
-              <th className="px-2 py-2 text-left font-bold sticky left-10 z-20 bg-primary min-w-[9rem]">
+              <th className="px-1 py-1.5 text-center font-bold w-8 sticky left-0 z-20 bg-primary">#</th>
+              <th className="px-1 py-1.5 text-left font-bold sticky left-8 z-20 bg-primary min-w-[6.5rem] max-w-[8rem] sm:min-w-[9rem] sm:max-w-[11rem]">
                 Jugador
               </th>
-              <th className="px-3 py-2 text-left font-bold">Cat</th>
-              <th className="px-3 py-2 text-right font-bold w-28">Dist</th>
-              <th className="px-3 py-2 text-center font-bold w-44">Fecha</th>
+              <th className="px-1 py-1.5 text-left font-bold">Cat</th>
+              <th className="px-1 py-1.5 text-right font-bold w-20">Dist</th>
+              <th className="px-1 py-1.5 text-center font-bold w-32">Fecha</th>
             </tr>
           </thead>
           <tbody>
             {qualifiers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={5} className="px-2 py-4 text-center text-muted-foreground">
                   Aún no hay clasificados.
                 </td>
               </tr>
@@ -746,21 +746,21 @@ const QualifiersTable = ({
                     className={`border-t border-border/60 ${isHit ? 'bg-accent' : ''}`}
                   >
                     <td
-                      className={`px-2 py-2 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
+                      className={`px-1 py-1.5 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
                     >
                       {q.rank}
                     </td>
                     <td
-                      className={`px-2 py-2 sticky left-10 z-10 min-w-[9rem] max-w-[11rem] ${stickyBg} ${
+                      className={`px-1 py-1.5 sticky left-8 z-10 min-w-[6.5rem] max-w-[8rem] sm:min-w-[9rem] sm:max-w-[11rem] ${stickyBg} ${
                         isHit ? 'font-bold text-accent-foreground' : ''
                       }`}
                     >
                       <span className="block break-words line-clamp-4">{q.name}</span>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                    <td className="px-1 py-1.5 text-muted-foreground whitespace-nowrap">
                       {q.categoria ?? '—'}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap leading-tight">
+                    <td className="px-1 py-1.5 text-right tabular-nums whitespace-nowrap leading-tight">
                       {q.distance != null ? (
                         <>
                           <span className="block">{q.distance.toFixed(2)}</span>
@@ -773,7 +773,7 @@ const QualifiersTable = ({
                     {(() => {
                       const { date, time } = formatFechaHora(q.fecha_full ?? q.fecha);
                       return (
-                        <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
+                        <td className="px-1 py-1.5 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
                           <span className="block">{date}</span>
                           {time && <span className="block text-[10px] sm:text-xs text-muted-foreground/80">{time}</span>}
                         </td>

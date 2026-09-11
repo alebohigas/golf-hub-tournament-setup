@@ -29,7 +29,7 @@ interface ApproachClasificadosReportProps {
 // ============= Styles =============
 
 /** Clases compartidas por los encabezados, idénticas al reporte de Putt. */
-const TH_CLASS = 'px-3 py-2 font-bold';
+const TH_CLASS = 'px-1 py-1.5 font-bold';
 
 // ============= Helpers =============
 
@@ -132,22 +132,24 @@ const ApproachClasificadosReport = ({
        * "Jugador" permanecen fijas (sticky). El nombre se limita a 4 renglones.
        */}
       <div className="overflow-x-auto bg-white rounded-lg border border-border">
-        <table className="w-full min-w-[34rem] text-xs sm:text-sm bg-white">
+        <table className="w-full min-w-[28rem] text-xs sm:text-sm bg-white">
           <thead>
             <tr className="bg-primary text-primary-foreground">
-              <th className={`${TH_CLASS} text-center w-10 sticky left-0 z-20 bg-primary`}>#</th>
-              <th className={`${TH_CLASS} text-left sticky left-10 z-20 bg-primary min-w-[9rem]`}>
+              <th className={`${TH_CLASS} text-center w-8 sticky left-0 z-20 bg-primary`}>#</th>
+              <th
+                className={`${TH_CLASS} text-left sticky left-8 z-20 bg-primary min-w-[6.5rem] max-w-[8rem] sm:min-w-[9rem] sm:max-w-[11rem]`}
+              >
                 Jugador
               </th>
               <th className={`${TH_CLASS} text-left`}>Cat</th>
-              <th className={`${TH_CLASS} text-right w-28`}>Dist</th>
-              {showFecha && <th className={`${TH_CLASS} text-center w-44`}>Fecha</th>}
+              <th className={`${TH_CLASS} text-right w-20`}>Dist</th>
+              {showFecha && <th className={`${TH_CLASS} text-center w-32`}>Fecha</th>}
             </tr>
           </thead>
           <tbody>
             {players.length === 0 ? (
               <tr>
-                <td colSpan={showFecha ? 5 : 4} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={showFecha ? 5 : 4} className="px-2 py-4 text-center text-muted-foreground">
                   <Crosshair className="h-8 w-8 mx-auto mb-2" />
                   Aún no hay clasificados.
                 </td>
@@ -165,21 +167,21 @@ const ApproachClasificadosReport = ({
                     className={`border-t border-border/60 ${isHit ? 'bg-accent' : ''}`}
                   >
                     <td
-                      className={`px-2 py-2 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
+                      className={`px-1 py-1.5 text-center font-semibold text-primary sticky left-0 z-10 ${stickyBg}`}
                     >
                       {player.position}
                     </td>
                     <td
-                      className={`px-2 py-2 sticky left-10 z-10 min-w-[9rem] max-w-[11rem] ${stickyBg} ${
+                      className={`px-1 py-1.5 sticky left-8 z-10 min-w-[6.5rem] max-w-[8rem] sm:min-w-[9rem] sm:max-w-[11rem] ${stickyBg} ${
                         isHit ? 'font-bold text-accent-foreground' : ''
                       }`}
                     >
                       <span className="block break-words line-clamp-4">{player.name}</span>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                    <td className="px-1 py-1.5 text-muted-foreground whitespace-nowrap">
                       {player.category || '—'}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap leading-tight">
+                    <td className="px-1 py-1.5 text-right tabular-nums whitespace-nowrap leading-tight">
                       <span className="block">{player.distance.toFixed(2)}</span>
                       <span className="block text-[10px] sm:text-xs text-muted-foreground">mts</span>
                     </td>
@@ -187,7 +189,7 @@ const ApproachClasificadosReport = ({
                       (() => {
                         const { date, time } = formatFechaHora(player.fecha);
                         return (
-                          <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
+                          <td className="px-1 py-1.5 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
                             <span className="block">{date}</span>
                             {time && <span className="block text-[10px] sm:text-xs text-muted-foreground/80">{time}</span>}
                           </td>

@@ -103,27 +103,29 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
           <Table viewportSticky className="tournament-table">
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
-                <TableHead className="text-primary-foreground font-bold w-16 text-center">#</TableHead>
-                <TableHead className="text-primary-foreground font-bold">Jugador</TableHead>
-                <TableHead className="text-primary-foreground font-bold w-32">Cat.</TableHead>
-                <TableHead className="text-primary-foreground font-bold text-right w-32">Dist</TableHead>
-                <TableHead className="text-primary-foreground font-bold text-right w-40">Fecha</TableHead>
+                <TableHead className="text-primary-foreground font-bold w-12 text-center py-1 px-1">#</TableHead>
+                <TableHead className="text-primary-foreground font-bold py-1 px-1">Jugador</TableHead>
+                <TableHead className="text-primary-foreground font-bold w-24 py-1 px-1">Cat.</TableHead>
+                <TableHead className="text-primary-foreground font-bold text-right w-24 py-1 px-1">Dist</TableHead>
+                <TableHead className="text-primary-foreground font-bold text-right w-32 py-1 px-1">Fecha</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {qualifiers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-4 px-1">
                     Aún no hay jugadores clasificados.
                   </TableCell>
                 </TableRow>
               ) : (
                 qualifiers.map((q) => (
                   <TableRow key={`${q.rank}-${q.name}`}>
-                    <TableCell className="text-center font-bold">{q.rank}</TableCell>
-                    <TableCell className="font-medium">{q.name}</TableCell>
-                    <TableCell>{q.categoria ?? ''}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-primary leading-tight">
+                    <TableCell className="text-center font-bold py-1 px-1">{q.rank}</TableCell>
+                    <TableCell className="font-medium py-1 px-1 max-w-[16rem]">
+                      <span className="block break-words line-clamp-4">{q.name}</span>
+                    </TableCell>
+                    <TableCell className="py-1 px-1">{q.categoria ?? ''}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-primary leading-tight py-1 px-1">
                       {q.distance != null ? (
                         <>
                           <span className="block">{q.distance}</span>
@@ -136,7 +138,7 @@ const PuttCalificadosSlide = ({ sexo }: Props) => {
                     {(() => {
                       const { date, time } = splitFechaHora(q.fecha);
                       return (
-                        <TableCell className="text-right text-sm text-muted-foreground leading-tight">
+                        <TableCell className="text-right text-sm text-muted-foreground leading-tight py-1 px-1">
                           <span className="block">{date}</span>
                           {time && <span className="block text-[10px] md:text-xs opacity-80">{time}</span>}
                         </TableCell>
