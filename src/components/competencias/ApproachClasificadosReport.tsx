@@ -34,17 +34,19 @@ const TH_CLASS = 'px-3 py-2 font-bold';
 // ============= Helpers =============
 
 /**
- * Convierte la fecha de base de datos a la presentación DD/MM/YYYY HH:MM:SS.
+ * Convierte la fecha de base de datos a fecha y hora separadas.
  * Conserva el valor original cuando no coincide con el formato esperado.
  */
-const formatFechaHora = (value: string | null | undefined): string => {
-  if (!value) return '—';
+const formatFechaHora = (
+  value: string | null | undefined,
+): { date: string; time: string | null } => {
+  if (!value) return { date: '—', time: null };
   const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(value);
-  if (!match) return value;
+  if (!match) return { date: value, time: null };
   const date = `${match[3]}/${match[2]}/${match[1]}`;
-  if (!match[4]) return date;
+  if (!match[4]) return { date, time: null };
   const seconds = match[6] ? `:${match[6]}` : '';
-  return `${date} ${match[4]}:${match[5]}${seconds}`;
+  return { date, time: `${match[4]}:${match[5]}${seconds}` };
 };
 
 // ============= Component =============
@@ -182,9 +184,15 @@ const ApproachClasificadosReport = ({
                       <span className="block text-[10px] sm:text-xs text-muted-foreground">mts</span>
                     </td>
                     {showFecha && (
-                      <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap">
-                        {formatFechaHora(player.fecha)}
-                      </td>
+                      (() => {
+                        const { date, time } = formatFechaHora(player.fecha);
+                        return (
+                          <td className="px-3 py-2 text-center text-muted-foreground tabular-nums whitespace-nowrap leading-tight">
+                            <span className="block">{date}</span>
+                            {time && <span className="block text-[10px] sm:text-xs text-muted-foreground/80">{time}</span>}
+                          </td>
+                        );
+                      })()
                     )}
                   </tr>
                 );

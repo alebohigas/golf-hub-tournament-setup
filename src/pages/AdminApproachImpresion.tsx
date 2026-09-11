@@ -35,6 +35,21 @@ const TH = 'px-2 py-1 text-[9px] font-semibold uppercase tracking-wide';
 /** Clases de celda de la tabla impresa. */
 const TD = 'px-2 py-[3px] text-[10px]';
 
+/**
+ * Separa una fecha/hora `YYYY-MM-DD HH:MM:SS` en fecha (DD/MM/YYYY) y hora.
+ * Si no tiene hora, time es null.
+ */
+const splitFechaHora = (
+  value: string | null | undefined,
+): { date: string; time: string | null } => {
+  if (!value) return { date: '—', time: null };
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/.exec(value);
+  if (!m) return { date: value, time: null };
+  const date = `${m[3]}/${m[2]}/${m[1]}`;
+  if (!m[4]) return { date, time: null };
+  return { date, time: `${m[4]}:${m[5]}:${m[6]}` };
+};
+
 const AdminApproachImpresion = () => {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -182,7 +197,15 @@ const AdminApproachImpresion = () => {
                         <span className="block">{p.distance.toFixed(2)}</span>
                         <span className="block text-[7px]">mts</span>
                       </td>
-                      <td className={`${TD} text-right whitespace-nowrap`}>{p.fecha ?? '—'}</td>
+                      {(() => {
+                        const { date, time } = splitFechaHora(p.fecha);
+                        return (
+                          <td className={`${TD} text-right whitespace-nowrap leading-tight`}>
+                            <span className="block">{date}</span>
+                            {time && <span className="block text-[7px]">{time}</span>}
+                          </td>
+                        );
+                      })()}
                     </tr>
                   ))}
                 </tbody>
