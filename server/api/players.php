@@ -37,11 +37,14 @@ $sql = "SELECT p.id, p.numjugador,
                c.logo, p.indexjgo as hi,
                f_hdccampo(p.indexjgo, p.teesalidaid, cat.campoid) as hj,
                f_hdccamponeto(p.indexjgo, p.teesalidaid, cat.campoid, $pctColumn) as hn,
-               p.club, p.sexo, p.estatus, p.equipo, p.grupoid
+               p.club, p.sexo, p.estatus, p.equipo, p.grupoid,
+               p.teesalidaid, cat.salida as catSalida, pts.tee as playerTee
         FROM jugadores p
         LEFT JOIN clubs c ON (p.clubid = c.id)
+        /* Nombre de la mesa de salida asignada al jugador (jugadores.teesalidaid). */
+        LEFT JOIN salidas pts ON (p.teesalidaid = pts.id)
         LEFT JOIN (
-            SELECT cat.categoria_id, cj.campo as campoid, cat.porcentaje, cat.Skeenporcent as skeenporcent
+            SELECT cat.categoria_id, cj.campo as campoid, cat.porcentaje, cat.Skeenporcent as skeenporcent, cat.salida
             FROM categorias cat
             JOIN caljuego cj ON (cat.categoria_id = cj.categoriaid)
             WHERE cat.categoria_id = '$cid' and campo>0
@@ -78,7 +81,16 @@ while ($row = $result->fetch_assoc()) {
         'estatus'    => $row['estatus'] ?? 'NORMAL',
         /** grupoid: agrupador de parejas (ej. "C24"). El frontend usa este
          *  campo cuando isParejas=true para mostrar "Grupo C24". */
-        'grupoid'    => $row['grupoid'] ?? ''
+        'grupoid'    => $row['grupoid'] ?? '',
+        /**
+         * teeOverride: nombre de la mesa de salida del jugador SOLO cuando
+         * difiere de la mesa establecida en la categoría (categorias.salida).
+         * Cadena vacía cuando coincide o no hay dato — el frontend la omite.
+         */
+        'teeOverride' => (!empty($row['teesalidaid']) && !empty($row['catSalida'])
+                          && (int)$row['teesalidaid'] !== (int)$row['catSalida']
+                          && !empty($row['playerTee']))
+                        ? $row['playerTee'] : ''
     ];
 }
 $result->free();
