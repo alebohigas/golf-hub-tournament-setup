@@ -110,6 +110,20 @@ if (strtoupper($catInfo['formato'] ?? '') === 'PAREJAS') {
 $sistema = strtoupper($catInfo['sistema']);
 
 /**
+ * MESA DE SALIDA DISTINTA A LA DE LA CATEGORÍA.
+ * Devuelve el nombre del tee del jugador (jugadores.teesalidaid → salidas.tee)
+ * únicamente cuando difiere del tee establecido en la categoría
+ * (categorias.salida). NULL cuando coincide o no hay dato — el frontend lo omite.
+ */
+$catSalidaEsc = esc($conn, (string)($catInfo['salida'] ?? ''));
+$teeOverrideExpr = "(SELECT s.tee FROM salidas s
+                      WHERE s.id = j.teesalidaid
+                        AND j.teesalidaid > 0
+                        AND '$catSalidaEsc' <> ''
+                        AND j.teesalidaid <> '$catSalidaEsc'
+                      LIMIT 1) as tee_override";
+
+/**
  * FASE PREVIA STROKE PLAY / STABLEFORD EN CATEGORÍAS QUE CAMBIARON A MATCH PLAY
  * -----------------------------------------------------------------------------
  * Algunas categorías arrancan con rondas de clasificación (STROKE PLAY o
