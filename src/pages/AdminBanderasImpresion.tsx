@@ -177,7 +177,7 @@ const AdminBanderasImpresion = () => {
           {/* Escala fina */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Escala: {scale}%
+              Escala: {scale}%{effectiveScale * 100 < scale ? ` → ajuste auto ${Math.round(effectiveScale * 100)}%` : ''}
             </label>
             <input
               type="range"
@@ -219,9 +219,9 @@ const AdminBanderasImpresion = () => {
           >
             <div
               style={{
-                transform: `scale(${scale / 100})`,
+                transform: `scale(${effectiveScale})`,
                 transformOrigin: 'top left',
-                width: `${100 / (scale / 100)}%`,
+                width: `${100 / effectiveScale}%`,
               }}
             >
               {/* Encabezado del reporte */}
