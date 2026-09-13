@@ -128,6 +128,8 @@ const AdminCompeticiones = () => {
           enabled: value,
           orden: cfg?.orden === 'desc' ? 'desc' : 'asc',
           title: cfg?.title,
+          // Conserva la selección de reportes configurada en Admin > Approach.
+          grupos: cfg?.grupos,
         },
       },
       {
