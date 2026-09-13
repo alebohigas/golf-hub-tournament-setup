@@ -39,6 +39,7 @@ import AdminStats from '@/components/admin/AdminStats';
 import AdminStatsPage from '@/components/admin/AdminStatsPage';
 /** Pestaña Approach: administra el reporte "Clasificados de Approach". */
 import AdminApproach from '@/components/admin/AdminApproach';
+import AdminCompeticiones from '@/components/admin/AdminCompeticiones';
 import AdminHistorial from '@/components/admin/AdminHistorial';
 import AdminHeros from '@/components/admin/AdminHeros';
 import AdminPopup from '@/components/admin/AdminPopup';
@@ -267,6 +268,8 @@ const AdminDashboard = () => {
     heros: undefined,
     // Approach (Clasificados de Approach) queda restringido a superadmin.
     approach: undefined,
+    // Competiciones (qué reportes se presentan en /competencias): superadmin.
+    competiciones: undefined,
     // ALIEN SYSTEM: la pestaña contenedora se resuelve aparte (cualquiera de
     // sus sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
     alien: undefined,
@@ -538,6 +541,8 @@ const AdminDashboard = () => {
             { value: 'stats-page',   icon: BarChart3,       label: 'Página /stats' },
             /** Clasificados de Approach (resumen de torneos.approachjug). */
             { value: 'approach',     icon: Crosshair,       label: 'Approach' },
+            /** Selección de reportes presentados en /competencias. */
+            { value: 'competiciones', icon: Trophy,         label: 'Competiciones' },
             { value: 'usuarios',     icon: Users,           label: 'Usuarios' },
           ];
           // Filtrar por área para staff temporal. Admin completo ve todo.
@@ -927,6 +932,11 @@ const AdminDashboard = () => {
 
         {/* Approach — publica y ordena el reporte "Clasificados de Approach"
             que se presenta en la página de Competiciones. */}
+        {/* Competiciones: elige qué reportes se presentan en la página pública */}
+        <TabsContent value="competiciones">
+          <AdminCompeticiones />
+        </TabsContent>
+
         <TabsContent value="approach">
           <AdminApproach />
         </TabsContent>
