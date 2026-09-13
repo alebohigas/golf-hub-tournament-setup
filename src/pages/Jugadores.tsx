@@ -133,8 +133,21 @@ const Jugadores = () => {
   const isParejas = playersData?.isParejas ?? false;
   const groups = playersData?.groups ?? [];
 
-  /** Total players across all categories */
-  const totalPlayers = categories.reduce((sum, cat) => sum + cat.playerCount, 0);
+  /**
+   * Detecta categorías "espejo" de sistema de juego cuyo nombre o abreviatura
+   * lleva un guion seguido de STK/STP/STROKE/STABLEFORD (p. ej. "E-STK",
+   * "A-STABLEFORD"). Estas categorías duplican jugadores de la categoría
+   * principal, por lo que NO se contabilizan en el total general.
+   */
+  const isSystemMirrorCategory = (cat: CategoryDetail): boolean =>
+    /-\s*(STK|STP|STROKE|STABLE)/i.test(cat.name ?? '') ||
+    /-\s*(STK|STP|STROKE|STABLE)/i.test(cat.shortName ?? '');
+
+  /** Total players across all categories (excluye categorías espejo -STK/-STP) */
+  const totalPlayers = categories.reduce(
+    (sum, cat) => sum + (isSystemMirrorCategory(cat) ? 0 : cat.playerCount),
+    0
+  );
 
   /** Navigate back to category grid */
   const handleBack = () => setSelectedCategory(null);
