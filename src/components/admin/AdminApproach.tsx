@@ -45,6 +45,11 @@ const AdminApproach = () => {
   const [enabled, setEnabled] = useState(false);
   const [orden, setOrden] = useState<ApproachOrden>('asc');
   const [title, setTitle] = useState(DEFAULT_TITLE);
+  /**
+   * Reportes/premios incluidos en el resumen.
+   * `null` = todos (sin filtro); arreglo = sólo esos grupos.
+   */
+  const [grupos, setGrupos] = useState<string[] | null>(null);
 
   /** Hidrata el editor cuando llega la configuración del servidor. */
   useEffect(() => {
@@ -53,21 +58,48 @@ const AdminApproach = () => {
     setEnabled(cfg.enabled === true);
     setOrden(cfg.orden === 'desc' ? 'desc' : 'asc');
     setTitle(cfg.title || DEFAULT_TITLE);
+    setGrupos(Array.isArray(cfg.grupos) ? cfg.grupos : null);
   }, [siteConfig?.approach_config]);
 
   /** Datos actuales (para el resumen de grupos/lugares del torneo). */
-  const { data } = useApproachClasificados(orden);
+  const { data, refetch, isFetching } = useApproachClasificados(orden);
+
+  /** Lista de reportes/premios disponibles en el torneo. */
+  const availableGroups = data?.groups?.map((g) => g.descripcion) ?? [];
+
+  /** Marca o desmarca un reporte dentro de la selección. */
+  const toggleGrupo = (descripcion: string, checked: boolean) => {
+    // Base: si no hay filtro (null), parte de todos los disponibles.
+    const base = grupos ?? availableGroups;
+    const next = checked
+      ? [...new Set([...base, descripcion])]
+      : base.filter((g) => g !== descripcion);
+    setGrupos(next);
+  };
+
+  /** Selecciona o limpia todos los reportes de golpe. */
+  const selectAll = () => setGrupos(null); // null = sin filtro = todos
+  const clearAll = () => setGrupos([]);
 
   /** Guarda la configuración en site_config.approach_config. */
-  const handleSave = () => {
+  const handleSave = (successMessage = 'Configuración de Approach actualizada.') => {
     saveSiteConfig.mutate(
       {
         password: getSuperAdminPassword(),
-        approach_config: { enabled, orden, title: title.trim() || DEFAULT_TITLE },
+        approach_config: {
+          enabled,
+          orden,
+          title: title.trim() || DEFAULT_TITLE,
+          // null (todos) se guarda como ausencia de filtro.
+          grupos: grupos ?? undefined,
+        },
       },
       {
-        onSuccess: () =>
-          toast({ title: 'Guardado', description: 'Configuración de Approach actualizada.' }),
+        onSuccess: () => {
+          toast({ title: 'Guardado', description: successMessage });
+          // Recalcula el reporte con la selección recién guardada.
+          refetch();
+        },
         onError: (err: unknown) =>
           toast({
             title: 'Error al guardar',
