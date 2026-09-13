@@ -183,17 +183,46 @@ const AdminApproach = () => {
             </p>
           </div>
 
-          {/* Resumen de premios/lugares del torneo */}
-          {(data?.groups?.length ?? 0) > 0 && (
-            <div className="rounded-md border border-border/50 divide-y divide-border/50 text-sm">
-              {data!.groups.map((g) => (
-                <div key={g.descripcion} className="flex items-center justify-between px-3 py-2">
-                  <span className="font-medium">{g.descripcion}</span>
-                  <span className="text-muted-foreground">
-                    Lugares: {g.lugares} · Jugadores: {g.playerCount}
-                  </span>
+          {/* Selección de reportes/premios incluidos en el resumen */}
+          {availableGroups.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label>Reportes incluidos en Clasificados</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={selectAll}>
+                    Seleccionar todos
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={clearAll}>
+                    Deseleccionar todos
+                  </Button>
                 </div>
-              ))}
+              </div>
+              <div className="rounded-md border border-border/50 divide-y divide-border/50 text-sm">
+                {data!.groups.map((g) => {
+                  // Sin filtro (null) todos cuentan como seleccionados.
+                  const checked = grupos === null || grupos.includes(g.descripcion);
+                  return (
+                    <label
+                      key={g.descripcion}
+                      className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2 font-medium">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => toggleGrupo(g.descripcion, v === true)}
+                        />
+                        {g.descripcion}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Lugares: {g.lugares} · Jugadores: {g.playerCount}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Guarda y recalcula para aplicar la selección al reporte público.
+              </p>
             </div>
           )}
 
