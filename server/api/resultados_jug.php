@@ -755,7 +755,9 @@ foreach ($rows as $row) {
         'totalSA'   => (int)($row['sa'] ?? 0),
         // Number of CLOSED scorecards (statlsc=1) for this player on scheduled dates.
         // Frontend uses this to compute Stroke Play differential: total - parcampo * closedRounds.
-        'closedRounds' => (int)($row['closed_rounds'] ?? 0)
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+        /* Mesa de salida del jugador cuando difiere de la de la categoría. */
+        'teeOverride' => (string)($row['tee_override'] ?? '')
     ];
 
     foreach ($dias as $i => $fecha) {
@@ -867,6 +869,8 @@ if ($matchPlayFinal) {
             'totalSO'   => (int)($row['total_score'] ?? 0),
             'totalSA'   => (int)($row['total_score'] ?? 0),
             'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+            /* Mesa de salida del jugador cuando difiere de la de la categoría. */
+            'teeOverride' => (string)($row['tee_override'] ?? ''),
         ];
         foreach ($dias as $i => $fecha) {
             $val = $row["d{$i}"] ?? null;
@@ -955,7 +959,7 @@ $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                   $cutTotalExpr
                   , $closedRoundCount as closed_rounds
-                  $cutDayCols, $teeOverrideExpr
+                  $cutDayCols, $teeOverrideExpr,
                   c.abr, c.logo
            FROM jugadores j
            JOIN clubs c ON (j.clubid = c.id)
@@ -988,6 +992,8 @@ foreach ($cutRows as $row) {
         'statusLabel' => statusLabel($statusCode ?? 'D'),
         'total'       => $cutTotal,
         'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+        /* Mesa de salida del jugador cuando difiere de la de la categoría. */
+        'teeOverride' => (string)($row['tee_override'] ?? ''),
     ], $cutRounds);
 }
 
