@@ -166,6 +166,15 @@ $sql = "SELECT a.id,
 
 $rows = safe_all($conn, $sql, 'clasificados');
 
+// Aplica el filtro de reportes seleccionados también a los jugadores,
+// para que los grupos no elegidos queden fuera del reporte final.
+if ($selectedGroups !== null) {
+    $rows = array_values(array_filter(
+        $rows,
+        fn($r) => in_array((string)($r['grupo'] ?? ''), $selectedGroups, true)
+    ));
+}
+
 /**
  * $limits
  * Límite de lugares por grupo/premio, tomado de `approach.hoyo`.
