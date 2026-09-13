@@ -501,6 +501,8 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                                       {hit.partner ? (
                                         <span className="block text-xs text-muted-foreground">{hit.partner}</span>
                                       ) : null}
+                                      {/* Mesa de salida distinta a la de la categoría */}
+                                      {hit.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{hit.teeOverride}</span>}
                                     </TableCell>
                                     <TableCell className="text-center font-extrabold text-primary">{hit.total}</TableCell>
                                   </TableRow>
@@ -717,6 +719,8 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                                   {/* Nombre recortado a 4 renglones en móvil vía span interno (.player-name-clamp) */}
                                   <TableCell className="font-medium player-name-cell sticky z-10 bg-white" style={{ left: '7.5rem' }}>
                                     <span className="player-name-clamp">{name1}</span>
+                                    {/* Mesa de salida distinta a la de la categoría */}
+                                    {player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride}</span>}
                                   </TableCell>
                                   {/* Round score cells — rowSpan=2 en parejas para centrar el score compartido */}
                                   {(categoryDetail?.days || []).map((_, i) => {
@@ -883,6 +887,8 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                                    */}
                                   <TableCell className="font-medium text-muted-foreground player-name-cell sticky z-10" style={{ left: '7.5rem', backgroundColor: 'hsl(var(--muted) / 0.2)' }}>
                                     <span className="block leading-tight player-name-clamp">{name1}</span>
+                                    {/* Mesa de salida distinta a la de la categoría */}
+                                    {cp.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{cp.teeOverride}</span>}
                                     <span className="block text-[11px] leading-tight text-muted-foreground/70">
                                       ({cp.statusLabel})
                                     </span>
