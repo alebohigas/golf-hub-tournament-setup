@@ -705,7 +705,8 @@ const Salidas = () => {
                   >
                     <CardContent className="p-5 text-center">
                       <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h3 className="font-bold text-foreground text-lg mb-1">{cat.shortName || cat.categoryName}</h3>
+                      {/* Nombre completo de la categoría (abreviatura sólo como respaldo) */}
+                      <h3 className="font-bold text-foreground text-lg mb-1">{cat.categoryName || cat.shortName}</h3>
                       <p className="text-xs text-muted-foreground mb-2">{cat.tee}</p>
                       {/* Group count badge */}
                       {groupCountMap[String(cat.caljgoid)] !== undefined ? (
