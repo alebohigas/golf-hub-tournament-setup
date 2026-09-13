@@ -73,6 +73,7 @@
 - [Resultados scorecard structure](mem://features/resultados-scorecard-structure) — Stableford/Neto vs Scratch rows and labels
 - [Resultados scoring type selection](mem://features/resultados-scoring-type-selection) — Dual NETO/GROSS selection if gross: 1
 - [Dynamic round keys](mem://constraints/dynamic-round-keys) — Never hardcode r1/r2/r3 in Resultados/Live; spread all r{n} from API
+- [Tee override display](mem://features/tee-override-display) — Mesa de salida distinta a la categoría se muestra bajo el nombre en Jugadores/Salidas/Resultados
 - [Salidas impresión filtro de hoyos](mem://features/salidas-impresion-hole-filter) — Rango hi/hf estricto (1 a 1 = sólo hoyo 1), hoyo derivado del tee, categoría a la izquierda del encabezado
 
 - [Resultados partial rounds](mem://features/resultados-partial-rounds) — Show in-progress rounds with En vivo badge; Total stays closed-only; Live mirrors Hoy when no closed rounds yet
