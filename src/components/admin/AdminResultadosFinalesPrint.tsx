@@ -114,6 +114,25 @@ const AdminResultadosFinalesPrint = () => {
           </p>
         ) : (
           <>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelected(blocks.map((b) => b.key))}
+              >
+                Seleccionar todos
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelected([])}
+              >
+                Deseleccionar todos
+              </Button>
+            </div>
+
             <div className="grid gap-2 sm:grid-cols-2">
               {blocks.map((b) => (
                 <div key={b.key} className="flex items-center gap-2 rounded-md border border-border p-2">
