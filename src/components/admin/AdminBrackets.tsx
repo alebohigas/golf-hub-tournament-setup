@@ -95,6 +95,15 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
     window.open(`/admin/brackets-putt-impresion?sexo=${sexo}&orient=${orient}`, '_blank');
   };
 
+  /**
+   * Abre la impresión de la lista de Clasificados Putt (con hora de registro
+   * y autoajuste a una hoja carta). En modo único usa la rama A.
+   */
+  const openClasificadosPrintView = () => {
+    const sexo = effectiveMode === 'single' ? 'A' : 'M';
+    window.open(`/admin/putt-clasificados-impresion?sexo=${sexo}`, '_blank');
+  };
+
   /** Diálogo de confirmación antes de cambiar el modo (se borran matches/resultados). */
   const [pendingMode, setPendingMode] = useState<'single' | 'dual' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -295,6 +304,16 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
               >
                 <Printer className="h-4 w-4" />
                 Imprimir horizontal
+              </Button>
+              {/* Impresión de la lista de clasificados (con hora de registro). */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={openClasificadosPrintView}
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir clasificados
               </Button>
               {/* Asistente: crea el bracket único completo en un solo clic. */}
               {mode !== 'scores' && !singleReady && (
