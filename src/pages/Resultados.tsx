@@ -455,8 +455,8 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                           <CardContent className="p-0 bg-white">
                             <div className="bg-muted/50 px-4 py-2 border-b border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-sm items-center justify-between">
                               <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                {/* Nombre completo de la categoría (no la abreviatura) */}
                                 <span className="font-semibold text-foreground">{hit.category.categoryName}</span>
-                                <span className="text-primary font-medium">{hit.category.shortName}</span>
                                 <span className="text-muted-foreground">{hit.category.system}</span>
                               </div>
                               <Button
@@ -528,7 +528,8 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                     >
                       <CardContent className="p-5 text-center">
                         <Trophy className="h-6 w-6 mx-auto mb-2 text-primary" />
-                        <h3 className="font-bold text-foreground text-lg mb-2">{category.shortName}</h3>
+                        {/* Título de tarjeta: nombre completo de la categoría */}
+                        <h3 className="font-bold text-foreground text-lg mb-2">{category.categoryName || category.shortName}</h3>
                         <div className="flex justify-center gap-1 flex-wrap">
                           {category.scoringTypes.map((scoring) => (
                             <span
@@ -601,7 +602,7 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
                 <ArrowLeft className="h-4 w-4" />
                 {selectedCategory?.scoringTypes.length === 1 
                   ? 'Volver a categorías' 
-                  : `Volver a ${selectedCategory?.shortName}`}
+                  : `Volver a ${selectedCategory?.categoryName || selectedCategory?.shortName}`}
               </Button>
 
               <div className="mb-8 text-center">

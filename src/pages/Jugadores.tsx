@@ -221,8 +221,8 @@ const Jugadores = () => {
                             {/* Result context header */}
                             <div className="bg-muted/50 px-4 py-2 border-b border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-sm items-center justify-between">
                               <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                {/* Nombre completo de la categoría (no la abreviatura) */}
                                 <span className="font-semibold text-foreground">{result.category.name}</span>
-                                <span className="text-primary font-medium">{result.category.shortName}</span>
                                 <span className="text-muted-foreground">{result.category.system}</span>
                               </div>
                               <Button
@@ -285,7 +285,8 @@ const Jugadores = () => {
                     {categories.map((category) => (
                       <Card key={category.id} className="border-border/50 hover:border-primary/50 transition-colors">
                         <CardContent className="p-4 text-center">
-                          <h3 className="font-bold text-foreground">{category.shortName}</h3>
+                          {/* Título de tarjeta: nombre completo de la categoría */}
+                          <h3 className="font-bold text-foreground">{category.name || category.shortName}</h3>
                           <p className="text-2xl font-bold text-primary my-2">{category.playerCount}</p>
                           <Button
                             size="sm"
