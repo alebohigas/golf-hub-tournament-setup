@@ -295,6 +295,15 @@ foreach ($groupRows as $group) {
             'score'    => (int)($pr['sa'] ?? 0),
             'system'   => $pr['sistema'] ?? ''
         ];
+        /* Mesa de salida distinta a la de la categoría (vacío si coincide). */
+        $pTeeId = (int)($pr['jugadorid'] ?? 0);
+        if ($pTeeId > 0 && isset($teeOverrideByPlayer[$pTeeId])) {
+            $player['teeOverride'] = $teeOverrideByPlayer[$pTeeId];
+        }
+        $pTeeId2 = (int)($pr['jugadorid2'] ?? 0);
+        if ($pTeeId2 > 0 && isset($teeOverrideByPlayer[$pTeeId2])) {
+            $player['teeOverride2'] = $teeOverrideByPlayer[$pTeeId2];
+        }
         if ($isParejas && isset($pr['logo2'])) {
             /* Logo del club del segundo integrante de la pareja. */
             $player['clubLogo2'] = $pr['logo2'] ? $LOGOS_BASE_URL . $pr['logo2'] : '';
