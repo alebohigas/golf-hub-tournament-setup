@@ -36,18 +36,21 @@ const TH = 'px-2 py-1 text-[9px] font-semibold uppercase tracking-wide';
 const TD = 'px-2 py-[3px] text-[10px]';
 
 /**
- * Separa una fecha/hora `YYYY-MM-DD HH:MM:SS` en fecha (DD/MM/YYYY) y hora.
- * Si no tiene hora, time es null.
+ * Separa una fecha/hora `YYYY-MM-DD HH:MM` o `YYYY-MM-DD HH:MM:SS` en fecha
+ * (DD/MM/YYYY) y hora. Los segundos son OPCIONALES porque la API devuelve
+ * `registrado` truncado a minutos (`substr(...,0,16)` → "YYYY-MM-DD HH:MM");
+ * sin esto la hora nunca aparecía en la hoja impresa. Si no hay hora,
+ * time es null.
  */
 const splitFechaHora = (
   value: string | null | undefined,
 ): { date: string; time: string | null } => {
   if (!value) return { date: '—', time: null };
-  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/.exec(value);
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(value);
   if (!m) return { date: value, time: null };
   const date = `${m[3]}/${m[2]}/${m[1]}`;
   if (!m[4]) return { date, time: null };
-  return { date, time: `${m[4]}:${m[5]}:${m[6]}` };
+  return { date, time: m[6] ? `${m[4]}:${m[5]}:${m[6]}` : `${m[4]}:${m[5]}` };
 };
 
 const AdminApproachImpresion = () => {
