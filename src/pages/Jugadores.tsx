@@ -259,7 +259,10 @@ const Jugadores = () => {
                                         }}
                                       />
                                     </TableCell>
-                                    <TableCell className="player-name-cell"><span className="player-name-clamp">{result.player.name}</span></TableCell>
+<TableCell className="player-name-cell"><span className="player-name-clamp">{result.player.name}</span>
+                                      {/* Mesa de salida distinta a la de la categoría (texto pequeño bajo el nombre) */}
+                                      {result.player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{result.player.teeOverride}</span>}
+                                    </TableCell>
                                     <TableCell className="text-center">{result.player.handicapIndex.toFixed(1)}</TableCell>
                                     <TableCell className="text-center">{result.player.handicapJuego}</TableCell>
                                     <TableCell className="text-center font-extrabold text-base text-primary">{result.player.handicapNeto}</TableCell>
@@ -400,7 +403,10 @@ const Jugadores = () => {
                                       />
                                     </TableCell>
                                     {/* Nombre recortado a 4 renglones en móvil (.player-name-clamp) */}
-                                    <TableCell className="player-name-cell"><span className="player-name-clamp">{player.name}</span></TableCell>
+                                    <TableCell className="player-name-cell"><span className="player-name-clamp">{player.name}</span>
+                                      {/* Mesa de salida distinta a la de la categoría */}
+                                      {player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride}</span>}
+                                    </TableCell>
                                     <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
                                     <TableCell className="text-center">{player.handicapJuego}</TableCell>
                                     <TableCell className="text-center font-extrabold text-base text-primary">{player.handicapNeto}</TableCell>
@@ -481,7 +487,10 @@ const Jugadores = () => {
                                  />
                                </TableCell>
                                {/* Nombre recortado a 4 renglones en móvil (.player-name-clamp) */}
-                               <TableCell className="player-name-cell"><span className="player-name-clamp">{player.name}</span></TableCell>
+                               <TableCell className="player-name-cell"><span className="player-name-clamp">{player.name}</span>
+                                 {/* Mesa de salida distinta a la de la categoría */}
+                                 {player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride}</span>}
+                               </TableCell>
                               {/* HI/HJ/HN values centered under their respective column headers */}
                               <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
                               <TableCell className="text-center">{player.handicapJuego}</TableCell>

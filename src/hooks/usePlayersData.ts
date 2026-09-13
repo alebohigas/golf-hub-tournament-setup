@@ -22,6 +22,8 @@ interface PlayersApiResponse {
     hj: string;
     hn: string;
     grupoid?: string;
+    /** Mesa de salida distinta a la de la categoría (vacío si coincide). */
+    teeOverride?: string;
   }[];
   fechaHandicap: string;  // Handicap date for the category (empty or YYYY-MM-DD)
   /** Bandera de la categoría (formato='PAREJAS'). Si true, el frontend
@@ -73,6 +75,7 @@ export const usePlayers = (catId: string | null, enabled = true, opts: { skin?: 
         handicapNeto: parseFloat(p.hn) || 0,
         categoryId: catId,
         grupoid: (p.grupoid || '').trim(),
+        teeOverride: (p.teeOverride || '').trim(),
       })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
       const isParejas = !!data.isParejas;

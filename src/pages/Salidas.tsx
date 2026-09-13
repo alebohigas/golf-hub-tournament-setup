@@ -572,6 +572,8 @@ const Salidas = () => {
                                                 ? `${player.position} ${player.name}`
                                                 : player.name}
                                             </span>
+                                            {/* Mesa de salida distinta a la de la categoría */}
+                                            {player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride}</span>}
                                           </TableCell>
                                           {/* Score: en parejas se centra entre los dos renglones (rowSpan=2).
                                             * En MATCH PLAY la columna se omite por completo. */}
@@ -596,6 +598,8 @@ const Salidas = () => {
                                             </TableCell>
                                             <TableCell className={`font-medium player-name-cell ${isMatched ? 'text-primary font-bold' : 'text-foreground'}`}>
                                               <span className="player-name-clamp">{player.partner}</span>
+                                              {/* Mesa de salida del segundo integrante cuando difiere de la categoría */}
+                                              {player.teeOverride2 && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride2}</span>}
                                             </TableCell>
                                           </TableRow>
                                         );

@@ -20,6 +20,7 @@ $cgid = esc($conn, $caljgoid);
 // ============= Calendar game + category info =============
 $sql = "SELECT a.id, a.torneoid, a.fecha, a.campo, a.categoriaid,
                b.abreviatura, b.categoria, b.sistema, b.gross, b.grossstb,
+               b.salida as cat_salida,
                s.tee, c.campo as campo_nombre
         FROM caljuego a
         JOIN categorias b ON (a.categoriaid = b.categoria_id)
@@ -142,7 +143,9 @@ foreach ($groupRows as $group) {
     // v_sal_jug_par no expone `logo2`; el segundo logo se trae desde la pareja j2->club.
     // `jugadorid` se incluye SIEMPRE: es la llave usada para cruzar contra
     // `elimin_salidas_cat` y agrupar por MATCH en categorías MATCH PLAY.
-    $logoCols = ($isParejas ? "v.logo, c2.logo as logo2" : "logo")
+    /* En parejas también se expone jugadorid2 para detectar si el SEGUNDO
+     * integrante tiene una mesa de salida distinta a la de la categoría. */
+    $logoCols = ($isParejas ? "v.logo, c2.logo as logo2, vp.jugadorid2 as jugadorid2" : "logo")
               . ", {$P}jugadorid as jugadorid";
 
 
@@ -214,6 +217,41 @@ foreach ($groupRows as $group) {
     $playerRows = query_all($conn, $sql);
 
     /**
+     * MESA DE SALIDA DISTINTA A LA DE LA CATEGORÍA.
+     * Mapa jugadorid → nombre del tee (salidas.tee) sólo para jugadores cuya
+     * mesa registrada (jugadores.teesalidaid) difiere de la establecida en la
+     * categoría (categorias.salida). Si coincide, no se envía nada.
+     */
+    $teeOverrideByPlayer = [];
+    $catSalidaId = (int)($calInfo['cat_salida'] ?? 0);
+    if ($catSalidaId > 0) {
+        $teeIds = [];
+        foreach (($playerRows ?: []) as $teeRow) {
+            foreach (['jugadorid', 'jugadorid2'] as $idKey) {
+                $pid = (int)($teeRow[$idKey] ?? 0);
+                if ($pid > 0) $teeIds[$pid] = true;
+            }
+        }
+        if (count($teeIds) > 0) {
+            $teeIdList = implode(',', array_map('intval', array_keys($teeIds)));
+            $teeRes = @$conn->query(
+                "SELECT j.id, s.tee
+                   FROM jugadores j
+                   JOIN salidas s ON (s.id = j.teesalidaid)
+                  WHERE j.id IN ($teeIdList)
+                    AND j.teesalidaid > 0
+                    AND j.teesalidaid <> $catSalidaId"
+            );
+            if ($teeRes) {
+                while ($tr = $teeRes->fetch_assoc()) {
+                    $teeOverrideByPlayer[(int)$tr['id']] = $tr['tee'];
+                }
+                $teeRes->free();
+            }
+        }
+    }
+
+    /**
      * MATCH PLAY: mapa exclusivo de este horario de salida.
      * Sólo acepta una fila cuando sus dos contendientes están dentro del
      * grupo; así una ronda anterior o posterior nunca mezcla jugadores.
@@ -257,6 +295,15 @@ foreach ($groupRows as $group) {
             'score'    => (int)($pr['sa'] ?? 0),
             'system'   => $pr['sistema'] ?? ''
         ];
+        /* Mesa de salida distinta a la de la categoría (vacío si coincide). */
+        $pTeeId = (int)($pr['jugadorid'] ?? 0);
+        if ($pTeeId > 0 && isset($teeOverrideByPlayer[$pTeeId])) {
+            $player['teeOverride'] = $teeOverrideByPlayer[$pTeeId];
+        }
+        $pTeeId2 = (int)($pr['jugadorid2'] ?? 0);
+        if ($pTeeId2 > 0 && isset($teeOverrideByPlayer[$pTeeId2])) {
+            $player['teeOverride2'] = $teeOverrideByPlayer[$pTeeId2];
+        }
         if ($isParejas && isset($pr['logo2'])) {
             /* Logo del club del segundo integrante de la pareja. */
             $player['clubLogo2'] = $pr['logo2'] ? $LOGOS_BASE_URL . $pr['logo2'] : '';

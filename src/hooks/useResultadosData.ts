@@ -171,6 +171,8 @@ export const useCategoryResults = (
                 // Number of CLOSED scorecards (statlsc=1) — used to compute Stroke diff total.
                 closedRounds: typeof p.closedRounds === 'number' ? p.closedRounds : 0,
                 handicapIndex: p.handicapIndex,
+                // Mesa de salida distinta a la de la categoría (vacío si coincide).
+                teeOverride: (p.teeOverride || '').trim(),
               })),
             }];
 
@@ -193,6 +195,8 @@ export const useCategoryResults = (
         // Accumulated closed-card total
         total: typeof cp.total === 'number' ? cp.total : 0,
         closedRounds: typeof cp.closedRounds === 'number' ? cp.closedRounds : 0,
+        // Mesa de salida distinta a la de la categoría (vacío si coincide).
+        teeOverride: (cp.teeOverride || '').trim(),
       }));
 
       return {

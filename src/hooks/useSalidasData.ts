@@ -47,6 +47,10 @@ export interface SalidasPlayer {
    *  (uno por jugador) para mantener consistencia visual con la página
    *  Jugadores. */
   partner?: string;
+  /** Mesa de salida del jugador cuando difiere de la de la categoría (vacío/ausente si coincide). */
+  teeOverride?: string;
+  /** Mesa de salida del segundo integrante (parejas) cuando difiere de la de la categoría. */
+  teeOverride2?: string;
   score: number;
   system: string;
   groupId?: string;

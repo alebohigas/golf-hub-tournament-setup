@@ -110,6 +110,20 @@ if (strtoupper($catInfo['formato'] ?? '') === 'PAREJAS') {
 $sistema = strtoupper($catInfo['sistema']);
 
 /**
+ * MESA DE SALIDA DISTINTA A LA DE LA CATEGORÍA.
+ * Devuelve el nombre del tee del jugador (jugadores.teesalidaid → salidas.tee)
+ * únicamente cuando difiere del tee establecido en la categoría
+ * (categorias.salida). NULL cuando coincide o no hay dato — el frontend lo omite.
+ */
+$catSalidaEsc = esc($conn, (string)($catInfo['salida'] ?? ''));
+$teeOverrideExpr = "(SELECT s.tee FROM salidas s
+                      WHERE s.id = j.teesalidaid
+                        AND j.teesalidaid > 0
+                        AND '$catSalidaEsc' <> ''
+                        AND j.teesalidaid <> '$catSalidaEsc'
+                      LIMIT 1) as tee_override";
+
+/**
  * FASE PREVIA STROKE PLAY / STABLEFORD EN CATEGORÍAS QUE CAMBIARON A MATCH PLAY
  * -----------------------------------------------------------------------------
  * Algunas categorías arrancan con rondas de clasificación (STROKE PLAY o
@@ -603,7 +617,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -635,7 +649,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -670,7 +684,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -701,7 +715,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -741,7 +755,9 @@ foreach ($rows as $row) {
         'totalSA'   => (int)($row['sa'] ?? 0),
         // Number of CLOSED scorecards (statlsc=1) for this player on scheduled dates.
         // Frontend uses this to compute Stroke Play differential: total - parcampo * closedRounds.
-        'closedRounds' => (int)($row['closed_rounds'] ?? 0)
+        'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+        /* Mesa de salida del jugador cuando difiere de la de la categoría. */
+        'teeOverride' => (string)($row['tee_override'] ?? '')
     ];
 
     foreach ($dias as $i => $fecha) {
@@ -805,7 +821,7 @@ if ($matchPlayFinal) {
                      $mpTotalExpr as total_score,
                      $closedRoundCount as closed_rounds,
                      IFNULL(j.muertesubita, 0) as muertesubita
-                     $mpDayCols,
+                     $mpDayCols, $teeOverrideExpr,
                      c.abr, c.logo
                 FROM jugadores j
                 LEFT JOIN $mpView u ON (j.id = u.jugadorid)
@@ -853,6 +869,8 @@ if ($matchPlayFinal) {
             'totalSO'   => (int)($row['total_score'] ?? 0),
             'totalSA'   => (int)($row['total_score'] ?? 0),
             'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+            /* Mesa de salida del jugador cuando difiere de la de la categoría. */
+            'teeOverride' => (string)($row['tee_override'] ?? ''),
         ];
         foreach ($dias as $i => $fecha) {
             $val = $row["d{$i}"] ?? null;
@@ -941,7 +959,7 @@ $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                   $cutTotalExpr
                   , $closedRoundCount as closed_rounds
-                  $cutDayCols,
+                  $cutDayCols, $teeOverrideExpr,
                   c.abr, c.logo
            FROM jugadores j
            JOIN clubs c ON (j.clubid = c.id)
@@ -974,6 +992,8 @@ foreach ($cutRows as $row) {
         'statusLabel' => statusLabel($statusCode ?? 'D'),
         'total'       => $cutTotal,
         'closedRounds' => (int)($row['closed_rounds'] ?? 0),
+        /* Mesa de salida del jugador cuando difiere de la de la categoría. */
+        'teeOverride' => (string)($row['tee_override'] ?? ''),
     ], $cutRounds);
 }
 
