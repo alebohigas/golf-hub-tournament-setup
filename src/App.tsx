@@ -59,6 +59,8 @@ import AdminTarjetasHoras from "./pages/AdminTarjetasHoras";
 import AdminBanderasImpresion from "./pages/AdminBanderasImpresion";
 import AdminApproachImpresion from "./pages/AdminApproachImpresion";
 import BracketsPuttImpresion from "./pages/BracketsPuttImpresion";
+/** Impresión de la lista de Clasificados Putt (con hora de registro, una hoja). */
+import AdminPuttClasificadosImpresion from "./pages/AdminPuttClasificadosImpresion";
 
 import PuttCalificados from "./pages/PuttCalificados";
 import Banderas from "./pages/Banderas";
@@ -161,6 +163,8 @@ const App = () => (
               <Route path="/admin/approach-impresion" element={<AdminApproachImpresion />} />
               {/* Impresión de Brackets Putt disponible desde su panel administrativo. */}
               <Route path="/admin/brackets-putt-impresion" element={<BracketsPuttImpresion />} />
+              {/* Impresión de Clasificados Putt Finales (hoja carta, autoajuste a una hoja). */}
+              <Route path="/admin/putt-clasificados-impresion" element={<AdminPuttClasificadosImpresion />} />
 
               {/* Rutas de admin que pertenecen a un módulo opcional. */}
               <Route path="/admin/registros" element={<ModuleGate moduleId="registro"><AdminRegistros /></ModuleGate>} />
