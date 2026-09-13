@@ -510,6 +510,11 @@ export interface ApproachConfig {
   orden: 'asc' | 'desc';
   /** Título mostrado en Competiciones. Default "Clasificados de Approach". */
   title?: string;
+  /**
+   * Reportes/premios incluidos (descripciones). `undefined` = todos;
+   * arreglo presente (aunque vacío) = sólo esos grupos.
+   */
+  grupos?: string[];
 }
 
 /** Full server response for site config */
