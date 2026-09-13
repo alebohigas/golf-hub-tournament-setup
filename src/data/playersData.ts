@@ -67,6 +67,9 @@ export interface Player {
   categoryId: string;      // Category ID reference
   /** Grupo de parejas (jugadores.grupoid). Vacío para categorías individuales. */
   grupoid?: string;
+  /** Nombre de la mesa de salida del jugador SOLO cuando difiere de la
+   *  establecida en la categoría (categorias.salida). Vacío si coincide. */
+  teeOverride?: string;
 }
 
 // ============= Parejas Grouping =============

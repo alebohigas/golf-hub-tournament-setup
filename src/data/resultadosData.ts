@@ -65,6 +65,8 @@ export interface PlayerResult {
    */
   closedRounds?: number;
   handicapIndex?: number;
+  /** Mesa de salida del jugador cuando difiere de la de la categoría. */
+  teeOverride?: string;
 }
 
 /** Player who did not complete the tournament (NO SHOW, RETIRO, DQ) */
@@ -90,6 +92,8 @@ export interface CutPlayer {
   total?: number;
   /** Count of CLOSED scorecards (statlsc=1) — see PlayerResult.closedRounds. */
   closedRounds?: number;
+  /** Mesa de salida del jugador cuando difiere de la de la categoría. */
+  teeOverride?: string;
 }
 
 export interface CategoryScoring {
