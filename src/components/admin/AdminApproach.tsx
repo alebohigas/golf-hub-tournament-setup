@@ -227,13 +227,28 @@ const AdminApproach = () => {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleSave} disabled={saveSiteConfig.isPending} className="gap-2">
+            <Button onClick={() => handleSave()} disabled={saveSiteConfig.isPending} className="gap-2">
               {saveSiteConfig.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
               Guardar
+            </Button>
+
+            {/* Guarda la selección de reportes y recalcula el resumen. */}
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={saveSiteConfig.isPending}
+              onClick={() => handleSave('Reporte recalculado con los reportes seleccionados.')}
+            >
+              {isFetching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Recalcular y actualizar
             </Button>
 
             {/* Impresión en hoja carta con el orden seleccionado */}
