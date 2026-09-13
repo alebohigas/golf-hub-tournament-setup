@@ -617,7 +617,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -649,7 +649,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -684,7 +684,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_so u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -715,7 +715,7 @@ if ($sistema === 'STROKE PLAY' || $sistema === 'STROKE') {
             $sql .= ", $expr as d{$i}";
         }
 
-        $sql .= ", c.abr, c.logo
+        $sql .= ", $teeOverrideExpr, c.abr, c.logo
                  FROM jugadores j
                  LEFT JOIN v_cd_ulttar_sa u ON (j.id = u.jugadorid)
                  JOIN clubs c ON (j.clubid = c.id)
@@ -819,7 +819,7 @@ if ($matchPlayFinal) {
                      $mpTotalExpr as total_score,
                      $closedRoundCount as closed_rounds,
                      IFNULL(j.muertesubita, 0) as muertesubita
-                     $mpDayCols,
+                     $mpDayCols, $teeOverrideExpr,
                      c.abr, c.logo
                 FROM jugadores j
                 LEFT JOIN $mpView u ON (j.id = u.jugadorid)
@@ -955,7 +955,7 @@ $cutSql = "SELECT j.id AS jugadorid, j.numjugador,
                   CONCAT(j.nombre, ' ', j.apellido) as jugador, j.estatus,
                   $cutTotalExpr
                   , $closedRoundCount as closed_rounds
-                  $cutDayCols,
+                  $cutDayCols, $teeOverrideExpr
                   c.abr, c.logo
            FROM jugadores j
            JOIN clubs c ON (j.clubid = c.id)
