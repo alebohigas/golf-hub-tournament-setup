@@ -55,7 +55,7 @@ const AdminCompeticiones = () => {
   const { visibilitySettings, setPageVisibility } = usePageVisibility();
   const { data: competencias = [], isLoading } = useCompetencias();
   const { data: siteConfig } = useSiteConfig();
-  const { isAvailable: mejorScoreAvailable } = useMejorScoreAvailability();
+  const { hasData: mejorScoreAvailable } = useMejorScoreAvailability();
   const saveSiteConfig = useSaveSiteConfig();
   const { toast } = useToast();
 
@@ -120,11 +120,15 @@ const AdminCompeticiones = () => {
 
   /** Publica/oculta el reporte "Clasificados de Approach". */
   const handleApproachToggle = (value: boolean) => {
-    const cfg = siteConfig?.approach_config ?? {};
+    const cfg = siteConfig?.approach_config;
     saveSiteConfig.mutate(
       {
         password: getSuperAdminPassword(),
-        approach_config: { ...cfg, enabled: value },
+        approach_config: {
+          enabled: value,
+          orden: cfg?.orden === 'desc' ? 'desc' : 'asc',
+          title: cfg?.title,
+        },
       },
       {
         onError: (err: unknown) =>
