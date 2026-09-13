@@ -305,6 +305,16 @@ const AdminBrackets = ({ mode = 'full' }: AdminBracketsProps) => {
                 <Printer className="h-4 w-4" />
                 Imprimir horizontal
               </Button>
+              {/* Impresión de la lista de clasificados (con hora de registro). */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={openClasificadosPrintView}
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir clasificados
+              </Button>
               {/* Asistente: crea el bracket único completo en un solo clic. */}
               {mode !== 'scores' && !singleReady && (
                 <Button
