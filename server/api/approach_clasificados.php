@@ -92,6 +92,33 @@ if (empty($prizes)) {
     );
 }
 
+// ============= Reportes seleccionados (site_config.approach_config.grupos) =============
+// Admin > Approach permite elegir QUÉ premios/reportes entran al resumen.
+// La lista se guarda como `grupos: string[]` (descripciones de premio).
+//   - Sin columna / sin config / sin la clave `grupos`  → todos los grupos.
+//   - `grupos` presente (aunque vacío)                 → sólo esos grupos.
+$selectedGroups = null; // null = sin filtro (todos)
+if (column_exists($conn, 'site_config', 'approach_config')) {
+    $cfgRows = safe_all(
+        $conn,
+        "SELECT approach_config FROM site_config WHERE torneoid = $tid LIMIT 1",
+        'approach_config'
+    );
+    if (!empty($cfgRows) && !empty($cfgRows[0]['approach_config'])) {
+        $cfg = json_decode($cfgRows[0]['approach_config'], true);
+        if (is_array($cfg) && array_key_exists('grupos', $cfg) && is_array($cfg['grupos'])) {
+            $selectedGroups = array_map('strval', $cfg['grupos']);
+        }
+    }
+}
+if ($selectedGroups !== null) {
+    // Recorta el catálogo de premios a los reportes seleccionados.
+    $prizes = array_values(array_filter(
+        $prizes,
+        fn($p) => in_array((string)($p['descripcion'] ?? ''), $selectedGroups, true)
+    ));
+}
+
 // ============= Marca el mejor registro por jugador =============
 // Igual que competencias.php: orden = 1 en la mejor (menor) distancia de cada
 // jugador, para que el resumen no repita al mismo jugador varias veces.
