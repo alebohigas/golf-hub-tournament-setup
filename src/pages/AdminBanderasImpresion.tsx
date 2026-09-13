@@ -102,6 +102,26 @@ const AdminBanderasImpresion = () => {
     [sheet.heightMm],
   );
 
+  /**
+   * Auto-ajuste vertical: garantiza que las 18 tarjetas SIEMPRE quepan en
+   * UNA hoja. Calcula la altura intrínseca de la rejilla (SVG 200:240 +
+   * encabezado/pie compactos) y, si excede el alto útil, reduce la escala
+   * efectiva por debajo del ajuste manual del usuario.
+   */
+  const GAP_PX = 6;        // gap-1.5 de la rejilla
+  const HEADER_PX = 38;    // encabezado del reporte (título + fecha + margen)
+  const CARD_CHROME_PX = 78; // header + footer + padding + borde de la tarjeta compacta
+  const VB_ASPECT = 240 / 200; // viewBox de GreenCard: alto/ancho
+
+  const effectiveScale = useMemo(() => {
+    const rows = Math.ceil(holes.length / sheet.cols) || 1;
+    const cardW = (innerWidthPx - GAP_PX * (sheet.cols - 1)) / sheet.cols;
+    const cardH = cardW * VB_ASPECT + CARD_CHROME_PX;
+    const gridH = cardH * rows + GAP_PX * (rows - 1) + HEADER_PX;
+    const fit = gridH > innerHeightPx ? innerHeightPx / gridH : 1;
+    return Math.min(scale / 100, fit);
+  }, [holes.length, sheet.cols, innerWidthPx, innerHeightPx, scale]);
+
   return (
     <div className="min-h-screen bg-muted/40 print:bg-white">
       {/* ===== @page: fuerza carta con la orientación elegida ===== */}
@@ -157,7 +177,7 @@ const AdminBanderasImpresion = () => {
           {/* Escala fina */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Escala: {scale}%
+              Escala: {scale}%{effectiveScale * 100 < scale ? ` → ajuste auto ${Math.round(effectiveScale * 100)}%` : ''}
             </label>
             <input
               type="range"
@@ -199,9 +219,9 @@ const AdminBanderasImpresion = () => {
           >
             <div
               style={{
-                transform: `scale(${scale / 100})`,
+                transform: `scale(${effectiveScale})`,
                 transformOrigin: 'top left',
-                width: `${100 / (scale / 100)}%`,
+                width: `${100 / effectiveScale}%`,
               }}
             >
               {/* Encabezado del reporte */}
