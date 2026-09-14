@@ -208,6 +208,7 @@ const Resultados = ({ embedded = false, torneoIdOverride }: ResultadosProps = {}
           club: p.club || '',
           clubLogo: p.clubLogo || '',
           total: p.total ?? p.totalSA ?? 0,
+          teeOverride: p.teeOverride || '',
         })) as ResultadosSearchHit[];
         return hits;
       },
