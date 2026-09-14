@@ -534,7 +534,7 @@ const Jugadores = () => {
                                  {player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride}</span>}
                                </TableCell>
                               {/* HI/HJ/HN values centered under their respective column headers */}
-                              <TableCell className="text-center">{player.handicapIndex.toFixed(1)}</TableCell>
+                              <HandicapIndexCell hi={player.handicapIndex} category={selectedCategory} />
                               <TableCell className="text-center">{player.handicapJuego}</TableCell>
                               {/* HN is the most important stat — emphasize with primary color, bolder weight, and larger size */}
                               <TableCell className="text-center font-extrabold text-base text-primary">{player.handicapNeto}</TableCell>
