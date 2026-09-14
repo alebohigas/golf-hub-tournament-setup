@@ -305,7 +305,7 @@ const Jugadores = () => {
                                       {/* Mesa de salida distinta a la de la categoría (texto pequeño bajo el nombre) */}
                                       {result.player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{result.player.teeOverride}</span>}
                                     </TableCell>
-                                    <TableCell className="text-center">{result.player.handicapIndex.toFixed(1)}</TableCell>
+                                    <HandicapIndexCell hi={result.player.handicapIndex} category={result.category} />
                                     <TableCell className="text-center">{result.player.handicapJuego}</TableCell>
                                     <TableCell className="text-center font-extrabold text-base text-primary">{result.player.handicapNeto}</TableCell>
                                   </TableRow>
