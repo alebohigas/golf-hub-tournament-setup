@@ -29,6 +29,48 @@ interface JugadoresSearchResult {
   player: Player;
 }
 
+/**
+ * isHcpOutOfRange
+ * Determina si el Hándicap Índice de un jugador cae FUERA del rango
+ * permitido por su categoría (`categorias.hcp_min` / `hcp_max`).
+ * Devuelve false cuando la categoría no define un rango válido
+ * (valores no numéricos o min y max en 0) para evitar falsos positivos.
+ */
+const isHcpOutOfRange = (hi: number, category?: CategoryDetail | null): boolean => {
+  if (!category) return false;
+  const min = Number(category.hcpMin);
+  const max = Number(category.hcpMax);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return false;
+  if (min === 0 && max === 0) return false;
+  if (max < min) return false;
+  return hi < min || hi > max;
+};
+
+/**
+ * HandicapIndexCell
+ * Celda de la columna HI. Si el hándicap está fuera del rango de la
+ * categoría se envuelve en un recuadro de fondo negro con número blanco
+ * para señalar la inconsistencia.
+ */
+const HandicapIndexCell = ({ hi, category }: { hi: number; category?: CategoryDetail | null }) => {
+  const out = isHcpOutOfRange(hi, category);
+  const value = hi.toFixed(1);
+  return (
+    <TableCell className="text-center">
+      {out ? (
+        <span
+          className="inline-block rounded px-1.5 py-0.5 font-bold bg-black text-white"
+          title="Hándicap índice fuera del rango de la categoría"
+        >
+          {value}
+        </span>
+      ) : (
+        value
+      )}
+    </TableCell>
+  );
+};
+
 const Jugadores = () => {
   /** Currently selected category (null = show grid) */
   const [selectedCategory, setSelectedCategory] = useState<CategoryDetail | null>(null);
