@@ -93,16 +93,40 @@ const AdminBanderas = () => {
   const knownDates: string[] = data?.availableDates ?? [];
   const today = data?.today ?? todayLocal();
 
-  /** Patch in-place de una fila. */
+  /**
+   * Calcula automáticamente la posición de la bandera respecto al centro
+   * del green: VS CENTRO = frente - (depth / 2).
+   *    depth=30, frente=10  →  centro=15  →  vs_centro = -5
+   * El resultado se redondea al entero más cercano porque la BD guarda INT.
+   */
+  const calcSlope = (depth: number, pinFromFront: number): number =>
+    Math.round(pinFromFront - depth / 2);
+
+  /** Patch in-place de una fila. Si cambian depth, frente o lado,
+   *  recalcula VS CENTRO automáticamente. */
   const update = (idx: number, patch: Partial<PinSheetHole>) => {
-    setRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+    setRows(prev =>
+      prev.map((r, i) => {
+        if (i !== idx) return r;
+        const next = { ...r, ...patch };
+        if (
+          patch.depth !== undefined ||
+          patch.pinFromFront !== undefined ||
+          patch.pinSide !== undefined
+        ) {
+          next.slope = calcSlope(next.depth, next.pinFromFront);
+        }
+        return next;
+      }),
+    );
   };
 
-  /** Convierte input a número (acepta negativos para `slope`). */
+  /** Convierte input a número entero (acepta negativos). */
   const numOrZero = (v: string): number => {
     const n = parseInt(v, 10);
     return Number.isFinite(n) ? n : 0;
   };
+
 
   /** Agrega un hoyo al final (siguiente número disponible). */
   const addHole = () => {
