@@ -401,11 +401,13 @@ const AdminBanderas = () => {
                         value={r.pinFromSide}
                         onChange={(e) => update(idx, { pinFromSide: numOrZero(e.target.value) })}
                         className="h-8"
+                        disabled={r.pinSide === 'C'}
                       />
                     </td>
                     <td className="px-2 py-1.5">
                       {/* Lado: L / R / C. 'C' (Centro) fuerza lateral = 0
-                          porque la bandera está en el mero centro del green. */}
+                          porque la bandera está en el mero centro del green.
+                          Al cambiar el lado se recalcula VS CENTRO automáticamente. */}
                       <Select
                         value={r.pinSide}
                         onValueChange={(v) =>
@@ -425,14 +427,17 @@ const AdminBanderas = () => {
                       </Select>
                     </td>
                     <td className="px-2 py-1.5">
+                      {/* VS CENTRO se calcula automáticamente: frente - (depth/2). */}
                       <Input
                         type="number"
                         value={r.slope}
-                        onChange={(e) => update(idx, { slope: numOrZero(e.target.value) })}
-                        className="h-8"
-                        placeholder="±"
+                        readOnly
+                        className="h-8 bg-muted/50 cursor-default"
+                        placeholder="Auto"
+                        title="Calculado automáticamente: Frente - (Depth ÷ 2)"
                       />
                     </td>
+
                     <td className="px-2 py-1.5">
                       <Input
                         type="text"
