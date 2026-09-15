@@ -469,8 +469,10 @@ const AdminBanderas = () => {
           <strong>Depth</strong>: profundidad total del green ·
           <strong> Frente</strong>: del frente del green a la bandera ·
           <strong> Lateral</strong>: del borde indicado a la bandera ·
-          <strong> vs Centro</strong>: posición respecto al centro (positivo = hacia el fondo).
+          <strong> vs Centro</strong>: calculado automáticamente como <em>Frente − (Depth ÷ 2)</em>.
+          Ejemplo: Depth 30 y Frente 10 → centro 15 → <strong>−5</strong>.
         </p>
+
 
         {/* ===== Vista previa visual ===== */}
         {/*
