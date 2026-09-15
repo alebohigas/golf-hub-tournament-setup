@@ -93,16 +93,40 @@ const AdminBanderas = () => {
   const knownDates: string[] = data?.availableDates ?? [];
   const today = data?.today ?? todayLocal();
 
-  /** Patch in-place de una fila. */
+  /**
+   * Calcula automáticamente la posición de la bandera respecto al centro
+   * del green: VS CENTRO = frente - (depth / 2).
+   *    depth=30, frente=10  →  centro=15  →  vs_centro = -5
+   * El resultado se redondea al entero más cercano porque la BD guarda INT.
+   */
+  const calcSlope = (depth: number, pinFromFront: number): number =>
+    Math.round(pinFromFront - depth / 2);
+
+  /** Patch in-place de una fila. Si cambian depth, frente o lado,
+   *  recalcula VS CENTRO automáticamente. */
   const update = (idx: number, patch: Partial<PinSheetHole>) => {
-    setRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+    setRows(prev =>
+      prev.map((r, i) => {
+        if (i !== idx) return r;
+        const next = { ...r, ...patch };
+        if (
+          patch.depth !== undefined ||
+          patch.pinFromFront !== undefined ||
+          patch.pinSide !== undefined
+        ) {
+          next.slope = calcSlope(next.depth, next.pinFromFront);
+        }
+        return next;
+      }),
+    );
   };
 
-  /** Convierte input a número (acepta negativos para `slope`). */
+  /** Convierte input a número entero (acepta negativos). */
   const numOrZero = (v: string): number => {
     const n = parseInt(v, 10);
     return Number.isFinite(n) ? n : 0;
   };
+
 
   /** Agrega un hoyo al final (siguiente número disponible). */
   const addHole = () => {
@@ -377,11 +401,13 @@ const AdminBanderas = () => {
                         value={r.pinFromSide}
                         onChange={(e) => update(idx, { pinFromSide: numOrZero(e.target.value) })}
                         className="h-8"
+                        disabled={r.pinSide === 'C'}
                       />
                     </td>
                     <td className="px-2 py-1.5">
                       {/* Lado: L / R / C. 'C' (Centro) fuerza lateral = 0
-                          porque la bandera está en el mero centro del green. */}
+                          porque la bandera está en el mero centro del green.
+                          Al cambiar el lado se recalcula VS CENTRO automáticamente. */}
                       <Select
                         value={r.pinSide}
                         onValueChange={(v) =>
@@ -401,14 +427,17 @@ const AdminBanderas = () => {
                       </Select>
                     </td>
                     <td className="px-2 py-1.5">
+                      {/* VS CENTRO se calcula automáticamente: frente - (depth/2). */}
                       <Input
                         type="number"
                         value={r.slope}
-                        onChange={(e) => update(idx, { slope: numOrZero(e.target.value) })}
-                        className="h-8"
-                        placeholder="±"
+                        readOnly
+                        className="h-8 bg-muted/50 cursor-default"
+                        placeholder="Auto"
+                        title="Calculado automáticamente: Frente - (Depth ÷ 2)"
                       />
                     </td>
+
                     <td className="px-2 py-1.5">
                       <Input
                         type="text"
@@ -440,8 +469,10 @@ const AdminBanderas = () => {
           <strong>Depth</strong>: profundidad total del green ·
           <strong> Frente</strong>: del frente del green a la bandera ·
           <strong> Lateral</strong>: del borde indicado a la bandera ·
-          <strong> vs Centro</strong>: posición respecto al centro (positivo = hacia el fondo).
+          <strong> vs Centro</strong>: calculado automáticamente como <em>Frente − (Depth ÷ 2)</em>.
+          Ejemplo: Depth 30 y Frente 10 → centro 15 → <strong>−5</strong>.
         </p>
+
 
         {/* ===== Vista previa visual ===== */}
         {/*
