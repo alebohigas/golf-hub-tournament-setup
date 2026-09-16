@@ -14,6 +14,7 @@ import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 import { useUploadsList } from '@/hooks/useUploads';
+import { useTorneoId } from '@/hooks/useTorneoId';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -197,7 +198,7 @@ const Convocatoria = () => {
    * torneoid activo; si ninguno lo incluye se usa el más reciente y, como
    * último recurso, el primero de la lista.
    */
-  const activeTorneoId = useTorneoId();
+  const { torneoId: activeTorneoId } = useTorneoId();
   const convocatoriaPdfUrl = (() => {
     const pdfs = (convocatoriaUploads?.files ?? []).filter((f) => /\.pdf$/i.test(f.name));
     if (pdfs.length === 0) return null;
