@@ -60,6 +60,9 @@ const AdminSponsorsPreview = () => {
   /** Local draft state — reflects the column count being edited */
   const [columns, setColumns] = useState<number>(DEFAULT_COLUMNS);
 
+  /** Local draft map of sponsor ID → website URL being edited */
+  const [websites, setWebsites] = useState<Record<string, string>>({});
+
   // Sync local state whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.sponsors_config?.columns) {
@@ -67,24 +70,38 @@ const AdminSponsorsPreview = () => {
     }
   }, [siteConfig?.sponsors_config?.columns]);
 
+  // Sync the website drafts whenever the stored map (re)loads
+  useEffect(() => {
+    setWebsites(siteConfig?.sponsors_config?.websites ?? {});
+  }, [siteConfig?.sponsors_config?.websites]);
+
   /**
-   * Save the column count to the server while preserving any other
-   * existing sponsors_config fields (e.g. ribbonVisiblePages).
+   * Save the column count and the sponsor website links to the server while
+   * preserving any other existing sponsors_config fields (e.g. ribbon config).
    */
   const handleSave = () => {
+    /** Normalise + drop empty entries so only real links are persisted */
+    const cleanWebsites: Record<string, string> = {};
+    Object.entries(websites).forEach(([id, url]) => {
+      const normalized = normalizeWebsite(url);
+      if (normalized) cleanWebsites[id] = normalized;
+    });
+
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
         sponsors_config: {
           ...(siteConfig?.sponsors_config ?? {}),
           columns,
+          websites: cleanWebsites,
         },
       },
       {
         onSuccess: () => {
+          setWebsites(cleanWebsites);
           toast({
             title: 'Configuración guardada',
-            description: `Patrocinadores se mostrarán en ${columns} columna${columns > 1 ? 's' : ''}.`,
+            description: `Patrocinadores en ${columns} columna${columns > 1 ? 's' : ''} · ${Object.keys(cleanWebsites).length} con página web.`,
           });
         },
         onError: (err) => {
@@ -99,7 +116,17 @@ const AdminSponsorsPreview = () => {
   };
 
   const currentSavedColumns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
-  const hasChanges = columns !== currentSavedColumns;
+
+  /** Saved website map used to detect unsaved link edits */
+  const savedWebsites = siteConfig?.sponsors_config?.websites ?? {};
+
+  /** True when either the column count or any sponsor link differs from the server */
+  const hasChanges =
+    columns !== currentSavedColumns ||
+    sponsors.some(
+      (s) => normalizeWebsite(websites[s.id] ?? '') !== (savedWebsites[s.id] ?? '')
+    );
+
 
   return (
     <Card>
