@@ -129,8 +129,24 @@ if (!$ids) { json_response($emptyDetail); }
 
 $idsSql = implode(',', $ids);
 
+/**
+ * Descarta los tees solicitados que no estén cargados y activos
+ * (`campo_tee.activa = 1`) en los campos activos del torneo.
+ */
+$activeFilterDet = active_tee_filter_sql($conn, $tid, 's.id');
+if ($activeFilterDet !== '') {
+    $validRows = safe_all($conn, "SELECT s.id FROM salidas s
+                                   WHERE s.id IN ($idsSql) $activeFilterDet");
+    $valid = [];
+    foreach ($validRows as $v) { $valid[] = (int)$v['id']; }
+    $ids = array_values(array_intersect($ids, $valid));
+    if (!$ids) { json_response($emptyDetail); }
+    $idsSql = implode(',', $ids);
+}
+
 // Tee metadata for the header (name + color only meaningful for 1 tee)
 $teeRows = safe_all($conn, "SELECT id, tee, color FROM salidas WHERE id IN ($idsSql) ORDER BY id ASC");
+
 $teeNames = [];
 foreach ($teeRows as $t) { $teeNames[] = $t['tee'] !== '' ? $t['tee'] : ('Tee ' . (int)$t['id']); }
 $teeName  = implode(' + ', $teeNames);
