@@ -78,7 +78,15 @@ export interface SponsorsConfig {
      */
     speedSecondsMobile?: number;
   };
+  /**
+   * Map of sponsor ID (as string) → website URL of the sponsoring company.
+   * Configured from Admin → Patrocinadores → Preview. Sponsors WITH a URL
+   * render a discreet "VER" link under their logo on the public page and the
+   * logo itself becomes clickable. Sponsors without a URL render nothing.
+   */
+  websites?: Record<string, string>;
 }
+
 
 /** Spacing presets between attraction cards on the Eventos page */
 export type EventosGap = 'sm' | 'md' | 'lg' | 'xl';

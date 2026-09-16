@@ -86,6 +86,10 @@ const Patrocinadores = () => {
   const columns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
   const { gridClass, cardHeight, logoMax } = getGridConfig(columns);
 
+  /** Admin-configured sponsor website links (sponsor id → URL) */
+  const sponsorWebsites = siteConfig?.sponsors_config?.websites ?? {};
+
+
   /**
    * Track which sponsor IDs have logos that failed to load.
    * On the public page these are hidden entirely (instead of showing a broken
@@ -149,29 +153,50 @@ const Patrocinadores = () => {
                 if (brokenIds.has(sponsor.id)) {
                   return null;
                 }
+                /**
+                 * Resolved website URL for this sponsor: the admin-configured
+                 * link (site_config.sponsors_config.websites) wins, otherwise
+                 * the value coming from the API. Only sponsors WITH a link get
+                 * a clickable logo plus the discreet "VER" line underneath.
+                 */
+                const website = sponsorWebsites[sponsor.id] || sponsor.websiteUrl || '';
+                const logo = (
+                  <SponsorLogoImage
+                    url={sponsor.logoUrl}
+                    alt={sponsor.name}
+                    onStatusChange={(s) => handleStatus(sponsor.id, s)}
+                    className={`${logoMax} max-w-full object-contain transition-all duration-300`}
+                  />
+                );
                 return (
                 <Card key={sponsor.id} className="card-hover border-border/50">
-                  <CardContent className={`p-6 flex flex-col items-center justify-between gap-3 ${cardHeight}`}>
-                    {/* Logo preview */}
+                  <CardContent className={`p-6 flex flex-col items-center justify-between gap-2 ${cardHeight}`}>
+                    {/* Logo preview — clickable when the sponsor has a website */}
                     <div className="flex-1 w-full flex items-center justify-center min-h-0">
-                      {sponsor.websiteUrl ? (
-                        <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer">
-                          <SponsorLogoImage
-                            url={sponsor.logoUrl}
-                            alt={sponsor.name}
-                            onStatusChange={(s) => handleStatus(sponsor.id, s)}
-                            className={`${logoMax} max-w-full object-contain transition-all duration-300`}
-                          />
+                      {website ? (
+                        <a
+                          href={website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Visitar el sitio de ${sponsor.name}`}
+                        >
+                          {logo}
                         </a>
                       ) : (
-                        <SponsorLogoImage
-                          url={sponsor.logoUrl}
-                          alt={sponsor.name}
-                          onStatusChange={(s) => handleStatus(sponsor.id, s)}
-                          className={`${logoMax} max-w-full object-contain transition-all duration-300`}
-                        />
+                        logo
                       )}
                     </div>
+                    {/* Discreet "VER" line — only for sponsors with a website */}
+                    {website && (
+                      <a
+                        href={website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Ver
+                      </a>
+                    )}
                     {/* Public view: sponsor name intentionally hidden — it remains
                         available via the image alt text for accessibility. The
                         admin panel still surfaces logoName for identification. */}
@@ -179,6 +204,7 @@ const Patrocinadores = () => {
                 </Card>
                 );
               })}
+
               {/* Empty-state hint when ALL sponsors had broken logos */}
               {visibleSponsors.length === 0 && (
                 <p className="text-center text-muted-foreground col-span-full">

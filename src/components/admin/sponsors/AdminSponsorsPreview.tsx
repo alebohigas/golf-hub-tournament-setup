@@ -13,8 +13,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Image as ImageIcon, Save, CheckCircle2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon, Save, CheckCircle2, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +29,19 @@ const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 
 /** Default column count when nothing is stored on the server yet */
 const DEFAULT_COLUMNS = 4;
+
+/**
+ * normalizeWebsite
+ * Trims the admin input and prefixes `https://` when the user typed a bare
+ * domain (e.g. "acme.com"). Empty input means "no link" and is stored as ''.
+ */
+const normalizeWebsite = (raw: string): string => {
+  const value = raw.trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+};
+
 
 // ============= Component =============
 
@@ -46,6 +60,9 @@ const AdminSponsorsPreview = () => {
   /** Local draft state — reflects the column count being edited */
   const [columns, setColumns] = useState<number>(DEFAULT_COLUMNS);
 
+  /** Local draft map of sponsor ID → website URL being edited */
+  const [websites, setWebsites] = useState<Record<string, string>>({});
+
   // Sync local state whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.sponsors_config?.columns) {
@@ -53,24 +70,38 @@ const AdminSponsorsPreview = () => {
     }
   }, [siteConfig?.sponsors_config?.columns]);
 
+  // Sync the website drafts whenever the stored map (re)loads
+  useEffect(() => {
+    setWebsites(siteConfig?.sponsors_config?.websites ?? {});
+  }, [siteConfig?.sponsors_config?.websites]);
+
   /**
-   * Save the column count to the server while preserving any other
-   * existing sponsors_config fields (e.g. ribbonVisiblePages).
+   * Save the column count and the sponsor website links to the server while
+   * preserving any other existing sponsors_config fields (e.g. ribbon config).
    */
   const handleSave = () => {
+    /** Normalise + drop empty entries so only real links are persisted */
+    const cleanWebsites: Record<string, string> = {};
+    Object.entries(websites).forEach(([id, url]) => {
+      const normalized = normalizeWebsite(url);
+      if (normalized) cleanWebsites[id] = normalized;
+    });
+
     saveSiteConfig.mutate(
       {
         password: 'admin2025',
         sponsors_config: {
           ...(siteConfig?.sponsors_config ?? {}),
           columns,
+          websites: cleanWebsites,
         },
       },
       {
         onSuccess: () => {
+          setWebsites(cleanWebsites);
           toast({
             title: 'Configuración guardada',
-            description: `Patrocinadores se mostrarán en ${columns} columna${columns > 1 ? 's' : ''}.`,
+            description: `Patrocinadores en ${columns} columna${columns > 1 ? 's' : ''} · ${Object.keys(cleanWebsites).length} con página web.`,
           });
         },
         onError: (err) => {
@@ -85,7 +116,17 @@ const AdminSponsorsPreview = () => {
   };
 
   const currentSavedColumns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
-  const hasChanges = columns !== currentSavedColumns;
+
+  /** Saved website map used to detect unsaved link edits */
+  const savedWebsites = siteConfig?.sponsors_config?.websites ?? {};
+
+  /** True when either the column count or any sponsor link differs from the server */
+  const hasChanges =
+    columns !== currentSavedColumns ||
+    sponsors.some(
+      (s) => normalizeWebsite(websites[s.id] ?? '') !== (savedWebsites[s.id] ?? '')
+    );
+
 
   return (
     <Card>
@@ -177,9 +218,9 @@ const AdminSponsorsPreview = () => {
                   sponsors.map((sponsor) => (
                     <div
                       key={sponsor.id}
-                      className="aspect-square rounded-md bg-background border border-border/60 flex flex-col items-center justify-center gap-1 p-3 overflow-hidden"
+                      className="rounded-md bg-background border border-border/60 flex flex-col items-center justify-start gap-1 p-3 overflow-hidden"
                     >
-                      <div className="flex-1 w-full flex items-center justify-center min-h-0">
+                      <div className="h-24 w-full flex items-center justify-center min-h-0">
                         <SponsorLogoImage
                           url={sponsor.logoUrl}
                           alt={sponsor.name}
@@ -193,7 +234,33 @@ const AdminSponsorsPreview = () => {
                       >
                         {sponsor.name}
                       </p>
+                      {/* Website link editor — sponsors with a URL show "VER" publicly */}
+                      <div className="w-full shrink-0 space-y-1">
+                        <Input
+                          value={websites[sponsor.id] ?? ''}
+                          onChange={(e) =>
+                            setWebsites((prev) => ({ ...prev, [sponsor.id]: e.target.value }))
+                          }
+                          placeholder="https://empresa.com"
+                          className="h-7 text-[11px] px-2"
+                          aria-label={`Página web de ${sponsor.name}`}
+                        />
+                        {normalizeWebsite(websites[sponsor.id] ?? '') ? (
+                          <a
+                            href={normalizeWebsite(websites[sponsor.id] ?? '')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            Ver
+                          </a>
+                        ) : (
+                          <p className="text-[10px] text-center text-muted-foreground/60">Sin enlace</p>
+                        )}
+                      </div>
                     </div>
+
                   ))
                 )}
               </div>
