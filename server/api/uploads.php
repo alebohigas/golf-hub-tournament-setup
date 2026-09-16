@@ -26,7 +26,7 @@
  * Public URL pattern (same domain → no CORS): `/api/uploads/{domain}/{section}/{file}`.
  *
  * Auth: same `admin2025` shared password as the rest of the admin endpoints.
- * Validation: per-section MIME + extension whitelist, max 15MB per file,
+ * Validation: per-section MIME + extension whitelist, max 100MB per file,
  *             filename sanitized to [a-z0-9._-]+.
  */
 require_once 'config.php';
@@ -44,8 +44,8 @@ header('Vary: Host');
 
 // ============= Configuration =============
 
-/** Maximum allowed file size (bytes). 15 MB covers high-res posters + PDFs. */
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+/** Maximum allowed file size (bytes). 100 MB covers high-res posters + PDFs. */
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 /** Shared admin password (mirrors site_config.php). */
 const ADMIN_PASSWORD = 'admin2025';
@@ -242,7 +242,7 @@ function build_thumbs_payload($section, $dir, $filename, $fullPath) {
 
 /**
  * Validate browser-compatible image dimensions before accepting an upload.
- * Very tall/wide images can be under 15 MB but exceed browser decoder limits,
+ * Very tall/wide images can be under 100 MB but exceed browser decoder limits,
  * which makes galleries appear blank with no useful console/network error.
  */
 function validate_image_dimensions($tmpPath, $originalName) {
@@ -536,7 +536,7 @@ if ($action === 'upload') {
             continue;
         }
         if ($item['size'] > MAX_UPLOAD_BYTES) {
-            $errors[] = ['name' => $original, 'error' => 'File too large (max 15MB)'];
+            $errors[] = ['name' => $original, 'error' => 'File too large (max 100MB)'];
             continue;
         }
 
