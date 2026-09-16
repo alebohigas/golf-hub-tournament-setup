@@ -49,13 +49,48 @@ function safe_all($conn, $sql) {
     return $rows;
 }
 
+/**
+ * has_col — ¿existe la columna `$col` en la tabla `$table`?
+ * Permite filtrar por `campo_tee.activa` sólo si la columna existe.
+ */
+function has_col($conn, $table, $col) {
+    $r = @$conn->query("SHOW COLUMNS FROM `$table` LIKE '" . esc($conn, $col) . "'");
+    if (!$r) { return false; }
+    $ok = $r->num_rows > 0;
+    $r->free();
+    return $ok;
+}
+
+/**
+ * active_tee_filter_sql — condición EXISTS que limita un tee (`salidas.id`)
+ * a las mesas de salida realmente cargadas y activas (`campo_tee.activa = 1`)
+ * en los campos activos del torneo (los usados por `caljuego`).
+ * Devuelve '' si `campo_tee` no está disponible (degradación segura).
+ *
+ * @param string $teeExpr Expresión SQL del id de tee (p.ej. "s.id").
+ */
+function active_tee_filter_sql($conn, $tid, $teeExpr) {
+    if (!has_col($conn, 'campo_tee', 'salidaid')) { return ''; }
+    $activa = has_col($conn, 'campo_tee', 'activa') ? ' AND ct.activa = 1' : '';
+    return " AND EXISTS (
+                SELECT 1 FROM campo_tee ct
+                 WHERE ct.salidaid = $teeExpr
+                   AND ct.campoid IN (
+                       SELECT DISTINCT cj.campo FROM caljuego cj
+                        WHERE cj.torneoid = $tid AND cj.campo > 0
+                   )$activa
+             )";
+}
+
 // ============= List mode: tees used by this tournament =============
 $salidaidsParam = isset($_GET['salidaids']) ? trim($_GET['salidaids']) : '';
 if ($salidaidsParam === '') {
+    $activeFilter = active_tee_filter_sql($conn, $tid, 's.id');
     $teeRows = safe_all($conn, "SELECT DISTINCT s.id, s.tee, s.color, s.bgcolor
                                   FROM categorias c
                                   JOIN salidas s ON (c.salida = s.id)
                                  WHERE c.torneo_id = $tid
+                                       $activeFilter
                                  ORDER BY s.id ASC");
     $tees = [];
     foreach ($teeRows as $t) {
@@ -68,6 +103,7 @@ if ($salidaidsParam === '') {
     }
     json_response(['tees' => $tees]);
 }
+
 
 // ============= Detail mode: aggregate across selected tees =============
 
