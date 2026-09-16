@@ -13,8 +13,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Image as ImageIcon, Save, CheckCircle2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon, Save, CheckCircle2, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSiteConfig, useSaveSiteConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +29,19 @@ const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 
 /** Default column count when nothing is stored on the server yet */
 const DEFAULT_COLUMNS = 4;
+
+/**
+ * normalizeWebsite
+ * Trims the admin input and prefixes `https://` when the user typed a bare
+ * domain (e.g. "acme.com"). Empty input means "no link" and is stored as ''.
+ */
+const normalizeWebsite = (raw: string): string => {
+  const value = raw.trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+};
+
 
 // ============= Component =============
 
