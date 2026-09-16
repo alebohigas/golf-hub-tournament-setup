@@ -14,6 +14,7 @@ import { useTournamentInfo } from '@/hooks/useTournamentData';
 import { useConvocatoriaSections } from '@/hooks/useConvocatoriaSections';
 import { useConvocatoriaContent, type ConvocatoriaContentRow } from '@/hooks/useConvocatoriaContent';
 import { useUploadsList } from '@/hooks/useUploads';
+import { useTorneoId } from '@/hooks/useTorneoId';
 import { Calendar } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -190,8 +191,28 @@ const Convocatoria = () => {
   // Convocatoria route was occasionally re-opening the stale public PDF.
   // If no admin upload exists, the "Ver en PDF" button is hidden entirely.
   const { data: convocatoriaUploads } = useUploadsList('convocatoria');
-  const firstSectionPdf = convocatoriaUploads?.files.find((f) => /\.pdf$/i.test(f.name));
-  const convocatoriaPdfUrl = firstSectionPdf?.url ?? null;
+  /**
+   * Selección del PDF de convocatoria.
+   * Varios torneos conviven en la misma carpeta (p.ej. Saltillo 361 y
+   * Torreón 370), así que se prefiere el archivo cuyo nombre contenga el
+   * torneoid activo; si ninguno lo incluye se usa el más reciente y, como
+   * último recurso, el primero de la lista.
+   */
+  const { torneoId: activeTorneoId } = useTorneoId();
+  const convocatoriaPdfUrl = (() => {
+    const pdfs = (convocatoriaUploads?.files ?? []).filter((f) => /\.pdf$/i.test(f.name));
+    if (pdfs.length === 0) return null;
+    // 1) Coincidencia por torneoid en el nombre del archivo (370, _370, -370, etc.)
+    if (activeTorneoId) {
+      const byTorneo = pdfs.find((f) =>
+        new RegExp(`(^|[^0-9])${activeTorneoId}([^0-9]|$)`).test(f.name),
+      );
+      if (byTorneo) return byTorneo.url;
+    }
+    // 2) El más recientemente subido
+    const newest = [...pdfs].sort((a, b) => (b.modified ?? 0) - (a.modified ?? 0))[0];
+    return newest?.url ?? pdfs[0].url;
+  })();
   const parsed = tournamentData?.name ? parseTournamentName(tournamentData.name) : null;
 
   // ----- Auto-hide sections that have no content -----
