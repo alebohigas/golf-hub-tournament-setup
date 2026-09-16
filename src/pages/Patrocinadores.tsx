@@ -86,6 +86,10 @@ const Patrocinadores = () => {
   const columns = siteConfig?.sponsors_config?.columns ?? DEFAULT_COLUMNS;
   const { gridClass, cardHeight, logoMax } = getGridConfig(columns);
 
+  /** Admin-configured sponsor website links (sponsor id → URL) */
+  const sponsorWebsites = siteConfig?.sponsors_config?.websites ?? {};
+
+
   /**
    * Track which sponsor IDs have logos that failed to load.
    * On the public page these are hidden entirely (instead of showing a broken
