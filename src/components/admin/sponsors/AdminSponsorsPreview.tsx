@@ -218,9 +218,9 @@ const AdminSponsorsPreview = () => {
                   sponsors.map((sponsor) => (
                     <div
                       key={sponsor.id}
-                      className="aspect-square rounded-md bg-background border border-border/60 flex flex-col items-center justify-center gap-1 p-3 overflow-hidden"
+                      className="rounded-md bg-background border border-border/60 flex flex-col items-center justify-start gap-1 p-3 overflow-hidden"
                     >
-                      <div className="flex-1 w-full flex items-center justify-center min-h-0">
+                      <div className="h-24 w-full flex items-center justify-center min-h-0">
                         <SponsorLogoImage
                           url={sponsor.logoUrl}
                           alt={sponsor.name}
@@ -234,7 +234,33 @@ const AdminSponsorsPreview = () => {
                       >
                         {sponsor.name}
                       </p>
+                      {/* Website link editor — sponsors with a URL show "VER" publicly */}
+                      <div className="w-full shrink-0 space-y-1">
+                        <Input
+                          value={websites[sponsor.id] ?? ''}
+                          onChange={(e) =>
+                            setWebsites((prev) => ({ ...prev, [sponsor.id]: e.target.value }))
+                          }
+                          placeholder="https://empresa.com"
+                          className="h-7 text-[11px] px-2"
+                          aria-label={`Página web de ${sponsor.name}`}
+                        />
+                        {normalizeWebsite(websites[sponsor.id] ?? '') ? (
+                          <a
+                            href={normalizeWebsite(websites[sponsor.id] ?? '')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            Ver
+                          </a>
+                        ) : (
+                          <p className="text-[10px] text-center text-muted-foreground/60">Sin enlace</p>
+                        )}
+                      </div>
                     </div>
+
                   ))
                 )}
               </div>
