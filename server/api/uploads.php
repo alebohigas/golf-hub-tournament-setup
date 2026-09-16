@@ -44,8 +44,8 @@ header('Vary: Host');
 
 // ============= Configuration =============
 
-/** Maximum allowed file size (bytes). 15 MB covers high-res posters + PDFs. */
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+/** Maximum allowed file size (bytes). 100 MB covers high-res posters + PDFs. */
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 /** Shared admin password (mirrors site_config.php). */
 const ADMIN_PASSWORD = 'admin2025';
