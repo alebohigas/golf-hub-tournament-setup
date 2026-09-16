@@ -536,7 +536,7 @@ if ($action === 'upload') {
             continue;
         }
         if ($item['size'] > MAX_UPLOAD_BYTES) {
-            $errors[] = ['name' => $original, 'error' => 'File too large (max 15MB)'];
+            $errors[] = ['name' => $original, 'error' => 'File too large (max 100MB)'];
             continue;
         }
 
