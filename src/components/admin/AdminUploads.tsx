@@ -361,7 +361,7 @@ const SectionPanel = ({ meta }: SectionPanelProps) => {
             )}
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Info className="h-3 w-3" />
-              Máx. 15 MB por archivo
+              Máx. 100 MB por archivo
               {meta.kind === 'mixed' &&
                 ' · El PDF que subas se mostrará en el botón "Ver en PDF" de la página pública'}
             </p>
