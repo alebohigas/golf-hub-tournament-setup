@@ -242,7 +242,7 @@ function build_thumbs_payload($section, $dir, $filename, $fullPath) {
 
 /**
  * Validate browser-compatible image dimensions before accepting an upload.
- * Very tall/wide images can be under 15 MB but exceed browser decoder limits,
+ * Very tall/wide images can be under 100 MB but exceed browser decoder limits,
  * which makes galleries appear blank with no useful console/network error.
  */
 function validate_image_dimensions($tmpPath, $originalName) {
