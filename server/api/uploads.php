@@ -26,7 +26,7 @@
  * Public URL pattern (same domain → no CORS): `/api/uploads/{domain}/{section}/{file}`.
  *
  * Auth: same `admin2025` shared password as the rest of the admin endpoints.
- * Validation: per-section MIME + extension whitelist, max 15MB per file,
+ * Validation: per-section MIME + extension whitelist, max 100MB per file,
  *             filename sanitized to [a-z0-9._-]+.
  */
 require_once 'config.php';
