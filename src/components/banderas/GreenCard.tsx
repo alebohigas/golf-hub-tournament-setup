@@ -110,13 +110,13 @@ const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
         <div>
           <p className={cn(
             'uppercase tracking-wider text-muted-foreground font-semibold',
-            compact ? 'text-[7px] leading-none' : 'text-xs',
+            compact ? 'text-[7px] leading-none' : 'text-sm sm:text-xs',
           )}>
             Hoyo
           </p>
           <p className={cn(
             'font-display font-bold text-foreground leading-none',
-            compact ? 'text-base' : 'text-3xl',
+            compact ? 'text-base' : 'text-5xl sm:text-3xl',
           )}>
             {hole}
           </p>
