@@ -10,7 +10,7 @@
  * ---------------------------------------------------------------
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Loader2, Trophy } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
   type StatsCategoriaHole,
   type StatsCategoriaResponse,
 } from '@/hooks/useStatsData';
+import StatsDateFilter from '@/components/stats/StatsDateFilter';
 
 interface Props {
   /** Manual overrides applied to the section header (null = auto). */
@@ -34,7 +35,17 @@ const EstadisticasCategoriaSection = ({
   const { data: categories = [], isLoading: catsLoading } = useCategories();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading } = useStatsCategoria(selectedId);
+  /**
+   * Fechas de consulta seleccionadas. Set vacío = TODAS (default);
+   * se envían al API ordenadas para una queryKey estable.
+   */
+  const [selectedFechas, setSelectedFechas] = useState<Set<string>>(new Set());
+  const fechasParam = useMemo(
+    () => Array.from(selectedFechas).sort(),
+    [selectedFechas],
+  );
+
+  const { data, isLoading } = useStatsCategoria(selectedId, fechasParam);
 
   const displayedRounds =
     overrideRounds && overrideRounds > 0 ? overrideRounds : data?.rounds ?? 0;
@@ -51,6 +62,12 @@ const EstadisticasCategoriaSection = ({
           <h2 className="text-xl md:text-2xl font-display font-bold uppercase tracking-wide">
             Estadísticas por Categoría
           </h2>
+        </div>
+
+        {/* Filtro de fechas de consulta — aplica a la categoría elegida.
+            Default: TODAS LAS FECHAS (sin selección). */}
+        <div className="bg-white border-b border-border px-4 py-3">
+          <StatsDateFilter selected={selectedFechas} onChange={setSelectedFechas} />
         </div>
 
         {!selectedId ? (
