@@ -180,7 +180,7 @@ const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
         <text
           x={cx} y={ovalBottom + 14}
           textAnchor="middle"
-          fontSize={9}
+          fontSize={11}
           fill="hsl(var(--muted-foreground))"
           fontWeight={600}
           letterSpacing={1}
@@ -190,7 +190,7 @@ const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
         <text
           x={cx} y={ovalTop - 6}
           textAnchor="middle"
-          fontSize={8}
+          fontSize={10}
           fill="hsl(var(--muted-foreground))"
           letterSpacing={1}
         >
