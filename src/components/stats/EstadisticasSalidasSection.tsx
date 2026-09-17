@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, Filter, Flag, Loader2 } from 'lucide-react';
 import { useStatsTee, useStatsTeesList } from '@/hooks/useStatsData';
 import { StatsHolesTable } from '@/components/stats/EstadisticasCategoriaSection';
+import StatsDateFilter from '@/components/stats/StatsDateFilter';
 import { normalizeHex } from '@/components/stats/ClubesAsistentesSection';
 
 const EstadisticasSalidasSection = () => {
@@ -53,7 +54,17 @@ const EstadisticasSalidasSection = () => {
     return tees.map((t) => t.id);
   }, [tees, selectedTees]);
 
-  const { data, isLoading } = useStatsTee(activeIds);
+  /**
+   * Fechas de consulta seleccionadas. Set vacío = TODAS (default);
+   * se envían al API ordenadas para una queryKey estable.
+   */
+  const [selectedFechas, setSelectedFechas] = useState<Set<string>>(new Set());
+  const fechasParam = useMemo(
+    () => Array.from(selectedFechas).sort(),
+    [selectedFechas],
+  );
+
+  const { data, isLoading } = useStatsTee(activeIds, fechasParam);
 
   /** Header label for the current aggregation. */
   const selectionLabel =
@@ -124,6 +135,11 @@ const EstadisticasSalidasSection = () => {
               )}
             </>
           )}
+        </div>
+
+        {/* Filtro de fechas de consulta — default: TODAS LAS FECHAS. */}
+        <div className="bg-white border-b border-border px-4 py-3">
+          <StatsDateFilter selected={selectedFechas} onChange={setSelectedFechas} />
         </div>
 
         <div className="p-4 md:p-6 space-y-4">
