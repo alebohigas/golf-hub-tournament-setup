@@ -129,10 +129,10 @@ const GreenCard = ({ data, className, compact = false }: GreenCardProps) => {
           )}
           title="Posición del pin respecto al centro del green (positivo = hacia el fondo, negativo = hacia el frente)"
         >
-          <span className={cn('uppercase tracking-wide opacity-80', compact ? 'text-[6px] leading-none' : 'text-[10px]')}>
+          <span className={cn('uppercase tracking-wide opacity-80', compact ? 'text-[6px] leading-none' : 'text-xs sm:text-[10px]')}>
             vs Centro
           </span>
-          <span className={cn('font-bold leading-none', compact ? 'text-[9px] mt-0.5' : 'text-base mt-0.5')}>
+          <span className={cn('font-bold leading-none', compact ? 'text-[9px] mt-0.5' : 'text-xl sm:text-base mt-0.5')}>
             {offsetLabel}
           </span>
         </div>
