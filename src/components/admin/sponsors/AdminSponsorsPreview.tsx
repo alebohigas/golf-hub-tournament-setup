@@ -109,6 +109,8 @@ const AdminSponsorsPreview = () => {
       {
         onSuccess: () => {
           setWebsites(cleanWebsites);
+          // Drafts now match the server → background resyncs are safe again.
+          setWebsitesDirty(false);
           toast({
             title: 'Configuración guardada',
             description: `Patrocinadores en ${columns} columna${columns > 1 ? 's' : ''} · ${Object.keys(cleanWebsites).length} con página web.`,
@@ -248,9 +250,11 @@ const AdminSponsorsPreview = () => {
                       <div className="w-full shrink-0 space-y-1">
                         <Input
                           value={websites[sponsor.id] ?? ''}
-                          onChange={(e) =>
-                            setWebsites((prev) => ({ ...prev, [sponsor.id]: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            // Mark dirty so a background refetch can't wipe this edit.
+                            setWebsitesDirty(true);
+                            setWebsites((prev) => ({ ...prev, [sponsor.id]: e.target.value }));
+                          }}
                           placeholder="https://empresa.com"
                           className="h-7 text-[11px] px-2"
                           aria-label={`Página web de ${sponsor.name}`}
