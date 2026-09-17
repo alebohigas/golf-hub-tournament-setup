@@ -63,6 +63,13 @@ const AdminSponsorsPreview = () => {
   /** Local draft map of sponsor ID → website URL being edited */
   const [websites, setWebsites] = useState<Record<string, string>>({});
 
+  /**
+   * Unsaved-edits flag: true from the first keystroke until a successful
+   * save. While dirty, background refetches of the site config must NOT
+   * overwrite the drafts the admin is typing.
+   */
+  const [websitesDirty, setWebsitesDirty] = useState(false);
+
   // Sync local state whenever the server config (re)loads
   useEffect(() => {
     if (siteConfig?.sponsors_config?.columns) {
@@ -70,10 +77,13 @@ const AdminSponsorsPreview = () => {
     }
   }, [siteConfig?.sponsors_config?.columns]);
 
-  // Sync the website drafts whenever the stored map (re)loads
+  // Sync the website drafts whenever the stored map (re)loads — but never
+  // wipe unsaved typing on background refetches (window refocus, etc.).
   useEffect(() => {
-    setWebsites(siteConfig?.sponsors_config?.websites ?? {});
-  }, [siteConfig?.sponsors_config?.websites]);
+    if (!websitesDirty) {
+      setWebsites(siteConfig?.sponsors_config?.websites ?? {});
+    }
+  }, [siteConfig?.sponsors_config?.websites, websitesDirty]);
 
   /**
    * Save the column count and the sponsor website links to the server while
