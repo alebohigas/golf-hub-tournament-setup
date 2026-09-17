@@ -64,6 +64,12 @@ const EstadisticasCategoriaSection = ({
           </h2>
         </div>
 
+        {/* Filtro de fechas de consulta — aplica a la categoría elegida.
+            Default: TODAS LAS FECHAS (sin selección). */}
+        <div className="bg-white border-b border-border px-4 py-3">
+          <StatsDateFilter selected={selectedFechas} onChange={setSelectedFechas} />
+        </div>
+
         {!selectedId ? (
           // ============= Category picker =============
           <div className="p-6">
