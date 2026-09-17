@@ -222,13 +222,30 @@ if (has_column($conn, 'caljuego', 'estatus')) {
 $hasUltAct = has_column($conn, 'tarjetas', 'fec_ult_act');
 $updCol    = $hasUltAct ? 'fec_ult_act' : 'fecha_cap';
 
+/**
+ * Filtro opcional "fechas de consulta" (?fechas=YYYY-MM-DD,...).
+ * Vacío = TODAS las fechas del torneo (comportamiento por defecto).
+ * Se valida el formato estricto de cada fecha antes de interpolarla.
+ */
+$fechasWhere = '';
+if (!empty($_GET['fechas'])) {
+    $fechasOk = [];
+    foreach (explode(',', $_GET['fechas']) as $f) {
+        $f = trim($f);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $f)) { $fechasOk[] = $f; }
+    }
+    if ($fechasOk) {
+        $fechasWhere = " AND DATE(t.fecha_juego) IN ('" . implode("','", $fechasOk) . "')";
+    }
+}
+
 $sql = "SELECT $scoreColsSql, t.$updCol AS upd_at
           FROM v_sal_jug v
           JOIN tarjetas t   ON (v.tarjetaid = t.id)
           JOIN categorias c ON (v.categoriaid = c.categoria_id)
           $finishedJoin
          WHERE c.torneo_id = $tid
-           AND c.salida IN ($idsSql)";
+           AND c.salida IN ($idsSql)$fechasWhere";
 $rows = safe_all($conn, $sql);
 foreach ($rows as $row) {
     $rounds++;
