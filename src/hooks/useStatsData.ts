@@ -191,13 +191,19 @@ export const useStatsClubes = () =>
     staleTime: POLL_SLOW,
   });
 
-/** Estadísticas por categoría — hoyo por hoyo. */
-export const useStatsCategoria = (categoriaId: string | null) =>
+/**
+ * Estadísticas por categoría — hoyo por hoyo.
+ * @param fechas — fechas de consulta ('YYYY-MM-DD'); arreglo vacío = TODAS.
+ */
+export const useStatsCategoria = (categoriaId: string | null, fechas: string[] = []) =>
   useQuery<StatsCategoriaResponse>({
-    queryKey: ['stats-categoria', getTorneoId(), categoriaId],
+    queryKey: ['stats-categoria', getTorneoId(), categoriaId, fechas.join(',')],
     queryFn: () =>
       apiFetch<StatsCategoriaResponse>(
-        buildUrl('stats_categoria.php', { categoriaid: String(categoriaId) }),
+        buildUrl('stats_categoria.php', {
+          categoriaid: String(categoriaId),
+          ...(fechas.length > 0 ? { fechas: fechas.join(',') } : {}),
+        }),
       ),
     enabled: !!categoriaId,
     staleTime: POLL_SLOW,
@@ -237,13 +243,17 @@ export const useStatsTeesList = () =>
  * @param salidaIds — explicit tee id list; the caller passes ALL tee ids
  *                    when the "Todas" (no selection) filter is active.
  *                    Empty array → query disabled.
+ * @param fechas    — fechas de consulta ('YYYY-MM-DD'); vacío = TODAS.
  */
-export const useStatsTee = (salidaIds: number[]) =>
+export const useStatsTee = (salidaIds: number[], fechas: string[] = []) =>
   useQuery<StatsTeeDetailResponse>({
-    queryKey: ['stats-tee', getTorneoId(), salidaIds.join(',')],
+    queryKey: ['stats-tee', getTorneoId(), salidaIds.join(','), fechas.join(',')],
     queryFn: () =>
       apiFetch<StatsTeeDetailResponse>(
-        buildUrl('stats_tee.php', { salidaids: salidaIds.join(',') }),
+        buildUrl('stats_tee.php', {
+          salidaids: salidaIds.join(','),
+          ...(fechas.length > 0 ? { fechas: fechas.join(',') } : {}),
+        }),
       ),
     enabled: salidaIds.length > 0,
     staleTime: POLL_SLOW,
