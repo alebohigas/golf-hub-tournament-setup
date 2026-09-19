@@ -21,14 +21,13 @@ function dist_has_column($conn, $table, $column) {
 }
 
 $tid = (int)require_param('torneoid');
-$calendarStatus = dist_has_column($conn, 'caljuego', 'estatus') ? ' AND cj.estatus = 2' : '';
 $teeActive = dist_has_column($conn, 'campo_tee', 'activa') ? ' AND ct.activa = 1' : '';
 
 /** Campos que realmente participan en el calendario activo del torneo. */
 $campoRows = query_all($conn, "SELECT DISTINCT cj.campo AS id, c.campo
                                 FROM caljuego cj
                                 LEFT JOIN campos c ON c.id = cj.campo
-                               WHERE cj.torneoid = $tid AND cj.campo > 0$calendarStatus
+                               WHERE cj.torneoid = $tid AND cj.campo > 0
                                ORDER BY cj.campo ASC");
 
 $campos = [];
@@ -45,7 +44,7 @@ foreach ($campoRows as $campoRow) {
                                   JOIN categorias cat ON cat.categoria_id = cj.categoriaid
                                   JOIN salidas s ON s.id = cat.salida
                                   JOIN campo_tee ct ON ct.campoid = cj.campo AND ct.salidaid = cat.salida$teeActive
-                                 WHERE cj.torneoid = $tid AND cj.campo = $campoid$calendarStatus
+                                 WHERE cj.torneoid = $tid AND cj.campo = $campoid
                                  ORDER BY s.id ASC");
 
     $tees = [];
@@ -57,7 +56,7 @@ foreach ($campoRows as $campoRow) {
                                            JOIN categorias cat ON cat.categoria_id = cj.categoriaid
                                           WHERE cj.torneoid = $tid
                                             AND cj.campo = $campoid
-                                            AND cat.salida = $salidaid$calendarStatus
+                                            AND cat.salida = $salidaid
                                           ORDER BY cat.categoria_id ASC");
 
         /** Distancia y par de los hoyos 1–18 para este campo/mesa. */
