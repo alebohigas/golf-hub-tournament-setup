@@ -213,13 +213,10 @@ const PremiosPostersSection = () => {
               aria-label={`Ver ${card.alt} en grande`}
             >
               {/*
-                Mobile: drop the fixed 9/16 box so the poster fills the full
-                card width with its natural height — no letterbox padding
-                above/below. Desktop keeps a 3/4 ratio so the multi-column
-                grid stays uniform; `object-cover` trims edges but fills the
-                frame.
+                All devices preserve the poster's natural aspect ratio. On
+                desktop, very tall artwork is capped at 2100px without crop.
               */}
-              <div className="relative w-full min-h-[200px] overflow-hidden bg-card md:aspect-[3/4]">
+              <div className="relative flex w-full min-h-[200px] justify-center overflow-hidden bg-card md:max-h-[2100px]">
                 {/*
                   Skeleton placeholder: a shimmering muted block that occupies
                   the card box until the thumbnail decodes. On mobile it is
@@ -256,8 +253,7 @@ const PremiosPostersSection = () => {
                   onLoad={() => markLoaded(card.src)}
                   onError={() => markLoaded(card.src)}
                   className={cn(
-                    'relative w-full h-auto object-contain',
-                    'md:absolute md:inset-0 md:h-full md:w-full md:object-cover',
+                    'relative h-auto w-full object-contain md:max-h-[2100px] md:w-auto md:max-w-full',
                     'transition-[opacity,transform] duration-500 group-hover:scale-105',
                     loadedCards.has(card.src) ? 'opacity-100' : 'opacity-0'
                   )}
