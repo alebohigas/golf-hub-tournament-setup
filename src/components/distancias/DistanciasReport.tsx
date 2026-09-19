@@ -105,8 +105,8 @@ const TeeDistanceTable = ({
                 ))}
               </tr>
             ))}
-            <tr className="bg-muted/30">
-              <th className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-3 text-left font-semibold text-foreground">
+            <tr className="bg-white">
+              <th className="sticky left-0 z-10 border-b border-r border-border bg-white px-2 py-3 text-left font-semibold text-foreground">
                 Ventaja
               </th>
               {COLUMNS.map((column) => {
@@ -115,8 +115,7 @@ const TeeDistanceTable = ({
                   <td
                     key={column}
                     className={cn(
-                      'border-b border-r border-border px-1 py-3 text-center text-foreground',
-                      typeof column === 'string' && 'bg-muted/50',
+                      'border-b border-r border-border bg-white px-1 py-3 text-center text-foreground',
                       isDifferent && 'bg-warning font-bold text-warning-foreground',
                     )}
                     title={isDifferent ? 'La ventaja difiere entre campo_tee y hoyosxsalida' : undefined}
