@@ -1,6 +1,6 @@
 /**
  * useDistanciasData
- * Lee campos, mesas activas, categorías, yardas y par del reporte DISTANCIAS.
+ * Lee campos, mesas activas, categorías, yardas, par y ventajas de DISTANCIAS.
  */
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
@@ -12,11 +12,14 @@ export interface DistanciasCategory {
   name: string;
 }
 
-/** Distancia y par de un hoyo. */
+/** Medidas y ventajas comparadas de un hoyo. */
 export interface DistanciasHole {
   numero: number;
   yardas: number;
   par: number;
+  ventaja: number;
+  ventajaCampo: number | null;
+  ventajaDiferente: boolean;
 }
 
 /** Mesa de salida activa con colores y medidas. */

@@ -5,7 +5,7 @@
  *
  * Devuelve los campos activos del calendario y, para cada uno, únicamente las
  * mesas activas de `campo_tee` que están asignadas a categorías del torneo.
- * Cada mesa incluye sus colores de `salidas` y las distancias/par por hoyo.
+ * Cada mesa incluye sus colores de `salidas` y yardas/par/ventaja por hoyo.
  */
 require_once 'config.php';
 
@@ -39,7 +39,7 @@ foreach ($campoRows as $campoRow) {
      * campo_tee garantiza que la mesa esté cargada para el campo; `activa=1`
      * se aplica cuando la columna existe.
      */
-    $teeRows = query_all($conn, "SELECT DISTINCT s.id, s.tee, s.bgcolor, s.color
+    $teeRows = query_all($conn, "SELECT DISTINCT s.id, s.tee, s.bgcolor, s.color, ct.ventajas
                                   FROM caljuego cj
                                   JOIN categorias cat ON cat.categoria_id = cj.categoriaid
                                   JOIN salidas s ON s.id = cat.salida
@@ -59,11 +59,15 @@ foreach ($campoRows as $campoRow) {
                                             AND cat.salida = $salidaid
                                           ORDER BY cat.categoria_id ASC");
 
-        /** Distancia y par de los hoyos 1–18 para este campo/mesa. */
+        /** Ventajas generales registradas como CSV en `campo_tee`. */
+        $ventajasCsv = trim((string)($teeRow['ventajas'] ?? ''));
+        $campoVentajas = $ventajasCsv === '' ? [] : array_map('intval', explode(',', $ventajasCsv));
+
+        /** Distancia, par y ventaja de los hoyos 1–18 para este campo/mesa. */
         $holes = [];
         $totalYardas = 0;
         $totalPar = 0;
-        foreach (query_all($conn, "SELECT numero, par, yardaje
+        foreach (query_all($conn, "SELECT numero, par, yardaje, ventaja
                                      FROM hoyosxsalida
                                     WHERE campoid = $campoid AND salidaid = $salidaid
                                     ORDER BY numero ASC") as $holeRow) {
@@ -71,7 +75,18 @@ foreach ($campoRows as $campoRow) {
             if ($numero < 1 || $numero > 18) continue;
             $yardas = (int)$holeRow['yardaje'];
             $par = (int)$holeRow['par'];
-            $holes[] = ['numero' => $numero, 'yardas' => $yardas, 'par' => $par];
+            $ventaja = (int)$holeRow['ventaja'];
+            $ventajaCampo = array_key_exists($numero - 1, $campoVentajas)
+                ? (int)$campoVentajas[$numero - 1]
+                : null;
+            $holes[] = [
+                'numero' => $numero,
+                'yardas' => $yardas,
+                'par' => $par,
+                'ventaja' => $ventaja,
+                'ventajaCampo' => $ventajaCampo,
+                'ventajaDiferente' => $ventajaCampo !== null && $ventaja !== $ventajaCampo,
+            ];
             $totalYardas += $yardas;
             $totalPar += $par;
         }

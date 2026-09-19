@@ -1,6 +1,6 @@
 /**
  * DistanciasReport
- * Tabla reutilizable de yardas y par por campo y mesa de salida.
+ * Tabla reutilizable de par, yardas y ventajas por campo y mesa de salida.
  */
 import { Loader2, MapPin, Ruler } from 'lucide-react';
 import { useDistanciasData, type DistanciasTee } from '@/hooks/useDistanciasData';
@@ -19,7 +19,7 @@ const sumRange = (tee: DistanciasTee, key: 'yardas' | 'par', from: number, to: n
     hole.numero >= from && hole.numero <= to ? sum + hole[key] : sum
   ), 0);
 
-/** Resuelve el valor de una celda de hoyo, vuelta o total. */
+/** Resuelve el valor de una celda de par o yardas, incluidos sus totales. */
 const cellValue = (
   tee: DistanciasTee,
   column: typeof COLUMNS[number],
@@ -31,8 +31,26 @@ const cellValue = (
   return tee.holes.find((hole) => hole.numero === column)?.[key] ?? '—';
 };
 
+/** Devuelve la ventaja del hoyo; las ventajas no llevan subtotal ni total. */
+const advantageValue = (tee: DistanciasTee, column: typeof COLUMNS[number]): number | string => {
+  if (typeof column === 'string') return '';
+  return tee.holes.find((hole) => hole.numero === column)?.ventaja ?? '—';
+};
+
+/** Indica si las dos fuentes de ventaja difieren para un hoyo concreto. */
+const hasAdvantageDifference = (tee: DistanciasTee, column: typeof COLUMNS[number]): boolean => {
+  if (typeof column === 'string') return false;
+  return tee.holes.find((hole) => hole.numero === column)?.ventajaDiferente === true;
+};
+
 /** Una tabla de distancias encabezada con el color real de su mesa. */
-const TeeDistanceTable = ({ tee }: { tee: DistanciasTee }) => {
+const TeeDistanceTable = ({
+  tee,
+  showAdvantageDifferences,
+}: {
+  tee: DistanciasTee;
+  showAdvantageDifferences: boolean;
+}) => {
   const backgroundColor = safeHexColor(tee.bgcolor, '#1f2937');
   const foregroundColor = safeHexColor(tee.color, '#ffffff');
 
@@ -66,13 +84,13 @@ const TeeDistanceTable = ({ tee }: { tee: DistanciasTee }) => {
             </tr>
           </thead>
           <tbody>
-            {(['yardas', 'par'] as const).map((key, rowIndex) => (
+            {(['par', 'yardas'] as const).map((key, rowIndex) => (
               <tr key={key} className={rowIndex === 0 ? 'bg-card' : 'bg-muted/30'}>
                 <th className={cn(
                   'sticky left-0 z-10 border-b border-r border-border px-2 py-3 text-left font-semibold text-foreground',
                   rowIndex === 0 ? 'bg-card' : 'bg-muted',
                 )}>
-                  {key === 'yardas' ? 'Yardas' : 'Par'}
+                  {key === 'par' ? 'Par' : 'Yardas'}
                 </th>
                 {COLUMNS.map((column) => (
                   <td
@@ -87,6 +105,27 @@ const TeeDistanceTable = ({ tee }: { tee: DistanciasTee }) => {
                 ))}
               </tr>
             ))}
+            <tr className="bg-muted/30">
+              <th className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-3 text-left font-semibold text-foreground">
+                Ventaja
+              </th>
+              {COLUMNS.map((column) => {
+                const isDifferent = showAdvantageDifferences && hasAdvantageDifference(tee, column);
+                return (
+                  <td
+                    key={column}
+                    className={cn(
+                      'border-b border-r border-border px-1 py-3 text-center text-foreground',
+                      typeof column === 'string' && 'bg-muted/50',
+                      isDifferent && 'bg-warning font-bold text-warning-foreground',
+                    )}
+                    title={isDifferent ? 'La ventaja difiere entre campo_tee y hoyosxsalida' : undefined}
+                  >
+                    {advantageValue(tee, column)}
+                  </td>
+                );
+              })}
+            </tr>
           </tbody>
         </table>
       </div>
@@ -97,10 +136,11 @@ const TeeDistanceTable = ({ tee }: { tee: DistanciasTee }) => {
 /** Propiedades para adaptar el encabezado al contexto público o administrativo. */
 interface DistanciasReportProps {
   compact?: boolean;
+  showAdvantageDifferences?: boolean;
 }
 
 /** Reporte completo agrupado por campo activo. */
-const DistanciasReport = ({ compact = false }: DistanciasReportProps) => {
+const DistanciasReport = ({ compact = false, showAdvantageDifferences = false }: DistanciasReportProps) => {
   const { data, isLoading, error } = useDistanciasData();
   const campos = data?.campos ?? [];
 
@@ -136,7 +176,13 @@ const DistanciasReport = ({ compact = false }: DistanciasReportProps) => {
             <MapPin className="h-5 w-5 text-primary" /> {campo.campo || `Campo ${campo.id}`}
           </h2>
           <div className="space-y-5">
-            {campo.tees.map((tee) => <TeeDistanceTable key={tee.id} tee={tee} />)}
+            {campo.tees.map((tee) => (
+              <TeeDistanceTable
+                key={tee.id}
+                tee={tee}
+                showAdvantageDifferences={showAdvantageDifferences}
+              />
+            ))}
           </div>
         </section>
       ))}

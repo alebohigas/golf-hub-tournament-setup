@@ -34,6 +34,10 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    /* Advertencia de discrepancia de datos: amarillo puro y texto negro. */
+    --warning: 60 100% 50%;
+    --warning-foreground: 0 0% 0%;
+
     --border: 45 20% 88%;
     --input: 45 20% 88%;
     --ring: 150 40% 22%;
@@ -93,6 +97,9 @@
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
+
+    --warning: 60 100% 50%;
+    --warning-foreground: 0 0% 0%;
 
     --border: 150 25% 20%;
     --input: 150 25% 20%;
