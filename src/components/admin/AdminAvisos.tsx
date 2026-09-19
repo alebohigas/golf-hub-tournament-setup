@@ -259,6 +259,8 @@ const PreviewFrame = ({
           style={{
             '--poster-cols': columns,
             '--poster-gap': gapToPx(gap),
+            '--poster-desktop-cols': columns,
+            '--poster-desktop-gap': gapToPx(gap),
           } as React.CSSProperties}
         >
           {order.map((posterIdx, position) => {
