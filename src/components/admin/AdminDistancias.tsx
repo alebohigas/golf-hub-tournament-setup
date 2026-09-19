@@ -11,11 +11,11 @@ const AdminDistancias = () => (
         <Ruler className="h-5 w-5" /> Distancias
       </CardTitle>
       <CardDescription>
-        Yardas y par por campo y mesa activa, con los colores definidos para cada salida.
+        Par, yardas y ventajas por mesa activa. Las ventajas diferentes entre registros se marcan en amarillo.
       </CardDescription>
     </CardHeader>
     <CardContent>
-      <DistanciasReport compact />
+      <DistanciasReport compact showAdvantageDifferences />
     </CardContent>
   </Card>
 );
