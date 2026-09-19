@@ -206,14 +206,14 @@ const AtraccionesSection = () => {
         </div>
 
         {/* ---------- Responsive poster grid ---------- */}
-        <div className={gridClass}>
+        <div className={gridClass} style={gridStyle}>
           {orderedAtracciones.map((card, idx) => (
             <button
               key={card.src}
               type="button"
               onClick={() => setOpenIndex(idx)}
               className={cn(
-                'group relative overflow-hidden rounded-lg border border-border/50 bg-card',
+                'poster-grid-item group relative overflow-hidden rounded-lg border border-border/50 bg-card',
                 'shadow-card transition-all duration-300',
                 'hover:shadow-elegant hover:-translate-y-1 hover:border-primary/40',
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background'
