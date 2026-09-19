@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useHeroOverride } from '@/hooks/useHeroOverride';
 
@@ -13,6 +14,31 @@ interface PageHeroProps {
   backgroundPosition?: string;
 }
 
+/** Desktop breakpoint where the hero adapts to the image real height. */
+const DESKTOP_MIN_WIDTH = 1024;
+/** Maximum desktop hero height in pixels. Taller images are clamped here. */
+const MAX_HERO_HEIGHT = 2100;
+/** Minimum height for a hero that has an image, so very short images still
+ *  leave room for the title and subtitle. */
+const MIN_HERO_HEIGHT_WITH_IMAGE = 300;
+
+/**
+ * PageHero — section header with a background image.
+ *
+ * Desktop behavior (>=1024px):
+ *   - The section height follows the natural proportions of the background
+ *     image when it is stretched to the full container width.
+ *   - The height is capped at MAX_HERO_HEIGHT (2100px). If the scaled image
+ *     would be taller, the container is clamped to that maximum.
+ *   - Shorter images keep their calculated height, so the picture fits
+ *     perfectly without unnecessary vertical cropping.
+ *   - If no image is configured, the legacy gradient + padding fallback is
+ *     used.
+ *
+ * Mobile / tablet behavior:
+ *   - Keeps the original responsive padding (py-28 md:py-36 lg:py-40) so
+ *     text remains readable and the background continues to use bg-cover.
+ */
 const PageHero = ({ title, subtitle, backgroundImage, backgroundPosition }: PageHeroProps) => {
   /**
    * Per-tournament hero override (Admin > Heros). Keyed by the current route
@@ -24,8 +50,83 @@ const PageHero = ({ title, subtitle, backgroundImage, backgroundPosition }: Page
   const override = useHeroOverride(pathname);
   const effectiveImage = override || backgroundImage;
 
+  /** Ref to the section so we can read its rendered width. */
+  const sectionRef = useRef<HTMLElement>(null);
+  /**
+   * Dynamic desktop height, in pixels. `null` means:
+   *   - the viewport is not desktop, or
+   *   - no image is configured, or
+   *   - the image has not been measured yet / failed to load.
+   */
+  const [desktopHeight, setDesktopHeight] = useState<number | null>(null);
+
+  /**
+   * Measures the background image natural size and recomputes the section
+   * height for desktop viewports. Runs on mount, image change, route change
+   * and window resize.
+   */
+  useEffect(() => {
+    if (!effectiveImage) {
+      setDesktopHeight(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const computeHeight = () => {
+      const section = sectionRef.current;
+      if (!section) return;
+
+      const isDesktop = window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`).matches;
+      if (!isDesktop) {
+        setDesktopHeight(null);
+        return;
+      }
+
+      const containerWidth = section.clientWidth;
+      if (!containerWidth) return;
+
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        if (!img.naturalWidth || !img.naturalHeight) {
+          setDesktopHeight(null);
+          return;
+        }
+        const ratio = img.naturalHeight / img.naturalWidth;
+        const scaledHeight = Math.round(containerWidth * ratio);
+        setDesktopHeight(Math.max(Math.min(scaledHeight, MAX_HERO_HEIGHT), MIN_HERO_HEIGHT_WITH_IMAGE));
+      };
+      img.onerror = () => {
+        if (!cancelled) setDesktopHeight(null);
+      };
+      img.src = effectiveImage;
+    };
+
+    computeHeight();
+    const handleResize = () => computeHeight();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [effectiveImage, pathname]);
+
+  /** `true` only when we are on desktop and already know the image height. */
+  const hasDynamicHeight = desktopHeight !== null && desktopHeight > 0;
+
   return (
-    <section className="relative py-28 md:py-36 lg:py-40 overflow-hidden">
+    <section
+      ref={sectionRef}
+      className={
+        `relative overflow-hidden flex items-center justify-center ` +
+        (hasDynamicHeight
+          ? `py-0`
+          : `py-28 md:py-36 lg:py-40`)
+      }
+      style={hasDynamicHeight ? { minHeight: desktopHeight } : undefined}
+    >
       {/* Background */}
       {effectiveImage ? (
         <div
