@@ -102,16 +102,19 @@ const AtraccionesSection = () => {
   const orderedAtracciones = applyOrder(ATRACCIONES, activeOrder);
 
   /**
-   * Compose the responsive grid class string from the admin-selected
-   * column counts and gap presets. Mobile = base, desktop = md: prefix.
+   * Poster grid container class. We use the global `.poster-grid` utility
+   * (see src/index.css) instead of a CSS Grid so that, when there are fewer
+   * posters than the configured desktop column count, the visible items stay
+   * grouped in the center instead of aligning to the left edge.
+   * Column count and gap are passed as CSS custom properties.
    */
-  const gridClass = cn(
-    'grid',
-    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-2',
-    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-4',
-    MOBILE_GAP_CLASS[cfg.mobileGap] ?? 'gap-4',
-    DESKTOP_GAP_CLASS[cfg.desktopGap] ?? 'md:gap-6'
-  );
+  const gridClass = 'poster-grid';
+  const gridStyle: React.CSSProperties = {
+    '--poster-cols': cfg.mobileColumns,
+    '--poster-gap': GAP_PX[cfg.mobileGap] ?? 16,
+    '--poster-desktop-cols': cfg.desktopColumns,
+    '--poster-desktop-gap': GAP_PX[cfg.desktopGap] ?? 24,
+  } as React.CSSProperties;
 
   // Index of the currently open image in the lightbox; null = closed.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
