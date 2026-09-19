@@ -68,7 +68,10 @@ const TeeDistanceTable = ({ tee }: { tee: DistanciasTee }) => {
           <tbody>
             {(['yardas', 'par'] as const).map((key, rowIndex) => (
               <tr key={key} className={rowIndex === 0 ? 'bg-card' : 'bg-muted/30'}>
-                <th className="sticky left-0 z-10 border-b border-r border-border bg-card px-2 py-3 text-left font-semibold text-foreground">
+                <th className={cn(
+                  'sticky left-0 z-10 border-b border-r border-border px-2 py-3 text-left font-semibold text-foreground',
+                  rowIndex === 0 ? 'bg-card' : 'bg-muted',
+                )}>
                   {key === 'yardas' ? 'Yardas' : 'Par'}
                 </th>
                 {COLUMNS.map((column) => (
