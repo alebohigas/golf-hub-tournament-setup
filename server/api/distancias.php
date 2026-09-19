@@ -60,7 +60,8 @@ foreach ($campoRows as $campoRow) {
                                           ORDER BY cat.categoria_id ASC");
 
         /** Ventajas generales registradas como CSV en `campo_tee`. */
-        $campoVentajas = array_map('intval', explode(',', (string)($teeRow['ventajas'] ?? '')));
+        $ventajasCsv = trim((string)($teeRow['ventajas'] ?? ''));
+        $campoVentajas = $ventajasCsv === '' ? [] : array_map('intval', explode(',', $ventajasCsv));
 
         /** Distancia, par y ventaja de los hoyos 1–18 para este campo/mesa. */
         $holes = [];
