@@ -55,18 +55,12 @@ const DEFAULT_CONFIG: HotelesConfig = {
   mobileGap: 'sm',
 };
 
-/** Static Tailwind class maps — full strings so JIT can detect them. */
-const MOBILE_COL_CLASS: Record<number, string> = {
-  1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4',
-};
-const DESKTOP_COL_CLASS: Record<number, string> = {
-  1: 'md:grid-cols-1', 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4',
-};
-const MOBILE_GAP_CLASS: Record<EventosGap, string> = {
-  sm: 'gap-2', md: 'gap-4', lg: 'gap-6', xl: 'gap-8',
-};
-const DESKTOP_GAP_CLASS: Record<EventosGap, string> = {
-  sm: 'md:gap-2', md: 'md:gap-4', lg: 'md:gap-6', xl: 'md:gap-8',
+/** Gap preset to pixel value (drives the poster-grid CSS custom property). */
+const GAP_PX: Record<EventosGap, number> = {
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
 };
 
 /**
@@ -97,13 +91,20 @@ const HotelesPostersSection = () => {
   const activeOrder = cfg.posterOrder ?? cfg.desktopOrder ?? cfg.mobileOrder;
   const orderedPosters = applyOrder(sourcePosters, activeOrder);
 
-  const gridClass = cn(
-    'grid',
-    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-1',
-    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-3',
-    MOBILE_GAP_CLASS[cfg.mobileGap] ?? 'gap-4',
-    DESKTOP_GAP_CLASS[cfg.desktopGap] ?? 'md:gap-6'
-  );
+  /**
+   * Poster grid container class. We use the global `.poster-grid` utility
+   * (see src/index.css) instead of a CSS Grid so that, when there are fewer
+   * posters than the configured desktop column count, the visible items stay
+   * grouped in the center instead of aligning to the left edge.
+   * Column count and gap are passed as CSS custom properties.
+   */
+  const gridClass = 'poster-grid';
+  const gridStyle: React.CSSProperties = {
+    '--poster-cols': cfg.mobileColumns,
+    '--poster-gap': GAP_PX[cfg.mobileGap] ?? 16,
+    '--poster-desktop-cols': cfg.desktopColumns,
+    '--poster-desktop-gap': GAP_PX[cfg.desktopGap] ?? 24,
+  } as React.CSSProperties;
 
   // Lightbox state: index of currently open poster or null when closed.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
