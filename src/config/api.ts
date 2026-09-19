@@ -102,6 +102,9 @@ export const getPlayersApiUrl = (catId: string, opts: { skin?: boolean } = {}): 
 /** Calendario - tournament calendar from caljuego table */
 export const getCalendarioUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery()}`;
 
+/** Distancias por campo y mesa de salida activa del torneo. */
+export const getDistanciasUrl = (): string => `${API_BASE_URL}/distancias.php${buildQuery()}`;
+
 /** @deprecated Use getCalendarioUrl instead */
 export const getCalendarioDaysUrl = (): string => `${API_BASE_URL}/calendario.php${buildQuery({ modo: 'days' })}`;
 
