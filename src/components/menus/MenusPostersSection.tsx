@@ -123,16 +123,19 @@ const MenusPostersSection = () => {
   const orderedPosters = applyOrder(sourcePosters, activeOrder);
 
   /**
-   * Compose the responsive grid class string from the admin-selected
-   * column counts and gap presets. Mobile = base, desktop = md: prefix.
+   * Poster grid container class. We use the global `.poster-grid` utility
+   * (see src/index.css) instead of a CSS Grid so that, when there are fewer
+   * posters than the configured desktop column count, the visible items stay
+   * grouped in the center instead of aligning to the left edge.
+   * Column count and gap are passed as CSS custom properties.
    */
-  const gridClass = cn(
-    'grid',
-    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-1',
-    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-3',
-    MOBILE_GAP_CLASS[cfg.mobileGap] ?? 'gap-4',
-    DESKTOP_GAP_CLASS[cfg.desktopGap] ?? 'md:gap-6'
-  );
+  const gridClass = 'poster-grid';
+  const gridStyle: React.CSSProperties = {
+    '--poster-cols': cfg.mobileColumns,
+    '--poster-gap': GAP_PX[cfg.mobileGap] ?? 16,
+    '--poster-desktop-cols': cfg.desktopColumns,
+    '--poster-desktop-gap': GAP_PX[cfg.desktopGap] ?? 24,
+  } as React.CSSProperties;
 
   // Index of the currently open image in the lightbox; null = closed.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -224,14 +227,14 @@ const MenusPostersSection = () => {
         </div>
 
         {/* ---------- Responsive poster grid ---------- */}
-        <div className={gridClass}>
+        <div className={gridClass} style={gridStyle}>
           {orderedPosters.map((card, idx) => (
             <button
               key={card.src}
               type="button"
               onClick={() => setOpenIndex(idx)}
               className={cn(
-                'group relative overflow-hidden rounded-lg border border-border/50 bg-card',
+                'poster-grid-item group relative overflow-hidden rounded-lg border border-border/50 bg-card',
                 'shadow-card transition-all duration-300',
                 'hover:shadow-elegant hover:-translate-y-1 hover:border-primary/40',
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background'
