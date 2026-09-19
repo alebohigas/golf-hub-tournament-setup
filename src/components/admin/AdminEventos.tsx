@@ -272,7 +272,7 @@ const PreviewFrame = ({
             return (
               <div
                 key={`${title}-${posterIdx}`}
-                className="relative"
+                className="poster-grid-item relative"
                 onDragOver={(e) => {
                   if (dragIndex === null) return;
                   e.preventDefault();
