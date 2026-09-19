@@ -108,6 +108,11 @@ foreach ($campoRows as $campoRow) {
         ];
     }
 
+    /** Ordenar las mesas de mayor a menor yardaje total. */
+    usort($tees, function ($a, $b) {
+        return $b['totalYardas'] <=> $a['totalYardas'];
+    });
+
     if ($tees) {
         $campos[] = [
             'id' => $campoid,
