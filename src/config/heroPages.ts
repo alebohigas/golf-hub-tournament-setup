@@ -48,6 +48,7 @@ export const HERO_PAGES: HeroPageDef[] = [
   { path: '/patrocinadores', label: 'Patrocinadores', aiPrompt: 'Vallas de patrocinadores en blanco junto al fairway al atardecer' },
   { path: '/stats', label: 'Estadísticas', aiPrompt: 'Vista panorámica de un campo de golf con luz cálida' },
   { path: '/historial', label: 'Historial', aiPrompt: 'Campo de golf clásico con árboles maduros en luz cálida vintage' },
+  { path: '/distancias', label: 'Distancias', aiPrompt: 'Marcador de distancias en el tee de un campo de golf al amanecer' },
 ];
 
 /** Lookup a hero page definition by pathname (exact match). */
