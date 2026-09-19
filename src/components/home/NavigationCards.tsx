@@ -9,7 +9,7 @@ import { usePageVisibility } from '@/contexts/PageVisibilityContext';
 import type { MenuItem } from '@/data/mockData';
 import { 
   FileText, Calendar, Users, Clock, Radio, Trophy, Target,
-  CalendarDays, Bell, Award, Handshake, BookOpen 
+  CalendarDays, Bell, Award, Handshake, BookOpen, Ruler
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ const iconMap: Record<string, React.ElementType> = {
   resultados: Trophy,
   competicion: Target,
   calendario: CalendarDays,
+  distancias: Ruler,
   avisos: Bell,
   premios: Award,
   patrocinadores: Handshake,
@@ -46,6 +47,7 @@ const descriptionMap: Record<string, string> = {
   resultados: 'Consulta los resultados de cada ronda',
   competicion: 'Resultados de approach, drive y competencias especiales',
   calendario: 'Fechas importantes del torneo',
+  distancias: 'Yardas y par por campo y mesa de salida',
   avisos: 'Comunicados y noticias importantes',
   premios: 'Reconocimientos y premiación',
   patrocinadores: 'Empresas que apoyan el torneo',

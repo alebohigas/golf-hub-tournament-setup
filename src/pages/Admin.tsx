@@ -53,6 +53,8 @@ import AdminResultadosFinalesCompeticionPrint from '@/components/admin/AdminResu
 /** Enfrentamientos manuales de MATCH PLAY para las salidas públicas. */
 /** Impresión de tarjetas de juego por día y categoría. */
 import AdminTarjetasPrint from '@/components/admin/AdminTarjetasPrint';
+/** Distancias y par por mesa activa del torneo. */
+import AdminDistancias from '@/components/admin/AdminDistancias';
 
 
 /** Reporte TIME LINE: hora estimada de cada grupo en los 18 hoyos. */
@@ -101,6 +103,7 @@ import {
   Layers,
   /** Icono de la pestaña "Approach" (Clasificados de Approach). */
   Crosshair,
+  Ruler,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -299,9 +302,10 @@ const AdminDashboard = () => {
     alien_salidas: 'alien',
     alien_categorias: 'alien',
     alien_resultados: 'alien',
+    alien_distancias: 'alien',
   };
   /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
-  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias', 'alien_resultados'];
+  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias', 'alien_resultados', 'alien_distancias'];
   /** true si el usuario activo puede ver una sub-pestaña de ALIEN SYSTEM. */
   const canAlien = (a: StaffArea) => !isStaffOnly || !!staffSession?.areas.includes(a);
   /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
@@ -828,7 +832,7 @@ const AdminDashboard = () => {
 
         {/*
           ALIEN SYSTEM — sección contenedora de las herramientas operativas.
-          Sub-pestañas: Categorías, Tarjetas, Time Line y Salidas.
+           Sub-pestañas: Categorías, Tarjetas, Time Line, Salidas, Distancias y resultados.
         */}
         <TabsContent value="alien">
           <Tabs
@@ -839,7 +843,11 @@ const AdminDashboard = () => {
                   ? 'tarjetas'
                   : canAlien('alien_timeline')
                     ? 'timeline'
-                    : 'salidas'
+                    : canAlien('alien_salidas')
+                      ? 'salidas'
+                      : canAlien('alien_distancias')
+                        ? 'distancias'
+                        : 'resultados-finales'
             }
             className="space-y-4"
           >
@@ -862,6 +870,11 @@ const AdminDashboard = () => {
               {canAlien('alien_salidas') && (
                 <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
                   <Printer className="h-4 w-4" /> Salidas
+                </TabsTrigger>
+              )}
+              {canAlien('alien_distancias') && (
+                <TabsTrigger value="distancias" className="gap-2 flex-1 min-w-[120px]">
+                  <Ruler className="h-4 w-4" /> Distancias
                 </TabsTrigger>
               )}
               {canAlien('alien_resultados') && (
@@ -901,6 +914,13 @@ const AdminDashboard = () => {
             {canAlien('alien_salidas') && (
               <TabsContent value="salidas">
                 <AdminSalidasPrint />
+              </TabsContent>
+            )}
+
+            {/* Distancias — yardas y par por mesa activa y campo. */}
+            {canAlien('alien_distancias') && (
+              <TabsContent value="distancias">
+                <AdminDistancias />
               </TabsContent>
             )}
 

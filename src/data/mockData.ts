@@ -72,6 +72,7 @@ export const menuConfig: MenuItem[] = [
   { id: 'historial', label: 'HISTORIAL', path: '/historial', enabled: false, order: 7.5 },
   { id: 'competicion', label: 'COMPETICIÓN', path: '/competicion', enabled: true, order: 8 },
   { id: 'calendario', label: 'CALENDARIO DE JUEGO', path: '/calendario', enabled: true, order: 10 },
+  { id: 'distancias', label: 'DISTANCIAS', path: '/distancias', enabled: true, order: 10.5 },
   { id: 'horarios', label: 'HORARIOS DE SALIDAS', path: '/horarios', enabled: true, order: 15 },
   { id: 'avisos', label: 'AVISOS', path: '/avisos', enabled: true, order: 11 },
   { id: 'premios', label: 'PREMIOS', path: '/premios', enabled: true, order: 12 },
