@@ -638,3 +638,34 @@
     page-break-inside: avoid !important;
   }
 }
+
+/* ==========================================================================
+   Poster grid centering utility
+   Used by Eventos, Premios, Avisos, Hoteles and Menús poster sections.
+   Switches from a left-aligned CSS Grid to a centered flex layout so that,
+   when the configured desktop column count (2/3/4) has fewer posters than
+   columns, the visible items stay grouped in the center instead of sticking
+   to the left edge. Column count and gap are driven by CSS custom properties
+   set inline from the admin config.
+   ========================================================================== */
+.poster-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(var(--poster-gap, 16) * 1px);
+}
+
+.poster-grid-item {
+  box-sizing: border-box;
+  flex: 0 0 calc((100% - (var(--poster-cols, 1) - 1) * var(--poster-gap, 16) * 1px) / var(--poster-cols, 1));
+}
+
+@media (min-width: 768px) {
+  .poster-grid {
+    gap: calc(var(--poster-desktop-gap, 16) * 1px);
+  }
+
+  .poster-grid-item {
+    flex: 0 0 calc((100% - (var(--poster-desktop-cols, 3) - 1) * var(--poster-desktop-gap, 16) * 1px) / var(--poster-desktop-cols, 3));
+  }
+}
