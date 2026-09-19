@@ -67,14 +67,14 @@ const TeeDistanceTable = ({
         <table className="w-full min-w-[1050px] table-fixed border-collapse text-sm">
           <thead>
             <tr style={{ backgroundColor, color: foregroundColor }}>
-              <th className="sticky left-0 z-20 w-24 border-r border-current/20 px-2 py-3 text-left" style={{ backgroundColor }}>
+              <th className="sticky left-0 z-20 w-24 border-t border-r border-current/20 px-2 py-3 text-left" style={{ backgroundColor }}>
                 Hoyo
               </th>
               {COLUMNS.map((column) => (
                 <th
                   key={column}
                   className={cn(
-                    'min-w-11 border-r border-current/20 px-1 py-3 text-center font-bold',
+                    'min-w-11 border-t border-r border-current/20 px-1 py-3 text-center font-bold',
                     typeof column === 'string' && 'w-16',
                   )}
                 >
