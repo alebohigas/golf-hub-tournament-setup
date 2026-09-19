@@ -67,14 +67,14 @@ const TeeDistanceTable = ({
         <table className="w-full min-w-[1050px] table-fixed border-collapse text-sm">
           <thead>
             <tr style={{ backgroundColor, color: foregroundColor }}>
-              <th className="sticky left-0 z-20 w-24 border-r border-current/20 px-2 py-3 text-left" style={{ backgroundColor }}>
+              <th className="sticky left-0 z-20 w-24 border-t border-r border-current/20 px-2 py-3 text-left" style={{ backgroundColor }}>
                 Hoyo
               </th>
               {COLUMNS.map((column) => (
                 <th
                   key={column}
                   className={cn(
-                    'min-w-11 border-r border-current/20 px-1 py-3 text-center font-bold',
+                    'min-w-11 border-t border-r border-current/20 px-1 py-3 text-center font-bold',
                     typeof column === 'string' && 'w-16',
                   )}
                 >
@@ -105,8 +105,8 @@ const TeeDistanceTable = ({
                 ))}
               </tr>
             ))}
-            <tr className="bg-muted/30">
-              <th className="sticky left-0 z-10 border-b border-r border-border bg-muted px-2 py-3 text-left font-semibold text-foreground">
+            <tr className="bg-white">
+              <th className="sticky left-0 z-10 border-b border-r border-border bg-white px-2 py-3 text-left font-semibold text-foreground">
                 Ventaja
               </th>
               {COLUMNS.map((column) => {
@@ -115,8 +115,7 @@ const TeeDistanceTable = ({
                   <td
                     key={column}
                     className={cn(
-                      'border-b border-r border-border px-1 py-3 text-center text-foreground',
-                      typeof column === 'string' && 'bg-muted/50',
+                      'border-b border-r border-border bg-white px-1 py-3 text-center text-foreground',
                       isDifferent && 'bg-warning font-bold text-warning-foreground',
                     )}
                     title={isDifferent ? 'La ventaja difiere entre campo_tee y hoyosxsalida' : undefined}
