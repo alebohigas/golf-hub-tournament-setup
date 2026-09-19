@@ -255,11 +255,13 @@ const PreviewFrame = ({
         style={{ width: frameWidth, maxWidth: '100%' }}
       >
         <div
-          className="grid"
+          className="poster-grid"
           style={{
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            gap: `${gapToPx(gap)}px`,
-          }}
+            '--poster-cols': columns,
+            '--poster-gap': gapToPx(gap),
+            '--poster-desktop-cols': columns,
+            '--poster-desktop-gap': gapToPx(gap),
+          } as React.CSSProperties}
         >
           {order.map((posterIdx, position) => {
             const src = posters[posterIdx];
@@ -272,7 +274,7 @@ const PreviewFrame = ({
             return (
               <div
                 key={`${title}-${posterIdx}`}
-                className="relative"
+                className="poster-grid-item relative"
                 onDragOver={(e) => {
                   if (dragIndex === null) return;
                   e.preventDefault();

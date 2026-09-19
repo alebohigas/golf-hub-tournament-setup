@@ -81,36 +81,12 @@ const DEFAULT_CONFIG: AvisosConfig = {
   mobileGap: 'sm',
 };
 
-/**
- * Static Tailwind class maps. Defined as full class strings so Tailwind's
- * JIT compiler can detect and include them in the build.
- */
-const MOBILE_COL_CLASS: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-4',
-};
-
-const DESKTOP_COL_CLASS: Record<number, string> = {
-  1: 'md:grid-cols-1',
-  2: 'md:grid-cols-2',
-  3: 'md:grid-cols-3',
-  4: 'md:grid-cols-4',
-};
-
-const MOBILE_GAP_CLASS: Record<EventosGap, string> = {
-  sm: 'gap-2',
-  md: 'gap-4',
-  lg: 'gap-6',
-  xl: 'gap-8',
-};
-
-const DESKTOP_GAP_CLASS: Record<EventosGap, string> = {
-  sm: 'md:gap-2',
-  md: 'md:gap-4',
-  lg: 'md:gap-6',
-  xl: 'md:gap-8',
+/** Gap preset to pixel value (drives the poster-grid CSS custom property). */
+const GAP_PX: Record<EventosGap, number> = {
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
 };
 
 /**
@@ -147,16 +123,19 @@ const AvisosPostersSection = () => {
   const orderedPosters = applyOrder(sourcePosters, activeOrder);
 
   /**
-   * Compose the responsive grid class string from the admin-selected
-   * column counts and gap presets. Mobile = base, desktop = md: prefix.
+   * Poster grid container class. We use the global `.poster-grid` utility
+   * (see src/index.css) instead of a CSS Grid so that, when there are fewer
+   * posters than the configured desktop column count, the visible items stay
+   * grouped in the center instead of aligning to the left edge.
+   * Column count and gap are passed as CSS custom properties.
    */
-  const gridClass = cn(
-    'grid',
-    MOBILE_COL_CLASS[cfg.mobileColumns] ?? 'grid-cols-1',
-    DESKTOP_COL_CLASS[cfg.desktopColumns] ?? 'md:grid-cols-3',
-    MOBILE_GAP_CLASS[cfg.mobileGap] ?? 'gap-4',
-    DESKTOP_GAP_CLASS[cfg.desktopGap] ?? 'md:gap-6'
-  );
+  const gridClass = 'poster-grid';
+  const gridStyle: React.CSSProperties = {
+    '--poster-cols': cfg.mobileColumns,
+    '--poster-gap': GAP_PX[cfg.mobileGap] ?? 16,
+    '--poster-desktop-cols': cfg.desktopColumns,
+    '--poster-desktop-gap': GAP_PX[cfg.desktopGap] ?? 24,
+  } as React.CSSProperties;
 
   // Index of the currently open image in the lightbox; null = closed.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -248,14 +227,14 @@ const AvisosPostersSection = () => {
         </div>
 
         {/* ---------- Responsive poster grid ---------- */}
-        <div className={gridClass}>
+        <div className={gridClass} style={gridStyle}>
           {orderedPosters.map((card, idx) => (
             <button
               key={card.src}
               type="button"
               onClick={() => setOpenIndex(idx)}
               className={cn(
-                'group relative overflow-hidden rounded-lg border border-border/50 bg-card',
+                'poster-grid-item group relative overflow-hidden rounded-lg border border-border/50 bg-card',
                 'shadow-card transition-all duration-300',
                 'hover:shadow-elegant hover:-translate-y-1 hover:border-primary/40',
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background'
