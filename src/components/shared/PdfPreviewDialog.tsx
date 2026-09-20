@@ -76,13 +76,24 @@ const PdfPreviewDialog = ({
           <DialogTitle className="truncate">{title ?? label}</DialogTitle>
         </DialogHeader>
 
-        {/* 1) Previsualización en línea — ocupa el cuerpo del diálogo */}
+        {/* 1) Previsualización en línea — ocupa el cuerpo del diálogo.
+            MÓVIL (iOS/Safari): los iframes con PDF no hacen scroll táctil por
+            sí solos; el workaround es un contenedor con overflow-auto +
+            -webkit-overflow-scrolling:touch y un iframe más alto que el
+            viewport, de modo que el gesto vertical desplace el contenedor
+            (y con él todas las páginas del PDF). En escritorio el iframe
+            conserva su altura normal (h-full). */}
         {open && (
-          <iframe
-            src={url}
-            title={title ?? label}
-            className="flex-1 w-full rounded border bg-muted/20"
-          />
+          <div
+            className="flex-1 w-full overflow-auto rounded border bg-muted/20 touch-pan-y overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <iframe
+              src={url}
+              title={title ?? label}
+              className="w-full h-[200vh] sm:h-full"
+            />
+          </div>
         )}
 
         {/* 2) Acciones secundarias: descargar / abrir en pestaña nueva */}
