@@ -1,14 +1,15 @@
 /**
  * PdfMobileViewer
  * -----------------------------------------------------------------------
- * Visor de PDF para MÓVIL usado por PdfPreviewDialog. Se carga con
+ * Visor continuo de PDF usado por PdfPreviewDialog en TODOS los tamaños.
+ * Se carga con
  * React.lazy (code splitting) para que react-pdf/pdf.js (~500 KB) no
  * engorde el bundle inicial: sólo se descarga al abrir el diálogo en
  * un viewport < sm.
  *
- * Motivo de su existencia: los plugins nativos de PDF en iframe de
- * iOS/Safari (y varios Android) sólo renderizan la PRIMERA página y no
- * permiten scroll interno. Aquí pdf.js dibuja TODAS las páginas
+ * Motivo de su existencia: los plugins nativos de PDF en iframe no se
+ * comportan igual en todos los navegadores y algunos sólo muestran la
+ * primera página. Aquí pdf.js dibuja TODAS las páginas
  * apiladas verticalmente dentro de un contenedor con overflow-y-auto,
  * de modo que el scroll vertical táctil recorra el documento completo.
  *
@@ -57,12 +58,13 @@ const PdfMobileViewer = ({ url }: PdfMobileViewerProps) => {
   return (
     <div
       ref={scrollRef}
-      className="flex-1 w-full overflow-y-auto rounded border bg-muted/20 touch-pan-y overscroll-contain"
+      className="min-h-0 flex-1 w-full overflow-y-scroll bg-muted touch-pan-y overscroll-contain"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <Document
         file={url}
         onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+        className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 p-2 sm:gap-4 sm:p-4"
         loading={
           <p className="p-6 text-center text-sm text-muted-foreground">
             Cargando PDF…
@@ -80,8 +82,8 @@ const PdfMobileViewer = ({ url }: PdfMobileViewerProps) => {
             <Page
               key={`page_${i + 1}`}
               pageNumber={i + 1}
-              width={pageWidth}
-              className="border-b last:border-b-0"
+              width={Math.max(1, Math.min(pageWidth - (pageWidth >= 640 ? 32 : 16), 960))}
+              className="overflow-hidden rounded-sm bg-background shadow-card"
               renderTextLayer={false}
               renderAnnotationLayer={false}
             />
