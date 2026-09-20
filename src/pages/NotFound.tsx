@@ -16,6 +16,10 @@ const NotFound = () => {
         <a href="/" className="text-primary underline hover:text-primary/90">
           Return to Home
         </a>
+        {/* TEMP: prueba del visor PDF móvil — revertir */}
+        <div className="mt-6">
+          <PdfPreviewDialog url="/pdftest-tmp.pdf" label="Ver en PDF" />
+        </div>
       </div>
     </div>
   );
