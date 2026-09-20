@@ -1,6 +1,5 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import PdfPreviewDialog from "@/components/shared/PdfPreviewDialog"; // TEMP
 
 const NotFound = () => {
   const location = useLocation();
@@ -17,10 +16,6 @@ const NotFound = () => {
         <a href="/" className="text-primary underline hover:text-primary/90">
           Return to Home
         </a>
-        {/* TEMP: prueba del visor PDF móvil — revertir */}
-        <div className="mt-6">
-          <PdfPreviewDialog url="/pdftest-tmp.pdf" label="Ver en PDF" />
-        </div>
       </div>
     </div>
   );
