@@ -11,9 +11,10 @@
  *    scroll interno de todas las páginas.
  *  - MÓVIL (< sm): los plugins nativos de PDF en iframe (iOS/Safari y
  *    varios Android) sólo renderizan la PRIMERA página y no permiten
- *    scroll interno. Por eso el PDF se dibuja página por página con
- *    react-pdf (pdf.js) dentro de un contenedor con overflow-y-auto,
- *    de modo que el scroll vertical táctil recorra TODAS las páginas.
+ *    scroll interno. Por eso se usa PdfMobileViewer (react-pdf/pdf.js),
+ *    que dibuja TODAS las páginas apiladas en un contenedor con scroll
+ *    vertical. Ese visor se importa con React.lazy para que pdf.js no
+ *    engorde el bundle inicial.
  *
  * Props:
  *  - url:        URL del PDF a previsualizar (requerido).
@@ -25,7 +26,7 @@
  *  - trigger:    Nodo custom que reemplaza al botón por defecto.
  */
 
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, Suspense, lazy, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -35,16 +36,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { FileText, Download, ExternalLink } from 'lucide-react';
-// react-pdf (pdf.js): renderizado página a página para el visor móvil.
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/TextLayer.css';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
 
-/** Worker de pdf.js resuelto por Vite como asset del bundle. */
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+/**
+ * Visor móvil (pdf.js, página por página) con code splitting: el chunk
+ * de react-pdf sólo se descarga cuando alguien abre la previsualización.
+ */
+const PdfMobileViewer = lazy(() => import('@/components/shared/PdfMobileViewer'));
 
 /** Media query que define "móvil" para el visor (breakpoint sm de Tailwind). */
 const MOBILE_MQ = '(max-width: 639px)';
@@ -101,29 +98,6 @@ const PdfPreviewDialog = ({
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobileViewport();
 
-  // ----- Estado del visor móvil (react-pdf) -----
-  /** Número total de páginas del documento (lo reporta pdf.js al cargar). */
-  const [numPages, setNumPages] = useState<number>(0);
-  /** Ancho disponible del contenedor para escalar cada página al 100%. */
-  const [pageWidth, setPageWidth] = useState<number>(0);
-  /** Referencia al contenedor scrollable para medir su ancho. */
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Medir el ancho del contenedor móvil (y re-medir en resize/rotación)
-   * para que cada página del PDF ocupe exactamente el ancho visible.
-   */
-  useEffect(() => {
-    if (!open || !isMobile) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    const measure = () => setPageWidth(el.clientWidth);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [open, isMobile]);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -144,39 +118,15 @@ const PdfPreviewDialog = ({
           isMobile ? (
             /* MÓVIL: pdf.js dibuja TODAS las páginas apiladas verticalmente;
                el contenedor hace scroll vertical nativo (táctil incluido). */
-            <div
-              ref={scrollRef}
-              className="flex-1 w-full overflow-y-auto rounded border bg-muted/20 touch-pan-y overscroll-contain"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+            <Suspense
+              fallback={
+                <div className="flex-1 w-full rounded border bg-muted/20 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Cargando visor…</p>
+                </div>
+              }
             >
-              <Document
-                file={url}
-                onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-                loading={
-                  <p className="p-6 text-center text-sm text-muted-foreground">
-                    Cargando PDF…
-                  </p>
-                }
-                error={
-                  <p className="p-6 text-center text-sm text-muted-foreground">
-                    No se pudo mostrar la previsualización. Usa "Abrir en
-                    pestaña nueva" para ver el documento.
-                  </p>
-                }
-              >
-                {pageWidth > 0 &&
-                  Array.from({ length: numPages }, (_, i) => (
-                    <Page
-                      key={`page_${i + 1}`}
-                      pageNumber={i + 1}
-                      width={pageWidth}
-                      className="border-b last:border-b-0"
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                    />
-                  ))}
-              </Document>
-            </div>
+              <PdfMobileViewer url={url} />
+            </Suspense>
           ) : (
             /* ESCRITORIO: iframe con el visor nativo del navegador. */
             <div className="flex-1 w-full overflow-hidden rounded border bg-muted/20">
