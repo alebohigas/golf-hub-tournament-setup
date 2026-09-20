@@ -6,15 +6,11 @@
  * Regla del proyecto: todos los PDFs se muestran primero en
  * previsualización y sólo después se ofrece "Descargar".
  *
- * Renderizado por dispositivo:
- *  - ESCRITORIO (≥ sm): iframe nativo; el visor del navegador maneja el
- *    scroll interno de todas las páginas.
- *  - MÓVIL (< sm): los plugins nativos de PDF en iframe (iOS/Safari y
- *    varios Android) sólo renderizan la PRIMERA página y no permiten
- *    scroll interno. Por eso se usa PdfMobileViewer (react-pdf/pdf.js),
- *    que dibuja TODAS las páginas apiladas en un contenedor con scroll
- *    vertical. Ese visor se importa con React.lazy para que pdf.js no
- *    engorde el bundle inicial.
+ * Renderizado uniforme: pdf.js dibuja TODAS las páginas apiladas dentro
+ * de un área con scroll vertical propio en móvil, tableta y escritorio.
+ * Evita depender del plugin PDF del navegador, que en algunos equipos
+ * sólo presenta la primera página. El visor se importa con React.lazy
+ * para que pdf.js no engorde el bundle inicial.
  *
  * Props:
  *  - url:        URL del PDF a previsualizar (requerido).
@@ -26,7 +22,7 @@
  *  - trigger:    Nodo custom que reemplaza al botón por defecto.
  */
 
-import { ReactNode, Suspense, lazy, useEffect, useState } from 'react';
+import { ReactNode, Suspense, lazy, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -35,33 +31,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { FileText, Download, ExternalLink } from 'lucide-react';
+import { FileText, Download, ExternalLink, Menu } from 'lucide-react';
 
 /**
  * Visor móvil (pdf.js, página por página) con code splitting: el chunk
  * de react-pdf sólo se descarga cuando alguien abre la previsualización.
  */
 const PdfMobileViewer = lazy(() => import('@/components/shared/PdfMobileViewer'));
-
-/** Media query que define "móvil" para el visor (breakpoint sm de Tailwind). */
-const MOBILE_MQ = '(max-width: 639px)';
-
-/**
- * Hook: true cuando el viewport es menor al breakpoint `sm`.
- * Se re-evalúa al cambiar el tamaño de la ventana (rotación, resize).
- */
-const useIsMobileViewport = (): boolean => {
-  const [isMobile, setIsMobile] = useState<boolean>(
-    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_MQ).matches,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MQ);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return isMobile;
-};
 
 interface PdfPreviewDialogProps {
   /** URL absoluta o relativa del archivo PDF. */
@@ -96,7 +72,18 @@ const PdfPreviewDialog = ({
   trigger,
 }: PdfPreviewDialogProps) => {
   const [open, setOpen] = useState(false);
-  const isMobile = useIsMobileViewport();
+  /** Nombre legible mostrado en la barra superior del visor. */
+  const displayFileName = useMemo(() => {
+    if (fileName) return fileName;
+    const cleanUrl = url.split('?')[0];
+    const lastSegment = cleanUrl.split('/').pop();
+    if (!lastSegment) return `${title ?? label}.pdf`;
+    try {
+      return decodeURIComponent(lastSegment);
+    } catch {
+      return lastSegment;
+    }
+  }, [fileName, label, title, url]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -108,47 +95,41 @@ const PdfPreviewDialog = ({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col gap-3">
-        <DialogHeader>
-          <DialogTitle className="truncate">{title ?? label}</DialogTitle>
+      <DialogContent className="flex h-[96dvh] w-[calc(100vw-1rem)] max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:h-[92vh] sm:w-[calc(100vw-2rem)]">
+        {/* Encabezado fijo del diálogo, separado del documento desplazable. */}
+        <DialogHeader className="shrink-0 border-b px-4 py-4 pr-14 sm:px-6">
+          <DialogTitle className="truncate text-left">{title ?? label}</DialogTitle>
         </DialogHeader>
 
-        {/* 1) Previsualización en línea — ocupa el cuerpo del diálogo. */}
+        {/* Barra del archivo inspirada en el visor de referencia. */}
+        <div className="flex shrink-0 items-center gap-3 bg-primary px-4 py-4 text-primary-foreground sm:px-6">
+          <Menu className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="truncate text-sm font-semibold sm:text-base">{displayFileName}</span>
+        </div>
+
+        {/* El visor continuo es el mismo en móvil, tableta y escritorio. */}
         {open && (
-          isMobile ? (
-            /* MÓVIL: pdf.js dibuja TODAS las páginas apiladas verticalmente;
-               el contenedor hace scroll vertical nativo (táctil incluido). */
-            <Suspense
-              fallback={
-                <div className="flex-1 w-full rounded border bg-muted/20 flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Cargando visor…</p>
-                </div>
-              }
-            >
-              <PdfMobileViewer url={url} />
-            </Suspense>
-          ) : (
-            /* ESCRITORIO: iframe con el visor nativo del navegador. */
-            <div className="flex-1 w-full overflow-hidden rounded border bg-muted/20">
-              <iframe
-                src={url}
-                title={title ?? label}
-                className="w-full h-full"
-              />
-            </div>
-          )
+          <Suspense
+            fallback={
+              <div className="flex min-h-0 flex-1 w-full items-center justify-center bg-muted">
+                <p className="text-sm text-muted-foreground">Cargando visor…</p>
+              </div>
+            }
+          >
+            <PdfMobileViewer url={url} />
+          </Suspense>
         )}
 
-        {/* 2) Acciones secundarias: descargar / abrir en pestaña nueva */}
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" /> Abrir en pestaña nueva
-            </a>
-          </Button>
-          <Button asChild variant="secondary" className="gap-2">
+        {/* Acciones fijas: permanecen visibles mientras el PDF se desplaza. */}
+        <div className="grid shrink-0 gap-2 border-t bg-background p-3 sm:grid-cols-2 sm:p-4">
+          <Button asChild className="h-11 gap-2 sm:order-2">
             <a href={url} download={fileName ?? ''}>
               <Download className="h-4 w-4" /> Descargar PDF
+            </a>
+          </Button>
+          <Button asChild variant="outline" className="h-11 gap-2 sm:order-1">
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" /> Abrir en pestaña nueva
             </a>
           </Button>
         </div>
