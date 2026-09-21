@@ -97,15 +97,32 @@ const AnnouncementRibbon = () => {
 
   if (active.length === 0) return null;
   /**
-   * Si algún anuncio activo está marcado como sticky, el stack completo se
-   * fija debajo del header (usando la variable CSS `--header-height` que
-   * publica <Header />) en todos los dispositivos, quedando entre el menú y
-   * el carrusel de patrocinadores.
+   * Sticky por dispositivo: cada anuncio puede fijarse de forma independiente
+   * en celular (< sm), tableta (sm a lg) y/o escritorio (>= lg). Las banderas
+   * `stickyMobile/Tablet/Desktop` no definidas heredan el valor legacy
+   * `sticky`. Si ALGÚN anuncio activo pide sticky en un rango, el stack
+   * completo se fija en ese rango, pegado al header (`--header-height`).
+   * Se resuelve con clases responsive para no necesitar listeners de resize:
+   *   - celular:    `sticky`
+   *   - tableta:    `sm:sticky lg:static`
+   *   - escritorio: `lg:sticky`
    */
-  const isSticky = active.some((cfg) => cfg.sticky);
+  const anySticky = (pick: (c: (typeof active)[number]) => boolean | undefined) =>
+    active.some((cfg) => pick(cfg) ?? cfg.sticky);
+  const stickyMobile = anySticky((c) => c.stickyMobile);
+  const stickyTablet = anySticky((c) => c.stickyTablet);
+  const stickyDesktop = anySticky((c) => c.stickyDesktop);
+  const isSticky = stickyMobile || stickyTablet || stickyDesktop;
+  const positionClasses = [
+    stickyMobile ? 'sticky' : '',
+    stickyTablet ? 'sm:sticky lg:static' : '',
+    stickyDesktop ? 'lg:sticky' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div
-      className={`w-full flex flex-col ${isSticky ? 'sticky z-40 shadow-sm' : ''}`}
+      className={`w-full flex flex-col ${isSticky ? `${positionClasses} z-40 shadow-sm` : ''}`}
       style={isSticky ? { top: 'var(--header-height, 0px)' } : undefined}
     >
       {active.map((cfg, i) => (

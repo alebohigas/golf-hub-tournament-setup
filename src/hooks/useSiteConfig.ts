@@ -439,6 +439,18 @@ export interface AnuncioConfig {
    */
   sticky?: boolean;
   /**
+   * Fijar arriba (sticky) por tipo de dispositivo. Cada bandera activa la tira
+   * fija sólo en ese rango de pantalla:
+   *   - stickyMobile:  celular (< sm).
+   *   - stickyTablet:  tableta (sm a lg).
+   *   - stickyDesktop: escritorio (>= lg).
+   * Cuando una bandera no existe (undefined), se usa el valor legacy `sticky`
+   * para mantener compatibilidad con anuncios guardados antes de esta opción.
+   */
+  stickyMobile?: boolean;
+  stickyTablet?: boolean;
+  stickyDesktop?: boolean;
+  /**
    * Temporizador de publicación (opcional). Cuando `enabled` es true, la tira
    * solo se muestra dentro de la ventana indicada, evaluada con la hora de
    * Ciudad de México:
