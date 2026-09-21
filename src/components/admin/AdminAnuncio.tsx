@@ -62,6 +62,10 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   speedSeconds: 30,
   paths: ['*'],
   sticky: false,
+  // Sticky por dispositivo (apagados por defecto).
+  stickyMobile: false,
+  stickyTablet: false,
+  stickyDesktop: false,
   // Temporizador apagado por defecto: el anuncio se publica sin límite de hora.
   schedule: {
     enabled: false,
@@ -306,21 +310,49 @@ const AdminAnuncio = () => {
             />
           </div>
 
-          {/* Text */}
-          {/* Sticky switch — fija la tira debajo del menú en todos los dispositivos */}
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          {/* Sticky por dispositivo — la tira queda pegada debajo del menú
+              sólo en los tipos de dispositivo activados. Las banderas no
+              definidas heredan el valor legacy `sticky` (compatibilidad con
+              anuncios guardados antes de esta opción). */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
             <div>
               <Label className="text-base">Fijar arriba (sticky)</Label>
               <p className="text-xs text-muted-foreground">
-                La tira queda pegada debajo del menú (entre el menú y el
-                carrusel de patrocinadores) al hacer scroll, en computadora,
-                tableta y celular.
+                La tira queda pegada debajo del menú al hacer scroll. Actívala
+                por tipo de dispositivo.
               </p>
             </div>
-            <Switch
-              checked={Boolean(config.sticky)}
-              onCheckedChange={(v) => setConfig((c) => ({ ...c, sticky: v }))}
-            />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {(
+                [
+                  { key: 'stickyMobile' as const, label: 'Celular' },
+                  { key: 'stickyTablet' as const, label: 'Tableta' },
+                  { key: 'stickyDesktop' as const, label: 'Escritorio' },
+                ]
+              ).map(({ key, label }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between rounded-lg border border-border p-3"
+                >
+                  <Label className="text-sm font-medium">{label}</Label>
+                  <Switch
+                    checked={Boolean(config[key] ?? config.sticky)}
+                    onCheckedChange={(v) =>
+                      setConfig((c) => ({
+                        ...c,
+                        // Al tocar un dispositivo, fijamos los TRES valores
+                        // explícitos para que el legacy `sticky` deje de
+                        // influir y cada rango quede bajo control directo.
+                        stickyMobile: Boolean(c.stickyMobile ?? c.sticky),
+                        stickyTablet: Boolean(c.stickyTablet ?? c.sticky),
+                        stickyDesktop: Boolean(c.stickyDesktop ?? c.sticky),
+                        [key]: v,
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* ===== Temporizador de publicación (por anuncio) =====
