@@ -62,6 +62,10 @@ const DEFAULT_ANUNCIO: AnuncioConfig = {
   speedSeconds: 30,
   paths: ['*'],
   sticky: false,
+  // Sticky por dispositivo (apagados por defecto).
+  stickyMobile: false,
+  stickyTablet: false,
+  stickyDesktop: false,
   // Temporizador apagado por defecto: el anuncio se publica sin límite de hora.
   schedule: {
     enabled: false,
