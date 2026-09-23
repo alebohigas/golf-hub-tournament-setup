@@ -113,13 +113,17 @@ const AnnouncementRibbon = () => {
   const stickyTablet = anySticky((c) => c.stickyTablet);
   const stickyDesktop = anySticky((c) => c.stickyDesktop);
   const isSticky = stickyMobile || stickyTablet || stickyDesktop;
+  /**
+   * Each breakpoint gets its own explicit position class so the mobile
+   * toggle does not bleed into larger viewports. The base (unprefixed)
+   * class targets viewports below `sm`; `sm:` targets tablets; `lg:`
+   * targets desktop. Off breakpoints are explicitly reset to `static`.
+   */
   const positionClasses = [
-    stickyMobile ? 'sticky' : '',
-    stickyTablet ? 'sm:sticky lg:static' : '',
-    stickyDesktop ? 'lg:sticky' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+    stickyMobile ? 'sticky' : 'static',
+    stickyTablet ? 'sm:sticky' : 'sm:static',
+    stickyDesktop ? 'lg:sticky' : 'lg:static',
+  ].join(' ');
   return (
     <div
       className={`w-full flex flex-col ${isSticky ? `${positionClasses} z-40 shadow-sm` : ''}`}
