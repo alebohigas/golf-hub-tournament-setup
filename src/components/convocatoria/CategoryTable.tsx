@@ -188,7 +188,15 @@ const CategoryTable = () => {
             // Hoyos a corte → hoyosacorte
             const hoyosCorte = category.cutHoles ? `${category.cutHoles} HOYOS` : '';
             // Corte final → corte (players advancing). Empty when 0/undefined.
-            const corteFinal = category.finalCut ? String(category.finalCut) : '';
+            // Business rule: when total holes equals cut holes and the cut value
+            // is 99, it means no final cut applies → show the infinity symbol.
+            const corteFinal = (() => {
+              if (!category.finalCut || category.finalCut === 0) return '';
+              const holes = category.holes ?? 0;
+              const cutHoles = category.cutHoles ?? 0;
+              if (holes === cutHoles && category.finalCut === 99) return '∞';
+              return String(category.finalCut);
+            })();
             return (
               <TableRow
                 key={category.id}
