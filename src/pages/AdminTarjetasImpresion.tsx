@@ -441,7 +441,9 @@ const Scorecard = ({
   };
 
   return (
-    <div className="border border-foreground/70">
+    /* Sin marco perimetral: sólo permanecen recuadrados el encabezado, la
+       tabla principal y el bloque final de SCORE ANOTADOR. */
+    <div>
       {/*
         ---------- Encabezado de datos del jugador (3 renglones) ----------
         Componente COMPARTIDO con la previsualización en vivo de Admin →
@@ -657,7 +659,8 @@ const MatchScorecard = ({
   const matchHeaderFields = headerFields.filter((k) => k !== 'vtja');
 
   return (
-    <div className="border border-foreground/70">
+    /* MATCH PLAY comparte el formato abierto, sin línea exterior continua. */
+    <div>
       <TarjetaHeaderGrid
         card={headerCard}
         fields={matchHeaderFields}

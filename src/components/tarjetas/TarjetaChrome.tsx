@@ -393,7 +393,9 @@ export const TarjetaHeaderGrid = ({
   const blocks = headerBlocks(card, fonts);
   return (
     <div
-      className="grid border-b border-foreground/30 text-[8pt]"
+      /* El encabezado conserva su recuadro completo aun cuando la tarjeta ya
+         no tiene un marco exterior alrededor de todo el contenido. */
+      className="grid border border-foreground/30 text-[8pt]"
       style={{
         gridTemplateColumns: fields.map((k) => TARJETA_HEADER_WIDTHS[k]).join(' '),
         height: `${rowMm * 3}mm`,
