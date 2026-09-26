@@ -1446,6 +1446,12 @@ const AdminTimeLine = () => {
           >
             Usar el de la densidad
           </Button>
+          {/* Separador opcional: un renglón en blanco entre los bloques de
+              salida para que una salida no quede pegada a la siguiente. */}
+          <label className="flex h-9 cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
+            Separar bloques (renglón en blanco)
+          </label>
           {/* Resumen en vivo: páginas, densidad y jugadores por página */}
           <div className="ml-auto text-right text-xs text-muted-foreground">
             <p>
