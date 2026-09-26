@@ -134,6 +134,10 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-time-size': '16px',
       '--tl-head-size': '11.5px',
       '--tl-id-size': '9.5px',
+      '--tl-name-line': '1.9',
+      '--tl-head-pad': '3px',
+      '--tl-time-pad': '4px',
+      '--tl-hole-pad': '3px',
       '--tl-gap': '0.85rem',
     },
   },
@@ -150,6 +154,10 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-time-size': '15px',
       '--tl-head-size': '11px',
       '--tl-id-size': '9px',
+      '--tl-name-line': '1.75',
+      '--tl-head-pad': '2px',
+      '--tl-time-pad': '3px',
+      '--tl-hole-pad': '2px',
       '--tl-gap': '0.75rem',
     },
   },
@@ -169,6 +177,7 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-id-size': '8.5px',
       '--tl-head-pad': '1px',
       '--tl-time-pad': '1.5px',
+      '--tl-hole-pad': '1px',
       '--tl-gap': '0.3rem',
     },
   },
@@ -188,20 +197,11 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-id-size': '8px',
       '--tl-head-pad': '0.75px',
       '--tl-time-pad': '1px',
+      '--tl-hole-pad': '0.75px',
       '--tl-gap': '0.2rem',
     },
   },
 };
-
-/* Las densidades holgadas conservan sus alturas anteriores; estas variables
- * permiten que el modo automático compacte también los tres renglones fijos
- * del encabezado de cada grupo, no solamente los jugadores. */
-DENSITY_LEVELS.comoda.vars['--tl-name-line'] = '1.9';
-DENSITY_LEVELS.comoda.vars['--tl-head-pad'] = '3px';
-DENSITY_LEVELS.comoda.vars['--tl-time-pad'] = '4px';
-DENSITY_LEVELS.normal.vars['--tl-name-line'] = '1.75';
-DENSITY_LEVELS.normal.vars['--tl-head-pad'] = '2px';
-DENSITY_LEVELS.normal.vars['--tl-time-pad'] = '3px';
 
 /** Orden de tanteo en modo automático: de la más holgada a la más compacta. */
 const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
@@ -272,11 +272,13 @@ const HoleCell = ({
     style={{
       fontSize: variant === 'time' ? 'var(--tl-hole-size)' : 'var(--tl-holenum-size)',
       lineHeight: 'var(--tl-hole-line)',
+      paddingTop: pad ? 'var(--tl-hole-pad)' : 0,
+      paddingBottom: pad ? 'var(--tl-hole-pad)' : 0,
       ...style,
     }}
     className={`whitespace-nowrap border border-border px-1 text-center align-middle tabular-nums ${
-      pad ? 'py-[3px]' : 'py-0'
-    } ${bold ? 'font-bold text-foreground' : 'text-foreground'} ${
+      bold ? 'font-bold text-foreground' : 'text-foreground'
+    } ${
       /* Línea vertical cada 3 hoyos: marcada pero suave (no negra). */
       divider ? 'tl-divider border-r-2 border-r-foreground/25' : ''
     }`}
@@ -340,7 +342,6 @@ const TimeLineBlock = ({
           {/* Fecha del día de juego + numeración de hoyos */}
           <tr className="bg-muted">
             <td
-              style={{ fontSize: 'var(--tl-head-size)' }}
               className="w-[240px] border border-border px-2 text-center font-bold uppercase leading-[1.45] text-foreground"
               style={{ fontSize: 'var(--tl-head-size)', paddingTop: 'var(--tl-head-pad)', paddingBottom: 'var(--tl-head-pad)' }}
             >
