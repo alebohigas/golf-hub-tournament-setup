@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -339,6 +340,13 @@ const AdminTimeLinePrint = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Separador opcional: un renglón en blanco entre los bloques de
+                salida para que una salida no quede pegada a la siguiente. */}
+            <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm">
+              <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
+              Separar bloques (renglón en blanco)
+            </label>
 
             {/* Acción — abre la vista previa antes de generar el reporte */}
             <Button onClick={() => setPreviewOpen(true)} disabled={!isValid}>
