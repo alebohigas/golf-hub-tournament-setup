@@ -1189,7 +1189,7 @@ const AdminTimeLine = () => {
       }
       return { slices, width: canvas.width };
     },
-    [pageH]
+    [pageH, groupsPerPage]
   );
 
   /** Abre (o regenera) la vista previa del PDF, rasterizada hoja por hoja. */
@@ -1495,6 +1495,22 @@ const AdminTimeLine = () => {
             <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
             Separar bloques (renglón en blanco)
           </label>
+          {/* Grupos por hoja: 0 = automático; con N > 0 se fuerza un salto de
+              página después de cada N bloques, aunque quepan más. */}
+          <label className="flex h-9 items-center gap-2 text-sm">
+            Grupos por hoja
+            <Input
+              type="number"
+              min={0}
+              max={50}
+              value={groupsPerPage}
+              onChange={(e) =>
+                setGroupsPerPage(Math.max(0, Math.floor(Number(e.target.value) || 0)))
+              }
+              className="h-9 w-[70px]"
+            />
+            <span className="text-xs text-muted-foreground">(0 = automático)</span>
+          </label>
           {/* Resumen en vivo: páginas, densidad y jugadores por página */}
           <div className="ml-auto text-right text-xs text-muted-foreground">
             <p>
@@ -1755,7 +1771,13 @@ const AdminTimeLine = () => {
                   dateLabel={data.fechaFormato}
                   courseName={data.course || data.club}
                   timeMode={holeTimeMode}
-
+                  /* Con "grupos por hoja" activo, cada N-ésimo bloque cierra
+                     su hoja aunque quepan más (el último nunca fuerza salto). */
+                  forceBreakAfter={
+                    groupsPerPage > 0 &&
+                    (idx + 1) % groupsPerPage === 0 &&
+                    idx < data.groups.length - 1
+                  }
                 />
               </Fragment>
             ))}
