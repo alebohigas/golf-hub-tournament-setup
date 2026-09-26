@@ -678,6 +678,13 @@ const AdminTimeLine = () => {
    */
   const [rowPad, setRowPad] = useState<number | null>(null);
 
+  /**
+   * Separador opcional entre bloques de salida: un "renglón en blanco" de la
+   * misma altura que un renglón de jugador. Se preselecciona por URL (`?sep=1`)
+   * para que la vista previa de Admin abra el reporte con la misma maqueta.
+   */
+  const [blockSep, setBlockSep] = useState(() => params.get('sep') === '1');
+
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
   /** Encabezado del reporte (se verifica que sus 4 renglones no se partan). */
