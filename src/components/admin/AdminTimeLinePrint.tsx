@@ -145,6 +145,11 @@ const AdminTimeLinePrint = () => {
   const [paper, setPaper] = useState<PaperKey>('letter');
   /** Separador "renglón en blanco" entre bloques de salida (`?sep=1`). */
   const [blockSep, setBlockSep] = useState(false);
+  /**
+   * Grupos por hoja (`?gpp=N`): 0 = automático (llenar cada hoja); con N > 0
+   * se fuerza un salto de página después de cada N bloques de salida.
+   */
+  const [gpp, setGpp] = useState('0');
   /** Controla el diálogo de vista previa. */
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -169,23 +174,30 @@ const AdminTimeLinePrint = () => {
     const players = groups.reduce((n, g) => n + g.players.length, 0);
     const firstPageUsable = PAPER_SIZES[paper].heightPx - REPORT_HEADER_PX - PAGE_FOOTER_PX;
     const nextPageUsable = PAPER_SIZES[paper].heightPx - PAGE_FOOTER_PX;
+    /** Límite de grupos por hoja elegido (0 = sin límite, paginación automática). */
+    const limit = Math.max(0, Math.floor(Number(gpp) || 0));
     let pages = groups.length > 0 ? 1 : 0;
     let used = 0;
+    /** Grupos colocados en la hoja actual (para el límite "grupos por hoja"). */
+    let inPage = 0;
     for (let i = 0; i < groups.length; i += 1) {
       const g = groups[i];
       /* Entre bloques puede ir el renglón en blanco del separador. */
       const h =
         BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX + (i > 0 && blockSep ? SPACER_PX : 0);
       const usable = pages <= 1 ? firstPageUsable : nextPageUsable;
-      if (used > 0 && used + h > usable) {
+      /* Brinca de hoja si se llenó el alto o se alcanzó el límite de grupos. */
+      if (used > 0 && (used + h > usable || (limit > 0 && inPage >= limit))) {
         pages += 1;
         used = h;
+        inPage = 1;
       } else {
         used += h;
+        inPage += 1;
       }
     }
     return { groups: groups.length, players, pages };
-  }, [report, paper, blockSep]);
+  }, [report, paper, blockSep, gpp]);
 
   /**
    * Abre el reporte imprimible en una pestaña nueva con la configuración
@@ -197,6 +209,8 @@ const AdminTimeLinePrint = () => {
     if (!isValid) return;
     const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf, paper });
     if (blockSep) qs.set('sep', '1');
+    const gppNum = Math.max(0, Math.floor(Number(gpp) || 0));
+    if (gppNum > 0) qs.set('gpp', String(gppNum));
     if (auto) qs.set('auto', auto);
     setPreviewOpen(false);
     window.open(`/admin/time-line?${qs.toString()}`, '_blank');
@@ -347,6 +361,20 @@ const AdminTimeLinePrint = () => {
               <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
               Separar bloques (renglón en blanco)
             </label>
+
+            {/* Grupos por hoja: 0 = automático; con N > 0 cada N bloques
+                cierran la hoja aunque quepan más. */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Grupos por hoja (0 = auto)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={50}
+                value={gpp}
+                onChange={(e) => setGpp(e.target.value)}
+                className="w-[110px]"
+              />
+            </div>
 
             {/* Acción — abre la vista previa antes de generar el reporte */}
             <Button onClick={() => setPreviewOpen(true)} disabled={!isValid}>

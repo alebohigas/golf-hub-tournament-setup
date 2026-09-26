@@ -317,6 +317,7 @@ const TimeLineBlock = ({
   dateLabel,
   courseName,
   timeMode = 'full',
+  forceBreakAfter = false,
 }: {
   group: TimeLineGroup;
   holes: TimeLineHole[];
@@ -324,6 +325,8 @@ const TimeLineBlock = ({
   courseName: string;
   /** Formato de la hora dentro de la rejilla de hoyos. */
   timeMode?: 'full' | 'compact';
+  /** Fuerza un salto de página justo después de este bloque (grupos por hoja). */
+  forceBreakAfter?: boolean;
 }) => {
 
   /**
@@ -337,7 +340,12 @@ const TimeLineBlock = ({
   const isDivider = (i: number) => (i + 1) % 3 === 0 && i + 1 < holes.length;
 
   return (
-    <div data-group-block data-players={group.players.length} className="break-inside-avoid">
+    <div
+      data-group-block
+      data-players={group.players.length}
+      className="break-inside-avoid"
+      style={forceBreakAfter ? { breakAfter: 'page' } : undefined}
+    >
       <table className="w-full table-fixed border-collapse border border-border">
         <tbody>
           {/* Fecha del día de juego + numeración de hoyos */}
@@ -685,6 +693,18 @@ const AdminTimeLine = () => {
    */
   const [blockSep, setBlockSep] = useState(() => params.get('sep') === '1');
 
+  /**
+   * Grupos por hoja: 0 = automático (la paginación llena cada hoja con los
+   * bloques que quepan). Con un valor N > 0 se fuerza un salto de página
+   * después de cada N bloques, aunque quepan más: si un bloque no cabe
+   * completo, igualmente brinca a la hoja siguiente (break-inside: avoid).
+   * Se preselecciona por URL (`?gpp=N`) para que la vista previa de Admin
+   * abra el reporte con la misma maqueta.
+   */
+  const [groupsPerPage, setGroupsPerPage] = useState(() =>
+    Math.max(0, Math.floor(Number(params.get('gpp')) || 0))
+  );
+
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
   /** Encabezado del reporte (se verifica que sus 4 renglones no se partan). */
@@ -784,6 +804,17 @@ const AdminTimeLine = () => {
           };
         }
       );
+      /*
+       * Cortes forzados por "grupos por hoja": el pie de cada N-ésimo bloque
+       * es un límite de página aunque quepan más bloques. Si la hoja se llena
+       * antes de llegar a N, manda el corte normal (el bloque brinca de hoja).
+       */
+      const forced: number[] = [];
+      if (groupsPerPage > 0) {
+        for (let i = groupsPerPage - 1; i < zones.length - 1; i += groupsPerPage) {
+          forced.push(zones[i].bottom);
+        }
+      }
       const cuts: number[] = [];
       let offset = 0;
       let guard = 0;
@@ -795,13 +826,16 @@ const AdminTimeLine = () => {
             if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
           }
           if (cut <= offset) cut = Math.min(offset + safe, total);
+          /* Un corte forzado dentro de esta hoja tiene prioridad. */
+          const fc = forced.find((f) => f > offset && f <= cut);
+          if (fc !== undefined) cut = fc;
         }
         cuts.push(cut);
         offset = cut;
       }
       return { cuts, zones, total };
     },
-    []
+    [groupsPerPage]
   );
 
   /** Recalcula los cortes de página del reporte impreso (estimación en pantalla). */
@@ -1122,12 +1156,21 @@ const AdminTimeLine = () => {
       );
       /* Igual que la impresión: se descuenta la banda del pie de página. */
       const limit = Math.floor((pageH - FOOTER_RESERVE_PX) * scale);
+      /* Cortes forzados por "grupos por hoja" (mismo criterio que computeCuts). */
+      const forced: number[] = [];
+      if (groupsPerPage > 0) {
+        for (let i = groupsPerPage - 1; i < blocks.length - 1; i += groupsPerPage) {
+          forced.push(blocks[i].bottom);
+        }
+      }
       const safeCut = (offset: number): number => {
         let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
         for (const b of blocks) {
           if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
         }
+        const fc = forced.find((f) => f > offset && f <= cut);
+        if (fc !== undefined) cut = fc;
         return cut > offset ? cut : Math.min(offset + limit, canvas.height);
       };
       const slices: { url: string; h: number }[] = [];
@@ -1146,7 +1189,7 @@ const AdminTimeLine = () => {
       }
       return { slices, width: canvas.width };
     },
-    [pageH]
+    [pageH, groupsPerPage]
   );
 
   /** Abre (o regenera) la vista previa del PDF, rasterizada hoja por hoja. */
@@ -1452,6 +1495,22 @@ const AdminTimeLine = () => {
             <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
             Separar bloques (renglón en blanco)
           </label>
+          {/* Grupos por hoja: 0 = automático; con N > 0 se fuerza un salto de
+              página después de cada N bloques, aunque quepan más. */}
+          <label className="flex h-9 items-center gap-2 text-sm">
+            Grupos por hoja
+            <Input
+              type="number"
+              min={0}
+              max={50}
+              value={groupsPerPage}
+              onChange={(e) =>
+                setGroupsPerPage(Math.max(0, Math.floor(Number(e.target.value) || 0)))
+              }
+              className="h-9 w-[70px]"
+            />
+            <span className="text-xs text-muted-foreground">(0 = automático)</span>
+          </label>
           {/* Resumen en vivo: páginas, densidad y jugadores por página */}
           <div className="ml-auto text-right text-xs text-muted-foreground">
             <p>
@@ -1712,7 +1771,13 @@ const AdminTimeLine = () => {
                   dateLabel={data.fechaFormato}
                   courseName={data.course || data.club}
                   timeMode={holeTimeMode}
-
+                  /* Con "grupos por hoja" activo, cada N-ésimo bloque cierra
+                     su hoja aunque quepan más (el último nunca fuerza salto). */
+                  forceBreakAfter={
+                    groupsPerPage > 0 &&
+                    (idx + 1) % groupsPerPage === 0 &&
+                    idx < data.groups.length - 1
+                  }
                 />
               </Fragment>
             ))}
