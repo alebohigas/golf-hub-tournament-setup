@@ -157,7 +157,8 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
     label: 'Compacta',
     vars: {
       '--tl-name-size': '11px',
-      '--tl-row-pad': '1.5px',
+      '--tl-row-pad': '0.75px',
+      '--tl-name-line': '1.55',
       '--tl-hole-size': '9.5px',
       /* Alto de renglón FIJO de la celda de hoyo: no depende del tamaño de
          letra real (que se reduce/abrevia según el ancho), así los cortes de
@@ -166,14 +167,17 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-time-size': '13px',
       '--tl-head-size': '10px',
       '--tl-id-size': '8.5px',
-      '--tl-gap': '0.5rem',
+      '--tl-head-pad': '1px',
+      '--tl-time-pad': '1.5px',
+      '--tl-gap': '0.3rem',
     },
   },
   ultra: {
     label: 'Muy compacta',
     vars: {
       '--tl-name-size': '10px',
-      '--tl-row-pad': '1px',
+      '--tl-row-pad': '0.5px',
+      '--tl-name-line': '1.5',
       '--tl-hole-size': '9px',
       /* Alto de renglón FIJO de la celda de hoyo: no depende del tamaño de
          letra real (que se reduce/abrevia según el ancho), así los cortes de
@@ -182,10 +186,22 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
       '--tl-time-size': '11.5px',
       '--tl-head-size': '9.5px',
       '--tl-id-size': '8px',
-      '--tl-gap': '0.4rem',
+      '--tl-head-pad': '0.75px',
+      '--tl-time-pad': '1px',
+      '--tl-gap': '0.2rem',
     },
   },
 };
+
+/* Las densidades holgadas conservan sus alturas anteriores; estas variables
+ * permiten que el modo automático compacte también los tres renglones fijos
+ * del encabezado de cada grupo, no solamente los jugadores. */
+DENSITY_LEVELS.comoda.vars['--tl-name-line'] = '1.9';
+DENSITY_LEVELS.comoda.vars['--tl-head-pad'] = '3px';
+DENSITY_LEVELS.comoda.vars['--tl-time-pad'] = '4px';
+DENSITY_LEVELS.normal.vars['--tl-name-line'] = '1.75';
+DENSITY_LEVELS.normal.vars['--tl-head-pad'] = '2px';
+DENSITY_LEVELS.normal.vars['--tl-time-pad'] = '3px';
 
 /** Orden de tanteo en modo automático: de la más holgada a la más compacta. */
 const DENSITY_ORDER: DensityKey[] = ['comoda', 'normal', 'compacta', 'ultra'];
@@ -325,7 +341,8 @@ const TimeLineBlock = ({
           <tr className="bg-muted">
             <td
               style={{ fontSize: 'var(--tl-head-size)' }}
-              className="w-[240px] border border-border px-2 py-[3px] text-center font-bold uppercase leading-[1.6] text-foreground"
+              className="w-[240px] border border-border px-2 text-center font-bold uppercase leading-[1.45] text-foreground"
+              style={{ fontSize: 'var(--tl-head-size)', paddingTop: 'var(--tl-head-pad)', paddingBottom: 'var(--tl-head-pad)' }}
             >
               {dateLabel}
             </td>
@@ -346,8 +363,8 @@ const TimeLineBlock = ({
           {/* Nombre del campo + par de cada hoyo */}
           <tr>
             <td
-              style={{ fontSize: 'var(--tl-head-size)' }}
-              className="border border-border px-2 py-[3px] text-center font-bold uppercase leading-[1.6] text-primary"
+              style={{ fontSize: 'var(--tl-head-size)', paddingTop: 'var(--tl-head-pad)', paddingBottom: 'var(--tl-head-pad)' }}
+              className="border border-border px-2 text-center font-bold uppercase leading-[1.45] text-primary"
             >
               {courseName}
             </td>
@@ -360,7 +377,10 @@ const TimeLineBlock = ({
 
           {/* Hora de salida + categoría (mismo tamaño de letra) + línea de tiempo */}
           <tr>
-            <td className="border-b-2 border-border border-b-foreground/40 px-2 py-[4px] text-center leading-[1.7]">
+            <td
+              style={{ paddingTop: 'var(--tl-time-pad)', paddingBottom: 'var(--tl-time-pad)' }}
+              className="border-b-2 border-border border-b-foreground/40 px-2 text-center leading-[1.5]"
+            >
               <span
                 style={{ fontSize: 'var(--tl-time-size)' }}
                 className="font-extrabold tabular-nums text-foreground"
@@ -420,7 +440,7 @@ const TimeLineBlock = ({
                       recorte del texto largo NO corte los ascendentes ni los
                       descendentes al rasterizar el PDF (html2canvas). */}
                   <span
-                    style={{ fontSize: 'var(--tl-name-size)', lineHeight: 1.9 }}
+                    style={{ fontSize: 'var(--tl-name-size)', lineHeight: 'var(--tl-name-line)' }}
                     title={p.name}
                     className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap py-[1px] font-semibold text-foreground"
                   >
@@ -556,7 +576,9 @@ const AdminTimeLine = () => {
   });
 
   /** Nivel realmente aplicado (en 'auto' lo calcula la medición de bloques). */
-  const [autoDensity, setAutoDensity] = useState<DensityKey>('comoda');
+  /* Compacta es el punto de partida automático: mantiene el texto legible y
+   * permite ocupar la altura disponible con más grupos por hoja. */
+  const [autoDensity, setAutoDensity] = useState<DensityKey>('compacta');
   const activeDensity: DensityKey = density === 'auto' ? autoDensity : density;
 
   /**
@@ -709,7 +731,7 @@ const AdminTimeLine = () => {
 
   /** Al cambiar de papel o volver a 'auto' se reinicia el tanteo de densidad. */
   useEffect(() => {
-    if (density === 'auto') setAutoDensity('comoda');
+    if (density === 'auto') setAutoDensity('compacta');
     setDensityOverflow(false);
   }, [density, paper, data]);
 
@@ -1031,7 +1053,7 @@ const AdminTimeLine = () => {
    */
   const autoFit = () => {
     setDensity('auto');
-    setAutoDensity('comoda');
+    setAutoDensity('compacta');
     setRowPad(null);
     setAutoFitting(true);
   };
