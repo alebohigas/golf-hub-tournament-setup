@@ -18,3 +18,5 @@ Admin → pestaña **Time Line** (`AdminTimeLinePrint.tsx`) → `/admin/time-lin
 - La opción **Escala automática** es estática al 100% para evitar oscilaciones visuales; los porcentajes manuales siguen disponibles.
 - La **densidad automática** inicia en Compacta y reduce también encabezados, filas y separación entre grupos; sólo la primera hoja descuenta el encabezado al estimar páginas, para aprovechar las hojas siguientes sin dividir grupos.
 - **Separar bloques (opcional)**: casilla "Separar bloques (renglón en blanco)" en el reporte y en el formulario de Admin; inserta entre bloques un renglón en blanco con la misma altura que un renglón de jugador (`calc(name-size × name-line + 2×row-pad)`). Se pasa por URL `?sep=1`, se incluye en la estimación de páginas de la vista previa (SPACER_PX) y el brinco queda siempre en la misma hoja que su bloque siguiente (`break-inside-avoid`).
+
+- **Grupos por hoja (`?gpp=N`)**: 0 = automático; con N > 0 se fuerza salto de página tras cada N bloques (break-after: page en el N-ésimo bloque, cortes forzados en computeCuts y renderSlices del PDF). Control numérico en Admin → Time Line y en el panel de maqueta del reporte.
