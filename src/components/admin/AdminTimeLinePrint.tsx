@@ -140,6 +140,8 @@ const AdminTimeLinePrint = () => {
 
   /** Papel elegido para estimar la paginación de la vista previa. */
   const [paper, setPaper] = useState<PaperKey>('letter');
+  /** Separador "renglón en blanco" entre bloques de salida (`?sep=1`). */
+  const [blockSep, setBlockSep] = useState(false);
   /** Controla el diálogo de vista previa. */
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -166,8 +168,11 @@ const AdminTimeLinePrint = () => {
     const nextPageUsable = PAPER_SIZES[paper].heightPx - PAGE_FOOTER_PX;
     let pages = groups.length > 0 ? 1 : 0;
     let used = 0;
-    for (const g of groups) {
-      const h = BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX;
+    for (let i = 0; i < groups.length; i += 1) {
+      const g = groups[i];
+      /* Entre bloques puede ir el renglón en blanco del separador. */
+      const h =
+        BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX + (i > 0 && blockSep ? SPACER_PX : 0);
       const usable = pages <= 1 ? firstPageUsable : nextPageUsable;
       if (used > 0 && used + h > usable) {
         pages += 1;
@@ -177,7 +182,7 @@ const AdminTimeLinePrint = () => {
       }
     }
     return { groups: groups.length, players, pages };
-  }, [report, paper]);
+  }, [report, paper, blockSep]);
 
   /**
    * Abre el reporte imprimible en una pestaña nueva con la configuración
