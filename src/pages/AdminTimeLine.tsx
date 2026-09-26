@@ -172,13 +172,13 @@ const DENSITY_LEVELS: Record<DensityKey, { label: string; vars: Record<string, s
          letra real (que se reduce/abrevia según el ancho), así los cortes de
          página y la paginación no se mueven al abreviar la hora. */
       '--tl-hole-line': '15px',
-      '--tl-time-size': '13px',
-      '--tl-head-size': '10px',
+      '--tl-time-size': '12.5px',
+      '--tl-head-size': '9.5px',
       '--tl-id-size': '8.5px',
-      '--tl-head-pad': '1px',
-      '--tl-time-pad': '1.5px',
-      '--tl-hole-pad': '1px',
-      '--tl-gap': '0.3rem',
+      '--tl-head-pad': '0.5px',
+      '--tl-time-pad': '0.75px',
+      '--tl-hole-pad': '0.5px',
+      '--tl-gap': '0.15rem',
     },
   },
   ultra: {
@@ -706,7 +706,7 @@ const AdminTimeLine = () => {
     const tallest = Math.max(...blocks.map((el) => el.getBoundingClientRect().height));
     const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
     /** 10px de holgura absorbe redondeos de impresión y el rótulo de página. */
-    const available = pageH - headerH - 10;
+    const available = pageH - headerH - FOOTER_RESERVE_PX - 6;
     const fits = tallest <= available;
     if (density !== 'auto') {
       setDensityOverflow(!fits);
