@@ -15,3 +15,4 @@ Admin → pestaña **Time Line** (`AdminTimeLinePrint.tsx`) → `/admin/time-lin
 - El botón GENERA abre primero una **vista previa** con el encabezado real y las páginas estimadas.
 - La vista previa incluye botones de **Descargar PDF** e **Imprimir** que abren el reporte con `?paper=letter|a4&auto=pdf|print`; el reporte detecta `auto` y dispara la exportación/impresión una sola vez al terminar de cargar.
 - Validación de horas en el backend: acepta `H:MM`, `HH:MM` y `HH:MM:SS`; rechaza vacío, 24:00, minutos/segundos > 59, signos, decimales y `hrf < hri` (no cruza medianoche). Hoyos: sólo 1–2 dígitos sin signo, 1–18, con `hf >= hi`.
+- La opción **Escala automática** es estática al 100% para evitar oscilaciones visuales; los porcentajes manuales siguen disponibles.
