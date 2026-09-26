@@ -805,16 +805,11 @@ const AdminTimeLine = () => {
         }
       );
       /*
-       * Cortes forzados por "grupos por hoja": el pie de cada N-ésimo bloque
-       * es un límite de página aunque quepan más bloques. Si la hoja se llena
-       * antes de llegar a N, manda el corte normal (el bloque brinca de hoja).
+       * "Grupos por hoja": se cuentan los bloques DESDE EL INICIO DE CADA HOJA.
+       * Si la hoja se llena antes de N (p. ej. caben 6 de 7), el conteo se
+       * reinicia en la hoja siguiente; así nunca quedan hojas vacías ni cortes
+       * desfasados por índices fijos.
        */
-      const forced: number[] = [];
-      if (groupsPerPage > 0) {
-        for (let i = groupsPerPage - 1; i < zones.length - 1; i += groupsPerPage) {
-          forced.push(zones[i].bottom);
-        }
-      }
       const cuts: number[] = [];
       let offset = 0;
       let guard = 0;
@@ -826,9 +821,13 @@ const AdminTimeLine = () => {
             if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
           }
           if (cut <= offset) cut = Math.min(offset + safe, total);
-          /* Un corte forzado dentro de esta hoja tiene prioridad. */
-          const fc = forced.find((f) => f > offset && f <= cut);
-          if (fc !== undefined) cut = fc;
+          /* Corte forzado tras el N-ésimo bloque que inicia en esta hoja. */
+          if (groupsPerPage > 0) {
+            const onPage = zones.filter((z) => z.top >= offset - 1);
+            const nth = onPage[groupsPerPage - 1];
+            const after = onPage[groupsPerPage];
+            if (nth && after && nth.bottom <= cut) cut = Math.max(nth.bottom, after.top - 0.5);
+          }
         }
         cuts.push(cut);
         offset = cut;
@@ -1156,21 +1155,19 @@ const AdminTimeLine = () => {
       );
       /* Igual que la impresión: se descuenta la banda del pie de página. */
       const limit = Math.floor((pageH - FOOTER_RESERVE_PX) * scale);
-      /* Cortes forzados por "grupos por hoja" (mismo criterio que computeCuts). */
-      const forced: number[] = [];
-      if (groupsPerPage > 0) {
-        for (let i = groupsPerPage - 1; i < blocks.length - 1; i += groupsPerPage) {
-          forced.push(blocks[i].bottom);
-        }
-      }
+      /* "Grupos por hoja": conteo reiniciado en cada hoja (igual que computeCuts). */
       const safeCut = (offset: number): number => {
         let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
         for (const b of blocks) {
           if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
         }
-        const fc = forced.find((f) => f > offset && f <= cut);
-        if (fc !== undefined) cut = fc;
+        if (groupsPerPage > 0) {
+          const onPage = blocks.filter((b) => b.top >= offset - 1);
+          const nth = onPage[groupsPerPage - 1];
+          const after = onPage[groupsPerPage];
+          if (nth && after && nth.bottom <= cut) cut = Math.max(nth.bottom, after.top - 1);
+        }
         return cut > offset ? cut : Math.min(offset + limit, canvas.height);
       };
       const slices: { url: string; h: number }[] = [];
@@ -1771,13 +1768,9 @@ const AdminTimeLine = () => {
                   dateLabel={data.fechaFormato}
                   courseName={data.course || data.club}
                   timeMode={holeTimeMode}
-                  /* Con "grupos por hoja" activo, cada N-ésimo bloque cierra
-                     su hoja aunque quepan más (el último nunca fuerza salto). */
-                  forceBreakAfter={
-                    groupsPerPage > 0 &&
-                    (idx + 1) % groupsPerPage === 0 &&
-                    idx < data.groups.length - 1
-                  }
+                  /* Los saltos por "grupos por hoja" los calcula computeCuts
+                     por hoja (no por índice fijo), evitando hojas vacías. */
+                  forceBreakAfter={false}
                 />
               </Fragment>
             ))}
