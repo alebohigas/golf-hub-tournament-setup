@@ -804,6 +804,17 @@ const AdminTimeLine = () => {
           };
         }
       );
+      /*
+       * Cortes forzados por "grupos por hoja": el pie de cada N-ésimo bloque
+       * es un límite de página aunque quepan más bloques. Si la hoja se llena
+       * antes de llegar a N, manda el corte normal (el bloque brinca de hoja).
+       */
+      const forced: number[] = [];
+      if (groupsPerPage > 0) {
+        for (let i = groupsPerPage - 1; i < zones.length - 1; i += groupsPerPage) {
+          forced.push(zones[i].bottom);
+        }
+      }
       const cuts: number[] = [];
       let offset = 0;
       let guard = 0;
@@ -815,13 +826,16 @@ const AdminTimeLine = () => {
             if (z.top > offset && z.top < cut && z.bottom > cut) cut = z.top;
           }
           if (cut <= offset) cut = Math.min(offset + safe, total);
+          /* Un corte forzado dentro de esta hoja tiene prioridad. */
+          const fc = forced.find((f) => f > offset && f <= cut);
+          if (fc !== undefined) cut = fc;
         }
         cuts.push(cut);
         offset = cut;
       }
       return { cuts, zones, total };
     },
-    []
+    [groupsPerPage]
   );
 
   /** Recalcula los cortes de página del reporte impreso (estimación en pantalla). */
@@ -1142,12 +1156,21 @@ const AdminTimeLine = () => {
       );
       /* Igual que la impresión: se descuenta la banda del pie de página. */
       const limit = Math.floor((pageH - FOOTER_RESERVE_PX) * scale);
+      /* Cortes forzados por "grupos por hoja" (mismo criterio que computeCuts). */
+      const forced: number[] = [];
+      if (groupsPerPage > 0) {
+        for (let i = groupsPerPage - 1; i < blocks.length - 1; i += groupsPerPage) {
+          forced.push(blocks[i].bottom);
+        }
+      }
       const safeCut = (offset: number): number => {
         let cut = Math.min(offset + limit, canvas.height);
         if (cut >= canvas.height) return canvas.height;
         for (const b of blocks) {
           if (b.top > offset && b.top < cut && b.bottom > cut) cut = b.top;
         }
+        const fc = forced.find((f) => f > offset && f <= cut);
+        if (fc !== undefined) cut = fc;
         return cut > offset ? cut : Math.min(offset + limit, canvas.height);
       };
       const slices: { url: string; h: number }[] = [];
