@@ -57,12 +57,14 @@ const PAPER_SIZES = {
 /** Clave de tamaño de papel. */
 type PaperKey = keyof typeof PAPER_SIZES;
 
-/** Alto reservado en la primera hoja para encabezado + pie del reporte. */
-const HEADER_FOOTER_PX = 170;
-/** Alto de un bloque de salida sin jugadores (3 renglones + separación). */
-const BLOCK_BASE_PX = 78;
-/** Alto de cada renglón de jugador dentro del bloque. */
-const PLAYER_ROW_PX = 20;
+/** Alto aproximado del encabezado fijo de cuatro renglones en la primera hoja. */
+const REPORT_HEADER_PX = 104;
+/** Banda reservada para la numeración de cada hoja. */
+const PAGE_FOOTER_PX = 22;
+/** Alto compacto de un bloque de salida sin jugadores (3 renglones + separación). */
+const BLOCK_BASE_PX = 54;
+/** Alto compacto de cada renglón de jugador. */
+const PLAYER_ROW_PX = 16;
 
 /** Panel de generación del reporte TIME LINE. */
 const AdminTimeLinePrint = () => {
@@ -160,11 +162,13 @@ const AdminTimeLinePrint = () => {
   const summary = useMemo(() => {
     const groups = report?.groups ?? [];
     const players = groups.reduce((n, g) => n + g.players.length, 0);
-    const usable = PAPER_SIZES[paper].heightPx - HEADER_FOOTER_PX;
+    const firstPageUsable = PAPER_SIZES[paper].heightPx - REPORT_HEADER_PX - PAGE_FOOTER_PX;
+    const nextPageUsable = PAPER_SIZES[paper].heightPx - PAGE_FOOTER_PX;
     let pages = groups.length > 0 ? 1 : 0;
     let used = 0;
     for (const g of groups) {
       const h = BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX;
+      const usable = pages <= 1 ? firstPageUsable : nextPageUsable;
       if (used > 0 && used + h > usable) {
         pages += 1;
         used = h;
