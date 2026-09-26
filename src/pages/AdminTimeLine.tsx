@@ -1690,16 +1690,31 @@ const AdminTimeLine = () => {
           )}
 
           <div className="flex flex-col" style={{ gap: 'var(--tl-gap)' }}>
-            {data?.groups.map((g) => (
-              <TimeLineBlock
-                key={g.id}
-                group={g}
-                holes={data.holes}
-                dateLabel={data.fechaFormato}
-                courseName={data.course || data.club}
-                timeMode={holeTimeMode}
+            {data?.groups.map((g, idx) => (
+              <Fragment key={g.id}>
+                {/* Separador opcional: un renglón en blanco con la misma
+                    altura que un renglón de jugador. Va pegado al bloque
+                    siguiente (break-inside-avoid) para que el corte de
+                    página siga ocurriendo al INICIO del bloque y el brinco
+                    quede siempre en la misma hoja que su salida. */}
+                {blockSep && idx > 0 && (
+                  <div
+                    aria-hidden
+                    className="break-inside-avoid"
+                    style={{
+                      height: 'calc(var(--tl-name-size) * var(--tl-name-line) + 2 * var(--tl-row-pad))',
+                    }}
+                  />
+                )}
+                <TimeLineBlock
+                  group={g}
+                  holes={data.holes}
+                  dateLabel={data.fechaFormato}
+                  courseName={data.course || data.club}
+                  timeMode={holeTimeMode}
 
-              />
+                />
+              </Fragment>
             ))}
           </div>
 
