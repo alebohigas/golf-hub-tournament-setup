@@ -561,16 +561,16 @@ const AdminTimeLine = () => {
 
   /**
    * Escala de contenido elegida: 'auto' o un porcentaje fijo (`?escala=85`).
-   * En 'auto' se busca la escala MÁS GRANDE que logre el mínimo número de
-   * hojas, es decir la que aprovecha el espacio sobrante sin partir bloques.
+   * En 'auto' se conserva 100 %: una escala estable evita oscilaciones causadas
+   * por volver a medir el contenido después de cada cambio de tamaño.
    */
   const [scaleMode, setScaleMode] = useState<'auto' | number>(() => {
     const raw = Number(params.get('escala') ?? params.get('scale'));
     return SCALE_STEPS.includes(raw as (typeof SCALE_STEPS)[number]) ? raw : 'auto';
   });
 
-  /** Escala calculada en modo automático (porcentaje). */
-  const [autoScale, setAutoScale] = useState(100);
+  /** Escala estable usada por el modo automático (porcentaje). */
+  const autoScale = 100;
   /** Escala realmente aplicada (porcentaje) y su factor. */
   const activeScale = scaleMode === 'auto' ? autoScale : scaleMode;
   const scaleFactor = activeScale / 100;
@@ -1012,73 +1012,11 @@ const AdminTimeLine = () => {
     });
   }, [printPages, blockZones]);
 
-  /* ============== ESCALA AUTOMÁTICA (aprovechar el espacio sobrante) =========
-   * Con la geometría YA medida de los bloques se simula el empaquetado hoja por
-   * hoja para cada escala candidata y se elige la MÁS GRANDE que consiga el
-   * menor número de hojas. La simulación nunca permite que un bloque cruce el
-   * pie de la hoja: si no cabe, arranca la siguiente (idéntico criterio al de
-   * `computeCuts`), así el ahorro de hojas jamás parte un bloque.
+  /* ======================= ESCALA AUTOMÁTICA ================================
+   * El modo automático permanece fijo al 100 %. Antes recalculaba la escala a
+   * partir de medidas que cambiaban con la propia escala, provocando un ciclo
+   * visual de ampliación/reducción. Los porcentajes manuales siguen disponibles.
    * ======================================================================== */
-
-  /**
-   * Número de hojas que ocuparía el reporte con una escala candidata.
-   * @param cand Factor de escala candidato (1 = 100 %)
-   * @param items Alto y avance (alto + separación) de cada bloque, sin escalar
-   * @param headerH Alto del encabezado (no se escala)
-   * @param avail Alto útil de la hoja
-   * @returns Hojas necesarias, o `null` si algún bloque no cabe en una hoja
-   */
-  const simulatePages = useCallback(
-    (
-      cand: number,
-      items: { h: number; adv: number }[],
-      headerH: number,
-      avail: number
-    ): number | null => {
-      let pos = headerH;
-      let pages = 1;
-      for (const it of items) {
-        const h = it.h * cand;
-        if (h > avail) return null;
-        if (pos > 0 && pos + h > avail) {
-          pages += 1;
-          pos = 0;
-        }
-        pos += it.adv * cand;
-      }
-      return pages;
-    },
-    []
-  );
-
-  /** Recalcula la escala automática cada vez que cambia la maqueta medida. */
-  useEffect(() => {
-    if (scaleMode !== 'auto') return;
-    if (blockZones.length === 0) return;
-    const headerH = headerRef.current?.getBoundingClientRect().height ?? 0;
-    const avail = pageH - FOOTER_RESERVE_PX;
-    /* Se normaliza a escala 1 dividiendo entre la escala aplicada al medir. */
-    const items = blockZones.map((z, i) => {
-      const next = blockZones[i + 1];
-      const adv = (next ? next.top : z.bottom) - z.top;
-      return { h: (z.bottom - z.top) / scaleFactor, adv: adv / scaleFactor };
-    });
-    let best = { scale: 100, pages: Number.POSITIVE_INFINITY };
-    for (const step of SCALE_STEPS) {
-      const pages = simulatePages(step / 100, items, headerH, avail);
-      if (pages === null) continue;
-      /* Empate de hojas → se conserva la escala MÁS GRANDE (mejor legibilidad). */
-      if (pages < best.pages) best = { scale: step, pages };
-    }
-    if (Number.isFinite(best.pages) && best.scale !== autoScale) setAutoScale(best.scale);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scaleMode, blockZones, pageH, scaleFactor, simulatePages]);
-
-  /** Al cambiar papel, orientación, densidad o datos se reinicia la escala auto. */
-  useEffect(() => {
-    if (scaleMode === 'auto') setAutoScale(100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scaleMode, paper, orientation, marginMm, activeDensity, rowPad, data]);
 
 
 
@@ -1374,10 +1312,8 @@ const AdminTimeLine = () => {
                 ))}
               </SelectContent>
             </Select>
-            {/* Escala de contenido: reduce proporcionalmente el layout para que
-                quepan más bloques por hoja SIN partirlos en el brinco de
-                página. 'Automática' elige la escala más grande que logra el
-                menor número de hojas. Aplica igual en vertical y horizontal. */}
+            {/* Escala de contenido: el modo automático permanece estable al
+                100 %; los porcentajes manuales permiten reducir el reporte. */}
             <Select
               value={String(scaleMode)}
               onValueChange={(v) => setScaleMode(v === 'auto' ? 'auto' : Number(v))}
