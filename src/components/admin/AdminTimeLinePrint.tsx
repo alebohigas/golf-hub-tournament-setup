@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -65,6 +66,8 @@ const PAGE_FOOTER_PX = 22;
 const BLOCK_BASE_PX = 54;
 /** Alto compacto de cada renglón de jugador. */
 const PLAYER_ROW_PX = 16;
+/** Alto del renglón en blanco que separa bloques (opción "Separar bloques"). */
+const SPACER_PX = 16;
 
 /** Panel de generación del reporte TIME LINE. */
 const AdminTimeLinePrint = () => {
@@ -140,6 +143,8 @@ const AdminTimeLinePrint = () => {
 
   /** Papel elegido para estimar la paginación de la vista previa. */
   const [paper, setPaper] = useState<PaperKey>('letter');
+  /** Separador "renglón en blanco" entre bloques de salida (`?sep=1`). */
+  const [blockSep, setBlockSep] = useState(false);
   /** Controla el diálogo de vista previa. */
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -166,8 +171,11 @@ const AdminTimeLinePrint = () => {
     const nextPageUsable = PAPER_SIZES[paper].heightPx - PAGE_FOOTER_PX;
     let pages = groups.length > 0 ? 1 : 0;
     let used = 0;
-    for (const g of groups) {
-      const h = BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX;
+    for (let i = 0; i < groups.length; i += 1) {
+      const g = groups[i];
+      /* Entre bloques puede ir el renglón en blanco del separador. */
+      const h =
+        BLOCK_BASE_PX + g.players.length * PLAYER_ROW_PX + (i > 0 && blockSep ? SPACER_PX : 0);
       const usable = pages <= 1 ? firstPageUsable : nextPageUsable;
       if (used > 0 && used + h > usable) {
         pages += 1;
@@ -177,7 +185,7 @@ const AdminTimeLinePrint = () => {
       }
     }
     return { groups: groups.length, players, pages };
-  }, [report, paper]);
+  }, [report, paper, blockSep]);
 
   /**
    * Abre el reporte imprimible en una pestaña nueva con la configuración
@@ -188,6 +196,7 @@ const AdminTimeLinePrint = () => {
   const generar = (auto?: 'pdf' | 'print') => {
     if (!isValid) return;
     const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf, paper });
+    if (blockSep) qs.set('sep', '1');
     if (auto) qs.set('auto', auto);
     setPreviewOpen(false);
     window.open(`/admin/time-line?${qs.toString()}`, '_blank');
@@ -331,6 +340,13 @@ const AdminTimeLinePrint = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Separador opcional: un renglón en blanco entre los bloques de
+                salida para que una salida no quede pegada a la siguiente. */}
+            <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm">
+              <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
+              Separar bloques (renglón en blanco)
+            </label>
 
             {/* Acción — abre la vista previa antes de generar el reporte */}
             <Button onClick={() => setPreviewOpen(true)} disabled={!isValid}>

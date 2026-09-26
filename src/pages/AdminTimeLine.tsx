@@ -15,7 +15,7 @@
  * genera con html2canvas + jsPDF cortando páginas sin partir bloques.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -676,6 +677,13 @@ const AdminTimeLine = () => {
    * densidad para que el control siempre parta del valor real aplicado.
    */
   const [rowPad, setRowPad] = useState<number | null>(null);
+
+  /**
+   * Separador opcional entre bloques de salida: un "renglón en blanco" de la
+   * misma altura que un renglón de jugador. Se preselecciona por URL (`?sep=1`)
+   * para que la vista previa de Admin abra el reporte con la misma maqueta.
+   */
+  const [blockSep, setBlockSep] = useState(() => params.get('sep') === '1');
 
   /** Nodo exportable del reporte. */
   const reportRef = useRef<HTMLDivElement>(null);
@@ -1438,6 +1446,12 @@ const AdminTimeLine = () => {
           >
             Usar el de la densidad
           </Button>
+          {/* Separador opcional: un renglón en blanco entre los bloques de
+              salida para que una salida no quede pegada a la siguiente. */}
+          <label className="flex h-9 cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={blockSep} onCheckedChange={(v) => setBlockSep(v === true)} />
+            Separar bloques (renglón en blanco)
+          </label>
           {/* Resumen en vivo: páginas, densidad y jugadores por página */}
           <div className="ml-auto text-right text-xs text-muted-foreground">
             <p>
@@ -1676,16 +1690,31 @@ const AdminTimeLine = () => {
           )}
 
           <div className="flex flex-col" style={{ gap: 'var(--tl-gap)' }}>
-            {data?.groups.map((g) => (
-              <TimeLineBlock
-                key={g.id}
-                group={g}
-                holes={data.holes}
-                dateLabel={data.fechaFormato}
-                courseName={data.course || data.club}
-                timeMode={holeTimeMode}
+            {data?.groups.map((g, idx) => (
+              <Fragment key={g.id}>
+                {/* Separador opcional: un renglón en blanco con la misma
+                    altura que un renglón de jugador. Va pegado al bloque
+                    siguiente (break-inside-avoid) para que el corte de
+                    página siga ocurriendo al INICIO del bloque y el brinco
+                    quede siempre en la misma hoja que su salida. */}
+                {blockSep && idx > 0 && (
+                  <div
+                    aria-hidden
+                    className="break-inside-avoid"
+                    style={{
+                      height: 'calc(var(--tl-name-size) * var(--tl-name-line) + 2 * var(--tl-row-pad))',
+                    }}
+                  />
+                )}
+                <TimeLineBlock
+                  group={g}
+                  holes={data.holes}
+                  dateLabel={data.fechaFormato}
+                  courseName={data.course || data.club}
+                  timeMode={holeTimeMode}
 
-              />
+                />
+              </Fragment>
             ))}
           </div>
 
