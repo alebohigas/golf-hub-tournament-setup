@@ -65,6 +65,8 @@ const PAGE_FOOTER_PX = 22;
 const BLOCK_BASE_PX = 54;
 /** Alto compacto de cada renglón de jugador. */
 const PLAYER_ROW_PX = 16;
+/** Alto del renglón en blanco que separa bloques (opción "Separar bloques"). */
+const SPACER_PX = 16;
 
 /** Panel de generación del reporte TIME LINE. */
 const AdminTimeLinePrint = () => {
@@ -193,6 +195,7 @@ const AdminTimeLinePrint = () => {
   const generar = (auto?: 'pdf' | 'print') => {
     if (!isValid) return;
     const qs = new URLSearchParams({ fecha, campoid, hi, hf, hri, hrf, paper });
+    if (blockSep) qs.set('sep', '1');
     if (auto) qs.set('auto', auto);
     setPreviewOpen(false);
     window.open(`/admin/time-line?${qs.toString()}`, '_blank');
