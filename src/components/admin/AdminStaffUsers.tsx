@@ -50,6 +50,7 @@ export const STAFF_AREAS: { id: StaffArea; label: string }[] = [
   { id: 'alien_categorias',  label: 'Alien: Categorías' },
   { id: 'alien_resultados',  label: 'Alien: Resultados Finales' },
   { id: 'alien_distancias',  label: 'Alien: Distancias' },
+  { id: 'alien_captura',     label: 'Alien: Captura Sheet Live' },
 ];
 
 interface StaffUser {
