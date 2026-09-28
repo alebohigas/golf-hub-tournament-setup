@@ -846,6 +846,8 @@ const AdminDashboard = () => {
                   ? 'tarjetas'
                   : canAlien('alien_timeline')
                     ? 'timeline'
+                    : canAlien('alien_captura')
+                    ? 'sheet-live'
                     : canAlien('alien_salidas')
                       ? 'salidas'
                       : canAlien('alien_distancias')
