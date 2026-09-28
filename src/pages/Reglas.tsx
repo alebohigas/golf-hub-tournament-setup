@@ -8,7 +8,7 @@ import PageHero from '@/components/shared/PageHero';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText } from 'lucide-react';
+import { BookOpen, Scale, Clock, AlertTriangle, Gavel, ScrollText, FileText, Phone } from 'lucide-react';
 import reglasHero from '@/assets/reglas-hero.jpg';
 import { useUploadsList } from '@/hooks/useUploads';
 import { useConvocatoriaContent } from '@/hooks/useConvocatoriaContent';
@@ -51,6 +51,11 @@ const pick = <T,>(value: T | null | undefined, empty: T): T => {
 interface IntroCard { icon?: string; title: string; body: string }
 interface AccordionItemData { titulo: string; contenido: string; icon?: string | null }
 interface PdfLabel { label?: string }
+/** Datos opcionales del oficial que presta asistencia durante el torneo. */
+interface RulesOfficial { heading?: string; name?: string; phone?: string }
+
+/** Convierte un teléfono visible en un valor seguro para el enlace `tel:`. */
+const toPhoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
 const Reglas = () => {
   // Resolve the reglas PDF URL with a 3-tier fallback chain:
@@ -110,6 +115,12 @@ const Reglas = () => {
     'Ver Reglas y T. de Competencia (PDF)'
   );
 
+  // Oficial de reglas opcional, administrado por torneo desde convocatoria_content.
+  const rulesOfficialRow = bySectionId.get('reglas_oficial');
+  const rulesOfficial = rulesOfficialRow?.enabled === false
+    ? undefined
+    : rulesOfficialRow?.content as RulesOfficial | undefined;
+
   return (
     <Layout>
       <PageHero 
@@ -120,13 +131,32 @@ const Reglas = () => {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* CTA: previsualiza el PDF de Reglas y CC antes de descargarlo */}
-          <div className="mb-10 flex justify-center">
+          <div className="mb-10 flex flex-col items-center justify-center gap-5 text-center">
             <PdfPreviewDialog
               url={reglasPdfUrl}
               label={pdfLabel}
               title="Reglas y Condiciones de Competencia"
               className="gap-2"
             />
+            {/* Asistencia del oficial; el teléfono abre directamente la aplicación de llamadas. */}
+            {rulesOfficial?.name && rulesOfficial.phone && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  {rulesOfficial.heading || 'Asistencia en reglas'}
+                </p>
+                <p className="font-display text-lg font-semibold text-foreground">
+                  {rulesOfficial.name}
+                </p>
+                <a
+                  href={toPhoneHref(rulesOfficial.phone)}
+                  className="inline-flex items-center gap-2 text-base font-medium text-primary underline-offset-4 hover:underline"
+                  aria-label={`Llamar a ${rulesOfficial.name} al ${rulesOfficial.phone}`}
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  {rulesOfficial.phone}
+                </a>
+              </div>
+            )}
           </div>
 
           {/* General rules cards (DB-backed `reglas_intro_cards`) */}
