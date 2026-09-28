@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTimeLineReport, type TimeLineGroup } from '@/hooks/useTimeLine';
 import { resolveTimeLineStartHole } from '@/lib/timelineStartHole';
+import SheetLiveCaptura from '@/components/admin/SheetLiveCaptura';
 
 /** Formatea un hoyo como "H01". */
 const hLabel = (n: number) => `H${String(n).padStart(2, '0')}`;
@@ -57,9 +58,12 @@ const AdminSheetLive = () => {
   /** Escala y número de columnas persistidos en la URL del reporte. */
   const scale = Math.min(120, Math.max(60, Number(sp.get('scale')) || 100));
   const columns = sp.get('cols') === '1' ? 1 : 2;
+  /** Modo de la página: hoja imprimible o app de captura (?modo=captura&grupo=ID). */
+  const modo = sp.get('modo') === 'captura' ? 'captura' : 'hoja';
+  const grupo = sp.get('grupo') ?? '';
 
   /** Actualiza una opción de presentación sin perder los filtros existentes. */
-  const setLayoutOption = (key: 'scale' | 'cols', value: string) => {
+  const setLayoutOption = (key: 'scale' | 'cols' | 'modo' | 'grupo', value: string) => {
     const next = new URLSearchParams(sp);
     next.set(key, value);
     setSp(next, { replace: true });
@@ -104,6 +108,12 @@ const AdminSheetLive = () => {
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <h1 className="text-xl font-bold">Sheet Live</h1>
         <div className="flex flex-wrap items-end gap-3">
+          {/* Cambia entre la hoja imprimible y la app de captura de golpes. */}
+          <div className="flex gap-1">
+            <Button variant={modo === 'hoja' ? 'default' : 'outline'} onClick={() => setLayoutOption('modo', 'hoja')}>Hoja</Button>
+            <Button variant={modo === 'captura' ? 'default' : 'outline'} onClick={() => setLayoutOption('modo', 'captura')}>Captura</Button>
+          </div>
+          {modo === 'hoja' && <>
           {/* Selector de distribución: un grupo ancho o dos grupos lado a lado. */}
           <div className="space-y-1">
             <Label className="text-xs">Columnas</Label>
@@ -132,10 +142,20 @@ const AdminSheetLive = () => {
           <Button onClick={() => window.print()} className="gap-2">
             <Printer className="h-4 w-4" /> Imprimir
           </Button>
+          </>}
         </div>
       </div>
 
-      <div
+      {modo === 'captura' && (
+        <div className="print:hidden">
+          <p className="mb-3 text-center text-sm font-semibold">{data?.course} / {data?.fechaFormato || fecha} · ESTACIÓN {hLabel(station)}</p>
+          {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : (
+            <SheetLiveCaptura rows={rows} groupId={grupo} onGroupChange={(id) => setLayoutOption('grupo', id)} />
+          )}
+        </div>
+      )}
+
+      {modo === 'hoja' && <div
         className="sheet-live-report mx-auto max-w-[980px]"
         style={{
           '--sheet-live-scale': String(scale / 100),
@@ -191,7 +211,7 @@ const AdminSheetLive = () => {
             </table>
           ))}
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

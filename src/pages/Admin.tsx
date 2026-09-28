@@ -305,9 +305,10 @@ const AdminDashboard = () => {
     alien_categorias: 'alien',
     alien_resultados: 'alien',
     alien_distancias: 'alien',
+    alien_captura: 'alien',
   };
   /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
-  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias', 'alien_resultados', 'alien_distancias'];
+  const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias', 'alien_resultados', 'alien_distancias', 'alien_captura'];
   /** true si el usuario activo puede ver una sub-pestaña de ALIEN SYSTEM. */
   const canAlien = (a: StaffArea) => !isStaffOnly || !!staffSession?.areas.includes(a);
   /** Tab inicial: la primera área del staff, siempre que su módulo esté activo. */
@@ -845,6 +846,8 @@ const AdminDashboard = () => {
                   ? 'tarjetas'
                   : canAlien('alien_timeline')
                     ? 'timeline'
+                    : canAlien('alien_captura')
+                    ? 'sheet-live'
                     : canAlien('alien_salidas')
                       ? 'salidas'
                       : canAlien('alien_distancias')
@@ -869,7 +872,7 @@ const AdminDashboard = () => {
                   <Clock className="h-4 w-4" /> Time Line
                 </TabsTrigger>
               )}
-              {canAlien('alien_timeline') && (
+              {(canAlien('alien_timeline') || canAlien('alien_captura')) && (
                 <TabsTrigger value="sheet-live" className="gap-2 flex-1 min-w-[120px]">
                   <ClipboardList className="h-4 w-4" /> Sheet Live
                 </TabsTrigger>
@@ -918,7 +921,7 @@ const AdminDashboard = () => {
             )}
 
             {/* Sheet Live — hoja de captura por estación. */}
-            {canAlien('alien_timeline') && (
+            {(canAlien('alien_timeline') || canAlien('alien_captura')) && (
               <TabsContent value="sheet-live">
                 <AdminSheetLivePrint />
               </TabsContent>
