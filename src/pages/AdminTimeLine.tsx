@@ -849,11 +849,13 @@ const AdminTimeLine = () => {
   }, [pageH, computeCuts]);
 
 
-  /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad. */
+  /** Mantiene la paginación impresa al día ante cambios de datos/papel/densidad.
+   *  blockSep cambia los top/bottom medidos de los bloques (renglón en blanco),
+   *  así que también dispara el recálculo. */
   useEffect(() => {
     const id = window.setTimeout(computePrintPages, 150);
     return () => window.clearTimeout(id);
-  }, [computePrintPages, data, activeDensity, activeScale]);
+  }, [computePrintPages, data, activeDensity, activeScale, blockSep]);
 
   /** Remide las guías al redimensionar la ventana (la vista previa es en vivo). */
   useEffect(() => {
@@ -1213,15 +1215,16 @@ const AdminTimeLine = () => {
 
   /**
    * Si la vista previa está abierta y cambia el papel, la orientación, el
-   * margen o la densidad, se vuelve a rasterizar para que la paginación
-   * mostrada corresponda EXACTAMENTE a esas opciones.
+   * margen, la densidad o las opciones de espaciado (separador de bloques y
+   * grupos por hoja), se vuelve a rasterizar para que la paginación mostrada
+   * corresponda EXACTAMENTE a esas opciones.
    */
   useEffect(() => {
     if (!previewOpen) return;
     const id = window.setTimeout(() => void openPreview(), 250);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paper, orientation, marginMm, activeDensity, rowPad, activeScale]);
+  }, [paper, orientation, marginMm, activeDensity, rowPad, activeScale, blockSep, groupsPerPage]);
 
 
   /**
