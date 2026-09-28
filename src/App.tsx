@@ -52,6 +52,8 @@ import AdminResultadosFinales from "./pages/AdminResultadosFinales";
 import AdminResultadosFinalesCompeticion from "./pages/AdminResultadosFinalesCompeticion";
 /** Reporte imprimible TIME LINE (horarios estimados por hoyo). */
 import AdminTimeLine from "./pages/AdminTimeLine";
+/** Hoja de captura SHEET LIVE por estación. */
+import AdminSheetLive from "./pages/AdminSheetLive";
 /** Reporte imprimible de TARJETAS de juego (2 por hoja carta). */
 import AdminTarjetasImpresion from "./pages/AdminTarjetasImpresion";
 // Vista de tarjeta por hora de salida (mismo diseño del encabezado).
@@ -152,6 +154,7 @@ const App = () => (
               {/* Reporte imprimible de salidas por día. */}
               <Route path="/admin/salidas-impresion" element={<AdminSalidasImpresion />} />
               <Route path="/admin/time-line" element={<AdminTimeLine />} />
+              <Route path="/admin/sheet-live" element={<AdminSheetLive />} />
               {/* Reporte imprimible de resultados finales (premiación). */}
               <Route path="/admin/resultados-finales" element={<AdminResultadosFinales />} />
               <Route path="/admin/resultados-finales-competicion" element={<AdminResultadosFinalesCompeticion />} />

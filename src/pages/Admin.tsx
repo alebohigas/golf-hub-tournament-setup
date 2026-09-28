@@ -59,6 +59,8 @@ import AdminDistancias from '@/components/admin/AdminDistancias';
 
 /** Reporte TIME LINE: hora estimada de cada grupo en los 18 hoyos. */
 import AdminTimeLinePrint from '@/components/admin/AdminTimeLinePrint';
+/** Hoja de captura por estación (usa el permiso de Time Line). */
+import AdminSheetLivePrint from '@/components/admin/AdminSheetLivePrint';
 import { useStaffAuth, type StaffArea } from '@/contexts/StaffAuthContext';
 import { RegistrosDashboard } from '@/pages/AdminRegistros';
 import { 
@@ -867,6 +869,11 @@ const AdminDashboard = () => {
                   <Clock className="h-4 w-4" /> Time Line
                 </TabsTrigger>
               )}
+              {canAlien('alien_timeline') && (
+                <TabsTrigger value="sheet-live" className="gap-2 flex-1 min-w-[120px]">
+                  <ClipboardList className="h-4 w-4" /> Sheet Live
+                </TabsTrigger>
+              )}
               {canAlien('alien_salidas') && (
                 <TabsTrigger value="salidas" className="gap-2 flex-1 min-w-[120px]">
                   <Printer className="h-4 w-4" /> Salidas
@@ -907,6 +914,13 @@ const AdminDashboard = () => {
             {canAlien('alien_timeline') && (
               <TabsContent value="timeline">
                 <AdminTimeLinePrint />
+              </TabsContent>
+            )}
+
+            {/* Sheet Live — hoja de captura por estación. */}
+            {canAlien('alien_timeline') && (
+              <TabsContent value="sheet-live">
+                <AdminSheetLivePrint />
               </TabsContent>
             )}
 
