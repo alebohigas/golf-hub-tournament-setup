@@ -16,6 +16,9 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTimeLineReport, type TimeLineGroup } from '@/hooks/useTimeLine';
 import { resolveTimeLineStartHole } from '@/lib/timelineStartHole';
 
@@ -46,11 +49,21 @@ export const holesForGroup = (start: number, station: number, capture: number[])
 
 /** Página imprimible SHEET LIVE. */
 const AdminSheetLive = () => {
-  const [sp] = useSearchParams();
+  const [sp, setSp] = useSearchParams();
   const fecha = sp.get('fecha') ?? '';
   const campoid = sp.get('campoid') ?? '';
   const station = Math.min(18, Math.max(1, Number(sp.get('est')) || 4));
   const capture = useMemo(() => parseCaptureHoles(sp.get('cap') ?? ''), [sp]);
+  /** Escala y número de columnas persistidos en la URL del reporte. */
+  const scale = Math.min(120, Math.max(60, Number(sp.get('scale')) || 100));
+  const columns = sp.get('cols') === '1' ? 1 : 2;
+
+  /** Actualiza una opción de presentación sin perder los filtros existentes. */
+  const setLayoutOption = (key: 'scale' | 'cols', value: string) => {
+    const next = new URLSearchParams(sp);
+    next.set(key, value);
+    setSp(next, { replace: true });
+  };
 
   /** Todos los grupos del día (todos los hoyos de salida y horas). */
   const filters = useMemo(
@@ -80,58 +93,104 @@ const AdminSheetLive = () => {
 
   return (
     <div className="sheet-live min-h-screen bg-background p-6 text-foreground print:p-0">
-      {/* Reglas de impresión: carta vertical, grupos sin cortarse. */}
-      <style>{`@page { size: letter portrait; margin: 10mm; }
-        .sheet-live-group { break-inside: avoid; }`}</style>
+      {/* La misma geometría controla pantalla e impresión; cada grupo permanece íntegro. */}
+      <style>{`@page { size: letter portrait; margin: 8mm; }
+        .sheet-live-group { break-inside: avoid; page-break-inside: avoid; }
+        @media print {
+          .sheet-live-report { transform: scale(var(--sheet-live-scale)); transform-origin: top left; width: calc(100% / var(--sheet-live-scale)); }
+          .sheet-live-grid { display: grid !important; grid-template-columns: repeat(var(--sheet-live-columns), minmax(0, 1fr)) !important; }
+        }`}</style>
 
-      <div className="mb-4 flex items-center justify-between print:hidden">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <h1 className="text-xl font-bold">Sheet Live</h1>
-        <Button onClick={() => window.print()} className="gap-2">
-          <Printer className="h-4 w-4" /> Imprimir
-        </Button>
+        <div className="flex flex-wrap items-end gap-3">
+          {/* Selector de distribución: un grupo ancho o dos grupos lado a lado. */}
+          <div className="space-y-1">
+            <Label className="text-xs">Columnas</Label>
+            <Select value={String(columns)} onValueChange={(value) => setLayoutOption('cols', value)}>
+              <SelectTrigger className="h-9 w-[170px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 columna</SelectItem>
+                <SelectItem value="2">2 columnas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Ajuste fino de tamaño para distintas impresoras. */}
+          <div className="space-y-1">
+            <Label htmlFor="sheet-live-scale" className="text-xs">Escala (%)</Label>
+            <Input
+              id="sheet-live-scale"
+              type="number"
+              min={60}
+              max={120}
+              step={5}
+              value={scale}
+              onChange={(event) => setLayoutOption('scale', event.target.value)}
+              className="h-9 w-24"
+            />
+          </div>
+          <Button onClick={() => window.print()} className="gap-2">
+            <Printer className="h-4 w-4" /> Imprimir
+          </Button>
+        </div>
       </div>
 
-      {/* Encabezado del reporte. */}
-      <header className="mb-3 border-b-2 border-foreground pb-2 text-center">
-        <h2 className="text-2xl font-bold uppercase">{data?.tournament}</h2>
-        <p className="font-semibold uppercase">
-          {data?.course} / {data?.fechaFormato || fecha}
-        </p>
-        <p className="text-lg font-bold">
-          ESTACIÓN {hLabel(station)} · Hoyos captura: {capture.map(hLabel).join(', ')}
-        </p>
-      </header>
+      <div
+        className="sheet-live-report mx-auto max-w-[980px]"
+        style={{
+          '--sheet-live-scale': String(scale / 100),
+          '--sheet-live-columns': String(columns),
+          transform: `scale(${scale / 100})`,
+          transformOrigin: 'top center',
+          width: `${10000 / scale}%`,
+        } as React.CSSProperties}
+      >
+        {/* Encabezado compacto del reporte. */}
+        <header className="mb-2 border-b-2 border-foreground pb-1 text-center">
+          <h2 className="text-lg font-bold uppercase leading-tight">{data?.tournament}</h2>
+          <p className="text-xs font-semibold uppercase leading-tight">
+            {data?.course} / {data?.fechaFormato || fecha}
+          </p>
+          <p className="text-sm font-bold leading-tight">
+            ESTACIÓN {hLabel(station)} · Hoyos captura: {capture.map(hLabel).join(', ')}
+          </p>
+        </header>
 
-      {isLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin" />}
-      {error && <p className="text-destructive">No se pudo cargar el reporte.</p>}
+        {isLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin" />}
+        {error && <p className="text-destructive">No se pudo cargar el reporte.</p>}
 
-      <div className="space-y-2">
-        {rows.map(({ g, start, at, holes }) => (
-          <table key={g.id} className="sheet-live-group w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className="border border-foreground px-2 py-1 text-left">
-                  {at ? `${at} · ` : ''}Sale {g.time} {hLabel(start)} · {g.categoryName || g.shortName}
-                </th>
-                {holes.map((h) => (
-                  <th key={h} className="w-14 border border-foreground py-1 text-center">
-                    {hLabel(h)}
+        {/* Rejilla compacta de grupos: una o dos columnas según la elección. */}
+        <div
+          className="sheet-live-grid grid gap-1.5"
+          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+        >
+          {rows.map(({ g, start, at, holes }) => (
+            <table key={g.id} className="sheet-live-group w-full table-fixed border-collapse text-[10px] leading-tight">
+              <thead>
+                <tr>
+                  <th className="border border-foreground px-1 py-0.5 text-left">
+                    {at ? `${at} · ` : ''}Sale {g.time} {hLabel(start)} · {g.categoryName || g.shortName}
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {g.players.map((p) => (
-                <tr key={p.id}>
-                  <td className="h-8 border border-foreground px-2 font-medium">{p.name}</td>
                   {holes.map((h) => (
-                    <td key={h} className="border border-foreground" />
+                    <th key={h} className="w-8 border border-foreground px-0 py-0.5 text-center text-[9px]">
+                      {hLabel(h)}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ))}
+              </thead>
+              <tbody>
+                {g.players.map((p) => (
+                  <tr key={p.id}>
+                    <td className="h-6 truncate border border-foreground px-1 font-medium" title={p.name}>{p.name}</td>
+                    {holes.map((h) => (
+                      <td key={h} className="border border-foreground" />
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
+        </div>
       </div>
     </div>
   );
