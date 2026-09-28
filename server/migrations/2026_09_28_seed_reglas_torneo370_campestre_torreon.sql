@@ -2,7 +2,8 @@
 -- Seed: Condiciones de la Competencia y Reglas Locales (PDF oficial)
 -- 52º Torneo Anual Campestre Torreón 2026 — torneoid = 370
 -- Fuente: reglas-y-condiciones-52-torneo-anual-torreon-torneo-370.pdf
--- Publica en /reglas: reglas_intro_cards + reglas_locales + etiqueta PDF.
+-- Publica en /reglas: reglas_intro_cards + reglas_locales + etiqueta PDF
+-- y los datos de contacto del oficial de reglas.
 -- La sección `desempates` ya la siembra la migración de convocatoria 370.
 -- Idempotente vía ON DUPLICATE KEY UPDATE.
 -- =====================================================================
@@ -24,6 +25,14 @@ ON DUPLICATE KEY UPDATE
   updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO convocatoria_content (torneoid, section_id, section_type, content, enabled) VALUES (370, 'reglas_pdf_label', 'generic', '{"label": "Ver Reglas y T. de Competencia (PDF)"}', 1)
+ON DUPLICATE KEY UPDATE
+  section_type = VALUES(section_type),
+  content = VALUES(content),
+  enabled = 1,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Contacto visible debajo del botón PDF; el frontend convierte el teléfono en enlace de llamada.
+INSERT INTO convocatoria_content (torneoid, section_id, section_type, content, enabled) VALUES (370, 'reglas_oficial', 'generic', '{"heading": "ASISTENCIA EN REGLAS", "name": "Alberto Gonzalez Margain", "phone": "+52 871 235 3828"}', 1)
 ON DUPLICATE KEY UPDATE
   section_type = VALUES(section_type),
   content = VALUES(content),
