@@ -870,7 +870,7 @@ const AdminDashboard = () => {
                   <Clock className="h-4 w-4" /> Time Line
                 </TabsTrigger>
               )}
-              {canAlien('alien_timeline') && (
+              {(canAlien('alien_timeline') || canAlien('alien_captura')) && (
                 <TabsTrigger value="sheet-live" className="gap-2 flex-1 min-w-[120px]">
                   <ClipboardList className="h-4 w-4" /> Sheet Live
                 </TabsTrigger>
@@ -919,7 +919,7 @@ const AdminDashboard = () => {
             )}
 
             {/* Sheet Live — hoja de captura por estación. */}
-            {canAlien('alien_timeline') && (
+            {(canAlien('alien_timeline') || canAlien('alien_captura')) && (
               <TabsContent value="sheet-live">
                 <AdminSheetLivePrint />
               </TabsContent>
