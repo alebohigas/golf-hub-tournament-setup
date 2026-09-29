@@ -767,7 +767,11 @@ foreach ($rows as $row) {
         'name'      => $row['jugador'],
         'club'      => $row['abr'],
         'clubLogo'  => $row['logo'] ? $LOGOS_BASE_URL . $row['logo'] : '',
-        'total'     => $gross == '1' ? (int)$row['so'] : (int)$row['sa'],
+        /**
+         * Total mostrado: en STABLEFORD GROSS `sa` trae los puntos Stableford
+         * gross (totstbgross), igual que las rondas; en STROKE GROSS es `so`.
+         */
+        'total'     => ($gross == '1' && $sistema !== 'STABLEFORD') ? (int)$row['so'] : (int)$row['sa'],
         'totalSO'   => (int)($row['so'] ?? 0),
         'totalSA'   => (int)($row['sa'] ?? 0),
         // Number of CLOSED scorecards (statlsc=1) for this player on scheduled dates.

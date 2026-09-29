@@ -257,6 +257,27 @@ const mapScorecardType = (system?: string, scoringType?: string): ScorecardType 
 };
 
 /**
+ * buildGrossStablefordPoints — devuelve una función (golpes - par) → puntos
+ * Stableford GROSS. Usa la tabla `valorstable` del torneo si trae columnas de
+ * diferencia/puntos; si no, aplica la escala estándar (par = 2, birdie = 3…).
+ */
+const buildGrossStablefordPoints = (rows: any): ((diff: number) => number) => {
+  const map = new Map<number, number>();
+  if (Array.isArray(rows)) {
+    for (const r of rows) {
+      if (!r || typeof r !== 'object') continue;
+      const keys = Object.keys(r);
+      const dk = keys.find((k) => /dif/i.test(k));
+      const pk = keys.find((k) => /punt|valor|pts/i.test(k) && k !== dk);
+      if (!dk || !pk) continue;
+      const d = Number(r[dk]); const p = Number(r[pk]);
+      if (Number.isFinite(d) && Number.isFinite(p)) map.set(d, p);
+    }
+  }
+  return (diff: number) => map.has(diff) ? map.get(diff)! : Math.max(0, 2 - diff);
+};
+
+/**
  * Fetch a player's hole-by-hole scorecard from the API
  * @param playerId - Player ID from the results
  * @param categoryId - Category ID
@@ -281,18 +302,24 @@ export const fetchPlayerScorecardFromApi = async (
   const url = getResultadosTarjetaUrl(playerId, categoryId, fecha, tipo, torneoIdOverride);
   const raw = await apiFetch<any>(url);
 
+  /** Stableford GROSS: la tarjeta se calcula sin ventajas (puntos gross). */
+  const isGrossStableford = scType === 'stableford' && scoringType === 'GROSS';
+  const grossPoints = buildGrossStablefordPoints(raw.stablefordValues);
+
   // Map API holes to HoleScore[]
   const holes: HoleScore[] = (raw.holes || []).map((h: any) => {
     const golpes = h.scoreSO ?? 0;
     const par = h.par ?? 0;
-    const hcpStrokes = h.hcpStrokes ?? 0;
+    const hcpStrokes = isGrossStableford ? 0 : (h.hcpStrokes ?? 0);
     const diff = golpes - par;
 
     // For Stableford: scoreSA = stableford points, neto = gross - hcpStrokes
     // For Stroke: scoreSA = net score
     const isStableford = scType === 'stableford';
     const neto = isStableford ? (golpes - hcpStrokes) : (h.scoreSA ?? golpes);
-    const puntos = isStableford ? (h.scoreSA ?? 0) : undefined;
+    const puntos = isGrossStableford
+      ? (golpes > 0 ? grossPoints(golpes - par) : 0)
+      : isStableford ? (h.scoreSA ?? 0) : undefined;
 
     return {
       hoyo: h.hole,
@@ -313,7 +340,9 @@ export const fetchPlayerScorecardFromApi = async (
   const totalNeto = isStableford
     ? holes.reduce((s, h) => s + h.neto, 0)
     : (raw.totals?.SA ?? holes.reduce((s, h) => s + h.neto, 0));
-  const totalPuntos = isStableford
+  const totalPuntos = isGrossStableford
+    ? holes.reduce((s, h) => s + (h.puntos || 0), 0)
+    : isStableford
     ? (raw.totals?.SA ?? holes.reduce((s, h) => s + (h.puntos || 0), 0))
     : undefined;
 
