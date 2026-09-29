@@ -218,6 +218,23 @@ if ($matchPlayFinal) {
     $sistema = $prev; // el cálculo usa el sistema de la fase de clasificación
 }
 
+/**
+ * GROSS STABLE (categorias.grossstb).
+ * Regla: Neto y Gross se calculan con el MISMO sistema de la categoría
+ * (Stroke Play/Stroke Play, Stableford/Stableford), EXCEPTO cuando la
+ * categoría es STABLEFORD y grossstb = 1: entonces el Gross se juega en
+ * STROKE PLAY (golpes, ASC) y el Neto permanece en Stableford.
+ */
+$grossStb = 0;
+$gsCol = @$conn->query("SHOW COLUMNS FROM categorias LIKE 'grossstb'");
+if ($gsCol && $gsCol->num_rows > 0) {
+    $gsRow = query_one($conn, "SELECT grossstb FROM categorias WHERE categoria_id = $cid");
+    $grossStb = (int)($gsRow['grossstb'] ?? 0);
+}
+if ($gross == '1' && $sistema === 'STABLEFORD' && $grossStb === 1) {
+    $sistema = 'STROKE PLAY';
+}
+
 $formato = strtoupper($catInfo['formato']);
 $medalCountNeto  = (int)$catInfo['numganadorneto'];
 $medalCountGross = (int)$catInfo['numganadorgross'];
@@ -1019,12 +1036,13 @@ json_response([
     'categoryId'   => $catInfo['categoria_id'],
     'categoryName' => $catInfo['categoria'],
     'shortName'    => $catInfo['abreviatura'],
-    'system'       => $catInfo['sistema'],
+    /** Sistema EFECTIVO del leaderboard devuelto (considera grossstb). */
+    'system'       => $matchPlayFinal ? $catInfo['sistema'] : $sistema,
     /* MATCH PLAY que viene de una fase previa de clasificación: el leaderboard
      * mostrado corresponde a `previousSystem`, pero el sistema vigente (el que
      * domina al final) sigue siendo MATCH PLAY. */
     'matchPlayFinal' => $matchPlayFinal,
-    'previousSystem' => $previousSystem,
+    'previousSystem' => $matchPlayFinal ? $sistema : $previousSystem,
     'format'       => $catInfo['formato'],
     'gross'        => (int)$gross,
     'medalCount'   => $medalCount,
