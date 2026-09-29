@@ -25,6 +25,12 @@ if (!$catInfo) { json_error('Category not found', 404); }
  *  - STABLEFORD  → totales con f_torneosa (neto) / f_stl_gross (gross); DESC; mismos buckets pero DESC.
  */
 $sistema = strtoupper(trim($catInfo['sistema']));
+/** grossstb=1 en STABLEFORD → el Gross se calcula en STROKE PLAY; Neto sigue Stableford. */
+$gsCol = @$conn->query("SHOW COLUMNS FROM categorias LIKE 'grossstb'");
+if ($gross === '1' && $sistema === 'STABLEFORD' && $gsCol && $gsCol->num_rows > 0) {
+    $gsRow = query_one($conn, "SELECT grossstb FROM categorias WHERE categoria_id = $cid");
+    if ((int)($gsRow['grossstb'] ?? 0) === 1) { $sistema = 'STROKE PLAY'; }
+}
 $isStroke = ($sistema === 'STROKE PLAY');
 
 // Play dates
@@ -195,7 +201,7 @@ json_response([
     'categoryId'   => $catInfo['categoria_id'],
     'categoryName' => $catInfo['categoria'],
     'shortName'    => $catInfo['abreviatura'],
-    'system'       => $catInfo['sistema'],
+    'system'       => $sistema,
     'format'       => 'PAREJAS',
     /** Bandera consumida por el frontend para activar layout/render de parejas */
     'isParejas'    => true,
