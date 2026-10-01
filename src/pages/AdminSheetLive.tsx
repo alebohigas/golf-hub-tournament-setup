@@ -117,7 +117,7 @@ const AdminSheetLive = () => {
       })
       .filter((r) => r.g.players.length > 0)
       .sort((a, b) => (a.at || '99:99').localeCompare(b.at || '99:99'));
-  }, [data, station, capture]);
+  }, [data, station, capture, selectedCats]);
 
   if (!fecha) return <p className="p-8">Faltan parámetros (fecha).</p>;
 
