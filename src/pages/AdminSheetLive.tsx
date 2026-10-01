@@ -62,9 +62,14 @@ const AdminSheetLive = () => {
   /** Modo de la página: hoja imprimible o app de captura (?modo=captura&grupo=ID). */
   const modo = sp.get('modo') === 'captura' ? 'captura' : 'hoja';
   const grupo = sp.get('grupo') ?? '';
+  /** Categorías seleccionadas (?cats=A,B,...); vacío = TODAS las categorías. */
+  const selectedCats = useMemo(
+    () => new Set((sp.get('cats') ?? '').split(',').map((c) => c.trim()).filter(Boolean)),
+    [sp]
+  );
 
   /** Actualiza una opción de presentación sin perder los filtros existentes. */
-  const setLayoutOption = (key: 'scale' | 'cols' | 'modo' | 'grupo', value: string) => {
+  const setLayoutOption = (key: 'scale' | 'cols' | 'modo' | 'grupo' | 'cats', value: string) => {
     const next = new URLSearchParams(sp);
     next.set(key, value);
     setSp(next, { replace: true });
