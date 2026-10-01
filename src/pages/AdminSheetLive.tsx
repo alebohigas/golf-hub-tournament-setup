@@ -170,6 +170,27 @@ const AdminSheetLive = () => {
           </Button>
           </>}
         </div>
+        {/* Filtro de categorías: sin selección = TODAS; marca una o varias. */}
+        {modo === 'hoja' && allCats.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button
+              variant={selectedCats.size === 0 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setLayoutOption('cats', '')}
+            >
+              Todas las categorías
+            </Button>
+            {allCats.map((cat) => (
+              <label key={cat} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                <Checkbox
+                  checked={selectedCats.has(cat)}
+                  onCheckedChange={(c) => toggleCat(cat, c === true)}
+                />
+                {cat}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       {modo === 'captura' && (
