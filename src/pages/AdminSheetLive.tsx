@@ -16,6 +16,7 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,9 +62,14 @@ const AdminSheetLive = () => {
   /** Modo de la página: hoja imprimible o app de captura (?modo=captura&grupo=ID). */
   const modo = sp.get('modo') === 'captura' ? 'captura' : 'hoja';
   const grupo = sp.get('grupo') ?? '';
+  /** Categorías seleccionadas (?cats=A,B,...); vacío = TODAS las categorías. */
+  const selectedCats = useMemo(
+    () => new Set((sp.get('cats') ?? '').split(',').map((c) => c.trim()).filter(Boolean)),
+    [sp]
+  );
 
   /** Actualiza una opción de presentación sin perder los filtros existentes. */
-  const setLayoutOption = (key: 'scale' | 'cols' | 'modo' | 'grupo', value: string) => {
+  const setLayoutOption = (key: 'scale' | 'cols' | 'modo' | 'grupo' | 'cats', value: string) => {
     const next = new URLSearchParams(sp);
     next.set(key, value);
     setSp(next, { replace: true });
@@ -76,10 +82,30 @@ const AdminSheetLive = () => {
   );
   const { data, isLoading, error } = useTimeLineReport(filters, !!filters);
 
+  /** Categorías presentes en el día (nombre largo, con abreviatura como respaldo). */
+  const allCats = useMemo(() => {
+    if (!data) return [] as string[];
+    const set = new Map<string, string>();
+    data.groups.forEach((g: TimeLineGroup) => {
+      const name = g.categoryName || g.shortName;
+      if (name && !set.has(name)) set.set(name, name);
+    });
+    return Array.from(set.values()).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [data]);
+
+  /** Marca o desmarca una categoría; si no queda ninguna, vuelve a TODAS. */
+  const toggleCat = (cat: string, checked: boolean) => {
+    const next = new Set(selectedCats);
+    if (checked) next.add(cat); else next.delete(cat);
+    setLayoutOption('cats', Array.from(next).join(','));
+  };
+
   /** Grupos ordenados por hora estimada en la estación, con sus hoyos a capturar. */
   const rows = useMemo(() => {
     if (!data) return [];
     return data.groups
+      .filter((g: TimeLineGroup) =>
+        selectedCats.size === 0 || selectedCats.has(g.categoryName || g.shortName))
       .map((g: TimeLineGroup) => {
         const start = resolveTimeLineStartHole(g, data.holes) ?? 1;
         return {
@@ -91,7 +117,7 @@ const AdminSheetLive = () => {
       })
       .filter((r) => r.g.players.length > 0)
       .sort((a, b) => (a.at || '99:99').localeCompare(b.at || '99:99'));
-  }, [data, station, capture]);
+  }, [data, station, capture, selectedCats]);
 
   if (!fecha) return <p className="p-8">Faltan parámetros (fecha).</p>;
 
@@ -144,6 +170,27 @@ const AdminSheetLive = () => {
           </Button>
           </>}
         </div>
+        {/* Filtro de categorías: sin selección = TODAS; marca una o varias. */}
+        {modo === 'hoja' && allCats.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button
+              variant={selectedCats.size === 0 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setLayoutOption('cats', '')}
+            >
+              Todas las categorías
+            </Button>
+            {allCats.map((cat) => (
+              <label key={cat} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                <Checkbox
+                  checked={selectedCats.has(cat)}
+                  onCheckedChange={(c) => toggleCat(cat, c === true)}
+                />
+                {cat}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       {modo === 'captura' && (
