@@ -82,10 +82,30 @@ const AdminSheetLive = () => {
   );
   const { data, isLoading, error } = useTimeLineReport(filters, !!filters);
 
+  /** Categorías presentes en el día (nombre largo, con abreviatura como respaldo). */
+  const allCats = useMemo(() => {
+    if (!data) return [] as string[];
+    const set = new Map<string, string>();
+    data.groups.forEach((g: TimeLineGroup) => {
+      const name = g.categoryName || g.shortName;
+      if (name && !set.has(name)) set.set(name, name);
+    });
+    return Array.from(set.values()).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [data]);
+
+  /** Marca o desmarca una categoría; si no queda ninguna, vuelve a TODAS. */
+  const toggleCat = (cat: string, checked: boolean) => {
+    const next = new Set(selectedCats);
+    if (checked) next.add(cat); else next.delete(cat);
+    setLayoutOption('cats', Array.from(next).join(','));
+  };
+
   /** Grupos ordenados por hora estimada en la estación, con sus hoyos a capturar. */
   const rows = useMemo(() => {
     if (!data) return [];
     return data.groups
+      .filter((g: TimeLineGroup) =>
+        selectedCats.size === 0 || selectedCats.has(g.categoryName || g.shortName))
       .map((g: TimeLineGroup) => {
         const start = resolveTimeLineStartHole(g, data.holes) ?? 1;
         return {
