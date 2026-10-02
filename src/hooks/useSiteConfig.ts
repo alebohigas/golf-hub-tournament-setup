@@ -378,6 +378,8 @@ export interface HeroConfig {
  */
 export interface PopupConfig {
   enabled: boolean;
+  /** Temporizador opcional (fecha/hora inicio–final, hora CDMX); mismo formato que AnuncioConfig.schedule. */
+  schedule?: AnuncioConfig['schedule'];
   imageUrl: string;
   paths: string[];
   durationSeconds: number;
