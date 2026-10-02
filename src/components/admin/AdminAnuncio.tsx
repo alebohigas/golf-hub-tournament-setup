@@ -582,9 +582,9 @@ const AdminAnuncio = () => {
               </span>
             </div>
             <Slider
-              min={10}
+              min={5}
               max={120}
-              step={5}
+              step={1}
               value={[config.speedSeconds]}
               onValueChange={([v]) => setConfig((c) => ({ ...c, speedSeconds: v }))}
             />
