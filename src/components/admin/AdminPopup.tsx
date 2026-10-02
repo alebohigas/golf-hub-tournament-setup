@@ -62,6 +62,7 @@ import {
 import { useSiteConfig, useSaveSiteConfig, type PopupConfig } from '@/hooks/useSiteConfig';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { describeAnuncioSchedule } from '@/lib/anuncioSchedule';
 import { menuConfig } from '@/data/mockData';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -450,6 +451,61 @@ const AdminPopup = () => {
               La imagen se renderiza a este ancho máximo; el alto se escala
               proporcionalmente y se limita al viewport en móvil.
             </p>
+          </div>
+
+          {/* Temporizador: ventana fecha/hora inicio–final (hora CDMX) */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-base">Temporizador</Label>
+                <p className="text-xs text-muted-foreground">
+                  El pop up se muestra al llegar la fecha/hora de inicio y deja de
+                  mostrarse al llegar la fecha/hora final (hora de Ciudad de México).
+                </p>
+              </div>
+              <Switch
+                checked={Boolean(config.schedule?.enabled)}
+                onCheckedChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    schedule: {
+                      startDate: c.schedule?.startDate || '',
+                      endDate: c.schedule?.endDate || c.schedule?.startDate || '',
+                      startTime: c.schedule?.startTime || '08:00',
+                      endTime: c.schedule?.endTime || '20:00',
+                      enabled: v,
+                    },
+                  }))
+                }
+              />
+            </div>
+            {config.schedule?.enabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {([
+                  ['startDate', 'Fecha inicio', 'date'],
+                  ['startTime', 'Hora inicio', 'time'],
+                  ['endDate', 'Fecha final', 'date'],
+                  ['endTime', 'Hora final', 'time'],
+                ] as const).map(([key, label, type]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`popup-${key}`}>{label}</Label>
+                    <Input
+                      id={`popup-${key}`}
+                      type={type}
+                      value={config.schedule?.[key] ?? ''}
+                      onChange={(e) =>
+                        setConfig((c) => {
+                          const next = { ...c.schedule!, [key]: e.target.value };
+                          if (key === 'startDate' && !c.schedule?.endDate) next.endDate = e.target.value;
+                          return { ...c, schedule: next };
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{describeAnuncioSchedule(config)}</p>
           </div>
 
           {/* Duration */}

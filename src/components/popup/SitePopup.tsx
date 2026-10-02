@@ -19,6 +19,7 @@ import { X } from 'lucide-react';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import type { PopupConfig } from '@/hooks/useSiteConfig';
 import { cn } from '@/lib/utils';
+import { isAnuncioWithinSchedule } from '@/lib/anuncioSchedule';
 
 /**
  * Render a single popup card. Extracted so we can lay out multiple slots
@@ -82,6 +83,12 @@ const SitePopup = () => {
   const { data: siteConfig } = useSiteConfig();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  /** Reloj que reevalúa el temporizador de cada pop up cada 15 s (hora CDMX). */
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 15000);
+    return () => window.clearInterval(t);
+  }, []);
 
   const raw = siteConfig?.popup_config;
   const slotsAll: PopupConfig[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
@@ -89,6 +96,8 @@ const SitePopup = () => {
   // Only slots that are enabled, have content, and match this route.
   const slots = slotsAll.filter((p) => {
     if (!p?.enabled) return false;
+    // Fuera de su ventana de fecha/hora no se muestra.
+    if (!isAnuncioWithinSchedule(p, now)) return false;
     const hasContent = Boolean(p.imageUrl || (p.text && p.text.trim().length > 0));
     if (!hasContent) return false;
     const paths = p.paths;

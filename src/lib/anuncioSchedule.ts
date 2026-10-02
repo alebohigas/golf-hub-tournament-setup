@@ -41,7 +41,7 @@ export const getCdMxNowParts = (now: Date = new Date()): { date: string; time: s
  * Sin temporizador (o incompleto) devuelve true: se publica siempre.
  * La ventana ahora puede abarcar varios días (startDate → endDate).
  */
-export const isAnuncioWithinSchedule = (cfg: AnuncioConfig, now: Date = new Date()): boolean => {
+export const isAnuncioWithinSchedule = (cfg: Pick<AnuncioConfig, 'schedule'>, now: Date = new Date()): boolean => {
   const s = cfg.schedule;
   if (!s?.enabled) return true;
   const startDate = s.startDate || s.date;
@@ -64,7 +64,7 @@ export const isAnuncioWithinSchedule = (cfg: AnuncioConfig, now: Date = new Date
 };
 
 /** Texto legible del temporizador para el panel de administración. */
-export const describeAnuncioSchedule = (cfg: AnuncioConfig): string => {
+export const describeAnuncioSchedule = (cfg: Pick<AnuncioConfig, 'schedule'>): string => {
   const s = cfg.schedule;
   const startDate = s?.startDate || s?.date;
   const endDate = s?.endDate || startDate;
