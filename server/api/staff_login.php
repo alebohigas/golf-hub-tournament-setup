@@ -29,6 +29,17 @@ if ($usuario === '' || $password === '') json_error('Missing credentials', 400);
 $u = esc($conn, $usuario);
 $row = query_one($conn, "SELECT id, usuario, nombre, torneoid, pwd, activo, estatus, desde, hasta
                            FROM usuarios WHERE usuario = '$u' LIMIT 1");
+/**
+ * Respaldo para cuentas creadas cuando la columna `usuario` era corta y el
+ * correo quedó truncado (ej. "ernestodk@speit"): busca por el prefijo guardado.
+ */
+if (!$row) {
+    $row = query_one($conn, "SELECT id, usuario, nombre, torneoid, pwd, activo, estatus, desde, hasta
+                               FROM usuarios
+                              WHERE CHAR_LENGTH(usuario) >= 8
+                                AND '$u' LIKE CONCAT(REPLACE(REPLACE(usuario,'%','\\\\%'),'_','\\\\_'), '%')
+                              ORDER BY CHAR_LENGTH(usuario) DESC LIMIT 1");
+}
 if (!$row) json_error('Credenciales inválidas', 401);
 
 // Validación de password

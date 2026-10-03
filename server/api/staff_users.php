@@ -48,6 +48,26 @@ function sync_areas($conn, $uid, $areas, $valid) {
     }
 }
 
+/**
+ * staff_ensure_columns — Amplía `usuarios.usuario` (≥120) y `usuarios.pwd` (≥255)
+ * si son más cortos. Antes los correos se truncaban (ej. "ernestodk@speit")
+ * y el hash bcrypt (60 chars) se cortaba, por lo que el login nunca coincidía.
+ */
+function staff_ensure_columns($conn) {
+    $want = ['usuario' => 120, 'pwd' => 255];
+    foreach ($want as $col => $len) {
+        $r = $conn->query("SELECT CHARACTER_MAXIMUM_LENGTH L FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='usuarios' AND COLUMN_NAME='$col'");
+        $row = $r ? $r->fetch_assoc() : null;
+        if ($row && (int)$row['L'] > 0 && (int)$row['L'] < $len) {
+            if (!$conn->query("ALTER TABLE usuarios MODIFY COLUMN `$col` VARCHAR($len) NULL")) {
+                error_log("staff_ensure_columns $col: " . $conn->error);
+            }
+        }
+    }
+}
+staff_ensure_columns($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     require_admin_pwd([]);
     $torneoid = (int)($_GET['torneoid'] ?? 0);
