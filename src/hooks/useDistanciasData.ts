@@ -28,6 +28,10 @@ export interface DistanciasTee {
   tee: string;
   bgcolor: string;
   color: string;
+  /** Rating / Slope / Par del campo para esta mesa (campo_tee). */
+  rating: number | null;
+  slope: number | null;
+  parCampo: number | null;
   categories: DistanciasCategory[];
   holes: DistanciasHole[];
   totalYardas: number;
