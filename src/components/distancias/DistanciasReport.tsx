@@ -61,6 +61,11 @@ const TeeDistanceTable = ({
         <p className="mt-0.5 text-xs font-medium opacity-90">
           {tee.categories.map((category) => category.name).join(' · ')}
         </p>
+        {(tee.rating !== null || tee.slope !== null || tee.parCampo !== null) && (
+          <p className="mt-1 text-sm font-semibold">
+            Rating: {tee.rating ?? '—'} · Slope: {tee.slope ?? '—'} · Par: {tee.parCampo ?? '—'}
+          </p>
+        )}
       </div>
 
       <div className="overflow-x-auto">

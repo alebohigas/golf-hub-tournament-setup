@@ -39,7 +39,8 @@ foreach ($campoRows as $campoRow) {
      * campo_tee garantiza que la mesa esté cargada para el campo; `activa=1`
      * se aplica cuando la columna existe.
      */
-    $teeRows = query_all($conn, "SELECT DISTINCT s.id, s.tee, s.bgcolor, s.color, ct.ventajas
+    $teeRows = query_all($conn, "SELECT DISTINCT s.id, s.tee, s.bgcolor, s.color, ct.ventajas,
+                                        ct.rating, ct.slope, ct.parcampo
                                   FROM caljuego cj
                                   JOIN categorias cat ON cat.categoria_id = cj.categoriaid
                                   JOIN salidas s ON s.id = cat.salida
@@ -96,6 +97,10 @@ foreach ($campoRows as $campoRow) {
             'tee' => (string)($teeRow['tee'] ?? ''),
             'bgcolor' => (string)($teeRow['bgcolor'] ?? ''),
             'color' => (string)($teeRow['color'] ?? ''),
+            /** Rating / Slope / Par del campo para esta mesa (campo_tee). */
+            'rating' => $teeRow['rating'] !== null ? (float)$teeRow['rating'] : null,
+            'slope' => $teeRow['slope'] !== null ? (int)$teeRow['slope'] : null,
+            'parCampo' => $teeRow['parcampo'] !== null ? (int)$teeRow['parcampo'] : null,
             'categories' => array_map(function ($category) {
                 return [
                     'id' => (int)$category['id'],
