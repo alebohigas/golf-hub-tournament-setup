@@ -57,15 +57,16 @@ const TeeDistanceTable = ({
   return (
     <article className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
       <div className="px-4 py-3" style={{ backgroundColor, color: foregroundColor }}>
+        {/* Orden del encabezado: 1) nombre de la mesa, 2) Rating/Slope/Par, 3) categorías */}
         <h3 className="text-lg font-bold uppercase">{tee.tee || `Mesa ${tee.id}`}</h3>
-        <p className="mt-0.5 text-xs font-medium opacity-90">
-          {tee.categories.map((category) => category.name).join(' · ')}
-        </p>
         {(tee.rating !== null || tee.slope !== null || tee.parCampo !== null) && (
-          <p className="mt-1 text-sm font-semibold">
+          <p className="mt-0.5 text-sm font-semibold">
             Rating: {tee.rating ?? '—'} · Slope: {tee.slope ?? '—'} · Par: {tee.parCampo ?? '—'}
           </p>
         )}
+        <p className="mt-1 text-xs font-medium opacity-90">
+          Categorías: {tee.categories.map((category) => category.name).join(' · ')}
+        </p>
       </div>
 
       <div className="overflow-x-auto">
