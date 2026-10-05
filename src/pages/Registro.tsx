@@ -1555,10 +1555,13 @@ const Registro = () => {
       if (selectedCat) {
         const maxC = Number(selectedCat.maxPlayers) || 0;
         const regC = Number(selectedCat.registeredCount) || 0;
-        const unlimitedC = !maxC || maxC === 99;
-        if (!unlimitedC && regC >= maxC) {
+        const unlimitedC = maxC === 99;
+        const closedC = maxC === 0; // maxjugadores=0 → CATEGORÍA CERRADA
+        if (closedC || (!unlimitedC && regC >= maxC)) {
           const ok = window.confirm(
-            'La categoria seleccionada esta llena. Serás registrado en lista de espera '
+            (closedC
+              ? 'CATEGORIA CERRADA. Procederás a lista de espera: '
+              : 'La categoria seleccionada esta llena. Serás registrado en lista de espera ')
             + 'y si se desocupa el lugar de alguien registrado antes que tu, avanzarás '
             + 'en la cola para la categoría seleccionada.'
           );
@@ -1716,14 +1719,17 @@ const Registro = () => {
                    */
                   const max = Number(c.maxPlayers) || 0;
                   const reg = Number(c.registeredCount) || 0;
-                  const unlimited = !max || max === 99;
+                  const unlimited = max === 99;
+                  const closed = max === 0; // maxjugadores=0 → CATEGORÍA CERRADA
                   const left = Math.max(max - reg, 0);
-                  const full = !unlimited && left <= 0;
-                  const label = unlimited
-                    ? c.name
-                    : full
-                      ? `${c.name} (${reg}/${max}) — LLENO (lista de espera)`
-                      : `${c.name} (${reg}/${max}) ${left} espacios disponibles`;
+                  const full = !unlimited && !closed && left <= 0;
+                  const label = closed
+                    ? `${c.name} — CATEGORÍA CERRADA (lista de espera)`
+                    : unlimited
+                      ? c.name
+                      : full
+                        ? `${c.name} (${reg}/${max}) — LLENO (lista de espera)`
+                        : `${c.name} (${reg}/${max}) ${left} espacios disponibles`;
                   return (
                     /*
                      * No deshabilitar categorías llenas: el jugador puede
@@ -1746,7 +1752,18 @@ const Registro = () => {
             if (!sel) return null;
             const max = Number(sel.maxPlayers) || 0;
             const reg = Number(sel.registeredCount) || 0;
-            if (!max || max === 99 || reg < max) return null;
+            if (max === 99) return null;
+            if (max === 0) {
+              // maxjugadores=0 → CATEGORÍA CERRADA: todo registro va a lista de espera
+              return (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  <strong>CATEGORÍA CERRADA</strong>, proceda a <strong>lista de espera</strong>.
+                  Puedes continuar y quedarás en la cola por orden de solicitud;
+                  te avisaremos si se libera un lugar.
+                </div>
+              );
+            }
+            if (reg < max) return null;
             return (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
                 <strong>CATEGORÍA LLENA</strong> ({reg}/{max}). Puedes continuar y
