@@ -73,7 +73,8 @@ function categoria_esta_llena($conn, $torneoid, $categoriaId) {
     $row = $r->fetch_assoc(); $r->free();
     if (!$row) return false;
     $max = (int)$row['maxjugadores'];
-    if ($max <= 0 || $max === 99) return false; // ilimitado
+    if ($max === 99) return false; // 99 = ilimitado
+    if ($max <= 0) return true;    // 0 = CATEGORÍA CERRADA: todo registro va a lista de espera
     /*
      * Conteo por PRE-REGISTROS (tabla `registro`, reg_categoria), igual que
      * el contador público de categories.php. Excluye cancelados (99) y los
