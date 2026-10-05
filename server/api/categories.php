@@ -86,7 +86,7 @@ if (categories_table_exists($conn, 'registro')) {
     ]);
     if ($registroTorneoCol && $registroCategoriaCol) {
         $statusFilter = categories_column_exists($conn, 'registro', 'status_pago')
-            ? ' AND (r.`status_pago` IS NULL OR r.`status_pago` <> 99)'
+            ? ' AND (r.`status_pago` IS NULL OR r.`status_pago` NOT IN (5,67,99))'
             : '';
         $registeredCountSelect = "(SELECT COUNT(*) FROM registro r
                    WHERE r.`$registroTorneoCol` = a.torneo_id

@@ -74,14 +74,22 @@ function categoria_esta_llena($conn, $torneoid, $categoriaId) {
     if (!$row) return false;
     $max = (int)$row['maxjugadores'];
     if ($max <= 0 || $max === 99) return false; // ilimitado
-    $rc = @$conn->query(
-        "SELECT COUNT(*) AS n FROM jugadores "
-        . "WHERE torneoid = $torneoid AND categoriaid = $categoriaId "
-        . "AND (estatus IS NULL OR estatus <> 'BAJA')"
-    );
-    if (!$rc) return false;
-    $cnt = (int)($rc->fetch_assoc()['n'] ?? 0);
-    $rc->free();
+    /*
+     * Conteo por PRE-REGISTROS (tabla `registro`, reg_categoria), igual que
+     * el contador público de categories.php. Excluye cancelados (99) y los
+     * que ya están en lista de espera (5/67), que no ocupan lugar.
+     */
+    $torneoCol = registro_torneo_col($conn);
+    $cnt = 0;
+    if ($torneoCol) {
+        $statusFilter = registro_has($conn, 'status_pago')
+            ? " AND (status_pago IS NULL OR status_pago NOT IN (5,67,99))" : '';
+        $rc = @$conn->query(
+            "SELECT COUNT(*) AS n FROM registro "
+            . "WHERE `$torneoCol` = $torneoid AND reg_categoria = $categoriaId$statusFilter"
+        );
+        if ($rc) { $cnt = (int)($rc->fetch_assoc()['n'] ?? 0); $rc->free(); }
+    }
     return $cnt >= $max;
 }
 

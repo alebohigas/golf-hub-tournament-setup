@@ -1739,6 +1739,22 @@ const Registro = () => {
               ))}
             </SelectContent>
           </Select>
+          {/* Aviso CATEGORÍA LLENA: cuando la categoría elegida alcanzó
+              categorias.maxjugadores, el registro entra a lista de espera. */}
+          {(() => {
+            const sel = eligibleCategories.find(c => String(c.id) === String(values[name]));
+            if (!sel) return null;
+            const max = Number(sel.maxPlayers) || 0;
+            const reg = Number(sel.registeredCount) || 0;
+            if (!max || max === 99 || reg < max) return null;
+            return (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                <strong>CATEGORÍA LLENA</strong> ({reg}/{max}). Puedes continuar y
+                quedarás en <strong>lista de espera</strong> por orden de solicitud;
+                te avisaremos si se libera un lugar.
+              </div>
+            );
+          })()}
           {/* Aviso al jugador cuando ya capturó sexo + edad + hándicap y
               ninguna categoría aplica. Mensaje no técnico: lo redirige a
               la oficina del club en lugar de exponer las reglas internas. */}
