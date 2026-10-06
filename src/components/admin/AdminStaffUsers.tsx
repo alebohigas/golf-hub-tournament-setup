@@ -43,6 +43,14 @@ export const STAFF_AREAS: { id: StaffArea; label: string }[] = [
   { id: 'reglas',       label: 'Reglas' },
   { id: 'uploads',      label: 'Archivos' },
   { id: 'stats',        label: 'Estadísticas' },
+  // Resto de páginas del panel (todas menos Usuarios, sólo superadmin)
+  { id: 'config',       label: 'Config' },
+  { id: 'pagina',       label: 'Página' },
+  { id: 'anuncio',      label: 'Anuncio' },
+  { id: 'sponsors',     label: 'Patrocinadores' },
+  { id: 'heros',        label: 'Heros' },
+  { id: 'approach',     label: 'Approach' },
+  { id: 'competiciones', label: 'Competiciones' },
   // ALIEN SYSTEM — reportes operativos de impresión + categorías
   { id: 'alien_tarjetas',    label: 'Alien: Tarjetas' },
   { id: 'alien_timeline',    label: 'Alien: Time Line' },

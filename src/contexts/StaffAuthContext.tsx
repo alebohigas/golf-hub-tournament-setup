@@ -20,6 +20,9 @@ export type StaffArea =
   | 'preregistros' | 'brackets' | 'banderas' | 'pop'
   | 'eventos' | 'avisos' | 'menus' | 'premios' | 'convocatoria'
   | 'reglas' | 'uploads' | 'stats' | 'hoteles' | 'matchplay' | 'live'
+  // Resto de páginas del panel (todas menos 'usuarios', sólo superadmin)
+  | 'config' | 'pagina' | 'anuncio' | 'sponsors' | 'heros'
+  | 'approach' | 'competiciones'
   // ALIEN SYSTEM (reportes operativos de impresión + categorías)
   | 'alien_tarjetas' | 'alien_timeline' | 'alien_salidas' | 'alien_categorias'
   | 'alien_resultados' | 'alien_distancias' | 'alien_captura';

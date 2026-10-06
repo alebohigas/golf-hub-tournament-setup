@@ -256,8 +256,8 @@ const AdminDashboard = () => {
     hoteles: 'hoteles',
     popup: 'pop',
     banderas: 'banderas',
-    anuncio: undefined,
-    sponsors: undefined,
+    anuncio: 'anuncio',
+    sponsors: 'sponsors',
     registro: 'preregistros',
     registros: 'preregistros',
     brackets: 'brackets',
@@ -265,16 +265,14 @@ const AdminDashboard = () => {
     live: 'live',
     stats: 'stats',
     'stats-page': 'stats',
+    // Usuarios (staff) queda restringido a superadmin: no es un área asignable.
     usuarios: undefined,
-    config: undefined,
-    pagina: undefined,
+    config: 'config',
+    pagina: 'pagina',
     reglas: 'reglas',
-    // Heros (fondos por página/torneo) queda restringido a superadmin.
-    heros: undefined,
-    // Approach (Clasificados de Approach) queda restringido a superadmin.
-    approach: undefined,
-    // Competiciones (qué reportes se presentan en /competencias): superadmin.
-    competiciones: undefined,
+    heros: 'heros',
+    approach: 'approach',
+    competiciones: 'competiciones',
     // ALIEN SYSTEM: la pestaña contenedora se resuelve aparte (cualquiera de
     // sus sub-áreas da acceso). Ver visibleAdminTabs / ALIEN_AREAS.
     alien: undefined,
@@ -306,6 +304,13 @@ const AdminDashboard = () => {
     alien_resultados: 'alien',
     alien_distancias: 'alien',
     alien_captura: 'alien',
+    config: 'config',
+    pagina: 'pagina',
+    anuncio: 'anuncio',
+    sponsors: 'sponsors',
+    heros: 'heros',
+    approach: 'approach',
+    competiciones: 'competiciones',
   };
   /** Áreas que dan acceso a ALIEN SYSTEM (y a su sub-pestaña respectiva). */
   const ALIEN_AREAS: StaffArea[] = ['alien_tarjetas', 'alien_timeline', 'alien_salidas', 'alien_categorias', 'alien_resultados', 'alien_distancias', 'alien_captura'];
