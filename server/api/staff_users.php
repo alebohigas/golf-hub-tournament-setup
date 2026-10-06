@@ -37,6 +37,8 @@ $VALID_AREAS = [
     // ALIEN SYSTEM — reportes operativos (tarjetas, time line, salidas) + categorías
     'alien_tarjetas','alien_timeline','alien_salidas','alien_categorias',
     'alien_resultados', 'alien_distancias', 'alien_captura',
+    // Resto de páginas del panel (todas menos 'usuarios', sólo superadmin)
+    'config','pagina','anuncio','sponsors','heros','approach','competiciones',
 ];
 
 function sync_areas($conn, $uid, $areas, $valid) {
