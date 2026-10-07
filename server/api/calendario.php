@@ -39,10 +39,23 @@ $sql = "SELECT c.id, c.fecha, c.horainicio_1, c.horainicio_10,
                cat.categoria_id, cat.categoria as categoria_nombre, cat.abreviatura,
                DATE_FORMAT(c.fecha, '%W') as dia_semana,
                DATE_FORMAT(c.fecha, '%e') as dia_num,
-               DATE_FORMAT(c.fecha, '%M') as mes_nombre
+               DATE_FORMAT(c.fecha, '%M') as mes_nombre,
+               sg.group_count, sg.am_groups, sg.pm_groups, sg.am_time, sg.pm_time
         FROM caljuego c
         LEFT JOIN campos ca ON (c.campo = ca.id)
         LEFT JOIN categorias cat ON (c.categoriaid = cat.categoria_id)
+        LEFT JOIN (
+            SELECT g.caljuegoid, g.categoriaid, COUNT(*) AS group_count,
+                   SUM(TIME(g.horainicio1a) BETWEEN '04:50:00' AND '10:59:59') AS am_groups,
+                   SUM(TIME(g.horainicio1a) BETWEEN '11:00:00' AND '16:00:59') AS pm_groups,
+                   MIN(CASE WHEN TIME(g.horainicio1a) BETWEEN '04:50:00' AND '10:59:59'
+                            THEN TIME(g.horainicio1a) END) AS am_time,
+                   MIN(CASE WHEN TIME(g.horainicio1a) BETWEEN '11:00:00' AND '16:00:59'
+                            THEN TIME(g.horainicio1a) END) AS pm_time
+            FROM salidagrupo g
+            JOIN caljuego scheduled ON scheduled.id = g.caljuegoid AND scheduled.torneoid = $tid
+            GROUP BY g.caljuegoid, g.categoriaid
+        ) sg ON sg.caljuegoid = c.id AND sg.categoriaid = c.categoriaid
         WHERE c.torneoid = $tid
           AND c.categoria IS NOT NULL
           AND c.categoria != ''
@@ -87,8 +100,15 @@ foreach ($rows as $row) {
     $amGroups = 0;  $pmGroups = 0;
     $amTime = null; $pmTime = null;
 
-    // Each configured tee contributes its own time and non-duplicated groups.
-    foreach (calendario_planned_slots($row) as $slot) {
+    // Generated groups are authoritative; never add planned counts to real counts.
+    if ((int)($row['group_count'] ?? 0) > 0) {
+        $amGroups = (int)$row['am_groups'];
+        $pmGroups = (int)$row['pm_groups'];
+        $amTime = $row['am_time'];
+        $pmTime = $row['pm_time'];
+        $hasAM = $amGroups > 0;
+        $hasPM = $pmGroups > 0;
+    } else foreach (calendario_planned_slots($row) as $slot) {
         $period = calendario_slot($slot['time']);
         if ($period === 'AM') {
             $hasAM    = true;
