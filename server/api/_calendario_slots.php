@@ -13,7 +13,7 @@ function calendario_slot($time) {
     return null;
 }
 
-/** Split planned groups by their starting tee without counting any group twice. */
+/** Split planned groups by starting tee; unused tees must not create phantom AM/PM sessions. */
 function calendario_planned_slots($row) {
     $total = max(0, (int)$row['numfoursome']);
     $holes = preg_split('/\s*,\s*/', trim((string)$row['salhoyos']), -1, PREG_SPLIT_NO_EMPTY);
@@ -22,8 +22,12 @@ function calendario_planned_slots($row) {
         if (preg_match('/^(?:H)?0*10$/i', trim($hole))) $hole10++;
     }
     $hole10 = min($total, $hole10);
-    return [
+    $slots = [
         ['time' => $row['horainicio_1'], 'groups' => $total - $hole10],
         ['time' => $row['horainicio_10'], 'groups' => $hole10],
     ];
+    // A configured tee time only represents a session when groups actually use that tee.
+    return array_values(array_filter($slots, function ($slot) {
+        return $slot['groups'] > 0;
+    }));
 }
