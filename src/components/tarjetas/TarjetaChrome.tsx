@@ -554,9 +554,10 @@ export const TarjetaFooter = ({ card }: { card: TarjetaChromeData }) => {
         <div className="text-[5.5pt] uppercase text-foreground/70">Sistema</div>
         <div className="truncate text-[7.5pt] font-bold">{sistemaLabel}</div>
       </div>
-      <div className="flex-1 border-b border-foreground/30 text-center">Anotador</div>
+      {/* Firma del anotador y nombre del jugador ALINEADOS A LA IZQUIERDA. */}
+      <div className="flex-1 border-b border-foreground/30 text-left pl-1">Anotador</div>
       {/* En lugar de "Firma jugador" se imprime el nombre del jugador. */}
-      <div className="flex-1 truncate border-b border-foreground/30 text-center">
+      <div className="flex-1 truncate border-b border-foreground/30 text-left pl-1">
         {toProperName(tarjetaText(card.name, 'Jugador por asignar'))}
       </div>
       <div className="whitespace-nowrap font-semibold">
