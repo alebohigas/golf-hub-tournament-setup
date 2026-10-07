@@ -1,6 +1,6 @@
 # Calendario de juego
 
-- [ ] Mostrar nombre y punto de color real de la tee en tarjetas, encabezado y búsqueda de Salidas; verificar presentación.
+- [x] Mostrar nombre y punto de color real de la tee en tarjetas, encabezado y búsqueda de Salidas; tarjetas y encabezado verificados con datos de prueba y compilación correcta (pendiente publicar aplicación y salidas.php/salidas_det.php en IONOS).
 
 - [x] Restaurar colores de horarios programados sin grupos y limitar bicolor a subgrupos A y B con jugadores; pruebas PHP y combinación por categoría/fecha correctas (pendiente publicar PHP y aplicación en IONOS; no validado contra el calendario real de las imágenes).
 
