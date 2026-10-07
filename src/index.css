@@ -53,6 +53,8 @@
     --golf-dark: 150 30% 8%;
 
     /* Gradients */
+    /* Calendar dual-session fill: morning and afternoon share equal diagonal halves. */
+    --gradient-calendar-split: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 50%, hsl(var(--primary)) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(var(--golf-green)) 0%, hsl(var(--golf-green-light)) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(var(--golf-gold)) 0%, hsl(var(--golf-gold-light)) 100%);
     --gradient-stats: linear-gradient(180deg, hsl(150 40% 18%) 0%, hsl(150 40% 25%) 100%);
@@ -128,6 +130,11 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
   }
+}
+
+/* Shared mixed AM/PM cell and legend swatch in both calendar views. */
+.calendar-session-split {
+  background: var(--gradient-calendar-split);
 }
 
 @layer base {
