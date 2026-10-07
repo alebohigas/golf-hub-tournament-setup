@@ -26,7 +26,7 @@ $sql = "SELECT c.id as caljgoid, c.fecha,
                c.campo, ca.campo as campo_nombre,
                c.categoriaid, cat.categoria, cat.abreviatura,
                cat.sistema, cat.formato,
-               s.tee
+                s.tee, s.id AS tee_id, s.bgcolor AS tee_bgcolor
         FROM caljuego c
         JOIN categorias cat ON (c.categoriaid = cat.categoria_id)
         LEFT JOIN campos ca ON (c.campo = ca.id)
@@ -60,7 +60,10 @@ foreach ($rows as $row) {
         'shortName'    => $row['abreviatura'],
         'system'       => $row['sistema'],
         'format'       => $row['formato'],
-        'tee'          => $row['tee']
+        'tee'          => $row['tee'],
+        // Mesa y color relacionados exclusivamente mediante categorias.salida = salidas.id.
+        'teeId'        => $row['tee_id'],
+        'teeBgcolor'   => $row['tee_bgcolor'] ?? ''
     ];
 }
 

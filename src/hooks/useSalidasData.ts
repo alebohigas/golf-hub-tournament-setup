@@ -19,6 +19,9 @@ export interface SalidasCategory {
   system: string;
   format: string;
   tee: string;
+  /** Identificador y color de la mesa relacionada con categorias.salida. */
+  teeId?: string | number;
+  teeBgcolor?: string;
 }
 
 /** Day summary from salidas.php */
@@ -82,6 +85,9 @@ export interface SalidasDetailResponse {
   system: string;
   tee: string;
   /** true cuando la categoría es MATCH PLAY (jugadores agrupados por match). */
+  /** Identificador y color de salidas para el encabezado y la búsqueda. */
+  teeId?: string | number;
+  teeBgcolor?: string;
   isMatchPlay?: boolean;
   groups: SalidasGroup[];
 
@@ -122,7 +128,8 @@ export const useSalidasDetail = (
   return useQuery<SalidasDetailResponse>({
     queryKey: ['salidas-detail', caljgoid, formato],
     queryFn: async () => {
-      const data = await apiFetch<any>(getSalidasDayUrl(caljgoid!, formato));
+      if (!caljgoid) throw new Error('Falta el calendario de juego');
+      const data = await apiFetch<any>(getSalidasDayUrl(caljgoid, formato));
       return {
         caljgoid: data?.caljgoid ?? caljgoid,
         date: data?.date ?? '',
@@ -132,6 +139,8 @@ export const useSalidasDetail = (
         shortName: data?.shortName ?? '',
         system: data?.system ?? '',
         tee: data?.tee ?? '',
+        teeId: data?.teeId,
+        teeBgcolor: data?.teeBgcolor ?? '',
         isMatchPlay: !!data?.isMatchPlay,
         groups: Array.isArray(data?.groups) ? data.groups : [],
 

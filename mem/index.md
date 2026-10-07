@@ -13,6 +13,7 @@
 - **Round scores:** Resultados/Live use dynamic `r1..rN` keys. NEVER hardcode `r1/r2/r3` ternaries — always read `player[`r${round}`]` and iterate from `days.length`.
 
 ## Memories
+- [Color de tee en Salidas](mem://features/salidas-tee-color) — Nombre con punto del color real de la mesa asignada a la categoría
 - [Calendario AM y PM](mem://features/calendario-am-pm) — Mañana 04:50–10:59, tarde 11:00–16:00 y color dividido para horarios mixtos
 - [Reporte TIME LINE](mem://features/timeline-report) — Horarios estimados por hoyo, validaciones cliente+servidor, encabezado de 4 renglones
 - [Salidas page structure](mem://features/salidas-page-structure) — Drill-down nav, conditional Neto/Gross scores, Stableford/Stroke Play sorting

@@ -1,5 +1,7 @@
 # Project architecture rules
 
+- Carry the category tee ID and background color from the Salidas API through detail and search responses into a shared tee label; this keeps every Salidas view tied to the assigned database tee instead of inferred colors.
+
 - Keep Time Line print density, block measurements, page cuts, browser printing, and PDF slicing driven by the same CSS variables and page geometry so previews match final output.
 - Store each tournament's rules-official heading, name, and phone in `convocatoria_content.reglas_oficial` so the public contact stays tournament-specific.
 - Keep SHEET LIVE scale and one/two-column layout in URL parameters and apply them to the same report container for screen and print consistency.
