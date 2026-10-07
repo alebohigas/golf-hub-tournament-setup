@@ -21,7 +21,7 @@ $cgid = esc($conn, $caljgoid);
 $sql = "SELECT a.id, a.torneoid, a.fecha, a.campo, a.categoriaid,
                b.abreviatura, b.categoria, b.sistema, b.gross, b.grossstb,
                b.salida as cat_salida,
-               s.tee, c.campo as campo_nombre
+               s.tee, s.id AS tee_id, s.bgcolor AS tee_bgcolor, c.campo as campo_nombre
         FROM caljuego a
         JOIN categorias b ON (a.categoriaid = b.categoria_id)
         JOIN salidas s ON (b.salida = s.id)
@@ -361,6 +361,9 @@ json_response([
     'shortName'    => $calInfo['abreviatura'],
     'system'       => $calInfo['sistema'],
     'tee'          => $calInfo['tee'],
+    // Misma mesa/color que las tarjetas del selector de categorías.
+    'teeId'        => $calInfo['tee_id'],
+    'teeBgcolor'   => $calInfo['tee_bgcolor'] ?? '',
     /* Bandera para que el frontend active el render agrupado por match + "VS". */
     'isMatchPlay'  => $isMatchPlay,
     'groups'       => $groups

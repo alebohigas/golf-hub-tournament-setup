@@ -8,6 +8,7 @@
 import Layout from '@/components/layout/Layout';
 import PageHero from '@/components/shared/PageHero';
 import PlayerSearchInput from '@/components/shared/PlayerSearchInput';
+import TeeLabel from '@/components/shared/TeeLabel';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -195,6 +196,8 @@ interface SearchResult {
   system: string;
   /** Tee assignment */
   tee: string;
+  /** Color real de la mesa de la categoría, conservado en los resultados de búsqueda. */
+  teeBgcolor?: string;
   /** The full group containing the matched player */
   group: SalidasGroup;
   /** Index of matched player within the group */
@@ -268,6 +271,8 @@ const Salidas = () => {
                 shortName: data?.shortName ?? '',
                 system: data?.system ?? '',
                 tee: data?.tee ?? '',
+                teeId: data?.teeId,
+                teeBgcolor: data?.teeBgcolor ?? '',
                 groups: Array.isArray(data?.groups) ? data.groups : [],
               } as SalidasDetailResponse,
             };
@@ -297,6 +302,7 @@ const Salidas = () => {
             categoryName: detail.categoryName,
             system: detail.system,
             tee: detail.tee,
+            teeBgcolor: detail.teeBgcolor,
             group,
             matchedPlayerIdx: matchIdx,
             matchPlay: !!detail.isMatchPlay,
@@ -492,7 +498,8 @@ const Salidas = () => {
                               <span className="font-semibold text-foreground capitalize">{result.dayLabel}</span>
                               <span className="text-muted-foreground">{result.course}</span>
                               <span className="text-primary font-medium">{result.categoryName}</span>
-                              <span className="text-muted-foreground">{result.system} · Tee: {result.tee}</span>
+                              <span className="text-muted-foreground">{result.system}</span>
+                              <TeeLabel tee={result.tee} bgcolor={result.teeBgcolor} />
                             </div>
                             {/* Group table */}
                             <div className="overflow-x-auto bg-white">
@@ -711,7 +718,8 @@ const Salidas = () => {
                       <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
                       {/* Nombre completo de la categoría (abreviatura sólo como respaldo) */}
                       <h3 className="font-bold text-foreground text-lg mb-1">{cat.categoryName || cat.shortName}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">{cat.tee}</p>
+                      {/* Nombre y punto con el color de salidas vinculado a la categoría. */}
+                      <div className="mb-2"><TeeLabel tee={cat.tee} bgcolor={cat.teeBgcolor} /></div>
                       {/* Group count badge */}
                       {groupCountMap[String(cat.caljgoid)] !== undefined ? (
                         <p className="text-sm text-muted-foreground">
@@ -746,9 +754,11 @@ const Salidas = () => {
                       {detail.categoryName}
                     </h2>
                     <p className="text-muted-foreground text-lg">{detail.course}</p>
+                    {/* Mesa separada del sistema y conteo, como en la referencia. */}
+                    <div className="my-1"><TeeLabel tee={detail.tee} bgcolor={detail.teeBgcolor || selectedCatMeta?.teeBgcolor} /></div>
                     <p className="text-muted-foreground text-lg">{selectedDay?.dateFormatted}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {detail.system} · Tee: {detail.tee} · {(detail.groups ?? []).length} grupos
+                      {detail.system} · {(detail.groups ?? []).length} grupos
                     </p>
                   </div>
 
