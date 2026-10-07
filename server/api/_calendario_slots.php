@@ -1,5 +1,5 @@
 <?php
-/** Shared calendar classification helpers; no database access or JSON output. */
+/** Shared calendar classification and read-only schema helpers; no JSON output. */
 
 /** Classify valid tee times by the tournament's morning/afternoon windows. */
 function calendario_slot($time) {
