@@ -26,9 +26,9 @@ export interface CalendarEntry {
   categoryName: string;
   shortName: string;
   course: string;
-  /** True when at least one group of this category tees off before 12:00. */
+  /** True when this category has a morning tee time (04:50–10:59). */
   hasAM: boolean;
-  /** True when at least one group of this category tees off at/after 12:00. */
+  /** True when this category has an afternoon tee time (11:00–16:00). */
   hasPM: boolean;
   /** Formatted AM tee time ("7:00 AM") or null. */
   amTime: string | null;

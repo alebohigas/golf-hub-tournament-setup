@@ -7,6 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
 import { getCalendarioUrl, POLL_SLOW } from '@/config/api';
+import { mergeCalendarEntries } from '@/lib/calendarioEntries';
 import type { CalendarDate, CalendarEntry, TournamentDay, CategorySchedule } from '@/data/calendarioData';
 
 /** API response shape from calendario.php.
@@ -24,6 +25,8 @@ export const useCalendarioData = () => {
   return useQuery<CalendarioResponse>({
     queryKey: ['calendario'],
     queryFn: () => apiFetch<CalendarioResponse>(getCalendarioUrl()),
+    // Both calendar views receive one merged AM/PM cell per category/date.
+    select: (data) => ({ ...data, entries: mergeCalendarEntries(data.entries ?? []) }),
     staleTime: POLL_SLOW,
     refetchInterval: POLL_SLOW,
   });

@@ -15,7 +15,8 @@
  *                              "1,1,10,10" -> 2 from hole 1, 2 from hole 10
  *   - numfoursome      -> total number of foursomes (groups) playing that day
  *
- * AM/PM is derived from the tee time: < 12:00:00 = AM, >= 12:00:00 = PM.
+ * Morning: 04:50–10:59; afternoon: 11:00–16:00 (inclusive minutes).
+ * Each starting tee is classified independently so a cell can contain both.
  *
  * Each entry in the response carries:
  *   - hasAM / hasPM      booleans for cell coloring
@@ -26,6 +27,7 @@
  * aggregate group counts across all categories per date.
  */
 require_once 'config.php';
+require_once '_calendario_slots.php';
 
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
@@ -37,10 +39,23 @@ $sql = "SELECT c.id, c.fecha, c.horainicio_1, c.horainicio_10,
                cat.categoria_id, cat.categoria as categoria_nombre, cat.abreviatura,
                DATE_FORMAT(c.fecha, '%W') as dia_semana,
                DATE_FORMAT(c.fecha, '%e') as dia_num,
-               DATE_FORMAT(c.fecha, '%M') as mes_nombre
+               DATE_FORMAT(c.fecha, '%M') as mes_nombre,
+               sg.group_count, sg.am_groups, sg.pm_groups, sg.am_time, sg.pm_time
         FROM caljuego c
         LEFT JOIN campos ca ON (c.campo = ca.id)
         LEFT JOIN categorias cat ON (c.categoriaid = cat.categoria_id)
+        LEFT JOIN (
+            SELECT g.caljuegoid, g.categoriaid, COUNT(*) AS group_count,
+                   SUM(TIME(g.horainicio1a) BETWEEN '04:50:00' AND '10:59:59') AS am_groups,
+                   SUM(TIME(g.horainicio1a) BETWEEN '11:00:00' AND '16:00:59') AS pm_groups,
+                   MIN(CASE WHEN TIME(g.horainicio1a) BETWEEN '04:50:00' AND '10:59:59'
+                            THEN TIME(g.horainicio1a) END) AS am_time,
+                   MIN(CASE WHEN TIME(g.horainicio1a) BETWEEN '11:00:00' AND '16:00:59'
+                            THEN TIME(g.horainicio1a) END) AS pm_time
+            FROM salidagrupo g
+            JOIN caljuego scheduled ON scheduled.id = g.caljuegoid AND scheduled.torneoid = $tid
+            GROUP BY g.caljuegoid, g.categoriaid
+        ) sg ON sg.caljuegoid = c.id AND sg.categoriaid = c.categoriaid
         WHERE c.torneoid = $tid
           AND c.categoria IS NOT NULL
           AND c.categoria != ''
@@ -48,17 +63,6 @@ $sql = "SELECT c.id, c.fecha, c.horainicio_1, c.horainicio_10,
         ORDER BY c.fecha ASC, c.horainicio_1 ASC, c.categoria ASC";
 
 $rows = query_all($conn, $sql);
-
-/**
- * Decide if a HH:MM:SS tee time falls in the AM half of the day.
- * Treats anything strictly before 11:00:00 as AM.
- */
-function is_am_time($t) {
-    if (!$t) return false;
-    $parts = explode(':', $t);
-    $h = isset($parts[0]) ? (int)$parts[0] : 0;
-    return $h < 11;
-}
 
 /** Format HH:MM:SS into a short label like "7:00 AM" / "1:30 PM". */
 function fmt_time($t) {
@@ -92,29 +96,28 @@ foreach ($rows as $row) {
         $pmTotals[$fecha] = 0;
     }
 
-    // Use ONLY horainicio_1 as the single tee time for the category/date.
-    // Per business rule: horainicio_10 is intentionally ignored — every
-    // group is treated as starting at the time recorded in horainicio_1.
-    // This means each cell will show a single AM or PM half (never both),
-    // even when the database has split-tee data in horainicio_10/salhoyos.
-    $numFoursome = (int)$row['numfoursome'];
-    $h1Time      = $row['horainicio_1'];
-
     $hasAM = false; $hasPM = false;
     $amGroups = 0;  $pmGroups = 0;
     $amTime = null; $pmTime = null;
 
-    // Skip unconfigured tee times (00:00:00 means the category has not been
-    // scheduled yet, even when other fields like numfoursome are set).
-    if ($h1Time && $h1Time !== '00:00:00') {
-        if (is_am_time($h1Time)) {
+    // Generated groups are authoritative; never add planned counts to real counts.
+    if ((int)($row['group_count'] ?? 0) > 0) {
+        $amGroups = (int)$row['am_groups'];
+        $pmGroups = (int)$row['pm_groups'];
+        $amTime = $row['am_time'];
+        $pmTime = $row['pm_time'];
+        $hasAM = $amGroups > 0;
+        $hasPM = $pmGroups > 0;
+    } else foreach (calendario_planned_slots($row) as $slot) {
+        $period = calendario_slot($slot['time']);
+        if ($period === 'AM') {
             $hasAM    = true;
-            $amGroups = $numFoursome;
-            $amTime   = $h1Time;
-        } else {
+            $amGroups += $slot['groups'];
+            if ($amTime === null || $slot['time'] < $amTime) $amTime = $slot['time'];
+        } elseif ($period === 'PM') {
             $hasPM    = true;
-            $pmGroups = $numFoursome;
-            $pmTime   = $h1Time;
+            $pmGroups += $slot['groups'];
+            if ($pmTime === null || $slot['time'] < $pmTime) $pmTime = $slot['time'];
         }
     }
 

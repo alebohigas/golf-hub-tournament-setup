@@ -62,11 +62,7 @@ const PreviewAmPmCell = ({ entry }: { entry: CalendarEntry }) => {
   if (both) {
     return (
       <div
-        className="flex items-center justify-center h-8 w-full text-[11px] font-semibold text-white"
-        style={{
-          background:
-            'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 50%, hsl(var(--primary)) 100%)',
-        }}
+        className="calendar-session-split flex items-center justify-center h-8 w-full text-[11px] font-semibold text-primary-foreground"
         title={`AM ${entry.amTime ?? ''} · PM ${entry.pmTime ?? ''}`.trim()}
       >
         {label}
