@@ -1,6 +1,6 @@
 # Calendario de juego
 
-- [ ] Restaurar colores de horarios programados sin grupos y limitar bicolor a subgrupos A y B con jugadores; comprobar los casos futuros.
+- [x] Restaurar colores de horarios programados sin grupos y limitar bicolor a subgrupos A y B con jugadores; pruebas PHP y combinación por categoría/fecha correctas (pendiente publicar PHP y aplicación en IONOS; no validado contra el calendario real de las imágenes).
 
 - [x] Clasificar salidas en los rangos AM/PM solicitados sin duplicar grupos.
 - [x] Mostrar el color dividido en Calendario y Convocatoria para categorías con ambos horarios.
