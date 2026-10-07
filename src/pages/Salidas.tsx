@@ -849,6 +849,8 @@ const Salidas = () => {
                                              ? `${player.position} ${player.name}`
                                              : player.name}
                                          </span>
+                                         {/* Mesa distinta a la categoría: nombre del color bajo el jugador, igual que en búsqueda. */}
+                                         {player.teeOverride && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride}</span>}
                                        </TableCell>
                                       {/* En MATCH PLAY se omite la celda de Score. */}
                                       {!matchPlay && (
@@ -869,6 +871,8 @@ const Salidas = () => {
                                         </TableCell>
                                         <TableCell className="font-medium text-foreground player-name-cell">
                                           <span className="player-name-clamp">{player.partner}</span>
+                                          {/* Mesa propia del segundo integrante, sólo cuando difiere de la categoría. */}
+                                          {player.teeOverride2 && <span className="block text-[0.65rem] leading-tight text-muted-foreground">{player.teeOverride2}</span>}
                                         </TableCell>
                                       </TableRow>
                                     );
