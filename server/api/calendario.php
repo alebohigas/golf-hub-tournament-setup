@@ -16,7 +16,7 @@
  *   - numfoursome      -> total number of foursomes (groups) playing that day
  *
  * Morning: 04:50–10:59; afternoon: 11:00–16:00 (inclusive minutes).
- * Each starting tee is classified independently so a cell can contain both.
+ * Scheduled starts stay visible before groups exist; only occupied A/B subgroups allow bicolor.
  *
  * Each entry in the response carries:
  *   - hasAM / hasPM      booleans for cell coloring
@@ -32,9 +32,32 @@ require_once '_calendario_slots.php';
 $torneoid = require_param('torneoid');
 $tid = esc($conn, $torneoid);
 
+/** Read Num Jug Calc from its real legacy column without assuming all installations share a schema. */
+$calendarSubgroupColumn = calendario_subgroup_column($conn, 'caljuego');
+$categorySubgroupColumn = calendario_subgroup_column($conn, 'categorias');
+$calendarSubgroupExpr = $calendarSubgroupColumn ? 'c.`' . str_replace('`', '``', $calendarSubgroupColumn) . '`' : 'NULL';
+$categorySubgroupExpr = $categorySubgroupColumn ? 'cat.`' . str_replace('`', '``', $categorySubgroupColumn) . '`' : 'NULL';
+
+/** Virtual calculated subgroup counts may live only in jugadores, not in a stored JSON column. */
+$playerSubgroups = [];
+$subgroupSchema = @$conn->query("SHOW COLUMNS FROM jugadores LIKE 'subgrupo'");
+$hasPlayerSubgroups = $subgroupSchema && $subgroupSchema->num_rows > 0;
+if ($subgroupSchema) $subgroupSchema->free();
+if ($hasPlayerSubgroups) {
+    $subgroupRows = query_all($conn, "SELECT categoriaid, UPPER(TRIM(subgrupo)) AS grupo, COUNT(*) AS jug
+        FROM jugadores WHERE torneoid = $tid AND UPPER(TRIM(subgrupo)) IN ('A', 'B')
+        GROUP BY categoriaid, UPPER(TRIM(subgrupo))");
+    foreach ($subgroupRows as $subgroupRow) {
+        $playerSubgroups[$subgroupRow['categoriaid']][] = [
+            'grupo' => $subgroupRow['grupo'], 'jug' => (int)$subgroupRow['jug']
+        ];
+    }
+}
+
 // Pull every relevant field from caljuego with category and course names.
 $sql = "SELECT c.id, c.fecha, c.horainicio_1, c.horainicio_10,
                c.categoria, c.campo, c.salhoyos, c.numfoursome,
+               $calendarSubgroupExpr AS calendar_subgroups, $categorySubgroupExpr AS category_subgroups,
                ca.campo as campo_nombre,
                cat.categoria_id, cat.categoria as categoria_nombre, cat.abreviatura,
                DATE_FORMAT(c.fecha, '%W') as dia_semana,
@@ -124,6 +147,16 @@ foreach ($rows as $row) {
     $amTotals[$fecha] += $amGroups;
     $pmTotals[$fecha] += $pmGroups;
 
+    // Color eligibility comes from occupied subgroups, never from foursome totals or unused tee times.
+    $subgroups = $row['calendar_subgroups'] ?? $row['category_subgroups']
+        ?? $playerSubgroups[$row['categoria_id']] ?? null;
+    $hasSubgroupsAB = calendario_has_subgroups_ab($subgroups);
+    $displayTimes = calendario_display_times($row, $hasSubgroupsAB,
+        (int)($row['group_count'] ?? 0) > 0 ? $amTime : null,
+        (int)($row['group_count'] ?? 0) > 0 ? $pmTime : null);
+    $hasAM = $displayTimes['AM'] !== null;
+    $hasPM = $displayTimes['PM'] !== null;
+
     $entries[] = [
         'id'           => (int)$row['id'],
         'date'         => $fecha,
@@ -136,8 +169,9 @@ foreach ($rows as $row) {
         'course'       => $row['campo_nombre'],
         'hasAM'        => $hasAM,
         'hasPM'        => $hasPM,
-        'amTime'       => fmt_time($amTime),
-        'pmTime'       => fmt_time($pmTime),
+        'hasSubgroupsAB' => $hasSubgroupsAB,
+        'amTime'       => fmt_time($displayTimes['AM']),
+        'pmTime'       => fmt_time($displayTimes['PM']),
         'amGroups'     => $amGroups,
         'pmGroups'     => $pmGroups,
         // Kept for backward compatibility with older clients.

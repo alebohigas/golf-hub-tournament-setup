@@ -43,4 +43,20 @@ foreach (['2026-10-09', '2026-10-10'] as $date) {
         ['AM', 'PM'], 'B mixed sessions ' . $date);
 }
 check_calendar(planned_periods(array_merge($friday, ['numfoursome' => 0])), [], 'No groups, no session');
-echo "Calendar boundaries, occupied tees and daily mixed sessions: OK\n";
+// Future dates remain colored even when no foursomes have been calculated yet.
+$future = array_merge($friday, ['numfoursome' => 0, 'salhoyos' => '']);
+check_calendar(calendario_display_times($future, false, null, null),
+    ['AM' => '06:30:00', 'PM' => null], 'Future morning without groups');
+check_calendar(calendario_display_times(array_merge($future, ['horainicio_1' => '12:30:00']), false, null, null),
+    ['AM' => null, 'PM' => '12:30:00'], 'Future afternoon without groups');
+check_calendar(calendario_has_subgroups_ab('[{"grupo":"A","jug":38},{"grupo":"B","jug":10}]'), true, 'Occupied A/B');
+check_calendar(calendario_has_subgroups_ab('[{"grupo":"A","jug":38}]'), false, 'Only A');
+check_calendar(calendario_has_subgroups_ab('[{"grupo":"A","jug":38},{"grupo":"B","jug":0}]'), false, 'Empty B');
+check_calendar(calendario_has_subgroups_ab('invalid'), false, 'Invalid subgroup JSON');
+check_calendar(calendario_display_times($future, true, null, null),
+    ['AM' => '06:30:00', 'PM' => '12:30:00'], 'Future B with both scheduled sessions');
+check_calendar(calendario_display_times($future, false, '06:30:00', '12:30:00'),
+    ['AM' => '06:30:00', 'PM' => null], 'Generated times cannot split a category without A/B');
+check_calendar(calendario_display_times($future, true, '06:45:00', '12:45:00'),
+    ['AM' => '06:45:00', 'PM' => '12:45:00'], 'Actual times authoritative for A/B');
+echo "Calendar boundaries, scheduled colors and A/B eligibility: OK\n";

@@ -30,6 +30,8 @@ export interface CalendarEntry {
   hasAM: boolean;
   /** True when this category has an afternoon tee time (11:00–16:00). */
   hasPM: boolean;
+  /** Only occupied A and B subgroups authorize a mixed-color category/date cell. */
+  hasSubgroupsAB?: boolean;
   /** Formatted AM tee time ("7:00 AM") or null. */
   amTime: string | null;
   /** Formatted PM tee time ("1:30 PM") or null. */
