@@ -15,6 +15,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminConvocatoria from '@/components/admin/AdminConvocatoria';
+/** Pestaña REGLAS Y CC: edición por secciones de la página /reglas. */
+import AdminReglas from '@/components/admin/AdminReglas';
+import { Scale as ScaleIcon } from 'lucide-react';
 import AdminLiveScoring from '@/components/admin/AdminLiveScoring';
 import AdminSponsors from '@/components/admin/AdminSponsors';
 import AdminPagina from '@/components/admin/AdminPagina';
@@ -294,7 +297,7 @@ const AdminDashboard = () => {
     premios: 'premios',
     hoteles: 'hoteles',
     convocatoria: 'convocatoria',
-    reglas: 'convocatoria',
+    reglas: 'reglas',
     uploads: 'archivos',
     stats: 'stats',
     alien_tarjetas: 'alien',
@@ -527,6 +530,7 @@ const AdminDashboard = () => {
             { value: 'archivos',     icon: Upload,          label: 'Archivos' },
             { value: 'pagina',       icon: LayoutPanelTop,  label: 'Página' },
             { value: 'convocatoria', icon: FileText,        label: 'Convocatoria' },
+            { value: 'reglas',       icon: ScaleIcon,       label: 'Reglas y CC' },
             { value: 'eventos',      icon: CalendarDays,    label: 'Eventos' },
             { value: 'avisos',       icon: Bell,            label: 'Avisos' },
             { value: 'menus',        icon: UtensilsCrossed, label: 'Menús' },
@@ -713,6 +717,11 @@ const AdminDashboard = () => {
         {/* Convocatoria Tab */}
         <TabsContent value="convocatoria">
           <AdminConvocatoria />
+        </TabsContent>
+
+        {/* Reglas y CC Tab */}
+        <TabsContent value="reglas">
+          <AdminReglas />
         </TabsContent>
 
         {/* Eventos Tab — controls poster grid layout (desktop & mobile) */}
