@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 // ============= Section registry =============
 
 /** Forma del contenido de cada sección (define el formulario). */
-type Shape = 'cards' | 'accordion' | 'pdf_label' | 'oficial';
+type Shape = 'cards' | 'accordion' | 'pdf_label' | 'oficial' | 'visibility';
 
 /** Definición de una sección editable de Reglas y CC. */
 interface ReglasSectionDef {
@@ -44,6 +44,8 @@ interface ReglasSectionDef {
 const REGLAS_SECTIONS: ReglasSectionDef[] = [
   { id: 'reglas_intro_cards', label: 'Tarjetas de introducción', icon: '📘', shape: 'cards',     sectionType: 'cards' },
   { id: 'reglas_locales',     label: 'Reglas locales del torneo', icon: '⚖️', shape: 'accordion', sectionType: 'accordion' },
+  // Solo visibilidad: la tabla la alimenta la BD (torneos.valorstable), aquí solo se muestra/oculta.
+  { id: 'reglas_stableford',  label: 'Puntaje Stableford (tabla de puntos)', icon: '🔢', shape: 'visibility', sectionType: 'visibility' },
   { id: 'reglamento_local',   label: 'Reglamento / Términos de la competencia', icon: '📜', shape: 'accordion', sectionType: 'accordion' },
   { id: 'codigo_conducta',    label: 'Código de conducta', icon: '🤝', shape: 'accordion', sectionType: 'accordion' },
   { id: 'reglas_pdf_label',   label: 'Texto del botón PDF', icon: '📄', shape: 'pdf_label', sectionType: 'pdf_label' },
