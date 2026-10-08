@@ -193,8 +193,8 @@ const Reglas = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Stableford points table — only shown when DB has data. */}
-                {stablefordRows.length > 0 && (
+                {/* Stableford points table — only shown when DB has data and admin visibility is on. */}
+                {stablefordVisible && stablefordRows.length > 0 && (
                   <div className="mb-6">
                     <h3 className="font-display font-semibold text-base mb-2 flex items-center gap-2">
                       <Scale className="h-4 w-4 text-primary" />
