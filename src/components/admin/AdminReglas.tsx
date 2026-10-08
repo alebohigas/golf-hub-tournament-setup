@@ -116,6 +116,30 @@ const AdminReglas = () => {
           const enabled = isEnabled(def.id);
           const open = expanded === def.id;
           const filled = hasUsableContent(bySectionId.get(def.id)?.content);
+          // Secciones de solo visibilidad (p. ej. tabla Stableford): sin editor,
+          // el interruptor basta para mostrar/ocultar en la página pública.
+          if (def.shape === 'visibility') {
+            return (
+              <div
+                key={def.id}
+                className={cn('rounded-lg border transition-all flex items-center gap-3 px-4 py-3',
+                  enabled ? 'border-border bg-card' : 'border-border/50 bg-muted/30 opacity-70')}
+              >
+                <span className="text-xl">{def.icon}</span>
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <span className={cn('font-medium text-sm', !enabled && 'text-muted-foreground line-through')}>
+                    {def.label}
+                  </span>
+                  {!enabled && (
+                    <Badge variant="outline" className="text-xs gap-1 text-destructive border-destructive/40">
+                      <AlertTriangle className="h-3 w-3" />Oculta
+                    </Badge>
+                  )}
+                </div>
+                <Switch checked={enabled} onCheckedChange={c => toggle(def, idx, c)} />
+              </div>
+            );
+          }
           return (
             <div
               key={def.id}
