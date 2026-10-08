@@ -59,6 +59,7 @@ const CARD_ICONS = ['BookOpen', 'Scale', 'Clock', 'AlertTriangle', 'Gavel', 'Scr
 const emptyFor = (shape: Shape): any =>
   shape === 'cards' || shape === 'accordion' ? []
   : shape === 'pdf_label' ? { label: '' }
+  : shape === 'visibility' ? {}
   : { heading: '', name: '', phone: '' };
 
 /** True cuando la fila de BD tiene contenido utilizable. */
