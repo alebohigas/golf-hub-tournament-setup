@@ -75,8 +75,10 @@ const Reglas = () => {
   const { bySectionId } = useConvocatoriaContent();
 
   // Stableford points table (torneos.valorstable) — rendered inside
-  // "Reglas Locales del Torneo". Hidden when the DB has no row.
+  // "Reglas Locales del Torneo". Hidden when the DB has no row or when the
+  // admin toggled off the `reglas_stableford` visibility switch.
   const { rows: stablefordRows } = useValorStable();
+  const stablefordVisible = bySectionId.get('reglas_stableford')?.enabled !== false;
 
   // Intro cards (top of the page) — strictly DB-backed.
   const introCardsRow = bySectionId.get('reglas_intro_cards');
@@ -191,8 +193,8 @@ const Reglas = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Stableford points table — only shown when DB has data. */}
-                {stablefordRows.length > 0 && (
+                {/* Stableford points table — only shown when DB has data and admin visibility is on. */}
+                {stablefordVisible && stablefordRows.length > 0 && (
                   <div className="mb-6">
                     <h3 className="font-display font-semibold text-base mb-2 flex items-center gap-2">
                       <Scale className="h-4 w-4 text-primary" />

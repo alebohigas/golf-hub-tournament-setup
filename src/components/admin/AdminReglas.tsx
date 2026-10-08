@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 // ============= Section registry =============
 
 /** Forma del contenido de cada sección (define el formulario). */
-type Shape = 'cards' | 'accordion' | 'pdf_label' | 'oficial';
+type Shape = 'cards' | 'accordion' | 'pdf_label' | 'oficial' | 'visibility';
 
 /** Definición de una sección editable de Reglas y CC. */
 interface ReglasSectionDef {
@@ -44,6 +44,8 @@ interface ReglasSectionDef {
 const REGLAS_SECTIONS: ReglasSectionDef[] = [
   { id: 'reglas_intro_cards', label: 'Tarjetas de introducción', icon: '📘', shape: 'cards',     sectionType: 'cards' },
   { id: 'reglas_locales',     label: 'Reglas locales del torneo', icon: '⚖️', shape: 'accordion', sectionType: 'accordion' },
+  // Solo visibilidad: la tabla la alimenta la BD (torneos.valorstable), aquí solo se muestra/oculta.
+  { id: 'reglas_stableford',  label: 'Puntaje Stableford (tabla de puntos)', icon: '🔢', shape: 'visibility', sectionType: 'visibility' },
   { id: 'reglamento_local',   label: 'Reglamento / Términos de la competencia', icon: '📜', shape: 'accordion', sectionType: 'accordion' },
   { id: 'codigo_conducta',    label: 'Código de conducta', icon: '🤝', shape: 'accordion', sectionType: 'accordion' },
   { id: 'reglas_pdf_label',   label: 'Texto del botón PDF', icon: '📄', shape: 'pdf_label', sectionType: 'pdf_label' },
@@ -57,6 +59,7 @@ const CARD_ICONS = ['BookOpen', 'Scale', 'Clock', 'AlertTriangle', 'Gavel', 'Scr
 const emptyFor = (shape: Shape): any =>
   shape === 'cards' || shape === 'accordion' ? []
   : shape === 'pdf_label' ? { label: '' }
+  : shape === 'visibility' ? {}
   : { heading: '', name: '', phone: '' };
 
 /** True cuando la fila de BD tiene contenido utilizable. */
@@ -113,6 +116,30 @@ const AdminReglas = () => {
           const enabled = isEnabled(def.id);
           const open = expanded === def.id;
           const filled = hasUsableContent(bySectionId.get(def.id)?.content);
+          // Secciones de solo visibilidad (p. ej. tabla Stableford): sin editor,
+          // el interruptor basta para mostrar/ocultar en la página pública.
+          if (def.shape === 'visibility') {
+            return (
+              <div
+                key={def.id}
+                className={cn('rounded-lg border transition-all flex items-center gap-3 px-4 py-3',
+                  enabled ? 'border-border bg-card' : 'border-border/50 bg-muted/30 opacity-70')}
+              >
+                <span className="text-xl">{def.icon}</span>
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <span className={cn('font-medium text-sm', !enabled && 'text-muted-foreground line-through')}>
+                    {def.label}
+                  </span>
+                  {!enabled && (
+                    <Badge variant="outline" className="text-xs gap-1 text-destructive border-destructive/40">
+                      <AlertTriangle className="h-3 w-3" />Oculta
+                    </Badge>
+                  )}
+                </div>
+                <Switch checked={enabled} onCheckedChange={c => toggle(def, idx, c)} />
+              </div>
+            );
+          }
           return (
             <div
               key={def.id}
