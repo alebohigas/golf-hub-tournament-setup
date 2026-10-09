@@ -1,5 +1,7 @@
 # Project architecture rules
 
+- Sort Salidas print groups on resolved numeric hole then time in the API and report hook so screen, browser print and PDF share the same order even before the PHP deployment is synchronized.
+
 - Carry the category tee ID and background color from the Salidas API through detail and search responses into a shared tee label; this keeps every Salidas view tied to the assigned database tee instead of inferred colors.
 
 - Keep Time Line print density, block measurements, page cuts, browser printing, and PDF slicing driven by the same CSS variables and page geometry so previews match final output.

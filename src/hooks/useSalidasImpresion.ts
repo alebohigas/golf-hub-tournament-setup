@@ -9,6 +9,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiClient';
+import { sortSalidasPrintGroups } from '@/lib/salidasPrintOrder';
 import {
   getSalidasImpresionDaysUrl,
   getSalidasImpresionUrl,
@@ -89,14 +90,16 @@ export const useSalidasImpresionReport = (
   useQuery<SalidasImpresionReport>({
     queryKey: ['salidas-impresion', filters],
     queryFn: async () => {
-      const data = await apiFetch<any>(getSalidasImpresionUrl(filters!));
+      if (!filters) throw new Error('Faltan filtros de salidas');
+      const data = await apiFetch<SalidasImpresionReport>(getSalidasImpresionUrl(filters));
       return {
         tournament: data?.tournament ?? '',
         club: data?.club ?? '',
         course: data?.course ?? '',
         fecha: data?.fecha ?? '',
         fechaFormato: data?.fechaFormato ?? '',
-        groups: Array.isArray(data?.groups) ? data.groups : [],
+        // Mismo orden para pantalla, impresión y PDF, incluso con una API anterior.
+        groups: sortSalidasPrintGroups(Array.isArray(data?.groups) ? data.groups : []),
       };
     },
     enabled: enabled && !!filters?.fecha,

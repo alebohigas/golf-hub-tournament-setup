@@ -214,7 +214,12 @@ foreach ($groups as $g) {
         'players'      => $list,
     ];
 }
-
+/** Orden final sobre el hoyo resuelto: primero hoyo numérico y después hora.
+ * Se aplica tras el fallback de teesal, sin alterar los jugadores del grupo.
+ */
+usort($out, function ($a, $b) {
+    return ($a['hole'] <=> $b['hole']) ?: strcmp($a['time'], $b['time']);
+});
 
 json_response([
     'tournament'   => $head['nombre'] ?? '',

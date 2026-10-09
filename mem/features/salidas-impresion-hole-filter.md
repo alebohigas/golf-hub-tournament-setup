@@ -10,4 +10,6 @@ En `/admin/salidas-impresion` (`server/api/salidas_impresion.php`):
 - Encabezado de cada bloque de salida: a la izquierda **"Categoría: <abreviatura>"**; a la derecha **hora / tee**. El número de hoyo no se repite en el encabezado porque ya viene implícito en el tee.
 
 ## Orden de jugadores
+El orden de los grupos en pantalla, impresión y PDF es por hoyo numérico ascendente y después por hora ascendente, como la referencia del usuario. No modificar el orden de jugadores dentro del grupo.
+
 El reporte de impresión debe ordenar los jugadores de cada grupo EXACTAMENTE como el grid de Salidas (salidas_det.php): ORDER BY legacy según sistema (stableford: acumstbgross/acumsa DESC + orden ASC; stroke: acumsa/acumso ASC + orden DESC), con override grossstb=1 → acumso ASC. Fallback tarjetaid DESC. Nunca ordenar solo por `orden ASC`.
