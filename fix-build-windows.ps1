@@ -1,28 +1,39 @@
 # fix-build-windows.ps1
-# Repara el conflicto de dependencias (lovable-tagger / Vite) y recompila el proyecto.
-# Uso: clic derecho > "Ejecutar con PowerShell", o en PowerShell:
+# Repara dependencias locales (Tailwind v4 instalado por error, conflicto lovable-tagger/Vite)
+# y recompila el proyecto.
+# Uso (en PowerShell, dentro de la carpeta del proyecto):
 #   powershell -ExecutionPolicy Bypass -File .\fix-build-windows.ps1
 
-Write-Host "=== Reparando dependencias del proyecto ===" -ForegroundColor Cyan
+# Ejecutar siempre desde la carpeta donde vive este script (raiz del proyecto)
+Set-Location -Path $PSScriptRoot
+Write-Host "=== Reparando dependencias en $PSScriptRoot ===" -ForegroundColor Cyan
 
-# 1) Evitar que Puppeteer descargue Chrome (causa de errores previos)
+# 1) Evitar que Puppeteer descargue Chrome
 $env:PUPPETEER_SKIP_DOWNLOAD = "true"
 
-# 2) Borrar instalacion anterior (node_modules y lockfile)
-Write-Host "Borrando node_modules y package-lock.json..."
+# 2) Borrar instalacion anterior y cache de Vite
+Write-Host "Borrando node_modules, package-lock.json y cache..."
 if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
 if (Test-Path package-lock.json) { Remove-Item -Force package-lock.json }
+npm cache clean --force | Out-Null
 
-# 3) Forzar las versiones correctas en package.json
-Write-Host "Fijando lovable-tagger@1.1.11 y tailwindcss@3.4.17..."
-npm install -D lovable-tagger@1.1.11 --save-exact --legacy-peer-deps
-npm install -D tailwindcss@3.4.17 --save-exact --legacy-peer-deps
-
-# 4) Instalar todo
+# 3) Instalar todo (package.json ya fija tailwindcss 3.4.17 y lovable-tagger 1.1.11)
 Write-Host "Instalando dependencias..."
 npm install --legacy-peer-deps
 
-# 5) Compilar
+# 4) Forzar de nuevo las versiones correctas por si acaso
+npm install -D tailwindcss@3.4.17 lovable-tagger@1.1.11 --save-exact --legacy-peer-deps
+
+# 5) Verificar la version real de Tailwind instalada
+$twVersion = node -p "require('./node_modules/tailwindcss/package.json').version"
+Write-Host "Tailwind instalado: $twVersion"
+if (-not $twVersion.StartsWith("3.")) {
+    Write-Host "ERROR: sigue instalada una version incorrecta de Tailwind ($twVersion)." -ForegroundColor Red
+    Read-Host "`nPresiona Enter para cerrar"
+    exit 1
+}
+
+# 6) Compilar
 Write-Host "Compilando (npm run build)..."
 npm run build
 
