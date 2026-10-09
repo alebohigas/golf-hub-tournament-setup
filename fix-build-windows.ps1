@@ -22,7 +22,11 @@ Write-Host "Instalando dependencias..."
 npm install --legacy-peer-deps
 
 # 4) Forzar de nuevo las versiones correctas por si acaso
+#    - Vite 7 (Vite 8/Rolldown no es compatible con este proyecto)
+#    - html2canvas / jspdf: librerias de exportacion PDF usadas por los reportes Admin
 npm install -D tailwindcss@3.4.17 lovable-tagger@1.1.11 --save-exact --legacy-peer-deps
+npm install -D vite@^7.3.5 --legacy-peer-deps
+npm install html2canvas@^1.4.1 jspdf@^4.2.1 --legacy-peer-deps
 
 # 5) Verificar la version real de Tailwind instalada
 $twVersion = node -p "require('./node_modules/tailwindcss/package.json').version"
